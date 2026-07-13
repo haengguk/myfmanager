@@ -494,6 +494,13 @@ tbody tr:hover {
   font-variant-numeric: tabular-nums;
 }
 
+.farm-return-timer {
+  color: #93c5fd;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 .shutdown-bounty {
   color: #fde68a;
   font-size: 0.72rem;

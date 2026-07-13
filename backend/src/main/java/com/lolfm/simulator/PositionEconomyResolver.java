@@ -13,7 +13,7 @@ public final class PositionEconomyResolver {
 
     public void resolve(GameState gameState, TeamState team, TeamSide side, int currentTimeSeconds, int elapsedSeconds, Random random) {
         for (PlayerState player : team.getPlayers()) {
-            if (!player.isAlive(currentTimeSeconds)) continue;
+            if (!player.canFarmAt(currentTimeSeconds)) continue;
             int cs = actualCs(player, gameState, side, elapsedSeconds, random);
             if (cs <= 0) continue;
             player.addCs(cs);

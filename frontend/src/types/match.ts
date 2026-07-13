@@ -81,7 +81,11 @@ export interface PlayerSnapshot {
   cs: number;
   gold: number;
   alive: boolean;
+  respawnAtSeconds: number;
   respawnRemainingSeconds: number;
+  canFarm: boolean;
+  farmResumeAtSeconds: number;
+  farmReturnSecondsRemaining: number;
   hasElderBuff: boolean;
   elderBuffRemainingSeconds: number;
   shutdownBountyGold: number;

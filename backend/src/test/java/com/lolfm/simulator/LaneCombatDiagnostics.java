@@ -198,7 +198,7 @@ public final class LaneCombatDiagnostics {
                     String rewardKey = event.getTimeSeconds() + ":" + data.victimPlayerId();
                     if (!rewardKeys.add(rewardKey)) duplicateRewards++;
                     if (data.assistantPlayerIds().contains(data.victimPlayerId()) || data.assistantPlayerIds().contains(data.killerPlayerId())) multipleDeaths++;
-                    collectMissedFarm(data, victim, event.getTimeSeconds(), scenario);
+                    collectMissedFarm(data, victim, event.getTimeSeconds(), scenario, timeline);
                     if (!aliveBefore(timeline, data.killerPlayerId(), event.getTimeSeconds())
                             || !aliveBefore(timeline, data.victimPlayerId(), event.getTimeSeconds())) deadParticipants++;
                 } else if (event.getType() == MatchEventType.KILL) {
@@ -213,27 +213,38 @@ public final class LaneCombatDiagnostics {
             multipleCombatTicks += combatByTime.values().stream().mapToInt(count -> Math.max(0, count - 1)).sum();
         }
 
-        void collectMissedFarm(LaneCombatData data, Position victim, int deathTime, Scenario scenario) {
-            int respawn = deathTime + (deathTime < 600 ? RespawnRuleConfig.BEFORE_10_MINUTES_SECONDS : RespawnRuleConfig.FROM_10_TO_20_MINUTES_SECONDS);
+        void collectMissedFarm(LaneCombatData data, Position victim, int deathTime, Scenario scenario, MatchTimeline timeline) {
+            PlayerSnapshot victimSnapshot = timeline.getSnapshots().stream()
+                    .filter(snapshot -> snapshot.getTimeSeconds() == deathTime)
+                    .flatMap(snapshot -> snapshot.getPlayerSnapshots().stream())
+                    .filter(player -> player.getPlayerName().equals(data.victimPlayerId()))
+                    .findFirst().orElseThrow();
+            int resume = victimSnapshot.getFarmResumeAtSeconds();
             int ticks = 0;
-            for (int tick = deathTime + 10; tick < respawn; tick += 10) ticks++;
-            missedTicks += ticks;
-            if (victim == Position.SUPPORT || ticks == 0) return;
+            double expectedTotal = 0.0;
+            TeamSide victimSide = data.winningSide().opposite();
             double base = switch (victim) {
                 case TOP -> PositionEconomyRuleConfig.TOP_BASE_CS_PER_MINUTE;
                 case MID -> PositionEconomyRuleConfig.MID_BASE_CS_PER_MINUTE;
                 case ADC -> PositionEconomyRuleConfig.ADC_BASE_CS_PER_MINUTE;
-                default -> 0;
+                case JUNGLE -> PositionEconomyRuleConfig.JUNGLE_BASE_CS_PER_MINUTE;
+                case SUPPORT -> 0;
             };
-            TeamSide victimSide = data.winningSide().opposite();
-            double modifier = 1.0;
-            if (victim != Position.JUNGLE) {
-                double signed = data.pressureAfter() / 100.0 * LanePressureRuleConfig.MAX_LANE_CS_MODIFIER;
-                modifier = victimSide == TeamSide.BLUE ? 1 + signed : 1 - signed;
+            for (int tick = deathTime + 10; tick < resume; tick += 10) {
+                ticks++;
+                if (base == 0) continue;
+                double modifier = 1.0;
+                if (victim != Position.JUNGLE) {
+                    double pressure = at(timeline, tick).getLaneSnapshots().stream()
+                            .filter(lane -> lane.lane() == data.lane()).findFirst().orElseThrow().pressure();
+                    double signed = pressure / 100.0 * LanePressureRuleConfig.MAX_LANE_CS_MODIFIER;
+                    modifier = victimSide == TeamSide.BLUE ? 1 + signed : 1 - signed;
+                }
+                expectedTotal += base * scenario.farming(victimSide, victim) * modifier * 10 / 60.0;
             }
-            double expected = base * scenario.farming(victimSide, victim) * modifier * ticks * 10 / 60.0;
-            missedExpectedCs += expected;
-            missedGold += expected * PositionEconomyRuleConfig.CS_GOLD;
+            missedTicks += ticks;
+            missedExpectedCs += expectedTotal;
+            missedGold += expectedTotal * PositionEconomyRuleConfig.CS_GOLD;
         }
 
         boolean aliveBefore(MatchTimeline timeline, String player, int time) {

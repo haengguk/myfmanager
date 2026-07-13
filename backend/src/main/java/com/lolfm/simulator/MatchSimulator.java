@@ -38,6 +38,7 @@ public class MatchSimulator {
     private final LaneCombatResolver laneCombatResolver = new LaneCombatResolver();
     private final GoldAwardService goldAwards = new GoldAwardService();
     private final boolean laneCombatEnabled;
+    private final boolean farmRecoveryEnabled;
 
     @Autowired
     public MatchSimulator(
@@ -51,7 +52,7 @@ public class MatchSimulator {
             PushResolver pushResolver
     ) {
         this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
-                objectiveAttemptResolver, structureResolver, pushResolver, true);
+                objectiveAttemptResolver, structureResolver, pushResolver, true, true);
     }
 
     MatchSimulator(
@@ -65,6 +66,22 @@ public class MatchSimulator {
             PushResolver pushResolver,
             boolean laneCombatEnabled
     ) {
+        this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
+                objectiveAttemptResolver, structureResolver, pushResolver, laneCombatEnabled, true);
+    }
+
+    MatchSimulator(
+            TeamfightResolver teamfightResolver,
+            EndGameEvaluator endGameEvaluator,
+            SnapshotFactory snapshotFactory,
+            ObjectiveResolver objectiveResolver,
+            PostFightResolver postFightResolver,
+            ObjectiveAttemptResolver objectiveAttemptResolver,
+            StructureResolver structureResolver,
+            PushResolver pushResolver,
+            boolean laneCombatEnabled,
+            boolean farmRecoveryEnabled
+    ) {
         this.teamfightResolver = teamfightResolver;
         this.endGameEvaluator = endGameEvaluator;
         this.snapshotFactory = snapshotFactory;
@@ -74,6 +91,7 @@ public class MatchSimulator {
         this.structureResolver = structureResolver;
         this.pushResolver = pushResolver;
         this.laneCombatEnabled = laneCombatEnabled;
+        this.farmRecoveryEnabled = farmRecoveryEnabled;
     }
 
     public MatchTimeline simulate(Team blueTeam, Team redTeam, long seed) {
@@ -110,9 +128,13 @@ public class MatchSimulator {
                     SIMULATION_SAFETY_TIMEOUT_SECONDS - gameState.getCurrentTimeSeconds()
             ));
             gameState.expireBaronBuffsIfNeeded();
+            boolean blueEconomy = awardPassiveForTick(gameState.getBlueTeamState(), gameState.getCurrentTimeSeconds());
+            boolean redEconomy = awardPassiveForTick(gameState.getRedTeamState(), gameState.getCurrentTimeSeconds());
             lanePressureResolver.resolve(gameState, gameState.getCurrentTimeSeconds(), random);
-            applyTickEconomy(random, gameState, gameState.getBlueTeamState(), TeamSide.BLUE, TICK_SECONDS, gameState.getCurrentTimeSeconds());
-            applyTickEconomy(random, gameState, gameState.getRedTeamState(), TeamSide.RED, TICK_SECONDS, gameState.getCurrentTimeSeconds());
+            resolveFarmForTick(random, gameState, gameState.getBlueTeamState(), TeamSide.BLUE,
+                    TICK_SECONDS, gameState.getCurrentTimeSeconds(), blueEconomy);
+            resolveFarmForTick(random, gameState, gameState.getRedTeamState(), TeamSide.RED,
+                    TICK_SECONDS, gameState.getCurrentTimeSeconds(), redEconomy);
             boolean laneCombatAttempted = laneCombatEnabled && laneCombatResolver.resolve(gameState, random, events);
             objectiveResolver.updateSpawnState(gameState);
             if (!laneCombatAttempted) maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
@@ -230,7 +252,8 @@ public class MatchSimulator {
     private TeamState buildTeamState(Team team) {
         List<PlayerState> states = new ArrayList<>();
         for (Player player : team.getPlayers()) {
-            states.add(new PlayerState(player.getName(), player.getPosition(), player.getAttributes(), STARTING_GOLD));
+            states.add(new PlayerState(player.getName(), player.getPosition(), player.getAttributes(), STARTING_GOLD,
+                    farmRecoveryEnabled));
         }
         return new TeamState(team.getName(), states);
     }
@@ -240,10 +263,21 @@ public class MatchSimulator {
     }
 
     void applyTickEconomy(Random random, GameState gameState, TeamState state, TeamSide side, int elapsedSeconds, int currentTime) {
-        if (!state.shouldResolveEconomyAt(currentTime)) return;
+        boolean economyStarted = awardPassiveForTick(state, currentTime);
+        resolveFarmForTick(random, gameState, state, side, elapsedSeconds, currentTime, economyStarted);
+    }
+
+    private boolean awardPassiveForTick(TeamState state, int currentTime) {
+        if (!state.shouldResolveEconomyAt(currentTime)) return false;
         for (PlayerState player : state.getPlayers()) {
             goldAwards.awardGold(state, player, passiveGoldPerTick(), GoldSource.PASSIVE, false);
         }
+        return true;
+    }
+
+    private void resolveFarmForTick(Random random, GameState gameState, TeamState state, TeamSide side,
+                                    int elapsedSeconds, int currentTime, boolean economyStarted) {
+        if (!economyStarted) return;
         positionEconomyResolver.resolve(gameState, state, side, currentTime, elapsedSeconds, random);
         state.markEconomyResolvedAt(currentTime);
     }

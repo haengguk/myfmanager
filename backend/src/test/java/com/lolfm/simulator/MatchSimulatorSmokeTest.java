@@ -114,14 +114,17 @@ class MatchSimulatorSmokeTest {
         assertFalse(playerState.isAlive(608));
         assertTrue(playerState.isAlive(609));
 
+        playerState = new PlayerState("Atlas", com.lolfm.domain.Position.TOP, 500);
         playerState.markDead(600, 20);
         assertFalse(playerState.isAlive(619));
         assertTrue(playerState.isAlive(620));
 
+        playerState = new PlayerState("Atlas", com.lolfm.domain.Position.TOP, 500);
         playerState.markDead(1_200, 35);
         assertFalse(playerState.isAlive(1_234));
         assertTrue(playerState.isAlive(1_235));
 
+        playerState = new PlayerState("Atlas", com.lolfm.domain.Position.TOP, 500);
         playerState.markDead(1_800, 50);
         assertFalse(playerState.isAlive(1_849));
         assertTrue(playerState.isAlive(1_850));

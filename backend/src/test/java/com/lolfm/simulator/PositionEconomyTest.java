@@ -72,7 +72,9 @@ class PositionEconomyTest {
         PositionEconomyResolver resolver = new PositionEconomyResolver();
         resolver.resolve(team, 20, 10, new Random(3));
         assertEquals(0, top.getCs());
-        resolver.resolve(team, 60, 10, new Random(3));
+        resolver.resolve(team, 79, 10, new Random(3));
+        assertEquals(0, top.getCs());
+        resolver.resolve(team, 80, 10, new Random(3));
         assertTrue(top.getCs() > 0);
     }
 

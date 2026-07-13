@@ -384,8 +384,13 @@ function App() {
                           <td>
                             <div className="player-cell">
                               <span>{player.playerName}</span>
-                              {player.hasShutdownBounty && <span className="shutdown-bounty">BOUNTY +{player.shutdownBountyGold}</span>}
-                              {!player.alive && <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>}
+                              {!player.alive ? (
+                                <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
+                              ) : !player.canFarm && player.position !== 'SUPPORT' ? (
+                                <span className="farm-return-timer">복귀 {player.farmReturnSecondsRemaining}초</span>
+                              ) : player.hasShutdownBounty ? (
+                                <span className="shutdown-bounty">BOUNTY +{player.shutdownBountyGold}</span>
+                              ) : null}
                             </div>
                           </td>
                           <td>{player.kills}/{player.deaths}/{player.assists}</td>
@@ -421,8 +426,13 @@ function App() {
                           <td>
                             <div className="player-cell">
                               <span>{player.playerName}</span>
-                              {player.hasShutdownBounty && <span className="shutdown-bounty">BOUNTY +{player.shutdownBountyGold}</span>}
-                              {!player.alive && <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>}
+                              {!player.alive ? (
+                                <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
+                              ) : !player.canFarm && player.position !== 'SUPPORT' ? (
+                                <span className="farm-return-timer">복귀 {player.farmReturnSecondsRemaining}초</span>
+                              ) : player.hasShutdownBounty ? (
+                                <span className="shutdown-bounty">BOUNTY +{player.shutdownBountyGold}</span>
+                              ) : null}
                             </div>
                           </td>
                           <td>{player.kills}/{player.deaths}/{player.assists}</td>

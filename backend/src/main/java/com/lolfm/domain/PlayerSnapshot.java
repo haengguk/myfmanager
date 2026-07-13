@@ -11,7 +11,11 @@ public class PlayerSnapshot {
     private final int cs;
     private final int gold;
     private final boolean alive;
+    private final int respawnAtSeconds;
     private final int respawnRemainingSeconds;
+    private final boolean canFarm;
+    private final int farmResumeAtSeconds;
+    private final int farmReturnSecondsRemaining;
     private final boolean hasElderBuff;
     private final int elderBuffRemainingSeconds;
     private final int shutdownBountyGold;
@@ -30,7 +34,11 @@ public class PlayerSnapshot {
             int cs,
             int gold,
             boolean alive,
+            int respawnAtSeconds,
             int respawnRemainingSeconds,
+            boolean canFarm,
+            int farmResumeAtSeconds,
+            int farmReturnSecondsRemaining,
             boolean hasElderBuff,
             int elderBuffRemainingSeconds,
             int shutdownBountyGold,
@@ -48,7 +56,11 @@ public class PlayerSnapshot {
         this.cs = cs;
         this.gold = gold;
         this.alive = alive;
+        this.respawnAtSeconds = respawnAtSeconds;
         this.respawnRemainingSeconds = respawnRemainingSeconds;
+        this.canFarm = canFarm;
+        this.farmResumeAtSeconds = farmResumeAtSeconds;
+        this.farmReturnSecondsRemaining = farmReturnSecondsRemaining;
         this.hasElderBuff = hasElderBuff;
         this.elderBuffRemainingSeconds = elderBuffRemainingSeconds;
         this.shutdownBountyGold = shutdownBountyGold;
@@ -67,7 +79,11 @@ public class PlayerSnapshot {
     public int getCs() { return cs; }
     public int getGold() { return gold; }
     public boolean isAlive() { return alive; }
+    public int getRespawnAtSeconds() { return respawnAtSeconds; }
     public int getRespawnRemainingSeconds() { return respawnRemainingSeconds; }
+    public boolean isCanFarm() { return canFarm; }
+    public int getFarmResumeAtSeconds() { return farmResumeAtSeconds; }
+    public int getFarmReturnSecondsRemaining() { return farmReturnSecondsRemaining; }
     public boolean isHasElderBuff() { return hasElderBuff; }
     public int getElderBuffRemainingSeconds() { return elderBuffRemainingSeconds; }
     public int getShutdownBountyGold() { return shutdownBountyGold; }

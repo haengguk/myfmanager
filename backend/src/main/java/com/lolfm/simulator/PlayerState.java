@@ -17,7 +17,10 @@ public class PlayerState {
     private int assists;
     private int cs;
     private int gold;
+    private int lastDeathAtSeconds = -1;
     private int respawnAtSeconds;
+    private int farmResumeAtSeconds;
+    private final boolean farmRecoveryEnabled;
     private int elderBuffExpiresAtSeconds = -1;
     private double bountyProgress;
     private double pendingCombatBountyProgress;
@@ -35,6 +38,11 @@ public class PlayerState {
     }
 
     public PlayerState(String playerName, Position position, PlayerAttributes attributes, int startingGold) {
+        this(playerName, position, attributes, startingGold, true);
+    }
+
+    PlayerState(String playerName, Position position, PlayerAttributes attributes, int startingGold,
+                boolean farmRecoveryEnabled) {
         this.playerName = playerName;
         this.position = Objects.requireNonNull(position, "position");
         this.mechanics = PlayerImpactRuleConfig.normalize(attributes.getMechanics());
@@ -43,6 +51,8 @@ public class PlayerState {
         this.teamfighting = PlayerImpactRuleConfig.normalize(attributes.getTeamfighting());
         this.gold = startingGold;
         this.respawnAtSeconds = 0;
+        this.farmResumeAtSeconds = 0;
+        this.farmRecoveryEnabled = farmRecoveryEnabled;
     }
 
     public String getPlayerName() {
@@ -79,6 +89,8 @@ public class PlayerState {
     }
 
     public int getRespawnAtSeconds() { return respawnAtSeconds; }
+    public int getLastDeathAtSeconds() { return lastDeathAtSeconds; }
+    public int getFarmResumeAtSeconds() { return farmResumeAtSeconds; }
     public int getElderBuffExpiresAtSeconds() { return elderBuffExpiresAtSeconds; }
     public void grantElderBuff(int currentTimeSeconds, int durationSeconds) { elderBuffExpiresAtSeconds = currentTimeSeconds + durationSeconds; }
     public boolean hasActiveElderBuff(int currentTimeSeconds) { return isAlive(currentTimeSeconds) && currentTimeSeconds < elderBuffExpiresAtSeconds; }
@@ -87,6 +99,14 @@ public class PlayerState {
 
     public boolean isAlive(int currentTimeSeconds) {
         return currentTimeSeconds >= respawnAtSeconds;
+    }
+
+    public boolean canFarmAt(int currentTimeSeconds) {
+        return isAlive(currentTimeSeconds) && currentTimeSeconds >= farmResumeAtSeconds;
+    }
+
+    public int farmReturnSecondsRemaining(int currentTimeSeconds) {
+        return Math.max(0, farmResumeAtSeconds - currentTimeSeconds);
     }
 
     public void addKill() {
@@ -98,9 +118,15 @@ public class PlayerState {
     }
 
     public void markDead(int currentTimeSeconds, int respawnDelaySeconds) {
+        if (!isAlive(currentTimeSeconds)) return;
         addDeath();
         removeElderBuff();
+        lastDeathAtSeconds = currentTimeSeconds;
         respawnAtSeconds = currentTimeSeconds + respawnDelaySeconds;
+        int returnDelay = farmRecoveryEnabled
+                ? FarmRecoveryRuleConfig.returnDelaySeconds(position, currentTimeSeconds)
+                : 0;
+        farmResumeAtSeconds = Math.max(farmResumeAtSeconds, respawnAtSeconds + returnDelay);
     }
 
     public void respawn() {
