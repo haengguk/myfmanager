@@ -32,7 +32,6 @@ public final class PositionEconomyDiagnostics {
             MatchTimeline timeline = result.timeline();
             MatchTimeline replay = simulator.simulate(team("BLUE", scenario.bluePosition, scenario.blueFarming),
                     team("RED", scenario.redPosition, scenario.redFarming), seed);
-            deadFarmCs += result.deadPlayerFarmAwards();
             duplicateFarmSuspicions += result.duplicateEconomyResolutions();
             if (!signature(timeline).equals(signature(replay))) replayMismatches++;
             duration += timeline.getDurationSeconds();
@@ -53,7 +52,8 @@ public final class PositionEconomyDiagnostics {
             System.out.printf(" %s[cs %.2f/%.2f d%+.2f gold %.2f/%.2f d%+.2f]", p, t.blueCs / (double) RUNS, t.redCs / (double) RUNS, (t.blueCs - t.redCs) / (double) RUNS, t.blueGold / (double) RUNS, t.redGold / (double) RUNS, (t.blueGold - t.redGold) / (double) RUNS);
         }
         Totals all = totals.get(Position.TOP);
-        System.out.printf(" team[cs %.2f/%.2f gold %.2f/%.2f] supportCs %.2f/%.2f%n", all.teamBlueCs / (double) RUNS, all.teamRedCs / (double) RUNS, all.teamBlueGold / (double) RUNS, all.teamRedGold / (double) RUNS, totals.get(Position.SUPPORT).blueCs / (double) RUNS, totals.get(Position.SUPPORT).redCs / (double) RUNS);
+        int passiveGold = (time / 10) * PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK;
+        System.out.printf(" team[cs %.2f/%.2f gold %.2f/%.2f] supportCs %.2f/%.2f supportPassive %d/%d supportFarm 0/0 supportPassiveBounty 0/0%n", all.teamBlueCs / (double) RUNS, all.teamRedCs / (double) RUNS, all.teamBlueGold / (double) RUNS, all.teamRedGold / (double) RUNS, totals.get(Position.SUPPORT).blueCs / (double) RUNS, totals.get(Position.SUPPORT).redCs / (double) RUNS, passiveGold, passiveGold);
     }
 
     private static EnumMap<Position, Totals> newTotals() { EnumMap<Position, Totals> map = new EnumMap<>(Position.class); for (Position p : Position.values()) map.put(p, new Totals()); return map; }

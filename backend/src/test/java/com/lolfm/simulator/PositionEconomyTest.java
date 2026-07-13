@@ -1,7 +1,6 @@
 package com.lolfm.simulator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -78,17 +77,64 @@ class PositionEconomyTest {
     }
 
     @Test
-    void duplicateResolutionAtSameTimeDoesNotAwardTwice() {
+    void passiveGoldIsFourteenForEveryFarmingValueAndPositionAndDoesNotCreateBountyProgress() {
+        for (int farming : List.of(1, 10, 14, 18, 20)) {
+            for (Position position : Position.values()) {
+                PlayerState player = player(position.name(), position, farming);
+                TeamState team = new TeamState("team-" + position + farming, List.of(player));
+                simulator().applyTickEconomy(new Random(1), team, 10, 10);
+                assertEquals(PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK,
+                        player.getGold() - 500 - player.getCs() * PositionEconomyRuleConfig.CS_GOLD);
+                assertEquals(player.getCs(), player.getBountyProgress(), 0.000001);
+            }
+        }
+    }
+
+    @Test
+    void deadPlayersReceivePassiveButNoFarmCsOrFarmGold() {
         PlayerState top = player("top", Position.TOP, 14);
         TeamState team = new TeamState("team", List.of(top));
-        PositionEconomyResolver resolver = new PositionEconomyResolver();
-        resolver.resolve(team, 60, 60, new Random(4));
-        int cs = top.getCs();
-        int gold = top.getGold();
-        resolver.resolve(team, 60, 60, new Random(99));
+        top.markDead(0, 60);
+        simulator().applyTickEconomy(new Random(1), team, 10, 10);
+        assertEquals(0, top.getCs());
+        assertEquals(514, top.getGold());
+        assertEquals(0.0, top.getBountyProgress());
+    }
+
+    @Test
+    void wholeEconomyTickDoesNotDuplicateAndAdvancesAtNextTime() {
+        PlayerState top = player("top", Position.TOP, 14);
+        TeamState team = new TeamState("team", List.of(top));
+        MatchSimulator simulator = simulator();
+        simulator.applyTickEconomy(new Random(4), team, 10, 10);
+        int cs = top.getCs(), gold = top.getGold();
+        simulator.applyTickEconomy(new Random(99), team, 10, 10);
         assertEquals(cs, top.getCs());
         assertEquals(gold, top.getGold());
-        assertThrows(IllegalArgumentException.class, () -> resolver.resolve(team, 50, 10, new Random(4)));
+        assertEquals(1, team.getDuplicateEconomyResolutionCount());
+        simulator.applyTickEconomy(new Random(5), team, 10, 20);
+        assertTrue(top.getGold() >= gold + PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK);
+        assertEquals(20, team.getLastEconomyResolvedAtSeconds());
+    }
+
+    @Test
+    void newSameNamedTeamsAndStatelessResolverDoNotShareEconomyClock() {
+        MatchSimulator simulator = simulator();
+        TeamState first = new TeamState("same", List.of(player("first", Position.TOP, 14)));
+        TeamState second = new TeamState("same", List.of(player("second", Position.TOP, 14)));
+        assertEquals(-1, first.getLastEconomyResolvedAtSeconds());
+        assertEquals(-1, second.getLastEconomyResolvedAtSeconds());
+        simulator.applyTickEconomy(new Random(1), first, 10, 10);
+        simulator.applyTickEconomy(new Random(1), second, 10, 10);
+        assertEquals(514 + first.getPlayers().getFirst().getCs() * PositionEconomyRuleConfig.CS_GOLD, first.getPlayers().getFirst().getGold());
+        assertEquals(514 + second.getPlayers().getFirst().getCs() * PositionEconomyRuleConfig.CS_GOLD, second.getPlayers().getFirst().getGold());
+        assertThrows(IllegalArgumentException.class, () -> simulator.applyTickEconomy(new Random(1), first, 10, 5));
+    }
+
+    private MatchSimulator simulator() {
+        return new MatchSimulator(new TeamfightResolver(), new EndGameEvaluator(), new SnapshotFactory(),
+                new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(),
+                new StructureResolver(), new PushResolver());
     }
 
     private TeamState completeTeam(int farming) {

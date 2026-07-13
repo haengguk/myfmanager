@@ -157,8 +157,8 @@ public class MatchSimulator {
                 gameState.getPushWindowStructureCount(),
                 gameState.getAceWindowNexusEndCount(),
                 gameState.getEndReason(),
-                positionEconomyResolver.getDeadPlayerFarmAwardCount(),
-                positionEconomyResolver.getDuplicateResolutionCount()
+                gameState.getBlueTeamState().getDuplicateEconomyResolutionCount()
+                        + gameState.getRedTeamState().getDuplicateEconomyResolutionCount()
         );
     }
 
@@ -179,7 +179,6 @@ public class MatchSimulator {
             int pushWindowStructureCount,
             int aceWindowNexusEndCount,
             GameEndReason endReason,
-            int deadPlayerFarmAwards,
             int duplicateEconomyResolutions
     ) {
     }
@@ -213,12 +212,16 @@ public class MatchSimulator {
         return new TeamState(team.getName(), states);
     }
 
-    private void applyTickEconomy(Random random, TeamState state, int elapsedSeconds, int currentTime) {
-        for (PlayerState player : state.getPlayers()) goldAwards.awardGold(state, player, passiveGoldPerTick(player), GoldSource.PASSIVE, false);
+    void applyTickEconomy(Random random, TeamState state, int elapsedSeconds, int currentTime) {
+        if (!state.shouldResolveEconomyAt(currentTime)) return;
+        for (PlayerState player : state.getPlayers()) {
+            goldAwards.awardGold(state, player, passiveGoldPerTick(), GoldSource.PASSIVE, false);
+        }
         positionEconomyResolver.resolve(state, currentTime, elapsedSeconds, random);
+        state.markEconomyResolvedAt(currentTime);
     }
 
-    private int passiveGoldPerTick(PlayerState player) { return PlayerImpactRuleConfig.PASSIVE_GOLD_BASE_PER_TICK + Math.floorDiv(player.getFarming() - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE, PlayerImpactRuleConfig.PASSIVE_GOLD_STEP_POINTS); }
+    private int passiveGoldPerTick() { return PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK; }
 
     private void maybeCreateKillEvent(Random random, Team blueTeam, Team redTeam, GameState state, List<MatchEvent> events) {
         double averageAggression = (averageAttribute(state.getBlueTeamState(), PlayerState::getAggression)

@@ -7,8 +7,6 @@ public final class PlayerImpactRuleConfig {
     public static final int MAX_ATTRIBUTE = 20;
     public static final int BASELINE_ATTRIBUTE = 14;
 
-    public static final int PASSIVE_GOLD_BASE_PER_TICK = 14;
-    public static final int PASSIVE_GOLD_STEP_POINTS = 8;
 
     public static final double SKIRMISH_CHANCE_PER_AVERAGE_AGGRESSION_POINT = 0.003;
     public static final double SKIRMISH_INITIATIVE_AGGRESSION_WEIGHT = 2.6;

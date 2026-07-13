@@ -12,6 +12,7 @@ public final class PositionEconomyRuleConfig {
     public static final double MIN_FARMING_MULTIPLIER = 0.74;
     public static final double MAX_FARMING_MULTIPLIER = 1.12;
     public static final int CS_GOLD = 20;
+    public static final int PASSIVE_GOLD_PER_TICK = 14;
 
     private PositionEconomyRuleConfig() {
     }

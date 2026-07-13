@@ -20,6 +20,8 @@ public class TeamState {
     private int baronBuffExpiresAtSeconds = -1;
     private final List<PlayerState> players;
     private final EnumMap<Position, PlayerState> playersByPosition = new EnumMap<>(Position.class);
+    private int lastEconomyResolvedAtSeconds = -1;
+    private int duplicateEconomyResolutionCount;
 
     public TeamState(String teamName, List<PlayerState> players) {
         this.teamName = teamName;
@@ -85,6 +87,29 @@ public class TeamState {
     public PlayerState playerAt(Position position) {
         return findPlayerAt(position).orElseThrow(() -> new IllegalArgumentException("Missing position: " + position));
     }
+
+    /** Game-local economy clock; it is discarded with this TeamState at game end. */
+    public boolean shouldResolveEconomyAt(int currentTimeSeconds) {
+        if (currentTimeSeconds < lastEconomyResolvedAtSeconds) {
+            throw new IllegalArgumentException("Economy time cannot move backwards");
+        }
+        if (currentTimeSeconds == lastEconomyResolvedAtSeconds) {
+            duplicateEconomyResolutionCount++;
+            return false;
+        }
+        return true;
+    }
+
+    /** Call only after PASSIVE and FARM awards for this tick both succeed. */
+    public void markEconomyResolvedAt(int currentTimeSeconds) {
+        if (currentTimeSeconds <= lastEconomyResolvedAtSeconds) {
+            throw new IllegalStateException("Economy time was not advanced");
+        }
+        lastEconomyResolvedAtSeconds = currentTimeSeconds;
+    }
+
+    public int getLastEconomyResolvedAtSeconds() { return lastEconomyResolvedAtSeconds; }
+    public int getDuplicateEconomyResolutionCount() { return duplicateEconomyResolutionCount; }
 
     /** Validates the five-player invariant at match start, rather than for partial unit-test teams. */
     public void validateCompleteLineup() {
