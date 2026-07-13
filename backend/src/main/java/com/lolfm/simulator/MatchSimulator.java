@@ -33,6 +33,7 @@ public class MatchSimulator {
     private final StructureResolver structureResolver;
     private final PushResolver pushResolver;
     private final PositionEconomyResolver positionEconomyResolver = new PositionEconomyResolver();
+    private final LanePressureResolver lanePressureResolver = new LanePressureResolver();
     private final GoldAwardService goldAwards = new GoldAwardService();
 
     public MatchSimulator(
@@ -89,8 +90,9 @@ public class MatchSimulator {
                     SIMULATION_SAFETY_TIMEOUT_SECONDS - gameState.getCurrentTimeSeconds()
             ));
             gameState.expireBaronBuffsIfNeeded();
-            applyTickEconomy(random, gameState.getBlueTeamState(), TICK_SECONDS, gameState.getCurrentTimeSeconds());
-            applyTickEconomy(random, gameState.getRedTeamState(), TICK_SECONDS, gameState.getCurrentTimeSeconds());
+            lanePressureResolver.resolve(gameState, gameState.getCurrentTimeSeconds(), random);
+            applyTickEconomy(random, gameState, gameState.getBlueTeamState(), TeamSide.BLUE, TICK_SECONDS, gameState.getCurrentTimeSeconds());
+            applyTickEconomy(random, gameState, gameState.getRedTeamState(), TeamSide.RED, TICK_SECONDS, gameState.getCurrentTimeSeconds());
             objectiveResolver.updateSpawnState(gameState);
             maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
 
@@ -213,11 +215,15 @@ public class MatchSimulator {
     }
 
     void applyTickEconomy(Random random, TeamState state, int elapsedSeconds, int currentTime) {
+        applyTickEconomy(random, null, state, null, elapsedSeconds, currentTime);
+    }
+
+    void applyTickEconomy(Random random, GameState gameState, TeamState state, TeamSide side, int elapsedSeconds, int currentTime) {
         if (!state.shouldResolveEconomyAt(currentTime)) return;
         for (PlayerState player : state.getPlayers()) {
             goldAwards.awardGold(state, player, passiveGoldPerTick(), GoldSource.PASSIVE, false);
         }
-        positionEconomyResolver.resolve(state, currentTime, elapsedSeconds, random);
+        positionEconomyResolver.resolve(gameState, state, side, currentTime, elapsedSeconds, random);
         state.markEconomyResolvedAt(currentTime);
     }
 

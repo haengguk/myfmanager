@@ -1,5 +1,6 @@
 package com.lolfm.simulator;
 
+import com.lolfm.domain.LaneSnapshot;
 import com.lolfm.domain.MatchSnapshot;
 import com.lolfm.domain.PlayerSnapshot;
 import java.util.ArrayList;
@@ -42,8 +43,18 @@ public class SnapshotFactory {
                 gameState.getMapState().getBaseState(TeamSide.RED).isNexusAlive(),
                 blueAlivePlayers,
                 redAlivePlayers,
-                playerSnapshots
+                playerSnapshots,
+                laneSnapshots(gameState)
         );
+    }
+
+    private List<LaneSnapshot> laneSnapshots(GameState gameState) {
+        List<LaneSnapshot> snapshots = new ArrayList<>();
+        for (Lane lane : Lane.values()) {
+            LaneState state = gameState.laneState(lane);
+            snapshots.add(new LaneSnapshot(lane, state.getPressure(), state.getPriority()));
+        }
+        return snapshots;
     }
 
     private boolean hasElder(TeamState team, int time) { return elderRemaining(team, time) > 0; }

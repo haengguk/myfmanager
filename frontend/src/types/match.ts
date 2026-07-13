@@ -48,6 +48,13 @@ export interface MatchSnapshot {
   blueAlivePlayers: number;
   redAlivePlayers: number;
   playerSnapshots: PlayerSnapshot[];
+  laneSnapshots: LaneSnapshot[];
+}
+
+export interface LaneSnapshot {
+  lane: 'TOP' | 'MID' | 'BOT';
+  pressure: number;
+  priority: 'BLUE' | 'NEUTRAL' | 'RED';
 }
 
 export interface PlayerSnapshot {

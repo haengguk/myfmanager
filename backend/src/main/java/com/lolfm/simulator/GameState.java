@@ -12,6 +12,9 @@ public class GameState {
     private final TeamState redTeamState;
     private final ObjectiveState objectiveState;
     private final MapState mapState;
+    private final EnumMap<Lane, LaneState> laneStates = new EnumMap<>(Lane.class);
+    private int lastLanePressureResolvedAtSeconds = -1;
+    private int duplicateLanePressureResolutionCount;
     private boolean finished;
     private TeamSide winnerSide;
     private GameEndReason endReason;
@@ -39,6 +42,7 @@ public class GameState {
         this.redTeamState = redTeamState;
         this.objectiveState = new ObjectiveState();
         this.mapState = new MapState();
+        for (Lane lane : Lane.values()) laneStates.put(lane, new LaneState(lane));
         this.lastBigWinTimeSeconds = -1;
         this.lastAceTimeSeconds = -1;
     }
@@ -61,6 +65,22 @@ public class GameState {
 
     public MapState getMapState() {
         return mapState;
+    }
+
+    public LaneState laneState(Lane lane) { return laneStates.get(lane); }
+    public Map<Lane, LaneState> getLaneStates() { return Map.copyOf(laneStates); }
+    public int getLastLanePressureResolvedAtSeconds() { return lastLanePressureResolvedAtSeconds; }
+    public int getDuplicateLanePressureResolutionCount() { return duplicateLanePressureResolutionCount; }
+
+    public boolean shouldResolveLanePressureAt(int currentTimeSeconds) {
+        if (currentTimeSeconds < lastLanePressureResolvedAtSeconds) throw new IllegalArgumentException("Lane pressure time cannot move backwards");
+        if (currentTimeSeconds == lastLanePressureResolvedAtSeconds) { duplicateLanePressureResolutionCount++; return false; }
+        return currentTimeSeconds > 0 && currentTimeSeconds % LanePressureRuleConfig.PRESSURE_UPDATE_INTERVAL_SECONDS == 0;
+    }
+
+    public void markLanePressureResolvedAt(int currentTimeSeconds) {
+        if (currentTimeSeconds <= lastLanePressureResolvedAtSeconds) throw new IllegalStateException("Lane pressure time was not advanced");
+        lastLanePressureResolvedAtSeconds = currentTimeSeconds;
     }
 
     public void expireBaronBuffsIfNeeded() {
