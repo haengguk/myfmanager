@@ -57,7 +57,9 @@ public class SnapshotFactory {
                     ? 0
                     : Math.max(0, playerState.getRespawnAtSeconds() - currentTime);
             if (alive) alivePlayers++;
-            int shutdownBountyGold = BountyService.displayedShutdownGold(playerState, teamState, opposingTeam, currentTime);
+            int shutdownBountyGold = alive
+                    ? BountyService.displayedShutdownGold(playerState, teamState, opposingTeam, currentTime)
+                    : 0;
             playerState.setLastVisibleShutdownGold(shutdownBountyGold);
             playerSnapshots.add(new PlayerSnapshot(
                     playerState.getPlayerName(),

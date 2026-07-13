@@ -86,6 +86,46 @@ class BountyRuleTest {
         assertFalse(assistant.getTotalShutdownGoldEarned() > 0);
     }
 
+    @Test
+    void snapshotHidesBountyForDeadPlayersAndRestoresCarryOverAfterRespawn() {
+        PlayerState bluePlayer = player("blue");
+        PlayerState redPlayer = player("red");
+        bluePlayer.addImmediateBountyProgress(1_050);
+        TeamState blue = team("blue", bluePlayer);
+        TeamState red = team("red", redPlayer);
+        blue.addGold(1_000);
+        GameState state = new GameState(blue, red);
+        state.advanceTimeSeconds(400);
+        SnapshotFactory snapshots = new SnapshotFactory();
+        assertEquals(700, snapshots.create(state).getPlayerSnapshots().getFirst().getShutdownBountyGold());
+
+        bluePlayer.markDead(400, 35);
+        assertEquals(0, snapshots.create(state).getPlayerSnapshots().getFirst().getShutdownBountyGold());
+        assertFalse(snapshots.create(state).getPlayerSnapshots().getFirst().isHasShutdownBounty());
+        assertEquals(1_050.0, bluePlayer.getBountyProgress(), 0.000001);
+
+        state.advanceTimeSeconds(35);
+        assertEquals(700, snapshots.create(state).getPlayerSnapshots().getFirst().getShutdownBountyGold());
+    }
+
+    @Test
+    void suppressionCoversTwoToEightPercentInterpolation() {
+        TeamState own = team("own", player("own")); TeamState enemy = team("enemy", player("enemy"));
+        own.addGold(10); assertEquals(0.0, BountyService.calculateSuppressionFactor(own, enemy, 360));
+        own.addGold(20); assertEquals(2.0 / 3.0, BountyService.calculateSuppressionFactor(own, enemy, 360), 0.000001);
+        own.addGold(10); assertEquals(1.0, BountyService.calculateSuppressionFactor(own, enemy, 360));
+    }
+
+    @Test
+    void payoutBelowCapClearsProgressAndCannotPayTwice() {
+        PlayerState killer = player("killer"), victim = player("victim"); victim.addImmediateBountyProgress(400);
+        TeamState attackers = team("attackers", killer), defenders = team("defenders", victim); List<MatchEvent> events = new ArrayList<>();
+        KillRewardResolver resolver = new KillRewardResolver(); resolver.award(10, attackers, killer, defenders, victim, List.of(), 10, false, 300, events);
+        assertEquals(0.0, victim.getBountyProgress()); assertEquals(300, killer.getTotalShutdownGoldEarned());
+        resolver.award(10, attackers, killer, defenders, victim, List.of(), 10, false, 0, events);
+        assertEquals(300, killer.getTotalShutdownGoldEarned());
+    }
+
     private PlayerState player(String name) {
         return new PlayerState(name, Position.MID, 500);
     }
