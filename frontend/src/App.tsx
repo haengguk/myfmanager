@@ -21,6 +21,7 @@ function formatTime(seconds: number): string {
 function eventTypeClass(type: string): string {
   switch (type) {
     case 'KILL':
+    case 'JUNGLE_GANK':
       return 'kill';
     case 'SHUTDOWN':
       return 'shutdown';
@@ -38,6 +39,18 @@ function eventTypeClass(type: string): string {
     default:
       return 'neutral';
   }
+}
+
+function eventMessage(event: MatchEvent): string {
+  const gank = event.jungleGank;
+  if (!gank) return event.message;
+  const side = gank.gankingSide === 'BLUE' ? '블루' : '레드';
+  const lane = gank.targetLane === 'BOT' ? '바텀' : gank.targetLane;
+  if (gank.outcome === 'NO_KILL') return side + ' 정글의 ' + lane + ' 갱킹이 킬 없이 끝났습니다.';
+  if (gank.outcome === 'GANK_SUCCESS') {
+    return side + ' 정글의 ' + lane + ' 갱킹 성공: ' + gank.killerPlayerId + ' → ' + gank.victimPlayerId;
+  }
+  return side + ' 정글의 ' + lane + ' 갱킹에서 역킬: ' + gank.killerPlayerId + ' → ' + gank.victimPlayerId;
 }
 
 function sortPlayers(players: PlayerSnapshot[]): PlayerSnapshot[] {
@@ -464,7 +477,7 @@ function App() {
                         <span className="event-time">{formatTime(event.timeSeconds)}</span>
                         <span className={`event-badge ${eventTypeClass(event.type)}`}>{event.type}</span>
                       </div>
-                      <p className="event-message">{event.message}</p>
+                      <p className="event-message">{eventMessage(event)}</p>
                     </article>
                   ))}
                 </div>

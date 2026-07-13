@@ -16,6 +16,8 @@ public class GameState {
     private int lastLanePressureResolvedAtSeconds = -1;
     private int duplicateLanePressureResolutionCount;
     private int lastLaneCombatResolvedAtSeconds = -1;
+    private int lastJungleGankResolvedAtSeconds = -1;
+    private final EnumMap<TeamSide, JungleActionState> jungleActionStates = new EnumMap<>(TeamSide.class);
     private boolean finished;
     private TeamSide winnerSide;
     private GameEndReason endReason;
@@ -44,6 +46,7 @@ public class GameState {
         this.objectiveState = new ObjectiveState();
         this.mapState = new MapState();
         for (Lane lane : Lane.values()) laneStates.put(lane, new LaneState(lane));
+        for (TeamSide side : TeamSide.values()) jungleActionStates.put(side, new JungleActionState());
         this.lastBigWinTimeSeconds = -1;
         this.lastAceTimeSeconds = -1;
     }
@@ -75,6 +78,20 @@ public class GameState {
     public boolean shouldResolveLaneCombatAt(int time) { if(time < lastLaneCombatResolvedAtSeconds) throw new IllegalArgumentException("Lane combat time cannot move backwards"); if(time==lastLaneCombatResolvedAtSeconds) return false; return time >= LaneCombatRuleConfig.LANE_COMBAT_START_SECONDS && time <= LaneCombatRuleConfig.LANE_COMBAT_END_SECONDS && time % LaneCombatRuleConfig.LANE_COMBAT_INTERVAL_SECONDS==0; }
     public void markLaneCombatResolvedAt(int time) { lastLaneCombatResolvedAtSeconds=time; }
     public int getLastLaneCombatResolvedAtSeconds() { return lastLaneCombatResolvedAtSeconds; }
+    public JungleActionState jungleActionState(TeamSide side) { return jungleActionStates.get(side); }
+    public Map<TeamSide, JungleActionState> getJungleActionStates() { return Map.copyOf(jungleActionStates); }
+    public int getLastJungleGankResolvedAtSeconds() { return lastJungleGankResolvedAtSeconds; }
+    public boolean shouldResolveJungleGankAt(int time) {
+        if (time < lastJungleGankResolvedAtSeconds) throw new IllegalArgumentException("Jungle gank time cannot move backwards");
+        if (time == lastJungleGankResolvedAtSeconds) return false;
+        return time >= JungleGankRuleConfig.GANK_START_SECONDS
+                && time <= JungleGankRuleConfig.GANK_END_SECONDS
+                && time % JungleGankRuleConfig.GANK_EVALUATION_INTERVAL_SECONDS == 0;
+    }
+    public void markJungleGankResolvedAt(int time) {
+        if (time <= lastJungleGankResolvedAtSeconds) throw new IllegalStateException("Jungle gank time was not advanced");
+        lastJungleGankResolvedAtSeconds = time;
+    }
 
     public boolean shouldResolveLanePressureAt(int currentTimeSeconds) {
         if (currentTimeSeconds < lastLanePressureResolvedAtSeconds) throw new IllegalArgumentException("Lane pressure time cannot move backwards");

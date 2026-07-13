@@ -23,6 +23,7 @@ public final class KillRewardResolver {
             Integer frozenShutdownGold,
             List<MatchEvent> events
     ) {
+        if (!victim.isAlive(timeSeconds)) return;
         int shutdownGold = frozenShutdownGold == null
                 ? BountyService.displayedShutdownGold(victim, defendingTeam, attackingTeam, timeSeconds)
                 : frozenShutdownGold;

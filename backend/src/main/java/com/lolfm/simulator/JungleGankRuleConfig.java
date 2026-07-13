@@ -1,0 +1,74 @@
+package com.lolfm.simulator;
+
+/** Fixed production rules for early jungle ganks. */
+public final class JungleGankRuleConfig {
+    public static final int GANK_START_SECONDS = 180;
+    public static final int GANK_END_SECONDS = 840;
+    public static final int GANK_EVALUATION_INTERVAL_SECONDS = 60;
+    public static final int JUNGLER_GANK_COOLDOWN_SECONDS = 120;
+    public static final int SAME_LANE_REPEAT_COOLDOWN_SECONDS = 180;
+    public static final int JUNGLE_FARM_BLOCK_SECONDS = 30;
+    public static final double BASE_GANK_ATTEMPT_CHANCE = .07;
+    public static final double MIN_GANK_ATTEMPT_CHANCE = .03;
+    public static final double MAX_GANK_ATTEMPT_CHANCE = .22;
+    public static final double JUNGLE_AGGRESSION_ATTEMPT_FACTOR = .01;
+    public static final double JUNGLE_AGGRESSION_ATTEMPT_MIN = -.04;
+    public static final double JUNGLE_AGGRESSION_ATTEMPT_MAX = .06;
+    public static final double OVEREXTENSION_ATTEMPT_MAX_BONUS = .08;
+    public static final double BASE_TARGET_WEIGHT = 1.0;
+    public static final double MIN_TARGET_WEIGHT = .10;
+    public static final double OVEREXTENSION_TARGET_MAX_BONUS = 2.0;
+    public static final double FOLLOWUP_TARGET_FACTOR = .06;
+    public static final double FOLLOWUP_TARGET_MIN = -.24;
+    public static final double FOLLOWUP_TARGET_MAX = .36;
+    public static final double TARGET_GOLD_DIVISOR = 600.0;
+    public static final double TARGET_GOLD_MIN = -.50;
+    public static final double TARGET_GOLD_MAX = 1.0;
+    public static final double BOT_TARGET_WEIGHT_MULTIPLIER = 1.05;
+    public static final double REPEAT_GANK_WEIGHT_MULTIPLIER = .35;
+    public static final double JUNGLER_MECHANICS_CONTRIBUTION = .55;
+    public static final double LANE_MECHANICS_CONTRIBUTION = .45;
+    public static final double JUNGLER_AGGRESSION_CONTRIBUTION = .65;
+    public static final double LANE_AGGRESSION_CONTRIBUTION = .35;
+    public static final double BOT_ADC_MECHANICS_CONTRIBUTION = .60;
+    public static final double BOT_SUPPORT_MECHANICS_CONTRIBUTION = .40;
+    public static final double BOT_ADC_AGGRESSION_CONTRIBUTION = .35;
+    public static final double BOT_SUPPORT_AGGRESSION_CONTRIBUTION = .65;
+    public static final double SOLO_GANK_NUMBERS_EDGE = 2.0;
+    public static final double BOT_GANK_NUMBERS_EDGE = 1.5;
+    public static final double GANK_MECHANICS_EDGE_FACTOR = .75;
+    public static final double GANK_AGGRESSION_EDGE_FACTOR = .10;
+    public static final double GANK_GOLD_DIVISOR = 400.0;
+    public static final double GANK_GOLD_EDGE_MIN = -4.0;
+    public static final double GANK_GOLD_EDGE_MAX = 4.0;
+    public static final double GANK_VULNERABILITY_DIVISOR = 15.0;
+    public static final double GANK_VULNERABILITY_EDGE_MAX = 4.0;
+    public static final double BASE_GANK_DECISIVE_CHANCE = .35;
+    public static final double GANK_DECISIVE_AGGRESSION_FACTOR = .015;
+    public static final double GANK_DECISIVE_EDGE_FACTOR = .015;
+    public static final double GANK_DECISIVE_OVEREXTENSION_MAX_BONUS = .10;
+    public static final double MIN_GANK_DECISIVE_CHANCE = .25;
+    public static final double MAX_GANK_DECISIVE_CHANCE = .70;
+    public static final double BASE_GANK_SUCCESS_CHANCE = .58;
+    public static final double GANK_SUCCESS_EDGE_FACTOR = .03;
+    public static final double MIN_GANK_SUCCESS_CHANCE = .25;
+    public static final double MAX_GANK_SUCCESS_CHANCE = .88;
+    public static final double SOLO_GANK_PRESSURE_SHOCK = 15.0;
+    public static final double BOT_GANK_PRESSURE_SHOCK = 12.0;
+    public static final double SOLO_SUCCESS_JUNGLER_KILLER_WEIGHT = .55;
+    public static final double SOLO_SUCCESS_LANER_KILLER_WEIGHT = .45;
+    public static final double SOLO_REVERSE_JUNGLER_VICTIM_WEIGHT = .70;
+    public static final double SOLO_REVERSE_LANER_VICTIM_WEIGHT = .30;
+    public static final double BOT_SUCCESS_JUNGLER_KILLER_WEIGHT = .35;
+    public static final double BOT_SUCCESS_ADC_KILLER_WEIGHT = .50;
+    public static final double BOT_SUCCESS_SUPPORT_KILLER_WEIGHT = .15;
+    public static final double BOT_SUCCESS_ADC_VICTIM_WEIGHT = .65;
+    public static final double BOT_SUCCESS_SUPPORT_VICTIM_WEIGHT = .35;
+    public static final double BOT_REVERSE_ADC_KILLER_WEIGHT = .75;
+    public static final double BOT_REVERSE_SUPPORT_KILLER_WEIGHT = .25;
+    public static final double BOT_REVERSE_JUNGLER_VICTIM_WEIGHT = .55;
+    public static final double BOT_REVERSE_ADC_VICTIM_WEIGHT = .30;
+    public static final double BOT_REVERSE_SUPPORT_VICTIM_WEIGHT = .15;
+
+    private JungleGankRuleConfig() { }
+}

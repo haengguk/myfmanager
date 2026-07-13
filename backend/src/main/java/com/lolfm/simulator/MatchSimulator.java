@@ -36,9 +36,11 @@ public class MatchSimulator {
     private final PositionEconomyResolver positionEconomyResolver = new PositionEconomyResolver();
     private final LanePressureResolver lanePressureResolver = new LanePressureResolver();
     private final LaneCombatResolver laneCombatResolver = new LaneCombatResolver();
+    private final JungleGankResolver jungleGankResolver = new JungleGankResolver();
     private final GoldAwardService goldAwards = new GoldAwardService();
     private final boolean laneCombatEnabled;
     private final boolean farmRecoveryEnabled;
+    private final boolean jungleGankEnabled;
 
     @Autowired
     public MatchSimulator(
@@ -52,7 +54,7 @@ public class MatchSimulator {
             PushResolver pushResolver
     ) {
         this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
-                objectiveAttemptResolver, structureResolver, pushResolver, true, true);
+                objectiveAttemptResolver, structureResolver, pushResolver, true, true, true);
     }
 
     MatchSimulator(
@@ -67,7 +69,7 @@ public class MatchSimulator {
             boolean laneCombatEnabled
     ) {
         this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
-                objectiveAttemptResolver, structureResolver, pushResolver, laneCombatEnabled, true);
+                objectiveAttemptResolver, structureResolver, pushResolver, laneCombatEnabled, true, true);
     }
 
     MatchSimulator(
@@ -82,6 +84,16 @@ public class MatchSimulator {
             boolean laneCombatEnabled,
             boolean farmRecoveryEnabled
     ) {
+        this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
+                objectiveAttemptResolver, structureResolver, pushResolver, laneCombatEnabled, farmRecoveryEnabled, true);
+    }
+
+    MatchSimulator(
+            TeamfightResolver teamfightResolver, EndGameEvaluator endGameEvaluator, SnapshotFactory snapshotFactory,
+            ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
+            ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
+            boolean laneCombatEnabled, boolean farmRecoveryEnabled, boolean jungleGankEnabled
+    ) {
         this.teamfightResolver = teamfightResolver;
         this.endGameEvaluator = endGameEvaluator;
         this.snapshotFactory = snapshotFactory;
@@ -92,6 +104,7 @@ public class MatchSimulator {
         this.pushResolver = pushResolver;
         this.laneCombatEnabled = laneCombatEnabled;
         this.farmRecoveryEnabled = farmRecoveryEnabled;
+        this.jungleGankEnabled = jungleGankEnabled;
     }
 
     public MatchTimeline simulate(Team blueTeam, Team redTeam, long seed) {
@@ -135,11 +148,14 @@ public class MatchSimulator {
                     TICK_SECONDS, gameState.getCurrentTimeSeconds(), blueEconomy);
             resolveFarmForTick(random, gameState, gameState.getRedTeamState(), TeamSide.RED,
                     TICK_SECONDS, gameState.getCurrentTimeSeconds(), redEconomy);
-            boolean laneCombatAttempted = laneCombatEnabled && laneCombatResolver.resolve(gameState, random, events);
+            boolean jungleGankAttempted = jungleGankEnabled && jungleGankResolver.resolve(gameState, random, events);
+            boolean laneCombatAttempted = !jungleGankAttempted && laneCombatEnabled
+                    && laneCombatResolver.resolve(gameState, random, events);
+            boolean majorCombatAttempted = jungleGankAttempted || laneCombatAttempted;
             objectiveResolver.updateSpawnState(gameState);
-            if (!laneCombatAttempted) maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
+            if (!majorCombatAttempted) maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
 
-            Optional<TeamfightOutcome> outcome = laneCombatAttempted ? Optional.empty() : teamfightResolver.maybeResolveTeamfight(
+            Optional<TeamfightOutcome> outcome = majorCombatAttempted ? Optional.empty() : teamfightResolver.maybeResolveTeamfight(
                     gameState, blueTeam, redTeam, random, events
             );
             Optional<MatchEvent> postFightObjective = outcome.flatMap(result -> postFightResolver.resolve(

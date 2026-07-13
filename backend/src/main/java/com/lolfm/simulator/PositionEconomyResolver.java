@@ -14,6 +14,8 @@ public final class PositionEconomyResolver {
     public void resolve(GameState gameState, TeamState team, TeamSide side, int currentTimeSeconds, int elapsedSeconds, Random random) {
         for (PlayerState player : team.getPlayers()) {
             if (!player.canFarmAt(currentTimeSeconds)) continue;
+            if (player.getPosition() == Position.JUNGLE && gameState != null && side != null
+                    && currentTimeSeconds < gameState.jungleActionState(side).getJungleFarmBlockedUntilSeconds()) continue;
             int cs = actualCs(player, gameState, side, elapsedSeconds, random);
             if (cs <= 0) continue;
             player.addCs(cs);

@@ -18,8 +18,31 @@ export interface MatchEvent {
   victim: string | null;
   assists: string[];
   goldAmount: number;
-  combatSource: 'LANE_COMBAT' | 'SKIRMISH' | 'TEAMFIGHT' | 'OBJECTIVE_FIGHT' | 'OTHER' | null;
+  combatSource: 'JUNGLE_GANK' | 'LANE_COMBAT' | 'SKIRMISH' | 'TEAMFIGHT' | 'OBJECTIVE_FIGHT' | 'OTHER' | null;
   laneCombat: LaneCombatData | null;
+  jungleGank: JungleGankData | null;
+}
+
+export interface JungleGankData {
+  gankingSide: 'BLUE' | 'RED';
+  junglerPlayerId: string;
+  targetLane: 'TOP' | 'MID' | 'BOT';
+  outcome: 'NO_KILL' | 'GANK_SUCCESS' | 'DEFENDER_REVERSE_KILL';
+  winningSide: 'BLUE' | 'RED' | null;
+  killerPlayerId: string | null;
+  victimPlayerId: string | null;
+  assistantPlayerIds: string[];
+  pressureBefore: number;
+  pressureAfter: number;
+  enemyOverextension: number;
+  jungleFarmBlockedUntilSeconds: number;
+  attemptChance: number;
+  targetWeight: number;
+  combatEdge: number;
+  decisiveChance: number;
+  gankSuccessChance: number;
+  blueTriggered: boolean;
+  redTriggered: boolean;
 }
 
 export interface LaneCombatData {
