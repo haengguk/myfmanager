@@ -15,6 +15,7 @@ public class GameState {
     private final EnumMap<Lane, LaneState> laneStates = new EnumMap<>(Lane.class);
     private int lastLanePressureResolvedAtSeconds = -1;
     private int duplicateLanePressureResolutionCount;
+    private int lastLaneCombatResolvedAtSeconds = -1;
     private boolean finished;
     private TeamSide winnerSide;
     private GameEndReason endReason;
@@ -71,6 +72,9 @@ public class GameState {
     public Map<Lane, LaneState> getLaneStates() { return Map.copyOf(laneStates); }
     public int getLastLanePressureResolvedAtSeconds() { return lastLanePressureResolvedAtSeconds; }
     public int getDuplicateLanePressureResolutionCount() { return duplicateLanePressureResolutionCount; }
+    public boolean shouldResolveLaneCombatAt(int time) { if(time < lastLaneCombatResolvedAtSeconds) throw new IllegalArgumentException("Lane combat time cannot move backwards"); if(time==lastLaneCombatResolvedAtSeconds) return false; return time >= LaneCombatRuleConfig.LANE_COMBAT_START_SECONDS && time <= LaneCombatRuleConfig.LANE_COMBAT_END_SECONDS && time % LaneCombatRuleConfig.LANE_COMBAT_INTERVAL_SECONDS==0; }
+    public void markLaneCombatResolvedAt(int time) { lastLaneCombatResolvedAtSeconds=time; }
+    public int getLastLaneCombatResolvedAtSeconds() { return lastLaneCombatResolvedAtSeconds; }
 
     public boolean shouldResolveLanePressureAt(int currentTimeSeconds) {
         if (currentTimeSeconds < lastLanePressureResolvedAtSeconds) throw new IllegalArgumentException("Lane pressure time cannot move backwards");

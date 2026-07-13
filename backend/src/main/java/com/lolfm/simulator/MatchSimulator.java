@@ -15,6 +15,7 @@ import java.util.Random;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -34,8 +35,11 @@ public class MatchSimulator {
     private final PushResolver pushResolver;
     private final PositionEconomyResolver positionEconomyResolver = new PositionEconomyResolver();
     private final LanePressureResolver lanePressureResolver = new LanePressureResolver();
+    private final LaneCombatResolver laneCombatResolver = new LaneCombatResolver();
     private final GoldAwardService goldAwards = new GoldAwardService();
+    private final boolean laneCombatEnabled;
 
+    @Autowired
     public MatchSimulator(
             TeamfightResolver teamfightResolver,
             EndGameEvaluator endGameEvaluator,
@@ -46,6 +50,21 @@ public class MatchSimulator {
             StructureResolver structureResolver,
             PushResolver pushResolver
     ) {
+        this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
+                objectiveAttemptResolver, structureResolver, pushResolver, true);
+    }
+
+    MatchSimulator(
+            TeamfightResolver teamfightResolver,
+            EndGameEvaluator endGameEvaluator,
+            SnapshotFactory snapshotFactory,
+            ObjectiveResolver objectiveResolver,
+            PostFightResolver postFightResolver,
+            ObjectiveAttemptResolver objectiveAttemptResolver,
+            StructureResolver structureResolver,
+            PushResolver pushResolver,
+            boolean laneCombatEnabled
+    ) {
         this.teamfightResolver = teamfightResolver;
         this.endGameEvaluator = endGameEvaluator;
         this.snapshotFactory = snapshotFactory;
@@ -54,6 +73,7 @@ public class MatchSimulator {
         this.objectiveAttemptResolver = objectiveAttemptResolver;
         this.structureResolver = structureResolver;
         this.pushResolver = pushResolver;
+        this.laneCombatEnabled = laneCombatEnabled;
     }
 
     public MatchTimeline simulate(Team blueTeam, Team redTeam, long seed) {
@@ -93,10 +113,11 @@ public class MatchSimulator {
             lanePressureResolver.resolve(gameState, gameState.getCurrentTimeSeconds(), random);
             applyTickEconomy(random, gameState, gameState.getBlueTeamState(), TeamSide.BLUE, TICK_SECONDS, gameState.getCurrentTimeSeconds());
             applyTickEconomy(random, gameState, gameState.getRedTeamState(), TeamSide.RED, TICK_SECONDS, gameState.getCurrentTimeSeconds());
+            boolean laneCombatAttempted = laneCombatEnabled && laneCombatResolver.resolve(gameState, random, events);
             objectiveResolver.updateSpawnState(gameState);
-            maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
+            if (!laneCombatAttempted) maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
 
-            Optional<TeamfightOutcome> outcome = teamfightResolver.maybeResolveTeamfight(
+            Optional<TeamfightOutcome> outcome = laneCombatAttempted ? Optional.empty() : teamfightResolver.maybeResolveTeamfight(
                     gameState, blueTeam, redTeam, random, events
             );
             Optional<MatchEvent> postFightObjective = outcome.flatMap(result -> postFightResolver.resolve(

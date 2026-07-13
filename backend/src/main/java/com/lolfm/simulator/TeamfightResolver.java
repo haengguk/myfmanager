@@ -232,14 +232,18 @@ public class TeamfightResolver {
         );
         deadPlayers.add(victim.getName());
 
-        events.add(new MatchEvent(
+        MatchEvent killEvent = new MatchEvent(
                 timeSeconds,
                 MatchEventType.KILL,
                 buildKillMessage(killer.getName(), victim.getName(), assists),
                 killer.getName(),
                 victim.getName(),
                 assists
-        ));
+        );
+        killEvent.setCombatSource(teamfight
+                ? com.lolfm.domain.CombatSource.TEAMFIGHT
+                : com.lolfm.domain.CombatSource.SKIRMISH);
+        events.add(killEvent);
         if (!teamfight) {
             commitPendingCombatProgress(attackingTeamState);
             commitPendingCombatProgress(defendingTeamState);

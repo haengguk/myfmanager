@@ -12,6 +12,8 @@ public class MatchEvent {
     private final List<String> assists;
     private final int goldAmount;
     private final double bountyRawBeforePayout;
+    private LaneCombatData laneCombat;
+    private CombatSource combatSource;
 
     public MatchEvent(
             int timeSeconds,
@@ -74,4 +76,8 @@ public class MatchEvent {
 
     public int getGoldAmount() { return goldAmount; }
     public double getBountyRawBeforePayout() { return bountyRawBeforePayout; }
+    public LaneCombatData getLaneCombat() { return laneCombat; }
+    public void setLaneCombat(LaneCombatData laneCombat) { this.laneCombat = laneCombat; }
+    public CombatSource getCombatSource() { return combatSource; }
+    public void setCombatSource(CombatSource combatSource) { this.combatSource = combatSource; }
 }

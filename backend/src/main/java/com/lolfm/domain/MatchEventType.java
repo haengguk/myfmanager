@@ -3,6 +3,7 @@ package com.lolfm.domain;
 public enum MatchEventType {
     GAME_START,
     KILL,
+    LANE_COMBAT,
     SHUTDOWN,
     DRAGON,
     BARON,

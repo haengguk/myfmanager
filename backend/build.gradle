@@ -44,3 +44,5 @@ tasks.register('runLanePressureDiagnostics', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.lolfm.simulator.LanePressureDiagnostics'
 }
+
+tasks.register('runLaneCombatDiagnostics', JavaExec) { classpath = sourceSets.test.runtimeClasspath; mainClass = 'com.lolfm.simulator.LaneCombatDiagnostics' }

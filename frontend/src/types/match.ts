@@ -18,6 +18,20 @@ export interface MatchEvent {
   victim: string | null;
   assists: string[];
   goldAmount: number;
+  combatSource: 'LANE_COMBAT' | 'SKIRMISH' | 'TEAMFIGHT' | 'OBJECTIVE_FIGHT' | 'OTHER' | null;
+  laneCombat: LaneCombatData | null;
+}
+
+export interface LaneCombatData {
+  lane: 'TOP' | 'MID' | 'BOT';
+  initiatorSide: 'BLUE' | 'RED';
+  outcome: 'NO_KILL' | 'ATTACKER_KILL' | 'DEFENDER_REVERSE_KILL';
+  winningSide: 'BLUE' | 'RED' | null;
+  killerPlayerId: string | null;
+  victimPlayerId: string | null;
+  assistantPlayerIds: string[];
+  pressureBefore: number;
+  pressureAfter: number;
 }
 
 export interface MatchSnapshot {
