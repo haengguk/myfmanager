@@ -5,10 +5,10 @@ const API_URL = 'http://localhost:8080/api/matches/simulate';
 const SPEED_OPTIONS = [1, 5, 10, 30] as const;
 const POSITION_ORDER: Record<string, number> = {
   TOP: 0,
-  JGL: 1,
+  JUNGLE: 1,
   MID: 2,
   ADC: 3,
-  SUP: 4
+  SUPPORT: 4
 };
 
 function formatTime(seconds: number): string {

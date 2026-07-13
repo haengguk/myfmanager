@@ -2,6 +2,7 @@ package com.lolfm.simulator;
 
 import com.lolfm.domain.Position;
 import com.lolfm.domain.PlayerAttributes;
+import java.util.Objects;
 
 public class PlayerState {
 
@@ -35,7 +36,7 @@ public class PlayerState {
 
     public PlayerState(String playerName, Position position, PlayerAttributes attributes, int startingGold) {
         this.playerName = playerName;
-        this.position = position;
+        this.position = Objects.requireNonNull(position, "position");
         this.mechanics = PlayerImpactRuleConfig.normalize(attributes.getMechanics());
         this.aggression = PlayerImpactRuleConfig.normalize(attributes.getAggression());
         this.farming = PlayerImpactRuleConfig.normalize(attributes.getFarming());

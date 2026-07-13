@@ -32,3 +32,9 @@ tasks.register('runBountyDiagnostics', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.lolfm.simulator.BountyDiagnosticRunner'
 }
+
+
+tasks.register('runPositionEconomyDiagnostics', JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'com.lolfm.simulator.PositionEconomyDiagnostics'
+}

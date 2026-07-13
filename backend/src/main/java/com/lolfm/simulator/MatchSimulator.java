@@ -24,7 +24,6 @@ public class MatchSimulator {
     public static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = 5_400;
     private static final int TICK_SECONDS = 10;
     private static final int STARTING_GOLD = 500;
-    private static final int CS_GOLD = 20;
     private final TeamfightResolver teamfightResolver;
     private final EndGameEvaluator endGameEvaluator;
     private final SnapshotFactory snapshotFactory;
@@ -33,6 +32,7 @@ public class MatchSimulator {
     private final ObjectiveAttemptResolver objectiveAttemptResolver;
     private final StructureResolver structureResolver;
     private final PushResolver pushResolver;
+    private final PositionEconomyResolver positionEconomyResolver = new PositionEconomyResolver();
     private final GoldAwardService goldAwards = new GoldAwardService();
 
     public MatchSimulator(
@@ -66,6 +66,8 @@ public class MatchSimulator {
     private SimulationResult runSimulation(Team blueTeam, Team redTeam, long seed) {
         Random random = new Random(seed);
         GameState gameState = initializeGameState(blueTeam, redTeam);
+        gameState.getBlueTeamState().validateCompleteLineup();
+        gameState.getRedTeamState().validateCompleteLineup();
         List<MatchEvent> events = new ArrayList<>();
         List<MatchSnapshot> snapshots = new ArrayList<>();
         EndGameEvaluator.EndGameDecision endGameDecision = EndGameEvaluator.EndGameDecision.continueGame();
@@ -87,8 +89,8 @@ public class MatchSimulator {
                     SIMULATION_SAFETY_TIMEOUT_SECONDS - gameState.getCurrentTimeSeconds()
             ));
             gameState.expireBaronBuffsIfNeeded();
-            applyTickEconomy(random, blueTeam, gameState.getBlueTeamState());
-            applyTickEconomy(random, redTeam, gameState.getRedTeamState());
+            applyTickEconomy(random, gameState.getBlueTeamState(), TICK_SECONDS, gameState.getCurrentTimeSeconds());
+            applyTickEconomy(random, gameState.getRedTeamState(), TICK_SECONDS, gameState.getCurrentTimeSeconds());
             objectiveResolver.updateSpawnState(gameState);
             maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
 
@@ -154,7 +156,9 @@ public class MatchSimulator {
                 gameState.getPushWindowCount(),
                 gameState.getPushWindowStructureCount(),
                 gameState.getAceWindowNexusEndCount(),
-                gameState.getEndReason()
+                gameState.getEndReason(),
+                positionEconomyResolver.getDeadPlayerFarmAwardCount(),
+                positionEconomyResolver.getDuplicateResolutionCount()
         );
     }
 
@@ -174,7 +178,9 @@ public class MatchSimulator {
             int pushWindowCount,
             int pushWindowStructureCount,
             int aceWindowNexusEndCount,
-            GameEndReason endReason
+            GameEndReason endReason,
+            int deadPlayerFarmAwards,
+            int duplicateEconomyResolutions
     ) {
     }
 
@@ -207,40 +213,12 @@ public class MatchSimulator {
         return new TeamState(team.getName(), states);
     }
 
-    private void applyTickEconomy(Random random, Team team, TeamState state) {
-        for (Player player : team.getPlayers()) {
-            PlayerState playerState = state.getPlayerState(player.getName());
-            int csGain = calculateCsGain(random, playerState);
-            playerState.addCs(csGain);
-            goldAwards.awardGold(state, playerState, csGain * CS_GOLD, GoldSource.FARM, false);
-            goldAwards.awardGold(state, playerState, passiveGoldPerTick(playerState), GoldSource.PASSIVE, false);
-        }
+    private void applyTickEconomy(Random random, TeamState state, int elapsedSeconds, int currentTime) {
+        for (PlayerState player : state.getPlayers()) goldAwards.awardGold(state, player, passiveGoldPerTick(player), GoldSource.PASSIVE, false);
+        positionEconomyResolver.resolve(state, currentTime, elapsedSeconds, random);
     }
 
-    private int calculateCsGain(Random random, PlayerState player) {
-        int farmingDelta = player.getFarming() - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE;
-        return switch (player.getPosition()) {
-            case TOP, MID, ADC -> random.nextDouble() < clamp(
-                    PlayerImpactRuleConfig.LANE_TWO_CS_BASE_CHANCE
-                            + farmingDelta * PlayerImpactRuleConfig.LANE_TWO_CS_CHANCE_PER_FARMING_POINT,
-                    0.12, 0.78
-            ) ? 2 : 1;
-            case JGL -> 1;
-            case SUP -> random.nextDouble() < clamp(
-                    PlayerImpactRuleConfig.SUPPORT_CS_BASE_CHANCE
-                            + farmingDelta * PlayerImpactRuleConfig.SUPPORT_CS_CHANCE_PER_FARMING_POINT,
-                    0.01, 0.12
-            ) ? 1 : 0;
-        };
-    }
-
-    private int passiveGoldPerTick(PlayerState player) {
-        return PlayerImpactRuleConfig.PASSIVE_GOLD_BASE_PER_TICK
-                + Math.floorDiv(
-                        player.getFarming() - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE,
-                        PlayerImpactRuleConfig.PASSIVE_GOLD_STEP_POINTS
-                );
-    }
+    private int passiveGoldPerTick(PlayerState player) { return PlayerImpactRuleConfig.PASSIVE_GOLD_BASE_PER_TICK + Math.floorDiv(player.getFarming() - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE, PlayerImpactRuleConfig.PASSIVE_GOLD_STEP_POINTS); }
 
     private void maybeCreateKillEvent(Random random, Team blueTeam, Team redTeam, GameState state, List<MatchEvent> events) {
         double averageAggression = (averageAttribute(state.getBlueTeamState(), PlayerState::getAggression)

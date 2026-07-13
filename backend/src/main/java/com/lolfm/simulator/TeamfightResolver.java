@@ -208,8 +208,8 @@ public class TeamfightResolver {
             double positionRisk = switch (player.getPosition()) {
                 case ADC -> 1.45;
                 case MID -> 1.25;
-                case SUP -> 1.15;
-                case JGL -> 1.0;
+                case SUPPORT -> 1.15;
+                case JUNGLE -> 1.0;
                 case TOP -> 0.9;
             };
             return Math.max(0.15, positionRisk

@@ -2,8 +2,8 @@ package com.lolfm.domain;
 
 public enum Position {
     TOP,
-    JGL,
+    JUNGLE,
     MID,
     ADC,
-    SUP
+    SUPPORT
 }

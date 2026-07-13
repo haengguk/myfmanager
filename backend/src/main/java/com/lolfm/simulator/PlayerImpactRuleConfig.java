@@ -7,10 +7,6 @@ public final class PlayerImpactRuleConfig {
     public static final int MAX_ATTRIBUTE = 20;
     public static final int BASELINE_ATTRIBUTE = 14;
 
-    public static final double LANE_TWO_CS_BASE_CHANCE = 0.40;
-    public static final double LANE_TWO_CS_CHANCE_PER_FARMING_POINT = 0.02;
-    public static final double SUPPORT_CS_BASE_CHANCE = 0.05;
-    public static final double SUPPORT_CS_CHANCE_PER_FARMING_POINT = 0.006;
     public static final int PASSIVE_GOLD_BASE_PER_TICK = 14;
     public static final int PASSIVE_GOLD_STEP_POINTS = 8;
 

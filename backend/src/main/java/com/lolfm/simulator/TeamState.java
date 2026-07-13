@@ -1,7 +1,12 @@
 package com.lolfm.simulator;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import com.lolfm.domain.Position;
 
 public class TeamState {
 
@@ -14,11 +19,13 @@ public class TeamState {
     private boolean hasBaronBuff;
     private int baronBuffExpiresAtSeconds = -1;
     private final List<PlayerState> players;
+    private final EnumMap<Position, PlayerState> playersByPosition = new EnumMap<>(Position.class);
 
     public TeamState(String teamName, List<PlayerState> players) {
         this.teamName = teamName;
         this.players = new ArrayList<>(players);
         this.gold = calculateStartingGold(players);
+        for (PlayerState player : this.players) playersByPosition.putIfAbsent(player.getPosition(), player);
     }
 
     public String getTeamName() {
@@ -69,8 +76,27 @@ public class TeamState {
         }
     }
 
-    public List<PlayerState> getPlayers() {
-        return players;
+    public List<PlayerState> getPlayers() { return players; }
+
+    public Optional<PlayerState> findPlayerAt(Position position) {
+        return Optional.ofNullable(playersByPosition.get(position));
+    }
+
+    public PlayerState playerAt(Position position) {
+        return findPlayerAt(position).orElseThrow(() -> new IllegalArgumentException("Missing position: " + position));
+    }
+
+    /** Validates the five-player invariant at match start, rather than for partial unit-test teams. */
+    public void validateCompleteLineup() {
+        if (players.size() != Position.values().length) throw new IllegalStateException("Expected complete five-player lineup");
+        Map<PlayerState, Boolean> uniquePlayers = new IdentityHashMap<>();
+        for (PlayerState player : players) {
+            if (uniquePlayers.put(player, Boolean.TRUE) != null) throw new IllegalStateException("The same PlayerState appears more than once");
+        }
+        for (Position position : Position.values()) {
+            long count = players.stream().filter(player -> player.getPosition() == position).count();
+            if (count != 1) throw new IllegalStateException("Expected exactly one " + position + ", found " + count);
+        }
     }
 
     public void addKill() {
