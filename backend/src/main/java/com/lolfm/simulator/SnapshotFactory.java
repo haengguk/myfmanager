@@ -1,0 +1,84 @@
+package com.lolfm.simulator;
+
+import com.lolfm.domain.MatchSnapshot;
+import com.lolfm.domain.PlayerSnapshot;
+import java.util.ArrayList;
+import java.util.List;
+import org.springframework.stereotype.Component;
+
+@Component
+public class SnapshotFactory {
+
+    public MatchSnapshot create(GameState gameState) {
+        int currentTime = gameState.getCurrentTimeSeconds();
+        TeamState blue = gameState.getBlueTeamState();
+        TeamState red = gameState.getRedTeamState();
+        List<PlayerSnapshot> playerSnapshots = new ArrayList<>();
+        int blueAlivePlayers = addTeamSnapshots(blue, red, currentTime, playerSnapshots);
+        int redAlivePlayers = addTeamSnapshots(red, blue, currentTime, playerSnapshots);
+
+        return new MatchSnapshot(
+                currentTime,
+                blue.getKills(),
+                red.getKills(),
+                blue.getGold(),
+                red.getGold(),
+                blue.getDragons(),
+                red.getDragons(),
+                gameState.getObjectiveState().isSoulOwner(TeamSide.BLUE),
+                gameState.getObjectiveState().isSoulOwner(TeamSide.RED),
+                blue.hasActiveBaronBuff(currentTime),
+                red.hasActiveBaronBuff(currentTime),
+                gameState.getObjectiveState().isElderAlive(),
+                hasElder(blue, currentTime), hasElder(red, currentTime),
+                elderRemaining(blue, currentTime), elderRemaining(red, currentTime),
+                blue.getTowersDestroyed(),
+                red.getTowersDestroyed(),
+                gameState.getMapState().getAliveInhibitorCount(TeamSide.BLUE),
+                gameState.getMapState().getAliveInhibitorCount(TeamSide.RED),
+                gameState.getMapState().getBaseState(TeamSide.BLUE).getNexusTurretsRemaining(),
+                gameState.getMapState().getBaseState(TeamSide.RED).getNexusTurretsRemaining(),
+                gameState.getMapState().getBaseState(TeamSide.BLUE).isNexusAlive(),
+                gameState.getMapState().getBaseState(TeamSide.RED).isNexusAlive(),
+                blueAlivePlayers,
+                redAlivePlayers,
+                playerSnapshots
+        );
+    }
+
+    private boolean hasElder(TeamState team, int time) { return elderRemaining(team, time) > 0; }
+    private int elderRemaining(TeamState team, int time) { int max = 0; for (PlayerState player : team.getPlayers()) max = Math.max(max, player.getElderBuffRemainingSeconds(time)); return max; }
+
+    private int addTeamSnapshots(TeamState teamState, TeamState opposingTeam, int currentTime, List<PlayerSnapshot> playerSnapshots) {
+        int alivePlayers = 0;
+        for (PlayerState playerState : teamState.getPlayers()) {
+            boolean alive = playerState.isAlive(currentTime);
+            int respawnRemainingSeconds = alive
+                    ? 0
+                    : Math.max(0, playerState.getRespawnAtSeconds() - currentTime);
+            if (alive) alivePlayers++;
+            int shutdownBountyGold = BountyService.displayedShutdownGold(playerState, teamState, opposingTeam, currentTime);
+            playerState.setLastVisibleShutdownGold(shutdownBountyGold);
+            playerSnapshots.add(new PlayerSnapshot(
+                    playerState.getPlayerName(),
+                    teamState.getTeamName(),
+                    playerState.getPosition(),
+                    playerState.getKills(),
+                    playerState.getDeaths(),
+                    playerState.getAssists(),
+                    playerState.getCs(),
+                    playerState.getGold(),
+                    alive,
+                    respawnRemainingSeconds,
+                    playerState.hasActiveElderBuff(currentTime),
+                    playerState.getElderBuffRemainingSeconds(currentTime),
+                    shutdownBountyGold,
+                    shutdownBountyGold >= BountyRuleConfig.MIN_VISIBLE_SHUTDOWN_GOLD,
+                    playerState.getTotalShutdownGoldEarned(),
+                    playerState.getTotalShutdownGoldGiven(),
+                    playerState.getBountyProgress()
+            ));
+        }
+        return alivePlayers;
+    }
+}

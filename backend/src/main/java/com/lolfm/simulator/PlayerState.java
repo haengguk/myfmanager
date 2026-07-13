@@ -1,0 +1,147 @@
+package com.lolfm.simulator;
+
+import com.lolfm.domain.Position;
+import com.lolfm.domain.PlayerAttributes;
+
+public class PlayerState {
+
+    private final String playerName;
+    private final Position position;
+    private final int mechanics;
+    private final int aggression;
+    private final int farming;
+    private final int teamfighting;
+    private int kills;
+    private int deaths;
+    private int assists;
+    private int cs;
+    private int gold;
+    private int respawnAtSeconds;
+    private int elderBuffExpiresAtSeconds = -1;
+    private double bountyProgress;
+    private double pendingCombatBountyProgress;
+    private int lastVisibleShutdownGold;
+    private int totalShutdownGoldEarned;
+    private int totalShutdownGoldGiven;
+
+    public PlayerState(String playerName, Position position, int startingGold) {
+        this(playerName, position, new PlayerAttributes(
+                PlayerImpactRuleConfig.BASELINE_ATTRIBUTE,
+                PlayerImpactRuleConfig.BASELINE_ATTRIBUTE,
+                PlayerImpactRuleConfig.BASELINE_ATTRIBUTE,
+                PlayerImpactRuleConfig.BASELINE_ATTRIBUTE
+        ), startingGold);
+    }
+
+    public PlayerState(String playerName, Position position, PlayerAttributes attributes, int startingGold) {
+        this.playerName = playerName;
+        this.position = position;
+        this.mechanics = PlayerImpactRuleConfig.normalize(attributes.getMechanics());
+        this.aggression = PlayerImpactRuleConfig.normalize(attributes.getAggression());
+        this.farming = PlayerImpactRuleConfig.normalize(attributes.getFarming());
+        this.teamfighting = PlayerImpactRuleConfig.normalize(attributes.getTeamfighting());
+        this.gold = startingGold;
+        this.respawnAtSeconds = 0;
+    }
+
+    public String getPlayerName() {
+        return playerName;
+    }
+
+    public Position getPosition() {
+        return position;
+    }
+
+    public int getMechanics() { return mechanics; }
+    public int getAggression() { return aggression; }
+    public int getFarming() { return farming; }
+    public int getTeamfighting() { return teamfighting; }
+
+    public int getKills() {
+        return kills;
+    }
+
+    public int getDeaths() {
+        return deaths;
+    }
+
+    public int getAssists() {
+        return assists;
+    }
+
+    public int getCs() {
+        return cs;
+    }
+
+    public int getGold() {
+        return gold;
+    }
+
+    public int getRespawnAtSeconds() { return respawnAtSeconds; }
+    public int getElderBuffExpiresAtSeconds() { return elderBuffExpiresAtSeconds; }
+    public void grantElderBuff(int currentTimeSeconds, int durationSeconds) { elderBuffExpiresAtSeconds = currentTimeSeconds + durationSeconds; }
+    public boolean hasActiveElderBuff(int currentTimeSeconds) { return isAlive(currentTimeSeconds) && currentTimeSeconds < elderBuffExpiresAtSeconds; }
+    public int getElderBuffRemainingSeconds(int currentTimeSeconds) { return hasActiveElderBuff(currentTimeSeconds) ? elderBuffExpiresAtSeconds - currentTimeSeconds : 0; }
+    public void removeElderBuff() { elderBuffExpiresAtSeconds = -1; }
+
+    public boolean isAlive(int currentTimeSeconds) {
+        return currentTimeSeconds >= respawnAtSeconds;
+    }
+
+    public void addKill() {
+        kills++;
+    }
+
+    public void addDeath() {
+        deaths++;
+    }
+
+    public void markDead(int currentTimeSeconds, int respawnDelaySeconds) {
+        addDeath();
+        removeElderBuff();
+        respawnAtSeconds = currentTimeSeconds + respawnDelaySeconds;
+    }
+
+    public void respawn() {
+        respawnAtSeconds = 0;
+    }
+
+    public void addAssist() {
+        assists++;
+    }
+
+    public void addCs(int amount) {
+        cs += amount;
+    }
+
+    public void addGold(int amount) {
+        gold += amount;
+    }
+
+    public double getBountyProgress() { return bountyProgress; }
+    public double getPendingCombatBountyProgress() { return pendingCombatBountyProgress; }
+    public int getLastVisibleShutdownGold() { return lastVisibleShutdownGold; }
+    public int getTotalShutdownGoldEarned() { return totalShutdownGoldEarned; }
+    public int getTotalShutdownGoldGiven() { return totalShutdownGoldGiven; }
+    public void addImmediateBountyProgress(double amount) { bountyProgress = Math.max(0.0, bountyProgress + amount); }
+    public void addPendingCombatBountyProgress(double amount) { pendingCombatBountyProgress = Math.max(0.0, pendingCombatBountyProgress + amount); }
+    public void commitPendingCombatBountyProgress() { addImmediateBountyProgress(pendingCombatBountyProgress); pendingCombatBountyProgress = 0.0; }
+    public void clearPendingCombatBountyProgress() { pendingCombatBountyProgress = 0.0; }
+    public void reduceBountyProgress(double amount) { bountyProgress = Math.max(0.0, bountyProgress - Math.max(0.0, amount)); }
+    public double getRawPositiveBounty() { return Math.max(0.0, bountyProgress - BountyRuleConfig.BOUNTY_FREE_BUFFER); }
+    public void setLastVisibleShutdownGold(int amount) { lastVisibleShutdownGold = Math.max(0, amount); }
+
+    /** A payout consumes at most 700 raw bounty and retains only the excess for the next life. */
+    public void consumeShutdownBounty() {
+        double carryOverRaw = Math.max(0.0, getRawPositiveBounty() - BountyRuleConfig.MAX_SHUTDOWN_PAYOUT);
+        bountyProgress = carryOverRaw > 0.0 ? BountyRuleConfig.BOUNTY_FREE_BUFFER + carryOverRaw : 0.0;
+        lastVisibleShutdownGold = 0;
+    }
+
+    public void addShutdownGoldEarned(int amount) { totalShutdownGoldEarned += Math.max(0, amount); }
+    public void addShutdownGoldGiven(int amount) { totalShutdownGoldGiven += Math.max(0, amount); }
+
+    public void setRespawnAtSeconds(int respawnAtSeconds) {
+        this.respawnAtSeconds = respawnAtSeconds;
+    }
+}
