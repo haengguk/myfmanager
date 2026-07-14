@@ -18,6 +18,7 @@ public class GameState {
     private int lastLaneCombatResolvedAtSeconds = -1;
     private int lastJungleGankResolvedAtSeconds = -1;
     private final EnumMap<TeamSide, JungleActionState> jungleActionStates = new EnumMap<>(TeamSide.class);
+    private final CombatExecutionStats combatExecutionStats = new CombatExecutionStats();
     private boolean finished;
     private TeamSide winnerSide;
     private GameEndReason endReason;
@@ -80,6 +81,7 @@ public class GameState {
     public int getLastLaneCombatResolvedAtSeconds() { return lastLaneCombatResolvedAtSeconds; }
     public JungleActionState jungleActionState(TeamSide side) { return jungleActionStates.get(side); }
     public Map<TeamSide, JungleActionState> getJungleActionStates() { return Map.copyOf(jungleActionStates); }
+    public CombatExecutionStats getCombatExecutionStats() { return combatExecutionStats; }
     public int getLastJungleGankResolvedAtSeconds() { return lastJungleGankResolvedAtSeconds; }
     public boolean shouldResolveJungleGankAt(int time) {
         if (time < lastJungleGankResolvedAtSeconds) throw new IllegalArgumentException("Jungle gank time cannot move backwards");

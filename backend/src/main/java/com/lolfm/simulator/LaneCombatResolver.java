@@ -15,6 +15,7 @@ public final class LaneCombatResolver {
 
     public boolean resolve(GameState state, Random random, List<MatchEvent> events) {
         int time = state.getCurrentTimeSeconds();
+        state.getCombatExecutionStats().recordLaneCombatResolverCall(time);
         if (!state.shouldResolveLaneCombatAt(time)) return false;
         state.markLaneCombatResolvedAt(time);
 
@@ -28,9 +29,11 @@ public final class LaneCombatResolver {
                 chances.add(chance);
             }
         }
+        state.getCombatExecutionStats().recordLaneCombatTriggeredLanes(triggered.size());
         if (triggered.isEmpty()) return false;
 
         Lane lane = pickLane(triggered, chances, random);
+        state.getCombatExecutionStats().recordLaneCombatAttempt();
         state.laneState(lane).markCombatAttemptAt(time);
         TeamSide initiator = chooseInitiator(state, lane, random);
         double combatEdge = combatEdge(state, lane, initiator);
@@ -55,7 +58,14 @@ public final class LaneCombatResolver {
         PlayerState killer = pickPlayer(winners, lane, true, random);
         PlayerState victim = pickPlayer(losers, lane, false, random);
         List<PlayerState> assistants = lane == Lane.BOT ? List.of(otherBotPlayer(winners, killer)) : List.of();
+        int eventStart = events.size();
         rewards.award(time, winners, killer, losers, victim, assistants, respawnDelaySeconds(time), false, null, events);
+        for (int i = eventStart; i < events.size(); i++) events.get(i).setCombatSource(CombatSource.LANE_COMBAT);
+        MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Lane combat kill",
+                killer.getPlayerName(), victim.getPlayerName(), assistants.stream().map(PlayerState::getPlayerName).toList());
+        kill.setCombatSource(CombatSource.LANE_COMBAT);
+        events.add(kill);
+        state.getCombatExecutionStats().recordLaneCombatKill();
 
         double shock = lane == Lane.BOT
                 ? LaneCombatRuleConfig.BOT_KILL_PRESSURE_SHOCK

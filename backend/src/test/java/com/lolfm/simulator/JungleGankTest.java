@@ -18,7 +18,7 @@ import java.util.Random;
 import org.junit.jupiter.api.Test;
 
 class JungleGankTest {
-    private final JungleGankResolver resolver = new JungleGankResolver();
+    private final JungleGankResolver resolver = new JungleGankResolver(false);
 
     @Test void evaluationTimingIs180Through840Every60Seconds() {
         GameState state = state(14, 14, 14, 14);
@@ -282,7 +282,7 @@ class JungleGankTest {
     private MatchSimulator simulator(boolean gank) {
         return new MatchSimulator(new TeamfightResolver(), new EndGameEvaluator(), new SnapshotFactory(),
                 new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(),
-                new StructureResolver(), new PushResolver(), true, true, gank);
+                new StructureResolver(), new PushResolver(), true, true, gank, false);
     }
     private Team domainTeam(String side) {
         List<Player> players = new ArrayList<>();

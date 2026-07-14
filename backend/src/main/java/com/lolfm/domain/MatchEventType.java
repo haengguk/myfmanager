@@ -4,6 +4,7 @@ public enum MatchEventType {
     GAME_START,
     KILL,
     JUNGLE_GANK,
+    COUNTER_GANK,
     LANE_COMBAT,
     SHUTDOWN,
     DRAGON,

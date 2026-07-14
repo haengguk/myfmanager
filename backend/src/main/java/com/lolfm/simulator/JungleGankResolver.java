@@ -14,11 +14,20 @@ import java.util.Random;
 /** Stateless jungle-gank resolver. All mutable clocks live in GameState. */
 public final class JungleGankResolver {
     private final KillRewardResolver rewards = new KillRewardResolver();
+    private final CounterGankResolver counterGankResolver = new CounterGankResolver();
+    private final boolean counterGankEnabled;
+
+    public JungleGankResolver() { this(true); }
+
+    JungleGankResolver(boolean counterGankEnabled) {
+        this.counterGankEnabled = counterGankEnabled;
+    }
 
     public boolean resolve(GameState state, Random random, List<MatchEvent> events) {
         int time = state.getCurrentTimeSeconds();
         if (!state.shouldResolveJungleGankAt(time)) return false;
         state.markJungleGankResolvedAt(time);
+        state.getCombatExecutionStats().recordJungleGankEvaluation();
 
         EnumMap<TeamSide, Double> triggered = new EnumMap<>(TeamSide.class);
         for (TeamSide side : List.of(TeamSide.BLUE, TeamSide.RED)) {
@@ -26,7 +35,11 @@ public final class JungleGankResolver {
             double chance = attemptChance(state, side);
             if (random.nextDouble() < chance) triggered.put(side, chance);
         }
-        if (triggered.isEmpty()) return false;
+        if (triggered.isEmpty()) {
+            state.getCombatExecutionStats().recordJungleGankAllTriggersFailed();
+            return false;
+        }
+        state.getCombatExecutionStats().recordJungleGankAttempt();
         TeamSide side = triggered.size() == 1 ? triggered.keySet().iterator().next()
                 : weightedSide(triggered, random);
         Lane lane = chooseTargetLane(state, side, time, random);
@@ -34,7 +47,13 @@ public final class JungleGankResolver {
         double attemptChance = attemptChance(state, side);
         double overextension = enemyOverextension(state, side, lane);
         JungleActionState action = state.jungleActionState(side);
-        action.recordAttempt(time, lane);
+        boolean defenderInitiallyTriggered = triggered.containsKey(side.opposite());
+        CounterGankResolver.ResponseDecision counterDecision = counterGankEnabled
+                ? counterGankResolver.tryResolve(state, side, lane, defenderInitiallyTriggered,
+                        overextension, random, events)
+                : CounterGankResolver.ResponseDecision.disabled(defenderInitiallyTriggered);
+        if (counterDecision.responseSucceeded()) return true;
+        action.recordGankAttempt(time, lane);
 
         double edge = combatEdge(state, side, lane);
         double decisive = decisiveChance(state, side, lane);
@@ -46,7 +65,8 @@ public final class JungleGankResolver {
         if (outcome == JungleGankOutcome.NO_KILL) {
             events.add(gankEvent(time, side, state.getTeamState(side).playerAt(Position.JUNGLE).getPlayerName(), lane, outcome, null, null, null, List.of(),
                     pressureBefore, pressureBefore, overextension, action.getJungleFarmBlockedUntilSeconds(),
-                    attemptChance, selectedWeight, edge, decisive, success, triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED)));
+                    attemptChance, selectedWeight, edge, decisive, success,
+                    triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED), counterDecision));
             return true;
         }
 
@@ -70,14 +90,15 @@ public final class JungleGankResolver {
         state.laneState(lane).setPressure(pressureAfter);
         events.add(gankEvent(time, side, state.getTeamState(side).playerAt(Position.JUNGLE).getPlayerName(), lane, outcome, winningSide, participants.killer(), participants.victim(),
                 participants.assistants(), pressureBefore, pressureAfter, overextension,
-                action.getJungleFarmBlockedUntilSeconds(), attemptChance, selectedWeight, edge, decisive, success, triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED)));
+                action.getJungleFarmBlockedUntilSeconds(), attemptChance, selectedWeight, edge, decisive, success,
+                triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED), counterDecision));
         return true;
     }
 
     boolean junglerEligible(GameState state, TeamSide side, int time) {
         PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
         if (!jungler.isAlive(time)) return false;
-        int last = state.jungleActionState(side).getLastGankAttemptAtSeconds();
+        int last = state.jungleActionState(side).getLastJungleActionAtSeconds();
         if (last >= 0 && time - last < JungleGankRuleConfig.JUNGLER_GANK_COOLDOWN_SECONDS) return false;
         return Lane.values().length > 0 && java.util.Arrays.stream(Lane.values()).anyMatch(lane -> laneEligible(state, lane, time));
     }
@@ -239,7 +260,8 @@ public final class JungleGankResolver {
                                  TeamSide winning, PlayerState killer, PlayerState victim, List<PlayerState> assists,
                                  double before, double after, double overextension, int blockedUntil,
                                  double attemptChance, double targetWeight, double edge, double decisive, double success,
-                                 boolean blueTriggered, boolean redTriggered) {
+                                 boolean blueTriggered, boolean redTriggered,
+                                 CounterGankResolver.ResponseDecision counterDecision) {
         MatchEvent event = new MatchEvent(time, MatchEventType.JUNGLE_GANK, "Jungle gank",
                 killer == null ? null : killer.getPlayerName(), victim == null ? null : victim.getPlayerName(), ids(assists));
         event.setCombatSource(CombatSource.JUNGLE_GANK);
@@ -247,7 +269,10 @@ public final class JungleGankResolver {
                 junglerPlayerId, lane, outcome, winning,
                 killer == null ? null : killer.getPlayerName(), victim == null ? null : victim.getPlayerName(), ids(assists),
                 before, after, overextension, blockedUntil, attemptChance, targetWeight, edge, decisive, success,
-                blueTriggered, redTriggered));
+                blueTriggered, redTriggered,
+                counterDecision.eligible(), counterDecision.ineligibility(),
+                counterDecision.defenderInitiallyTriggered(), counterDecision.responseRolled(),
+                counterDecision.responseChance(), counterDecision.responseSucceeded()));
         return event;
     }
 

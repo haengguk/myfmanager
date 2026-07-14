@@ -14,6 +14,7 @@ public class MatchEvent {
     private final double bountyRawBeforePayout;
     private LaneCombatData laneCombat;
     private JungleGankData jungleGank;
+    private CounterGankData counterGank;
     private CombatSource combatSource;
 
     public MatchEvent(
@@ -81,6 +82,8 @@ public class MatchEvent {
     public void setLaneCombat(LaneCombatData laneCombat) { this.laneCombat = laneCombat; }
     public JungleGankData getJungleGank() { return jungleGank; }
     public void setJungleGank(JungleGankData jungleGank) { this.jungleGank = jungleGank; }
+    public CounterGankData getCounterGank() { return counterGank; }
+    public void setCounterGank(CounterGankData counterGank) { this.counterGank = counterGank; }
     public CombatSource getCombatSource() { return combatSource; }
     public void setCombatSource(CombatSource combatSource) { this.combatSource = combatSource; }
 }

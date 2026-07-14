@@ -109,7 +109,7 @@ public final class JungleGankDiagnostics {
     private static MatchSimulator simulator(boolean enabled) {
         return new MatchSimulator(new TeamfightResolver(), new EndGameEvaluator(), new SnapshotFactory(),
                 new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(),
-                new StructureResolver(), new PushResolver(), true, true, enabled);
+                new StructureResolver(), new PushResolver(), true, true, enabled, false);
     }
 
     private static final class Summary {

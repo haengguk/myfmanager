@@ -144,7 +144,10 @@ class LaneCombatTest {
     void structuredEventContainsAllFieldsAndCombatSource() {
         GameState state=at180(state(14,14,14,14)); List<MatchEvent> events=new ArrayList<>();
         resolver.resolve(state, sequence(0,1,1,.5,0,0,0), events); MatchEvent event=events.getLast(); LaneCombatData data=event.getLaneCombat();
-        assertEquals(CombatSource.LANE_COMBAT,event.getCombatSource()); assertNotNull(data.lane()); assertNotNull(data.initiatorSide()); assertNotNull(data.outcome()); assertNotNull(data.winningSide()); assertNotNull(data.killerPlayerId()); assertNotNull(data.victimPlayerId()); assertNotNull(data.assistantPlayerIds()); assertNotEquals(data.pressureBefore(),data.pressureAfter());
+        assertEquals(CombatSource.LANE_COMBAT,event.getCombatSource());
+        assertTrue(events.stream().filter(e -> e.getType() == MatchEventType.KILL)
+                .allMatch(e -> e.getCombatSource() == CombatSource.LANE_COMBAT));
+        assertNotNull(data.lane()); assertNotNull(data.initiatorSide()); assertNotNull(data.outcome()); assertNotNull(data.winningSide()); assertNotNull(data.killerPlayerId()); assertNotNull(data.victimPlayerId()); assertNotNull(data.assistantPlayerIds()); assertNotEquals(data.pressureBefore(),data.pressureAfter());
     }
 
     @Test
@@ -168,6 +171,56 @@ class LaneCombatTest {
         MatchTimeline first=simulator(true).simulate(domainTeam("BLUE",14,14),domainTeam("RED",14,14),77);
         MatchTimeline second=simulator(true).simulate(domainTeam("BLUE",14,14),domainTeam("RED",14,14),77);
         assertEquals(signatures(first),signatures(second));
+    }
+
+    @Test
+    void failedJungleGankEvaluationFallsThroughToLaneCombatResolver() {
+        GameState state = at180(state(14,14,14,14));
+        assertFalse(new JungleGankResolver(false).resolve(state, ones(), new ArrayList<>()));
+        List<MatchEvent> events = new ArrayList<>();
+        assertTrue(resolver.resolve(state, sequence(0,1,1,.5,0,.99), events));
+        assertEquals(1, state.getCombatExecutionStats().snapshot().jungleGankAllTriggersFailed());
+        assertEquals(1, state.getCombatExecutionStats().snapshot().laneCombatResolverCalls());
+        assertEquals(1, state.getCombatExecutionStats().snapshot().laneCombatAttempts());
+    }
+
+    @Test
+    void actualJungleGankAttemptIsTheOnlyCaseThatBlocksLaneCombatAtThatTick() {
+        GameState state = at180(state(14,14,14,14));
+        boolean attempt = new JungleGankResolver(false).resolve(state, sequence(0,1,0,.99), new ArrayList<>());
+        assertTrue(attempt);
+        if (!attempt) resolver.resolve(state, sequence(0,1,1,.5,0,.99), new ArrayList<>());
+        assertEquals(0, state.getCombatExecutionStats().snapshot().laneCombatResolverCalls());
+        assertEquals(1, state.getCombatExecutionStats().snapshot().jungleGankAttempts());
+    }
+
+    @Test
+    void merelyEvaluatingJungleGankDoesNotConsumeMajorCombat() {
+        GameState state = at180(state(14,14,14,14));
+        assertFalse(new JungleGankResolver(false).resolve(state, ones(), new ArrayList<>()));
+        assertEquals(0, state.getCombatExecutionStats().snapshot().jungleGankAttempts());
+        assertEquals(0, state.getCombatExecutionStats().snapshot().counterGankAttempts());
+    }
+
+    @Test
+    void counterOffRetainsFourthStageLaneCombatFallthrough() {
+        GameState state = at180(state(14,14,14,14));
+        JungleGankResolver ganks = new JungleGankResolver(false);
+        assertFalse(ganks.resolve(state, ones(), new ArrayList<>()));
+        assertTrue(resolver.resolve(state, sequence(0,1,1,.5,0,.99), new ArrayList<>()));
+    }
+
+    @Test
+    void matchSimulatorCanEmitLaneCombatEventAndLaneCombatKillSourceBeforeFourteenMinutes() {
+        for (long seed = 1; seed <= 300; seed++) {
+            MatchTimeline timeline = simulator(true).simulate(domainTeam("BLUE",14,14), domainTeam("RED",14,14), seed);
+            boolean laneEvent = timeline.getEvents().stream().anyMatch(e -> e.getTimeSeconds() <= 840
+                    && e.getType() == MatchEventType.LANE_COMBAT);
+            boolean laneKill = timeline.getEvents().stream().anyMatch(e -> e.getTimeSeconds() <= 840
+                    && e.getType() == MatchEventType.KILL && e.getCombatSource() == CombatSource.LANE_COMBAT);
+            if (laneEvent && laneKill) return;
+        }
+        fail("Expected a pre-14-minute LaneCombat event and LANE_COMBAT kill source");
     }
 
     private MatchTimeline findTimelineWithNoKill(){for(long seed=1;seed<100;seed++){MatchTimeline t=simulator(true).simulate(domainTeam("BLUE",14,14),domainTeam("RED",14,14),seed);if(t.getEvents().stream().anyMatch(e->e.getType()==MatchEventType.LANE_COMBAT&&e.getLaneCombat().outcome()==LaneCombatOutcome.NO_KILL))return t;}throw new AssertionError();}

@@ -52,3 +52,15 @@ tasks.register('runFarmRecoveryDiagnostics', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.lolfm.simulator.FarmRecoveryDiagnostics'
 }
+
+
+tasks.register("runJungleGankDiagnostics", JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.JungleGankDiagnostics"
+}
+
+
+tasks.register("runCounterGankDiagnostics", JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.CounterGankDiagnostics"
+}

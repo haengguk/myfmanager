@@ -22,6 +22,7 @@ function eventTypeClass(type: string): string {
   switch (type) {
     case 'KILL':
     case 'JUNGLE_GANK':
+    case 'COUNTER_GANK':
       return 'kill';
     case 'SHUTDOWN':
       return 'shutdown';
@@ -42,6 +43,17 @@ function eventTypeClass(type: string): string {
 }
 
 function eventMessage(event: MatchEvent): string {
+  const counter = event.counterGank;
+  if (counter) {
+    const attacking = counter.attackingSide === 'BLUE' ? '블루' : '레드';
+    const defending = counter.defendingSide === 'BLUE' ? '블루' : '레드';
+    const lane = counter.targetLane === 'BOT' ? '바텀' : counter.targetLane;
+    if (counter.outcome === 'NO_KILL') {
+      return attacking + '의 ' + lane + ' 갱킹에 ' + defending + ' 정글이 대응했지만 킬 없이 끝났습니다.';
+    }
+    const result = counter.outcome === 'ATTACKING_SIDE_KILL' ? '공격 팀 승리' : '방어 팀 승리';
+    return lane + ' 카운터 갱킹 ' + result + ': ' + counter.killerPlayerId + ' → ' + counter.victimPlayerId;
+  }
   const gank = event.jungleGank;
   if (!gank) return event.message;
   const side = gank.gankingSide === 'BLUE' ? '블루' : '레드';

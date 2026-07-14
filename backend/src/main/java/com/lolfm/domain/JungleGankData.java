@@ -1,5 +1,6 @@
 package com.lolfm.domain;
 
+import com.lolfm.simulator.CounterGankIneligibility;
 import com.lolfm.simulator.JungleGankOutcome;
 import com.lolfm.simulator.Lane;
 import com.lolfm.simulator.TeamSide;
@@ -24,7 +25,13 @@ public record JungleGankData(
         double decisiveChance,
         double gankSuccessChance,
         boolean blueTriggered,
-        boolean redTriggered
+        boolean redTriggered,
+        boolean counterEligible,
+        CounterGankIneligibility counterIneligibility,
+        boolean defenderInitiallyTriggered,
+        boolean counterResponseRolled,
+        double counterResponseChance,
+        boolean counterResponseSucceeded
 ) {
     public JungleGankData { assistantPlayerIds = List.copyOf(assistantPlayerIds); }
 }

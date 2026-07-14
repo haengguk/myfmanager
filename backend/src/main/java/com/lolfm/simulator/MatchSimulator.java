@@ -36,11 +36,12 @@ public class MatchSimulator {
     private final PositionEconomyResolver positionEconomyResolver = new PositionEconomyResolver();
     private final LanePressureResolver lanePressureResolver = new LanePressureResolver();
     private final LaneCombatResolver laneCombatResolver = new LaneCombatResolver();
-    private final JungleGankResolver jungleGankResolver = new JungleGankResolver();
+    private final JungleGankResolver jungleGankResolver;
     private final GoldAwardService goldAwards = new GoldAwardService();
     private final boolean laneCombatEnabled;
     private final boolean farmRecoveryEnabled;
     private final boolean jungleGankEnabled;
+    private final boolean counterGankEnabled;
 
     @Autowired
     public MatchSimulator(
@@ -54,7 +55,7 @@ public class MatchSimulator {
             PushResolver pushResolver
     ) {
         this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
-                objectiveAttemptResolver, structureResolver, pushResolver, true, true, true);
+                objectiveAttemptResolver, structureResolver, pushResolver, true, true, true, true);
     }
 
     MatchSimulator(
@@ -69,7 +70,7 @@ public class MatchSimulator {
             boolean laneCombatEnabled
     ) {
         this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
-                objectiveAttemptResolver, structureResolver, pushResolver, laneCombatEnabled, true, true);
+                objectiveAttemptResolver, structureResolver, pushResolver, laneCombatEnabled, true, true, true);
     }
 
     MatchSimulator(
@@ -85,7 +86,7 @@ public class MatchSimulator {
             boolean farmRecoveryEnabled
     ) {
         this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
-                objectiveAttemptResolver, structureResolver, pushResolver, laneCombatEnabled, farmRecoveryEnabled, true);
+                objectiveAttemptResolver, structureResolver, pushResolver, laneCombatEnabled, farmRecoveryEnabled, true, true);
     }
 
     MatchSimulator(
@@ -93,6 +94,18 @@ public class MatchSimulator {
             ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
             ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
             boolean laneCombatEnabled, boolean farmRecoveryEnabled, boolean jungleGankEnabled
+    ) {
+        this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
+                objectiveAttemptResolver, structureResolver, pushResolver,
+                laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled, true);
+    }
+
+    MatchSimulator(
+            TeamfightResolver teamfightResolver, EndGameEvaluator endGameEvaluator, SnapshotFactory snapshotFactory,
+            ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
+            ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
+            boolean laneCombatEnabled, boolean farmRecoveryEnabled, boolean jungleGankEnabled,
+            boolean counterGankEnabled
     ) {
         this.teamfightResolver = teamfightResolver;
         this.endGameEvaluator = endGameEvaluator;
@@ -105,6 +118,8 @@ public class MatchSimulator {
         this.laneCombatEnabled = laneCombatEnabled;
         this.farmRecoveryEnabled = farmRecoveryEnabled;
         this.jungleGankEnabled = jungleGankEnabled;
+        this.counterGankEnabled = counterGankEnabled;
+        this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
     public MatchTimeline simulate(Team blueTeam, Team redTeam, long seed) {
@@ -153,7 +168,12 @@ public class MatchSimulator {
                     && laneCombatResolver.resolve(gameState, random, events);
             boolean majorCombatAttempted = jungleGankAttempted || laneCombatAttempted;
             objectiveResolver.updateSpawnState(gameState);
-            if (!majorCombatAttempted) maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
+            if (!majorCombatAttempted) {
+                gameState.getCombatExecutionStats().recordGenericSkirmishCall(gameState.getCurrentTimeSeconds());
+                if (maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events)) {
+                    gameState.getCombatExecutionStats().recordGenericSkirmishKill(gameState.getCurrentTimeSeconds());
+                }
+            }
 
             Optional<TeamfightOutcome> outcome = majorCombatAttempted ? Optional.empty() : teamfightResolver.maybeResolveTeamfight(
                     gameState, blueTeam, redTeam, random, events
@@ -219,7 +239,8 @@ public class MatchSimulator {
                 gameState.getAceWindowNexusEndCount(),
                 gameState.getEndReason(),
                 gameState.getBlueTeamState().getDuplicateEconomyResolutionCount()
-                        + gameState.getRedTeamState().getDuplicateEconomyResolutionCount()
+                        + gameState.getRedTeamState().getDuplicateEconomyResolutionCount(),
+                gameState.getCombatExecutionStats().snapshot()
         );
     }
 
@@ -240,7 +261,8 @@ public class MatchSimulator {
             int pushWindowStructureCount,
             int aceWindowNexusEndCount,
             GameEndReason endReason,
-            int duplicateEconomyResolutions
+            int duplicateEconomyResolutions,
+            CombatExecutionStatsSnapshot combatExecutionStats
     ) {
     }
 
@@ -300,15 +322,15 @@ public class MatchSimulator {
 
     private int passiveGoldPerTick() { return PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK; }
 
-    private void maybeCreateKillEvent(Random random, Team blueTeam, Team redTeam, GameState state, List<MatchEvent> events) {
+    private boolean maybeCreateKillEvent(Random random, Team blueTeam, Team redTeam, GameState state, List<MatchEvent> events) {
         double averageAggression = (averageAttribute(state.getBlueTeamState(), PlayerState::getAggression)
                 + averageAttribute(state.getRedTeamState(), PlayerState::getAggression)) / 2.0;
         double baseChance = state.getCurrentTimeSeconds() >= 900 ? 0.11 : 0.08;
         double chance = clamp(baseChance + (averageAggression - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE)
                 * PlayerImpactRuleConfig.SKIRMISH_CHANCE_PER_AVERAGE_AGGRESSION_POINT, 0.05, 0.15);
-        if (random.nextDouble() >= chance) return;
+        if (random.nextDouble() >= chance) return false;
         TeamSelection attacking = chooseTeamForSkirmish(random, blueTeam, redTeam, state);
-        teamfightResolver.resolveKill(
+        return teamfightResolver.resolveKill(
                 state.getCurrentTimeSeconds(), random,
                 attacking.actingTeam(), attacking.actingState(),
                 attacking.opposingTeam(), attacking.opposingState(),

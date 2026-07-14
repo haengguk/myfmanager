@@ -202,6 +202,11 @@ public final class LaneCombatDiagnostics {
                     if (!aliveBefore(timeline, data.killerPlayerId(), event.getTimeSeconds())
                             || !aliveBefore(timeline, data.victimPlayerId(), event.getTimeSeconds())) deadParticipants++;
                 } else if (event.getType() == MatchEventType.KILL) {
+                    // A lane-combat KILL is the structured kill record for the LANE_COMBAT event
+                    // already counted above; it is not a second combat on the same tick.
+                    if (event.getCombatSource() == CombatSource.LANE_COMBAT) {
+                        continue;
+                    }
                     combatByTime.merge(event.getTimeSeconds(), 1, Integer::sum);
                     if (event.getCombatSource() == CombatSource.SKIRMISH) genericKills++;
                     else if (event.getCombatSource() == CombatSource.TEAMFIGHT) teamfightKills++;
