@@ -28,6 +28,8 @@ public class PlayerState {
     private int totalShutdownGoldEarned;
     private int totalShutdownGoldGiven;
 
+    private final PlayerActivityState activityState = new PlayerActivityState();
+    private final RoamActionState roamActionState = new RoamActionState();
     public PlayerState(String playerName, Position position, int startingGold) {
         this(playerName, position, new PlayerAttributes(
                 PlayerImpactRuleConfig.BASELINE_ATTRIBUTE,
@@ -105,6 +107,16 @@ public class PlayerState {
         return isAlive(currentTimeSeconds) && currentTimeSeconds >= farmResumeAtSeconds;
     }
 
+    public boolean canParticipateInMajorCombatAt(int currentTimeSeconds) {
+        return isAlive(currentTimeSeconds) && activityState.getActivityType() == PlayerActivityType.DEFAULT_ROLE;
+    }
+    public PlayerActivityState getActivityState() { return activityState; }
+    public RoamActionState getRoamActionState() { return roamActionState; }
+    public void expireActivityIfNeeded(int currentTimeSeconds) { activityState.expireIfNeeded(currentTimeSeconds); }
+    public void beginRoamActivity(Lane originLane, Lane targetLane, int currentTimeSeconds) {
+        activityState.beginRoam(originLane, targetLane, currentTimeSeconds,
+                currentTimeSeconds + RoamRuleConfig.ROAM_ACTIVITY_SECONDS);
+    }
     public int farmReturnSecondsRemaining(int currentTimeSeconds) {
         return Math.max(0, farmResumeAtSeconds - currentTimeSeconds);
     }
@@ -120,6 +132,7 @@ public class PlayerState {
     public void markDead(int currentTimeSeconds, int respawnDelaySeconds) {
         if (!isAlive(currentTimeSeconds)) return;
         addDeath();
+        activityState.clear();
         removeElderBuff();
         lastDeathAtSeconds = currentTimeSeconds;
         respawnAtSeconds = currentTimeSeconds + respawnDelaySeconds;

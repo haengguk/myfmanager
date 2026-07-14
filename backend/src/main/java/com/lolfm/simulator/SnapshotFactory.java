@@ -15,8 +15,8 @@ public class SnapshotFactory {
         TeamState blue = gameState.getBlueTeamState();
         TeamState red = gameState.getRedTeamState();
         List<PlayerSnapshot> playerSnapshots = new ArrayList<>();
-        int blueAlivePlayers = addTeamSnapshots(blue, red, currentTime, playerSnapshots);
-        int redAlivePlayers = addTeamSnapshots(red, blue, currentTime, playerSnapshots);
+        int blueAlivePlayers = addTeamSnapshots(blue, red, TeamSide.BLUE, currentTime, playerSnapshots);
+        int redAlivePlayers = addTeamSnapshots(red, blue, TeamSide.RED, currentTime, playerSnapshots);
 
         return new MatchSnapshot(
                 currentTime,
@@ -44,7 +44,8 @@ public class SnapshotFactory {
                 blueAlivePlayers,
                 redAlivePlayers,
                 playerSnapshots,
-                laneSnapshots(gameState)
+                laneSnapshots(gameState),
+                new ObjectivePriorityResolver().snapshot(gameState)
         );
     }
 
@@ -60,7 +61,8 @@ public class SnapshotFactory {
     private boolean hasElder(TeamState team, int time) { return elderRemaining(team, time) > 0; }
     private int elderRemaining(TeamState team, int time) { int max = 0; for (PlayerState player : team.getPlayers()) max = Math.max(max, player.getElderBuffRemainingSeconds(time)); return max; }
 
-    private int addTeamSnapshots(TeamState teamState, TeamState opposingTeam, int currentTime, List<PlayerSnapshot> playerSnapshots) {
+    private int addTeamSnapshots(TeamState teamState, TeamState opposingTeam, TeamSide teamSide,
+                                 int currentTime, List<PlayerSnapshot> playerSnapshots) {
         int alivePlayers = 0;
         for (PlayerState playerState : teamState.getPlayers()) {
             boolean alive = playerState.isAlive(currentTime);
@@ -75,6 +77,7 @@ public class SnapshotFactory {
             playerSnapshots.add(new PlayerSnapshot(
                     playerState.getPlayerName(),
                     teamState.getTeamName(),
+                    teamSide,
                     playerState.getPosition(),
                     playerState.getKills(),
                     playerState.getDeaths(),
@@ -84,7 +87,7 @@ public class SnapshotFactory {
                     alive,
                     playerState.getRespawnAtSeconds(),
                     respawnRemainingSeconds,
-                    playerState.canFarmAt(currentTime),
+                    playerState.canFarmAt(currentTime) && currentTime >= playerState.getRoamActionState().getRoamFarmBlockedUntilSeconds(),
                     playerState.getFarmResumeAtSeconds(),
                     playerState.farmReturnSecondsRemaining(currentTime),
                     playerState.hasActiveElderBuff(currentTime),
@@ -93,7 +96,13 @@ public class SnapshotFactory {
                     shutdownBountyGold >= BountyRuleConfig.MIN_VISIBLE_SHUTDOWN_GOLD,
                     playerState.getTotalShutdownGoldEarned(),
                     playerState.getTotalShutdownGoldGiven(),
-                    playerState.getBountyProgress()
+                    playerState.getBountyProgress(),
+                    playerState.getActivityState().getActivityType(),
+                    playerState.getActivityState().getOriginLane(),
+                    playerState.getActivityState().getTargetLane(),
+                    playerState.getActivityState().getActivityUntilSeconds(),
+                    Math.max(0, playerState.getActivityState().getActivityUntilSeconds() - currentTime),
+                    playerState.getRoamActionState().getRoamFarmBlockedUntilSeconds()
             ));
         }
         return alivePlayers;

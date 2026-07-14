@@ -6,6 +6,7 @@ public enum MatchEventType {
     JUNGLE_GANK,
     COUNTER_GANK,
     LANE_COMBAT,
+    ROAM,
     SHUTDOWN,
     DRAGON,
     BARON,

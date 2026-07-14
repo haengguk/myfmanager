@@ -4,6 +4,7 @@ public class PlayerSnapshot {
 
     private final String playerName;
     private final String teamName;
+    private final com.lolfm.simulator.TeamSide teamSide;
     private final Position position;
     private final int kills;
     private final int deaths;
@@ -23,10 +24,17 @@ public class PlayerSnapshot {
     private final int totalShutdownGoldEarned;
     private final int totalShutdownGoldGiven;
     private final double bountyProgress;
+    private final com.lolfm.simulator.PlayerActivityType activityType;
+    private final com.lolfm.simulator.Lane activityOriginLane;
+    private final com.lolfm.simulator.Lane activityTargetLane;
+    private final int activityUntilSeconds;
+    private final int activitySecondsRemaining;
+    private final int roamFarmBlockedUntilSeconds;
 
     public PlayerSnapshot(
             String playerName,
             String teamName,
+            com.lolfm.simulator.TeamSide teamSide,
             Position position,
             int kills,
             int deaths,
@@ -45,17 +53,30 @@ public class PlayerSnapshot {
             boolean hasShutdownBounty,
             int totalShutdownGoldEarned,
             int totalShutdownGoldGiven,
-            double bountyProgress
+            double bountyProgress,
+            com.lolfm.simulator.PlayerActivityType activityType,
+            com.lolfm.simulator.Lane activityOriginLane,
+            com.lolfm.simulator.Lane activityTargetLane,
+            int activityUntilSeconds,
+            int activitySecondsRemaining,
+            int roamFarmBlockedUntilSeconds
     ) {
         this.playerName = playerName;
         this.teamName = teamName;
         this.position = position;
         this.kills = kills;
+        this.teamSide = teamSide;
         this.deaths = deaths;
         this.assists = assists;
         this.cs = cs;
         this.gold = gold;
         this.alive = alive;
+        this.activityType = activityType;
+        this.activityOriginLane = activityOriginLane;
+        this.activityTargetLane = activityTargetLane;
+        this.activityUntilSeconds = activityUntilSeconds;
+        this.activitySecondsRemaining = activitySecondsRemaining;
+        this.roamFarmBlockedUntilSeconds = roamFarmBlockedUntilSeconds;
         this.respawnAtSeconds = respawnAtSeconds;
         this.respawnRemainingSeconds = respawnRemainingSeconds;
         this.canFarm = canFarm;
@@ -74,6 +95,13 @@ public class PlayerSnapshot {
     public String getTeamName() { return teamName; }
     public Position getPosition() { return position; }
     public int getKills() { return kills; }
+    public com.lolfm.simulator.TeamSide getTeamSide() { return teamSide; }
+    public com.lolfm.simulator.PlayerActivityType getActivityType() { return activityType; }
+    public com.lolfm.simulator.Lane getActivityOriginLane() { return activityOriginLane; }
+    public com.lolfm.simulator.Lane getActivityTargetLane() { return activityTargetLane; }
+    public int getActivityUntilSeconds() { return activityUntilSeconds; }
+    public int getActivitySecondsRemaining() { return activitySecondsRemaining; }
+    public int getRoamFarmBlockedUntilSeconds() { return roamFarmBlockedUntilSeconds; }
     public int getDeaths() { return deaths; }
     public int getAssists() { return assists; }
     public int getCs() { return cs; }

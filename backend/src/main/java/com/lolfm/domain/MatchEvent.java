@@ -15,7 +15,9 @@ public class MatchEvent {
     private LaneCombatData laneCombat;
     private JungleGankData jungleGank;
     private CounterGankData counterGank;
+    private RoamData roam;
     private CombatSource combatSource;
+    private ObjectivePriorityDecisionData objectivePriorityDecision;
 
     public MatchEvent(
             int timeSeconds,
@@ -84,6 +86,12 @@ public class MatchEvent {
     public void setJungleGank(JungleGankData jungleGank) { this.jungleGank = jungleGank; }
     public CounterGankData getCounterGank() { return counterGank; }
     public void setCounterGank(CounterGankData counterGank) { this.counterGank = counterGank; }
+    public RoamData getRoam() { return roam; }
+    public void setRoam(RoamData roam) { this.roam = roam; }
     public CombatSource getCombatSource() { return combatSource; }
     public void setCombatSource(CombatSource combatSource) { this.combatSource = combatSource; }
+    public ObjectivePriorityDecisionData getObjectivePriorityDecision() { return objectivePriorityDecision; }
+    public void setObjectivePriorityDecision(ObjectivePriorityDecisionData objectivePriorityDecision) {
+        this.objectivePriorityDecision = objectivePriorityDecision;
+    }
 }

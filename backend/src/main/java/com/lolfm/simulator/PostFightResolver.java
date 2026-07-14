@@ -1,6 +1,8 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.MatchEvent;
+import com.lolfm.domain.ObjectivePriorityDecisionData;
+import com.lolfm.domain.ObjectiveSelectionWeightBreakdown;
 import java.util.Optional;
 import java.util.Random;
 import org.springframework.stereotype.Component;
@@ -41,17 +43,45 @@ public class PostFightResolver {
         }
 
         if (elderAvailable && (outcome.grade() == FightGrade.ACE || outcome.grade() == FightGrade.BIG_WIN) && random.nextDouble() < 0.78) {
-            return objectiveResolver.captureElder(gameState, outcome.winningSide(), currentTime, "한타 대승 이후 장로 드래곤을 확보합니다.").map(ElderCaptureOutcome::event);
+            return objectiveResolver.captureElder(gameState, outcome.winningSide(), currentTime, "한타 대승 이후 장로 드래곤을 확보합니다.")
+                    .map(ElderCaptureOutcome::event)
+                    .map(event -> attachDecision(gameState, event, ObjectiveType.ELDER, currentTime, outcome.winningSide()));
         }
         if (baronAvailable && shouldChooseBaron(outcome.grade(), dragonAvailable, winningTeam.getDragons(), random)) {
-            if (elderAvailable) return objectiveResolver.captureElder(gameState, outcome.winningSide(), currentTime, "상대의 긴 부활 시간을 활용해 장로 드래곤을 처치합니다.").map(ElderCaptureOutcome::event);
-        return objectiveResolver.captureBaron(gameState, outcome.winningSide(), currentTime);
+            if (elderAvailable) return objectiveResolver.captureElder(gameState, outcome.winningSide(), currentTime, "상대의 긴 부활 시간을 활용해 장로 드래곤을 처치합니다.")
+                    .map(ElderCaptureOutcome::event)
+                    .map(event -> attachDecision(gameState, event, ObjectiveType.ELDER, currentTime, outcome.winningSide()));
+            return objectiveResolver.captureBaron(gameState, outcome.winningSide(), currentTime)
+                    .map(event -> attachDecision(gameState, event, ObjectiveType.BARON, currentTime, outcome.winningSide()));
         }
         if (dragonAvailable) {
-            return objectiveResolver.captureDragon(gameState, outcome.winningSide(), currentTime, DragonCaptureSource.POST_FIGHT, "");
+            return objectiveResolver.captureDragon(gameState, outcome.winningSide(), currentTime, DragonCaptureSource.POST_FIGHT, "")
+                    .map(event -> attachDecision(gameState, event, ObjectiveType.DRAGON, currentTime, outcome.winningSide()));
         }
-        if (elderAvailable) return objectiveResolver.captureElder(gameState, outcome.winningSide(), currentTime, "상대의 긴 부활 시간을 활용해 장로 드래곤을 처치합니다.").map(ElderCaptureOutcome::event);
-        return objectiveResolver.captureBaron(gameState, outcome.winningSide(), currentTime);
+        if (elderAvailable) return objectiveResolver.captureElder(gameState, outcome.winningSide(), currentTime, "상대의 긴 부활 시간을 활용해 장로 드래곤을 처치합니다.")
+                .map(ElderCaptureOutcome::event)
+                .map(event -> attachDecision(gameState, event, ObjectiveType.ELDER, currentTime, outcome.winningSide()));
+        return objectiveResolver.captureBaron(gameState, outcome.winningSide(), currentTime)
+                .map(event -> attachDecision(gameState, event, ObjectiveType.BARON, currentTime, outcome.winningSide()));
+    }
+
+    private MatchEvent attachDecision(GameState state, MatchEvent event, ObjectiveType type,
+                                      int time, TeamSide selectedSide) {
+        ObjectivePriorityResolver priority = new ObjectivePriorityResolver();
+        double lane = type == ObjectiveType.DRAGON ? priority.dragonLanePressureScore(state)
+                : type == ObjectiveType.BARON ? priority.baronLanePressureScore(state) : 0;
+        double recent = type == ObjectiveType.DRAGON ? state.getObjectivePriorityState().getDragonRecentControl()
+                : type == ObjectiveType.BARON ? state.getObjectivePriorityState().getBaronRecentControl() : 0;
+        double signed = type == ObjectiveType.DRAGON ? priority.dragonSignedPriority(state)
+                : type == ObjectiveType.BARON ? priority.baronSignedPriority(state) : 0;
+        double blue = type == ObjectiveType.ELDER ? 50 : priority.blueDisplayPriority(signed);
+        event.setObjectivePriorityDecision(new ObjectivePriorityDecisionData(type, time,
+                state.getObjectivePriorityState().isEnabled(), false, true, false,
+                lane, recent, signed, blue, 100 - blue,
+                0, 0, 0, false, false, false, false,
+                ObjectiveSelectionWeightBreakdown.zero(), ObjectiveSelectionWeightBreakdown.zero(),
+                1, 1, 0, 0, false, selectedSide));
+        return event;
     }
 
     private int countAlivePlayers(TeamState teamState, int currentTimeSeconds) {

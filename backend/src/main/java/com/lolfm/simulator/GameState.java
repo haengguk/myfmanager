@@ -11,14 +11,18 @@ public class GameState {
     private final TeamState blueTeamState;
     private final TeamState redTeamState;
     private final ObjectiveState objectiveState;
+    private final ObjectivePriorityExecutionStats objectivePriorityExecutionStats;
+    private final ObjectivePriorityState objectivePriorityState;
     private final MapState mapState;
     private final EnumMap<Lane, LaneState> laneStates = new EnumMap<>(Lane.class);
     private int lastLanePressureResolvedAtSeconds = -1;
     private int duplicateLanePressureResolutionCount;
     private int lastLaneCombatResolvedAtSeconds = -1;
     private int lastJungleGankResolvedAtSeconds = -1;
+    private int lastRoamEvaluationAtSeconds = -1;
     private final EnumMap<TeamSide, JungleActionState> jungleActionStates = new EnumMap<>(TeamSide.class);
     private final CombatExecutionStats combatExecutionStats = new CombatExecutionStats();
+    private final RoamExecutionStats roamExecutionStats;
     private boolean finished;
     private TeamSide winnerSide;
     private GameEndReason endReason;
@@ -41,11 +45,23 @@ public class GameState {
     private int lastAceTimeSeconds;
 
     public GameState(TeamState blueTeamState, TeamState redTeamState) {
+        this(blueTeamState, redTeamState, true, true);
+    }
+
+    public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled) {
+        this(blueTeamState, redTeamState, diagnosticsEnabled, true);
+    }
+
+    public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
+                     boolean objectivePriorityEnabled) {
         this.currentTimeSeconds = 0;
         this.blueTeamState = blueTeamState;
         this.redTeamState = redTeamState;
         this.objectiveState = new ObjectiveState();
+        this.objectivePriorityExecutionStats = new ObjectivePriorityExecutionStats();
+        this.objectivePriorityState = new ObjectivePriorityState(objectivePriorityEnabled, objectivePriorityExecutionStats);
         this.mapState = new MapState();
+        this.roamExecutionStats = new RoamExecutionStats(diagnosticsEnabled);
         for (Lane lane : Lane.values()) laneStates.put(lane, new LaneState(lane));
         for (TeamSide side : TeamSide.values()) jungleActionStates.put(side, new JungleActionState());
         this.lastBigWinTimeSeconds = -1;
@@ -68,6 +84,14 @@ public class GameState {
         return objectiveState;
     }
 
+    public ObjectivePriorityState getObjectivePriorityState() {
+        return objectivePriorityState;
+    }
+
+    public ObjectivePriorityExecutionStats getObjectivePriorityExecutionStats() {
+        return objectivePriorityExecutionStats;
+    }
+
     public MapState getMapState() {
         return mapState;
     }
@@ -82,6 +106,7 @@ public class GameState {
     public JungleActionState jungleActionState(TeamSide side) { return jungleActionStates.get(side); }
     public Map<TeamSide, JungleActionState> getJungleActionStates() { return Map.copyOf(jungleActionStates); }
     public CombatExecutionStats getCombatExecutionStats() { return combatExecutionStats; }
+    public RoamExecutionStats getRoamExecutionStats() { return roamExecutionStats; }
     public int getLastJungleGankResolvedAtSeconds() { return lastJungleGankResolvedAtSeconds; }
     public boolean shouldResolveJungleGankAt(int time) {
         if (time < lastJungleGankResolvedAtSeconds) throw new IllegalArgumentException("Jungle gank time cannot move backwards");
@@ -109,7 +134,25 @@ public class GameState {
     public void expireBaronBuffsIfNeeded() {
         blueTeamState.expireBaronBuffIfNeeded(currentTimeSeconds);
         redTeamState.expireBaronBuffIfNeeded(currentTimeSeconds);
+        expireActivities(blueTeamState);
+        expireActivities(redTeamState);
     }
+    private void expireActivities(TeamState team) {
+        for (PlayerState player : team.getPlayers()) {
+            boolean roaming = player.getActivityState().getActivityType() == PlayerActivityType.ROAMING;
+            player.expireActivityIfNeeded(currentTimeSeconds);
+            if (roaming && player.getActivityState().getActivityType() == PlayerActivityType.DEFAULT_ROLE) {
+                roamExecutionStats.recordActivityReturned();
+            }
+        }
+    }
+    public int getLastRoamEvaluationAtSeconds() { return lastRoamEvaluationAtSeconds; }
+    public boolean shouldResolveRoamAt(int time) {
+        if (time < lastRoamEvaluationAtSeconds) throw new IllegalArgumentException("Roam time cannot move backwards");
+        if (time == lastRoamEvaluationAtSeconds) return false;
+        return time >= RoamRuleConfig.MID_ROAM_START_SECONDS && time <= RoamRuleConfig.ROAM_END_SECONDS && time % RoamRuleConfig.ROAM_EVALUATION_INTERVAL_SECONDS == 0;
+    }
+    public void markRoamEvaluatedAt(int time) { if (time <= lastRoamEvaluationAtSeconds) throw new IllegalStateException("Roam time was not advanced"); lastRoamEvaluationAtSeconds = time; }
 
     public String getLastBigWinTeamName() {
         return lastBigWinSide == null ? null : getTeamState(lastBigWinSide).getTeamName();
@@ -242,8 +285,16 @@ public class GameState {
         lastAceTimeSeconds = currentTimeSeconds;
     }
 
+    public boolean hasRecentBigWin(TeamSide side, int windowSeconds) {
+        return isRecentEvent(lastBigWinSide, lastBigWinTimeSeconds, side, windowSeconds);
+    }
+
     public boolean hasRecentBigWin(String teamName, int windowSeconds) {
         return isRecentEvent(lastBigWinSide, lastBigWinTimeSeconds, teamName, windowSeconds);
+    }
+
+    public boolean hasRecentAce(TeamSide side, int windowSeconds) {
+        return isRecentEvent(lastAceSide, lastAceTimeSeconds, side, windowSeconds);
     }
 
     public boolean hasRecentAce(String teamName, int windowSeconds) {
@@ -257,6 +308,13 @@ public class GameState {
                 teamName,
                 windowSeconds
         );
+    }
+
+    private boolean isRecentEvent(TeamSide eventSide, int eventTimeSeconds, TeamSide requestedSide, int windowSeconds) {
+        return eventSide == requestedSide
+                && eventTimeSeconds >= 0
+                && currentTimeSeconds >= eventTimeSeconds
+                && currentTimeSeconds - eventTimeSeconds <= windowSeconds;
     }
 
     private boolean isRecentEvent(TeamSide side, int eventTimeSeconds, String teamName, int windowSeconds) {

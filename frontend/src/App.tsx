@@ -44,6 +44,15 @@ function eventTypeClass(type: string): string {
 
 function eventMessage(event: MatchEvent): string {
   const counter = event.counterGank;
+  const roam = event.roam;
+  if (roam) {
+    const side = roam.roamingSide === 'BLUE' ? '블루' : '레드';
+    const role = roam.roamerPosition === 'MID' ? '미드' : '서포터';
+    const lane = roam.targetLane === 'BOT' ? '바텀' : roam.targetLane;
+    if (roam.outcome === 'NO_KILL') return `${side} ${role} ${lane} 로밍 — 교전 없이 종료`;
+    return `${side} ${role} ${lane} 로밍 — ${roam.outcome === 'ROAMING_SIDE_KILL' ? '처치 성공' : '역킬 발생'}${roam.killerPlayerId ? `: ${roam.killerPlayerId} → ${roam.victimPlayerId}` : ''}`;
+  }
+
   if (counter) {
     const attacking = counter.attackingSide === 'BLUE' ? '블루' : '레드';
     const defending = counter.defendingSide === 'BLUE' ? '블루' : '레드';
@@ -148,15 +157,9 @@ function App() {
     if (!currentSnapshot) {
       return ['Blue Team', 'Red Team'];
     }
-
-    const orderedNames: string[] = [];
-    for (const player of currentSnapshot.playerSnapshots) {
-      if (!orderedNames.includes(player.teamName)) {
-        orderedNames.push(player.teamName);
-      }
-    }
-
-    return [orderedNames[0] ?? 'Blue Team', orderedNames[1] ?? 'Red Team'];
+    const blue = currentSnapshot.playerSnapshots.find((player) => player.teamSide === 'BLUE');
+    const red = currentSnapshot.playerSnapshots.find((player) => player.teamSide === 'RED');
+    return [blue?.teamName ?? 'Blue Team', red?.teamName ?? 'Red Team'];
   }, [currentSnapshot]);
 
   const bluePlayers = useMemo<PlayerSnapshot[]>(() => {
@@ -164,7 +167,7 @@ function App() {
       return [];
     }
 
-    return sortPlayers(currentSnapshot.playerSnapshots.filter((player) => player.teamName === teamNames[0]));
+    return sortPlayers(currentSnapshot.playerSnapshots.filter((player) => player.teamSide === 'BLUE'));
   }, [currentSnapshot, teamNames]);
 
   const redPlayers = useMemo<PlayerSnapshot[]>(() => {
@@ -172,7 +175,7 @@ function App() {
       return [];
     }
 
-    return sortPlayers(currentSnapshot.playerSnapshots.filter((player) => player.teamName === teamNames[1]));
+    return sortPlayers(currentSnapshot.playerSnapshots.filter((player) => player.teamSide === 'RED'));
   }, [currentSnapshot, teamNames]);
 
   const hasGameEnded = visibleEvents.some((event) => event.type === 'GAME_END') || (timeline ? gameTime >= timeline.durationSeconds : false);
@@ -385,6 +388,48 @@ function App() {
               </article>
             </div>
 
+            <section className={`objective-priority ${currentSnapshot.objectivePriority.enabled ? '' : 'is-disabled'}`} aria-label="오브젝트 주도권">
+              <div className="priority-heading">
+                <div>
+                  <span className="eyebrow">Objective control</span>
+                  <h3>오브젝트 주도권</h3>
+                </div>
+                {!currentSnapshot.objectivePriority.enabled && <span className="priority-disabled-label">비활성</span>}
+              </div>
+              <div className="priority-rows">
+                {([
+                  {
+                    label: '드래곤',
+                    blue: currentSnapshot.objectivePriority.blueDragonPriority,
+                    red: currentSnapshot.objectivePriority.redDragonPriority,
+                    lane: currentSnapshot.objectivePriority.dragonLanePressureScore,
+                    recent: currentSnapshot.objectivePriority.dragonRecentControl
+                  },
+                  {
+                    label: '바론',
+                    blue: currentSnapshot.objectivePriority.blueBaronPriority,
+                    red: currentSnapshot.objectivePriority.redBaronPriority,
+                    lane: currentSnapshot.objectivePriority.baronLanePressureScore,
+                    recent: currentSnapshot.objectivePriority.baronRecentControl
+                  }
+                ] as const).map((item) => (
+                  <div className="priority-row" key={item.label}>
+                    <div className="priority-row-copy">
+                      <strong>{item.label}</strong>
+                      <span>라인 {item.lane >= 0 ? '+' : ''}{item.lane.toFixed(1)} · 최근 전투 {item.recent >= 0 ? '+' : ''}{item.recent.toFixed(1)}</span>
+                    </div>
+                    <div className="priority-score" aria-label={`${item.label} 블루 ${item.blue.toFixed(0)} 레드 ${item.red.toFixed(0)}`}>
+                      <b className="priority-blue">BLUE {item.blue.toFixed(0)}</b>
+                      <div className="priority-track" aria-hidden="true">
+                        <span style={{ width: `${item.blue}%` }} />
+                      </div>
+                      <b className="priority-red">{item.red.toFixed(0)} RED</b>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
             <div className="roster-grid">
               <div className="roster-block">
                 <div className="roster-header">
@@ -411,6 +456,8 @@ function App() {
                               <span>{player.playerName}</span>
                               {!player.alive ? (
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
+                              ) : player.activityType === 'ROAMING' ? (
+                                <span className="farm-return-timer">로밍 복귀 {player.activitySecondsRemaining}초</span>
                               ) : !player.canFarm && player.position !== 'SUPPORT' ? (
                                 <span className="farm-return-timer">복귀 {player.farmReturnSecondsRemaining}초</span>
                               ) : player.hasShutdownBounty ? (
@@ -453,6 +500,8 @@ function App() {
                               <span>{player.playerName}</span>
                               {!player.alive ? (
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
+                              ) : player.activityType === 'ROAMING' ? (
+                                <span className="farm-return-timer">로밍 복귀 {player.activitySecondsRemaining}초</span>
                               ) : !player.canFarm && player.position !== 'SUPPORT' ? (
                                 <span className="farm-return-timer">복귀 {player.farmReturnSecondsRemaining}초</span>
                               ) : player.hasShutdownBounty ? (

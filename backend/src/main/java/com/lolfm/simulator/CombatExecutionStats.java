@@ -25,6 +25,14 @@ public final class CombatExecutionStats {
     public void recordGenericSkirmishCall(int timeSeconds) { if (timeSeconds <= CHECKPOINT_SECONDS) genericSkirmishCalls++; }
     public void recordGenericSkirmishKill(int timeSeconds) { if (timeSeconds <= CHECKPOINT_SECONDS) genericSkirmishKills++; }
 
+    public void recordRoamEvaluation() { }
+    public void recordRoamCandidateEvaluation(com.lolfm.domain.Position position, TeamSide side) { }
+    public void recordRoamTriggerRoll() { }
+    public void recordRoamMultipleTriggers() { }
+    public void recordRoamUnselectedTriggers(int count) { }
+    public void recordRoamAttempt(com.lolfm.domain.Position position, TeamSide side) { }
+    public void recordRoamKill(TeamSide side) { }
+
     public CombatExecutionStatsSnapshot snapshot() {
         return new CombatExecutionStatsSnapshot(jungleGankEvaluations, jungleGankAllTriggersFailed,
                 jungleGankAttempts, counterGankAttempts, laneCombatResolverCalls, laneCombatTriggeredLanes,

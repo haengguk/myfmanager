@@ -1,0 +1,14 @@
+package com.lolfm.simulator;
+
+/** Initial tuning for structured Dragon and Baron strategic priority. */
+public final class ObjectivePriorityRuleConfig {
+    private ObjectivePriorityRuleConfig() { }
+    public static final double DRAGON_MID_PRESSURE_WEIGHT = .45, DRAGON_BOT_PRESSURE_WEIGHT = .55;
+    public static final double BARON_TOP_PRESSURE_WEIGHT = .55, BARON_MID_PRESSURE_WEIGHT = .45;
+    public static final double MAX_RECENT_CONTROL = 40, LANE_COMBAT_KILL_BASE_IMPACT = 8, JUNGLE_GANK_KILL_BASE_IMPACT = 10, COUNTER_GANK_KILL_BASE_IMPACT = 12, ROAM_KILL_BASE_IMPACT = 12;
+    public static final int RECENT_CONTROL_DECAY_SECONDS_PER_POINT = 10;
+    public static final double TEAMFIGHT_SMALL_WIN_IMPACT = 6, TEAMFIGHT_NORMAL_WIN_IMPACT = 10, TEAMFIGHT_BIG_WIN_IMPACT = 16, TEAMFIGHT_ACE_IMPACT = 24;
+    public static final double DRAGON_TOP_LANE_IMPACT_MULTIPLIER = 0, DRAGON_MID_LANE_IMPACT_MULTIPLIER = .80, DRAGON_BOT_LANE_IMPACT_MULTIPLIER = 1;
+    public static final double BARON_TOP_LANE_IMPACT_MULTIPLIER = 1, BARON_MID_LANE_IMPACT_MULTIPLIER = .80, BARON_BOT_LANE_IMPACT_MULTIPLIER = 0;
+    public static final double MAX_GENERAL_ATTEMPT_PRIORITY_BONUS = .05, SIDE_SELECTION_STRENGTH = 1, MIN_SIDE_SELECTION_WEIGHT = .10, MAX_SIDE_SELECTION_WEIGHT = 2, PRIORITY_SCORE_MIN = -100, PRIORITY_SCORE_MAX = 100;
+}

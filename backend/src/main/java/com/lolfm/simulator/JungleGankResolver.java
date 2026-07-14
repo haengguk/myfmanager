@@ -88,6 +88,7 @@ public final class JungleGankResolver {
                 : JungleGankRuleConfig.SOLO_GANK_PRESSURE_SHOCK;
         double pressureAfter = clamp(pressureBefore + (winningSide == TeamSide.BLUE ? shock : -shock), -100, 100);
         state.laneState(lane).setPressure(pressureAfter);
+        new ObjectivePriorityResolver().applyJungleGankKill(state, time, lane, winningSide);
         events.add(gankEvent(time, side, state.getTeamState(side).playerAt(Position.JUNGLE).getPlayerName(), lane, outcome, winningSide, participants.killer(), participants.victim(),
                 participants.assistants(), pressureBefore, pressureAfter, overextension,
                 action.getJungleFarmBlockedUntilSeconds(), attemptChance, selectedWeight, edge, decisive, success,
@@ -97,7 +98,7 @@ public final class JungleGankResolver {
 
     boolean junglerEligible(GameState state, TeamSide side, int time) {
         PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
-        if (!jungler.isAlive(time)) return false;
+        if (!jungler.canParticipateInMajorCombatAt(time)) return false;
         int last = state.jungleActionState(side).getLastJungleActionAtSeconds();
         if (last >= 0 && time - last < JungleGankRuleConfig.JUNGLER_GANK_COOLDOWN_SECONDS) return false;
         return Lane.values().length > 0 && java.util.Arrays.stream(Lane.values()).anyMatch(lane -> laneEligible(state, lane, time));
@@ -106,7 +107,7 @@ public final class JungleGankResolver {
     boolean laneEligible(GameState state, Lane lane, int time) {
         for (TeamSide side : TeamSide.values()) {
             for (PlayerState player : lanePlayers(state.getTeamState(side), lane)) {
-                if (!player.isAlive(time)) return false;
+                if (!player.canParticipateInMajorCombatAt(time)) return false;
             }
         }
         return true;

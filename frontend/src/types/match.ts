@@ -12,21 +12,91 @@ export interface MatchTimeline {
 
 export interface MatchEvent {
   timeSeconds: number;
+  roam: RoamData | null;
   type: string;
   message: string;
   killer: string | null;
   victim: string | null;
   assists: string[];
   goldAmount: number;
-  combatSource: 'COUNTER_GANK' | 'JUNGLE_GANK' | 'LANE_COMBAT' | 'SKIRMISH' | 'TEAMFIGHT' | 'OBJECTIVE_FIGHT' | 'OTHER' | null;
+  combatSource: 'COUNTER_GANK' | 'JUNGLE_GANK' | 'ROAM' | 'LANE_COMBAT' | 'SKIRMISH' | 'TEAMFIGHT' | 'OBJECTIVE_FIGHT' | 'OTHER' | null;
   laneCombat: LaneCombatData | null;
   jungleGank: JungleGankData | null;
   counterGank: CounterGankData | null;
+  objectivePriorityDecision?: ObjectivePriorityDecisionData | null;
+}
+
+
+export type ObjectiveType = 'DRAGON' | 'BARON' | 'ELDER';
+export type TeamSide = 'BLUE' | 'RED';
+
+export interface ObjectiveSelectionWeightBreakdown {
+  aliveContribution: number;
+  goldContribution: number;
+  killContribution: number;
+  recentBigWinContribution: number;
+  recentAceContribution: number;
+  otherContribution: number;
+  totalExistingWeight: number;
+}
+
+export interface ObjectivePriorityDecisionData {
+  objectiveType: ObjectiveType;
+  evaluationTimeSeconds: number;
+  priorityEnabled: boolean;
+  generalAttempt: boolean;
+  postFightLinked: boolean;
+  priorityApplied: boolean;
+  lanePressureScore: number;
+  recentControl: number;
+  signedPriority: number;
+  bluePriority: number;
+  redPriority: number;
+  existingBaseAttemptChance: number;
+  priorityAttemptBonus: number;
+  finalAttemptChance: number;
+  attemptRollExecuted: boolean;
+  attemptRollSucceeded: boolean;
+  blueEligible: boolean;
+  redEligible: boolean;
+  blueExistingWeight: ObjectiveSelectionWeightBreakdown;
+  redExistingWeight: ObjectiveSelectionWeightBreakdown;
+  bluePriorityMultiplier: number;
+  redPriorityMultiplier: number;
+  finalBlueSelectionWeight: number;
+  finalRedSelectionWeight: number;
+  sideSelectionRollExecuted: boolean;
+  selectedSide: TeamSide | null;
+}
+
+export interface ObjectivePrioritySnapshot {
+  enabled: boolean;
+  dragonLanePressureScore: number;
+  dragonRecentControl: number;
+  dragonSignedPriority: number;
+  blueDragonPriority: number;
+  redDragonPriority: number;
+  baronLanePressureScore: number;
+  baronRecentControl: number;
+  baronSignedPriority: number;
+  blueBaronPriority: number;
+  redBaronPriority: number;
+}
+
+export interface RoamData {
+  roamingSide: 'BLUE' | 'RED'; roamerPlayerId: string; roamerPosition: 'MID' | 'SUPPORT';
+  originLane: 'TOP' | 'MID' | 'BOT'; targetLane: 'TOP' | 'MID' | 'BOT';
+  outcome: 'NO_KILL' | 'ROAMING_SIDE_KILL' | 'DEFENDING_SIDE_KILL'; winningSide: 'BLUE' | 'RED' | null;
+  killerPlayerId: string | null; victimPlayerId: string | null; assistantPlayerIds: string[];
+  originPressureBefore: number; originPressureAfter: number; targetPressureBefore: number; targetPressureAfter: number;
+  originPriority: number; targetEnemyOverextension: number; activityUntilSeconds: number; roamFarmBlockedUntilSeconds: number;
+  repeatTarget: boolean; repeatPenaltyApplied: boolean;
+  attemptChance: number; targetWeight: number; combatEdge: number; decisiveChance: number; roamSuccessChance: number;
 }
 
 export interface JungleGankData {
-  gankingSide: 'BLUE' | 'RED';
   junglerPlayerId: string;
+  gankingSide: 'BLUE' | 'RED';
   targetLane: 'TOP' | 'MID' | 'BOT';
   outcome: 'NO_KILL' | 'GANK_SUCCESS' | 'DEFENDER_REVERSE_KILL';
   winningSide: 'BLUE' | 'RED' | null;
@@ -120,6 +190,7 @@ export interface MatchSnapshot {
   redAlivePlayers: number;
   playerSnapshots: PlayerSnapshot[];
   laneSnapshots: LaneSnapshot[];
+  objectivePriority: ObjectivePrioritySnapshot;
 }
 
 export interface LaneSnapshot {
@@ -131,6 +202,7 @@ export interface LaneSnapshot {
 export interface PlayerSnapshot {
   playerName: string;
   teamName: string;
+  teamSide: 'BLUE' | 'RED';
   position: string;
   kills: number;
   deaths: number;
@@ -146,6 +218,12 @@ export interface PlayerSnapshot {
   hasElderBuff: boolean;
   elderBuffRemainingSeconds: number;
   shutdownBountyGold: number;
+  activityType: 'DEFAULT_ROLE' | 'ROAMING';
+  activityOriginLane: 'TOP' | 'MID' | 'BOT' | null;
+  activityTargetLane: 'TOP' | 'MID' | 'BOT' | null;
+  activityUntilSeconds: number;
+  activitySecondsRemaining: number;
+  roamFarmBlockedUntilSeconds: number;
   hasShutdownBounty: boolean;
   totalShutdownGoldEarned: number;
   totalShutdownGoldGiven: number;

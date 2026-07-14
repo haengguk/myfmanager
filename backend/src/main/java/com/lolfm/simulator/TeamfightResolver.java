@@ -376,7 +376,7 @@ public class TeamfightResolver {
     private List<Player> filterEligiblePlayers(List<Player> players, TeamState state, int time, Set<String> blocked) {
         List<Player> candidates = new ArrayList<>();
         for (Player player : players) {
-            if (!blocked.contains(player.getName()) && state.getPlayerState(player.getName()).isAlive(time)) {
+            if (!blocked.contains(player.getName()) && state.getPlayerState(player.getName()).canParticipateInMajorCombatAt(time)) {
                 candidates.add(player);
             }
         }
@@ -390,7 +390,7 @@ public class TeamfightResolver {
         for (Player player : team.getPlayers()) {
             if (!player.getName().equals(killer.getName())
                     && !deadPlayers.contains(player.getName())
-                    && state.getPlayerState(player.getName()).isAlive(time)) {
+                    && state.getPlayerState(player.getName()).canParticipateInMajorCombatAt(time)) {
                 candidates.add(player);
             }
         }

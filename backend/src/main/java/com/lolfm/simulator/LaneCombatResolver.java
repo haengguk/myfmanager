@@ -72,6 +72,7 @@ public final class LaneCombatResolver {
                 : LaneCombatRuleConfig.SOLO_KILL_PRESSURE_SHOCK;
         double pressureAfter = clamp(pressureBefore + (winningSide == TeamSide.BLUE ? shock : -shock), -100, 100);
         state.laneState(lane).setPressure(pressureAfter);
+        new ObjectivePriorityResolver().applyLaneCombatKill(state, time, lane, winningSide);
         events.add(laneEvent(time, lane, initiator, outcome, winningSide, killer, victim, assistants, pressureBefore, pressureAfter));
         return true;
     }
@@ -95,7 +96,7 @@ public final class LaneCombatResolver {
         if (lastAttempt >= 0 && time - lastAttempt < LaneCombatRuleConfig.LANE_COMBAT_COOLDOWN_SECONDS) return false;
         for (TeamSide side : TeamSide.values()) {
             for (PlayerState player : participants(state.getTeamState(side), lane)) {
-                if (!player.isAlive(time)) return false;
+                if (!player.canParticipateInMajorCombatAt(time)) return false;
             }
         }
         return true;

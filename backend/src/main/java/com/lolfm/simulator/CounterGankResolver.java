@@ -72,6 +72,7 @@ public final class CounterGankResolver {
                     : CounterGankRuleConfig.SOLO_COUNTER_GANK_PRESSURE_SHOCK;
             after = clamp(before + (winningSide == TeamSide.BLUE ? shock : -shock), -100, 100);
             state.laneState(lane).setPressure(after);
+            new ObjectivePriorityResolver().applyCounterGankKill(state, time, lane, winningSide);
         }
 
         MatchEvent event = new MatchEvent(time, MatchEventType.COUNTER_GANK, "Counter gank",
@@ -101,7 +102,7 @@ public final class CounterGankResolver {
             return CounterGankIneligibility.OUTSIDE_WINDOW;
         }
         TeamSide defendingSide = attackingSide.opposite();
-        if (!state.getTeamState(defendingSide).playerAt(Position.JUNGLE).isAlive(time)) {
+        if (!state.getTeamState(defendingSide).playerAt(Position.JUNGLE).canParticipateInMajorCombatAt(time)) {
             return CounterGankIneligibility.DEFENDING_JUNGLER_DEAD;
         }
         int last = state.jungleActionState(defendingSide).getLastJungleActionAtSeconds();
@@ -110,7 +111,7 @@ public final class CounterGankResolver {
         }
         for (TeamSide side : TeamSide.values()) {
             for (PlayerState player : lanePlayers(state.getTeamState(side), lane)) {
-                if (!player.isAlive(time)) return CounterGankIneligibility.LANE_PARTICIPANT_DEAD;
+                if (!player.canParticipateInMajorCombatAt(time)) return CounterGankIneligibility.LANE_PARTICIPANT_DEAD;
             }
         }
         return CounterGankIneligibility.NONE;
