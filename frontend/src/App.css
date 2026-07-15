@@ -391,6 +391,58 @@ select {
 .priority-track span { display: block; height: 100%; border-radius: inherit; background: #38bdf8; transition: width 320ms ease; }
 .objective-priority.is-disabled { opacity: .62; }
 
+.macro-panel {
+  margin: 0 0 18px;
+  padding: 18px 0 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.macro-heading,
+.macro-team-topline,
+.macro-team-meta,
+.macro-controls,
+.macro-callout {
+  display: flex;
+  align-items: center;
+}
+
+.macro-evaluation { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px 14px; margin-top: 14px; padding: 10px 0; border-top: 1px solid rgba(148, 163, 184, .10); border-bottom: 1px solid rgba(148, 163, 184, .10); }
+.macro-evaluation strong { color: #e2e8f0; font-size: .76rem; }
+.macro-evaluation small { color: #94a3b8; font-size: .68rem; text-align: right; }
+
+.macro-heading {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.macro-heading h3 { margin: 0; font-size: 1rem; }
+.macro-heading .eyebrow { margin-bottom: 5px; }
+.macro-phase { color: #94a3b8; font-size: .76rem; letter-spacing: .05em; }
+.macro-teams { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.macro-team { padding: 16px; border-left: 2px solid rgba(148, 163, 184, .26); background: rgba(15, 23, 42, .48); }
+.macro-blue { border-left-color: #38bdf8; }
+.macro-red { border-left-color: #fb7185; }
+.macro-team-topline { justify-content: space-between; gap: 12px; }
+.macro-team-topline span { color: #94a3b8; font-size: .72rem; font-weight: 800; letter-spacing: .12em; }
+.macro-team-topline strong { color: #f8fafc; font-size: .94rem; }
+.macro-target { margin: 9px 0 14px; color: #cbd5e1; font-size: .78rem; letter-spacing: .07em; }
+.macro-assignment { display: grid; gap: 5px; padding: 10px 0; border-top: 1px solid rgba(148, 163, 184, .10); border-bottom: 1px solid rgba(148, 163, 184, .10); }
+.macro-assignment span,
+.macro-controls span,
+.macro-evaluation span,
+.macro-callout span { color: #64748b; font-size: .64rem; letter-spacing: .12em; font-weight: 800; }
+.macro-assignment b { color: #dbeafe; font-size: .76rem; }
+.macro-team-meta { justify-content: space-between; gap: 8px; margin-top: 11px; color: #94a3b8; font-size: .66rem; letter-spacing: .04em; }
+.macro-controls { gap: 22px; padding: 14px 0 0; }
+.macro-controls > div { display: grid; gap: 4px; min-width: 0; }
+.macro-controls strong { color: #e2e8f0; font-size: .92rem; font-variant-numeric: tabular-nums; }
+.blue-control { color: #7dd3fc !important; }
+.red-control { color: #fda4af !important; }
+.macro-callout { flex-wrap: wrap; gap: 7px 13px; margin-top: 14px; padding: 12px 14px; background: rgba(56, 189, 248, .07); border-left: 2px solid rgba(56, 189, 248, .65); }
+.macro-callout strong { color: #e0f2fe; font-size: .78rem; }
+.macro-callout small { width: 100%; color: #94a3b8; font-size: .68rem; }
+.macro-panel.is-disabled { opacity: .62; }
+.event-badge.macro { background: rgba(45, 212, 191, .14); color: #99f6e4; }
 .roster-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -658,3 +710,9 @@ tbody tr:hover {
 }
 
 .team-observability .elder-active { border-color: rgba(251, 146, 60, .7); background: rgba(154, 52, 18, .28); color: #fed7aa; animation: soul-pulse 1.4s ease-in-out infinite; }
+
+@media (max-width: 720px) {
+  .macro-teams { grid-template-columns: 1fr; }
+  .macro-controls { align-items: flex-start; flex-wrap: wrap; gap: 14px 24px; }
+  .macro-controls > div { min-width: 42%; }
+}

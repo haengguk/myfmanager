@@ -23,6 +23,7 @@ public final class LanePhaseResolver {
             double pressure=state.laneState(lane).getPressure();
             if(Math.abs(pressure)<LanePhaseRuleConfig.MIN_SIEGE_PRESSURE){stats.recordPressureBelowThreshold();continue;}
             TeamSide attacking=pressure>0?TeamSide.BLUE:TeamSide.RED,defending=attacking.opposite();
+            if(state.wasStructureActionPerformedThisTick(attacking))continue;
             LaneStructureState target=state.getMapState().getLaneState(defending,lane);
             if(!target.isOuterTowerAlive()){stats.recordTargetAlreadyDestroyed();continue;}
             PlayerState primary=primary(state.getTeamState(attacking),lane);

@@ -24,6 +24,8 @@ public class MatchEvent {
     private CombatSource combatSource;
     private ObjectivePriorityDecisionData objectivePriorityDecision;
     private StructureActionSource structureActionSource;
+    private MidGameMacroDecisionData midGameMacroDecision;
+    private MidGameMacroActionData midGameMacroAction;
     private StructureKind structureKind;
     private TowerTier structureTowerTier;
     private Lane structureLane;
@@ -108,6 +110,10 @@ public class MatchEvent {
         this.objectivePriorityDecision = objectivePriorityDecision;
     }
     public StructureActionSource getStructureActionSource() { return structureActionSource; }
+    public MidGameMacroDecisionData getMidGameMacroDecision() { return midGameMacroDecision; }
+    public void setMidGameMacroDecision(MidGameMacroDecisionData value) { midGameMacroDecision = value; }
+    public MidGameMacroActionData getMidGameMacroAction() { return midGameMacroAction; }
+    public void setMidGameMacroAction(MidGameMacroActionData value) { midGameMacroAction = value; }
     public StructureKind getStructureKind() { return structureKind; }
     public void setStructureKind(StructureKind value) { structureKind=value; }
     public TowerTier getStructureTowerTier() { return structureTowerTier; }

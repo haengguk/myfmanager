@@ -167,6 +167,7 @@ public class PushResolver {
         List<TeamSide>sides=new ArrayList<>();for(TeamSide side:TeamSide.values())if(state.getMapState().isPushAttemptDue(side,time))sides.add(side);
         if(sides.size()==2&&random.nextBoolean()){TeamSide first=sides.get(0);sides.set(0,sides.get(1));sides.set(1,first);}
         for (TeamSide side : sides) {
+            if (state.wasStructureActionPerformedThisTick(side)) continue;
             TeamState team = state.getTeamState(side);
             int interval = attemptInterval(state, side, time);
             state.getMapState().markPushAttempted(side, time, interval);

@@ -79,3 +79,8 @@ tasks.register("runLanePhaseDiagnostics", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.simulator.LanePhaseDiagnostics"
 }
+
+tasks.register("runMidGameMacroDiagnostics", JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.MidGameMacroDiagnostics"
+}

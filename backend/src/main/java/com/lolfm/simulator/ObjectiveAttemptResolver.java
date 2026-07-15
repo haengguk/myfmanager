@@ -219,7 +219,9 @@ public class ObjectiveAttemptResolver {
                 priorityApplied && type != ObjectiveType.ELDER, lane, recent, signed, bluePriority, redPriority,
                 base, bonus, finalChance, attemptRollExecuted, attemptSucceeded,
                 eligible.contains(TeamSide.BLUE), eligible.contains(TeamSide.RED), blue, red,
-                blueMultiplier, redMultiplier, finalBlue, finalRed, sideRoll, selected);
+                blueMultiplier, redMultiplier, finalBlue, finalRed, sideRoll, selected,
+                type == ObjectiveType.DRAGON ? priority.dragonMacroSetupControl(state)
+                        : type == ObjectiveType.BARON ? priority.baronMacroSetupControl(state) : 0);
     }
 
     private void record(GameState state, ObjectivePriorityDecisionData data) {

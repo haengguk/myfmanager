@@ -72,8 +72,8 @@ public class PostFightResolver {
                 : type == ObjectiveType.BARON ? priority.baronLanePressureScore(state) : 0;
         double recent = type == ObjectiveType.DRAGON ? state.getObjectivePriorityState().getDragonRecentControl()
                 : type == ObjectiveType.BARON ? state.getObjectivePriorityState().getBaronRecentControl() : 0;
-        double signed = type == ObjectiveType.DRAGON ? priority.dragonSignedPriority(state)
-                : type == ObjectiveType.BARON ? priority.baronSignedPriority(state) : 0;
+        double signed = type == ObjectiveType.DRAGON ? priority.dragonSignedPriorityWithoutMacro(state)
+                : type == ObjectiveType.BARON ? priority.baronSignedPriorityWithoutMacro(state) : 0;
         double blue = type == ObjectiveType.ELDER ? 50 : priority.blueDisplayPriority(signed);
         event.setObjectivePriorityDecision(new ObjectivePriorityDecisionData(type, time,
                 state.getObjectivePriorityState().isEnabled(), false, true, false,

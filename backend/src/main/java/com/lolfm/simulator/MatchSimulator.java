@@ -38,6 +38,7 @@ public class MatchSimulator {
     private final ObjectivePriorityResolver objectivePriorityResolver = new ObjectivePriorityResolver();
     private final LanePhaseResolver lanePhaseResolver = new LanePhaseResolver();
     private final LaneCombatResolver laneCombatResolver = new LaneCombatResolver();
+    private final MidGameMacroResolver midGameMacroResolver = new MidGameMacroResolver();
     private final JungleGankResolver jungleGankResolver;
     private final RoamResolver roamResolver = new RoamResolver();
     private final GoldAwardService goldAwards = new GoldAwardService();
@@ -48,6 +49,7 @@ public class MatchSimulator {
     private final boolean roamEnabled;
     private final boolean diagnosticsEnabled;
     private final boolean objectivePriorityEnabled;
+    private final boolean midGameMacroEnabled;
     private final boolean lanePhaseEnabled;
 
     @Autowired
@@ -141,6 +143,7 @@ public class MatchSimulator {
         this.roamEnabled = options.roamEnabled();
         this.diagnosticsEnabled = options.diagnosticsEnabled();
         this.objectivePriorityEnabled = options.objectivePriorityEnabled();
+        this.midGameMacroEnabled = options.midGameMacroEnabled();
         this.lanePhaseEnabled = options.lanePhaseEnabled();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
@@ -179,7 +182,9 @@ public class MatchSimulator {
                     SIMULATION_SAFETY_TIMEOUT_SECONDS - gameState.getCurrentTimeSeconds()
             ));
             gameState.expireBaronBuffsIfNeeded();
+            midGameMacroResolver.expirePlans(gameState);
             gameState.clearMajorCombatParticipantsThisTick();
+            gameState.clearStructureActionRegistryThisTick();
             objectivePriorityResolver.decayRecentControl(gameState, gameState.getCurrentTimeSeconds());
             boolean blueEconomy = awardPassiveForTick(gameState.getBlueTeamState(), gameState.getCurrentTimeSeconds());
             boolean redEconomy = awardPassiveForTick(gameState.getRedTeamState(), gameState.getCurrentTimeSeconds());
@@ -191,9 +196,7 @@ public class MatchSimulator {
             boolean roamEvaluationDue = roamEnabled
                     && gameState.shouldResolveRoamAt(gameState.getCurrentTimeSeconds());
             boolean jungleGankAttempted = jungleGankEnabled && jungleGankResolver.resolve(gameState, random, events);
-            if (jungleGankAttempted && roamEvaluationDue) {
-                gameState.getRoamExecutionStats().recordSkippedByHigherPriority();
-            }
+            if (jungleGankAttempted && roamEvaluationDue) gameState.getRoamExecutionStats().recordSkippedByHigherPriority();
             int roamEvaluationBefore = gameState.getLastRoamEvaluationAtSeconds();
             boolean roamAttempted = !jungleGankAttempted && roamEnabled
                     && roamResolver.resolve(gameState, random, events);
@@ -213,44 +216,39 @@ public class MatchSimulator {
             if (!majorCombatAttempted) {
                 gameState.getCombatExecutionStats().recordGenericSkirmishCall(gameState.getCurrentTimeSeconds());
                 genericCombatAttempted = maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
-                if (genericCombatAttempted) {
-                    gameState.getCombatExecutionStats().recordGenericSkirmishKill(gameState.getCurrentTimeSeconds());
-                }
+                if (genericCombatAttempted) gameState.getCombatExecutionStats().recordGenericSkirmishKill(gameState.getCurrentTimeSeconds());
             }
-
-            Optional<TeamfightOutcome> outcome = (majorCombatAttempted || genericCombatAttempted) ? Optional.empty() : teamfightResolver.maybeResolveTeamfight(
-                    gameState, blueTeam, redTeam, random, events
-            );
+            Optional<TeamfightOutcome> outcome = (majorCombatAttempted || genericCombatAttempted)
+                    ? Optional.empty() : teamfightResolver.maybeResolveTeamfight(gameState, blueTeam, redTeam, random, events);
             outcome.ifPresent(result -> objectivePriorityResolver.applyTeamfightWin(
                     gameState, gameState.getCurrentTimeSeconds(), result));
             List<StructureOutcome> siegeStructures = lanePhaseResolver.resolveOuterSieges(
                     gameState, gameState.getCurrentTimeSeconds(), random, structureResolver);
-            for (StructureOutcome structure : siegeStructures) {
-                events.add(structureResolver.createStructureEvent(gameState, structure));
-            }
+            for (StructureOutcome structure : siegeStructures) events.add(structureResolver.createStructureEvent(gameState, structure));
             Optional<MatchEvent> postFightObjective = outcome.flatMap(result -> postFightResolver.resolve(
-                    gameState, result, random, objectiveResolver
-            ));
-            postFightObjective.ifPresent(events::add);
-
-            List<StructureOutcome> postFightStructures = pushResolver.resolvePostFightWindow(
-                    gameState, outcome, postFightObjective, random, structureResolver
-            );
-            for (StructureOutcome structure : postFightStructures) {
-                events.add(structureResolver.createStructureEvent(gameState, structure));
-            }
-            boolean towerDestroyedThisTick = !postFightStructures.isEmpty();
-
+                    gameState, result, random, objectiveResolver));
+            postFightObjective.ifPresent(event -> { events.add(event); cancelMacroSetupForCapture(gameState, event); });
+            boolean postFightSideAlreadyActed = outcome
+                    .map(result -> gameState.wasStructureActionPerformedThisTick(result.winningSide()))
+                    .orElse(false);
+            List<StructureOutcome> postFightStructures = postFightSideAlreadyActed
+                    ? List.of()
+                    : pushResolver.resolvePostFightWindow(gameState, outcome, postFightObjective, random, structureResolver);
+            for (StructureOutcome structure : postFightStructures) events.add(structureResolver.createStructureEvent(gameState, structure));
             if (!gameState.isFinished() && postFightObjective.isEmpty()) {
-                objectiveAttemptResolver.maybeAttemptObjective(gameState, random, objectiveResolver).ifPresent(events::add);
+                Optional<MatchEvent> generalObjective = objectiveAttemptResolver.maybeAttemptObjective(gameState, random, objectiveResolver);
+                generalObjective.ifPresent(event -> { events.add(event); cancelMacroSetupForCapture(gameState, event); });
             }
-            if (!gameState.isFinished() && !towerDestroyedThisTick) {
+            if (!gameState.isFinished()) {
                 pushResolver.maybeResolveMacroPush(gameState, random, structureResolver)
                         .ifPresent(push -> events.add(structureResolver.createStructureEvent(gameState, push)));
             }
-            lanePhaseResolver.transitionIfDue(gameState).ifPresent(events::add);
-
+            Optional<MatchEvent> phaseTransition = lanePhaseResolver.transitionIfDue(gameState);
+            phaseTransition.ifPresent(events::add);
+            if (phaseTransition.isPresent()) midGameMacroResolver.onPhaseTransition(gameState);
+            midGameMacroResolver.resolveDueEvaluation(gameState, random, events, structureResolver);
             endGameDecision = endGameEvaluator.evaluateAfterTick(gameState);
+            if (endGameDecision.isFinished()) midGameMacroResolver.onMatchFinished(gameState);
             snapshots.add(snapshotFactory.create(gameState));
         }
 
@@ -295,7 +293,8 @@ public class MatchSimulator {
                 gameState.getRoamExecutionStats().snapshot(),
                 gameState.getWinnerSide(),
                 gameState.getObjectivePriorityExecutionStats().snapshot(),
-                gameState.getLanePhaseExecutionStats().snapshot()
+                gameState.getLanePhaseExecutionStats().snapshot(),
+                gameState.getMidGameMacroState().getExecutionStats().snapshot()
         );
     }
 
@@ -321,7 +320,8 @@ public class MatchSimulator {
             RoamExecutionStatsSnapshot roamExecutionStats,
             TeamSide winnerSide,
             ObjectivePriorityExecutionStatsSnapshot objectivePriorityExecutionStats,
-            LanePhaseExecutionStatsSnapshot lanePhaseExecutionStats
+            LanePhaseExecutionStatsSnapshot lanePhaseExecutionStats,
+            MidGameMacroExecutionStatsSnapshot midGameMacroExecutionStats
     ) {
     }
 
@@ -342,9 +342,16 @@ public class MatchSimulator {
         );
     }
 
+    private void cancelMacroSetupForCapture(GameState state, MatchEvent event) {
+        switch (event.getType()) {
+            case DRAGON -> midGameMacroResolver.cancelSetupForObjective(state, ObjectiveType.DRAGON);
+            case BARON -> midGameMacroResolver.cancelSetupForObjective(state, ObjectiveType.BARON);
+            default -> { }
+        }
+    }
     private GameState initializeGameState(Team blueTeam, Team redTeam) {
         return new GameState(buildTeamState(blueTeam), buildTeamState(redTeam), diagnosticsEnabled,
-                objectivePriorityEnabled, lanePhaseEnabled);
+                objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled);
     }
 
     private TeamState buildTeamState(Team team) {

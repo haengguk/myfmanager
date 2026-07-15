@@ -18,8 +18,10 @@ public class GameState {
     private final ObjectivePriorityState objectivePriorityState;
     private final LanePhaseExecutionStats lanePhaseExecutionStats;
     private final LanePhaseState lanePhaseState;
+    private final MidGameMacroState midGameMacroState;
     private final Set<PlayerState> majorCombatParticipantsThisTick = Collections.newSetFromMap(new IdentityHashMap<>());
     private final MapState mapState;
+    private final EnumMap<TeamSide, Boolean> structureActionPerformedThisTick = new EnumMap<>(TeamSide.class);
     private final EnumMap<Lane, LaneState> laneStates = new EnumMap<>(Lane.class);
     private int lastLanePressureResolvedAtSeconds = -1;
     private int duplicateLanePressureResolutionCount;
@@ -65,6 +67,11 @@ public class GameState {
 
     public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
                      boolean objectivePriorityEnabled, boolean lanePhaseEnabled) {
+        this(blueTeamState, redTeamState, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled, true);
+    }
+
+    public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
+                     boolean objectivePriorityEnabled, boolean lanePhaseEnabled, boolean midGameMacroEnabled) {
         this.currentTimeSeconds = 0;
         this.blueTeamState = blueTeamState;
         this.redTeamState = redTeamState;
@@ -73,8 +80,10 @@ public class GameState {
         this.objectivePriorityState = new ObjectivePriorityState(objectivePriorityEnabled, objectivePriorityExecutionStats);
         this.lanePhaseExecutionStats = new LanePhaseExecutionStats(lanePhaseEnabled);
         this.lanePhaseState = new LanePhaseState(lanePhaseEnabled, lanePhaseExecutionStats);
+        this.midGameMacroState = new MidGameMacroState(midGameMacroEnabled, diagnosticsEnabled);
         this.mapState = new MapState();
         this.roamExecutionStats = new RoamExecutionStats(diagnosticsEnabled);
+        for (TeamSide side : TeamSide.values()) structureActionPerformedThisTick.put(side, false);
         for (Lane lane : Lane.values()) laneStates.put(lane, new LaneState(lane));
         for (TeamSide side : TeamSide.values()) jungleActionStates.put(side, new JungleActionState());
         this.lastBigWinTimeSeconds = -1;
@@ -107,6 +116,8 @@ public class GameState {
 
     public LanePhaseState getLanePhaseState() { return lanePhaseState; }
     public LanePhaseExecutionStats getLanePhaseExecutionStats() { return lanePhaseExecutionStats; }
+    public MidGameMacroState getMidGameMacroState() { return midGameMacroState; }
+    public boolean isMidGameMacroEnabled() { return midGameMacroState.isEnabled(); }
     public boolean isLanePhaseEnabled() { return lanePhaseState.isEnabled(); }
     public boolean isLaneLaning(Lane lane) { return lanePhaseState.isLaning(lane); }
     public void clearMajorCombatParticipantsThisTick() { majorCombatParticipantsThisTick.clear(); }
@@ -119,6 +130,16 @@ public class GameState {
 
     public LaneState laneState(Lane lane) { return laneStates.get(lane); }
     public Map<Lane, LaneState> getLaneStates() { return Map.copyOf(laneStates); }
+    public void clearStructureActionRegistryThisTick() {
+        for (TeamSide side : TeamSide.values()) structureActionPerformedThisTick.put(side, false);
+    }
+    public void markStructureActionPerformed(TeamSide side) { structureActionPerformedThisTick.put(side, true); }
+    public boolean wasStructureActionPerformedThisTick(TeamSide side) {
+        return structureActionPerformedThisTick.getOrDefault(side, false);
+    }
+    public boolean wasAnyStructureActionPerformedThisTick() {
+        return structureActionPerformedThisTick.values().stream().anyMatch(Boolean::booleanValue);
+    }
     public int getLastLanePressureResolvedAtSeconds() { return lastLanePressureResolvedAtSeconds; }
     public int getDuplicateLanePressureResolutionCount() { return duplicateLanePressureResolutionCount; }
     public boolean shouldResolveLaneCombatAt(int time) { if(time < lastLaneCombatResolvedAtSeconds) throw new IllegalArgumentException("Lane combat time cannot move backwards"); if(time==lastLaneCombatResolvedAtSeconds) return false; return time >= LaneCombatRuleConfig.LANE_COMBAT_START_SECONDS && time <= LaneCombatRuleConfig.LANE_COMBAT_END_SECONDS && time % LaneCombatRuleConfig.LANE_COMBAT_INTERVAL_SECONDS==0; }

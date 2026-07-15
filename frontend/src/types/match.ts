@@ -31,6 +31,8 @@ export interface MatchEvent {
   structureAttackingSide?: TeamSide | null;
   structureDefendingSide?: TeamSide | null;
   outerTurretSiege?: OuterTurretSiegeData | null;
+  midGameMacroDecision?: MidGameMacroDecisionData | null;
+  midGameMacroAction?: MidGameMacroActionData | null;
   matchPhaseChange?: MatchPhaseChangeData | null;
 }
 
@@ -41,7 +43,7 @@ export type Lane = 'TOP' | 'MID' | 'BOT';
 export type MatchPhase = 'LANING' | 'MID_GAME';
 export type LanePhase = 'LANING' | 'OPEN';
 export type MidGameTransitionReason = 'TIME_LIMIT' | 'ALL_LANES_OPEN';
-export type StructureActionSource = 'LANE_PRESSURE' | 'POST_FIGHT' | 'BARON_PRESSURE' | 'MACRO_PLAY';
+export type StructureActionSource = 'LANE_PRESSURE' | 'POST_FIGHT' | 'BARON_PRESSURE' | 'MACRO_PLAY' | 'MID_GAME_MACRO';
 export type StructureKind = 'TOWER' | 'INHIBITOR' | 'NEXUS_TURRET' | 'NEXUS';
 export type TowerTier = 'OUTER' | 'INNER' | 'INHIBITOR';
 
@@ -145,6 +147,10 @@ export interface ObjectivePrioritySnapshot {
   baronSignedPriority: number;
   blueBaronPriority: number;
   redBaronPriority: number;
+  dragonMacroSetupControl: number;
+  baronMacroSetupControl: number;
+  evaluationHistory: MidGameMacroEvaluationData[];
+  matchEnded: boolean;
 }
 
 export interface RoamData {
@@ -256,6 +262,7 @@ export interface MatchSnapshot {
   laneSnapshots: LaneSnapshot[];
   objectivePriority: ObjectivePrioritySnapshot;
   lanePhase: LanePhaseSnapshot;
+  midGameMacro?: MidGameMacroSnapshot | null;
 }
 
 export interface LaneSnapshot {
@@ -293,4 +300,114 @@ export interface PlayerSnapshot {
   totalShutdownGoldEarned: number;
   totalShutdownGoldGiven: number;
   bountyProgress: number;
+}
+
+export type TeamMacroPlan = 'GROUP_MID' | 'SIDE_LANE_TOP' | 'SIDE_LANE_BOT' | 'OBJECTIVE_SETUP_DRAGON' | 'OBJECTIVE_SETUP_BARON' | 'RESET_AND_FARM';
+export type MacroActionType = 'STRUCTURE_PUSH' | 'OBJECTIVE_SETUP' | 'RESET';
+export type MacroActionResult = 'NOT_ATTEMPTED' | 'INELIGIBLE' | 'PUSH_FAILED' | 'STRUCTURE_DESTROYED' | 'SETUP_STARTED' | 'RESET_STARTED';
+export type MacroPlanStatus = 'DISABLED' | 'NOT_STARTED' | 'WAITING_FOR_EVALUATION' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'MATCH_ENDED';
+export type MacroPlanEndReason = 'EXPIRED' | 'REPLACED' | 'OBJECTIVE_CAPTURED' | 'OBJECTIVE_UNAVAILABLE' | 'FEATURE_DISABLED' | 'MATCH_ENDED';
+
+export interface MacroPlanWeightBreakdown {
+  plan: TeamMacroPlan;
+  eligible: boolean;
+  baseWeight: number;
+  goldEdge: number;
+  goldContribution: number;
+  attributeEdge: number;
+  attributeContribution: number;
+  objectivePriorityEdge: number;
+  objectiveContribution: number;
+  soulBonus: number;
+  resetBehindContribution: number;
+  resetMissingPlayerContribution: number;
+  repeatMultiplier: number;
+  finalWeight: number;
+  ineligibleReason: string | null;
+}
+
+export interface TeamMacroSnapshot {
+  currentPlan: TeamMacroPlan | null;
+  targetLane: Lane | null;
+  targetObjective: ObjectiveType | null;
+  startedAtSeconds: number;
+  activeUntilSeconds: number;
+  nextEvaluationAtSeconds: number;
+  assignedPositions: string[];
+  lastActionResult: MacroActionResult;
+  lastDestroyedStructure: StructureKind | null;
+  lastDestroyedTowerTier: TowerTier | null;
+  lastStructureLane: Lane | null;
+  lastSelectedPlan: TeamMacroPlan | null;
+  status: MacroPlanStatus;
+  endReason: MacroPlanEndReason | null;
+  lastEvaluationDueAtSeconds: number;
+  lastEvaluationAtSeconds: number;
+  lastEvaluationSkippedReason: string | null;
+  lastSelectionRandomConsumptionCount: number;
+}
+
+export interface MidGameMacroEvaluationData {
+  dueAtSeconds: number;
+  actualEvaluationAtSeconds: number;
+  blueDecision: MidGameMacroDecisionData | null;
+  redDecision: MidGameMacroDecisionData | null;
+  bluePreviousPlan: TeamMacroPlan | null;
+  redPreviousPlan: TeamMacroPlan | null;
+  bluePreviousPlanEndReason: MacroPlanEndReason | null;
+  redPreviousPlanEndReason: MacroPlanEndReason | null;
+  blueNextEvaluationAtSeconds: number;
+  redNextEvaluationAtSeconds: number;
+  evaluationSkippedReason: string | null;
+  selectionRandomConsumptionCount: number;
+}
+
+export interface MidGameMacroSnapshot {
+  enabled: boolean;
+  matchPhase: MatchPhase;
+  currentTimeSeconds: number;
+  blueTeam: TeamMacroSnapshot;
+  redTeam: TeamMacroSnapshot;
+  dragonMacroSetupControl: number;
+  baronMacroSetupControl: number;
+  evaluationHistory: MidGameMacroEvaluationData[];
+  matchEnded: boolean;
+}
+
+export interface MidGameMacroDecisionData {
+  evaluationTimeSeconds: number;
+  teamSide: TeamSide;
+  featureEnabled: boolean;
+  candidates: MacroPlanWeightBreakdown[];
+  selectedPlan: TeamMacroPlan;
+  targetLane: Lane | null;
+  targetObjective: ObjectiveType | null;
+  assignedPositions: string[];
+  selectionRollExecuted: boolean;
+  selectionRoll: number | null;
+  startedAtSeconds: number;
+  activeUntilSeconds: number;
+}
+
+export interface MidGameMacroActionData {
+  teamSide: TeamSide;
+  plan: TeamMacroPlan;
+  actionType: MacroActionType;
+  result: MacroActionResult;
+  targetLane: Lane | null;
+  targetObjective: ObjectiveType | null;
+  participants: string[];
+  targetTowerTier: TowerTier | null;
+  existingBaseChance: number;
+  goldBonus: number;
+  aliveBonus: number;
+  attributeBonus: number;
+  baronBonus: number;
+  finalPushChance: number;
+  pushRollExecuted: boolean;
+  pushSucceeded: boolean;
+  structureKind: StructureKind | null;
+  signedSetupControl: number;
+  setupActiveUntilSeconds: number;
+  farmBlockSeconds: number;
 }

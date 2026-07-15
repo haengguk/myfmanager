@@ -21,14 +21,50 @@ public final class ObjectivePriorityResolver {
                 + state.laneState(Lane.MID).getPressure() * ObjectivePriorityRuleConfig.BARON_MID_PRESSURE_WEIGHT;
     }
 
-    public double dragonSignedPriority(GameState state) {
+    public double dragonMacroSetupControl(GameState state) {
+        return macroSetupControl(state, ObjectiveType.DRAGON);
+    }
+
+    public double baronMacroSetupControl(GameState state) {
+        return macroSetupControl(state, ObjectiveType.BARON);
+    }
+
+    public double dragonSignedPriorityWithoutMacro(GameState state) {
         if (!state.getObjectivePriorityState().isEnabled()) return 0;
         return clampPriority(dragonLanePressureScore(state) + state.getObjectivePriorityState().getDragonRecentControl());
     }
 
-    public double baronSignedPriority(GameState state) {
+    public double baronSignedPriorityWithoutMacro(GameState state) {
         if (!state.getObjectivePriorityState().isEnabled()) return 0;
         return clampPriority(baronLanePressureScore(state) + state.getObjectivePriorityState().getBaronRecentControl());
+    }
+
+    private double macroSetupControl(GameState state, ObjectiveType objectiveType) {
+        if (!state.getObjectivePriorityState().isEnabled() || !state.isMidGameMacroEnabled()) return 0;
+        if (objectiveType == ObjectiveType.DRAGON && !state.getObjectiveState().isElementalDragonPhase()) return 0;
+        double total = 0;
+        for (TeamSide side : TeamSide.values()) {
+            TeamMacroTeamState team = state.getMidGameMacroState().teamState(side);
+            if (team.isActiveAt(state.getCurrentTimeSeconds()) && team.getTargetObjective() == objectiveType) {
+                total += side == TeamSide.BLUE ? MidGameMacroRuleConfig.MACRO_SETUP_CONTROL
+                        : -MidGameMacroRuleConfig.MACRO_SETUP_CONTROL;
+            }
+        }
+        return total;
+    }
+
+    public double dragonSignedPriority(GameState state) {
+        if (!state.getObjectivePriorityState().isEnabled()) return 0;
+        return clampPriority(dragonLanePressureScore(state)
+                + state.getObjectivePriorityState().getDragonRecentControl()
+                + dragonMacroSetupControl(state));
+    }
+
+    public double baronSignedPriority(GameState state) {
+        if (!state.getObjectivePriorityState().isEnabled()) return 0;
+        return clampPriority(baronLanePressureScore(state)
+                + state.getObjectivePriorityState().getBaronRecentControl()
+                + baronMacroSetupControl(state));
     }
 
     public double blueDisplayPriority(double signedPriority) {
@@ -39,18 +75,21 @@ public final class ObjectivePriorityResolver {
 
     public ObjectivePrioritySnapshot snapshot(GameState state) {
         if (!state.getObjectivePriorityState().isEnabled()) {
-            return new ObjectivePrioritySnapshot(false, 0, 0, 0, 50, 50, 0, 0, 0, 50, 50);
+            return new ObjectivePrioritySnapshot(false, 0, 0, 0, 50, 50, 0, 0, 0, 50, 50, 0, 0);
         }
         double dragonLane = dragonLanePressureScore(state);
         double dragonRecent = state.getObjectivePriorityState().getDragonRecentControl();
-        double dragonSigned = clampPriority(dragonLane + dragonRecent);
+        double dragonMacro = dragonMacroSetupControl(state);
+        double dragonSigned = clampPriority(dragonLane + dragonRecent + dragonMacro);
         double baronLane = baronLanePressureScore(state);
         double baronRecent = state.getObjectivePriorityState().getBaronRecentControl();
-        double baronSigned = clampPriority(baronLane + baronRecent);
+        double baronMacro = baronMacroSetupControl(state);
+        double baronSigned = clampPriority(baronLane + baronRecent + baronMacro);
         return new ObjectivePrioritySnapshot(true, dragonLane, dragonRecent, dragonSigned,
                 blueDisplayPriority(dragonSigned), redDisplayPriority(dragonSigned),
                 baronLane, baronRecent, baronSigned,
-                blueDisplayPriority(baronSigned), redDisplayPriority(baronSigned));
+                blueDisplayPriority(baronSigned), redDisplayPriority(baronSigned),
+                dragonMacro, baronMacro);
     }
 
     public boolean applyLaneCombatKill(GameState state, int timeSeconds, Lane lane, TeamSide winningSide) {

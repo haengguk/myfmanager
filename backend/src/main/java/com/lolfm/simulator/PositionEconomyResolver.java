@@ -11,11 +11,20 @@ public final class PositionEconomyResolver {
         resolve(null, team, null, currentTimeSeconds, elapsedSeconds, random);
     }
 
-    public void resolve(GameState gameState, TeamState team, TeamSide side, int currentTimeSeconds, int elapsedSeconds, Random random) {
+    public void resolve(GameState gameState, TeamState team, TeamSide side,
+                        int currentTimeSeconds, int elapsedSeconds, Random random) {
         for (PlayerState player : team.getPlayers()) {
-            if (!player.canFarmAt(currentTimeSeconds)) continue;
-            if (player.getPosition() == Position.MID && currentTimeSeconds < player.getRoamActionState().getRoamFarmBlockedUntilSeconds())
+            if (!player.canFarmAt(currentTimeSeconds)) {
+                if (gameState != null && side != null && player.isAlive(currentTimeSeconds)
+                        && gameState.getMidGameMacroState().isFarmBlockedByMacro(
+                                side, player.getPosition(), currentTimeSeconds)) {
+                    gameState.getMidGameMacroState().getExecutionStats()
+                            .recordFarmBlockedTick(player.getPosition());
+                }
                 continue;
+            }
+            if (player.getPosition() == Position.MID
+                    && currentTimeSeconds < player.getRoamActionState().getRoamFarmBlockedUntilSeconds()) continue;
             if (player.getPosition() == Position.JUNGLE && gameState != null && side != null
                     && currentTimeSeconds < gameState.jungleActionState(side).getJungleFarmBlockedUntilSeconds()) continue;
             int cs = actualCs(player, gameState, side, elapsedSeconds, random);
@@ -32,7 +41,8 @@ public final class PositionEconomyResolver {
                 Math.min(PositionEconomyRuleConfig.MAX_FARMING_MULTIPLIER, multiplier));
     }
 
-    private int actualCs(PlayerState player, GameState gameState, TeamSide side, int elapsedSeconds, Random random) {
+    private int actualCs(PlayerState player, GameState gameState, TeamSide side,
+                         int elapsedSeconds, Random random) {
         double expectedCs = baseCsPerMinute(player.getPosition()) * farmingMultiplier(player)
                 * laneCsMultiplier(player.getPosition(), gameState, side) * elapsedSeconds / 60.0;
         if (expectedCs <= 0.0) return 0;
@@ -52,7 +62,8 @@ public final class PositionEconomyResolver {
         if (gameState.isLanePhaseEnabled() && !gameState.isLaneLaning(lane)) return 1.0;
         double signedModifier = Math.max(-LanePressureRuleConfig.MAX_LANE_CS_MODIFIER,
                 Math.min(LanePressureRuleConfig.MAX_LANE_CS_MODIFIER,
-                        gameState.laneState(lane).getPressure() / 100.0 * LanePressureRuleConfig.MAX_LANE_CS_MODIFIER));
+                        gameState.laneState(lane).getPressure() / 100.0
+                                * LanePressureRuleConfig.MAX_LANE_CS_MODIFIER));
         return side == TeamSide.BLUE ? 1.0 + signedModifier : 1.0 - signedModifier;
     }
 

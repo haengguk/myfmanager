@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MatchEvent, MatchSimulateResponse, MatchSnapshot, PlayerSnapshot } from './types/match';
+import type { MatchEvent, MatchSimulateResponse, MatchSnapshot, MidGameMacroSnapshot, PlayerSnapshot, TeamMacroSnapshot } from './types/match';
 
 const API_URL = 'http://localhost:8080/api/matches/simulate';
 const SPEED_OPTIONS = [1, 5, 10, 30] as const;
@@ -37,12 +37,84 @@ function eventTypeClass(type: string): string {
     case 'TEAMFIGHT':
     case 'TEAMFIGHT_RESULT':
       return 'teamfight';
+    case 'MACRO_ACTION':
+      return 'macro';
     default:
       return 'neutral';
   }
 }
 
+function macroPlanLabel(plan: string | null): string {
+  switch (plan) {
+    case 'GROUP_MID': return '미드 그룹';
+    case 'SIDE_LANE_TOP': return '탑 사이드';
+    case 'SIDE_LANE_BOT': return '바텀 사이드';
+    case 'OBJECTIVE_SETUP_DRAGON': return '드래곤 셋업';
+    case 'OBJECTIVE_SETUP_BARON': return '바론 셋업';
+    case 'RESET_AND_FARM': return '리셋 · 파밍';
+    default: return '계획 없음';
+  }
+}
+
+function macroTargetLabel(event: MatchEvent): string {
+  const action = event.midGameMacroAction;
+  if (!action) return '계획 평가';
+  if (action.targetObjective) return action.targetObjective === 'DRAGON' ? '드래곤 지역' : action.targetObjective === 'BARON' ? '바론 지역' : '장로 지역';
+  if (action.targetLane) return action.targetLane === 'BOT' ? '바텀 라인' : `${action.targetLane} 라인`;
+  return '전장 전반';
+}
+
+function macroActionMessage(event: MatchEvent): string {
+  const action = event.midGameMacroAction;
+  if (!action) return event.message;
+  const side = action.teamSide === 'BLUE' ? '블루' : '레드';
+  if (action.actionType === 'OBJECTIVE_SETUP') return `${side} ${macroPlanLabel(action.plan)} — ${macroTargetLabel(event)} 통제 시작`;
+  if (action.actionType === 'STRUCTURE_PUSH') {
+    return `${side} ${macroPlanLabel(action.plan)} — ${macroTargetLabel(event)} ${action.result === 'STRUCTURE_DESTROYED' ? '구조물 파괴' : '압박 실패'}`;
+  }
+  return `${side} ${macroPlanLabel(action.plan)} — 리셋 및 파밍`;
+}
+
+function macroStatusLabel(team: TeamMacroSnapshot): string {
+  if (team.status === 'MATCH_ENDED') return '경기 종료';
+  if (team.currentPlan) return macroPlanLabel(team.currentPlan);
+  switch (team.status) {
+    case 'WAITING_FOR_EVALUATION': return '첫 평가 대기';
+    case 'EXPIRED': return '계획 만료';
+    case 'CANCELLED': return '계획 취소';
+    case 'DISABLED': return '기능 비활성';
+    default: return '미평가';
+  }
+}
+
+function macroTeamTarget(team: TeamMacroSnapshot): string {
+  if (team.status === 'MATCH_ENDED') return 'SCHEDULE CLOSED';
+  if (team.targetObjective) return team.targetObjective === 'DRAGON' ? 'DRAGON SETUP' : 'BARON SETUP';
+  if (team.targetLane) return `${team.targetLane} SIDE`;
+  if (team.currentPlan === 'RESET_AND_FARM') return 'RESET_AND_FARM';
+  if (team.status === 'EXPIRED') return 'PLAN EXPIRED';
+  if (team.status === 'WAITING_FOR_EVALUATION') return 'NOT EVALUATED YET';
+  return team.status;
+}
+
+function macroScheduleDetail(team: TeamMacroSnapshot): string {
+  if (team.status === 'MATCH_ENDED') {
+    return team.lastEvaluationSkippedReason === 'GAME_FINISHED' ? '종료로 평가 생략' : '스케줄 종료';
+  }
+  if (team.currentPlan === 'RESET_AND_FARM') return `RESET → ${formatTime(team.activeUntilSeconds)}`;
+  if (team.activeUntilSeconds >= 0) return `ACTIVE → ${formatTime(team.activeUntilSeconds)}`;
+  if (team.status === 'EXPIRED') return 'EXPIRED';
+  return 'WAITING';
+}
+
+function nextMacroEvaluationTime(snapshot: MidGameMacroSnapshot): number | null {
+  const next = [snapshot.blueTeam.nextEvaluationAtSeconds, snapshot.redTeam.nextEvaluationAtSeconds]
+    .filter((time) => time >= 0)
+    .sort((left, right) => left - right)[0];
+  return next === undefined ? null : next;
+}
 function eventMessage(event: MatchEvent): string {
+  if (event.midGameMacroAction) return macroActionMessage(event);
   const counter = event.counterGank;
   const roam = event.roam;
   if (roam) {
@@ -141,6 +213,13 @@ function App() {
 
     return timeline.events.filter((event) => event.timeSeconds <= gameTime);
   }, [gameTime, timeline]);
+  const macroSnapshot = currentSnapshot?.midGameMacro ?? null;
+  const latestMacroEvaluation = macroSnapshot?.evaluationHistory.length
+    ? macroSnapshot.evaluationHistory[macroSnapshot.evaluationHistory.length - 1]
+    : null;
+  const latestMacroEvent = useMemo<MatchEvent | null>(() => {
+    return [...visibleEvents].reverse().find((event) => event.type === 'MACRO_ACTION' && event.midGameMacroAction) ?? null;
+  }, [visibleEvents]);
 
   useEffect(() => {
     if (!logRef.current) {
@@ -465,6 +544,83 @@ function App() {
                 ))}
               </div>
             </section>
+
+            {macroSnapshot && (
+              <section className={`macro-panel ${macroSnapshot.enabled ? '' : 'is-disabled'}`} aria-label="미드게임 팀 매크로">
+                <div className="macro-heading">
+                  <div>
+                    <span className="eyebrow">Team macro plan</span>
+                    <h3>미드게임 운영 보드</h3>
+                  </div>
+                  <span className="macro-phase">{macroSnapshot.enabled ? macroSnapshot.matchPhase : '비활성'} · {formatTime(macroSnapshot.currentTimeSeconds)}</span>
+                </div>
+
+                <div className="macro-teams">
+                  {[
+                    { key: 'BLUE', label: 'BLUE', team: macroSnapshot.blueTeam },
+                    { key: 'RED', label: 'RED', team: macroSnapshot.redTeam }
+                  ].map((entry) => (
+                    <article className={`macro-team macro-${entry.key.toLowerCase()}`} key={entry.key}>
+                      <div className="macro-team-topline">
+                        <span>{entry.label}</span>
+                        <strong>{macroStatusLabel(entry.team)}</strong>
+                      </div>
+                      <p className="macro-target">{macroTeamTarget(entry.team)}</p>
+                      <div className="macro-assignment">
+                        <span>ASSIGNMENT</span>
+                        <b>{entry.team.assignedPositions.length ? entry.team.assignedPositions.join(' · ') : '—'}</b>
+                      </div>
+
+                      <div className="macro-team-meta">
+                        <span>{entry.team.lastActionResult}</span>
+                        <span>{macroScheduleDetail(entry.team)}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="macro-controls">
+                  <div>
+                    <span>DRAGON SETUP CONTROL</span>
+                    <strong className={macroSnapshot.dragonMacroSetupControl > 0 ? 'blue-control' : macroSnapshot.dragonMacroSetupControl < 0 ? 'red-control' : ''}>
+                      {macroSnapshot.dragonMacroSetupControl > 0 ? '+' : ''}{macroSnapshot.dragonMacroSetupControl.toFixed(0)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>BARON SETUP CONTROL</span>
+                    <strong className={macroSnapshot.baronMacroSetupControl > 0 ? 'blue-control' : macroSnapshot.baronMacroSetupControl < 0 ? 'red-control' : ''}>
+                      {macroSnapshot.baronMacroSetupControl > 0 ? '+' : ''}{macroSnapshot.baronMacroSetupControl.toFixed(0)}
+                    </strong>
+                  </div>
+                  <div>
+                    <span>NEXT EVALUATION</span>
+                    <strong>{macroSnapshot.matchEnded ? '경기 종료' : nextMacroEvaluationTime(macroSnapshot) === null ? '—' : formatTime(nextMacroEvaluationTime(macroSnapshot)!)}</strong>
+                  </div>
+                </div>
+
+                {latestMacroEvaluation && (
+                  <div className="macro-evaluation">
+                    <span>{formatTime(latestMacroEvaluation.dueAtSeconds)} DUE → {formatTime(latestMacroEvaluation.actualEvaluationAtSeconds)} ACTUAL</span>
+                    <strong>
+                      BLUE {macroPlanLabel(latestMacroEvaluation.blueDecision?.selectedPlan ?? null)} · RED {macroPlanLabel(latestMacroEvaluation.redDecision?.selectedPlan ?? null)}
+                    </strong>
+                    <small>
+                      {latestMacroEvaluation.evaluationSkippedReason
+                        ? `평가 생략: ${latestMacroEvaluation.evaluationSkippedReason}`
+                        : `선택 Random ${latestMacroEvaluation.selectionRandomConsumptionCount}회`}
+                    </small>
+                  </div>
+                )}
+
+                {latestMacroEvent?.midGameMacroAction && (
+                  <div className="macro-callout">
+                    <span>{formatTime(latestMacroEvent.timeSeconds)} · LATEST ACTION</span>
+                    <strong>{macroActionMessage(latestMacroEvent)}</strong>
+                    <small>{latestMacroEvent.midGameMacroAction.participants.join(' · ') || '참여자 정보 없음'} · FARM BLOCK {latestMacroEvent.midGameMacroAction.farmBlockSeconds}s</small>
+                  </div>
+                )}
+              </section>
+            )}
 
             <div className="roster-grid">
               <div className="roster-block">

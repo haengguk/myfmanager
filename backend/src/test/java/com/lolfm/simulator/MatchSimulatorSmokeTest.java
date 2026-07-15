@@ -599,15 +599,16 @@ class MatchSimulatorSmokeTest {
     }
 
     @Test
-    void simulationCreatesAtMostOneTowerEventPerTick() {
+    void simulationCreatesAtMostOneTowerEventPerTeamSidePerTick() {
         for (long seed = 1; seed <= 120; seed++) {
-            Map<Integer, Integer> towersByTime = new HashMap<>();
+            Map<String, Integer> towersByTimeAndSide = new HashMap<>();
             for (MatchEvent event : simulate(seed).getEvents()) {
                 if (event.getType() == MatchEventType.TOWER) {
-                    towersByTime.merge(event.getTimeSeconds(), 1, Integer::sum);
+                    String key = event.getTimeSeconds() + ":" + event.getStructureAttackingSide();
+                    towersByTimeAndSide.merge(key, 1, Integer::sum);
                 }
             }
-            for (int count : towersByTime.values()) assertTrue(count <= 1);
+            for (int count : towersByTimeAndSide.values()) assertTrue(count <= 1);
         }
     }
 

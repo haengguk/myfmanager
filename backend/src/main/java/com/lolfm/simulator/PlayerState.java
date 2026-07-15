@@ -107,6 +107,9 @@ public class PlayerState {
         return isAlive(currentTimeSeconds) && currentTimeSeconds >= farmResumeAtSeconds;
     }
 
+    public void blockFarmUntil(int untilSeconds) {
+        farmResumeAtSeconds = Math.max(farmResumeAtSeconds, untilSeconds);
+    }
     public boolean canParticipateInMajorCombatAt(int currentTimeSeconds) {
         return isAlive(currentTimeSeconds) && activityState.getActivityType() == PlayerActivityType.DEFAULT_ROLE;
     }

@@ -16,5 +16,6 @@ public enum MatchEventType {
     TEAMFIGHT_RESULT,
     ACE,
     MATCH_PHASE_CHANGE,
+    MACRO_ACTION,
     GAME_END
 }

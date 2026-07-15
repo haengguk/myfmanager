@@ -34,6 +34,7 @@ public class MatchSnapshot {
     private final List<LaneSnapshot> laneSnapshots;
     private final ObjectivePrioritySnapshot objectivePriority;
     private final LanePhaseSnapshot lanePhase;
+    private MidGameMacroSnapshot midGameMacro;
 
     public MatchSnapshot(
             int timeSeconds,
@@ -97,9 +98,33 @@ public class MatchSnapshot {
         this.laneSnapshots = List.copyOf(laneSnapshots);
         this.objectivePriority = objectivePriority;
         this.lanePhase = lanePhase;
+        this.midGameMacro = MidGameMacroSnapshot.disabled(timeSeconds, lanePhase.matchPhase());
+    }
+
+    public MatchSnapshot(
+            int timeSeconds, int blueKills, int redKills, int blueGold, int redGold,
+            int blueDragons, int redDragons, boolean blueHasDragonSoul, boolean redHasDragonSoul,
+            boolean blueHasBaronBuff, boolean redHasBaronBuff, boolean elderAlive,
+            boolean blueHasElderBuff, boolean redHasElderBuff, int blueElderBuffRemainingSeconds,
+            int redElderBuffRemainingSeconds, int blueTowersDestroyed, int redTowersDestroyed,
+            int blueInhibitorsRemaining, int redInhibitorsRemaining, int blueNexusTurretsRemaining,
+            int redNexusTurretsRemaining, boolean blueNexusAlive, boolean redNexusAlive,
+            int blueAlivePlayers, int redAlivePlayers, List<PlayerSnapshot> playerSnapshots,
+            List<LaneSnapshot> laneSnapshots, ObjectivePrioritySnapshot objectivePriority,
+            LanePhaseSnapshot lanePhase, MidGameMacroSnapshot midGameMacro
+    ) {
+        this(timeSeconds, blueKills, redKills, blueGold, redGold, blueDragons, redDragons,
+                blueHasDragonSoul, redHasDragonSoul, blueHasBaronBuff, redHasBaronBuff, elderAlive,
+                blueHasElderBuff, redHasElderBuff, blueElderBuffRemainingSeconds,
+                redElderBuffRemainingSeconds, blueTowersDestroyed, redTowersDestroyed,
+                blueInhibitorsRemaining, redInhibitorsRemaining, blueNexusTurretsRemaining,
+                redNexusTurretsRemaining, blueNexusAlive, redNexusAlive, blueAlivePlayers,
+                redAlivePlayers, playerSnapshots, laneSnapshots, objectivePriority, lanePhase);
+        this.midGameMacro = midGameMacro;
     }
 
     public int getTimeSeconds() { return timeSeconds; }
+    public MidGameMacroSnapshot getMidGameMacro() { return midGameMacro; }
     public int getBlueKills() { return blueKills; }
     public int getRedKills() { return redKills; }
     public int getBlueGold() { return blueGold; }
