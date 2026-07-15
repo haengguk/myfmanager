@@ -362,6 +362,18 @@ export interface MidGameMacroEvaluationData {
   selectionRandomConsumptionCount: number;
 }
 
+export interface MacroPlanLifecycleData {
+  teamSide: TeamSide;
+  planSequence: number;
+  plan: TeamMacroPlan;
+  startedAtSeconds: number;
+  activeUntilSeconds: number;
+  endTimeSeconds: number | null;
+  endReason: MacroPlanEndReason | null;
+  endRecordCount: number;
+  setupPlan: boolean;
+}
+
 export interface MidGameMacroSnapshot {
   enabled: boolean;
   matchPhase: MatchPhase;
@@ -371,6 +383,7 @@ export interface MidGameMacroSnapshot {
   dragonMacroSetupControl: number;
   baronMacroSetupControl: number;
   evaluationHistory: MidGameMacroEvaluationData[];
+  planLifecycleHistory: MacroPlanLifecycleData[];
   matchEnded: boolean;
 }
 

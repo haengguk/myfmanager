@@ -1,12 +1,17 @@
 package com.lolfm.simulator;
 
+import com.lolfm.domain.MacroPlanLifecycleData;
 import com.lolfm.domain.Position;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 /** Mutable macro assignment owned by one match and one team side. */
 public final class TeamMacroTeamState {
+    private final TeamSide teamSide;
+    private final List<MacroPlanLifecycleData> lifecycleHistory = new ArrayList<>();
     private TeamMacroPlan currentPlan;
     private Lane targetLane;
     private ObjectiveType targetObjective;
@@ -28,6 +33,9 @@ public final class TeamMacroTeamState {
     private TowerTier lastDestroyedTowerTier;
     private Lane lastStructureLane;
 
+    public TeamMacroTeamState() { this(TeamSide.BLUE); }
+    TeamMacroTeamState(TeamSide teamSide) { this.teamSide = teamSide; }
+
     public TeamMacroPlan getCurrentPlan() { return currentPlan; }
     public Lane getTargetLane() { return targetLane; }
     public ObjectiveType getTargetObjective() { return targetObjective; }
@@ -43,6 +51,7 @@ public final class TeamMacroTeamState {
     public int getLastEvaluationAtSeconds() { return lastEvaluationAtSeconds; }
     public String getLastEvaluationSkippedReason() { return lastEvaluationSkippedReason; }
     public int getLastSelectionRandomConsumptionCount() { return lastSelectionRandomConsumptionCount; }
+    public List<MacroPlanLifecycleData> getLifecycleHistory() { return List.copyOf(lifecycleHistory); }
     public Set<Position> getAssignedPositions() {
         if (assignedPositions.isEmpty()) return Set.of();
         return Collections.unmodifiableSet(EnumSet.copyOf(assignedPositions));
@@ -81,22 +90,16 @@ public final class TeamMacroTeamState {
     }
 
     void expireIfNeeded(int timeSeconds) {
-        if (currentPlan != null && activeUntilSeconds >= 0 && timeSeconds >= activeUntilSeconds) {
-            previousPlan = currentPlan;
-            currentPlan = null;
-            targetLane = null;
-            targetObjective = null;
-            startedAtSeconds = -1;
-            activeUntilSeconds = -1;
-            assignedPositions.clear();
-            lastActionResult = MacroActionResult.NOT_ATTEMPTED;
-            status = MacroPlanStatus.EXPIRED;
-            endReason = MacroPlanEndReason.EXPIRED;
-        }
+        if (currentPlan == null || activeUntilSeconds < 0 || timeSeconds < activeUntilSeconds) return;
+        int effectiveEndTime = activeUntilSeconds;
+        closeCurrentPlan(MacroPlanEndReason.EXPIRED, effectiveEndTime);
+        lastActionResult = MacroActionResult.NOT_ATTEMPTED;
+        status = MacroPlanStatus.EXPIRED;
+        endReason = MacroPlanEndReason.EXPIRED;
     }
 
     void beginPlan(TeamMacroPlan plan, Lane lane, ObjectiveType objective, Set<Position> positions, int timeSeconds) {
-        previousPlan = currentPlan == null ? previousPlan : currentPlan;
+        if (currentPlan != null) closeCurrentPlan(MacroPlanEndReason.REPLACED, timeSeconds);
         currentPlan = plan;
         lastSelectedPlan = plan;
         targetLane = lane;
@@ -104,6 +107,8 @@ public final class TeamMacroTeamState {
         startedAtSeconds = timeSeconds;
         activeUntilSeconds = timeSeconds + MidGameMacroRuleConfig.PLAN_DURATION_SECONDS;
         planSequence++;
+        lifecycleHistory.add(new MacroPlanLifecycleData(teamSide, planSequence, plan,
+                startedAtSeconds, activeUntilSeconds, null, null, 0));
         assignedPositions.clear();
         assignedPositions.addAll(positions);
         lastActionResult = MacroActionResult.NOT_ATTEMPTED;
@@ -121,14 +126,8 @@ public final class TeamMacroTeamState {
         lastStructureLane = outcome.lane();
     }
 
-    void cancel(MacroPlanEndReason reason) {
-        if (currentPlan != null) previousPlan = currentPlan;
-        currentPlan = null;
-        targetLane = null;
-        targetObjective = null;
-        startedAtSeconds = -1;
-        activeUntilSeconds = -1;
-        assignedPositions.clear();
+    void cancel(MacroPlanEndReason reason, int timeSeconds) {
+        closeCurrentPlan(reason, timeSeconds);
         lastActionResult = reason == MacroPlanEndReason.FEATURE_DISABLED
                 ? MacroActionResult.NOT_ATTEMPTED : MacroActionResult.INELIGIBLE;
         status = reason == MacroPlanEndReason.FEATURE_DISABLED
@@ -143,8 +142,28 @@ public final class TeamMacroTeamState {
             lastEvaluationSkippedReason = "GAME_FINISHED";
             lastSelectionRandomConsumptionCount = 0;
         }
+        if (currentPlan != null) closeCurrentPlan(MacroPlanEndReason.MATCH_ENDED, timeSeconds);
         nextEvaluationAtSeconds = -1;
         status = MacroPlanStatus.MATCH_ENDED;
         endReason = MacroPlanEndReason.MATCH_ENDED;
+    }
+
+    private boolean closeCurrentPlan(MacroPlanEndReason reason, int endTimeSeconds) {
+        if (currentPlan == null) return false;
+        int index = lifecycleHistory.size() - 1;
+        MacroPlanLifecycleData lifecycle = lifecycleHistory.get(index);
+        if (lifecycle.planSequence() != planSequence || lifecycle.endRecordCount() != 0) {
+            throw new IllegalStateException("macro lifecycle already closed or sequence mismatch");
+        }
+        lifecycleHistory.set(index, new MacroPlanLifecycleData(teamSide, planSequence, currentPlan,
+                startedAtSeconds, activeUntilSeconds, endTimeSeconds, reason, 1));
+        previousPlan = currentPlan;
+        currentPlan = null;
+        targetLane = null;
+        targetObjective = null;
+        startedAtSeconds = -1;
+        activeUntilSeconds = -1;
+        assignedPositions.clear();
+        return true;
     }
 }

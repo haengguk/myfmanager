@@ -211,7 +211,10 @@ public final class MidGameMacroDiagnostics {
         long existingPushBlocked, macroTowerEvents, sameTeamSameTickStructure, duplicateReward;
         long structureOrderViolation, forbiddenBaseStructure;
         long setupActiveSeconds, simultaneousSetupSeconds, netZeroSetupSeconds;
-        long setupExpiry, setupCancellation, elderSetupErrors, postFightSetupErrors, setupDoubleApplication;
+        long allPlanExpired, setupLifecycleStarts, dragonSetupExpired, baronSetupExpired;
+        long setupObjectiveCaptured, setupReplaced, setupGameFinished, setupFeatureDisabled, setupStillActiveAtCutoff;
+        long lifecycleDuplicateIdentity, lifecycleEndCountErrors, lifecycleBalanceErrors, setupControlAfterEndErrors;
+        long snapshotRepeatEndAccounting, elderSetupErrors, postFightSetupErrors, setupDoubleApplication;
         long directCsSubtractionErrors, catchUpErrors, blockedFarmRandomErrors, supportCsErrors;
         long dragons, barons, souls, elders, blueWins, redWins, nexusEnds, timeouts;
         long offMutation, duplicateEvaluation, duplicateMacroAction, randomMismatch;
@@ -235,8 +238,6 @@ public final class MidGameMacroDiagnostics {
             deadAssignmentErrors += stats.deadAssignmentErrors();
             combatParticipantAssignmentErrors += stats.combatParticipantAssignmentErrors();
             existingPushBlocked += stats.existingStructureActionBlocked();
-            setupExpiry += stats.setupExpiryEndings();
-            setupCancellation += stats.setupCaptureCancellations();
             for (Position position : Position.values()) {
                 farmBlockedTicks.merge(position,
                         (long) stats.farmBlockedTicks().getOrDefault(position, 0), Long::sum);
@@ -258,6 +259,7 @@ public final class MidGameMacroDiagnostics {
             Map<String, Integer> laneProgress = new HashMap<>();
             Set<String> macroActions = new HashSet<>();
             long gamePushActions = 0;
+            long gameSetupActions = 0;
             for (MatchEvent event : timeline.getEvents()) {
                 if (event.getType() == MatchEventType.DRAGON) dragons++;
                 if (event.getType() == MatchEventType.BARON) barons++;
@@ -279,6 +281,7 @@ public final class MidGameMacroDiagnostics {
                         if (action.result() == MacroActionResult.STRUCTURE_DESTROYED) pushSuccess.merge(action.plan(), 1L, Long::sum);
                         else pushFailure.merge(action.plan(), 1L, Long::sum);
                     } else if (action.actionType() == MacroActionType.OBJECTIVE_SETUP) {
+                        gameSetupActions++;
                         setupStarts.get(action.targetObjective()).merge(action.teamSide(), 1L, Long::sum);
                     }
                 }
@@ -306,6 +309,7 @@ public final class MidGameMacroDiagnostics {
             }
             sameTeamSameTickStructure += structurePerTick.values().stream().filter(v -> v > 1).mapToLong(v -> v - 1).sum();
             if (stats.pushRolls() != gamePushActions) randomMismatch++;
+            addLifecycleAccounting(macro, timeline.getSnapshots(), gameSetupActions);
 
             addSetupDurations(timeline.getSnapshots());
             addCsMilestones(timeline.getSnapshots());
@@ -329,6 +333,76 @@ public final class MidGameMacroDiagnostics {
                     .filter(c -> c.plan() == decision.selectedPlan()).findFirst().orElseThrow();
             if (selected.repeatMultiplier() != 1) repeatPenalty++;
             for (Position position : decision.assignedPositions()) assignments.merge(position, 1L, Long::sum);
+        }
+
+        private void addLifecycleAccounting(MidGameMacroSnapshot macro, List<MatchSnapshot> snapshots,
+                                            long gameSetupActions) {
+            List<MacroPlanLifecycleData> lifecycles = macro.planLifecycleHistory();
+            Set<String> identities = new HashSet<>();
+            long gameStarts = 0, gameExpired = 0, gameCaptured = 0, gameReplaced = 0;
+            long gameFinished = 0, gameFeatureDisabled = 0, gameStillActive = 0;
+            for (MacroPlanLifecycleData lifecycle : lifecycles) {
+                String identity = lifecycle.teamSide() + ":" + lifecycle.planSequence();
+                if (!identities.add(identity)) {
+                    lifecycleDuplicateIdentity++;
+                    snapshotRepeatEndAccounting++;
+                }
+                if (lifecycle.endReason() == MacroPlanEndReason.EXPIRED) allPlanExpired++;
+                if (!lifecycle.setupPlan()) continue;
+                gameStarts++;
+                setupLifecycleStarts++;
+                if (lifecycle.endRecordCount() < 0 || lifecycle.endRecordCount() > 1) lifecycleEndCountErrors++;
+                if (lifecycle.endRecordCount() == 0) {
+                    gameStillActive++;
+                    setupStillActiveAtCutoff++;
+                    if (lifecycle.endReason() != null || lifecycle.endTimeSeconds() != null) lifecycleEndCountErrors++;
+                    continue;
+                }
+                if (lifecycle.endReason() == null || lifecycle.endTimeSeconds() == null) lifecycleEndCountErrors++;
+                if (lifecycle.endReason() == MacroPlanEndReason.EXPIRED) {
+                    gameExpired++;
+                    if (lifecycle.plan() == TeamMacroPlan.OBJECTIVE_SETUP_DRAGON) dragonSetupExpired++;
+                    else if (lifecycle.plan() == TeamMacroPlan.OBJECTIVE_SETUP_BARON) baronSetupExpired++;
+                } else if (lifecycle.endReason() == MacroPlanEndReason.OBJECTIVE_CAPTURED) {
+                    gameCaptured++;
+                    setupObjectiveCaptured++;
+                } else if (lifecycle.endReason() == MacroPlanEndReason.REPLACED) {
+                    gameReplaced++;
+                    setupReplaced++;
+                } else if (lifecycle.endReason() == MacroPlanEndReason.MATCH_ENDED) {
+                    gameFinished++;
+                    setupGameFinished++;
+                } else if (lifecycle.endReason() == MacroPlanEndReason.FEATURE_DISABLED) {
+                    gameFeatureDisabled++;
+                    setupFeatureDisabled++;
+                }
+            }
+            long gameClosedOrActive = gameExpired + gameCaptured + gameReplaced
+                    + gameFinished + gameFeatureDisabled + gameStillActive;
+            if (gameStarts != gameClosedOrActive || gameStarts != gameSetupActions) lifecycleBalanceErrors++;
+            if (macro.matchEnded() && gameStillActive != 0) lifecycleBalanceErrors++;
+
+            for (MatchSnapshot snapshot : snapshots) {
+                int time = snapshot.getTimeSeconds();
+                double expectedDragon = expectedSetupControl(lifecycles, TeamMacroPlan.OBJECTIVE_SETUP_DRAGON, time);
+                double expectedBaron = expectedSetupControl(lifecycles, TeamMacroPlan.OBJECTIVE_SETUP_BARON, time);
+                if (Math.abs(expectedDragon - snapshot.getMidGameMacro().dragonMacroSetupControl()) > 1e-9
+                        || Math.abs(expectedBaron - snapshot.getMidGameMacro().baronMacroSetupControl()) > 1e-9) {
+                    setupControlAfterEndErrors++;
+                }
+            }
+        }
+
+        private double expectedSetupControl(List<MacroPlanLifecycleData> lifecycles,
+                                            TeamMacroPlan plan, int timeSeconds) {
+            double result = 0;
+            for (MacroPlanLifecycleData lifecycle : lifecycles) {
+                if (lifecycle.plan() != plan || lifecycle.startedAtSeconds() > timeSeconds) continue;
+                if (lifecycle.endTimeSeconds() != null && timeSeconds >= lifecycle.endTimeSeconds()) continue;
+                result += lifecycle.teamSide() == TeamSide.BLUE
+                        ? MidGameMacroRuleConfig.MACRO_SETUP_CONTROL : -MidGameMacroRuleConfig.MACRO_SETUP_CONTROL;
+            }
+            return result;
         }
 
         private void addSetupDurations(List<MatchSnapshot> snapshots) {
@@ -404,7 +478,9 @@ public final class MidGameMacroDiagnostics {
                     + combatParticipantAssignmentErrors + sameTeamSameTickStructure + duplicateReward
                     + structureOrderViolation + forbiddenBaseStructure + elderSetupErrors
                     + postFightSetupErrors + setupDoubleApplication + directCsSubtractionErrors
-                    + catchUpErrors + blockedFarmRandomErrors + supportCsErrors;
+                    + catchUpErrors + blockedFarmRandomErrors + supportCsErrors
+                    + lifecycleDuplicateIdentity + lifecycleEndCountErrors + lifecycleBalanceErrors
+                    + setupControlAfterEndErrors + snapshotRepeatEndAccounting;
         }
 
         String line() {
@@ -421,7 +497,18 @@ public final class MidGameMacroDiagnostics {
                     + ",orderViolation=" + structureOrderViolation + ",forbiddenBase=" + forbiddenBaseStructure + "}"
                     + " setup={starts=" + setupStarts + ",activeSeconds=" + setupActiveSeconds
                     + ",simultaneous=" + simultaneousSetupSeconds + ",netZero=" + netZeroSetupSeconds
-                    + ",expiry=" + setupExpiry + ",captureCancel=" + setupCancellation
+                    + ",allPlanExpired=" + allPlanExpired
+                    + ",dragonSetupExpired=" + dragonSetupExpired + ",baronSetupExpired=" + baronSetupExpired
+                    + ",setupObjectiveCaptured=" + setupObjectiveCaptured + ",setupReplaced=" + setupReplaced
+                    + ",setupGameFinished=" + setupGameFinished + ",setupFeatureDisabled=" + setupFeatureDisabled
+                    + ",stillActiveAtCutoff=" + setupStillActiveAtCutoff
+                    + ",lifecycleEquation=" + setupLifecycleStarts + "="
+                    + (dragonSetupExpired + baronSetupExpired) + "+" + setupObjectiveCaptured + "+"
+                    + setupReplaced + "+" + setupGameFinished + "+" + setupFeatureDisabled + "+"
+                    + setupStillActiveAtCutoff
+                    + ",identityErrors=" + lifecycleDuplicateIdentity + ",endCountErrors=" + lifecycleEndCountErrors
+                    + ",balanceErrors=" + lifecycleBalanceErrors + ",snapshotRepeat=" + snapshotRepeatEndAccounting
+                    + ",controlAfterEndErrors=" + setupControlAfterEndErrors
                     + ",elderError=" + elderSetupErrors + ",postFightError=" + postFightSetupErrors
                     + ",doubleApply=" + setupDoubleApplication + "}"
                     + " farm={blockedTicks=" + farmBlockedTicks + ",cs=" + csSummary()

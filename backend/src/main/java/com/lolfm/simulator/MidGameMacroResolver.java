@@ -106,7 +106,7 @@ public final class MidGameMacroResolver {
         for (TeamSide side : TeamSide.values()) {
             TeamMacroTeamState team = state.getMidGameMacroState().teamState(side);
             if (team.isActiveAt(state.getCurrentTimeSeconds()) && team.getTargetObjective() == objectiveType) {
-                team.cancel(MacroPlanEndReason.OBJECTIVE_CAPTURED);
+                team.cancel(MacroPlanEndReason.OBJECTIVE_CAPTURED, state.getCurrentTimeSeconds());
                 state.getMidGameMacroState().getExecutionStats().recordSetupCaptureCancellation();
             }
         }

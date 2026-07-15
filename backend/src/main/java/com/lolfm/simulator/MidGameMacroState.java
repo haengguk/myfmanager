@@ -1,6 +1,7 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.MidGameMacroEvaluationData;
+import com.lolfm.domain.MacroPlanLifecycleData;
 import com.lolfm.domain.Position;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -21,7 +22,7 @@ public final class MidGameMacroState {
         this.enabled = enabled;
         this.executionStats = new MidGameMacroExecutionStats(diagnosticsEnabled);
         for (TeamSide side : TeamSide.values()) {
-            teamStates.put(side, new TeamMacroTeamState());
+            teamStates.put(side, new TeamMacroTeamState(side));
             EnumMap<Position, Integer> blocked = new EnumMap<>(Position.class);
             for (Position position : Position.values()) blocked.put(position, -1);
             macroFarmBlockedUntil.put(side, blocked);
@@ -34,6 +35,11 @@ public final class MidGameMacroState {
     public MidGameMacroExecutionStats getExecutionStats() { return executionStats; }
     public int getLastEvaluationAtSeconds() { return lastEvaluationAtSeconds; }
     public List<MidGameMacroEvaluationData> getEvaluationHistory() { return List.copyOf(evaluationHistory); }
+    public List<MacroPlanLifecycleData> getPlanLifecycleHistory() {
+        List<MacroPlanLifecycleData> result = new ArrayList<>();
+        for (TeamSide side : TeamSide.values()) result.addAll(teamStates.get(side).getLifecycleHistory());
+        return List.copyOf(result);
+    }
     public boolean isMatchEnded() { return matchEnded; }
 
     public void onMidGameStarted(int startedAtSeconds) {

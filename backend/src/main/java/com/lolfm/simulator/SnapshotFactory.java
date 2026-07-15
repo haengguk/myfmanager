@@ -83,7 +83,7 @@ public class SnapshotFactory {
         return new MidGameMacroSnapshot(true, gameState.getLanePhaseState().getMatchPhase(),
                 gameState.getCurrentTimeSeconds(), teamMacroSnapshot(macro.teamState(TeamSide.BLUE)),
                 teamMacroSnapshot(macro.teamState(TeamSide.RED)), priority.dragonMacroSetupControl(gameState),
-                priority.baronMacroSetupControl(gameState), macro.getEvaluationHistory(), macro.isMatchEnded());
+                priority.baronMacroSetupControl(gameState), macro.getEvaluationHistory(), macro.getPlanLifecycleHistory(), macro.isMatchEnded());
     }
 
     private TeamMacroSnapshot teamMacroSnapshot(TeamMacroTeamState state) {
