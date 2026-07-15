@@ -43,6 +43,11 @@ public final class JungleGankResolver {
         TeamSide side = triggered.size() == 1 ? triggered.keySet().iterator().next()
                 : weightedSide(triggered, random);
         Lane lane = chooseTargetLane(state, side, time, random);
+        state.markMajorCombatParticipant(state.getTeamState(side).playerAt(Position.JUNGLE));
+        state.markMajorCombatParticipant(state.getTeamState(side.opposite()).playerAt(Position.JUNGLE));
+        for (TeamSide participantSide : TeamSide.values()) {
+            for (PlayerState participant : lanePlayers(state.getTeamState(participantSide), lane)) state.markMajorCombatParticipant(participant);
+        }
         double selectedWeight = targetWeight(state, side, lane, time);
         double attemptChance = attemptChance(state, side);
         double overextension = enemyOverextension(state, side, lane);
@@ -105,6 +110,10 @@ public final class JungleGankResolver {
     }
 
     boolean laneEligible(GameState state, Lane lane, int time) {
+        if (state.isLanePhaseEnabled() && !state.isLaneLaning(lane)) {
+            state.getLanePhaseExecutionStats().recordJungleGankExcluded();
+            return false;
+        }
         for (TeamSide side : TeamSide.values()) {
             for (PlayerState player : lanePlayers(state.getTeamState(side), lane)) {
                 if (!player.canParticipateInMajorCombatAt(time)) return false;

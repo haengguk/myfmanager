@@ -24,11 +24,75 @@ export interface MatchEvent {
   jungleGank: JungleGankData | null;
   counterGank: CounterGankData | null;
   objectivePriorityDecision?: ObjectivePriorityDecisionData | null;
+  structureActionSource?: StructureActionSource | null;
+  structureKind?: StructureKind | null;
+  structureTowerTier?: TowerTier | null;
+  structureLane?: Lane | null;
+  structureAttackingSide?: TeamSide | null;
+  structureDefendingSide?: TeamSide | null;
+  outerTurretSiege?: OuterTurretSiegeData | null;
+  matchPhaseChange?: MatchPhaseChangeData | null;
 }
 
 
 export type ObjectiveType = 'DRAGON' | 'BARON' | 'ELDER';
 export type TeamSide = 'BLUE' | 'RED';
+export type Lane = 'TOP' | 'MID' | 'BOT';
+export type MatchPhase = 'LANING' | 'MID_GAME';
+export type LanePhase = 'LANING' | 'OPEN';
+export type MidGameTransitionReason = 'TIME_LIMIT' | 'ALL_LANES_OPEN';
+export type StructureActionSource = 'LANE_PRESSURE' | 'POST_FIGHT' | 'BARON_PRESSURE' | 'MACRO_PLAY';
+export type StructureKind = 'TOWER' | 'INHIBITOR' | 'NEXUS_TURRET' | 'NEXUS';
+export type TowerTier = 'OUTER' | 'INNER' | 'INHIBITOR';
+
+export interface OuterTurretSiegeData {
+  timeSeconds: number;
+  lane: Lane;
+  attackingSide: TeamSide;
+  defendingSide: TeamSide;
+  lanePressure: number;
+  integrityBefore: number;
+  pressureDamage: number;
+  defenderAbsentBonus: number;
+  botSupportBonus: number;
+  randomVariance: number;
+  finalDamage: number;
+  integrityAfter: number;
+  destroyed: boolean;
+}
+
+export interface MatchPhaseChangeData {
+  previousPhase: MatchPhase;
+  newPhase: MatchPhase;
+  transitionTimeSeconds: number;
+  reason: MidGameTransitionReason;
+  alreadyOpenLanes: Lane[];
+  forcedOpenLanes: Lane[];
+}
+
+export interface OuterTurretSnapshot {
+  alive: boolean;
+  remainingIntegrity: number;
+  destroyedAtSeconds: number;
+}
+
+export interface LanePhaseLaneSnapshot {
+  lane: Lane;
+  phase: LanePhase;
+  pressure: number;
+  pressureFarmModifierActive: boolean;
+  blueOuter: OuterTurretSnapshot;
+  redOuter: OuterTurretSnapshot;
+}
+
+export interface LanePhaseSnapshot {
+  enabled: boolean;
+  matchPhase: MatchPhase;
+  midGameStartedAtSeconds: number;
+  transitionReason: MidGameTransitionReason | null;
+  lanes: LanePhaseLaneSnapshot[];
+}
+
 
 export interface ObjectiveSelectionWeightBreakdown {
   aliveContribution: number;
@@ -191,6 +255,7 @@ export interface MatchSnapshot {
   playerSnapshots: PlayerSnapshot[];
   laneSnapshots: LaneSnapshot[];
   objectivePriority: ObjectivePrioritySnapshot;
+  lanePhase: LanePhaseSnapshot;
 }
 
 export interface LaneSnapshot {

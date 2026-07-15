@@ -388,6 +388,42 @@ function App() {
               </article>
             </div>
 
+            <section className={`lane-phase-overview ${currentSnapshot.lanePhase.enabled ? '' : 'is-disabled'}`} aria-label="라인 단계와 외곽 포탑">
+              <div className="lane-phase-heading">
+                <div>
+                  <span className="eyebrow">Map tempo</span>
+                  <h3>{currentSnapshot.lanePhase.matchPhase === 'MID_GAME' ? '미드게임' : '라인전'}</h3>
+                </div>
+                <span className="phase-transition-copy">
+                  {!currentSnapshot.lanePhase.enabled
+                    ? '주도권 비활성'
+                    : currentSnapshot.lanePhase.matchPhase === 'MID_GAME'
+                      ? `${formatTime(currentSnapshot.lanePhase.midGameStartedAtSeconds)} · ${currentSnapshot.lanePhase.transitionReason === 'ALL_LANES_OPEN' ? '전 라인 개방' : '시간 전환'}`
+                      : '외곽 포탑 압박 진행 중'}
+                </span>
+              </div>
+              <div className="lane-phase-lines">
+                {currentSnapshot.lanePhase.lanes.map((lane) => (
+                  <div className="lane-phase-line" key={lane.lane}>
+                    <div className="outer-integrity blue-outer">
+                      <strong>{lane.blueOuter.alive ? lane.blueOuter.remainingIntegrity.toFixed(0) : '파괴'}</strong>
+                      <span>BLUE 외곽</span>
+                      <i style={{ width: `${lane.blueOuter.remainingIntegrity}%` }} />
+                    </div>
+                    <div className="lane-phase-center">
+                      <b>{lane.lane}</b>
+                      <span className={lane.phase === 'OPEN' ? 'is-open' : ''}>{lane.phase}</span>
+                    </div>
+                    <div className="outer-integrity red-outer">
+                      <strong>{lane.redOuter.alive ? lane.redOuter.remainingIntegrity.toFixed(0) : '파괴'}</strong>
+                      <span>RED 외곽</span>
+                      <i style={{ width: `${lane.redOuter.remainingIntegrity}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
             <section className={`objective-priority ${currentSnapshot.objectivePriority.enabled ? '' : 'is-disabled'}`} aria-label="오브젝트 주도권">
               <div className="priority-heading">
                 <div>

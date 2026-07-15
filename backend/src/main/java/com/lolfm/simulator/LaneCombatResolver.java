@@ -34,6 +34,9 @@ public final class LaneCombatResolver {
 
         Lane lane = pickLane(triggered, chances, random);
         state.getCombatExecutionStats().recordLaneCombatAttempt();
+        for (TeamSide participantSide : TeamSide.values()) {
+            for (PlayerState participant : participants(state.getTeamState(participantSide), lane)) state.markMajorCombatParticipant(participant);
+        }
         state.laneState(lane).markCombatAttemptAt(time);
         TeamSide initiator = chooseInitiator(state, lane, random);
         double combatEdge = combatEdge(state, lane, initiator);
@@ -92,6 +95,10 @@ public final class LaneCombatResolver {
     }
 
     boolean eligible(GameState state, Lane lane, int time) {
+        if (state.isLanePhaseEnabled() && !state.isLaneLaning(lane)) {
+            state.getLanePhaseExecutionStats().recordLaneCombatExcluded();
+            return false;
+        }
         int lastAttempt = state.laneState(lane).getLastCombatAttemptAtSeconds();
         if (lastAttempt >= 0 && time - lastAttempt < LaneCombatRuleConfig.LANE_COMBAT_COOLDOWN_SECONDS) return false;
         for (TeamSide side : TeamSide.values()) {

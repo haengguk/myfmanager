@@ -64,3 +64,18 @@ tasks.register("runCounterGankDiagnostics", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.simulator.CounterGankDiagnostics"
 }
+
+tasks.register("runRoamDiagnostics", JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.RoamDiagnostics"
+}
+
+tasks.register("runObjectivePriorityDiagnostics", JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ObjectivePriorityDiagnostics"
+}
+
+tasks.register("runLanePhaseDiagnostics", JavaExec) {
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.LanePhaseDiagnostics"
+}

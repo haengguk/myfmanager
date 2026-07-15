@@ -40,6 +40,8 @@ public class TeamfightResolver {
         }
 
         TeamfightSides sides = determineTeamfightSides(gameState, blueTeam, redTeam, random);
+        for (PlayerState player : gameState.getBlueTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
+        for (PlayerState player : gameState.getRedTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
         FightGrade plannedGrade = determineFightGrade(gameState, sides, random);
         int winningKillTarget = Math.min(
                 determineWinningTeamKillCount(plannedGrade, random),

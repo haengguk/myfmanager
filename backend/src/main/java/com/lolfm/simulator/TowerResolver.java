@@ -20,13 +20,10 @@ public class TowerResolver {
         if (nextTower.isEmpty()) return Optional.empty();
 
         TowerTier tier = nextTower.get();
-        laneState.destroy(tier);
-        TeamState attackingTeam = state.getTeamState(attackingSide);
-        attackingTeam.addTowerDestroyed();
-        awardTowerGold(attackingTeam);
-        return Optional.of(new PushOutcome(
-                attackingSide, defendingSide, lane, tier, state.getCurrentTimeSeconds(), reason
-        ));
+        return new StructureResolver().destroyNextStructure(state, attackingSide, lane, reason)
+                .map(ignored -> new PushOutcome(
+                        attackingSide, defendingSide, lane, tier, state.getCurrentTimeSeconds(), reason
+                ));
     }
 
     public MatchEvent createTowerEvent(GameState state, PushOutcome outcome) {

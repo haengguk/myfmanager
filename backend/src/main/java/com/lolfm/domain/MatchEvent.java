@@ -1,5 +1,10 @@
 package com.lolfm.domain;
 
+import com.lolfm.simulator.Lane;
+import com.lolfm.simulator.StructureActionSource;
+import com.lolfm.simulator.StructureKind;
+import com.lolfm.simulator.TowerTier;
+import com.lolfm.simulator.TeamSide;
 import java.util.List;
 
 public class MatchEvent {
@@ -18,6 +23,14 @@ public class MatchEvent {
     private RoamData roam;
     private CombatSource combatSource;
     private ObjectivePriorityDecisionData objectivePriorityDecision;
+    private StructureActionSource structureActionSource;
+    private StructureKind structureKind;
+    private TowerTier structureTowerTier;
+    private Lane structureLane;
+    private TeamSide structureAttackingSide;
+    private TeamSide structureDefendingSide;
+    private OuterTurretSiegeData outerTurretSiege;
+    private MatchPhaseChangeData matchPhaseChange;
 
     public MatchEvent(
             int timeSeconds,
@@ -94,4 +107,20 @@ public class MatchEvent {
     public void setObjectivePriorityDecision(ObjectivePriorityDecisionData objectivePriorityDecision) {
         this.objectivePriorityDecision = objectivePriorityDecision;
     }
+    public StructureActionSource getStructureActionSource() { return structureActionSource; }
+    public StructureKind getStructureKind() { return structureKind; }
+    public void setStructureKind(StructureKind value) { structureKind=value; }
+    public TowerTier getStructureTowerTier() { return structureTowerTier; }
+    public void setStructureTowerTier(TowerTier value) { structureTowerTier=value; }
+    public void setStructureActionSource(StructureActionSource value) { structureActionSource=value; }
+    public Lane getStructureLane() { return structureLane; }
+    public void setStructureLane(Lane value) { structureLane=value; }
+    public TeamSide getStructureAttackingSide() { return structureAttackingSide; }
+    public void setStructureAttackingSide(TeamSide value) { structureAttackingSide=value; }
+    public TeamSide getStructureDefendingSide() { return structureDefendingSide; }
+    public void setStructureDefendingSide(TeamSide value) { structureDefendingSide=value; }
+    public OuterTurretSiegeData getOuterTurretSiege() { return outerTurretSiege; }
+    public void setOuterTurretSiege(OuterTurretSiegeData value) { outerTurretSiege=value; }
+    public MatchPhaseChangeData getMatchPhaseChange() { return matchPhaseChange; }
+    public void setMatchPhaseChange(MatchPhaseChangeData value) { matchPhaseChange=value; }
 }

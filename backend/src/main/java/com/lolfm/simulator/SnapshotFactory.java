@@ -1,6 +1,9 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.LaneSnapshot;
+import com.lolfm.domain.LanePhaseLaneSnapshot;
+import com.lolfm.domain.LanePhaseSnapshot;
+import com.lolfm.domain.OuterTurretSnapshot;
 import com.lolfm.domain.MatchSnapshot;
 import com.lolfm.domain.PlayerSnapshot;
 import java.util.ArrayList;
@@ -45,8 +48,23 @@ public class SnapshotFactory {
                 redAlivePlayers,
                 playerSnapshots,
                 laneSnapshots(gameState),
-                new ObjectivePriorityResolver().snapshot(gameState)
+                new ObjectivePriorityResolver().snapshot(gameState),
+                lanePhaseSnapshot(gameState)
         );
+    }
+
+    private LanePhaseSnapshot lanePhaseSnapshot(GameState gameState) {
+        LanePhaseState phases=gameState.getLanePhaseState();
+        List<LanePhaseLaneSnapshot> lanes=new ArrayList<>();
+        for(Lane lane:Lane.values()) {
+            LaneStructureState blue=gameState.getMapState().getLaneState(TeamSide.BLUE,lane);
+            LaneStructureState red=gameState.getMapState().getLaneState(TeamSide.RED,lane);
+            lanes.add(new LanePhaseLaneSnapshot(lane,phases.getLanePhase(lane),gameState.laneState(lane).getPressure(),
+                    phases.isLaning(lane),
+                    new OuterTurretSnapshot(blue.isOuterTowerAlive(),blue.getOuterRemainingIntegrity(),blue.getOuterDestroyedAtSeconds()),
+                    new OuterTurretSnapshot(red.isOuterTowerAlive(),red.getOuterRemainingIntegrity(),red.getOuterDestroyedAtSeconds())));
+        }
+        return new LanePhaseSnapshot(phases.isEnabled(),phases.getMatchPhase(),phases.getMidGameStartedAtSeconds(),phases.getTransitionReason(),lanes);
     }
 
     private List<LaneSnapshot> laneSnapshots(GameState gameState) {

@@ -36,6 +36,7 @@ public class MatchSimulator {
     private final PositionEconomyResolver positionEconomyResolver = new PositionEconomyResolver();
     private final LanePressureResolver lanePressureResolver = new LanePressureResolver();
     private final ObjectivePriorityResolver objectivePriorityResolver = new ObjectivePriorityResolver();
+    private final LanePhaseResolver lanePhaseResolver = new LanePhaseResolver();
     private final LaneCombatResolver laneCombatResolver = new LaneCombatResolver();
     private final JungleGankResolver jungleGankResolver;
     private final RoamResolver roamResolver = new RoamResolver();
@@ -47,6 +48,7 @@ public class MatchSimulator {
     private final boolean roamEnabled;
     private final boolean diagnosticsEnabled;
     private final boolean objectivePriorityEnabled;
+    private final boolean lanePhaseEnabled;
 
     @Autowired
     public MatchSimulator(
@@ -115,7 +117,7 @@ public class MatchSimulator {
         this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
                 objectiveAttemptResolver, structureResolver, pushResolver,
                 new SimulationOptions(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled,
-                        counterGankEnabled, true, true, true));
+                        counterGankEnabled, true, true, true, true));
     }
 
     MatchSimulator(
@@ -139,6 +141,7 @@ public class MatchSimulator {
         this.roamEnabled = options.roamEnabled();
         this.diagnosticsEnabled = options.diagnosticsEnabled();
         this.objectivePriorityEnabled = options.objectivePriorityEnabled();
+        this.lanePhaseEnabled = options.lanePhaseEnabled();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -176,6 +179,7 @@ public class MatchSimulator {
                     SIMULATION_SAFETY_TIMEOUT_SECONDS - gameState.getCurrentTimeSeconds()
             ));
             gameState.expireBaronBuffsIfNeeded();
+            gameState.clearMajorCombatParticipantsThisTick();
             objectivePriorityResolver.decayRecentControl(gameState, gameState.getCurrentTimeSeconds());
             boolean blueEconomy = awardPassiveForTick(gameState.getBlueTeamState(), gameState.getCurrentTimeSeconds());
             boolean redEconomy = awardPassiveForTick(gameState.getRedTeamState(), gameState.getCurrentTimeSeconds());
@@ -219,6 +223,11 @@ public class MatchSimulator {
             );
             outcome.ifPresent(result -> objectivePriorityResolver.applyTeamfightWin(
                     gameState, gameState.getCurrentTimeSeconds(), result));
+            List<StructureOutcome> siegeStructures = lanePhaseResolver.resolveOuterSieges(
+                    gameState, gameState.getCurrentTimeSeconds(), random, structureResolver);
+            for (StructureOutcome structure : siegeStructures) {
+                events.add(structureResolver.createStructureEvent(gameState, structure));
+            }
             Optional<MatchEvent> postFightObjective = outcome.flatMap(result -> postFightResolver.resolve(
                     gameState, result, random, objectiveResolver
             ));
@@ -239,6 +248,7 @@ public class MatchSimulator {
                 pushResolver.maybeResolveMacroPush(gameState, random, structureResolver)
                         .ifPresent(push -> events.add(structureResolver.createStructureEvent(gameState, push)));
             }
+            lanePhaseResolver.transitionIfDue(gameState).ifPresent(events::add);
 
             endGameDecision = endGameEvaluator.evaluateAfterTick(gameState);
             snapshots.add(snapshotFactory.create(gameState));
@@ -284,7 +294,8 @@ public class MatchSimulator {
                 gameState.getCombatExecutionStats().snapshot(),
                 gameState.getRoamExecutionStats().snapshot(),
                 gameState.getWinnerSide(),
-                gameState.getObjectivePriorityExecutionStats().snapshot()
+                gameState.getObjectivePriorityExecutionStats().snapshot(),
+                gameState.getLanePhaseExecutionStats().snapshot()
         );
     }
 
@@ -309,7 +320,8 @@ public class MatchSimulator {
             CombatExecutionStatsSnapshot combatExecutionStats,
             RoamExecutionStatsSnapshot roamExecutionStats,
             TeamSide winnerSide,
-            ObjectivePriorityExecutionStatsSnapshot objectivePriorityExecutionStats
+            ObjectivePriorityExecutionStatsSnapshot objectivePriorityExecutionStats,
+            LanePhaseExecutionStatsSnapshot lanePhaseExecutionStats
     ) {
     }
 
@@ -332,7 +344,7 @@ public class MatchSimulator {
 
     private GameState initializeGameState(Team blueTeam, Team redTeam) {
         return new GameState(buildTeamState(blueTeam), buildTeamState(redTeam), diagnosticsEnabled,
-                objectivePriorityEnabled);
+                objectivePriorityEnabled, lanePhaseEnabled);
     }
 
     private TeamState buildTeamState(Team team) {
@@ -378,12 +390,17 @@ public class MatchSimulator {
                 * PlayerImpactRuleConfig.SKIRMISH_CHANCE_PER_AVERAGE_AGGRESSION_POINT, 0.05, 0.15);
         if (random.nextDouble() >= chance) return false;
         TeamSelection attacking = chooseTeamForSkirmish(random, blueTeam, redTeam, state);
-        return teamfightResolver.resolveKill(
+        boolean resolved = teamfightResolver.resolveKill(
                 state.getCurrentTimeSeconds(), random,
                 attacking.actingTeam(), attacking.actingState(),
                 attacking.opposingTeam(), attacking.opposingState(),
                 events, false, new HashSet<>()
         );
+        if (resolved) {
+            for (PlayerState player : attacking.actingState().getPlayers()) if (player.canParticipateInMajorCombatAt(state.getCurrentTimeSeconds())) state.markMajorCombatParticipant(player);
+            for (PlayerState player : attacking.opposingState().getPlayers()) if (player.canParticipateInMajorCombatAt(state.getCurrentTimeSeconds())) state.markMajorCombatParticipant(player);
+        }
+        return resolved;
     }
 
     private TeamSelection chooseTeamForSkirmish(Random random, Team blueTeam, Team redTeam, GameState state) {

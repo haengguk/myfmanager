@@ -1,0 +1,62 @@
+package com.lolfm.simulator;
+
+import com.lolfm.domain.MatchPhaseChangeData;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Optional;
+
+public final class LanePhaseState {
+    private final boolean enabled;
+    private final LanePhaseExecutionStats stats;
+    private final EnumMap<Lane,LanePhase> lanePhases=new EnumMap<>(Lane.class);
+    private final EnumMap<Lane,Integer> laneOpenedAtSeconds=new EnumMap<>(Lane.class);
+    private MatchPhase matchPhase=MatchPhase.LANING;
+    private int midGameStartedAtSeconds=-1;
+    private MidGameTransitionReason transitionReason;
+    private int lastOuterSiegeEvaluationAtSeconds=-1;
+
+    public LanePhaseState(boolean enabled,LanePhaseExecutionStats stats){
+        this.enabled=enabled;this.stats=stats;
+        for(Lane lane:Lane.values()){lanePhases.put(lane,LanePhase.LANING);laneOpenedAtSeconds.put(lane,-1);}
+    }
+    public boolean isEnabled(){return enabled;}
+    public LanePhase getLanePhase(Lane lane){return enabled?lanePhases.get(lane):LanePhase.LANING;}
+    public boolean isLaning(Lane lane){return !enabled||lanePhases.get(lane)==LanePhase.LANING;}
+    public MatchPhase getMatchPhase(){return enabled?matchPhase:MatchPhase.LANING;}
+    public int getMidGameStartedAtSeconds(){return enabled?midGameStartedAtSeconds:-1;}
+    public MidGameTransitionReason getTransitionReason(){return enabled?transitionReason:null;}
+    public int getLastOuterSiegeEvaluationAtSeconds(){return lastOuterSiegeEvaluationAtSeconds;}
+    public int getLaneOpenedAtSeconds(Lane lane){return enabled?laneOpenedAtSeconds.get(lane):-1;}
+    public boolean shouldEvaluateOuterSiegeAt(int time){
+        if(!enabled){stats.recordFeatureDisabled();return false;}
+        if(time<lastOuterSiegeEvaluationAtSeconds)throw new IllegalArgumentException("Outer siege time cannot move backwards");
+        if(time==lastOuterSiegeEvaluationAtSeconds)return false;
+        return time>=LanePhaseRuleConfig.OUTER_SIEGE_START_SECONDS&&time<=LanePhaseRuleConfig.OUTER_SIEGE_END_SECONDS&&time%LanePhaseRuleConfig.OUTER_SIEGE_INTERVAL_SECONDS==0;
+    }
+    public void markOuterSiegeEvaluatedAt(int time){
+        if(time<=lastOuterSiegeEvaluationAtSeconds)throw new IllegalStateException("Outer siege time was not advanced");
+        lastOuterSiegeEvaluationAtSeconds=time;
+    }
+    public boolean openLane(Lane lane,int time){
+        if(!enabled)return false;
+        if(lanePhases.get(lane)==LanePhase.OPEN)return false;
+        lanePhases.put(lane,LanePhase.OPEN);laneOpenedAtSeconds.put(lane,time);stats.recordLaneOpen(lane);return true;
+    }
+    public boolean allLanesOpen(){return enabled&&lanePhases.values().stream().allMatch(p->p==LanePhase.OPEN);}
+    public Optional<MatchPhaseChangeData> transitionIfDue(int currentTime){
+        if(!enabled)return Optional.empty();
+        if(matchPhase==MatchPhase.MID_GAME)return Optional.empty();
+        boolean early=currentTime<LanePhaseRuleConfig.MIDGAME_TRANSITION_SECONDS&&allLanesOpen();
+        if(!early&&currentTime<LanePhaseRuleConfig.MIDGAME_TRANSITION_SECONDS)return Optional.empty();
+        MidGameTransitionReason reason=early?MidGameTransitionReason.ALL_LANES_OPEN:MidGameTransitionReason.TIME_LIMIT;
+        int transitionTime=early?currentTime:LanePhaseRuleConfig.MIDGAME_TRANSITION_SECONDS;
+        List<Lane> already=new ArrayList<>(),forced=new ArrayList<>();
+        for(Lane lane:Lane.values()){
+            if(lanePhases.get(lane)==LanePhase.OPEN)already.add(lane);
+            else{lanePhases.put(lane,LanePhase.OPEN);laneOpenedAtSeconds.put(lane,transitionTime);forced.add(lane);stats.recordLaneOpen(lane);}
+        }
+        matchPhase=MatchPhase.MID_GAME;midGameStartedAtSeconds=transitionTime;transitionReason=reason;stats.recordTransition(reason);
+        return Optional.of(new MatchPhaseChangeData(MatchPhase.LANING,MatchPhase.MID_GAME,transitionTime,reason,already,forced));
+    }
+}

@@ -1,9 +1,12 @@
 package com.lolfm.simulator;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class GameState {
 
@@ -13,6 +16,9 @@ public class GameState {
     private final ObjectiveState objectiveState;
     private final ObjectivePriorityExecutionStats objectivePriorityExecutionStats;
     private final ObjectivePriorityState objectivePriorityState;
+    private final LanePhaseExecutionStats lanePhaseExecutionStats;
+    private final LanePhaseState lanePhaseState;
+    private final Set<PlayerState> majorCombatParticipantsThisTick = Collections.newSetFromMap(new IdentityHashMap<>());
     private final MapState mapState;
     private final EnumMap<Lane, LaneState> laneStates = new EnumMap<>(Lane.class);
     private int lastLanePressureResolvedAtSeconds = -1;
@@ -45,21 +51,28 @@ public class GameState {
     private int lastAceTimeSeconds;
 
     public GameState(TeamState blueTeamState, TeamState redTeamState) {
-        this(blueTeamState, redTeamState, true, true);
+        this(blueTeamState, redTeamState, true, true, true);
     }
 
     public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled) {
-        this(blueTeamState, redTeamState, diagnosticsEnabled, true);
+        this(blueTeamState, redTeamState, diagnosticsEnabled, true, true);
     }
 
     public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
                      boolean objectivePriorityEnabled) {
+        this(blueTeamState, redTeamState, diagnosticsEnabled, objectivePriorityEnabled, true);
+    }
+
+    public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
+                     boolean objectivePriorityEnabled, boolean lanePhaseEnabled) {
         this.currentTimeSeconds = 0;
         this.blueTeamState = blueTeamState;
         this.redTeamState = redTeamState;
         this.objectiveState = new ObjectiveState();
         this.objectivePriorityExecutionStats = new ObjectivePriorityExecutionStats();
         this.objectivePriorityState = new ObjectivePriorityState(objectivePriorityEnabled, objectivePriorityExecutionStats);
+        this.lanePhaseExecutionStats = new LanePhaseExecutionStats(lanePhaseEnabled);
+        this.lanePhaseState = new LanePhaseState(lanePhaseEnabled, lanePhaseExecutionStats);
         this.mapState = new MapState();
         this.roamExecutionStats = new RoamExecutionStats(diagnosticsEnabled);
         for (Lane lane : Lane.values()) laneStates.put(lane, new LaneState(lane));
@@ -91,6 +104,14 @@ public class GameState {
     public ObjectivePriorityExecutionStats getObjectivePriorityExecutionStats() {
         return objectivePriorityExecutionStats;
     }
+
+    public LanePhaseState getLanePhaseState() { return lanePhaseState; }
+    public LanePhaseExecutionStats getLanePhaseExecutionStats() { return lanePhaseExecutionStats; }
+    public boolean isLanePhaseEnabled() { return lanePhaseState.isEnabled(); }
+    public boolean isLaneLaning(Lane lane) { return lanePhaseState.isLaning(lane); }
+    public void clearMajorCombatParticipantsThisTick() { majorCombatParticipantsThisTick.clear(); }
+    public void markMajorCombatParticipant(PlayerState player) { majorCombatParticipantsThisTick.add(player); }
+    public boolean wasMajorCombatParticipantThisTick(PlayerState player) { return majorCombatParticipantsThisTick.contains(player); }
 
     public MapState getMapState() {
         return mapState;

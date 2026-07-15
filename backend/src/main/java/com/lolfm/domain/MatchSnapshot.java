@@ -33,6 +33,7 @@ public class MatchSnapshot {
     private final List<PlayerSnapshot> playerSnapshots;
     private final List<LaneSnapshot> laneSnapshots;
     private final ObjectivePrioritySnapshot objectivePriority;
+    private final LanePhaseSnapshot lanePhase;
 
     public MatchSnapshot(
             int timeSeconds,
@@ -63,7 +64,8 @@ public class MatchSnapshot {
             int redAlivePlayers,
             List<PlayerSnapshot> playerSnapshots,
             List<LaneSnapshot> laneSnapshots,
-            ObjectivePrioritySnapshot objectivePriority
+            ObjectivePrioritySnapshot objectivePriority,
+            LanePhaseSnapshot lanePhase
     ) {
         this.timeSeconds = timeSeconds;
         this.blueKills = blueKills;
@@ -94,6 +96,7 @@ public class MatchSnapshot {
         this.playerSnapshots = List.copyOf(playerSnapshots);
         this.laneSnapshots = List.copyOf(laneSnapshots);
         this.objectivePriority = objectivePriority;
+        this.lanePhase = lanePhase;
     }
 
     public int getTimeSeconds() { return timeSeconds; }
@@ -125,4 +128,5 @@ public class MatchSnapshot {
     public List<PlayerSnapshot> getPlayerSnapshots() { return playerSnapshots; }
     public List<LaneSnapshot> getLaneSnapshots() { return laneSnapshots; }
     public ObjectivePrioritySnapshot getObjectivePriority() { return objectivePriority; }
+    public LanePhaseSnapshot getLanePhase() { return lanePhase; }
 }

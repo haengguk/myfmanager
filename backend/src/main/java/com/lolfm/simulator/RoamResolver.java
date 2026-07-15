@@ -41,6 +41,10 @@ public final class RoamResolver {
         Lane target = selected.position() == Position.SUPPORT ? Lane.MID : weightedTarget(state, selected, time, random);
         double targetWeight = targetWeight(state, selected, target, time);
         PlayerState roamer = player(state, selected);
+        state.markMajorCombatParticipant(roamer);
+        for (TeamSide participantSide : TeamSide.values()) {
+            for (PlayerState participant : lanePlayers(state.getTeamState(participantSide), target)) state.markMajorCombatParticipant(participant);
+        }
         int lastTargetAttempt = roamer.getRoamActionState().getLastRoamAttemptAtSeconds(target);
         boolean repeatTarget = lastTargetAttempt >= 0
                 && time < lastTargetAttempt + RoamRuleConfig.SAME_TARGET_REPEAT_WINDOW_SECONDS;
@@ -111,6 +115,10 @@ public final class RoamResolver {
         return ineligibility(state, candidate, time) == RoamIneligibility.NONE;
     }
     RoamIneligibility ineligibility(GameState state, Candidate candidate, int time) {
+        if (state.isLanePhaseEnabled() && !state.isLaneLaning(origin(candidate.position()))) {
+            state.getLanePhaseExecutionStats().recordRoamOriginExcluded();
+            return RoamIneligibility.NO_TARGET;
+        }
         PlayerState roamer = player(state, candidate);
         if (!roamer.isAlive(time)) return RoamIneligibility.DEAD;
         if (roamer.getActivityState().getActivityType() != PlayerActivityType.DEFAULT_ROLE) return RoamIneligibility.ACTIVITY;
@@ -120,6 +128,10 @@ public final class RoamResolver {
                 ? RoamIneligibility.NONE : RoamIneligibility.NO_TARGET;
     }
     boolean targetEligible(GameState state, TeamSide side, Lane lane, int time) {
+        if (state.isLanePhaseEnabled() && !state.isLaneLaning(lane)) {
+            state.getLanePhaseExecutionStats().recordRoamTargetExcluded();
+            return false;
+        }
         for (TeamSide participantSide : TeamSide.values()) for (PlayerState p : lanePlayers(state.getTeamState(participantSide), lane))
             if (!p.canParticipateInMajorCombatAt(time)) return false;
         return true;

@@ -49,6 +49,7 @@ public final class PositionEconomyResolver {
             case JUNGLE, SUPPORT -> null;
         };
         if (lane == null) return 1.0;
+        if (gameState.isLanePhaseEnabled() && !gameState.isLaneLaning(lane)) return 1.0;
         double signedModifier = Math.max(-LanePressureRuleConfig.MAX_LANE_CS_MODIFIER,
                 Math.min(LanePressureRuleConfig.MAX_LANE_CS_MODIFIER,
                         gameState.laneState(lane).getPressure() / 100.0 * LanePressureRuleConfig.MAX_LANE_CS_MODIFIER));

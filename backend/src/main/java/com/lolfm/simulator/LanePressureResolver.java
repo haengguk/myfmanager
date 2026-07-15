@@ -9,6 +9,14 @@ public final class LanePressureResolver {
         if (!state.shouldResolveLanePressureAt(currentTimeSeconds)) return;
         for (Lane lane : Lane.values()) {
             LaneState laneState = state.laneState(lane);
+            if (state.isLanePhaseEnabled() && !state.isLaneLaning(lane)) {
+                double before = laneState.getPressure();
+                double next = clamp(before * LanePhaseRuleConfig.OPEN_LANE_PRESSURE_DECAY_MULTIPLIER,
+                        LanePhaseRuleConfig.PRESSURE_SCORE_MIN, LanePhaseRuleConfig.PRESSURE_SCORE_MAX);
+                laneState.setPressure(next);
+                state.getLanePhaseExecutionStats().recordPressureDecay(before, next);
+                continue;
+            }
             double next = calculateNextPressure(laneState.getPressure(), lanePowerDifference(state, lane),
                     goldModifier(state, lane), randomVariation(random));
             laneState.setPressure(next);
