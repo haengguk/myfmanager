@@ -24,6 +24,7 @@ export interface MatchEvent {
   jungleGank: JungleGankData | null;
   counterGank: CounterGankData | null;
   objectivePriorityDecision?: ObjectivePriorityDecisionData | null;
+  objectiveDecision?: ObjectiveDecisionData | null;
   structureActionSource?: StructureActionSource | null;
   structureKind?: StructureKind | null;
   structureTowerTier?: TowerTier | null;
@@ -43,7 +44,7 @@ export type Lane = 'TOP' | 'MID' | 'BOT';
 export type MatchPhase = 'LANING' | 'MID_GAME';
 export type LanePhase = 'LANING' | 'OPEN';
 export type MidGameTransitionReason = 'TIME_LIMIT' | 'ALL_LANES_OPEN';
-export type StructureActionSource = 'LANE_PRESSURE' | 'POST_FIGHT' | 'BARON_PRESSURE' | 'MACRO_PLAY' | 'MID_GAME_MACRO';
+export type StructureActionSource = 'LANE_PRESSURE' | 'POST_FIGHT' | 'BARON_PRESSURE' | 'MACRO_PLAY' | 'MID_GAME_MACRO' | 'OBJECTIVE_TRADE';
 export type StructureKind = 'TOWER' | 'INHIBITOR' | 'NEXUS_TURRET' | 'NEXUS';
 export type TowerTier = 'OUTER' | 'INNER' | 'INHIBITOR';
 
@@ -263,6 +264,7 @@ export interface MatchSnapshot {
   objectivePriority: ObjectivePrioritySnapshot;
   lanePhase: LanePhaseSnapshot;
   midGameMacro?: MidGameMacroSnapshot | null;
+  objectiveDecision?: ObjectiveDecisionSnapshot | null;
 }
 
 export interface LaneSnapshot {
@@ -423,4 +425,71 @@ export interface MidGameMacroActionData {
   signedSetupControl: number;
   setupActiveUntilSeconds: number;
   farmBlockSeconds: number;
+}
+
+export type ObjectiveDecisionAction = 'TAKE' | 'CONTEST' | 'GIVE' | 'TRADE_STRUCTURE' | 'RESET';
+export type ObjectiveDecisionRole = 'INITIATOR' | 'RESPONDER';
+export type ObjectiveDecisionResult = 'NOT_EVALUATED' | 'INITIATOR_RESET' | 'UNCONTESTED_CAPTURE' | 'CONTEST_FIGHT' | 'TRADE_ATTEMPTED' | 'TRADE_SUCCEEDED' | 'TRADE_FAILED' | 'STALE_OBJECTIVE' | 'INELIGIBLE';
+
+export interface ObjectiveDecisionWeightBreakdown {
+  action: ObjectiveDecisionAction;
+  role: ObjectiveDecisionRole;
+  eligible: boolean;
+  reason: string | null;
+  baseWeight: number;
+  priorityEdge: number;
+  priorityContribution: number;
+  aliveEdge: number;
+  aliveContribution: number;
+  goldEdge: number;
+  goldContribution: number;
+  teamfightEdge: number;
+  teamfightContribution: number;
+  farmingEdge: number;
+  farmingContribution: number;
+  urgencyContribution: number;
+  missingPlayerContribution: number;
+  tradeAvailabilityContribution: number;
+  finalWeight: number;
+}
+
+export interface ObjectiveDecisionData {
+  decisionSequence: number;
+  evaluationTimeSeconds: number;
+  objectiveType: ObjectiveType;
+  featureEnabled: boolean;
+  initiativeSide: TeamSide;
+  responderSide: TeamSide;
+  initiativeCandidates: ObjectiveDecisionWeightBreakdown[];
+  initiativeAction: ObjectiveDecisionAction;
+  initiativeSelectionRollExecuted: boolean;
+  initiativeSelectionRoll: number | null;
+  responderCandidates: ObjectiveDecisionWeightBreakdown[];
+  responderAction: ObjectiveDecisionAction | null;
+  responderSelectionRollExecuted: boolean;
+  responderSelectionRoll: number | null;
+  tradeTargetLane: Lane | null;
+  tradeTargetStructure: TowerTier | null;
+  tradePushChance: number;
+  tradeRollExecuted: boolean;
+  tradeSucceeded: boolean;
+  contestedFight: boolean;
+  fightWinner: TeamSide | null;
+  captureSide: TeamSide | null;
+  result: ObjectiveDecisionResult;
+  majorCombatConsumed: boolean;
+  structureActionConsumed: boolean;
+  nextGeneralAttemptAtSeconds: number;
+  postFightPath: boolean;
+  elderPriorityAvailable: boolean;
+}
+
+export interface ObjectiveDecisionSnapshot {
+  enabled: boolean;
+  latestOverall: ObjectiveDecisionData | null;
+  latestDragon: ObjectiveDecisionData | null;
+  latestBaron: ObjectiveDecisionData | null;
+  latestElder: ObjectiveDecisionData | null;
+  latestBlue: ObjectiveDecisionData | null;
+  latestRed: ObjectiveDecisionData | null;
 }

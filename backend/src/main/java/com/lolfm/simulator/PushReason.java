@@ -4,5 +4,6 @@ public enum PushReason {
     POST_FIGHT,
     BARON_PRESSURE,
     MACRO_PLAY,
-    MID_GAME_MACRO
+    MID_GAME_MACRO,
+    OBJECTIVE_TRADE
 }

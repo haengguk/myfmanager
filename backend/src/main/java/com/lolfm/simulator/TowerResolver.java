@@ -59,6 +59,7 @@ public class TowerResolver {
             case POST_FIGHT -> teamName + "가 한타 승리 이후 " + lane + " " + tier + "까지 진격합니다.";
             case MACRO_PLAY -> teamName + "가 운영 압박으로 " + lane + " " + tier + "을 파괴합니다.";
             case MID_GAME_MACRO -> teamName + "가 미드게임 팀 운영으로 " + lane + " " + tier + "을 파괴합니다.";
+            case OBJECTIVE_TRADE -> teamName + "가 오브젝트 교환으로 " + lane + " " + tier + "을 파괴합니다.";
         };
     }
 }

@@ -1,55 +1,11 @@
 package com.lolfm.simulator;
-
 /** Per-simulator feature and observational-instrumentation options. */
-public record SimulationOptions(
-        boolean laneCombatEnabled,
-        boolean farmRecoveryEnabled,
-        boolean jungleGankEnabled,
-        boolean counterGankEnabled,
-        boolean roamEnabled,
-        boolean diagnosticsEnabled,
-        boolean objectivePriorityEnabled,
-        boolean lanePhaseEnabled,
-        boolean midGameMacroEnabled
-) {
-    public SimulationOptions(boolean laneCombatEnabled, boolean farmRecoveryEnabled, boolean jungleGankEnabled,
-                             boolean counterGankEnabled, boolean roamEnabled, boolean diagnosticsEnabled,
-                             boolean objectivePriorityEnabled, boolean lanePhaseEnabled) {
-        this(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled, counterGankEnabled, roamEnabled,
-                diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled, true);
-    }
-
-    public static SimulationOptions productionDefaults() {
-        return new SimulationOptions(true, true, true, true, true, true, true, true, true);
-    }
-
-    public SimulationOptions withRoamEnabled(boolean enabled) {
-        return new SimulationOptions(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled,
-                counterGankEnabled, enabled, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled,
-                midGameMacroEnabled);
-    }
-
-    public SimulationOptions withDiagnosticsEnabled(boolean enabled) {
-        return new SimulationOptions(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled,
-                counterGankEnabled, roamEnabled, enabled, objectivePriorityEnabled, lanePhaseEnabled,
-                midGameMacroEnabled);
-    }
-
-    public SimulationOptions withObjectivePriorityEnabled(boolean enabled) {
-        return new SimulationOptions(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled,
-                counterGankEnabled, roamEnabled, diagnosticsEnabled, enabled, lanePhaseEnabled,
-                midGameMacroEnabled);
-    }
-
-    public SimulationOptions withLanePhaseEnabled(boolean enabled) {
-        return new SimulationOptions(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled,
-                counterGankEnabled, roamEnabled, diagnosticsEnabled, objectivePriorityEnabled, enabled,
-                midGameMacroEnabled);
-    }
-
-    public SimulationOptions withMidGameMacroEnabled(boolean enabled) {
-        return new SimulationOptions(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled,
-                counterGankEnabled, roamEnabled, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled,
-                enabled);
-    }
+public record SimulationOptions(boolean laneCombatEnabled,boolean farmRecoveryEnabled,boolean jungleGankEnabled,
+ boolean counterGankEnabled,boolean roamEnabled,boolean diagnosticsEnabled,boolean objectivePriorityEnabled,
+ boolean lanePhaseEnabled,boolean midGameMacroEnabled,boolean objectiveDecisionEnabled) {
+ public SimulationOptions(boolean laneCombatEnabled,boolean farmRecoveryEnabled,boolean jungleGankEnabled,boolean counterGankEnabled,boolean roamEnabled,boolean diagnosticsEnabled,boolean objectivePriorityEnabled,boolean lanePhaseEnabled){this(laneCombatEnabled,farmRecoveryEnabled,jungleGankEnabled,counterGankEnabled,roamEnabled,diagnosticsEnabled,objectivePriorityEnabled,lanePhaseEnabled,true,true);}
+ public SimulationOptions(boolean laneCombatEnabled,boolean farmRecoveryEnabled,boolean jungleGankEnabled,boolean counterGankEnabled,boolean roamEnabled,boolean diagnosticsEnabled,boolean objectivePriorityEnabled,boolean lanePhaseEnabled,boolean midGameMacroEnabled){this(laneCombatEnabled,farmRecoveryEnabled,jungleGankEnabled,counterGankEnabled,roamEnabled,diagnosticsEnabled,objectivePriorityEnabled,lanePhaseEnabled,midGameMacroEnabled,true);}
+ public static SimulationOptions productionDefaults(){return new SimulationOptions(true,true,true,true,true,true,true,true,true,true);}
+ private SimulationOptions copy(Boolean roam,Boolean diagnostics,Boolean priority,Boolean lane,Boolean macro,Boolean decision){return new SimulationOptions(laneCombatEnabled,farmRecoveryEnabled,jungleGankEnabled,counterGankEnabled,roam==null?roamEnabled:roam,diagnostics==null?diagnosticsEnabled:diagnostics,priority==null?objectivePriorityEnabled:priority,lane==null?lanePhaseEnabled:lane,macro==null?midGameMacroEnabled:macro,decision==null?objectiveDecisionEnabled:decision);}
+ public SimulationOptions withRoamEnabled(boolean v){return copy(v,null,null,null,null,null);} public SimulationOptions withDiagnosticsEnabled(boolean v){return copy(null,v,null,null,null,null);} public SimulationOptions withObjectivePriorityEnabled(boolean v){return copy(null,null,v,null,null,null);} public SimulationOptions withLanePhaseEnabled(boolean v){return copy(null,null,null,v,null,null);} public SimulationOptions withMidGameMacroEnabled(boolean v){return copy(null,null,null,null,v,null);} public SimulationOptions withObjectiveDecisionEnabled(boolean v){return copy(null,null,null,null,null,v);}
 }

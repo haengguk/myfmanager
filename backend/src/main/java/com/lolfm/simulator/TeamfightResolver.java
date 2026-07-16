@@ -268,7 +268,7 @@ public class TeamfightResolver {
         }
     }
 
-    private void commitPendingCombatProgress(TeamState team) {
+    void commitPendingCombatProgress(TeamState team) {
         for (PlayerState player : team.getPlayers()) player.commitPendingCombatBountyProgress();
     }
 

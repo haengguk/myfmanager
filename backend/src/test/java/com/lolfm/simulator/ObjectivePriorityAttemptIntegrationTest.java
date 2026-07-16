@@ -77,7 +77,7 @@ class ObjectivePriorityAttemptIntegrationTest {
     private GameState dragonDue(boolean en,int time){GameState s=state(en);s.advanceTimeSeconds(300);s.getObjectiveState().updateSpawnState(300);s.advanceTimeSeconds(time-300);return s;}
     private GameState elderDue(boolean en){GameState s=state(en);s.getObjectiveState().claimSoul(TeamSide.BLUE,0);s.advanceTimeSeconds(ElderRuleConfig.FIRST_ELDER_SPAWN_DELAY_SECONDS);s.getObjectiveState().updateSpawnState(s.getCurrentTimeSeconds());s.advanceTimeSeconds(ElderRuleConfig.ELDER_FIRST_ATTEMPT_DELAY_SECONDS);return s;}
     private void makeIneligible(GameState s,TeamSide side,int n){for(int i=0;i<n;i++)s.getTeamState(side).getPlayers().get(i).markDead(s.getCurrentTimeSeconds(),9999);}
-    private GameState state(boolean en){return new GameState(team("BLUE"),team("RED"),true,en);}
+    private GameState state(boolean en){return new GameState(team("BLUE"),team("RED"),true,en,true,true,false);}
     private TeamState team(String n){return new TeamState(n,List.of(p(n+" top",Position.TOP),p(n+" jungle",Position.JUNGLE),p(n+" mid",Position.MID),p(n+" adc",Position.ADC),p(n+" support",Position.SUPPORT)));}
     private PlayerState p(String n,Position p){return new PlayerState(n,p,new PlayerAttributes(14,14,14,14),500);}
     private static final class CountingRandom extends Random{final double[] v;int i,doubleCalls;CountingRandom(double...v){this.v=v;}@Override public double nextDouble(){doubleCalls++;return v[Math.min(i++,v.length-1)];}@Override public boolean nextBoolean(){return false;}}

@@ -23,6 +23,7 @@ public class MatchEvent {
     private RoamData roam;
     private CombatSource combatSource;
     private ObjectivePriorityDecisionData objectivePriorityDecision;
+    private ObjectiveDecisionData objectiveDecision;
     private StructureActionSource structureActionSource;
     private MidGameMacroDecisionData midGameMacroDecision;
     private MidGameMacroActionData midGameMacroAction;
@@ -109,6 +110,8 @@ public class MatchEvent {
     public void setObjectivePriorityDecision(ObjectivePriorityDecisionData objectivePriorityDecision) {
         this.objectivePriorityDecision = objectivePriorityDecision;
     }
+    public ObjectiveDecisionData getObjectiveDecision() { return objectiveDecision; }
+    public void setObjectiveDecision(ObjectiveDecisionData value) { objectiveDecision = value; }
     public StructureActionSource getStructureActionSource() { return structureActionSource; }
     public MidGameMacroDecisionData getMidGameMacroDecision() { return midGameMacroDecision; }
     public void setMidGameMacroDecision(MidGameMacroDecisionData value) { midGameMacroDecision = value; }

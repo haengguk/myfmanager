@@ -19,6 +19,7 @@ public class GameState {
     private final LanePhaseExecutionStats lanePhaseExecutionStats;
     private final LanePhaseState lanePhaseState;
     private final MidGameMacroState midGameMacroState;
+    private final ObjectiveDecisionState objectiveDecisionState;
     private final Set<PlayerState> majorCombatParticipantsThisTick = Collections.newSetFromMap(new IdentityHashMap<>());
     private final MapState mapState;
     private final EnumMap<TeamSide, Boolean> structureActionPerformedThisTick = new EnumMap<>(TeamSide.class);
@@ -72,6 +73,12 @@ public class GameState {
 
     public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
                      boolean objectivePriorityEnabled, boolean lanePhaseEnabled, boolean midGameMacroEnabled) {
+        this(blueTeamState, redTeamState, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, true);
+    }
+
+    public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
+                     boolean objectivePriorityEnabled, boolean lanePhaseEnabled, boolean midGameMacroEnabled,
+                     boolean objectiveDecisionEnabled) {
         this.currentTimeSeconds = 0;
         this.blueTeamState = blueTeamState;
         this.redTeamState = redTeamState;
@@ -81,6 +88,7 @@ public class GameState {
         this.lanePhaseExecutionStats = new LanePhaseExecutionStats(lanePhaseEnabled);
         this.lanePhaseState = new LanePhaseState(lanePhaseEnabled, lanePhaseExecutionStats);
         this.midGameMacroState = new MidGameMacroState(midGameMacroEnabled, diagnosticsEnabled);
+        this.objectiveDecisionState = new ObjectiveDecisionState(objectiveDecisionEnabled, diagnosticsEnabled);
         this.mapState = new MapState();
         this.roamExecutionStats = new RoamExecutionStats(diagnosticsEnabled);
         for (TeamSide side : TeamSide.values()) structureActionPerformedThisTick.put(side, false);
@@ -117,12 +125,15 @@ public class GameState {
     public LanePhaseState getLanePhaseState() { return lanePhaseState; }
     public LanePhaseExecutionStats getLanePhaseExecutionStats() { return lanePhaseExecutionStats; }
     public MidGameMacroState getMidGameMacroState() { return midGameMacroState; }
+    public ObjectiveDecisionState getObjectiveDecisionState() { return objectiveDecisionState; }
+    public boolean isObjectiveDecisionEnabled() { return objectiveDecisionState.isEnabled(); }
     public boolean isMidGameMacroEnabled() { return midGameMacroState.isEnabled(); }
     public boolean isLanePhaseEnabled() { return lanePhaseState.isEnabled(); }
     public boolean isLaneLaning(Lane lane) { return lanePhaseState.isLaning(lane); }
     public void clearMajorCombatParticipantsThisTick() { majorCombatParticipantsThisTick.clear(); }
     public void markMajorCombatParticipant(PlayerState player) { majorCombatParticipantsThisTick.add(player); }
     public boolean wasMajorCombatParticipantThisTick(PlayerState player) { return majorCombatParticipantsThisTick.contains(player); }
+    public boolean wasMajorCombatAttemptedThisTick() { return !majorCombatParticipantsThisTick.isEmpty(); }
 
     public MapState getMapState() {
         return mapState;

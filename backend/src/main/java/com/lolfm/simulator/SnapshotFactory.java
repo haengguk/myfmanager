@@ -54,7 +54,8 @@ public class SnapshotFactory {
                 laneSnapshots(gameState),
                 new ObjectivePriorityResolver().snapshot(gameState),
                 lanePhaseSnapshot(gameState),
-                midGameMacroSnapshot(gameState)
+                midGameMacroSnapshot(gameState),
+                gameState.getObjectiveDecisionState().snapshot()
         );
     }
 

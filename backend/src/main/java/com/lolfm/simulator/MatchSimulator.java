@@ -1,6 +1,7 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.MatchEvent;
+import com.lolfm.domain.ObjectiveDecisionData;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.MatchSnapshot;
 import com.lolfm.domain.MatchTimeline;
@@ -51,6 +52,7 @@ public class MatchSimulator {
     private final boolean objectivePriorityEnabled;
     private final boolean midGameMacroEnabled;
     private final boolean lanePhaseEnabled;
+    private final boolean objectiveDecisionEnabled;
 
     @Autowired
     public MatchSimulator(
@@ -145,6 +147,7 @@ public class MatchSimulator {
         this.objectivePriorityEnabled = options.objectivePriorityEnabled();
         this.midGameMacroEnabled = options.midGameMacroEnabled();
         this.lanePhaseEnabled = options.lanePhaseEnabled();
+        this.objectiveDecisionEnabled = options.objectiveDecisionEnabled();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -236,8 +239,8 @@ public class MatchSimulator {
                     : pushResolver.resolvePostFightWindow(gameState, outcome, postFightObjective, random, structureResolver);
             for (StructureOutcome structure : postFightStructures) events.add(structureResolver.createStructureEvent(gameState, structure));
             if (!gameState.isFinished() && postFightObjective.isEmpty()) {
-                Optional<MatchEvent> generalObjective = objectiveAttemptResolver.maybeAttemptObjective(gameState, random, objectiveResolver);
-                generalObjective.ifPresent(event -> { events.add(event); cancelMacroSetupForCapture(gameState, event); });
+                Optional<MatchEvent> generalObjective = objectiveAttemptResolver.maybeAttemptObjective(gameState, random, objectiveResolver, structureResolver, events);
+                generalObjective.ifPresent(event -> { if (!events.contains(event)) events.add(event); cancelMacroSetupForCapture(gameState, event); });
             }
             if (!gameState.isFinished()) {
                 pushResolver.maybeResolveMacroPush(gameState, random, structureResolver)
@@ -294,7 +297,9 @@ public class MatchSimulator {
                 gameState.getWinnerSide(),
                 gameState.getObjectivePriorityExecutionStats().snapshot(),
                 gameState.getLanePhaseExecutionStats().snapshot(),
-                gameState.getMidGameMacroState().getExecutionStats().snapshot()
+                gameState.getMidGameMacroState().getExecutionStats().snapshot(),
+                gameState.getObjectiveDecisionState().getStats().snapshot(),
+                gameState.getObjectiveDecisionState().getHistory()
         );
     }
 
@@ -321,7 +326,9 @@ public class MatchSimulator {
             TeamSide winnerSide,
             ObjectivePriorityExecutionStatsSnapshot objectivePriorityExecutionStats,
             LanePhaseExecutionStatsSnapshot lanePhaseExecutionStats,
-            MidGameMacroExecutionStatsSnapshot midGameMacroExecutionStats
+            MidGameMacroExecutionStatsSnapshot midGameMacroExecutionStats,
+            ObjectiveDecisionExecutionStatsSnapshot objectiveDecisionExecutionStats,
+            List<ObjectiveDecisionData> objectiveDecisionHistory
     ) {
     }
 
@@ -351,7 +358,7 @@ public class MatchSimulator {
     }
     private GameState initializeGameState(Team blueTeam, Team redTeam) {
         return new GameState(buildTeamState(blueTeam), buildTeamState(redTeam), diagnosticsEnabled,
-                objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled);
+                objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled);
     }
 
     private TeamState buildTeamState(Team team) {

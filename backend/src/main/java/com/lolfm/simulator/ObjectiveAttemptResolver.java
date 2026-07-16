@@ -13,31 +13,39 @@ import org.springframework.stereotype.Component;
 @Component
 public class ObjectiveAttemptResolver {
     private final ObjectivePriorityResolver priority = new ObjectivePriorityResolver();
+    private final ObjectiveDecisionResolver decisions = new ObjectiveDecisionResolver();
 
     public Optional<MatchEvent> maybeAttemptObjective(
             GameState gameState, Random random, ObjectiveResolver objectiveResolver
+    ) {
+        return maybeAttemptObjective(gameState, random, objectiveResolver, new StructureResolver(), new ArrayList<>());
+    }
+
+    public Optional<MatchEvent> maybeAttemptObjective(
+            GameState gameState, Random random, ObjectiveResolver objectiveResolver,
+            StructureResolver structureResolver, List<MatchEvent> events
     ) {
         ObjectiveState objectives = gameState.getObjectiveState();
         int currentTime = gameState.getCurrentTimeSeconds();
         if (objectives.isElderAttemptDue(currentTime)) {
             objectives.markElderAttempted(currentTime);
-            Optional<MatchEvent> elder = maybeAttemptElder(gameState, random, objectiveResolver);
+            Optional<MatchEvent> elder = maybeAttemptElder(gameState, random, objectiveResolver, structureResolver, events);
             if (elder.isPresent()) return elder;
         }
         if (objectives.isElementalDragonPhase() && objectives.isDragonAttemptDue(currentTime)) {
             objectives.markDragonAttempted(currentTime);
             gameState.recordGeneralDragonAttempt();
-            Optional<MatchEvent> dragon = maybeAttemptDragon(gameState, random, objectiveResolver);
+            Optional<MatchEvent> dragon = maybeAttemptDragon(gameState, random, objectiveResolver, structureResolver, events);
             if (dragon.isPresent()) return dragon;
         }
         if (objectives.isBaronAttemptDue(currentTime)) {
             objectives.markBaronAttempted(currentTime);
-            return maybeAttemptBaron(gameState, random, objectiveResolver);
+            return maybeAttemptBaron(gameState, random, objectiveResolver, structureResolver, events);
         }
         return Optional.empty();
     }
 
-    private Optional<MatchEvent> maybeAttemptElder(GameState state, Random random, ObjectiveResolver resolver) {
+    private Optional<MatchEvent> maybeAttemptElder(GameState state, Random random, ObjectiveResolver resolver, StructureResolver structures, List<MatchEvent> events) {
         int time = state.getCurrentTimeSeconds();
         List<TeamSide> eligible = eligibleSides(state, time, 4);
         int aliveFor = Math.max(0, time - state.getObjectiveState().getElderSpawnedAtSeconds());
@@ -62,6 +70,7 @@ public class ObjectiveAttemptResolver {
                 1, 1, selection.blueExisting().totalExistingWeight(), selection.redExisting().totalExistingWeight(),
                 selection.rollExecuted(), selection.side());
         record(state, decision);
+        if (state.isObjectiveDecisionEnabled()) return decisions.resolve(state, ObjectiveType.ELDER, selection.side(), 0, random, resolver, structures, events, decision);
         Optional<MatchEvent> result = resolver.captureElder(state, selection.side(), time,
                 random.nextBoolean() ? "장로 드래곤을 확보합니다." : "시야 주도권을 바탕으로 장로 드래곤을 처치합니다.")
                 .map(ElderCaptureOutcome::event);
@@ -69,7 +78,7 @@ public class ObjectiveAttemptResolver {
         return result;
     }
 
-    private Optional<MatchEvent> maybeAttemptDragon(GameState state, Random random, ObjectiveResolver resolver) {
+    private Optional<MatchEvent> maybeAttemptDragon(GameState state, Random random, ObjectiveResolver resolver, StructureResolver structures, List<MatchEvent> events) {
         int time = state.getCurrentTimeSeconds();
         List<TeamSide> eligible = eligibleSides(state, time, 3);
         double lane = priority.dragonLanePressureScore(state);
@@ -99,6 +108,7 @@ public class ObjectiveAttemptResolver {
                 true, true, eligible, selection.blueExisting(), selection.redExisting(), selection.blueMultiplier(),
                 selection.redMultiplier(), selection.finalBlue(), selection.finalRed(), selection.rollExecuted(), selection.side());
         record(state, decision);
+        if (state.isObjectiveDecisionEnabled()) return decisions.resolve(state, ObjectiveType.DRAGON, selection.side(), signed, random, resolver, structures, events, decision);
         String message = random.nextBoolean()
                 ? "시야와 인원 우위를 바탕으로 드래곤을 확보합니다."
                 : "상대보다 먼저 드래곤 지역을 장악합니다.";
@@ -107,7 +117,7 @@ public class ObjectiveAttemptResolver {
         return result;
     }
 
-    private Optional<MatchEvent> maybeAttemptBaron(GameState state, Random random, ObjectiveResolver resolver) {
+    private Optional<MatchEvent> maybeAttemptBaron(GameState state, Random random, ObjectiveResolver resolver, StructureResolver structures, List<MatchEvent> events) {
         int time = state.getCurrentTimeSeconds();
         List<TeamSide> eligible = eligibleSides(state, time, 4);
         double lane = priority.baronLanePressureScore(state);
@@ -137,6 +147,7 @@ public class ObjectiveAttemptResolver {
                 true, true, eligible, selection.blueExisting(), selection.redExisting(), selection.blueMultiplier(),
                 selection.redMultiplier(), selection.finalBlue(), selection.finalRed(), selection.rollExecuted(), selection.side());
         record(state, decision);
+        if (state.isObjectiveDecisionEnabled()) return decisions.resolve(state, ObjectiveType.BARON, selection.side(), signed, random, resolver, structures, events, decision);
         String message = random.nextBoolean()
                 ? "상대의 빈틈을 노려 바론을 확보합니다."
                 : "시야 주도권을 바탕으로 바론을 처치합니다.";

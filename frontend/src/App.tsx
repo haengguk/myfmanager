@@ -214,6 +214,8 @@ function App() {
     return timeline.events.filter((event) => event.timeSeconds <= gameTime);
   }, [gameTime, timeline]);
   const macroSnapshot = currentSnapshot?.midGameMacro ?? null;
+  const decisionSnapshot = currentSnapshot?.objectiveDecision ?? null;
+  const latestObjectiveDecision = decisionSnapshot?.latestOverall ?? null;
   const latestMacroEvaluation = macroSnapshot?.evaluationHistory.length
     ? macroSnapshot.evaluationHistory[macroSnapshot.evaluationHistory.length - 1]
     : null;
@@ -545,6 +547,47 @@ function App() {
               </div>
             </section>
 
+
+            {decisionSnapshot && (
+              <section className={`objective-decision ${decisionSnapshot.enabled ? '' : 'is-disabled'}`} aria-label="최근 오브젝트 판단">
+                <div className="decision-heading">
+                  <div>
+                    <span className="eyebrow">Objective decision AI</span>
+                    <h3>최근 오브젝트 판단</h3>
+                  </div>
+                  <span className="decision-sequence">
+                    {latestObjectiveDecision ? `#${latestObjectiveDecision.decisionSequence} · ${formatTime(latestObjectiveDecision.evaluationTimeSeconds)}` : '판단 대기'}
+                  </span>
+                </div>
+                {latestObjectiveDecision ? (
+                  <div className="decision-flow">
+                    <div className={`decision-node side-${latestObjectiveDecision.initiativeSide.toLowerCase()}`}>
+                      <span>{latestObjectiveDecision.initiativeSide} INITIATIVE</span>
+                      <strong>{latestObjectiveDecision.initiativeAction}</strong>
+                    </div>
+                    <i aria-hidden="true">→</i>
+                    <div className="decision-node decision-response">
+                      <span>{latestObjectiveDecision.objectiveType}</span>
+                      <strong>{latestObjectiveDecision.responderAction ?? '—'}</strong>
+                    </div>
+                    <i aria-hidden="true">→</i>
+                    <div className="decision-node decision-result">
+                      <span>RESULT</span>
+                      <strong>{latestObjectiveDecision.result}</strong>
+                    </div>
+                    <p>
+                      {latestObjectiveDecision.responderAction === 'TRADE_STRUCTURE' && latestObjectiveDecision.tradeTargetLane
+                        ? `TRADE ${latestObjectiveDecision.tradeTargetLane} · ${latestObjectiveDecision.tradeTargetStructure} · ${latestObjectiveDecision.tradeSucceeded ? '성공' : '실패'}`
+                        : latestObjectiveDecision.captureSide
+                          ? `${latestObjectiveDecision.captureSide} CAPTURE`
+                          : `NEXT ${formatTime(latestObjectiveDecision.nextGeneralAttemptAtSeconds)}`}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="decision-empty">기존 attempt와 initiative 선택 이후 판단이 표시됩니다.</p>
+                )}
+              </section>
+            )}
             {macroSnapshot && (
               <section className={`macro-panel ${macroSnapshot.enabled ? '' : 'is-disabled'}`} aria-label="미드게임 팀 매크로">
                 <div className="macro-heading">

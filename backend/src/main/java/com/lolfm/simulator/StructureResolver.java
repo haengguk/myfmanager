@@ -99,6 +99,7 @@ public class StructureResolver {
             case BARON_PRESSURE -> StructureActionSource.BARON_PRESSURE;
             case MACRO_PLAY -> StructureActionSource.MACRO_PLAY;
             case MID_GAME_MACRO -> StructureActionSource.MID_GAME_MACRO;
+            case OBJECTIVE_TRADE -> StructureActionSource.OBJECTIVE_TRADE;
         };
     }
 
@@ -133,6 +134,7 @@ public class StructureResolver {
             case POST_FIGHT -> team + "가 한타 승리 이후 " + lane + " " + tier + "까지 진격합니다.";
             case MACRO_PLAY -> team + "가 운영 압박으로 " + lane + " " + tier + "을 파괴합니다.";
             case MID_GAME_MACRO -> team + "가 미드게임 팀 운영으로 " + lane + " " + tier + "을 파괴합니다.";
+            case OBJECTIVE_TRADE -> team + "가 오브젝트를 양보하는 대신 " + lane + " " + tier + "을 파괴합니다.";
         };
     }
 
