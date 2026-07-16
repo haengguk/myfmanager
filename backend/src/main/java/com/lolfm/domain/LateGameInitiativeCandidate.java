@@ -1,0 +1,2 @@
+package com.lolfm.domain;import com.lolfm.simulator.TeamSide;
+public record LateGameInitiativeCandidate(TeamSide side,boolean eligible,String reason,double goldEdge,double aliveEdge,double teamfightEdge,double goldContribution,double aliveContribution,double teamfightContribution,double baronContribution,double elderContribution,double recentFightContribution,double baseExposureContribution,double finalWeight){}

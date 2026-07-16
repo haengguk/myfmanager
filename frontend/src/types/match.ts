@@ -19,7 +19,7 @@ export interface MatchEvent {
   victim: string | null;
   assists: string[];
   goldAmount: number;
-  combatSource: 'COUNTER_GANK' | 'JUNGLE_GANK' | 'ROAM' | 'LANE_COMBAT' | 'SKIRMISH' | 'TEAMFIGHT' | 'OBJECTIVE_FIGHT' | 'OTHER' | null;
+  combatSource: 'COUNTER_GANK' | 'JUNGLE_GANK' | 'ROAM' | 'LANE_COMBAT' | 'SKIRMISH' | 'TEAMFIGHT' | 'OBJECTIVE_FIGHT' | 'LATE_GAME_SIEGE' | 'BASE_DEFENSE' | 'OTHER' | null;
   laneCombat: LaneCombatData | null;
   jungleGank: JungleGankData | null;
   counterGank: CounterGankData | null;
@@ -35,16 +35,17 @@ export interface MatchEvent {
   midGameMacroDecision?: MidGameMacroDecisionData | null;
   midGameMacroAction?: MidGameMacroActionData | null;
   matchPhaseChange?: MatchPhaseChangeData | null;
+  lateGameDecision?: LateGameDecisionData | null;
 }
 
 
 export type ObjectiveType = 'DRAGON' | 'BARON' | 'ELDER';
 export type TeamSide = 'BLUE' | 'RED';
 export type Lane = 'TOP' | 'MID' | 'BOT';
-export type MatchPhase = 'LANING' | 'MID_GAME';
+export type MatchPhase = 'LANING' | 'MID_GAME' | 'LATE_GAME';
 export type LanePhase = 'LANING' | 'OPEN';
 export type MidGameTransitionReason = 'TIME_LIMIT' | 'ALL_LANES_OPEN';
-export type StructureActionSource = 'LANE_PRESSURE' | 'POST_FIGHT' | 'BARON_PRESSURE' | 'MACRO_PLAY' | 'MID_GAME_MACRO' | 'OBJECTIVE_TRADE';
+export type StructureActionSource = 'LANE_PRESSURE' | 'POST_FIGHT' | 'BARON_PRESSURE' | 'MACRO_PLAY' | 'MID_GAME_MACRO' | 'OBJECTIVE_TRADE' | 'LATE_GAME_SIEGE' | 'LATE_GAME_CROSS_MAP' | 'NEXUS_FINISH';
 export type StructureKind = 'TOWER' | 'INHIBITOR' | 'NEXUS_TURRET' | 'NEXUS';
 export type TowerTier = 'OUTER' | 'INNER' | 'INHIBITOR';
 
@@ -71,6 +72,10 @@ export interface MatchPhaseChangeData {
   reason: MidGameTransitionReason;
   alreadyOpenLanes: Lane[];
   forcedOpenLanes: Lane[];
+  lateGameTransitionReason: LateGameTransitionReason | null;
+  triggerSide: TeamSide | null;
+  triggerLane: Lane | null;
+  triggerStructure: LateGameStructureTarget | null;
 }
 
 export interface OuterTurretSnapshot {
@@ -93,6 +98,8 @@ export interface LanePhaseSnapshot {
   matchPhase: MatchPhase;
   midGameStartedAtSeconds: number;
   transitionReason: MidGameTransitionReason | null;
+  lateGameStartedAtSeconds: number;
+  lateGameTransitionReason: LateGameTransitionReason | null;
   lanes: LanePhaseLaneSnapshot[];
 }
 
@@ -265,6 +272,7 @@ export interface MatchSnapshot {
   lanePhase: LanePhaseSnapshot;
   midGameMacro?: MidGameMacroSnapshot | null;
   objectiveDecision?: ObjectiveDecisionSnapshot | null;
+  lateGame?: LateGameSnapshot | null;
 }
 
 export interface LaneSnapshot {
@@ -308,7 +316,7 @@ export type TeamMacroPlan = 'GROUP_MID' | 'SIDE_LANE_TOP' | 'SIDE_LANE_BOT' | 'O
 export type MacroActionType = 'STRUCTURE_PUSH' | 'OBJECTIVE_SETUP' | 'RESET';
 export type MacroActionResult = 'NOT_ATTEMPTED' | 'INELIGIBLE' | 'PUSH_FAILED' | 'STRUCTURE_DESTROYED' | 'SETUP_STARTED' | 'RESET_STARTED';
 export type MacroPlanStatus = 'DISABLED' | 'NOT_STARTED' | 'WAITING_FOR_EVALUATION' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'MATCH_ENDED';
-export type MacroPlanEndReason = 'EXPIRED' | 'REPLACED' | 'OBJECTIVE_CAPTURED' | 'OBJECTIVE_UNAVAILABLE' | 'FEATURE_DISABLED' | 'MATCH_ENDED';
+export type MacroPlanEndReason = 'EXPIRED' | 'REPLACED' | 'OBJECTIVE_CAPTURED' | 'OBJECTIVE_UNAVAILABLE' | 'LATE_GAME_TRANSITION' | 'FEATURE_DISABLED' | 'MATCH_ENDED';
 
 export interface MacroPlanWeightBreakdown {
   plan: TeamMacroPlan;
@@ -493,3 +501,17 @@ export interface ObjectiveDecisionSnapshot {
   latestBlue: ObjectiveDecisionData | null;
   latestRed: ObjectiveDecisionData | null;
 }
+
+export type Position = 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
+export type LateGameAttackPlan = 'SIEGE_TOP' | 'SIEGE_MID' | 'SIEGE_BOT' | 'NEXUS_FINISH' | 'RESET_AND_REGROUP';
+export type LateGameDefenseResponse = 'DEFEND' | 'GIVE_STRUCTURE' | 'CROSS_MAP_PUSH';
+export type LateGameActionResult = 'NOT_EVALUATED' | 'NO_INITIATIVE' | 'ATTACKER_RESET' | 'SIEGE_REPELLED' | 'STRUCTURE_DESTROYED' | 'SIEGE_FIGHT_ATTACKER_WIN' | 'SIEGE_FIGHT_DEFENDER_WIN' | 'CROSS_MAP_SUCCEEDED' | 'CROSS_MAP_FAILED' | 'NEXUS_FINISH_ADVANCED' | 'NEXUS_DESTROYED' | 'STALE_TARGET' | 'INELIGIBLE' | 'GAME_FINISHED';
+export type LateGameTransitionReason = 'TIME_LIMIT' | 'INHIBITOR_TOWER_DESTROYED' | 'INHIBITOR_DESTROYED';
+export type BaseThreatLevel = 'NONE' | 'INHIBITOR_TOWER_THREAT' | 'INHIBITOR_THREAT' | 'NEXUS_TURRET_THREAT' | 'NEXUS_THREAT' | 'MATCH_ENDED';
+export type LateGameStructureTarget = 'OUTER' | 'INNER' | 'INHIBITOR_TOWER' | 'INHIBITOR' | 'NEXUS_TURRET' | 'NEXUS';
+export type LateGamePlanStatus = 'DISABLED' | 'NOT_STARTED' | 'WAITING_FOR_EVALUATION' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'MATCH_ENDED';
+export interface BaseThreatSnapshot { defendingSide: TeamSide; overallLevel: BaseThreatLevel; threatenedLanes: Lane[]; deepestThreatLane: Lane | null; nextThreatenedStructure: LateGameStructureTarget | null; destroyedInhibitorCount: number; remainingNexusTurrets: number; nexusExposed: boolean; nexusAlive: boolean; }
+export interface LateGameRespawnSummary { deadCount: number; respawningSoonCount: number; longRespawnCount: number; longestRespawnSeconds: number; }
+export interface LateGameTeamPlanSnapshot { role: string; attackPlan: LateGameAttackPlan | null; defenseResponse: LateGameDefenseResponse | null; targetLane: Lane | null; targetStructure: LateGameStructureTarget | null; assignedPositions: Position[]; startedAtSeconds: number; activeUntilSeconds: number; status: LateGamePlanStatus; lastResult: LateGameActionResult; endReason: string | null; }
+export interface LateGameDecisionData { sequence: number; dueTimeSeconds: number; actualEvaluationTimeSeconds: number; initiativeSide: TeamSide | null; selectedAttackPlan: LateGameAttackPlan | null; targetLane: Lane | null; targetStructure: LateGameStructureTarget | null; assignedPositions: Position[]; selectedDefenseResponse: LateGameDefenseResponse | null; attackerAliveCount: number; defenderAliveCount: number; defenderRespawnSummary: LateGameRespawnSummary; siegeFightTriggered: boolean; fightGrade: string | null; fightWinner: TeamSide | null; structureSucceeded: boolean; crossMapTargetLane: Lane | null; crossMapTargetStructure: LateGameStructureTarget | null; crossMapSucceeded: boolean; result: LateGameActionResult; nextEvaluationAtSeconds: number; }
+export interface LateGameSnapshot { enabled: boolean; matchPhase: MatchPhase; lateGameStartedAtSeconds: number; transitionReason: LateGameTransitionReason | null; nextEvaluationAtSeconds: number; latestDecision: LateGameDecisionData | null; blueBaseThreat: BaseThreatSnapshot; redBaseThreat: BaseThreatSnapshot; bluePlan: LateGameTeamPlanSnapshot; redPlan: LateGameTeamPlanSnapshot; structureActionStats?: { structureAttempted: number; structureMutationPerformed: number; laterResolverBlockedByAttempt: number; sameSideMultipleAttemptError: number; sameSideMultipleMutationError: number; postFightMultiStructureActions: number; postFightMultiStructureMutationCount: number; postFightInternalBlockError: number; }; }

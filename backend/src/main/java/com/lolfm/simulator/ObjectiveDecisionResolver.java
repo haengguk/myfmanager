@@ -83,6 +83,7 @@ public final class ObjectiveDecisionResolver {
         events.add(capture.get());
 
         if (responderAction == ObjectiveDecisionAction.TRADE_STRUCTURE) {
+            state.markStructureActionAttempted(context.responderSide());
             tradeRoll = true;
             tradeSuccess = random.nextDouble() < tradeChance;
             result = tradeSuccess ? ObjectiveDecisionResult.TRADE_SUCCEEDED : ObjectiveDecisionResult.TRADE_FAILED;

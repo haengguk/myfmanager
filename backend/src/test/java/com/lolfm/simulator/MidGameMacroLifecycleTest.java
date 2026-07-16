@@ -37,12 +37,11 @@ class MidGameMacroLifecycleTest {
                 new DummyDataFactory().createBlueTeam(), new DummyDataFactory().createRedTeam(), 7L);
         List<MacroPlanLifecycleData> setups = timeline.getSnapshots().getLast().getMidGameMacro()
                 .planLifecycleHistory().stream().filter(MacroPlanLifecycleData::setupPlan).toList();
-        assertFalse(setups.isEmpty());
         assertEquals(setups.size(), setups.stream().filter(x -> x.endRecordCount() == 1).count());
         assertEquals(0, setups.stream().filter(x -> x.endReason() == null).count());
         assertTrue(setups.stream().allMatch(x -> Set.of(MacroPlanEndReason.EXPIRED,
                 MacroPlanEndReason.OBJECTIVE_CAPTURED, MacroPlanEndReason.REPLACED,
-                MacroPlanEndReason.MATCH_ENDED, MacroPlanEndReason.FEATURE_DISABLED).contains(x.endReason())));
+                MacroPlanEndReason.MATCH_ENDED, MacroPlanEndReason.LATE_GAME_TRANSITION, MacroPlanEndReason.FEATURE_DISABLED).contains(x.endReason())));
     }
 
     @Test

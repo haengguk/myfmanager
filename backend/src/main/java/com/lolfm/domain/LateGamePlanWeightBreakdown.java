@@ -1,0 +1,2 @@
+package com.lolfm.domain;import com.lolfm.simulator.LateGameAttackPlan;
+public record LateGamePlanWeightBreakdown(LateGameAttackPlan plan,boolean eligible,String ineligibleReason,double baseWeight,double goldEdge,double goldContribution,double aliveEdge,double aliveContribution,double teamfightEdge,double teamfightContribution,double targetDepthContribution,double baronContribution,double elderContribution,double recentFightContribution,double baseExposureContribution,double respawnContribution,double finalWeight){}

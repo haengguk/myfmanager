@@ -23,7 +23,7 @@ public final class LanePhaseResolver {
             double pressure=state.laneState(lane).getPressure();
             if(Math.abs(pressure)<LanePhaseRuleConfig.MIN_SIEGE_PRESSURE){stats.recordPressureBelowThreshold();continue;}
             TeamSide attacking=pressure>0?TeamSide.BLUE:TeamSide.RED,defending=attacking.opposite();
-            if(state.wasStructureActionPerformedThisTick(attacking))continue;
+            if(state.wasStructureActionPerformedThisTick(attacking)){state.recordLaterStructureResolverBlockedByAttempt();continue;}
             LaneStructureState target=state.getMapState().getLaneState(defending,lane);
             if(!target.isOuterTowerAlive()){stats.recordTargetAlreadyDestroyed();continue;}
             PlayerState primary=primary(state.getTeamState(attacking),lane);
@@ -38,6 +38,7 @@ public final class LanePhaseResolver {
             double pressureDamage=Math.max(0,Math.abs(pressure)-LanePhaseRuleConfig.MIN_SIEGE_PRESSURE)*LanePhaseRuleConfig.PRESSURE_DAMAGE_PER_POINT_OVER_THRESHOLD;
             double absentBonus=defenderAbsent?LanePhaseRuleConfig.DEFENDER_PRIMARY_ABSENT_DAMAGE_BONUS:0;
             double supportBonus=supportPresent?LanePhaseRuleConfig.BOT_SUPPORT_PRESENT_DAMAGE_BONUS:0;
+            state.markStructureActionAttempted(attacking);
             double variance=(random.nextDouble()*2-1)*LanePhaseRuleConfig.OUTER_SIEGE_RANDOM_VARIANCE;
             double damage=clamp(LanePhaseRuleConfig.BASE_OUTER_SIEGE_DAMAGE+pressureDamage+absentBonus+supportBonus+variance,LanePhaseRuleConfig.MIN_OUTER_SIEGE_DAMAGE,LanePhaseRuleConfig.MAX_OUTER_SIEGE_DAMAGE);
             double after=target.applyOuterDamage(damage);
@@ -50,6 +51,10 @@ public final class LanePhaseResolver {
     }
     public Optional<MatchEvent> transitionIfDue(GameState state){
         Optional<MatchPhaseChangeData> transition=state.getLanePhaseState().transitionIfDue(state.getCurrentTimeSeconds());
+        return transition.map(data->{MatchEvent event=new MatchEvent(data.transitionTimeSeconds(),MatchEventType.MATCH_PHASE_CHANGE,"Match phase changed",null,null,List.of());event.setMatchPhaseChange(data);return event;});
+    }
+    public Optional<MatchEvent> transitionToLateGameIfDue(GameState state){
+        Optional<MatchPhaseChangeData> transition=state.getLanePhaseState().transitionToLateGameIfDue(state);
         return transition.map(data->{MatchEvent event=new MatchEvent(data.transitionTimeSeconds(),MatchEventType.MATCH_PHASE_CHANGE,"Match phase changed",null,null,List.of());event.setMatchPhaseChange(data);return event;});
     }
     private PlayerState primary(TeamState team,Lane lane){return team.playerAt(switch(lane){case TOP->Position.TOP;case MID->Position.MID;case BOT->Position.ADC;});}

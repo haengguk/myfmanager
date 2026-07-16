@@ -39,6 +39,10 @@ public final class MidGameMacroResolver {
         }
     }
 
+    public void onLateGameTransition(GameState state) {
+        state.getMidGameMacroState().onLateGameTransition(state.getCurrentTimeSeconds());
+    }
+
     public void resolveDueEvaluation(GameState state, Random random, List<MatchEvent> events,
                                      StructureResolver structureResolver) {
         MidGameMacroState macro = state.getMidGameMacroState();
@@ -321,6 +325,7 @@ public final class MidGameMacroResolver {
             return;
         }
         if (state.wasStructureActionPerformedThisTick(decision.side())) {
+            state.recordLaterStructureResolverBlockedByAttempt();
             team.setLastActionResult(MacroActionResult.INELIGIBLE);
             state.getMidGameMacroState().getExecutionStats().recordExistingStructureActionBlocked();
             state.getMidGameMacroState().getExecutionStats().recordActionIneligible();
@@ -345,6 +350,7 @@ public final class MidGameMacroResolver {
                 : MidGameMacroRuleConfig.SIDE_LANE_PUSH_BASE_CHANCE;
         double chance = clamp(base + goldBonus + aliveBonus + attributeBonus + baronBonus,
                 MidGameMacroRuleConfig.MIN_MACRO_PUSH_CHANCE, MidGameMacroRuleConfig.MAX_MACRO_PUSH_CHANCE);
+        state.markStructureActionAttempted(decision.side());
         double roll = random.nextDouble();
         executeStructurePushWithRoll(state, decision, events, structures, roll, base,
                 goldBonus, aliveBonus, attributeBonus, baronBonus, chance);

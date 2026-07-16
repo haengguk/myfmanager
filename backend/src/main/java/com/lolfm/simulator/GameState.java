@@ -20,9 +20,13 @@ public class GameState {
     private final LanePhaseState lanePhaseState;
     private final MidGameMacroState midGameMacroState;
     private final ObjectiveDecisionState objectiveDecisionState;
+    private final LateGameState lateGameState;
     private final Set<PlayerState> majorCombatParticipantsThisTick = Collections.newSetFromMap(new IdentityHashMap<>());
     private final MapState mapState;
-    private final EnumMap<TeamSide, Boolean> structureActionPerformedThisTick = new EnumMap<>(TeamSide.class);
+    private final EnumMap<TeamSide, Boolean> structureActionAttemptedThisTick = new EnumMap<>(TeamSide.class);
+    private final EnumMap<TeamSide, Boolean> structureMutationPerformedThisTick = new EnumMap<>(TeamSide.class);
+    private final EnumMap<TeamSide, Boolean> duplicateStructureAttemptPendingBySide = new EnumMap<>(TeamSide.class);
+    private final StructureActionExecutionStats structureActionExecutionStats = new StructureActionExecutionStats();
     private final EnumMap<Lane, LaneState> laneStates = new EnumMap<>(Lane.class);
     private int lastLanePressureResolvedAtSeconds = -1;
     private int duplicateLanePressureResolutionCount;
@@ -73,12 +77,18 @@ public class GameState {
 
     public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
                      boolean objectivePriorityEnabled, boolean lanePhaseEnabled, boolean midGameMacroEnabled) {
-        this(blueTeamState, redTeamState, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, true);
+        this(blueTeamState, redTeamState, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, true, true);
     }
 
     public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
                      boolean objectivePriorityEnabled, boolean lanePhaseEnabled, boolean midGameMacroEnabled,
                      boolean objectiveDecisionEnabled) {
+        this(blueTeamState, redTeamState, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled, true);
+    }
+
+    public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
+                     boolean objectivePriorityEnabled, boolean lanePhaseEnabled, boolean midGameMacroEnabled,
+                     boolean objectiveDecisionEnabled, boolean lateGameEnabled) {
         this.currentTimeSeconds = 0;
         this.blueTeamState = blueTeamState;
         this.redTeamState = redTeamState;
@@ -89,9 +99,14 @@ public class GameState {
         this.lanePhaseState = new LanePhaseState(lanePhaseEnabled, lanePhaseExecutionStats);
         this.midGameMacroState = new MidGameMacroState(midGameMacroEnabled, diagnosticsEnabled);
         this.objectiveDecisionState = new ObjectiveDecisionState(objectiveDecisionEnabled, diagnosticsEnabled);
+        this.lateGameState = new LateGameState(lateGameEnabled);
         this.mapState = new MapState();
         this.roamExecutionStats = new RoamExecutionStats(diagnosticsEnabled);
-        for (TeamSide side : TeamSide.values()) structureActionPerformedThisTick.put(side, false);
+        for (TeamSide side : TeamSide.values()) {
+            structureActionAttemptedThisTick.put(side, false);
+            structureMutationPerformedThisTick.put(side, false);
+            duplicateStructureAttemptPendingBySide.put(side, false);
+        }
         for (Lane lane : Lane.values()) laneStates.put(lane, new LaneState(lane));
         for (TeamSide side : TeamSide.values()) jungleActionStates.put(side, new JungleActionState());
         this.lastBigWinTimeSeconds = -1;
@@ -126,6 +141,8 @@ public class GameState {
     public LanePhaseExecutionStats getLanePhaseExecutionStats() { return lanePhaseExecutionStats; }
     public MidGameMacroState getMidGameMacroState() { return midGameMacroState; }
     public ObjectiveDecisionState getObjectiveDecisionState() { return objectiveDecisionState; }
+    public LateGameState getLateGameState() { return lateGameState; }
+    public boolean isLateGameEnabled() { return lateGameState.isEnabled(); }
     public boolean isObjectiveDecisionEnabled() { return objectiveDecisionState.isEnabled(); }
     public boolean isMidGameMacroEnabled() { return midGameMacroState.isEnabled(); }
     public boolean isLanePhaseEnabled() { return lanePhaseState.isEnabled(); }
@@ -142,15 +159,55 @@ public class GameState {
     public LaneState laneState(Lane lane) { return laneStates.get(lane); }
     public Map<Lane, LaneState> getLaneStates() { return Map.copyOf(laneStates); }
     public void clearStructureActionRegistryThisTick() {
-        for (TeamSide side : TeamSide.values()) structureActionPerformedThisTick.put(side, false);
+        for (TeamSide side : TeamSide.values()) {
+            structureActionAttemptedThisTick.put(side, false);
+            structureMutationPerformedThisTick.put(side, false);
+            duplicateStructureAttemptPendingBySide.put(side, false);
+        }
     }
-    public void markStructureActionPerformed(TeamSide side) { structureActionPerformedThisTick.put(side, true); }
-    public boolean wasStructureActionPerformedThisTick(TeamSide side) {
-        return structureActionPerformedThisTick.getOrDefault(side, false);
+    public boolean markStructureActionAttempted(TeamSide side) {
+        if (wasStructureActionAttemptedThisTick(side)) {
+            duplicateStructureAttemptPendingBySide.put(side, true);
+            structureActionExecutionStats.recordSameSideMultipleAttemptError();
+            return false;
+        }
+        structureActionAttemptedThisTick.put(side, true);
+        structureActionExecutionStats.recordAttempt();
+        return true;
     }
+    public void markStructureMutationPerformed(TeamSide side) {
+        if (!wasStructureActionAttemptedThisTick(side)) markStructureActionAttempted(side);
+        if (wasStructureMutationPerformedThisTick(side)) {
+            if (duplicateStructureAttemptPendingBySide.getOrDefault(side, false)) {
+                structureActionExecutionStats.recordSameSideMultipleMutationError();
+                duplicateStructureAttemptPendingBySide.put(side, false);
+            }
+            return;
+        }
+        structureMutationPerformedThisTick.put(side, true);
+        structureActionExecutionStats.recordMutation();
+    }
+    public void markStructureActionPerformed(TeamSide side) {
+        if (!wasStructureActionAttemptedThisTick(side)) markStructureActionAttempted(side);
+        markStructureMutationPerformed(side);
+    }
+    public boolean wasStructureActionAttemptedThisTick(TeamSide side) {
+        return structureActionAttemptedThisTick.getOrDefault(side, false);
+    }
+    public boolean wasStructureMutationPerformedThisTick(TeamSide side) {
+        return structureMutationPerformedThisTick.getOrDefault(side, false);
+    }
+    /** Compatibility alias: a consumed structure slot now means an actual attempt, not only mutation. */
+    public boolean wasStructureActionPerformedThisTick(TeamSide side) { return wasStructureActionAttemptedThisTick(side); }
     public boolean wasAnyStructureActionPerformedThisTick() {
-        return structureActionPerformedThisTick.values().stream().anyMatch(Boolean::booleanValue);
+        return structureActionAttemptedThisTick.values().stream().anyMatch(Boolean::booleanValue);
     }
+    public void recordLaterStructureResolverBlockedByAttempt() {
+        structureActionExecutionStats.recordLaterResolverBlockedByAttempt();
+    }
+    public void recordPostFightStructureWindow(int mutations) { structureActionExecutionStats.recordPostFightWindow(mutations); }
+    public void recordPostFightInternalBlockError() { structureActionExecutionStats.recordPostFightInternalBlockError(); }
+    public StructureActionExecutionStats getStructureActionExecutionStats() { return structureActionExecutionStats; }
     public int getLastLanePressureResolvedAtSeconds() { return lastLanePressureResolvedAtSeconds; }
     public int getDuplicateLanePressureResolutionCount() { return duplicateLanePressureResolutionCount; }
     public boolean shouldResolveLaneCombatAt(int time) { if(time < lastLaneCombatResolvedAtSeconds) throw new IllegalArgumentException("Lane combat time cannot move backwards"); if(time==lastLaneCombatResolvedAtSeconds) return false; return time >= LaneCombatRuleConfig.LANE_COMBAT_START_SECONDS && time <= LaneCombatRuleConfig.LANE_COMBAT_END_SECONDS && time % LaneCombatRuleConfig.LANE_COMBAT_INTERVAL_SECONDS==0; }

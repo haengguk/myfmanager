@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MatchEvent, MatchSimulateResponse, MatchSnapshot, MidGameMacroSnapshot, PlayerSnapshot, TeamMacroSnapshot } from './types/match';
+import type { MatchEvent, MatchSimulateResponse, MatchSnapshot, MidGameMacroSnapshot, PlayerSnapshot, TeamMacroSnapshot, LateGameSnapshot } from './types/match';
 
 const API_URL = 'http://localhost:8080/api/matches/simulate';
 const SPEED_OPTIONS = [1, 5, 10, 30] as const;
@@ -38,6 +38,7 @@ function eventTypeClass(type: string): string {
     case 'TEAMFIGHT_RESULT':
       return 'teamfight';
     case 'MACRO_ACTION':
+    case 'LATE_GAME_ACTION':
       return 'macro';
     default:
       return 'neutral';
@@ -113,6 +114,36 @@ function nextMacroEvaluationTime(snapshot: MidGameMacroSnapshot): number | null 
     .sort((left, right) => left - right)[0];
   return next === undefined ? null : next;
 }
+function latePlanLabel(plan: string | null): string {
+  switch (plan) {
+    case 'SIEGE_TOP': return '탑 공성';
+    case 'SIEGE_MID': return '미드 공성';
+    case 'SIEGE_BOT': return '바텀 공성';
+    case 'NEXUS_FINISH': return '넥서스 마무리';
+    case 'RESET_AND_REGROUP': return '리셋 · 재집결';
+    default: return '평가 대기';
+  }
+}
+
+function baseThreatLabel(level: string): string {
+  switch (level) {
+    case 'INHIBITOR_TOWER_THREAT': return '억제기 포탑 위협';
+    case 'INHIBITOR_THREAT': return '억제기 노출';
+    case 'NEXUS_TURRET_THREAT': return '넥서스 포탑 위협';
+    case 'NEXUS_THREAT': return '넥서스 노출';
+    case 'MATCH_ENDED': return '본진 파괴';
+    default: return '기지 안정';
+  }
+}
+
+function lateTeamSummary(snapshot: LateGameSnapshot, side: 'BLUE' | 'RED'): string {
+  const plan = side === 'BLUE' ? snapshot.bluePlan : snapshot.redPlan;
+  if (plan.status === 'MATCH_ENDED') return 'SCHEDULE CLOSED';
+  if (plan.role === 'ATTACK') return latePlanLabel(plan.attackPlan);
+  if (plan.role === 'DEFENSE') return plan.defenseResponse ?? '수비 평가';
+  return plan.status;
+}
+
 function eventMessage(event: MatchEvent): string {
   if (event.midGameMacroAction) return macroActionMessage(event);
   const counter = event.counterGank;
@@ -214,6 +245,7 @@ function App() {
     return timeline.events.filter((event) => event.timeSeconds <= gameTime);
   }, [gameTime, timeline]);
   const macroSnapshot = currentSnapshot?.midGameMacro ?? null;
+  const lateSnapshot = currentSnapshot?.lateGame ?? null;
   const decisionSnapshot = currentSnapshot?.objectiveDecision ?? null;
   const latestObjectiveDecision = decisionSnapshot?.latestOverall ?? null;
   const latestMacroEvaluation = macroSnapshot?.evaluationHistory.length
@@ -660,6 +692,35 @@ function App() {
                     <span>{formatTime(latestMacroEvent.timeSeconds)} · LATEST ACTION</span>
                     <strong>{macroActionMessage(latestMacroEvent)}</strong>
                     <small>{latestMacroEvent.midGameMacroAction.participants.join(' · ') || '참여자 정보 없음'} · FARM BLOCK {latestMacroEvent.midGameMacroAction.farmBlockSeconds}s</small>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {lateSnapshot && (
+              <section className={`late-panel ${lateSnapshot.enabled ? '' : 'is-disabled'}`} aria-label="후반 운영">
+                <div className="macro-heading">
+                  <div><span className="eyebrow">Late game command</span><h3>후반 운영</h3></div>
+                  <span className="macro-phase">{lateSnapshot.matchPhase} · {lateSnapshot.nextEvaluationAtSeconds < 0 ? 'SCHEDULE CLOSED' : `NEXT ${formatTime(lateSnapshot.nextEvaluationAtSeconds)}`}</span>
+                </div>
+                <div className="late-grid">
+                  {([
+                    ['BLUE', lateSnapshot.bluePlan, lateSnapshot.blueBaseThreat],
+                    ['RED', lateSnapshot.redPlan, lateSnapshot.redBaseThreat]
+                  ] as const).map(([side, plan, threat]) => (
+                    <article className={`late-team macro-${side.toLowerCase()}`} key={side}>
+                      <div className="macro-team-topline"><span>{side} · {plan.role}</span><strong>{lateTeamSummary(lateSnapshot, side)}</strong></div>
+                      <p className="macro-target">{plan.targetLane ?? 'BASE'} · {plan.targetStructure ?? threat.nextThreatenedStructure ?? 'NO TARGET'}</p>
+                      <div className="late-threat"><span>BASE THREAT</span><b>{baseThreatLabel(threat.overallLevel)}</b><small>{threat.threatenedLanes.join(' · ') || `NEXUS TURRETS ${threat.remainingNexusTurrets}`}</small></div>
+                      <div className="macro-team-meta"><span>{plan.assignedPositions.join(' · ') || '참가자 없음'}</span><span>{plan.lastResult}</span></div>
+                    </article>
+                  ))}
+                </div>
+                {lateSnapshot.latestDecision && (
+                  <div className="late-result">
+                    <span>{formatTime(lateSnapshot.latestDecision.actualEvaluationTimeSeconds)} · #{lateSnapshot.latestDecision.sequence}</span>
+                    <strong>{lateSnapshot.latestDecision.initiativeSide ?? 'NO INITIATIVE'} — {latePlanLabel(lateSnapshot.latestDecision.selectedAttackPlan)} / {lateSnapshot.latestDecision.selectedDefenseResponse ?? 'NO RESPONSE'}</strong>
+                    <small>{lateSnapshot.latestDecision.result} · DEFENDER {lateSnapshot.latestDecision.defenderAliveCount} ALIVE · RESPAWN {lateSnapshot.latestDecision.defenderRespawnSummary.longestRespawnSeconds}s</small>
                   </div>
                 )}
               </section>

@@ -34,6 +34,7 @@ public class MatchEvent {
     private TeamSide structureDefendingSide;
     private OuterTurretSiegeData outerTurretSiege;
     private MatchPhaseChangeData matchPhaseChange;
+    private LateGameDecisionData lateGameDecision;
 
     public MatchEvent(
             int timeSeconds,
@@ -132,4 +133,6 @@ public class MatchEvent {
     public void setOuterTurretSiege(OuterTurretSiegeData value) { outerTurretSiege=value; }
     public MatchPhaseChangeData getMatchPhaseChange() { return matchPhaseChange; }
     public void setMatchPhaseChange(MatchPhaseChangeData value) { matchPhaseChange=value; }
+    public LateGameDecisionData getLateGameDecision() { return lateGameDecision; }
+    public void setLateGameDecision(LateGameDecisionData value) { lateGameDecision=value; }
 }

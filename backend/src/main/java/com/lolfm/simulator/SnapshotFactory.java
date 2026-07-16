@@ -55,8 +55,17 @@ public class SnapshotFactory {
                 new ObjectivePriorityResolver().snapshot(gameState),
                 lanePhaseSnapshot(gameState),
                 midGameMacroSnapshot(gameState),
-                gameState.getObjectiveDecisionState().snapshot()
+                gameState.getObjectiveDecisionState().snapshot(),
+                lateGameSnapshot(gameState)
         );
+    }
+
+    private com.lolfm.domain.LateGameSnapshot lateGameSnapshot(GameState gameState) {
+        LateGameState late=gameState.getLateGameState(); BaseThreatEvaluator evaluator=new BaseThreatEvaluator();
+        com.lolfm.domain.LateGameDecisionData latest=late.getLatestDecision(); TeamSide initiative=latest==null?null:latest.initiativeSide();
+        String blueRole=initiative==TeamSide.BLUE?"ATTACK":initiative==TeamSide.RED?"DEFENSE":"IDLE";
+        String redRole=initiative==TeamSide.RED?"ATTACK":initiative==TeamSide.BLUE?"DEFENSE":"IDLE";
+        return new com.lolfm.domain.LateGameSnapshot(late.isEnabled(),gameState.getLanePhaseState().getMatchPhase(),late.getLateGameStartedAtSeconds(),late.getTransitionReason(),late.getNextEvaluationAtSeconds(),latest,evaluator.evaluate(gameState,TeamSide.BLUE),evaluator.evaluate(gameState,TeamSide.RED),late.teamPlan(TeamSide.BLUE).snapshot(blueRole),late.teamPlan(TeamSide.RED).snapshot(redRole),gameState.getStructureActionExecutionStats().snapshot());
     }
 
     private LanePhaseSnapshot lanePhaseSnapshot(GameState gameState) {
@@ -71,7 +80,7 @@ public class SnapshotFactory {
                     new OuterTurretSnapshot(red.isOuterTowerAlive(), red.getOuterRemainingIntegrity(), red.getOuterDestroyedAtSeconds())));
         }
         return new LanePhaseSnapshot(phases.isEnabled(), phases.getMatchPhase(), phases.getMidGameStartedAtSeconds(),
-                phases.getTransitionReason(), lanes);
+                phases.getTransitionReason(), phases.getLateGameStartedAtSeconds(), phases.getLateGameTransitionReason(), lanes);
     }
 
     private MidGameMacroSnapshot midGameMacroSnapshot(GameState gameState) {

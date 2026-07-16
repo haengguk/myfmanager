@@ -1,0 +1,2 @@
+package com.lolfm.domain;import com.lolfm.simulator.LateGameDefenseResponse;
+public record LateGameDefenseWeightBreakdown(LateGameDefenseResponse response,boolean eligible,String reason,double baseWeight,double threatContribution,double aliveContribution,double teamfightContribution,double missingPlayerContribution,double crossMapTargetContribution,double farmingContribution,double baronContribution,double finalWeight){}

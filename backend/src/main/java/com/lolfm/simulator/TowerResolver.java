@@ -60,6 +60,9 @@ public class TowerResolver {
             case MACRO_PLAY -> teamName + "가 운영 압박으로 " + lane + " " + tier + "을 파괴합니다.";
             case MID_GAME_MACRO -> teamName + "가 미드게임 팀 운영으로 " + lane + " " + tier + "을 파괴합니다.";
             case OBJECTIVE_TRADE -> teamName + "가 오브젝트 교환으로 " + lane + " " + tier + "을 파괴합니다.";
+            case LATE_GAME_SIEGE -> teamName + "가 후반 공성으로 " + lane + " " + tier + "을 파괴합니다.";
+            case LATE_GAME_CROSS_MAP -> teamName + "가 교차 맵 운영으로 " + lane + " " + tier + "을 파괴합니다.";
+            case NEXUS_FINISH -> teamName + "가 넥서스 마무리 중 " + lane + " " + tier + "을 파괴합니다.";
         };
     }
 }

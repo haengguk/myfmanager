@@ -17,5 +17,6 @@ public enum MatchEventType {
     ACE,
     MATCH_PHASE_CHANGE,
     MACRO_ACTION,
+    LATE_GAME_ACTION,
     GAME_END
 }

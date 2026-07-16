@@ -70,6 +70,11 @@ public final class MidGameMacroState {
         return timeSeconds < macroFarmBlockedUntil.get(side).getOrDefault(position, -1);
     }
 
+    public void onLateGameTransition(int currentTimeSeconds) {
+        if (!enabled) return;
+        for (TeamMacroTeamState team : teamStates.values()) team.cancelForLateGame(currentTimeSeconds);
+    }
+
     public void finishMatch(int currentTimeSeconds) {
         if (!enabled || matchEnded) return;
         int due = Integer.MAX_VALUE;

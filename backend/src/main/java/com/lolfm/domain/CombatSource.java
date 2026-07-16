@@ -8,5 +8,7 @@ public enum CombatSource {
     SKIRMISH,
     TEAMFIGHT,
     OBJECTIVE_FIGHT,
+    LATE_GAME_SIEGE,
+    BASE_DEFENSE,
     OTHER
 }

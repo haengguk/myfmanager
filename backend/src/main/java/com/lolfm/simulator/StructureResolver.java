@@ -20,24 +20,31 @@ public class StructureResolver {
             return destroyTower(state, attackingSide, defendingSide, lane, tower.get(), reason, source(reason), null);
         }
         if (laneState.destroyInhibitor(state.getCurrentTimeSeconds())) {
-            state.markStructureActionPerformed(attackingSide);
+            state.markStructureMutationPerformed(attackingSide);
             state.getMapState().activateBasePressure(attackingSide, state.getCurrentTimeSeconds());
             return Optional.of(new StructureOutcome(attackingSide, defendingSide, StructureKind.INHIBITOR, lane, null,
                     state.getCurrentTimeSeconds(), reason, false));
         }
         BaseState base = state.getMapState().getBaseState(defendingSide);
         if (state.getMapState().areNexusTurretsVulnerable(defendingSide) && base.destroyOneNexusTurret()) {
-            state.markStructureActionPerformed(attackingSide);
+            state.markStructureMutationPerformed(attackingSide);
             return Optional.of(new StructureOutcome(attackingSide, defendingSide, StructureKind.NEXUS_TURRET, null, null,
                     state.getCurrentTimeSeconds(), reason, false));
         }
         if (state.getMapState().isNexusVulnerable(defendingSide) && base.destroyNexus(state.getCurrentTimeSeconds())) {
-            state.markStructureActionPerformed(attackingSide);
+            state.markStructureMutationPerformed(attackingSide);
             state.finish(attackingSide, GameEndReason.NEXUS_DESTROYED);
             return Optional.of(new StructureOutcome(attackingSide, defendingSide, StructureKind.NEXUS, null, null,
                     state.getCurrentTimeSeconds(), reason, true));
         }
         return Optional.empty();
+    }
+
+    public Optional<StructureOutcome> destroyTarget(GameState state, TeamSide attackingSide, Lane lane, LateGameStructureTarget target, PushReason reason) {
+        if (target == null || state.wasStructureMutationPerformedThisTick(attackingSide)) return Optional.empty();
+        LateGameStructureTarget current = new BaseThreatEvaluator().nextTarget(state, attackingSide, lane);
+        if (current != target) return Optional.empty();
+        return destroyNextStructure(state, attackingSide, lane == null ? Lane.MID : lane, reason);
     }
 
     /** Macro-only tower path; it deliberately cannot fall through to inhibitors or the nexus. */
@@ -68,7 +75,7 @@ public class StructureResolver {
         if (!laneState.canDestroy(tier)) return Optional.empty();
         laneState.destroy(tier, state.getCurrentTimeSeconds(), attacking, source);
         TeamState attackers = state.getTeamState(attacking);
-        state.markStructureActionPerformed(attacking);
+        state.markStructureMutationPerformed(attacking);
         attackers.addTowerDestroyed();
         awardTowerGold(attackers);
         if (tier == TowerTier.OUTER) {
@@ -100,6 +107,9 @@ public class StructureResolver {
             case MACRO_PLAY -> StructureActionSource.MACRO_PLAY;
             case MID_GAME_MACRO -> StructureActionSource.MID_GAME_MACRO;
             case OBJECTIVE_TRADE -> StructureActionSource.OBJECTIVE_TRADE;
+            case LATE_GAME_SIEGE -> StructureActionSource.LATE_GAME_SIEGE;
+            case LATE_GAME_CROSS_MAP -> StructureActionSource.LATE_GAME_CROSS_MAP;
+            case NEXUS_FINISH -> StructureActionSource.NEXUS_FINISH;
         };
     }
 
@@ -135,6 +145,9 @@ public class StructureResolver {
             case MACRO_PLAY -> team + "가 운영 압박으로 " + lane + " " + tier + "을 파괴합니다.";
             case MID_GAME_MACRO -> team + "가 미드게임 팀 운영으로 " + lane + " " + tier + "을 파괴합니다.";
             case OBJECTIVE_TRADE -> team + "가 오브젝트를 양보하는 대신 " + lane + " " + tier + "을 파괴합니다.";
+            case LATE_GAME_SIEGE -> team + "가 후반 공성으로 " + lane + " " + tier + "을 파괴합니다.";
+            case LATE_GAME_CROSS_MAP -> team + "가 교차 맵 운영으로 " + lane + " " + tier + "을 파괴합니다.";
+            case NEXUS_FINISH -> team + "가 넥서스 마무리 과정에서 " + lane + " " + tier + "을 파괴합니다.";
         };
     }
 

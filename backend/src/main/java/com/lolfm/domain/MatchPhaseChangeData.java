@@ -1,20 +1,3 @@
 package com.lolfm.domain;
-
-import com.lolfm.simulator.Lane;
-import com.lolfm.simulator.MatchPhase;
-import com.lolfm.simulator.MidGameTransitionReason;
-import java.util.List;
-
-public record MatchPhaseChangeData(
-        MatchPhase previousPhase,
-        MatchPhase newPhase,
-        int transitionTimeSeconds,
-        MidGameTransitionReason reason,
-        List<Lane> alreadyOpenLanes,
-        List<Lane> forcedOpenLanes
-) {
-    public MatchPhaseChangeData {
-        alreadyOpenLanes = List.copyOf(alreadyOpenLanes);
-        forcedOpenLanes = List.copyOf(forcedOpenLanes);
-    }
-}
+import com.lolfm.simulator.*;import java.util.List;
+public record MatchPhaseChangeData(MatchPhase previousPhase,MatchPhase newPhase,int transitionTimeSeconds,MidGameTransitionReason reason,List<Lane> alreadyOpenLanes,List<Lane> forcedOpenLanes,LateGameTransitionReason lateGameTransitionReason,TeamSide triggerSide,Lane triggerLane,LateGameStructureTarget triggerStructure){public MatchPhaseChangeData{alreadyOpenLanes=List.copyOf(alreadyOpenLanes);forcedOpenLanes=List.copyOf(forcedOpenLanes);}public MatchPhaseChangeData(MatchPhase p,MatchPhase n,int t,MidGameTransitionReason r,List<Lane>a,List<Lane>f){this(p,n,t,r,a,f,null,null,null,null);}}

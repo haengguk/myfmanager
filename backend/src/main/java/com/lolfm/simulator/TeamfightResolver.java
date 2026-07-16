@@ -159,6 +159,21 @@ public class TeamfightResolver {
         ));
     }
 
+    public Optional<TeamfightOutcome> resolveForcedTeamfight(GameState state, Team blueTeam, Team redTeam, Random random, List<MatchEvent> events, com.lolfm.domain.CombatSource source) {
+        int before = events.size();
+        Optional<TeamfightOutcome> outcome = maybeResolveTeamfight(state, blueTeam, redTeam, new ForcedTriggerRandom(random), events);
+        for (int i = before; i < events.size(); i++) if (events.get(i).getType() == MatchEventType.KILL) events.get(i).setCombatSource(source);
+        return outcome;
+    }
+
+    private static final class ForcedTriggerRandom extends Random {
+        private final Random delegate; private boolean firstDouble = true;
+        ForcedTriggerRandom(Random delegate) { this.delegate = delegate; }
+         public double nextDouble() { if (firstDouble) { firstDouble=false; return 0.0; } return delegate.nextDouble(); }
+         public int nextInt(int bound) { return delegate.nextInt(bound); }
+         public boolean nextBoolean() { return delegate.nextBoolean(); }
+    }
+
     public boolean resolveKill(
             int timeSeconds,
             Random random,

@@ -1,0 +1,2 @@
+package com.lolfm.simulator;
+public enum BaseThreatLevel { NONE, INHIBITOR_TOWER_THREAT, INHIBITOR_THREAT, NEXUS_TURRET_THREAT, NEXUS_THREAT, MATCH_ENDED }

@@ -1,5 +1,6 @@
 package com.lolfm.domain;
 
+import com.lolfm.simulator.StructureActionExecutionStatsSnapshot;
 import java.util.List;
 
 public class MatchSnapshot {
@@ -36,6 +37,7 @@ public class MatchSnapshot {
     private final LanePhaseSnapshot lanePhase;
     private MidGameMacroSnapshot midGameMacro;
     private ObjectiveDecisionSnapshot objectiveDecision;
+    private LateGameSnapshot lateGame;
 
     public MatchSnapshot(
             int timeSeconds,
@@ -101,6 +103,7 @@ public class MatchSnapshot {
         this.lanePhase = lanePhase;
         this.midGameMacro = MidGameMacroSnapshot.disabled(timeSeconds, lanePhase.matchPhase());
         this.objectiveDecision = ObjectiveDecisionSnapshot.disabled();
+        this.lateGame = new LateGameSnapshot(false, lanePhase.matchPhase(), -1, null, -1, null, null, null, null, null, new StructureActionExecutionStatsSnapshot(0, 0, 0, 0, 0, 0, 0, 0));
     }
 
     public MatchSnapshot(
@@ -146,9 +149,31 @@ public class MatchSnapshot {
         this.objectiveDecision = objectiveDecision;
     }
 
+    public MatchSnapshot(
+            int timeSeconds, int blueKills, int redKills, int blueGold, int redGold,
+            int blueDragons, int redDragons, boolean blueHasDragonSoul, boolean redHasDragonSoul,
+            boolean blueHasBaronBuff, boolean redHasBaronBuff, boolean elderAlive,
+            boolean blueHasElderBuff, boolean redHasElderBuff, int blueElderBuffRemainingSeconds,
+            int redElderBuffRemainingSeconds, int blueTowersDestroyed, int redTowersDestroyed,
+            int blueInhibitorsRemaining, int redInhibitorsRemaining, int blueNexusTurretsRemaining,
+            int redNexusTurretsRemaining, boolean blueNexusAlive, boolean redNexusAlive,
+            int blueAlivePlayers, int redAlivePlayers, List<PlayerSnapshot> playerSnapshots,
+            List<LaneSnapshot> laneSnapshots, ObjectivePrioritySnapshot objectivePriority,
+            LanePhaseSnapshot lanePhase, MidGameMacroSnapshot midGameMacro, ObjectiveDecisionSnapshot objectiveDecision,
+            LateGameSnapshot lateGame
+    ) {
+        this(timeSeconds,blueKills,redKills,blueGold,redGold,blueDragons,redDragons,blueHasDragonSoul,redHasDragonSoul,
+                blueHasBaronBuff,redHasBaronBuff,elderAlive,blueHasElderBuff,redHasElderBuff,blueElderBuffRemainingSeconds,
+                redElderBuffRemainingSeconds,blueTowersDestroyed,redTowersDestroyed,blueInhibitorsRemaining,redInhibitorsRemaining,
+                blueNexusTurretsRemaining,redNexusTurretsRemaining,blueNexusAlive,redNexusAlive,blueAlivePlayers,redAlivePlayers,
+                playerSnapshots,laneSnapshots,objectivePriority,lanePhase,midGameMacro,objectiveDecision);
+        this.lateGame=lateGame;
+    }
+
     public int getTimeSeconds() { return timeSeconds; }
     public MidGameMacroSnapshot getMidGameMacro() { return midGameMacro; }
     public ObjectiveDecisionSnapshot getObjectiveDecision() { return objectiveDecision; }
+    public LateGameSnapshot getLateGame() { return lateGame; }
     public int getBlueKills() { return blueKills; }
     public int getRedKills() { return redKills; }
     public int getBlueGold() { return blueGold; }

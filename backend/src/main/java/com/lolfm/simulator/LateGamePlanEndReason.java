@@ -1,0 +1,2 @@
+package com.lolfm.simulator;
+public enum LateGamePlanEndReason { EXPIRED, REPLACED, PHASE_TRANSITION, STRUCTURE_CHANGED, GAME_FINISHED, FEATURE_DISABLED }

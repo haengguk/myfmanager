@@ -212,7 +212,7 @@ public final class MidGameMacroDiagnostics {
         long structureOrderViolation, forbiddenBaseStructure;
         long setupActiveSeconds, simultaneousSetupSeconds, netZeroSetupSeconds;
         long allPlanExpired, setupLifecycleStarts, dragonSetupExpired, baronSetupExpired;
-        long setupObjectiveCaptured, setupReplaced, setupGameFinished, setupFeatureDisabled, setupStillActiveAtCutoff;
+        long setupObjectiveCaptured, setupReplaced, setupLateTransition, setupGameFinished, setupFeatureDisabled, setupStillActiveAtCutoff;
         long lifecycleDuplicateIdentity, lifecycleEndCountErrors, lifecycleBalanceErrors, setupControlAfterEndErrors;
         long snapshotRepeatEndAccounting, elderSetupErrors, postFightSetupErrors, setupDoubleApplication;
         long directCsSubtractionErrors, catchUpErrors, blockedFarmRandomErrors, supportCsErrors;
@@ -369,6 +369,9 @@ public final class MidGameMacroDiagnostics {
                 } else if (lifecycle.endReason() == MacroPlanEndReason.REPLACED) {
                     gameReplaced++;
                     setupReplaced++;
+                } else if (lifecycle.endReason() == MacroPlanEndReason.LATE_GAME_TRANSITION) {
+                    gameFinished++;
+                    setupLateTransition++;
                 } else if (lifecycle.endReason() == MacroPlanEndReason.MATCH_ENDED) {
                     gameFinished++;
                     setupGameFinished++;
@@ -500,11 +503,11 @@ public final class MidGameMacroDiagnostics {
                     + ",allPlanExpired=" + allPlanExpired
                     + ",dragonSetupExpired=" + dragonSetupExpired + ",baronSetupExpired=" + baronSetupExpired
                     + ",setupObjectiveCaptured=" + setupObjectiveCaptured + ",setupReplaced=" + setupReplaced
-                    + ",setupGameFinished=" + setupGameFinished + ",setupFeatureDisabled=" + setupFeatureDisabled
+                    + ",setupLateTransition=" + setupLateTransition + ",setupGameFinished=" + setupGameFinished + ",setupFeatureDisabled=" + setupFeatureDisabled
                     + ",stillActiveAtCutoff=" + setupStillActiveAtCutoff
                     + ",lifecycleEquation=" + setupLifecycleStarts + "="
                     + (dragonSetupExpired + baronSetupExpired) + "+" + setupObjectiveCaptured + "+"
-                    + setupReplaced + "+" + setupGameFinished + "+" + setupFeatureDisabled + "+"
+                    + setupReplaced + "+" + setupLateTransition + "+" + setupGameFinished + "+" + setupFeatureDisabled + "+"
                     + setupStillActiveAtCutoff
                     + ",identityErrors=" + lifecycleDuplicateIdentity + ",endCountErrors=" + lifecycleEndCountErrors
                     + ",balanceErrors=" + lifecycleBalanceErrors + ",snapshotRepeat=" + snapshotRepeatEndAccounting

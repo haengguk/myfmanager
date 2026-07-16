@@ -1,0 +1,2 @@
+package com.lolfm.simulator;import java.util.Map;
+public record LateGameExecutionStatsSnapshot(int transitions,Map<LateGameTransitionReason,Integer> transitionReasons,int evaluations,int duplicates,int noInitiative,int initiativeRolls,int planRolls,int responseRolls,int attempts,int fights,int structures,int crossMapAttempts,int crossMapSuccess,int nexusFinishAttempts,int nexusDestroyed){public LateGameExecutionStatsSnapshot{transitionReasons=Map.copyOf(transitionReasons);}}

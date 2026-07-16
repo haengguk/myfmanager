@@ -40,6 +40,7 @@ public class MatchSimulator {
     private final LanePhaseResolver lanePhaseResolver = new LanePhaseResolver();
     private final LaneCombatResolver laneCombatResolver = new LaneCombatResolver();
     private final MidGameMacroResolver midGameMacroResolver = new MidGameMacroResolver();
+    private final LateGameMacroResolver lateGameMacroResolver = new LateGameMacroResolver();
     private final JungleGankResolver jungleGankResolver;
     private final RoamResolver roamResolver = new RoamResolver();
     private final GoldAwardService goldAwards = new GoldAwardService();
@@ -53,6 +54,7 @@ public class MatchSimulator {
     private final boolean midGameMacroEnabled;
     private final boolean lanePhaseEnabled;
     private final boolean objectiveDecisionEnabled;
+    private final boolean lateGameMacroEnabled;
 
     @Autowired
     public MatchSimulator(
@@ -148,6 +150,7 @@ public class MatchSimulator {
         this.midGameMacroEnabled = options.midGameMacroEnabled();
         this.lanePhaseEnabled = options.lanePhaseEnabled();
         this.objectiveDecisionEnabled = options.objectiveDecisionEnabled();
+        this.lateGameMacroEnabled = options.lateGameMacroEnabled();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -186,6 +189,7 @@ public class MatchSimulator {
             ));
             gameState.expireBaronBuffsIfNeeded();
             midGameMacroResolver.expirePlans(gameState);
+            lateGameMacroResolver.expirePlans(gameState);
             gameState.clearMajorCombatParticipantsThisTick();
             gameState.clearStructureActionRegistryThisTick();
             objectivePriorityResolver.decayRecentControl(gameState, gameState.getCurrentTimeSeconds());
@@ -242,16 +246,19 @@ public class MatchSimulator {
                 Optional<MatchEvent> generalObjective = objectiveAttemptResolver.maybeAttemptObjective(gameState, random, objectiveResolver, structureResolver, events);
                 generalObjective.ifPresent(event -> { if (!events.contains(event)) events.add(event); cancelMacroSetupForCapture(gameState, event); });
             }
+            Optional<MatchEvent> phaseTransition = lanePhaseResolver.transitionIfDue(gameState);
+            phaseTransition.ifPresent(events::add);
+            if (phaseTransition.isPresent()) midGameMacroResolver.onPhaseTransition(gameState);
+            Optional<MatchEvent> lateTransition = lateGameMacroResolver.transitionIfDue(gameState, midGameMacroResolver);
+            lateTransition.ifPresent(events::add);
+            midGameMacroResolver.resolveDueEvaluation(gameState, random, events, structureResolver);
+            lateGameMacroResolver.resolveDue(gameState, blueTeam, redTeam, random, events, structureResolver, teamfightResolver);
             if (!gameState.isFinished()) {
                 pushResolver.maybeResolveMacroPush(gameState, random, structureResolver)
                         .ifPresent(push -> events.add(structureResolver.createStructureEvent(gameState, push)));
             }
-            Optional<MatchEvent> phaseTransition = lanePhaseResolver.transitionIfDue(gameState);
-            phaseTransition.ifPresent(events::add);
-            if (phaseTransition.isPresent()) midGameMacroResolver.onPhaseTransition(gameState);
-            midGameMacroResolver.resolveDueEvaluation(gameState, random, events, structureResolver);
             endGameDecision = endGameEvaluator.evaluateAfterTick(gameState);
-            if (endGameDecision.isFinished()) midGameMacroResolver.onMatchFinished(gameState);
+            if (endGameDecision.isFinished()) { midGameMacroResolver.onMatchFinished(gameState); lateGameMacroResolver.onMatchFinished(gameState); }
             snapshots.add(snapshotFactory.create(gameState));
         }
 
@@ -299,7 +306,8 @@ public class MatchSimulator {
                 gameState.getLanePhaseExecutionStats().snapshot(),
                 gameState.getMidGameMacroState().getExecutionStats().snapshot(),
                 gameState.getObjectiveDecisionState().getStats().snapshot(),
-                gameState.getObjectiveDecisionState().getHistory()
+                gameState.getObjectiveDecisionState().getHistory(),
+                gameState.getStructureActionExecutionStats().snapshot()
         );
     }
 
@@ -328,7 +336,8 @@ public class MatchSimulator {
             LanePhaseExecutionStatsSnapshot lanePhaseExecutionStats,
             MidGameMacroExecutionStatsSnapshot midGameMacroExecutionStats,
             ObjectiveDecisionExecutionStatsSnapshot objectiveDecisionExecutionStats,
-            List<ObjectiveDecisionData> objectiveDecisionHistory
+            List<ObjectiveDecisionData> objectiveDecisionHistory,
+            StructureActionExecutionStatsSnapshot structureActionExecutionStats
     ) {
     }
 
@@ -358,7 +367,7 @@ public class MatchSimulator {
     }
     private GameState initializeGameState(Team blueTeam, Team redTeam) {
         return new GameState(buildTeamState(blueTeam), buildTeamState(redTeam), diagnosticsEnabled,
-                objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled);
+                objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled, lateGameMacroEnabled);
     }
 
     private TeamState buildTeamState(Team team) {

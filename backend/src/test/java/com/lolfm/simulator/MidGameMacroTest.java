@@ -160,14 +160,14 @@ class MidGameMacroTest {
     }
 
     @Test
-    void seed7ProcessesExpectedLateGameEvaluations() {
+    void seed7StopsMidGameEvaluationsAtLateGameTransition() {
         DummyDataFactory factory = new DummyDataFactory();
         MatchTimeline timeline = simulator(SimulationOptions.productionDefaults())
                 .simulate(factory.createBlueTeam(), factory.createRedTeam(), 7L);
         var history = timeline.getSnapshots().getLast().getMidGameMacro().evaluationHistory();
         List<Integer> dueTimes = history.stream().map(com.lolfm.domain.MidGameMacroEvaluationData::dueAtSeconds).toList();
-        assertEquals(870, dueTimes.getFirst());
-        assertTrue(dueTimes.containsAll(List.of(1230, 1290, 1350)), dueTimes.toString());
+        int lateStarted = timeline.getSnapshots().getLast().getLateGame().lateGameStartedAtSeconds();
+        assertTrue(dueTimes.stream().allMatch(due -> due < lateStarted), dueTimes.toString());
         for (var evaluation : history) {
             if (evaluation.evaluationSkippedReason() == null) {
                 assertTrue(evaluation.blueNextEvaluationAtSeconds() > evaluation.actualEvaluationAtSeconds());

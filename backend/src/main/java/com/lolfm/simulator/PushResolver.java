@@ -20,6 +20,7 @@ public class PushResolver {
             return Optional.empty();
         }
         state.recordPushAttempt();
+        state.markStructureActionAttempted(side);
         if (random.nextDouble() >= postFightChance(state, fight)) {
             state.recordPushFailure(PushFailureReason.CHANCE_ROLL_FAILED);
             return Optional.empty();
@@ -44,6 +45,7 @@ public class PushResolver {
         int currentTime = state.getCurrentTimeSeconds();
         if (countAlive(state.getTeamState(attacking), currentTime) < 2 || !hasAnyTarget(state, attacking)) return List.of();
         state.recordPushAttempt();
+        state.markStructureActionAttempted(attacking);
         if (random.nextDouble() >= postFightChance(state, fight)) {
             state.recordPushFailure(PushFailureReason.CHANCE_ROLL_FAILED);
             return List.of();
@@ -92,7 +94,10 @@ public class PushResolver {
             nextAttack += structureAttackSeconds(attackers, state.getCurrentTimeSeconds());
         }
         if (results.isEmpty()) state.recordPushFailure(PushFailureReason.TARGET_UNAVAILABLE);
-        else state.recordPushWindow(results.size(), fight.grade() == FightGrade.ACE && results.getLast().structureKind() == StructureKind.NEXUS);
+        else {
+            state.recordPushWindow(results.size(), fight.grade() == FightGrade.ACE && results.getLast().structureKind() == StructureKind.NEXUS);
+            state.recordPostFightStructureWindow(results.size());
+        }
         return List.copyOf(results);
     }
 
@@ -167,7 +172,10 @@ public class PushResolver {
         List<TeamSide>sides=new ArrayList<>();for(TeamSide side:TeamSide.values())if(state.getMapState().isPushAttemptDue(side,time))sides.add(side);
         if(sides.size()==2&&random.nextBoolean()){TeamSide first=sides.get(0);sides.set(0,sides.get(1));sides.set(1,first);}
         for (TeamSide side : sides) {
-            if (state.wasStructureActionPerformedThisTick(side)) continue;
+            if (state.wasStructureActionPerformedThisTick(side)) {
+                state.recordLaterStructureResolverBlockedByAttempt();
+                continue;
+            }
             TeamState team = state.getTeamState(side);
             int interval = attemptInterval(state, side, time);
             state.getMapState().markPushAttempted(side, time, interval);
@@ -181,6 +189,7 @@ public class PushResolver {
             }
             Lane lane = chooseLane(state, side.opposite(), false, random);
             state.recordPushAttempt();
+            state.markStructureActionAttempted(side);
             if (random.nextDouble() >= macroPushChance(state, side, lane)) {
                 state.recordPushFailure(PushFailureReason.CHANCE_ROLL_FAILED);
                 continue;

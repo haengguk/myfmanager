@@ -71,10 +71,10 @@ class OuterTurretSiegeTest {
         OuterTurretSiegeData d=s.getLanePhaseExecutionStats().snapshot().sieges().getFirst();
         assertEquals(3.6,d.pressureDamage(),1e-9);assertEquals(4,d.defenderAbsentBonus(),1e-9);assertEquals(14.6,d.finalDamage(),1e-9);
     }
-    @Test void fixedLaneOrderAndOneRandomPerEligibleSiege(){
+    @Test void fixedLaneOrderAllowsOnlyFirstEligibleSiegePerSide(){
         GameState s=LanePhaseTestSupport.state();s.advanceTimeSeconds(300);for(Lane lane:Lane.values())s.laneState(lane).setPressure(20);
         var r=new LanePhaseTestSupport.CountingRandom(.5);resolver.resolveOuterSieges(s,300,r,structures);
-        assertEquals(3,r.doubles);assertEquals(List.of(Lane.TOP,Lane.MID,Lane.BOT),s.getLanePhaseExecutionStats().snapshot().sieges().stream().map(OuterTurretSiegeData::lane).toList());
+        assertEquals(1,r.doubles);assertEquals(List.of(Lane.TOP),s.getLanePhaseExecutionStats().snapshot().sieges().stream().map(OuterTurretSiegeData::lane).toList());assertTrue(s.wasStructureActionAttemptedThisTick(TeamSide.BLUE));
     }
     @Test void destructionUsesCommonRewardEventAndDuplicateProtection(){
         GameState s=LanePhaseTestSupport.state();s.advanceTimeSeconds(300);s.laneState(Lane.TOP).setPressure(20);

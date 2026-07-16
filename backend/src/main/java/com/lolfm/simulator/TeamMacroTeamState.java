@@ -135,6 +135,14 @@ public final class TeamMacroTeamState {
         endReason = reason;
     }
 
+    void cancelForLateGame(int timeSeconds) {
+        if (currentPlan != null) closeCurrentPlan(MacroPlanEndReason.LATE_GAME_TRANSITION, timeSeconds);
+        nextEvaluationAtSeconds = -1;
+        status = MacroPlanStatus.CANCELLED;
+        endReason = MacroPlanEndReason.LATE_GAME_TRANSITION;
+        lastActionResult = MacroActionResult.NOT_ATTEMPTED;
+    }
+
     void finishMatch(int timeSeconds) {
         if (isDueAt(timeSeconds)) {
             lastEvaluationDueAtSeconds = nextEvaluationAtSeconds;

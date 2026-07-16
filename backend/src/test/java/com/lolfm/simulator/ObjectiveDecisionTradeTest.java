@@ -41,7 +41,8 @@ class ObjectiveDecisionTradeTest {
         assertThat(capture.getObjectiveDecision().result()).isEqualTo(ObjectiveDecisionResult.TRADE_FAILED);
         assertThat(state.getMapState().getLaneState(TeamSide.BLUE, Lane.TOP).destroyedTowerCount()).isZero();
         assertThat(state.getRedTeamState().getTowersDestroyed()).isEqualTo(towers);
-        assertThat(state.wasStructureActionPerformedThisTick(TeamSide.RED)).isFalse();
+        assertThat(state.wasStructureActionAttemptedThisTick(TeamSide.RED)).isTrue();
+        assertThat(state.wasStructureMutationPerformedThisTick(TeamSide.RED)).isFalse();
     }
 
     @Test

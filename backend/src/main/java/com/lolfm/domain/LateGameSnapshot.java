@@ -1,0 +1,2 @@
+package com.lolfm.domain;import com.lolfm.simulator.*;
+public record LateGameSnapshot(boolean enabled,MatchPhase matchPhase,int lateGameStartedAtSeconds,LateGameTransitionReason transitionReason,int nextEvaluationAtSeconds,LateGameDecisionData latestDecision,BaseThreatSnapshot blueBaseThreat,BaseThreatSnapshot redBaseThreat,LateGameTeamPlanSnapshot bluePlan,LateGameTeamPlanSnapshot redPlan,StructureActionExecutionStatsSnapshot structureActionStats){}
