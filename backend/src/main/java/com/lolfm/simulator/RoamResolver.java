@@ -177,8 +177,9 @@ public final class RoamResolver {
         double vulnerabilityEdge = clamp(over / RoamRuleConfig.ROAM_VULNERABILITY_DIVISOR, 0, RoamRuleConfig.ROAM_VULNERABILITY_EDGE_MAX);
         double numbersEdge = l == Lane.BOT ? RoamRuleConfig.BOT_ROAM_NUMBERS_EDGE : RoamRuleConfig.SOLO_ROAM_NUMBERS_EDGE;
         List<PlayerState> own=new ArrayList<>();own.add(roamer);own.addAll(lanePlayers(s.getTeamState(c.side()),l));
-        double progression=new CombatProgressionEvaluator().contribution(s,ProgressionCombatContext.ROAM,own,lanePlayers(s.getTeamState(defender),l));
-        return new RoamCombatEdgeBreakdown(attackerMechanics, defenderMechanics, attackerAggression, defenderAggression, attackerTeamfighting, defenderTeamfighting, mechanicsEdge, aggressionEdge, teamfightingEdge, goldEdge, vulnerabilityEdge, numbersEdge, numbersEdge + mechanicsEdge + aggressionEdge + teamfightingEdge + goldEdge + vulnerabilityEdge + progression);
+        double existing=numbersEdge+mechanicsEdge+aggressionEdge+teamfightingEdge+goldEdge+vulnerabilityEdge;
+        double progression=new CombatProgressionEvaluator().contribution(s,ProgressionCombatContext.ROAM,own,lanePlayers(s.getTeamState(defender),l),existing,goldEdge);
+        return new RoamCombatEdgeBreakdown(attackerMechanics,defenderMechanics,attackerAggression,defenderAggression,attackerTeamfighting,defenderTeamfighting,mechanicsEdge,aggressionEdge,teamfightingEdge,goldEdge,vulnerabilityEdge,numbersEdge,existing+progression);
     }
     double decisiveChance(PlayerState p,double edge,double over){return clamp(RoamRuleConfig.BASE_ROAM_DECISIVE_CHANCE+(p.getAggression()-14)*RoamRuleConfig.ROAMER_AGGRESSION_DECISIVE_FACTOR+Math.abs(edge)*RoamRuleConfig.ROAM_DECISIVE_EDGE_FACTOR+over/100*RoamRuleConfig.ROAM_DECISIVE_OVEREXTENSION_MAX_BONUS,RoamRuleConfig.MIN_ROAM_DECISIVE_CHANCE,RoamRuleConfig.MAX_ROAM_DECISIVE_CHANCE);}
     double successChance(double edge){return clamp(RoamRuleConfig.BASE_ROAM_SUCCESS_CHANCE+edge*RoamRuleConfig.ROAM_SUCCESS_EDGE_FACTOR,RoamRuleConfig.MIN_ROAM_SUCCESS_CHANCE,RoamRuleConfig.MAX_ROAM_SUCCESS_CHANCE);}

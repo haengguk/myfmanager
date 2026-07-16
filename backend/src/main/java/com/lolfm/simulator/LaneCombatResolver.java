@@ -122,17 +122,12 @@ public final class LaneCombatResolver {
         TeamSide defender = attacker.opposite();
         double attackerPressure = attacker == TeamSide.BLUE
                 ? state.laneState(lane).getPressure() : -state.laneState(lane).getPressure();
-        return (laneMechanics(state, lane, attacker) - laneMechanics(state, lane, defender))
-                * LaneCombatRuleConfig.MECHANICS_EDGE_FACTOR
-                + (laneAggression(state, lane, attacker) - laneAggression(state, lane, defender))
-                * LaneCombatRuleConfig.AGGRESSION_EDGE_FACTOR
-                + clamp((laneGold(state, lane, attacker) - laneGold(state, lane, defender))
-                        / LaneCombatRuleConfig.COMBAT_GOLD_DIVISOR,
-                        LaneCombatRuleConfig.COMBAT_GOLD_EDGE_MIN, LaneCombatRuleConfig.COMBAT_GOLD_EDGE_MAX)
-                + clamp(attackerPressure / LaneCombatRuleConfig.COMBAT_PRESSURE_DIVISOR,
-                        LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MIN, LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MAX)
-                + new CombatProgressionEvaluator().contribution(state, ProgressionCombatContext.LANE_COMBAT,
-                        participants(state.getTeamState(attacker), lane), participants(state.getTeamState(defender), lane));
+        double mechanics=(laneMechanics(state,lane,attacker)-laneMechanics(state,lane,defender))*LaneCombatRuleConfig.MECHANICS_EDGE_FACTOR;
+        double aggression=(laneAggression(state,lane,attacker)-laneAggression(state,lane,defender))*LaneCombatRuleConfig.AGGRESSION_EDGE_FACTOR;
+        double gold=clamp((laneGold(state,lane,attacker)-laneGold(state,lane,defender))/LaneCombatRuleConfig.COMBAT_GOLD_DIVISOR,LaneCombatRuleConfig.COMBAT_GOLD_EDGE_MIN,LaneCombatRuleConfig.COMBAT_GOLD_EDGE_MAX);
+        double pressure=clamp(attackerPressure/LaneCombatRuleConfig.COMBAT_PRESSURE_DIVISOR,LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MIN,LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MAX);
+        double existing=mechanics+aggression+gold+pressure;
+        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.LANE_COMBAT,participants(state.getTeamState(attacker),lane),participants(state.getTeamState(defender),lane),existing,gold);
     }
 
     double decisiveChance(GameState state, Lane lane, TeamSide attacker) {

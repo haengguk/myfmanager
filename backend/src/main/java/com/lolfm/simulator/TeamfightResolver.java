@@ -289,12 +289,9 @@ public class TeamfightResolver {
     private TeamfightSides determineTeamfightSides(GameState state, Team blueTeam, Team redTeam, Random random, ProgressionCombatContext context) {
         TeamState blue = state.getBlueTeamState();
         TeamState red = state.getRedTeamState();
-        double pressure = (blue.getGold() - red.getGold()) / 500.0
-                + (blue.getKills() - red.getKills()) * 11.0
-                + teamfightScore(state, TeamSide.BLUE, blueTeam)
-                - teamfightScore(state, TeamSide.RED, redTeam)
-                + new CombatProgressionEvaluator().contribution(state, context, alivePlayers(blue,state.getCurrentTimeSeconds()),alivePlayers(red,state.getCurrentTimeSeconds()))
-                + (random.nextDouble() - 0.5) * 56.0;
+        double goldContribution=(blue.getGold()-red.getGold())/500.0;
+        double existing=goldContribution+(blue.getKills()-red.getKills())*11.0+teamfightScore(state,TeamSide.BLUE,blueTeam)-teamfightScore(state,TeamSide.RED,redTeam);
+        double pressure=existing+new CombatProgressionEvaluator().contribution(state,context,alivePlayers(blue,state.getCurrentTimeSeconds()),alivePlayers(red,state.getCurrentTimeSeconds()),existing,goldContribution)+(random.nextDouble()-.5)*56.0;
         return pressure >= 0
                 ? new TeamfightSides(TeamSide.BLUE, blueTeam, blue, redTeam, red, pressure)
                 : new TeamfightSides(TeamSide.RED, redTeam, red, blueTeam, blue, Math.abs(pressure));
@@ -327,9 +324,8 @@ public class TeamfightResolver {
     private FightGrade determineFightGrade(GameState state, TeamfightSides sides, Random random, ProgressionCombatContext context) {
         int currentTime = state.getCurrentTimeSeconds();
         int goldLead = Math.max(0, sides.winningTeamState().getGold() - sides.losingTeamState().getGold());
-        double teamfightGap = Math.max(0.0, teamfightScore(state, sides.winningSide(), sides.winningTeam())
-                - teamfightScore(state, sides.winningSide().opposite(), sides.losingTeam())
-                + new CombatProgressionEvaluator().contribution(state,context,alivePlayers(sides.winningTeamState(),currentTime),alivePlayers(sides.losingTeamState(),currentTime)));
+        double existingGap=teamfightScore(state,sides.winningSide(),sides.winningTeam())-teamfightScore(state,sides.winningSide().opposite(),sides.losingTeam());
+        double teamfightGap=Math.max(0.0,existingGap+new CombatProgressionEvaluator().contribution(state,context,alivePlayers(sides.winningTeamState(),currentTime),alivePlayers(sides.losingTeamState(),currentTime),existingGap,0,ProgressionApplicationStage.FIGHT_GRADE));
         double lateBonus = currentTime >= 2_100 ? 0.018 : currentTime >= 1_800 ? 0.012 : currentTime >= 1_500 ? 0.008 : 0.0;
         double objectiveBonus = isMajorObjectiveMoment(currentTime) ? 0.01 : 0.0;
         double dominanceBonus = Math.min(0.025, sides.advantageScore() / 1_800.0);

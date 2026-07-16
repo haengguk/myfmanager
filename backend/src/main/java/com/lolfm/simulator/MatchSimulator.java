@@ -463,7 +463,7 @@ public class MatchSimulator {
         if(alive==0)return .1;
         List<PlayerState> own=team.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
         List<PlayerState> enemy=state.getTeamState(side.opposite()).getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
-        return total+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.GENERIC_SKIRMISH,own,enemy);
+        return total+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.GENERIC_SKIRMISH,own,enemy,total,0,ProgressionApplicationStage.INITIATIVE);
     }
 
     private double averageAttribute(TeamState team, java.util.function.ToIntFunction<PlayerState> attribute) {

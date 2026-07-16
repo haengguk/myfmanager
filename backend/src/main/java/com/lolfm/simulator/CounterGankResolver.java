@@ -165,15 +165,8 @@ public final class CounterGankResolver {
                 CounterGankRuleConfig.COUNTER_GANK_GOLD_EDGE_MAX);
         double overextensionEdge = clamp(overextension / CounterGankRuleConfig.OVEREXTENSION_EDGE_DIVISOR,
                 0, CounterGankRuleConfig.OVEREXTENSION_EDGE_MAX);
-        return (groupMechanics(state, attackingSide, lane) - groupMechanics(state, defendingSide, lane))
-                        * CounterGankRuleConfig.MECHANICS_EDGE_FACTOR
-                + (groupAggression(state, attackingSide, lane) - groupAggression(state, defendingSide, lane))
-                        * CounterGankRuleConfig.AGGRESSION_EDGE_FACTOR
-                + (groupTeamfighting(state, attackingSide, lane) - groupTeamfighting(state, defendingSide, lane))
-                        * CounterGankRuleConfig.TEAMFIGHTING_EDGE_FACTOR
-                + goldEdge + overextensionEdge - CounterGankRuleConfig.COUNTER_PREPARATION_EDGE
-                + new CombatProgressionEvaluator().contribution(state, ProgressionCombatContext.COUNTER_GANK,
-                        combatGroup(state, attackingSide, lane), combatGroup(state, defendingSide, lane));
+        double existing=(groupMechanics(state,attackingSide,lane)-groupMechanics(state,defendingSide,lane))*CounterGankRuleConfig.MECHANICS_EDGE_FACTOR+(groupAggression(state,attackingSide,lane)-groupAggression(state,defendingSide,lane))*CounterGankRuleConfig.AGGRESSION_EDGE_FACTOR+(groupTeamfighting(state,attackingSide,lane)-groupTeamfighting(state,defendingSide,lane))*CounterGankRuleConfig.TEAMFIGHTING_EDGE_FACTOR+goldEdge+overextensionEdge-CounterGankRuleConfig.COUNTER_PREPARATION_EDGE;
+        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.COUNTER_GANK,combatGroup(state,attackingSide,lane),combatGroup(state,defendingSide,lane),existing,goldEdge);
     }
 
     private List<PlayerState> combatGroup(GameState state, TeamSide side, Lane lane) {List<PlayerState> result=new ArrayList<>();result.add(state.getTeamState(side).playerAt(Position.JUNGLE));result.addAll(lanePlayers(state.getTeamState(side),lane));return result;}

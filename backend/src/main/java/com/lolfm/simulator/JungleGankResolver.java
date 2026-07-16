@@ -200,13 +200,9 @@ public final class JungleGankResolver {
         double vulnerability = clamp(enemyOverextension(state, side, lane)
                         / JungleGankRuleConfig.GANK_VULNERABILITY_DIVISOR,
                 0, JungleGankRuleConfig.GANK_VULNERABILITY_EDGE_MAX);
-        return (lane == Lane.BOT ? JungleGankRuleConfig.BOT_GANK_NUMBERS_EDGE
-                : JungleGankRuleConfig.SOLO_GANK_NUMBERS_EDGE)
-                + mechanicsEdge * JungleGankRuleConfig.GANK_MECHANICS_EDGE_FACTOR
-                + aggressionEdge * JungleGankRuleConfig.GANK_AGGRESSION_EDGE_FACTOR
-                + goldEdge(state, side, lane) + vulnerability
-                + new CombatProgressionEvaluator().contribution(state, ProgressionCombatContext.JUNGLE_GANK,
-                        combatGroup(state, side, lane), combatGroup(state, side.opposite(), lane));
+        double gold=goldEdge(state,side,lane);
+        double existing=(lane==Lane.BOT?JungleGankRuleConfig.BOT_GANK_NUMBERS_EDGE:JungleGankRuleConfig.SOLO_GANK_NUMBERS_EDGE)+mechanicsEdge*JungleGankRuleConfig.GANK_MECHANICS_EDGE_FACTOR+aggressionEdge*JungleGankRuleConfig.GANK_AGGRESSION_EDGE_FACTOR+gold+vulnerability;
+        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.JUNGLE_GANK,combatGroup(state,side,lane),combatGroup(state,side.opposite(),lane),existing,gold);
     }
 
     private List<PlayerState> combatGroup(GameState state, TeamSide side, Lane lane) {

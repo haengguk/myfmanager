@@ -19,12 +19,9 @@ public final class ObjectiveFightResolver {
     public ObjectiveFightOutcome resolve(GameState state, Random random, List<MatchEvent> events) {
         Team blue = domainTeam(state.getBlueTeamState());
         Team red = domainTeam(state.getRedTeamState());
-        double advantage = (state.getBlueTeamState().getGold() - state.getRedTeamState().getGold()) / 500.0
-                + (state.getBlueTeamState().getKills() - state.getRedTeamState().getKills()) * 11.0
-                + teamfights.teamfightScore(state, TeamSide.BLUE, blue)
-                - teamfights.teamfightScore(state, TeamSide.RED, red)
-                + new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.OBJECTIVE_FIGHT,alive(state.getBlueTeamState(),state.getCurrentTimeSeconds()),alive(state.getRedTeamState(),state.getCurrentTimeSeconds()))
-                + (random.nextDouble() - .5) * 56.0;
+        double goldContribution=(state.getBlueTeamState().getGold()-state.getRedTeamState().getGold())/500.0;
+        double existing=goldContribution+(state.getBlueTeamState().getKills()-state.getRedTeamState().getKills())*11.0+teamfights.teamfightScore(state,TeamSide.BLUE,blue)-teamfights.teamfightScore(state,TeamSide.RED,red);
+        double advantage=existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.OBJECTIVE_FIGHT,alive(state.getBlueTeamState(),state.getCurrentTimeSeconds()),alive(state.getRedTeamState(),state.getCurrentTimeSeconds()),existing,goldContribution)+(random.nextDouble()-.5)*56.0;
         TeamSide winner = advantage >= 0 ? TeamSide.BLUE : TeamSide.RED;
         Team winningTeam = winner == TeamSide.BLUE ? blue : red;
         Team losingTeam = winner == TeamSide.BLUE ? red : blue;
