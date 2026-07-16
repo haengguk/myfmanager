@@ -757,3 +757,5 @@ tbody tr:hover {
 .late-result strong { color: #fef3c7; font-size: .78rem; }
 .late-result small { color: #94a3b8; font-size: .68rem; text-align: right; }
 @media (max-width: 760px) { .late-grid { grid-template-columns: 1fr; } .late-result { grid-template-columns: 1fr; } .late-result small { text-align: left; } }
+
+.progression-badge { color: #b9c7df; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.01em; }

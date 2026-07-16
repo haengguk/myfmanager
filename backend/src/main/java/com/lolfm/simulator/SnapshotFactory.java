@@ -20,10 +20,10 @@ public class SnapshotFactory {
         TeamState blue = gameState.getBlueTeamState();
         TeamState red = gameState.getRedTeamState();
         List<PlayerSnapshot> playerSnapshots = new ArrayList<>();
-        int blueAlivePlayers = addTeamSnapshots(blue, red, TeamSide.BLUE, currentTime, playerSnapshots);
-        int redAlivePlayers = addTeamSnapshots(red, blue, TeamSide.RED, currentTime, playerSnapshots);
+        int blueAlivePlayers = addTeamSnapshots(gameState, blue, red, TeamSide.BLUE, currentTime, playerSnapshots);
+        int redAlivePlayers = addTeamSnapshots(gameState, red, blue, TeamSide.RED, currentTime, playerSnapshots);
 
-        return new MatchSnapshot(
+        MatchSnapshot snapshot = new MatchSnapshot(
                 currentTime,
                 blue.getKills(),
                 red.getKills(),
@@ -58,6 +58,20 @@ public class SnapshotFactory {
                 gameState.getObjectiveDecisionState().snapshot(),
                 lateGameSnapshot(gameState)
         );
+        snapshot.setProgression(progressionSnapshot(gameState));
+        return snapshot;
+    }
+
+    private com.lolfm.domain.ProgressionSnapshot progressionSnapshot(GameState state) {
+        return new com.lolfm.domain.ProgressionSnapshot(state.isProgressionEnabled(), state.isProgressionPowerEnabled(),
+                teamProgression(state.getBlueTeamState(), state.isProgressionPowerEnabled()),
+                teamProgression(state.getRedTeamState(), state.isProgressionPowerEnabled()));
+    }
+    private com.lolfm.domain.TeamProgressionSnapshot teamProgression(TeamState team, boolean power) {
+        java.util.EnumMap<com.lolfm.domain.Position,com.lolfm.domain.PlayerProgressionSnapshot> players=new java.util.EnumMap<>(com.lolfm.domain.Position.class);
+        double levels=0;int cores=0,level18=0;
+        for(PlayerState player:team.getPlayers()){var snapshot=player.getProgressionState().snapshot(power);players.put(player.getPosition(),snapshot);levels+=snapshot.level();if(snapshot.level()==18)level18++;cores+=Math.max(0,snapshot.itemStage().ordinal()-1)+(snapshot.itemStage()==ItemProgressStage.FULL_BUILD?1:0);}
+        return new com.lolfm.domain.TeamProgressionSnapshot(team.getPlayers().isEmpty()?1:levels/team.getPlayers().size(),cores,level18,players);
     }
 
     private com.lolfm.domain.LateGameSnapshot lateGameSnapshot(GameState gameState) {
@@ -125,7 +139,7 @@ public class SnapshotFactory {
         return max;
     }
 
-    private int addTeamSnapshots(TeamState teamState, TeamState opposingTeam, TeamSide teamSide,
+    private int addTeamSnapshots(GameState gameState, TeamState teamState, TeamState opposingTeam, TeamSide teamSide,
                                  int currentTime, List<PlayerSnapshot> playerSnapshots) {
         int alivePlayers = 0;
         for (PlayerState playerState : teamState.getPlayers()) {
@@ -148,7 +162,8 @@ public class SnapshotFactory {
                     playerState.getActivityState().getOriginLane(), playerState.getActivityState().getTargetLane(),
                     playerState.getActivityState().getActivityUntilSeconds(),
                     Math.max(0, playerState.getActivityState().getActivityUntilSeconds() - currentTime),
-                    playerState.getRoamActionState().getRoamFarmBlockedUntilSeconds()
+                    playerState.getRoamActionState().getRoamFarmBlockedUntilSeconds(),
+                    playerState.getProgressionState().snapshot(gameState.isProgressionPowerEnabled())
             ));
         }
         return alivePlayers;

@@ -1,0 +1,2 @@
+package com.lolfm.simulator;
+public enum ProgressionCombatContext { LANE_COMBAT, JUNGLE_GANK, COUNTER_GANK, ROAM, GENERIC_SKIRMISH, TEAMFIGHT, OBJECTIVE_FIGHT, LATE_GAME_SIEGE, BASE_DEFENSE }

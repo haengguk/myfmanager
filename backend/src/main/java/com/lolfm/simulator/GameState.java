@@ -1,5 +1,9 @@
 package com.lolfm.simulator;
 
+import com.lolfm.domain.MatchEvent;
+import com.lolfm.domain.MatchEventType;
+import com.lolfm.domain.ProgressionEventData;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -27,6 +31,9 @@ public class GameState {
     private final EnumMap<TeamSide, Boolean> structureMutationPerformedThisTick = new EnumMap<>(TeamSide.class);
     private final EnumMap<TeamSide, Boolean> duplicateStructureAttemptPendingBySide = new EnumMap<>(TeamSide.class);
     private final StructureActionExecutionStats structureActionExecutionStats = new StructureActionExecutionStats();
+    private final ProgressionExecutionStats progressionExecutionStats = new ProgressionExecutionStats();
+    private boolean progressionEnabled = true;
+    private boolean progressionPowerEnabled = true;
     private final EnumMap<Lane, LaneState> laneStates = new EnumMap<>(Lane.class);
     private int lastLanePressureResolvedAtSeconds = -1;
     private int duplicateLanePressureResolutionCount;
@@ -111,8 +118,27 @@ public class GameState {
         for (TeamSide side : TeamSide.values()) jungleActionStates.put(side, new JungleActionState());
         this.lastBigWinTimeSeconds = -1;
         this.lastAceTimeSeconds = -1;
+        configureProgression(true, true);
     }
 
+    public void configureProgression(boolean enabled, boolean powerEnabled) {
+        progressionEnabled = enabled; progressionPowerEnabled = enabled && powerEnabled;
+        for (PlayerState player : blueTeamState.getPlayers()) player.configureProgression(TeamSide.BLUE, enabled, progressionExecutionStats);
+        for (PlayerState player : redTeamState.getPlayers()) player.configureProgression(TeamSide.RED, enabled, progressionExecutionStats);
+    }
+    public boolean isProgressionEnabled() { return progressionEnabled; }
+    public boolean isProgressionPowerEnabled() { return progressionPowerEnabled; }
+    public ProgressionExecutionStats getProgressionExecutionStats() { return progressionExecutionStats; }
+    public void drainProgressionEvents(List<MatchEvent> events) {
+        if (!progressionEnabled) return;
+        for (TeamSide side : TeamSide.values()) for (PlayerState player : getTeamState(side).getPlayers()) {
+            for (ProgressionEventData data : player.getProgressionState().drainEvents()) {
+                MatchEventType type = data.type() == ProgressionEventType.LEVEL_UP ? MatchEventType.LEVEL_UP : MatchEventType.ITEM_STAGE_REACHED;
+                MatchEvent event = new MatchEvent(data.timeSeconds(), type, type == MatchEventType.LEVEL_UP ? "Level up" : "Item stage reached", null, null, List.of());
+                event.setProgressionEvent(data); events.add(event);
+            }
+        }
+    }
     public int getCurrentTimeSeconds() {
         return currentTimeSeconds;
     }

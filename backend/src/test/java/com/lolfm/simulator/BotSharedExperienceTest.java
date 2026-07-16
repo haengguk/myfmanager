@@ -1,0 +1,7 @@
+package com.lolfm.simulator;import static org.assertj.core.api.Assertions.*;import com.lolfm.domain.Position;import org.junit.jupiter.api.Test;
+class BotSharedExperienceTest{private GameState s(){GameState s=LateGameTestSupport.state();s.advanceTimeSeconds(300);return s;}private int xp(GameState s,Position p){return s.getBlueTeamState().playerAt(p).getProgressionState().getTotalExperience();}
+@Test void bothEligibleReceiveSharedXp(){GameState s=s();new ProgressionEconomyResolver().resolve(s,300);assertThat(xp(s,Position.ADC)).isEqualTo(56);assertThat(xp(s,Position.SUPPORT)).isEqualTo(56);}
+@Test void adcOnlyReceivesSoloXp(){GameState s=s();s.getBlueTeamState().playerAt(Position.SUPPORT).beginRoamActivity(Lane.BOT,Lane.MID,300);new ProgressionEconomyResolver().resolve(s,300);assertThat(xp(s,Position.ADC)).isEqualTo(70);assertThat(xp(s,Position.SUPPORT)).isZero();}
+@Test void supportOnlyReceivesSoloXpAndKeepsZeroCs(){GameState s=s();s.getBlueTeamState().playerAt(Position.ADC).markDead(300,30);new ProgressionEconomyResolver().resolve(s,300);assertThat(xp(s,Position.ADC)).isZero();assertThat(xp(s,Position.SUPPORT)).isEqualTo(70);assertThat(s.getBlueTeamState().playerAt(Position.SUPPORT).getCs()).isZero();}
+@Test void bothIneligibleReceiveZero(){GameState s=s();s.getBlueTeamState().playerAt(Position.ADC).markDead(300,30);s.getBlueTeamState().playerAt(Position.SUPPORT).markDead(300,30);new ProgressionEconomyResolver().resolve(s,300);assertThat(xp(s,Position.ADC)+xp(s,Position.SUPPORT)).isZero();}
+}

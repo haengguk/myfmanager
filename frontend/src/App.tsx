@@ -177,6 +177,18 @@ function eventMessage(event: MatchEvent): string {
   return side + ' 정글의 ' + lane + ' 갱킹에서 역킬: ' + gank.killerPlayerId + ' → ' + gank.victimPlayerId;
 }
 
+function itemStageLabel(stage: PlayerSnapshot['itemStage']): string {
+  switch (stage) {
+    case 'COMPONENT': return '구성품';
+    case 'FIRST_CORE': return '1코어';
+    case 'SECOND_CORE': return '2코어';
+    case 'THIRD_CORE': return '3코어';
+    case 'FOURTH_CORE': return '4코어';
+    case 'FULL_BUILD': return '풀 빌드';
+    default: return '시작 아이템';
+  }
+}
+
 function sortPlayers(players: PlayerSnapshot[]): PlayerSnapshot[] {
   return [...players].sort((left, right) => {
     const leftOrder = POSITION_ORDER[left.position] ?? 99;
@@ -750,6 +762,7 @@ function App() {
                           <td>
                             <div className="player-cell">
                               <span>{player.playerName}</span>
+                              <span className="progression-badge">Lv. {player.level} · {itemStageLabel(player.itemStage)}</span>
                               {!player.alive ? (
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
                               ) : player.activityType === 'ROAMING' ? (
@@ -794,6 +807,7 @@ function App() {
                           <td>
                             <div className="player-cell">
                               <span>{player.playerName}</span>
+                              <span className="progression-badge">Lv. {player.level} · {itemStageLabel(player.itemStage)}</span>
                               {!player.alive ? (
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
                               ) : player.activityType === 'ROAMING' ? (

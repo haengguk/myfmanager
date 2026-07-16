@@ -77,7 +77,7 @@ public class StructureResolver {
         TeamState attackers = state.getTeamState(attacking);
         state.markStructureMutationPerformed(attacking);
         attackers.addTowerDestroyed();
-        awardTowerGold(attackers);
+        awardTowerGold(attackers, state.getCurrentTimeSeconds());
         if (tier == TowerTier.OUTER) {
             state.getLanePhaseExecutionStats().recordDestruction(defending, lane, source);
             state.getLanePhaseState().openLane(lane, state.getCurrentTimeSeconds());
@@ -113,8 +113,8 @@ public class StructureResolver {
         };
     }
 
-    private void awardTowerGold(TeamState team) {
-        for (PlayerState player : team.getPlayers()) player.addGold(TOWER_GOLD_PER_PLAYER);
+    private void awardTowerGold(TeamState team, int timeSeconds) {
+        for (PlayerState player : team.getPlayers()) player.addGold(TOWER_GOLD_PER_PLAYER, GoldSource.STRUCTURE, timeSeconds);
         team.addGold(TOWER_GOLD_PER_PLAYER * team.getPlayers().size());
     }
 

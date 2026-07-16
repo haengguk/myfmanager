@@ -30,7 +30,7 @@ public final class PositionEconomyResolver {
             int cs = actualCs(player, gameState, side, elapsedSeconds, random);
             if (cs <= 0) continue;
             player.addCs(cs);
-            awards.awardGold(team, player, cs * PositionEconomyRuleConfig.CS_GOLD, GoldSource.FARM, false);
+            awards.awardGold(team, player, cs * PositionEconomyRuleConfig.CS_GOLD, GoldSource.FARM, false, currentTimeSeconds);
         }
     }
 

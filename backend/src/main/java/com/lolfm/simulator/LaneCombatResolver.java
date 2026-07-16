@@ -130,7 +130,9 @@ public final class LaneCombatResolver {
                         / LaneCombatRuleConfig.COMBAT_GOLD_DIVISOR,
                         LaneCombatRuleConfig.COMBAT_GOLD_EDGE_MIN, LaneCombatRuleConfig.COMBAT_GOLD_EDGE_MAX)
                 + clamp(attackerPressure / LaneCombatRuleConfig.COMBAT_PRESSURE_DIVISOR,
-                        LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MIN, LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MAX);
+                        LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MIN, LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MAX)
+                + new CombatProgressionEvaluator().contribution(state, ProgressionCombatContext.LANE_COMBAT,
+                        participants(state.getTeamState(attacker), lane), participants(state.getTeamState(defender), lane));
     }
 
     double decisiveChance(GameState state, Lane lane, TeamSide attacker) {

@@ -204,7 +204,13 @@ public final class JungleGankResolver {
                 : JungleGankRuleConfig.SOLO_GANK_NUMBERS_EDGE)
                 + mechanicsEdge * JungleGankRuleConfig.GANK_MECHANICS_EDGE_FACTOR
                 + aggressionEdge * JungleGankRuleConfig.GANK_AGGRESSION_EDGE_FACTOR
-                + goldEdge(state, side, lane) + vulnerability;
+                + goldEdge(state, side, lane) + vulnerability
+                + new CombatProgressionEvaluator().contribution(state, ProgressionCombatContext.JUNGLE_GANK,
+                        combatGroup(state, side, lane), combatGroup(state, side.opposite(), lane));
+    }
+
+    private List<PlayerState> combatGroup(GameState state, TeamSide side, Lane lane) {
+        List<PlayerState> result=new ArrayList<>();result.add(state.getTeamState(side).playerAt(Position.JUNGLE));result.addAll(lanePlayers(state.getTeamState(side),lane));return result;
     }
 
     double decisiveChance(GameState state, TeamSide side, Lane lane) {

@@ -21,13 +21,11 @@ public class TeamfightResolver {
     private static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = MatchSimulator.SIMULATION_SAFETY_TIMEOUT_SECONDS;
     private final KillRewardResolver killRewards = new KillRewardResolver();
 
-    public Optional<TeamfightOutcome> maybeResolveTeamfight(
-            GameState gameState,
-            Team blueTeam,
-            Team redTeam,
-            Random random,
-            List<MatchEvent> events
-    ) {
+    public Optional<TeamfightOutcome> maybeResolveTeamfight(GameState gameState,Team blueTeam,Team redTeam,Random random,List<MatchEvent> events) {
+        return maybeResolveTeamfight(gameState,blueTeam,redTeam,random,events,ProgressionCombatContext.TEAMFIGHT);
+    }
+
+    private Optional<TeamfightOutcome> maybeResolveTeamfight(GameState gameState,Team blueTeam,Team redTeam,Random random,List<MatchEvent> events,ProgressionCombatContext progressionContext) {
         int currentTime = gameState.getCurrentTimeSeconds();
         double triggerChance = hasElderTeamWithThreeAlive(gameState, currentTime)
                 ? ElderRuleConfig.TEAMFIGHT_TRIGGER_CHANCE : 0.03;
@@ -39,10 +37,10 @@ public class TeamfightResolver {
             return Optional.empty();
         }
 
-        TeamfightSides sides = determineTeamfightSides(gameState, blueTeam, redTeam, random);
+        TeamfightSides sides = determineTeamfightSides(gameState, blueTeam, redTeam, random, progressionContext);
         for (PlayerState player : gameState.getBlueTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
         for (PlayerState player : gameState.getRedTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
-        FightGrade plannedGrade = determineFightGrade(gameState, sides, random);
+        FightGrade plannedGrade = determineFightGrade(gameState, sides, random, progressionContext);
         int winningKillTarget = Math.min(
                 determineWinningTeamKillCount(plannedGrade, random),
                 countAlivePlayers(sides.losingTeamState(), currentTime)
@@ -161,7 +159,8 @@ public class TeamfightResolver {
 
     public Optional<TeamfightOutcome> resolveForcedTeamfight(GameState state, Team blueTeam, Team redTeam, Random random, List<MatchEvent> events, com.lolfm.domain.CombatSource source) {
         int before = events.size();
-        Optional<TeamfightOutcome> outcome = maybeResolveTeamfight(state, blueTeam, redTeam, new ForcedTriggerRandom(random), events);
+        ProgressionCombatContext context = source == com.lolfm.domain.CombatSource.BASE_DEFENSE ? ProgressionCombatContext.BASE_DEFENSE : ProgressionCombatContext.LATE_GAME_SIEGE;
+        Optional<TeamfightOutcome> outcome = maybeResolveTeamfight(state, blueTeam, redTeam, new ForcedTriggerRandom(random), events, context);
         for (int i = before; i < events.size(); i++) if (events.get(i).getType() == MatchEventType.KILL) events.get(i).setCombatSource(source);
         return outcome;
     }
@@ -287,18 +286,21 @@ public class TeamfightResolver {
         for (PlayerState player : team.getPlayers()) player.commitPendingCombatBountyProgress();
     }
 
-    private TeamfightSides determineTeamfightSides(GameState state, Team blueTeam, Team redTeam, Random random) {
+    private TeamfightSides determineTeamfightSides(GameState state, Team blueTeam, Team redTeam, Random random, ProgressionCombatContext context) {
         TeamState blue = state.getBlueTeamState();
         TeamState red = state.getRedTeamState();
         double pressure = (blue.getGold() - red.getGold()) / 500.0
                 + (blue.getKills() - red.getKills()) * 11.0
                 + teamfightScore(state, TeamSide.BLUE, blueTeam)
                 - teamfightScore(state, TeamSide.RED, redTeam)
+                + new CombatProgressionEvaluator().contribution(state, context, alivePlayers(blue,state.getCurrentTimeSeconds()),alivePlayers(red,state.getCurrentTimeSeconds()))
                 + (random.nextDouble() - 0.5) * 56.0;
         return pressure >= 0
                 ? new TeamfightSides(TeamSide.BLUE, blueTeam, blue, redTeam, red, pressure)
                 : new TeamfightSides(TeamSide.RED, redTeam, red, blueTeam, blue, Math.abs(pressure));
     }
+
+    private List<PlayerState> alivePlayers(TeamState team,int time){return team.getPlayers().stream().filter(p->p.isAlive(time)).toList();}
 
     double teamfightScore(GameState state, TeamSide side, Team team) {
         TeamState teamState = state.getTeamState(side);
@@ -322,11 +324,12 @@ public class TeamfightResolver {
         return score;
     }
 
-    private FightGrade determineFightGrade(GameState state, TeamfightSides sides, Random random) {
+    private FightGrade determineFightGrade(GameState state, TeamfightSides sides, Random random, ProgressionCombatContext context) {
         int currentTime = state.getCurrentTimeSeconds();
         int goldLead = Math.max(0, sides.winningTeamState().getGold() - sides.losingTeamState().getGold());
         double teamfightGap = Math.max(0.0, teamfightScore(state, sides.winningSide(), sides.winningTeam())
-                - teamfightScore(state, sides.winningSide().opposite(), sides.losingTeam()));
+                - teamfightScore(state, sides.winningSide().opposite(), sides.losingTeam())
+                + new CombatProgressionEvaluator().contribution(state,context,alivePlayers(sides.winningTeamState(),currentTime),alivePlayers(sides.losingTeamState(),currentTime)));
         double lateBonus = currentTime >= 2_100 ? 0.018 : currentTime >= 1_800 ? 0.012 : currentTime >= 1_500 ? 0.008 : 0.0;
         double objectiveBonus = isMajorObjectiveMoment(currentTime) ? 0.01 : 0.0;
         double dominanceBonus = Math.min(0.025, sides.advantageScore() / 1_800.0);

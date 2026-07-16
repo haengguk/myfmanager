@@ -1,0 +1,3 @@
+package com.lolfm.domain;
+import com.lolfm.simulator.ItemProgressStage;
+public record PlayerProgressionSnapshot(boolean enabled,int level,int totalExperience,int currentLevelStartExperience,int nextLevelTotalExperience,double levelProgressRatio,ItemProgressStage itemStage,int progressionEarnedGold,int nextItemStageGold,double itemProgressRatio,ProgressionPowerSnapshot progressionPower){}

@@ -23,6 +23,7 @@ public final class ObjectiveFightResolver {
                 + (state.getBlueTeamState().getKills() - state.getRedTeamState().getKills()) * 11.0
                 + teamfights.teamfightScore(state, TeamSide.BLUE, blue)
                 - teamfights.teamfightScore(state, TeamSide.RED, red)
+                + new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.OBJECTIVE_FIGHT,alive(state.getBlueTeamState(),state.getCurrentTimeSeconds()),alive(state.getRedTeamState(),state.getCurrentTimeSeconds()))
                 + (random.nextDouble() - .5) * 56.0;
         TeamSide winner = advantage >= 0 ? TeamSide.BLUE : TeamSide.RED;
         Team winningTeam = winner == TeamSide.BLUE ? blue : red;
@@ -49,6 +50,8 @@ public final class ObjectiveFightResolver {
                 winningState.getTeamName() + "가 오브젝트 교전에서 승리합니다.", null, null, List.of()));
         return new ObjectiveFightOutcome(winner, killed ? 1 : 0, participants);
     }
+
+    private List<PlayerState> alive(TeamState team,int time){return team.getPlayers().stream().filter(p->p.isAlive(time)).toList();}
 
     private void markParticipants(GameState state, TeamState team, List<String> participants) {
         int time = state.getCurrentTimeSeconds();

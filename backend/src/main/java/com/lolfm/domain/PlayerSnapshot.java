@@ -30,6 +30,7 @@ public class PlayerSnapshot {
     private final int activityUntilSeconds;
     private final int activitySecondsRemaining;
     private final int roamFarmBlockedUntilSeconds;
+    private final PlayerProgressionSnapshot progression;
 
     public PlayerSnapshot(
             String playerName,
@@ -59,7 +60,8 @@ public class PlayerSnapshot {
             com.lolfm.simulator.Lane activityTargetLane,
             int activityUntilSeconds,
             int activitySecondsRemaining,
-            int roamFarmBlockedUntilSeconds
+            int roamFarmBlockedUntilSeconds,
+            PlayerProgressionSnapshot progression
     ) {
         this.playerName = playerName;
         this.teamName = teamName;
@@ -89,6 +91,7 @@ public class PlayerSnapshot {
         this.totalShutdownGoldEarned = totalShutdownGoldEarned;
         this.totalShutdownGoldGiven = totalShutdownGoldGiven;
         this.bountyProgress = bountyProgress;
+        this.progression = progression;
     }
 
     public String getPlayerName() { return playerName; }
@@ -119,4 +122,15 @@ public class PlayerSnapshot {
     public int getTotalShutdownGoldEarned() { return totalShutdownGoldEarned; }
     public int getTotalShutdownGoldGiven() { return totalShutdownGoldGiven; }
     public double getBountyProgress() { return bountyProgress; }
+    public PlayerProgressionSnapshot getProgression() { return progression; }
+    public int getLevel() { return progression.level(); }
+    public int getTotalExperience() { return progression.totalExperience(); }
+    public int getCurrentLevelStartExperience() { return progression.currentLevelStartExperience(); }
+    public int getNextLevelTotalExperience() { return progression.nextLevelTotalExperience(); }
+    public double getLevelProgressRatio() { return progression.levelProgressRatio(); }
+    public com.lolfm.simulator.ItemProgressStage getItemStage() { return progression.itemStage(); }
+    public int getProgressionEarnedGold() { return progression.progressionEarnedGold(); }
+    public int getNextItemStageGold() { return progression.nextItemStageGold(); }
+    public double getItemProgressRatio() { return progression.itemProgressRatio(); }
+    public ProgressionPowerSnapshot getProgressionPower() { return progression.progressionPower(); }
 }

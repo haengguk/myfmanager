@@ -171,8 +171,12 @@ public final class CounterGankResolver {
                         * CounterGankRuleConfig.AGGRESSION_EDGE_FACTOR
                 + (groupTeamfighting(state, attackingSide, lane) - groupTeamfighting(state, defendingSide, lane))
                         * CounterGankRuleConfig.TEAMFIGHTING_EDGE_FACTOR
-                + goldEdge + overextensionEdge - CounterGankRuleConfig.COUNTER_PREPARATION_EDGE;
+                + goldEdge + overextensionEdge - CounterGankRuleConfig.COUNTER_PREPARATION_EDGE
+                + new CombatProgressionEvaluator().contribution(state, ProgressionCombatContext.COUNTER_GANK,
+                        combatGroup(state, attackingSide, lane), combatGroup(state, defendingSide, lane));
     }
+
+    private List<PlayerState> combatGroup(GameState state, TeamSide side, Lane lane) {List<PlayerState> result=new ArrayList<>();result.add(state.getTeamState(side).playerAt(Position.JUNGLE));result.addAll(lanePlayers(state.getTeamState(side),lane));return result;}
 
     double decisiveChance(GameState state, TeamSide attackingSide, Lane lane, double edge) {
         TeamSide defendingSide = attackingSide.opposite();

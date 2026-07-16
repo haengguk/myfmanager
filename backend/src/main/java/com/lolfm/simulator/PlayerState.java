@@ -30,6 +30,7 @@ public class PlayerState {
 
     private final PlayerActivityState activityState = new PlayerActivityState();
     private final RoamActionState roamActionState = new RoamActionState();
+    private final PlayerProgressionState progressionState;
     public PlayerState(String playerName, Position position, int startingGold) {
         this(playerName, position, new PlayerAttributes(
                 PlayerImpactRuleConfig.BASELINE_ATTRIBUTE,
@@ -55,6 +56,7 @@ public class PlayerState {
         this.respawnAtSeconds = 0;
         this.farmResumeAtSeconds = 0;
         this.farmRecoveryEnabled = farmRecoveryEnabled;
+        this.progressionState = new PlayerProgressionState(position);
     }
 
     public String getPlayerName() {
@@ -157,9 +159,13 @@ public class PlayerState {
         cs += amount;
     }
 
-    public void addGold(int amount) {
+    public void addGold(int amount) { addGold(amount, GoldSource.OTHER, 0); }
+    public void addGold(int amount, GoldSource source, int timeSeconds) {
         gold += amount;
+        progressionState.awardEarnedGold(amount, source, timeSeconds);
     }
+    public PlayerProgressionState getProgressionState() { return progressionState; }
+    void configureProgression(TeamSide side, boolean enabled, ProgressionExecutionStats stats) { progressionState.configure(side, enabled, stats); }
 
     public double getBountyProgress() { return bountyProgress; }
     public double getPendingCombatBountyProgress() { return pendingCombatBountyProgress; }

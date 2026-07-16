@@ -39,7 +39,7 @@ public class TowerResolver {
     }
 
     private void awardTowerGold(TeamState teamState) {
-        for (PlayerState player : teamState.getPlayers()) player.addGold(TOWER_GOLD_PER_PLAYER);
+        for (PlayerState player : teamState.getPlayers()) player.addGold(TOWER_GOLD_PER_PLAYER, GoldSource.STRUCTURE, 0);
         teamState.addGold(TOWER_GOLD_PER_PLAYER * teamState.getPlayers().size());
     }
 

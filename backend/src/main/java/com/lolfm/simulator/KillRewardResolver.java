@@ -31,13 +31,14 @@ public final class KillRewardResolver {
 
         killer.addKill();
         attackingTeam.addKill();
-        goldAwards.awardGold(attackingTeam, killer, BASE_KILL_GOLD, GoldSource.KILL, teamfight);
+        goldAwards.awardGold(attackingTeam, killer, BASE_KILL_GOLD, GoldSource.KILL, teamfight, timeSeconds);
         for (PlayerState assistant : assistants) {
             assistant.addAssist();
-            goldAwards.awardGold(attackingTeam, assistant, BASE_ASSIST_GOLD, GoldSource.ASSIST, teamfight);
+            goldAwards.awardGold(attackingTeam, assistant, BASE_ASSIST_GOLD, GoldSource.ASSIST, teamfight, timeSeconds);
         }
+        new ProgressionRewardResolver().awardKillExperience(killer, assistants, timeSeconds);
         if (shutdownGold >= BountyRuleConfig.MIN_VISIBLE_SHUTDOWN_GOLD) {
-            goldAwards.awardGold(attackingTeam, killer, shutdownGold, GoldSource.SHUTDOWN, false);
+            goldAwards.awardGold(attackingTeam, killer, shutdownGold, GoldSource.SHUTDOWN, false, timeSeconds);
             killer.addShutdownGoldEarned(shutdownGold);
             victim.addShutdownGoldGiven(shutdownGold);
             events.add(new MatchEvent(

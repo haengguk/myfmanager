@@ -1,0 +1,2 @@
+package com.lolfm.simulator;
+public record CombatProgressionBreakdown(ProgressionCombatContext context,int ownParticipantCount,int enemyParticipantCount,double ownAveragePower,double enemyAveragePower,double progressionEdge,double contextMultiplier,double finalContribution){}

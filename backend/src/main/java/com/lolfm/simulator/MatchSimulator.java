@@ -44,6 +44,7 @@ public class MatchSimulator {
     private final JungleGankResolver jungleGankResolver;
     private final RoamResolver roamResolver = new RoamResolver();
     private final GoldAwardService goldAwards = new GoldAwardService();
+    private final ProgressionEconomyResolver progressionEconomyResolver = new ProgressionEconomyResolver();
     private final boolean laneCombatEnabled;
     private final boolean farmRecoveryEnabled;
     private final boolean jungleGankEnabled;
@@ -55,6 +56,8 @@ public class MatchSimulator {
     private final boolean lanePhaseEnabled;
     private final boolean objectiveDecisionEnabled;
     private final boolean lateGameMacroEnabled;
+    private final boolean progressionEnabled;
+    private final boolean progressionPowerEnabled;
 
     @Autowired
     public MatchSimulator(
@@ -151,6 +154,8 @@ public class MatchSimulator {
         this.lanePhaseEnabled = options.lanePhaseEnabled();
         this.objectiveDecisionEnabled = options.objectiveDecisionEnabled();
         this.lateGameMacroEnabled = options.lateGameMacroEnabled();
+        this.progressionEnabled = options.progressionEnabled();
+        this.progressionPowerEnabled = options.progressionPowerEnabled();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -165,6 +170,7 @@ public class MatchSimulator {
     private SimulationResult runSimulation(Team blueTeam, Team redTeam, long seed) {
         Random random = new Random(seed);
         GameState gameState = initializeGameState(blueTeam, redTeam);
+        gameState.configureProgression(progressionEnabled, progressionPowerEnabled);
         gameState.getBlueTeamState().validateCompleteLineup();
         gameState.getRedTeamState().validateCompleteLineup();
         List<MatchEvent> events = new ArrayList<>();
@@ -200,6 +206,8 @@ public class MatchSimulator {
                     TICK_SECONDS, gameState.getCurrentTimeSeconds(), blueEconomy);
             resolveFarmForTick(random, gameState, gameState.getRedTeamState(), TeamSide.RED,
                     TICK_SECONDS, gameState.getCurrentTimeSeconds(), redEconomy);
+            if (blueEconomy && redEconomy) progressionEconomyResolver.resolve(gameState, gameState.getCurrentTimeSeconds());
+            gameState.drainProgressionEvents(events);
             boolean roamEvaluationDue = roamEnabled
                     && gameState.shouldResolveRoamAt(gameState.getCurrentTimeSeconds());
             boolean jungleGankAttempted = jungleGankEnabled && jungleGankResolver.resolve(gameState, random, events);
@@ -259,6 +267,7 @@ public class MatchSimulator {
             }
             endGameDecision = endGameEvaluator.evaluateAfterTick(gameState);
             if (endGameDecision.isFinished()) { midGameMacroResolver.onMatchFinished(gameState); lateGameMacroResolver.onMatchFinished(gameState); }
+            gameState.drainProgressionEvents(events);
             snapshots.add(snapshotFactory.create(gameState));
         }
 
@@ -307,7 +316,8 @@ public class MatchSimulator {
                 gameState.getMidGameMacroState().getExecutionStats().snapshot(),
                 gameState.getObjectiveDecisionState().getStats().snapshot(),
                 gameState.getObjectiveDecisionState().getHistory(),
-                gameState.getStructureActionExecutionStats().snapshot()
+                gameState.getStructureActionExecutionStats().snapshot(),
+                gameState.getProgressionExecutionStats().snapshot()
         );
     }
 
@@ -337,7 +347,8 @@ public class MatchSimulator {
             MidGameMacroExecutionStatsSnapshot midGameMacroExecutionStats,
             ObjectiveDecisionExecutionStatsSnapshot objectiveDecisionExecutionStats,
             List<ObjectiveDecisionData> objectiveDecisionHistory,
-            StructureActionExecutionStatsSnapshot structureActionExecutionStats
+            StructureActionExecutionStatsSnapshot structureActionExecutionStats,
+            ProgressionExecutionStatsSnapshot progressionExecutionStats
     ) {
     }
 
@@ -391,7 +402,7 @@ public class MatchSimulator {
     private boolean awardPassiveForTick(TeamState state, int currentTime) {
         if (!state.shouldResolveEconomyAt(currentTime)) return false;
         for (PlayerState player : state.getPlayers()) {
-            goldAwards.awardGold(state, player, passiveGoldPerTick(), GoldSource.PASSIVE, false);
+            goldAwards.awardGold(state, player, passiveGoldPerTick(), GoldSource.PASSIVE, false, currentTime);
         }
         return true;
     }
@@ -429,16 +440,17 @@ public class MatchSimulator {
     private TeamSelection chooseTeamForSkirmish(Random random, Team blueTeam, Team redTeam, GameState state) {
         TeamState blue = state.getBlueTeamState();
         TeamState red = state.getRedTeamState();
-        double blueWeight = skirmishInitiative(blue, state.getCurrentTimeSeconds())
+        double blueWeight = skirmishInitiative(state, TeamSide.BLUE)
                 + blue.getKills() * 3.0 + blue.getGold() / 900.0;
-        double redWeight = skirmishInitiative(red, state.getCurrentTimeSeconds())
+        double redWeight = skirmishInitiative(state, TeamSide.RED)
                 + red.getKills() * 3.0 + red.getGold() / 900.0;
         return random.nextDouble() < blueWeight / (blueWeight + redWeight)
                 ? new TeamSelection(blueTeam, blue, redTeam, red)
                 : new TeamSelection(redTeam, red, blueTeam, blue);
     }
 
-    private double skirmishInitiative(TeamState team, int currentTime) {
+    private double skirmishInitiative(GameState state, TeamSide side) {
+        TeamState team=state.getTeamState(side);int currentTime=state.getCurrentTimeSeconds();
         int alive = 0;
         double total = 0.0;
         for (PlayerState player : team.getPlayers()) {
@@ -448,7 +460,10 @@ public class MatchSimulator {
                     + player.getMechanics() * PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_MECHANICS_WEIGHT
                     + player.getTeamfighting() * PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_TEAMFIGHTING_WEIGHT;
         }
-        return alive == 0 ? 0.1 : total;
+        if(alive==0)return .1;
+        List<PlayerState> own=team.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
+        List<PlayerState> enemy=state.getTeamState(side.opposite()).getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
+        return total+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.GENERIC_SKIRMISH,own,enemy);
     }
 
     private double averageAttribute(TeamState team, java.util.function.ToIntFunction<PlayerState> attribute) {

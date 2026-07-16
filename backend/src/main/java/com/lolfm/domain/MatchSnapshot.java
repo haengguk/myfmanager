@@ -38,6 +38,7 @@ public class MatchSnapshot {
     private MidGameMacroSnapshot midGameMacro;
     private ObjectiveDecisionSnapshot objectiveDecision;
     private LateGameSnapshot lateGame;
+    private ProgressionSnapshot progression;
 
     public MatchSnapshot(
             int timeSeconds,
@@ -104,6 +105,7 @@ public class MatchSnapshot {
         this.midGameMacro = MidGameMacroSnapshot.disabled(timeSeconds, lanePhase.matchPhase());
         this.objectiveDecision = ObjectiveDecisionSnapshot.disabled();
         this.lateGame = new LateGameSnapshot(false, lanePhase.matchPhase(), -1, null, -1, null, null, null, null, null, new StructureActionExecutionStatsSnapshot(0, 0, 0, 0, 0, 0, 0, 0));
+        this.progression = new ProgressionSnapshot(false, false, null, null);
     }
 
     public MatchSnapshot(
@@ -174,6 +176,8 @@ public class MatchSnapshot {
     public MidGameMacroSnapshot getMidGameMacro() { return midGameMacro; }
     public ObjectiveDecisionSnapshot getObjectiveDecision() { return objectiveDecision; }
     public LateGameSnapshot getLateGame() { return lateGame; }
+    public ProgressionSnapshot getProgression() { return progression; }
+    public void setProgression(ProgressionSnapshot value) { progression=value; }
     public int getBlueKills() { return blueKills; }
     public int getRedKills() { return redKills; }
     public int getBlueGold() { return blueGold; }

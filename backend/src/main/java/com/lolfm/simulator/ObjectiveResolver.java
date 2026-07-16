@@ -38,7 +38,7 @@ public class ObjectiveResolver {
         TeamState capturingTeam = gameState.getTeamState(side);
         TeamState opposingTeam = gameState.getTeamState(side.opposite());
         capturingTeam.addDragon();
-        awardTeamGold(capturingTeam, ObjectiveRuleConfig.DRAGON_GOLD_PER_PLAYER);
+        awardTeamGold(capturingTeam, ObjectiveRuleConfig.DRAGON_GOLD_PER_PLAYER, currentTimeSeconds);
 
         int dragonCount = capturingTeam.getDragons();
         boolean soulClaimed = dragonCount == 4;
@@ -71,7 +71,7 @@ public class ObjectiveResolver {
         TeamState winningTeam = gameState.getTeamState(side);
         gameState.getTeamState(side.opposite()).setHasBaronBuff(false);
         winningTeam.grantBaronBuff(currentTimeSeconds, 180);
-        awardTeamGold(winningTeam, ObjectiveRuleConfig.BARON_GOLD_PER_PLAYER);
+        awardTeamGold(winningTeam, ObjectiveRuleConfig.BARON_GOLD_PER_PLAYER, currentTimeSeconds);
         return Optional.of(new MatchEvent(
                 currentTimeSeconds, MatchEventType.BARON, winningTeam.getTeamName() + "가 " + resultMessage,
                 null, null, List.of()
@@ -100,8 +100,8 @@ public class ObjectiveResolver {
         };
     }
 
-    private void awardTeamGold(TeamState teamState, int goldPerPlayer) {
-        for (PlayerState playerState : teamState.getPlayers()) playerState.addGold(goldPerPlayer);
+    private void awardTeamGold(TeamState teamState, int goldPerPlayer, int timeSeconds) {
+        for (PlayerState playerState : teamState.getPlayers()) playerState.addGold(goldPerPlayer, GoldSource.OBJECTIVE, timeSeconds);
         teamState.addGold(goldPerPlayer * teamState.getPlayers().size());
     }
 }

@@ -36,6 +36,7 @@ export interface MatchEvent {
   midGameMacroAction?: MidGameMacroActionData | null;
   matchPhaseChange?: MatchPhaseChangeData | null;
   lateGameDecision?: LateGameDecisionData | null;
+  progressionEvent?: ProgressionEventData | null;
 }
 
 
@@ -273,6 +274,7 @@ export interface MatchSnapshot {
   midGameMacro?: MidGameMacroSnapshot | null;
   objectiveDecision?: ObjectiveDecisionSnapshot | null;
   lateGame?: LateGameSnapshot | null;
+  progression?: ProgressionSnapshot | null;
 }
 
 export interface LaneSnapshot {
@@ -280,6 +282,15 @@ export interface LaneSnapshot {
   pressure: number;
   priority: 'BLUE' | 'NEUTRAL' | 'RED';
 }
+
+export type ItemProgressStage = 'STARTING' | 'COMPONENT' | 'FIRST_CORE' | 'SECOND_CORE' | 'THIRD_CORE' | 'FOURTH_CORE' | 'FULL_BUILD';
+export type ProgressionEventType = 'EXPERIENCE_GAINED' | 'LEVEL_UP' | 'ITEM_STAGE_REACHED';
+export type ExperienceSource = 'LANE_ECONOMY' | 'BOT_SHARED_ECONOMY' | 'BOT_SOLO_ECONOMY' | 'JUNGLE_ECONOMY' | 'KILL' | 'ASSIST';
+export interface ProgressionPowerSnapshot { levelPower:number; itemPower:number; championMultiplier:number; championSpikeBonus:number; totalPower:number; }
+export interface PlayerProgressionSnapshot { enabled:boolean; level:number; totalExperience:number; currentLevelStartExperience:number; nextLevelTotalExperience:number; levelProgressRatio:number; itemStage:ItemProgressStage; progressionEarnedGold:number; nextItemStageGold:number; itemProgressRatio:number; progressionPower:ProgressionPowerSnapshot; }
+export interface TeamProgressionSnapshot { averageLevel:number; totalCoreCount:number; level18Count:number; players:Record<string,PlayerProgressionSnapshot>; }
+export interface ProgressionSnapshot { enabled:boolean; powerEnabled:boolean; blue:TeamProgressionSnapshot|null; red:TeamProgressionSnapshot|null; }
+export interface ProgressionEventData { side:TeamSide; playerKey:{side:TeamSide;position:string}; position:string; type:ProgressionEventType; experienceSource:ExperienceSource|null; previousExperience:number; newExperience:number; experienceGained:number; previousLevel:number; newLevel:number; previousItemStage:ItemProgressStage; newItemStage:ItemProgressStage; progressionEarnedGold:number; threshold:number; timeSeconds:number; }
 
 export interface PlayerSnapshot {
   playerName: string;
@@ -310,6 +321,17 @@ export interface PlayerSnapshot {
   totalShutdownGoldEarned: number;
   totalShutdownGoldGiven: number;
   bountyProgress: number;
+  progression: PlayerProgressionSnapshot;
+  level: number;
+  totalExperience: number;
+  currentLevelStartExperience: number;
+  nextLevelTotalExperience: number;
+  levelProgressRatio: number;
+  itemStage: ItemProgressStage;
+  progressionEarnedGold: number;
+  nextItemStageGold: number;
+  itemProgressRatio: number;
+  progressionPower: ProgressionPowerSnapshot;
 }
 
 export type TeamMacroPlan = 'GROUP_MID' | 'SIDE_LANE_TOP' | 'SIDE_LANE_BOT' | 'OBJECTIVE_SETUP_DRAGON' | 'OBJECTIVE_SETUP_BARON' | 'RESET_AND_FARM';
