@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MatchEvent, MatchSimulateResponse, MatchSnapshot, MidGameMacroSnapshot, PlayerSnapshot, TeamMacroSnapshot, LateGameSnapshot } from './types/match';
+import type { ChampionCatalogResponse, ChampionDefinitionDto, ChampionLineupRequest, ChampionSelectionRequest, MatchEvent, MatchSimulateResponse, MatchSnapshot, MidGameMacroSnapshot, PlayerSnapshot, Position, TeamMacroSnapshot, LateGameSnapshot } from './types/match';
 
 const API_URL = 'http://localhost:8080/api/matches/simulate';
+const CHAMPION_API_URL = 'http://localhost:8080/api/champions';
 const SPEED_OPTIONS = [1, 5, 10, 30] as const;
 const POSITION_ORDER: Record<string, number> = {
   TOP: 0,
@@ -10,6 +11,21 @@ const POSITION_ORDER: Record<string, number> = {
   ADC: 3,
   SUPPORT: 4
 };
+const CHAMPION_SLOTS = [
+  { key: 'top', label: 'TOP', position: 'TOP' },
+  { key: 'jgl', label: 'JGL', position: 'JUNGLE' },
+  { key: 'mid', label: 'MID', position: 'MID' },
+  { key: 'adc', label: 'ADC', position: 'ADC' },
+  { key: 'sup', label: 'SUP', position: 'SUPPORT' }
+] as const satisfies ReadonlyArray<{ key: keyof ChampionLineupRequest; label: string; position: Position }>;
+
+function ChampionPortrait({ champion, className = '' }: { champion: Pick<ChampionDefinitionDto, 'displayNameKo' | 'portraitUrl'>; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  const initials = champion.displayNameKo.replace(/\s/g, '').slice(0, 2);
+  return failed ? <span className={`champion-fallback ${className}`} aria-label={`${champion.displayNameKo} 이미지 대체`}>{initials}</span> : (
+    <img className={`champion-portrait ${className}`} src={champion.portraitUrl} alt="" onError={() => setFailed(true)} />
+  );
+}
 
 function formatTime(seconds: number): string {
   const safeSeconds = Math.max(0, Math.floor(seconds));
@@ -211,9 +227,28 @@ function App() {
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [championCatalog, setChampionCatalog] = useState<ChampionCatalogResponse | null>(null);
+  const [championSelection, setChampionSelection] = useState<ChampionSelectionRequest | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement | null>(null);
 
   const timeline = matchResult?.timeline ?? null;
+
+  useEffect(() => {
+    let active = true;
+    fetch(CHAMPION_API_URL)
+      .then(async (response) => {
+        if (!response.ok) throw new Error(`챔피언 목록 요청 실패: ${response.status}`);
+        return response.json() as Promise<ChampionCatalogResponse>;
+      })
+      .then((catalog) => {
+        if (!active) return;
+        setChampionCatalog(catalog);
+        setChampionSelection(catalog.defaultSelection);
+      })
+      .catch((caught) => { if (active) setCatalogError(caught instanceof Error ? caught.message : '챔피언 목록을 불러오지 못했습니다.'); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!timeline || !playing) {
@@ -304,6 +339,14 @@ function App() {
   }, [currentSnapshot, teamNames]);
 
   const hasGameEnded = visibleEvents.some((event) => event.type === 'GAME_END') || (timeline ? gameTime >= timeline.durationSeconds : false);
+  const selectedChampionIds = championSelection
+    ? [...Object.values(championSelection.blue), ...Object.values(championSelection.red)]
+    : [];
+  const hasChampionConflict = new Set(selectedChampionIds).size !== selectedChampionIds.length;
+
+  const updateChampion = (side: 'blue' | 'red', slot: keyof ChampionLineupRequest, id: string) => {
+    setChampionSelection((current) => current ? { ...current, [side]: { ...current[side], [slot]: id } } : current);
+  };
 
   const startMatch = async () => {
     const trimmedSeed = seedInput.trim();
@@ -329,11 +372,12 @@ function App() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ seed })
+        body: JSON.stringify({ seed, championSelection })
       });
 
       if (!response.ok) {
-        throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`);
+        const apiError = await response.json().catch(() => null) as { message?: string } | null;
+        throw new Error(apiError?.message ?? `API 요청 실패: ${response.status} ${response.statusText}`);
       }
 
       const result = (await response.json()) as MatchSimulateResponse;
@@ -384,7 +428,7 @@ function App() {
         </div>
 
         <div className="control-actions">
-          <button className="primary-button" onClick={startMatch} disabled={loading}>
+          <button className="primary-button" onClick={startMatch} disabled={loading || !championCatalog || !championSelection || hasChampionConflict}>
             {loading ? '경기 생성 중...' : '경기 시작'}
           </button>
 
@@ -426,6 +470,44 @@ function App() {
           </label>
           <p className="seed-hint">입력창을 비워두면 경기 시작마다 새 seed를 사용하고, 숫자를 넣으면 같은 경기를 다시 재현합니다.</p>
         </div>
+
+        <section className="champion-select-panel" aria-label="경기 챔피언 선택">
+          <div className="champion-select-heading">
+            <div><span className="eyebrow">Pre-match lineup</span><h2>챔피언 선택</h2></div>
+            <span>{championCatalog ? `${championCatalog.championPoolVersion} · ${championCatalog.riotDataVersion}` : 'CATALOG LOADING'}</span>
+          </div>
+          {catalogError ? <p className="champion-select-error">{catalogError}</p> : !championCatalog || !championSelection ? (
+            <p className="champion-select-loading">고정 챔피언 풀을 불러오는 중입니다.</p>
+          ) : (
+            <div className="champion-lineups">
+              {(['blue', 'red'] as const).map((side) => (
+                <div className={`champion-lineup lineup-${side}`} key={side}>
+                  <div className="lineup-title"><strong>{side.toUpperCase()}</strong><span>5 PICKS</span></div>
+                  {CHAMPION_SLOTS.map((slot) => {
+                    const selectedId = championSelection[side][slot.key];
+                    const selected = championCatalog.champions.find((champion) => champion.id === selectedId)!;
+                    const options = championCatalog.champions.filter((champion) => champion.primaryPosition === slot.position);
+                    return (
+                      <label className="champion-slot" key={`${side}-${slot.key}`}>
+                        <span className="champion-slot-position">{slot.label}</span>
+                        <ChampionPortrait champion={selected} />
+                        <span className="champion-slot-copy"><b>{selected.displayNameKo}</b><small>{selected.displayNameEn}</small></span>
+                        <select value={selectedId} onChange={(event) => updateChampion(side, slot.key, event.target.value)} disabled={loading} aria-label={`${side} ${slot.label} 챔피언`}>
+                          {options.map((champion) => (
+                            <option key={champion.id} value={champion.id} disabled={champion.id !== selectedId && selectedChampionIds.includes(champion.id)}>
+                              {champion.displayNameKo} · {champion.displayNameEn}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+          {hasChampionConflict && <p className="champion-select-error">같은 챔피언은 한 경기에서 한 번만 선택할 수 있습니다.</p>}
+        </section>
 
         <div className="status-strip">
           <div className="status-item">
@@ -761,7 +843,7 @@ function App() {
                           <td>{player.position}</td>
                           <td>
                             <div className="player-cell">
-                              <span>{player.playerName}</span>
+                              <div className="player-identity"><ChampionPortrait champion={player.champion} className="roster-portrait" /><span><b>{player.playerName}</b><small>{player.champion.displayNameKo} · {player.position}</small></span></div>
                               <span className="progression-badge">Lv. {player.level} · {itemStageLabel(player.itemStage)}</span>
                               {!player.alive ? (
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
@@ -806,7 +888,7 @@ function App() {
                           <td>{player.position}</td>
                           <td>
                             <div className="player-cell">
-                              <span>{player.playerName}</span>
+                              <div className="player-identity"><ChampionPortrait champion={player.champion} className="roster-portrait" /><span><b>{player.playerName}</b><small>{player.champion.displayNameKo} · {player.position}</small></span></div>
                               <span className="progression-badge">Lv. {player.level} · {itemStageLabel(player.itemStage)}</span>
                               {!player.alive ? (
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>

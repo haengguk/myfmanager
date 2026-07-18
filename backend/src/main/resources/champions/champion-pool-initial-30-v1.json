@@ -1,0 +1,45 @@
+{
+  "championPoolVersion": "initial-30-v1",
+  "championBalanceVersion": "neutral-foundation-v1",
+  "riotDataVersion": "16.14.1",
+  "defaultSelection": {
+    "blue": { "top": "renekton", "jgl": "sejuani", "mid": "azir", "adc": "jinx", "sup": "nautilus" },
+    "red": { "top": "jax", "jgl": "lee-sin", "mid": "ahri", "adc": "kaisa", "sup": "rakan" }
+  },
+  "champions": [
+    { "id": "renekton", "displayNameKo": "레넥톤", "displayNameEn": "Renekton", "riotAssetId": "Renekton", "primaryPosition": "TOP", "supportedPositions": ["TOP"] },
+    { "id": "ornn", "displayNameKo": "오른", "displayNameEn": "Ornn", "riotAssetId": "Ornn", "primaryPosition": "TOP", "supportedPositions": ["TOP"] },
+    { "id": "jax", "displayNameKo": "잭스", "displayNameEn": "Jax", "riotAssetId": "Jax", "primaryPosition": "TOP", "supportedPositions": ["TOP"] },
+    { "id": "gwen", "displayNameKo": "그웬", "displayNameEn": "Gwen", "riotAssetId": "Gwen", "primaryPosition": "TOP", "supportedPositions": ["TOP"] },
+    { "id": "kennen", "displayNameKo": "케넨", "displayNameEn": "Kennen", "riotAssetId": "Kennen", "primaryPosition": "TOP", "supportedPositions": ["TOP"] },
+    { "id": "ksante", "displayNameKo": "크산테", "displayNameEn": "K'Sante", "riotAssetId": "KSante", "primaryPosition": "TOP", "supportedPositions": ["TOP"] },
+
+    { "id": "lee-sin", "displayNameKo": "리 신", "displayNameEn": "Lee Sin", "riotAssetId": "LeeSin", "primaryPosition": "JUNGLE", "supportedPositions": ["JUNGLE"] },
+    { "id": "sejuani", "displayNameKo": "세주아니", "displayNameEn": "Sejuani", "riotAssetId": "Sejuani", "primaryPosition": "JUNGLE", "supportedPositions": ["JUNGLE"] },
+    { "id": "vi", "displayNameKo": "바이", "displayNameEn": "Vi", "riotAssetId": "Vi", "primaryPosition": "JUNGLE", "supportedPositions": ["JUNGLE"] },
+    { "id": "nidalee", "displayNameKo": "니달리", "displayNameEn": "Nidalee", "riotAssetId": "Nidalee", "primaryPosition": "JUNGLE", "supportedPositions": ["JUNGLE"] },
+    { "id": "viego", "displayNameKo": "비에고", "displayNameEn": "Viego", "riotAssetId": "Viego", "primaryPosition": "JUNGLE", "supportedPositions": ["JUNGLE"] },
+    { "id": "maokai", "displayNameKo": "마오카이", "displayNameEn": "Maokai", "riotAssetId": "Maokai", "primaryPosition": "JUNGLE", "supportedPositions": ["JUNGLE"] },
+
+    { "id": "azir", "displayNameKo": "아지르", "displayNameEn": "Azir", "riotAssetId": "Azir", "primaryPosition": "MID", "supportedPositions": ["MID"] },
+    { "id": "orianna", "displayNameKo": "오리아나", "displayNameEn": "Orianna", "riotAssetId": "Orianna", "primaryPosition": "MID", "supportedPositions": ["MID"] },
+    { "id": "ahri", "displayNameKo": "아리", "displayNameEn": "Ahri", "riotAssetId": "Ahri", "primaryPosition": "MID", "supportedPositions": ["MID"] },
+    { "id": "leblanc", "displayNameKo": "르블랑", "displayNameEn": "LeBlanc", "riotAssetId": "Leblanc", "primaryPosition": "MID", "supportedPositions": ["MID"] },
+    { "id": "sylas", "displayNameKo": "사일러스", "displayNameEn": "Sylas", "riotAssetId": "Sylas", "primaryPosition": "MID", "supportedPositions": ["MID"] },
+    { "id": "viktor", "displayNameKo": "빅토르", "displayNameEn": "Viktor", "riotAssetId": "Viktor", "primaryPosition": "MID", "supportedPositions": ["MID"] },
+
+    { "id": "jinx", "displayNameKo": "징크스", "displayNameEn": "Jinx", "riotAssetId": "Jinx", "primaryPosition": "ADC", "supportedPositions": ["ADC"] },
+    { "id": "lucian", "displayNameKo": "루시안", "displayNameEn": "Lucian", "riotAssetId": "Lucian", "primaryPosition": "ADC", "supportedPositions": ["ADC"] },
+    { "id": "ezreal", "displayNameKo": "이즈리얼", "displayNameEn": "Ezreal", "riotAssetId": "Ezreal", "primaryPosition": "ADC", "supportedPositions": ["ADC"] },
+    { "id": "kaisa", "displayNameKo": "카이사", "displayNameEn": "Kai'Sa", "riotAssetId": "Kaisa", "primaryPosition": "ADC", "supportedPositions": ["ADC"] },
+    { "id": "aphelios", "displayNameKo": "아펠리오스", "displayNameEn": "Aphelios", "riotAssetId": "Aphelios", "primaryPosition": "ADC", "supportedPositions": ["ADC"] },
+    { "id": "varus", "displayNameKo": "바루스", "displayNameEn": "Varus", "riotAssetId": "Varus", "primaryPosition": "ADC", "supportedPositions": ["ADC"] },
+
+    { "id": "nautilus", "displayNameKo": "노틸러스", "displayNameEn": "Nautilus", "riotAssetId": "Nautilus", "primaryPosition": "SUPPORT", "supportedPositions": ["SUPPORT"] },
+    { "id": "rakan", "displayNameKo": "라칸", "displayNameEn": "Rakan", "riotAssetId": "Rakan", "primaryPosition": "SUPPORT", "supportedPositions": ["SUPPORT"] },
+    { "id": "lulu", "displayNameKo": "룰루", "displayNameEn": "Lulu", "riotAssetId": "Lulu", "primaryPosition": "SUPPORT", "supportedPositions": ["SUPPORT"] },
+    { "id": "braum", "displayNameKo": "브라움", "displayNameEn": "Braum", "riotAssetId": "Braum", "primaryPosition": "SUPPORT", "supportedPositions": ["SUPPORT"] },
+    { "id": "renata-glasc", "displayNameKo": "레나타 글라스크", "displayNameEn": "Renata Glasc", "riotAssetId": "Renata", "primaryPosition": "SUPPORT", "supportedPositions": ["SUPPORT"] },
+    { "id": "bard", "displayNameKo": "바드", "displayNameEn": "Bard", "riotAssetId": "Bard", "primaryPosition": "SUPPORT", "supportedPositions": ["SUPPORT"] }
+  ]
+}

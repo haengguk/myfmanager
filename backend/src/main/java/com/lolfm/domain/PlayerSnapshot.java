@@ -1,5 +1,7 @@
 package com.lolfm.domain;
 
+import com.lolfm.champion.ChampionSnapshot;
+
 public class PlayerSnapshot {
 
     private final String playerName;
@@ -31,6 +33,7 @@ public class PlayerSnapshot {
     private final int activitySecondsRemaining;
     private final int roamFarmBlockedUntilSeconds;
     private final PlayerProgressionSnapshot progression;
+    private final ChampionSnapshot champion;
 
     public PlayerSnapshot(
             String playerName,
@@ -61,7 +64,8 @@ public class PlayerSnapshot {
             int activityUntilSeconds,
             int activitySecondsRemaining,
             int roamFarmBlockedUntilSeconds,
-            PlayerProgressionSnapshot progression
+            PlayerProgressionSnapshot progression,
+            ChampionSnapshot champion
     ) {
         this.playerName = playerName;
         this.teamName = teamName;
@@ -92,6 +96,7 @@ public class PlayerSnapshot {
         this.totalShutdownGoldGiven = totalShutdownGoldGiven;
         this.bountyProgress = bountyProgress;
         this.progression = progression;
+        this.champion = champion;
     }
 
     public String getPlayerName() { return playerName; }
@@ -133,4 +138,10 @@ public class PlayerSnapshot {
     public int getNextItemStageGold() { return progression.nextItemStageGold(); }
     public double getItemProgressRatio() { return progression.itemProgressRatio(); }
     public ProgressionPowerSnapshot getProgressionPower() { return progression.progressionPower(); }
+    public ChampionSnapshot getChampion() { return champion; }
+    public String getChampionId() { return champion == null ? null : champion.id(); }
+    public String getChampionNameKo() { return champion == null ? null : champion.displayNameKo(); }
+    public String getChampionNameEn() { return champion == null ? null : champion.displayNameEn(); }
+    public String getChampionPortraitUrl() { return champion == null ? null : champion.portraitUrl(); }
+    public Position getChampionPosition() { return champion == null ? null : champion.primaryPosition(); }
 }

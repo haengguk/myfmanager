@@ -107,3 +107,10 @@ tasks.register("runProgressionBaselineAudit", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.simulator.ProgressionBaselineAudit"
 }
+
+tasks.register("runChampionFoundationDiagnostics", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13A champion foundation diagnostics."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionFoundationDiagnostics"
+}

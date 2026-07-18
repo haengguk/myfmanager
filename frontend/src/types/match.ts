@@ -1,6 +1,47 @@
 export interface MatchSimulateResponse {
   seed: number;
   timeline: MatchTimeline;
+  championMetadata: ChampionMatchMetadata;
+}
+
+export type Position = 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
+export type ChampionId = string;
+export interface ChampionDefinitionDto {
+  id: ChampionId;
+  displayNameKo: string;
+  displayNameEn: string;
+  riotAssetId: string;
+  primaryPosition: Position;
+  supportedPositions: Position[];
+  portraitUrl: string;
+  championPoolVersion: string;
+  riotDataVersion: string;
+}
+export interface ChampionLineupRequest { top: ChampionId; jgl: ChampionId; mid: ChampionId; adc: ChampionId; sup: ChampionId; }
+export interface ChampionSelectionRequest { blue: ChampionLineupRequest; red: ChampionLineupRequest; }
+export interface ChampionCatalogResponse {
+  championPoolVersion: string;
+  championBalanceVersion: string;
+  riotDataVersion: string;
+  defaultSelection: ChampionSelectionRequest;
+  champions: ChampionDefinitionDto[];
+}
+export interface ChampionSnapshot {
+  id: ChampionId;
+  displayNameKo: string;
+  displayNameEn: string;
+  portraitUrl: string;
+  primaryPosition: Position;
+  poolVersion: string;
+}
+export interface ChampionLineupSnapshot { top: ChampionSnapshot; jgl: ChampionSnapshot; mid: ChampionSnapshot; adc: ChampionSnapshot; sup: ChampionSnapshot; }
+export interface ChampionMatchMetadata {
+  championPoolVersion: string;
+  championBalanceVersion: string;
+  riotDataVersion: string;
+  selectionMode: 'DEFAULT_FIXED' | 'EXPLICIT';
+  blue: ChampionLineupSnapshot;
+  red: ChampionLineupSnapshot;
 }
 
 export interface MatchTimeline {
@@ -332,6 +373,7 @@ export interface PlayerSnapshot {
   nextItemStageGold: number;
   itemProgressRatio: number;
   progressionPower: ProgressionPowerSnapshot;
+  champion: ChampionSnapshot;
 }
 
 export type TeamMacroPlan = 'GROUP_MID' | 'SIDE_LANE_TOP' | 'SIDE_LANE_BOT' | 'OBJECTIVE_SETUP_DRAGON' | 'OBJECTIVE_SETUP_BARON' | 'RESET_AND_FARM';
@@ -524,7 +566,6 @@ export interface ObjectiveDecisionSnapshot {
   latestRed: ObjectiveDecisionData | null;
 }
 
-export type Position = 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
 export type LateGameAttackPlan = 'SIEGE_TOP' | 'SIEGE_MID' | 'SIEGE_BOT' | 'NEXUS_FINISH' | 'RESET_AND_REGROUP';
 export type LateGameDefenseResponse = 'DEFEND' | 'GIVE_STRUCTURE' | 'CROSS_MAP_PUSH';
 export type LateGameActionResult = 'NOT_EVALUATED' | 'NO_INITIATIVE' | 'ATTACKER_RESET' | 'SIEGE_REPELLED' | 'STRUCTURE_DESTROYED' | 'SIEGE_FIGHT_ATTACKER_WIN' | 'SIEGE_FIGHT_DEFENDER_WIN' | 'CROSS_MAP_SUCCEEDED' | 'CROSS_MAP_FAILED' | 'NEXUS_FINISH_ADVANCED' | 'NEXUS_DESTROYED' | 'STALE_TARGET' | 'INELIGIBLE' | 'GAME_FINISHED';

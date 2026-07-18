@@ -1,5 +1,6 @@
 package com.lolfm.simulator;
 
+import com.lolfm.champion.MatchChampionAssignments;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.ProgressionEventData;
@@ -13,6 +14,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class GameState {
+
+    private MatchChampionAssignments championAssignments;
 
     private int currentTimeSeconds;
     private final TeamState blueTeamState;
@@ -119,6 +122,19 @@ public class GameState {
         this.lastBigWinTimeSeconds = -1;
         this.lastAceTimeSeconds = -1;
         configureProgression(true, true);
+    }
+
+    public GameState(TeamState blueTeamState, TeamState redTeamState, boolean diagnosticsEnabled,
+                     boolean objectivePriorityEnabled, boolean lanePhaseEnabled, boolean midGameMacroEnabled,
+                     boolean objectiveDecisionEnabled, boolean lateGameEnabled,
+                     MatchChampionAssignments championAssignments) {
+        this(blueTeamState, redTeamState, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled,
+                midGameMacroEnabled, objectiveDecisionEnabled, lateGameEnabled);
+        this.championAssignments = java.util.Objects.requireNonNull(championAssignments, "championAssignments");
+    }
+
+    public java.util.Optional<MatchChampionAssignments> getChampionAssignments() {
+        return java.util.Optional.ofNullable(championAssignments);
     }
 
     public void configureProgression(boolean enabled, boolean powerEnabled) {

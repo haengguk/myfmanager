@@ -1,5 +1,9 @@
 package com.lolfm.simulator;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.champion.ChampionCatalog;
+import com.lolfm.champion.ChampionSelectionValidator;
+import com.lolfm.champion.MatchChampionAssignments;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.ObjectiveDecisionData;
 import com.lolfm.domain.MatchEventType;
@@ -21,6 +25,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class MatchSimulator {
+
+    private static final ChampionCatalog DEFAULT_CHAMPION_CATALOG = new ChampionCatalog(new ObjectMapper());
 
     private static final Logger logger = LoggerFactory.getLogger(MatchSimulator.class);
     public static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = 5_400;
@@ -160,16 +166,22 @@ public class MatchSimulator {
     }
 
     public MatchTimeline simulate(Team blueTeam, Team redTeam, long seed) {
-        return runSimulation(blueTeam, redTeam, seed).timeline();
+        return simulate(blueTeam, redTeam, seed,
+                new ChampionSelectionValidator(DEFAULT_CHAMPION_CATALOG).resolve(null));
+    }
+
+    public MatchTimeline simulate(Team blueTeam, Team redTeam, long seed, MatchChampionAssignments assignments) {
+        return runSimulation(blueTeam, redTeam, seed, assignments).timeline();
     }
 
     SimulationResult simulateWithDiagnostics(Team blueTeam, Team redTeam, long seed) {
-        return runSimulation(blueTeam, redTeam, seed);
+        return runSimulation(blueTeam, redTeam, seed,
+                new ChampionSelectionValidator(DEFAULT_CHAMPION_CATALOG).resolve(null));
     }
 
-    private SimulationResult runSimulation(Team blueTeam, Team redTeam, long seed) {
+    private SimulationResult runSimulation(Team blueTeam, Team redTeam, long seed, MatchChampionAssignments assignments) {
+        GameState gameState = initializeGameState(blueTeam, redTeam, assignments);
         Random random = new Random(seed);
-        GameState gameState = initializeGameState(blueTeam, redTeam);
         gameState.configureProgression(progressionEnabled, progressionPowerEnabled);
         gameState.getBlueTeamState().validateCompleteLineup();
         gameState.getRedTeamState().validateCompleteLineup();
@@ -376,9 +388,10 @@ public class MatchSimulator {
             default -> { }
         }
     }
-    private GameState initializeGameState(Team blueTeam, Team redTeam) {
+    private GameState initializeGameState(Team blueTeam, Team redTeam, MatchChampionAssignments assignments) {
         return new GameState(buildTeamState(blueTeam), buildTeamState(redTeam), diagnosticsEnabled,
-                objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled, lateGameMacroEnabled);
+                objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled,
+                lateGameMacroEnabled, assignments);
     }
 
     private TeamState buildTeamState(Team team) {

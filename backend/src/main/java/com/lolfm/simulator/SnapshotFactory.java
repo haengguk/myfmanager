@@ -1,5 +1,8 @@
 package com.lolfm.simulator;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.champion.ChampionCatalog;
+import com.lolfm.champion.ChampionSnapshot;
 import com.lolfm.domain.LanePhaseLaneSnapshot;
 import com.lolfm.domain.LanePhaseSnapshot;
 import com.lolfm.domain.LaneSnapshot;
@@ -11,9 +14,17 @@ import com.lolfm.domain.TeamMacroSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Component
 public class SnapshotFactory {
+
+    private final ChampionCatalog championCatalog;
+
+    public SnapshotFactory() { this(new ChampionCatalog(new ObjectMapper())); }
+
+    @Autowired
+    public SnapshotFactory(ChampionCatalog championCatalog) { this.championCatalog = championCatalog; }
 
     public MatchSnapshot create(GameState gameState) {
         int currentTime = gameState.getCurrentTimeSeconds();
@@ -163,9 +174,17 @@ public class SnapshotFactory {
                     playerState.getActivityState().getActivityUntilSeconds(),
                     Math.max(0, playerState.getActivityState().getActivityUntilSeconds() - currentTime),
                     playerState.getRoamActionState().getRoamFarmBlockedUntilSeconds(),
-                    playerState.getProgressionState().snapshot(gameState.isProgressionPowerEnabled())
+                    playerState.getProgressionState().snapshot(gameState.isProgressionPowerEnabled()),
+                    championSnapshot(gameState, teamSide, playerState)
             ));
         }
         return alivePlayers;
+    }
+
+    private ChampionSnapshot championSnapshot(GameState gameState, TeamSide side, PlayerState playerState) {
+        return gameState.getChampionAssignments()
+                .map(assignments -> assignments.get(new PlayerKey(side, playerState.getPosition())))
+                .map(assignment -> ChampionSnapshot.from(championCatalog.get(assignment.championId())))
+                .orElse(null);
     }
 }
