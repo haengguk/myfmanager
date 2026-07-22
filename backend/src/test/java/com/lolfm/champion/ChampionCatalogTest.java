@@ -19,7 +19,7 @@ class ChampionCatalogTest {
 
     @Test void metadataAndCollectionsAreImmutable() {
         assertThat(catalog.championPoolVersion()).isEqualTo("initial-30-v1");
-        assertThat(catalog.championBalanceVersion()).isEqualTo("neutral-foundation-v1");
+        assertThat(catalog.championBalanceVersion()).isEqualTo("initial-30-power-v1");
         assertThat(catalog.riotDataVersion()).isEqualTo("16.14.1");
         assertThatThrownBy(() -> catalog.all().clear()).isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> catalog.get(new ChampionId("renekton")).supportedPositions().clear())

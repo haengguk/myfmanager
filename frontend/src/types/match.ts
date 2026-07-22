@@ -6,6 +6,7 @@ export interface MatchSimulateResponse {
 
 export type Position = 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
 export type ChampionId = string;
+export type ChampionTag = 'EARLY_PRESSURE'|'SCALING'|'HYPER_SCALING'|'LANE_BULLY'|'SAFE_LANER'|'GANKING'|'COUNTER_GANK'|'ROAMING'|'PICK'|'ENGAGE'|'DISENGAGE'|'PEEL'|'FRONTLINE'|'POKE'|'TEAMFIGHT'|'WAVE_CLEAR'|'SIEGE'|'SPLIT_PUSH'|'OBJECTIVE_DAMAGE'|'OBJECTIVE_CONTROL'|'SKIRMISH';
 export interface ChampionDefinitionDto {
   id: ChampionId;
   displayNameKo: string;
@@ -16,12 +17,20 @@ export interface ChampionDefinitionDto {
   portraitUrl: string;
   championPoolVersion: string;
   riotDataVersion: string;
+  profileVersion: string;
+  levelCurveId: string;
+  itemCurveId: string;
+  tags: ChampionTag[];
+  profileSummary: string;
+  contextStrengths: string[];
+  contextWeaknesses: string[];
 }
 export interface ChampionLineupRequest { top: ChampionId; jgl: ChampionId; mid: ChampionId; adc: ChampionId; sup: ChampionId; }
 export interface ChampionSelectionRequest { blue: ChampionLineupRequest; red: ChampionLineupRequest; }
 export interface ChampionCatalogResponse {
   championPoolVersion: string;
   championBalanceVersion: string;
+  championPowerProfileVersion: string;
   riotDataVersion: string;
   defaultSelection: ChampionSelectionRequest;
   champions: ChampionDefinitionDto[];
@@ -33,11 +42,15 @@ export interface ChampionSnapshot {
   portraitUrl: string;
   primaryPosition: Position;
   poolVersion: string;
+  powerProfile: ChampionPowerProfileSnapshot;
 }
+export interface ChampionPowerProfileSnapshot { profileVersion:string;levelCurveId:string;itemCurveId:string;tags:ChampionTag[];profileSummary:string;currentLevelModifier:number;currentItemModifier:number;currentNonContextModifier:number;championPowerEnabled:boolean; }
 export interface ChampionLineupSnapshot { top: ChampionSnapshot; jgl: ChampionSnapshot; mid: ChampionSnapshot; adc: ChampionSnapshot; sup: ChampionSnapshot; }
 export interface ChampionMatchMetadata {
   championPoolVersion: string;
   championBalanceVersion: string;
+  championPowerProfileVersion: string;
+  championPowerEnabled: boolean;
   riotDataVersion: string;
   selectionMode: 'DEFAULT_FIXED' | 'EXPLICIT';
   blue: ChampionLineupSnapshot;

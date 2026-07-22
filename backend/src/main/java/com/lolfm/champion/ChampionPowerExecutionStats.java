@@ -1,0 +1,2 @@
+package com.lolfm.champion;import java.util.*;
+public final class ChampionPowerExecutionStats{private final List<ChampionPowerCombatSample>samples=new ArrayList<>();private int missing;public void record(ChampionPowerCombatSample s){samples.add(s);}public void missingAssignment(){missing++;}public ChampionPowerExecutionStatsSnapshot snapshot(){return new ChampionPowerExecutionStatsSnapshot(samples,missing,0,0,0,0);}}

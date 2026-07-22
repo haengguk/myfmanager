@@ -71,7 +71,8 @@ public final class ChampionFoundationDiagnostics {
     private static MatchSimulator simulator() {
         return new MatchSimulator(new TeamfightResolver(), new EndGameEvaluator(), new SnapshotFactory(CATALOG),
                 new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(),
-                new StructureResolver(), new PushResolver(), SimulationOptions.productionDefaults());
+                new StructureResolver(), new PushResolver(),
+                SimulationOptions.productionDefaults().withChampionPowerEnabled(false));
     }
     private static int validateTimeline(MatchTimeline timeline) {
         return timeline.getSnapshots().stream().anyMatch(snapshot -> snapshot.getPlayerSnapshots().size() != 10

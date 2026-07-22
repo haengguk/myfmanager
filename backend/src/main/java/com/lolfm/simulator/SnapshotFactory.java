@@ -184,7 +184,7 @@ public class SnapshotFactory {
     private ChampionSnapshot championSnapshot(GameState gameState, TeamSide side, PlayerState playerState) {
         return gameState.getChampionAssignments()
                 .map(assignments -> assignments.get(new PlayerKey(side, playerState.getPosition())))
-                .map(assignment -> ChampionSnapshot.from(championCatalog.get(assignment.championId())))
+                .map(assignment -> gameState.getChampionPowerProfileCatalog().map(profiles->ChampionSnapshot.from(championCatalog.get(assignment.championId()),profiles.get(assignment.championId()),playerState.getProgressionState().getLevel(),playerState.getProgressionState().getItemStage(),gameState.isChampionPowerEnabled())).orElseGet(()->ChampionSnapshot.from(championCatalog.get(assignment.championId()))))
                 .orElse(null);
     }
 }

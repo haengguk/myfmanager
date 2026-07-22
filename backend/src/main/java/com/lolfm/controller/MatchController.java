@@ -4,6 +4,7 @@ import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionMetadataFactory;
 import com.lolfm.champion.ChampionSelectionValidator;
 import com.lolfm.champion.MatchChampionAssignments;
+import com.lolfm.champion.ChampionPowerProfileCatalog;
 import com.lolfm.domain.MatchTimeline;
 import com.lolfm.domain.Team;
 import com.lolfm.dto.MatchSimulateRequest;
@@ -25,12 +26,14 @@ public class MatchController {
     private final DummyDataFactory dummyDataFactory;
     private final ChampionCatalog championCatalog;
     private final ChampionSelectionValidator championSelectionValidator;
+    private final ChampionPowerProfileCatalog championPowerProfiles;
 
-    public MatchController(MatchSimulator matchSimulator, DummyDataFactory dummyDataFactory, ChampionCatalog championCatalog) {
+    public MatchController(MatchSimulator matchSimulator, DummyDataFactory dummyDataFactory, ChampionCatalog championCatalog,ChampionPowerProfileCatalog championPowerProfiles) {
         this.matchSimulator = matchSimulator;
         this.dummyDataFactory = dummyDataFactory;
         this.championCatalog = championCatalog;
         this.championSelectionValidator = new ChampionSelectionValidator(championCatalog);
+        this.championPowerProfiles=championPowerProfiles;
     }
 
     @PostMapping("/simulate")
@@ -46,6 +49,6 @@ public class MatchController {
         MatchTimeline timeline = matchSimulator.simulate(blueTeam, redTeam, seed, assignments);
 
         return new MatchSimulateResponse(seed, blueTeam, redTeam, timeline,
-                ChampionMetadataFactory.create(championCatalog, assignments));
+                ChampionMetadataFactory.create(championCatalog,championPowerProfiles,true,assignments));
     }
 }

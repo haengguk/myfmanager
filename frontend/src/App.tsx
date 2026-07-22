@@ -491,7 +491,7 @@ function App() {
                       <label className="champion-slot" key={`${side}-${slot.key}`}>
                         <span className="champion-slot-position">{slot.label}</span>
                         <ChampionPortrait champion={selected} />
-                        <span className="champion-slot-copy"><b>{selected.displayNameKo}</b><small>{selected.displayNameEn}</small></span>
+                        <span className="champion-slot-copy"><b>{selected.displayNameKo}</b><small>{selected.displayNameEn}</small><em>{selected.profileSummary}</em></span>
                         <select value={selectedId} onChange={(event) => updateChampion(side, slot.key, event.target.value)} disabled={loading} aria-label={`${side} ${slot.label} 챔피언`}>
                           {options.map((champion) => (
                             <option key={champion.id} value={champion.id} disabled={champion.id !== selectedId && selectedChampionIds.includes(champion.id)}>

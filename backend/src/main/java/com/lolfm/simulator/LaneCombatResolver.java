@@ -77,6 +77,8 @@ public final class LaneCombatResolver {
         state.laneState(lane).setPressure(pressureAfter);
         new ObjectivePriorityResolver().applyLaneCombatKill(state, time, lane, winningSide);
         events.add(laneEvent(time, lane, initiator, outcome, winningSide, killer, victim, assistants, pressureBefore, pressureAfter));
+        state.getCombatOutcomeExecutionStats().record(ProgressionCombatContext.LANE_COMBAT,time,true,winningSide,
+                participants(state.getBlueTeamState(), lane), participants(state.getRedTeamState(), lane));
         return true;
     }
 

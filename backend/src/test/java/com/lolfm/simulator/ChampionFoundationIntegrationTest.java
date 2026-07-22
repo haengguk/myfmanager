@@ -22,12 +22,13 @@ class ChampionFoundationIntegrationTest {
         });
         var first = timeline.getSnapshots().getFirst().getPlayerSnapshots().getFirst().getChampion();
         var last = timeline.getSnapshots().getLast().getPlayerSnapshots().getFirst().getChampion();
-        assertThat(first).isEqualTo(last);
+        assertThat(first.id()).isEqualTo(last.id());
+        assertThat(first.powerProfile().profileVersion()).isEqualTo("initial-30-power-v1");
     }
 
     @Test void differentValidLineupsChangeOnlyChampionMetadata() {
-        var a = run(77, lineupC());
-        var b = run(77, lineupD());
+        var a = runOff(77, lineupC());
+        var b = runOff(77, lineupD());
         assertThat(a).usingRecursiveComparison().ignoringFieldsMatchingRegexes(
                 ".*playerSnapshots.*champion", ".*champion.*").isEqualTo(b);
         assertThat(a.getSnapshots().getFirst().getPlayerSnapshots()).extracting(p -> p.getChampionId())
@@ -51,9 +52,11 @@ class ChampionFoundationIntegrationTest {
         DummyDataFactory factory = new DummyDataFactory();
         return simulator().simulate(factory.createBlueTeam(), factory.createRedTeam(), seed, validator.resolve(selection));
     }
+    private com.lolfm.domain.MatchTimeline runOff(long seed, ChampionSelectionRequest selection) { DummyDataFactory factory=new DummyDataFactory();return simulatorOff().simulate(factory.createBlueTeam(),factory.createRedTeam(),seed,validator.resolve(selection)); }
     private MatchSimulator simulator() { return new MatchSimulator(new TeamfightResolver(), new EndGameEvaluator(),
             new SnapshotFactory(catalog), new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(),
             new StructureResolver(), new PushResolver(), SimulationOptions.productionDefaults()); }
+    private MatchSimulator simulatorOff(){return new MatchSimulator(new TeamfightResolver(),new EndGameEvaluator(),new SnapshotFactory(catalog),new ObjectiveResolver(),new PostFightResolver(),new ObjectiveAttemptResolver(),new StructureResolver(),new PushResolver(),SimulationOptions.productionDefaults().withChampionPowerEnabled(false));}
     private ChampionSelectionRequest lineupC() { return new ChampionSelectionRequest(
             new ChampionLineupRequest("renekton","sejuani","azir","jinx","nautilus"),
             new ChampionLineupRequest("jax","lee-sin","ahri","kaisa","rakan")); }

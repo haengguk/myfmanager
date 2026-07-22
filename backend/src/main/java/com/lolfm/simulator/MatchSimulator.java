@@ -3,6 +3,7 @@ package com.lolfm.simulator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionSelectionValidator;
+import com.lolfm.champion.ChampionPowerProfileCatalog;
 import com.lolfm.champion.MatchChampionAssignments;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.ObjectiveDecisionData;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Component;
 public class MatchSimulator {
 
     private static final ChampionCatalog DEFAULT_CHAMPION_CATALOG = new ChampionCatalog(new ObjectMapper());
+    private static final ChampionPowerProfileCatalog DEFAULT_CHAMPION_POWER_CATALOG = new ChampionPowerProfileCatalog(new ObjectMapper(), DEFAULT_CHAMPION_CATALOG);
 
     private static final Logger logger = LoggerFactory.getLogger(MatchSimulator.class);
     public static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = 5_400;
@@ -64,6 +66,7 @@ public class MatchSimulator {
     private final boolean lateGameMacroEnabled;
     private final boolean progressionEnabled;
     private final boolean progressionPowerEnabled;
+    private final boolean championPowerEnabled;
 
     @Autowired
     public MatchSimulator(
@@ -135,7 +138,7 @@ public class MatchSimulator {
                         counterGankEnabled, true, true, true, true));
     }
 
-    MatchSimulator(
+    public MatchSimulator(
             TeamfightResolver teamfightResolver, EndGameEvaluator endGameEvaluator, SnapshotFactory snapshotFactory,
             ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
             ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
@@ -162,6 +165,7 @@ public class MatchSimulator {
         this.lateGameMacroEnabled = options.lateGameMacroEnabled();
         this.progressionEnabled = options.progressionEnabled();
         this.progressionPowerEnabled = options.progressionPowerEnabled();
+        this.championPowerEnabled = options.championPowerEnabled();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -177,6 +181,11 @@ public class MatchSimulator {
     SimulationResult simulateWithDiagnostics(Team blueTeam, Team redTeam, long seed) {
         return runSimulation(blueTeam, redTeam, seed,
                 new ChampionSelectionValidator(DEFAULT_CHAMPION_CATALOG).resolve(null));
+    }
+
+    SimulationResult simulateWithDiagnostics(Team blueTeam, Team redTeam, long seed,
+                                             MatchChampionAssignments assignments) {
+        return runSimulation(blueTeam, redTeam, seed, assignments);
     }
 
     private SimulationResult runSimulation(Team blueTeam, Team redTeam, long seed, MatchChampionAssignments assignments) {
@@ -329,7 +338,9 @@ public class MatchSimulator {
                 gameState.getObjectiveDecisionState().getStats().snapshot(),
                 gameState.getObjectiveDecisionState().getHistory(),
                 gameState.getStructureActionExecutionStats().snapshot(),
-                gameState.getProgressionExecutionStats().snapshot()
+                gameState.getProgressionExecutionStats().snapshot(),
+                gameState.getChampionPowerExecutionStats().snapshot(),
+                gameState.getCombatOutcomeExecutionStats().snapshot()
         );
     }
 
@@ -360,7 +371,9 @@ public class MatchSimulator {
             ObjectiveDecisionExecutionStatsSnapshot objectiveDecisionExecutionStats,
             List<ObjectiveDecisionData> objectiveDecisionHistory,
             StructureActionExecutionStatsSnapshot structureActionExecutionStats,
-            ProgressionExecutionStatsSnapshot progressionExecutionStats
+            ProgressionExecutionStatsSnapshot progressionExecutionStats,
+            com.lolfm.champion.ChampionPowerExecutionStatsSnapshot championPowerExecutionStats,
+            CombatOutcomeExecutionStatsSnapshot combatOutcomeExecutionStats
     ) {
     }
 
@@ -389,9 +402,11 @@ public class MatchSimulator {
         }
     }
     private GameState initializeGameState(Team blueTeam, Team redTeam, MatchChampionAssignments assignments) {
-        return new GameState(buildTeamState(blueTeam), buildTeamState(redTeam), diagnosticsEnabled,
+        GameState state = new GameState(buildTeamState(blueTeam), buildTeamState(redTeam), diagnosticsEnabled,
                 objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled,
                 lateGameMacroEnabled, assignments);
+        state.configureChampionPower(DEFAULT_CHAMPION_POWER_CATALOG, championPowerEnabled);
+        return state;
     }
 
     private TeamState buildTeamState(Team team) {

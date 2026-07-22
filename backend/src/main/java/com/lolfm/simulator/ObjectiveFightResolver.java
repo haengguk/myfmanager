@@ -27,6 +27,8 @@ public final class ObjectiveFightResolver {
         Team losingTeam = winner == TeamSide.BLUE ? red : blue;
         TeamState winningState = state.getTeamState(winner);
         TeamState losingState = state.getTeamState(winner.opposite());
+        List<PlayerState> blueParticipants=participants(state.getBlueTeamState(),state.getCurrentTimeSeconds());
+        List<PlayerState> redParticipants=participants(state.getRedTeamState(),state.getCurrentTimeSeconds());
         List<String> participants = new ArrayList<>();
         markParticipants(state, state.getBlueTeamState(), participants);
         markParticipants(state, state.getRedTeamState(), participants);
@@ -45,10 +47,12 @@ public final class ObjectiveFightResolver {
         teamfights.commitPendingCombatProgress(state.getRedTeamState());
         events.add(new MatchEvent(state.getCurrentTimeSeconds(), MatchEventType.TEAMFIGHT_RESULT,
                 winningState.getTeamName() + "가 오브젝트 교전에서 승리합니다.", null, null, List.of()));
+        state.getCombatOutcomeExecutionStats().record(ProgressionCombatContext.OBJECTIVE_FIGHT,state.getCurrentTimeSeconds(),true,winner,blueParticipants,redParticipants);
         return new ObjectiveFightOutcome(winner, killed ? 1 : 0, participants);
     }
 
     private List<PlayerState> alive(TeamState team,int time){return team.getPlayers().stream().filter(p->p.isAlive(time)).toList();}
+    private List<PlayerState> participants(TeamState team,int time){return team.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(time)).toList();}
 
     private void markParticipants(GameState state, TeamState team, List<String> participants) {
         int time = state.getCurrentTimeSeconds();

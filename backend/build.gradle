@@ -114,3 +114,17 @@ tasks.register("runChampionFoundationDiagnostics", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.simulator.ChampionFoundationDiagnostics"
 }
+
+tasks.register("runChampionPowerDiagnostics", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13B champion power profile diagnostics."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionPowerDiagnostics"
+}
+
+tasks.register("runPlayerChampionInteractionAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13B.5 Player × Champion interaction audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.champion.PlayerChampionInteractionAudit"
+}

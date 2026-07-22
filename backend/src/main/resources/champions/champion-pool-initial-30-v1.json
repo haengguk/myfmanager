@@ -1,6 +1,6 @@
 {
   "championPoolVersion": "initial-30-v1",
-  "championBalanceVersion": "neutral-foundation-v1",
+  "championBalanceVersion": "initial-30-power-v1",
   "riotDataVersion": "16.14.1",
   "defaultSelection": {
     "blue": { "top": "renekton", "jgl": "sejuani", "mid": "azir", "adc": "jinx", "sup": "nautilus" },

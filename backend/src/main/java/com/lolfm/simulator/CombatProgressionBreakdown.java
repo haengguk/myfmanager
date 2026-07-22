@@ -1,2 +1,2 @@
-package com.lolfm.simulator;
-public record CombatProgressionBreakdown(ProgressionCombatContext context,int ownParticipantCount,int enemyParticipantCount,double ownAveragePower,double enemyAveragePower,double progressionEdge,double contextMultiplier,double finalContribution){}
+package com.lolfm.simulator;import com.lolfm.champion.ChampionCombatPowerBreakdown;
+public record CombatProgressionBreakdown(ProgressionCombatContext context,int ownParticipantCount,int enemyParticipantCount,double ownAveragePower,double enemyAveragePower,double progressionEdge,double contextMultiplier,double commonProgressionContribution,double championContribution,double finalContribution,ChampionCombatPowerBreakdown championBreakdown){}

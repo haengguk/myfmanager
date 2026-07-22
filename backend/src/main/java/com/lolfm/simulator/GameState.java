@@ -1,6 +1,8 @@
 package com.lolfm.simulator;
 
 import com.lolfm.champion.MatchChampionAssignments;
+import com.lolfm.champion.ChampionPowerExecutionStats;
+import com.lolfm.champion.ChampionPowerProfileCatalog;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.ProgressionEventData;
@@ -16,6 +18,9 @@ import java.util.Set;
 public class GameState {
 
     private MatchChampionAssignments championAssignments;
+    private ChampionPowerProfileCatalog championPowerProfileCatalog;
+    private boolean championPowerEnabled;
+    private final ChampionPowerExecutionStats championPowerExecutionStats = new ChampionPowerExecutionStats();
 
     private int currentTimeSeconds;
     private final TeamState blueTeamState;
@@ -45,6 +50,7 @@ public class GameState {
     private int lastRoamEvaluationAtSeconds = -1;
     private final EnumMap<TeamSide, JungleActionState> jungleActionStates = new EnumMap<>(TeamSide.class);
     private final CombatExecutionStats combatExecutionStats = new CombatExecutionStats();
+    private final CombatOutcomeExecutionStats combatOutcomeExecutionStats = new CombatOutcomeExecutionStats();
     private final RoamExecutionStats roamExecutionStats;
     private boolean finished;
     private TeamSide winnerSide;
@@ -136,6 +142,11 @@ public class GameState {
     public java.util.Optional<MatchChampionAssignments> getChampionAssignments() {
         return java.util.Optional.ofNullable(championAssignments);
     }
+    public void configureChampionPower(ChampionPowerProfileCatalog catalog,boolean enabled){championPowerProfileCatalog=java.util.Objects.requireNonNull(catalog);championPowerEnabled=enabled;}
+    public java.util.Optional<ChampionPowerProfileCatalog> getChampionPowerProfileCatalog(){return java.util.Optional.ofNullable(championPowerProfileCatalog);}
+    public boolean isChampionPowerEnabled(){return championPowerEnabled;}
+    public ChampionPowerExecutionStats getChampionPowerExecutionStats(){return championPowerExecutionStats;}
+    public java.util.Optional<PlayerKey> playerKeyOf(PlayerState player){if(blueTeamState.getPlayers().contains(player))return java.util.Optional.of(new PlayerKey(TeamSide.BLUE,player.getPosition()));if(redTeamState.getPlayers().contains(player))return java.util.Optional.of(new PlayerKey(TeamSide.RED,player.getPosition()));return java.util.Optional.empty();}
 
     public void configureProgression(boolean enabled, boolean powerEnabled) {
         progressionEnabled = enabled; progressionPowerEnabled = enabled && powerEnabled;
@@ -258,6 +269,7 @@ public class GameState {
     public JungleActionState jungleActionState(TeamSide side) { return jungleActionStates.get(side); }
     public Map<TeamSide, JungleActionState> getJungleActionStates() { return Map.copyOf(jungleActionStates); }
     public CombatExecutionStats getCombatExecutionStats() { return combatExecutionStats; }
+    public CombatOutcomeExecutionStats getCombatOutcomeExecutionStats() { return combatOutcomeExecutionStats; }
     public RoamExecutionStats getRoamExecutionStats() { return roamExecutionStats; }
     public int getLastJungleGankResolvedAtSeconds() { return lastJungleGankResolvedAtSeconds; }
     public boolean shouldResolveJungleGankAt(int time) {

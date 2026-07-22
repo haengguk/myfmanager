@@ -38,6 +38,8 @@ public class TeamfightResolver {
         }
 
         TeamfightSides sides = determineTeamfightSides(gameState, blueTeam, redTeam, random, progressionContext);
+        List<PlayerState> blueParticipants=gameState.getBlueTeamState().getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
+        List<PlayerState> redParticipants=gameState.getRedTeamState().getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
         for (PlayerState player : gameState.getBlueTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
         for (PlayerState player : gameState.getRedTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
         FightGrade plannedGrade = determineFightGrade(gameState, sides, random, progressionContext);
@@ -147,6 +149,7 @@ public class TeamfightResolver {
                 List.of()
         ));
 
+        gameState.getCombatOutcomeExecutionStats().record(progressionContext,currentTime,true,sides.winningSide(),blueParticipants,redParticipants);
         return Optional.of(new TeamfightOutcome(
                 sides.winningSide(),
                 resolvedGrade,

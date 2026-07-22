@@ -260,6 +260,7 @@ select {
 .champion-slot-copy { display: grid; min-width: 0; }
 .champion-slot-copy b { color: #edf2ff; font-size: .82rem; }
 .champion-slot-copy small { color: #64748b; font-size: .66rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.champion-slot-copy em { color: #b8a87a; font-size: .63rem; font-style: normal; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .champion-slot select { min-width: 0; width: 100%; padding: 8px 9px; border: 1px solid rgba(148, 163, 184, .16); border-radius: 10px; background: #0b1220; color: #dbeafe; outline: none; }
 .champion-slot select:focus { border-color: rgba(56, 189, 248, .48); box-shadow: 0 0 0 3px rgba(56, 189, 248, .1); }
 .champion-select-loading, .champion-select-error { margin: 14px 0 0; color: #94a3b8; }
