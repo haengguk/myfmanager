@@ -188,9 +188,27 @@ public class MatchSimulator {
         return runSimulation(blueTeam, redTeam, seed, assignments);
     }
 
+    SimulationResult simulateWithSideDiagnostics(
+            Team blueTeam,
+            Team redTeam,
+            MatchChampionAssignments assignments,
+            SideOrientationRandomTraceObserver random
+    ) {
+        return runSimulation(blueTeam, redTeam, assignments, random, random.seed());
+    }
+
     private SimulationResult runSimulation(Team blueTeam, Team redTeam, long seed, MatchChampionAssignments assignments) {
+        return runSimulation(blueTeam, redTeam, assignments, new Random(seed), seed);
+    }
+
+    private SimulationResult runSimulation(
+            Team blueTeam,
+            Team redTeam,
+            MatchChampionAssignments assignments,
+            Random random,
+            long seed
+    ) {
         GameState gameState = initializeGameState(blueTeam, redTeam, assignments);
-        Random random = new Random(seed);
         gameState.configureProgression(progressionEnabled, progressionPowerEnabled);
         gameState.getBlueTeamState().validateCompleteLineup();
         gameState.getRedTeamState().validateCompleteLineup();
@@ -222,22 +240,28 @@ public class MatchSimulator {
             objectivePriorityResolver.decayRecentControl(gameState, gameState.getCurrentTimeSeconds());
             boolean blueEconomy = awardPassiveForTick(gameState.getBlueTeamState(), gameState.getCurrentTimeSeconds());
             boolean redEconomy = awardPassiveForTick(gameState.getRedTeamState(), gameState.getCurrentTimeSeconds());
+            randomContext(random, SideOrientationRandomTraceObserver.Source.LANE_PRESSURE, null, gameState);
             lanePressureResolver.resolve(gameState, gameState.getCurrentTimeSeconds(), random);
+            randomContext(random, SideOrientationRandomTraceObserver.Source.ECONOMY, TeamSide.BLUE, gameState);
             resolveFarmForTick(random, gameState, gameState.getBlueTeamState(), TeamSide.BLUE,
                     TICK_SECONDS, gameState.getCurrentTimeSeconds(), blueEconomy);
+            randomContext(random, SideOrientationRandomTraceObserver.Source.ECONOMY, TeamSide.RED, gameState);
             resolveFarmForTick(random, gameState, gameState.getRedTeamState(), TeamSide.RED,
                     TICK_SECONDS, gameState.getCurrentTimeSeconds(), redEconomy);
             if (blueEconomy && redEconomy) progressionEconomyResolver.resolve(gameState, gameState.getCurrentTimeSeconds());
             gameState.drainProgressionEvents(events);
             boolean roamEvaluationDue = roamEnabled
                     && gameState.shouldResolveRoamAt(gameState.getCurrentTimeSeconds());
+            randomContext(random, SideOrientationRandomTraceObserver.Source.JUNGLE_GANK, null, gameState);
             boolean jungleGankAttempted = jungleGankEnabled && jungleGankResolver.resolve(gameState, random, events);
             if (jungleGankAttempted && roamEvaluationDue) gameState.getRoamExecutionStats().recordSkippedByHigherPriority();
             int roamEvaluationBefore = gameState.getLastRoamEvaluationAtSeconds();
+            randomContext(random, SideOrientationRandomTraceObserver.Source.ROAM, null, gameState);
             boolean roamAttempted = !jungleGankAttempted && roamEnabled
                     && roamResolver.resolve(gameState, random, events);
             boolean roamEvaluated = gameState.getLastRoamEvaluationAtSeconds() != roamEvaluationBefore;
             boolean laneCombatConsidered = !jungleGankAttempted && !roamAttempted && laneCombatEnabled;
+            randomContext(random, SideOrientationRandomTraceObserver.Source.LANE_COMBAT, null, gameState);
             boolean laneCombatAttempted = laneCombatConsidered
                     && laneCombatResolver.resolve(gameState, random, events);
             if (roamAttempted) {
@@ -251,27 +275,33 @@ public class MatchSimulator {
             boolean genericCombatAttempted = false;
             if (!majorCombatAttempted) {
                 gameState.getCombatExecutionStats().recordGenericSkirmishCall(gameState.getCurrentTimeSeconds());
+                randomContext(random, SideOrientationRandomTraceObserver.Source.GENERIC_SKIRMISH, null, gameState);
                 genericCombatAttempted = maybeCreateKillEvent(random, blueTeam, redTeam, gameState, events);
                 if (genericCombatAttempted) gameState.getCombatExecutionStats().recordGenericSkirmishKill(gameState.getCurrentTimeSeconds());
             }
+            randomContext(random, SideOrientationRandomTraceObserver.Source.TEAMFIGHT, null, gameState);
             Optional<TeamfightOutcome> outcome = (majorCombatAttempted || genericCombatAttempted)
                     ? Optional.empty() : teamfightResolver.maybeResolveTeamfight(gameState, blueTeam, redTeam, random, events);
             outcome.ifPresent(result -> objectivePriorityResolver.applyTeamfightWin(
                     gameState, gameState.getCurrentTimeSeconds(), result));
+            randomContext(random, SideOrientationRandomTraceObserver.Source.STRUCTURE_PUSH, null, gameState);
             List<StructureOutcome> siegeStructures = lanePhaseResolver.resolveOuterSieges(
                     gameState, gameState.getCurrentTimeSeconds(), random, structureResolver);
             for (StructureOutcome structure : siegeStructures) events.add(structureResolver.createStructureEvent(gameState, structure));
+            randomContext(random, SideOrientationRandomTraceObserver.Source.OBJECTIVE_CAPTURE, null, gameState);
             Optional<MatchEvent> postFightObjective = outcome.flatMap(result -> postFightResolver.resolve(
                     gameState, result, random, objectiveResolver));
             postFightObjective.ifPresent(event -> { events.add(event); cancelMacroSetupForCapture(gameState, event); });
             boolean postFightSideAlreadyActed = outcome
                     .map(result -> gameState.wasStructureActionPerformedThisTick(result.winningSide()))
                     .orElse(false);
+            randomContext(random, SideOrientationRandomTraceObserver.Source.STRUCTURE_PUSH, null, gameState);
             List<StructureOutcome> postFightStructures = postFightSideAlreadyActed
                     ? List.of()
                     : pushResolver.resolvePostFightWindow(gameState, outcome, postFightObjective, random, structureResolver);
             for (StructureOutcome structure : postFightStructures) events.add(structureResolver.createStructureEvent(gameState, structure));
             if (!gameState.isFinished() && postFightObjective.isEmpty()) {
+                randomContext(random, SideOrientationRandomTraceObserver.Source.OBJECTIVE_FIGHT, null, gameState);
                 Optional<MatchEvent> generalObjective = objectiveAttemptResolver.maybeAttemptObjective(gameState, random, objectiveResolver, structureResolver, events);
                 generalObjective.ifPresent(event -> { if (!events.contains(event)) events.add(event); cancelMacroSetupForCapture(gameState, event); });
             }
@@ -280,9 +310,12 @@ public class MatchSimulator {
             if (phaseTransition.isPresent()) midGameMacroResolver.onPhaseTransition(gameState);
             Optional<MatchEvent> lateTransition = lateGameMacroResolver.transitionIfDue(gameState, midGameMacroResolver);
             lateTransition.ifPresent(events::add);
+            randomContext(random, SideOrientationRandomTraceObserver.Source.MIDGAME_MACRO, null, gameState);
             midGameMacroResolver.resolveDueEvaluation(gameState, random, events, structureResolver);
+            randomContext(random, SideOrientationRandomTraceObserver.Source.LATE_GAME_SIEGE, null, gameState);
             lateGameMacroResolver.resolveDue(gameState, blueTeam, redTeam, random, events, structureResolver, teamfightResolver);
             if (!gameState.isFinished()) {
+                randomContext(random, SideOrientationRandomTraceObserver.Source.STRUCTURE_PUSH, null, gameState);
                 pushResolver.maybeResolveMacroPush(gameState, random, structureResolver)
                         .ifPresent(push -> events.add(structureResolver.createStructureEvent(gameState, push)));
             }
@@ -340,7 +373,9 @@ public class MatchSimulator {
                 gameState.getStructureActionExecutionStats().snapshot(),
                 gameState.getProgressionExecutionStats().snapshot(),
                 gameState.getChampionPowerExecutionStats().snapshot(),
-                gameState.getCombatOutcomeExecutionStats().snapshot()
+                gameState.getCombatOutcomeExecutionStats().snapshot(),
+                random instanceof SideOrientationRandomTraceObserver observer ? observer.drawCount() : 0L,
+                random instanceof SideOrientationRandomTraceObserver observer ? observer.trace() : List.of()
         );
     }
 
@@ -373,8 +408,21 @@ public class MatchSimulator {
             StructureActionExecutionStatsSnapshot structureActionExecutionStats,
             ProgressionExecutionStatsSnapshot progressionExecutionStats,
             com.lolfm.champion.ChampionPowerExecutionStatsSnapshot championPowerExecutionStats,
-            CombatOutcomeExecutionStatsSnapshot combatOutcomeExecutionStats
+            CombatOutcomeExecutionStatsSnapshot combatOutcomeExecutionStats,
+            long randomDrawCount,
+            List<SideOrientationRandomTraceObserver.Draw> randomTrace
     ) {
+    }
+
+    private void randomContext(
+            Random random,
+            SideOrientationRandomTraceObserver.Source source,
+            TeamSide side,
+            GameState state
+    ) {
+        if (random instanceof SideOrientationRandomTraceObserver observer) {
+            observer.context(source, side, state.getCurrentTimeSeconds());
+        }
     }
 
     private void logSimulationTimeout(long seed, GameState state) {
