@@ -13,6 +13,11 @@ public record DynamicCombatScoreBreakdown(
         double championLevelContribution,
         double championItemContribution,
         double championContextContribution,
+        double championPowerContribution,
+        double scoreBeforeMatchup,
+        double championMatchupContribution,
+        double scoreAfterMatchup,
         double finalCombatScore,
         ChampionPowerBreakdown championBreakdown
-) { }
+) {
+}

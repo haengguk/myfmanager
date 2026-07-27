@@ -1,0 +1,9 @@
+package com.lolfm.champion;
+
+public enum MatchupOverrideReason {
+    UNIQUE_KIT_INTERACTION,
+    CORE_ABILITY_NULLIFICATION,
+    UNREPRESENTED_MECHANIC,
+    PATCH_SPECIFIC_EXCEPTION,
+    DIAGNOSTIC_SYNTHETIC
+}

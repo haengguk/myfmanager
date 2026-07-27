@@ -1,6 +1,9 @@
 package com.lolfm.simulator;
 
 import com.lolfm.champion.MatchChampionAssignments;
+import com.lolfm.champion.ChampionMatchupCatalog;
+import com.lolfm.champion.ChampionMatchupExecutionStats;
+import com.lolfm.champion.ChampionMatchupMode;
 import com.lolfm.champion.ChampionPowerExecutionStats;
 import com.lolfm.champion.ChampionPowerProfileCatalog;
 import com.lolfm.domain.MatchEvent;
@@ -21,6 +24,10 @@ public class GameState {
     private ChampionPowerProfileCatalog championPowerProfileCatalog;
     private boolean championPowerEnabled;
     private final ChampionPowerExecutionStats championPowerExecutionStats = new ChampionPowerExecutionStats();
+    private ChampionMatchupCatalog championMatchupCatalog;
+    private ChampionMatchupMode championMatchupMode = ChampionMatchupMode.OFF;
+    private final ChampionMatchupExecutionStats championMatchupExecutionStats =
+            new ChampionMatchupExecutionStats();
 
     private int currentTimeSeconds;
     private final TeamState blueTeamState;
@@ -146,6 +153,17 @@ public class GameState {
     public java.util.Optional<ChampionPowerProfileCatalog> getChampionPowerProfileCatalog(){return java.util.Optional.ofNullable(championPowerProfileCatalog);}
     public boolean isChampionPowerEnabled(){return championPowerEnabled;}
     public ChampionPowerExecutionStats getChampionPowerExecutionStats(){return championPowerExecutionStats;}
+    public void configureChampionMatchup(ChampionMatchupCatalog catalog, ChampionMatchupMode mode) {
+        championMatchupCatalog = java.util.Objects.requireNonNull(catalog, "catalog");
+        championMatchupMode = java.util.Objects.requireNonNull(mode, "mode");
+    }
+    public java.util.Optional<ChampionMatchupCatalog> getChampionMatchupCatalog() {
+        return java.util.Optional.ofNullable(championMatchupCatalog);
+    }
+    public ChampionMatchupMode getChampionMatchupMode() { return championMatchupMode; }
+    public ChampionMatchupExecutionStats getChampionMatchupExecutionStats() {
+        return championMatchupExecutionStats;
+    }
     public java.util.Optional<PlayerKey> playerKeyOf(PlayerState player){if(blueTeamState.getPlayers().contains(player))return java.util.Optional.of(new PlayerKey(TeamSide.BLUE,player.getPosition()));if(redTeamState.getPlayers().contains(player))return java.util.Optional.of(new PlayerKey(TeamSide.RED,player.getPosition()));return java.util.Optional.empty();}
 
     public void configureProgression(boolean enabled, boolean powerEnabled) {

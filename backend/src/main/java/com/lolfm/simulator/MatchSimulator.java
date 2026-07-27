@@ -2,6 +2,9 @@ package com.lolfm.simulator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.ChampionCatalog;
+import com.lolfm.champion.ChampionMatchupCatalog;
+import com.lolfm.champion.ChampionMatchupExecutionStatsSnapshot;
+import com.lolfm.champion.ChampionMatchupMode;
 import com.lolfm.champion.ChampionSelectionValidator;
 import com.lolfm.champion.ChampionPowerProfileCatalog;
 import com.lolfm.champion.MatchChampionAssignments;
@@ -29,6 +32,8 @@ public class MatchSimulator {
 
     private static final ChampionCatalog DEFAULT_CHAMPION_CATALOG = new ChampionCatalog(new ObjectMapper());
     private static final ChampionPowerProfileCatalog DEFAULT_CHAMPION_POWER_CATALOG = new ChampionPowerProfileCatalog(new ObjectMapper(), DEFAULT_CHAMPION_CATALOG);
+    private static final ChampionMatchupCatalog DEFAULT_CHAMPION_MATCHUP_CATALOG =
+            ChampionMatchupCatalog.neutral(DEFAULT_CHAMPION_CATALOG);
 
     private static final Logger logger = LoggerFactory.getLogger(MatchSimulator.class);
     public static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = 5_400;
@@ -67,6 +72,8 @@ public class MatchSimulator {
     private final boolean progressionEnabled;
     private final boolean progressionPowerEnabled;
     private final boolean championPowerEnabled;
+    private final ChampionMatchupMode championMatchupMode;
+    private final ChampionMatchupCatalog championMatchupCatalog;
 
     @Autowired
     public MatchSimulator(
@@ -144,6 +151,17 @@ public class MatchSimulator {
             ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
             SimulationOptions options
     ) {
+        this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver,
+                postFightResolver, objectiveAttemptResolver, structureResolver,
+                pushResolver, options, DEFAULT_CHAMPION_MATCHUP_CATALOG);
+    }
+
+    public MatchSimulator(
+            TeamfightResolver teamfightResolver, EndGameEvaluator endGameEvaluator, SnapshotFactory snapshotFactory,
+            ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
+            ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
+            SimulationOptions options, ChampionMatchupCatalog championMatchupCatalog
+    ) {
         this.teamfightResolver = teamfightResolver;
         this.endGameEvaluator = endGameEvaluator;
         this.snapshotFactory = snapshotFactory;
@@ -166,6 +184,9 @@ public class MatchSimulator {
         this.progressionEnabled = options.progressionEnabled();
         this.progressionPowerEnabled = options.progressionPowerEnabled();
         this.championPowerEnabled = options.championPowerEnabled();
+        this.championMatchupMode = options.championMatchupMode();
+        this.championMatchupCatalog = java.util.Objects.requireNonNull(
+                championMatchupCatalog, "championMatchupCatalog");
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -373,6 +394,7 @@ public class MatchSimulator {
                 gameState.getStructureActionExecutionStats().snapshot(),
                 gameState.getProgressionExecutionStats().snapshot(),
                 gameState.getChampionPowerExecutionStats().snapshot(),
+                gameState.getChampionMatchupExecutionStats().snapshot(),
                 gameState.getCombatOutcomeExecutionStats().snapshot(),
                 random instanceof SideOrientationRandomTraceObserver observer ? observer.drawCount() : 0L,
                 random instanceof SideOrientationRandomTraceObserver observer ? observer.trace() : List.of()
@@ -408,6 +430,7 @@ public class MatchSimulator {
             StructureActionExecutionStatsSnapshot structureActionExecutionStats,
             ProgressionExecutionStatsSnapshot progressionExecutionStats,
             com.lolfm.champion.ChampionPowerExecutionStatsSnapshot championPowerExecutionStats,
+            ChampionMatchupExecutionStatsSnapshot championMatchupExecutionStats,
             CombatOutcomeExecutionStatsSnapshot combatOutcomeExecutionStats,
             long randomDrawCount,
             List<SideOrientationRandomTraceObserver.Draw> randomTrace
@@ -454,6 +477,7 @@ public class MatchSimulator {
                 objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled,
                 lateGameMacroEnabled, assignments);
         state.configureChampionPower(DEFAULT_CHAMPION_POWER_CATALOG, championPowerEnabled);
+        state.configureChampionMatchup(championMatchupCatalog, championMatchupMode);
         return state;
     }
 

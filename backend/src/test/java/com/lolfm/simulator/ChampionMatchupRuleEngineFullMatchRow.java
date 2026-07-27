@@ -1,0 +1,49 @@
+package com.lolfm.simulator;
+
+import com.lolfm.champion.ChampionMatchupMode;
+import com.lolfm.domain.Position;
+
+record ChampionMatchupRuleEngineFullMatchRow(
+        String lineupId,
+        String pairId,
+        Position targetPosition,
+        String skillProfile,
+        ChampionMatchupMode matchupMode,
+        SideOrientationFixture.Orientation direction,
+        int seed,
+        String winner,
+        int durationSeconds,
+        TeamSide targetFavoredChampionSide,
+        TeamSide targetDisfavoredChampionSide,
+        String targetFavoredKda,
+        String targetDisfavoredKda,
+        int targetFavoredGold,
+        int targetDisfavoredGold,
+        int targetFavoredLevel,
+        int targetDisfavoredLevel,
+        int matchupEvaluations,
+        int matchupPairApplications,
+        int generatedNonZeroApplications,
+        double generatedBaseEdgeMean,
+        double generatedBaseEdgeP50,
+        double generatedBaseEdgeP90,
+        double overrideAdjustmentMean,
+        double finalMatchupEdgeMean,
+        double eligiblePairCountMean,
+        double nonZeroPairCountMean,
+        double dilutionRatioMean,
+        long directRandomCalls,
+        boolean replayMismatch,
+        boolean diagnosticsMismatch,
+        TeamSide winnerSide,
+        long randomDrawCount,
+        String targetFavoredItem,
+        String targetDisfavoredItem,
+        int championPowerApplications,
+        double coverageRatioMean,
+        double netDirectionalRetentionMean,
+        int prototypeCoverageDilutionCount,
+        int signCancellationCount,
+        int unexpectedAggregationDilutionCount
+) {
+}

@@ -29,7 +29,9 @@ final class SideOrientationFixtureFactory {
     static List<SideOrientationFixture> focused(String skillProfile) {
         int skill = switch (skillProfile) {
             case "S0" -> 14;
+            case "S1" -> 15;
             case "S3" -> 17;
+            case "S5" -> 19;
             default -> throw new IllegalArgumentException("Unsupported profile " + skillProfile);
         };
         return List.of(
