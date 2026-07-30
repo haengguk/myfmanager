@@ -5,6 +5,7 @@ import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionMatchupCatalog;
 import com.lolfm.champion.ChampionMatchupExecutionStatsSnapshot;
 import com.lolfm.champion.ChampionMatchupMode;
+import com.lolfm.champion.ChampionRoleMatchupProfileCatalog;
 import com.lolfm.champion.ChampionSelectionValidator;
 import com.lolfm.champion.ChampionPowerProfileCatalog;
 import com.lolfm.champion.MatchChampionAssignments;
@@ -34,6 +35,8 @@ public class MatchSimulator {
     private static final ChampionPowerProfileCatalog DEFAULT_CHAMPION_POWER_CATALOG = new ChampionPowerProfileCatalog(new ObjectMapper(), DEFAULT_CHAMPION_CATALOG);
     private static final ChampionMatchupCatalog DEFAULT_CHAMPION_MATCHUP_CATALOG =
             ChampionMatchupCatalog.neutral(DEFAULT_CHAMPION_CATALOG);
+    private static final ChampionRoleMatchupProfileCatalog DEFAULT_CHAMPION_MATCHUP_PROFILES =
+            ChampionRoleMatchupProfileCatalog.production();
 
     private static final Logger logger = LoggerFactory.getLogger(MatchSimulator.class);
     public static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = 5_400;
@@ -74,6 +77,7 @@ public class MatchSimulator {
     private final boolean championPowerEnabled;
     private final ChampionMatchupMode championMatchupMode;
     private final ChampionMatchupCatalog championMatchupCatalog;
+    private final ChampionRoleMatchupProfileCatalog championMatchupProfiles;
 
     @Autowired
     public MatchSimulator(
@@ -153,7 +157,7 @@ public class MatchSimulator {
     ) {
         this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver,
                 postFightResolver, objectiveAttemptResolver, structureResolver,
-                pushResolver, options, DEFAULT_CHAMPION_MATCHUP_CATALOG);
+                pushResolver, options, DEFAULT_CHAMPION_MATCHUP_PROFILES);
     }
 
     public MatchSimulator(
@@ -187,6 +191,41 @@ public class MatchSimulator {
         this.championMatchupMode = options.championMatchupMode();
         this.championMatchupCatalog = java.util.Objects.requireNonNull(
                 championMatchupCatalog, "championMatchupCatalog");
+        this.championMatchupProfiles = null;
+        this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
+    }
+
+    public MatchSimulator(
+            TeamfightResolver teamfightResolver, EndGameEvaluator endGameEvaluator, SnapshotFactory snapshotFactory,
+            ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
+            ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
+            SimulationOptions options, ChampionRoleMatchupProfileCatalog championMatchupProfiles
+    ) {
+        this.teamfightResolver = teamfightResolver;
+        this.endGameEvaluator = endGameEvaluator;
+        this.snapshotFactory = snapshotFactory;
+        this.objectiveResolver = objectiveResolver;
+        this.postFightResolver = postFightResolver;
+        this.objectiveAttemptResolver = objectiveAttemptResolver;
+        this.structureResolver = structureResolver;
+        this.pushResolver = pushResolver;
+        this.laneCombatEnabled = options.laneCombatEnabled();
+        this.farmRecoveryEnabled = options.farmRecoveryEnabled();
+        this.jungleGankEnabled = options.jungleGankEnabled();
+        this.counterGankEnabled = options.counterGankEnabled();
+        this.roamEnabled = options.roamEnabled();
+        this.diagnosticsEnabled = options.diagnosticsEnabled();
+        this.objectivePriorityEnabled = options.objectivePriorityEnabled();
+        this.midGameMacroEnabled = options.midGameMacroEnabled();
+        this.lanePhaseEnabled = options.lanePhaseEnabled();
+        this.objectiveDecisionEnabled = options.objectiveDecisionEnabled();
+        this.lateGameMacroEnabled = options.lateGameMacroEnabled();
+        this.progressionEnabled = options.progressionEnabled();
+        this.progressionPowerEnabled = options.progressionPowerEnabled();
+        this.championPowerEnabled = options.championPowerEnabled();
+        this.championMatchupMode = options.championMatchupMode();
+        this.championMatchupProfiles = java.util.Objects.requireNonNull(championMatchupProfiles, "championMatchupProfiles");
+        this.championMatchupCatalog = null;
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -477,7 +516,15 @@ public class MatchSimulator {
                 objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled,
                 lateGameMacroEnabled, assignments);
         state.configureChampionPower(DEFAULT_CHAMPION_POWER_CATALOG, championPowerEnabled);
-        state.configureChampionMatchup(championMatchupCatalog, championMatchupMode);
+        if (championMatchupMode == ChampionMatchupMode.GEOMETRIC_V2) {
+            ChampionRoleMatchupProfileCatalog profiles = championMatchupProfiles == null
+                    ? DEFAULT_CHAMPION_MATCHUP_PROFILES : championMatchupProfiles;
+            profiles.validateCoverage(assignments);
+            state.configureChampionMatchup(profiles, championMatchupMode);
+        } else {
+            state.configureChampionMatchup(championMatchupCatalog == null
+                    ? DEFAULT_CHAMPION_MATCHUP_CATALOG : championMatchupCatalog, championMatchupMode);
+        }
         return state;
     }
 

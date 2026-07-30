@@ -37,7 +37,7 @@ public record SimulationOptions(
     public static SimulationOptions productionDefaults() {
         return new SimulationOptions(
                 true, true, true, true, true, true, true,
-                true, true, true, true, true, true, true, ChampionMatchupMode.OFF);
+                true, true, true, true, true, true, true, ChampionMatchupMode.GEOMETRIC_V2);
     }
 
     private SimulationOptions copy(

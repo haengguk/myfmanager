@@ -4,6 +4,7 @@ import com.lolfm.champion.MatchChampionAssignments;
 import com.lolfm.champion.ChampionMatchupCatalog;
 import com.lolfm.champion.ChampionMatchupExecutionStats;
 import com.lolfm.champion.ChampionMatchupMode;
+import com.lolfm.champion.ChampionRoleMatchupProfileCatalog;
 import com.lolfm.champion.ChampionPowerExecutionStats;
 import com.lolfm.champion.ChampionPowerProfileCatalog;
 import com.lolfm.domain.MatchEvent;
@@ -25,6 +26,7 @@ public class GameState {
     private boolean championPowerEnabled;
     private final ChampionPowerExecutionStats championPowerExecutionStats = new ChampionPowerExecutionStats();
     private ChampionMatchupCatalog championMatchupCatalog;
+    private ChampionRoleMatchupProfileCatalog championRoleMatchupProfileCatalog;
     private ChampionMatchupMode championMatchupMode = ChampionMatchupMode.OFF;
     private final ChampionMatchupExecutionStats championMatchupExecutionStats =
             new ChampionMatchupExecutionStats();
@@ -155,10 +157,19 @@ public class GameState {
     public ChampionPowerExecutionStats getChampionPowerExecutionStats(){return championPowerExecutionStats;}
     public void configureChampionMatchup(ChampionMatchupCatalog catalog, ChampionMatchupMode mode) {
         championMatchupCatalog = java.util.Objects.requireNonNull(catalog, "catalog");
+        championRoleMatchupProfileCatalog = null;
+        championMatchupMode = java.util.Objects.requireNonNull(mode, "mode");
+    }
+    public void configureChampionMatchup(ChampionRoleMatchupProfileCatalog catalog, ChampionMatchupMode mode) {
+        championRoleMatchupProfileCatalog = java.util.Objects.requireNonNull(catalog, "catalog");
+        championMatchupCatalog = null;
         championMatchupMode = java.util.Objects.requireNonNull(mode, "mode");
     }
     public java.util.Optional<ChampionMatchupCatalog> getChampionMatchupCatalog() {
         return java.util.Optional.ofNullable(championMatchupCatalog);
+    }
+    public java.util.Optional<ChampionRoleMatchupProfileCatalog> getChampionRoleMatchupProfileCatalog() {
+        return java.util.Optional.ofNullable(championRoleMatchupProfileCatalog);
     }
     public ChampionMatchupMode getChampionMatchupMode() { return championMatchupMode; }
     public ChampionMatchupExecutionStats getChampionMatchupExecutionStats() {

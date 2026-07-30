@@ -72,9 +72,9 @@ class ThirtyChampionRoleProfilesTest {
                 .map(method -> method.getName()))
                 .doesNotContain("diagnosticsCandidate", "candidate");
     }
-    @Test void productionCatalogRemainsNeutral() {
+    @Test void productionCatalogContainsApprovedFrozenProfiles() {
         assertThat(ChampionRoleMatchupProfileCatalog.production().profiles())
-                .isEmpty();
+                .hasSize(30);
     }
     @Test void productionProfileVersionRemainsUnchanged() {
         assertThat(ChampionRoleMatchupProfileCatalog.production().version())

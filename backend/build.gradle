@@ -203,3 +203,19 @@ tasks.register("rebuildGeometricCandidateSummaryFromArtifacts", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.simulator.GeometricCandidateSummaryRebuilder"
 }
+
+
+tasks.register("runChampionMatchupProductionActivationAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13C-5 production activation audit (exactly 2,400 matches)."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionMatchupProductionActivationAudit"
+}
+
+
+tasks.register("finalizeChampionMatchupProductionActivationFromArtifacts", JavaExec) {
+    group = "verification"
+    description = "Finalizes Phase 13C-5 activation from existing artifacts and test XML without running gameplay."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionMatchupProductionActivationFinalizer"
+}

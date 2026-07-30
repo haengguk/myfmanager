@@ -67,9 +67,9 @@ class ThirtyChampionGeneratedMatrixTest {
                 .allMatch(profile -> profile.firstChampionEdges().values()
                         .stream().allMatch(edge -> edge == 0.0));
     }
-    @Test void productionModeDefaultRemainsOff() {
+    @Test void productionModeDefaultIsGeometricV2() {
         assertThat(SimulationOptions.productionDefaults().championMatchupMode())
-                .isEqualTo(ChampionMatchupMode.OFF);
+                .isEqualTo(ChampionMatchupMode.GEOMETRIC_V2);
     }
     @Test void productionOverrideRemainsEmpty() {
         assertThat(ChampionMatchupOverrideCatalog.production().values()).isEmpty();

@@ -52,8 +52,8 @@ class ChampionMatchupRuleEngineTest {
         assertEquals(10, profiles.profiles().size());
     }
 
-    @Test void productionProfileCatalogContainsNoPrototypeValues() {
-        assertTrue(ChampionRoleMatchupProfileCatalog.production().profiles().isEmpty());
+    @Test void productionProfileCatalogContainsFrozenThirtyProfiles() {
+        assertEquals(30, ChampionRoleMatchupProfileCatalog.production().profiles().size());
     }
 
     @Test void everyContextWeightSumsToOne() {

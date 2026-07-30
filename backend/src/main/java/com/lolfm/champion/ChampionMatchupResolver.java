@@ -26,6 +26,9 @@ public final class ChampionMatchupResolver {
             stats.recordDisabledEvaluation();
             return ChampionMatchupResult.disabled();
         }
+        if (state.getChampionMatchupMode() == ChampionMatchupMode.GEOMETRIC_V2) {
+            return evaluateGeometric(state, sourceParticipants, opponentParticipants, context, stage, stats);
+        }
         Collected source = collect(state, sourceParticipants);
         Collected opponent = collect(state, opponentParticipants);
         Counters counters = new Counters(source, opponent);
@@ -76,6 +79,50 @@ public final class ChampionMatchupResolver {
         double average = contributions.isEmpty() ? 0.0 : total / contributions.size();
         ChampionMatchupResult result = new ChampionMatchupResult(
                 true, contributions.size(), total, average, contributions,
+                counters.missingAssignments, counters.dead, counters.crossPosition,
+                counters.nonParticipant, counters.sameTeam, counters.duplicates);
+        stats.recordEnabledEvaluation(result);
+        return result;
+    }
+
+    private ChampionMatchupResult evaluateGeometric(
+            GameState state, List<PlayerState> sourceParticipants,
+            List<PlayerState> opponentParticipants, ProgressionCombatContext context,
+            ProgressionApplicationStage stage, ChampionMatchupExecutionStats stats
+    ) {
+        Collected source = collect(state, sourceParticipants);
+        Collected opponent = collect(state, opponentParticipants);
+        Counters counters = new Counters(source, opponent);
+        List<ChampionMatchupPairContribution> contributions = new ArrayList<>();
+        Set<ApplicationIdentity> applied = new HashSet<>();
+        MatchChampionAssignments assignments = state.getChampionAssignments().orElseThrow();
+        ChampionMatchupEvaluator evaluator = new ChampionMatchupEvaluator(
+                state.getChampionRoleMatchupProfileCatalog().orElseThrow());
+        for (Position position : Position.values()) {
+            Participant left = source.byPosition().get(position);
+            Participant right = opponent.byPosition().get(position);
+            if (left == null || right == null) {
+                if (left != null || right != null) counters.crossPosition++;
+                continue;
+            }
+            if (left.key().side() == right.key().side()) { counters.sameTeam++; continue; }
+            ChampionAssignment leftAssignment = assignments.get(left.key());
+            ChampionAssignment rightAssignment = assignments.get(right.key());
+            ChampionRoleKey leftRole = new ChampionRoleKey(leftAssignment.championId(), position);
+            ChampionRoleKey rightRole = new ChampionRoleKey(rightAssignment.championId(), position);
+            ChampionMatchupPair pair = ChampionMatchupPair.of(
+                    leftAssignment.championId(), rightAssignment.championId(), position);
+            ApplicationIdentity identity = new ApplicationIdentity(
+                    pair, context, stage, left.key(), right.key());
+            if (!applied.add(identity)) { counters.duplicates++; continue; }
+            double edge = evaluator.evaluate(leftRole, rightRole, context,
+                    ChampionMatchupMode.GEOMETRIC_V2).finalEdge();
+            contributions.add(new ChampionMatchupPairContribution(
+                    pair, left.key(), right.key(), context, edge));
+        }
+        double total = contributions.stream().mapToDouble(ChampionMatchupPairContribution::edge).sum();
+        ChampionMatchupResult result = new ChampionMatchupResult(true, contributions.size(), total,
+                contributions.isEmpty() ? 0.0 : total / contributions.size(), contributions,
                 counters.missingAssignments, counters.dead, counters.crossPosition,
                 counters.nonParticipant, counters.sameTeam, counters.duplicates);
         stats.recordEnabledEvaluation(result);

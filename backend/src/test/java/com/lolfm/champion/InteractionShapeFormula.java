@@ -13,6 +13,16 @@ public final class InteractionShapeFormula {
                            ProgressionCombatContext context) {
         Objects.requireNonNull(type); Objects.requireNonNull(source); Objects.requireNonNull(opponent); Objects.requireNonNull(context);
         if (source.roleKey().position() != opponent.roleKey().position()) throw new IllegalArgumentException("Cross-position interaction");
+        if (type == Type.EXPOSURE_GATED_GEOMETRIC_V2) {
+            var production = new ChampionMatchupEvaluator(ThirtyChampionRoleProfiles.catalog())
+                    .evaluate(source.roleKey(), opponent.roleKey(), context, ChampionMatchupMode.GEOMETRIC_V2);
+            var values = production.contributions().stream().map(c -> new Contribution(
+                    c.ruleType(), c.forwardDirectional(), c.reverseDirectional(),
+                    c.antisymmetricRuleEdge(), c.contextWeight(), c.weightedContribution())).toList();
+            return new Result(type, source.roleKey(), opponent.roleKey(), context, values,
+                    production.weightedRawEdge(), production.contextIntensity(),
+                    production.unclampedEdge(), production.finalEdge(), production.clamped());
+        }
         var a=ChampionMatchupInteractionVector.from(source); var b=ChampionMatchupInteractionVector.from(opponent);
         List<Contribution> cs=new ArrayList<>(); double raw=0;
         for(var rule:ChampionMatchupRuleType.values()){
@@ -31,8 +41,7 @@ public final class InteractionShapeFormula {
             double dependency=o.meanStrength(ChampionMatchupTrait.ENGAGE,ChampionMatchupTrait.GAP_CLOSE,ChampionMatchupTrait.BURST);
             if(type==Type.PRODUCT_CENTERED_V1)return zero(capability*dependency);
             exposure=o.meanVulnerability(ChampionMatchupTrait.DURABILITY,ChampionMatchupTrait.DISENGAGE,ChampionMatchupTrait.MOBILITY);
-            double base=type==Type.EXPOSURE_GATED_GEOMETRIC_V2?geometricInteraction(capability,dependency):capability*dependency;
-            return zero(base*exposureGate(exposure));
+            return zero(capability*dependency*exposureGate(exposure));
         }
         switch(rule){
             case RANGE_POKE_PRESSURE->{capability=s.meanStrength(ChampionMatchupTrait.RANGE_CONTROL,ChampionMatchupTrait.POKE);exposure=o.meanVulnerability(ChampionMatchupTrait.SUSTAIN,ChampionMatchupTrait.MOBILITY,ChampionMatchupTrait.WAVE_CONTROL);}
@@ -43,9 +52,8 @@ public final class InteractionShapeFormula {
             case MOBILITY_PICK_ACCESS->{capability=s.meanStrength(ChampionMatchupTrait.MOBILITY,ChampionMatchupTrait.PICK,ChampionMatchupTrait.GAP_CLOSE);exposure=o.meanVulnerability(ChampionMatchupTrait.MOBILITY,ChampionMatchupTrait.DISENGAGE,ChampionMatchupTrait.DURABILITY);}
             default->throw new IllegalStateException();
         }
-        return zero(type==Type.EXPOSURE_GATED_GEOMETRIC_V2?geometricInteraction(capability,exposure):capability*exposure);
+        return zero(capability*exposure);
     }
-    public static double geometricInteraction(double a,double b){return a<=0||b<=0?0.0:zero(Math.sqrt(a*b));}
     public static double exposureGate(double exposure){return zero(.25+.75*Math.max(0,Math.min(1,exposure)));}
     private static double clamp(double v){double x=Math.max(-.30,Math.min(.30,v));return zero(x);} private static double zero(double v){return Math.abs(v)<1e-12?0.0:v;}
     public record Contribution(ChampionMatchupRuleType ruleType,double forwardDirectional,double reverseDirectional,double antisymmetricRuleEdge,double contextWeight,double weightedContribution){}

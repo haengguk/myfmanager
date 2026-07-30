@@ -14,6 +14,15 @@ public record ChampionMatchupPair(ChampionId first, ChampionId second, Position 
         }
     }
 
+    public static ChampionMatchupPair of(ChampionId left, ChampionId right, Position position) {
+        Objects.requireNonNull(left, "left");
+        Objects.requireNonNull(right, "right");
+        Objects.requireNonNull(position, "position");
+        return left.value().compareTo(right.value()) < 0
+                ? new ChampionMatchupPair(left, right, position)
+                : new ChampionMatchupPair(right, left, position);
+    }
+
     public static ChampionMatchupPair of(ChampionDefinition left, ChampionDefinition right) {
         Objects.requireNonNull(left, "left");
         Objects.requireNonNull(right, "right");

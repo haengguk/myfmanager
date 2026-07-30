@@ -93,9 +93,9 @@ class ThirtyChampionDynamicAndLineupTest {
         assertThat(dynamic).allMatch(row ->
                 Double.isFinite(row.finalMatchupEdge()));
     }
-    @Test void productionGameplayRemainsUnchanged() {
+    @Test void productionGameplayUsesApprovedGeometricV2() {
         assertThat(SimulationOptions.productionDefaults().championMatchupMode())
-                .isEqualTo(com.lolfm.champion.ChampionMatchupMode.OFF);
+                .isEqualTo(com.lolfm.champion.ChampionMatchupMode.GEOMETRIC_V2);
     }
 
     private static void assertSkillHasNoGrowth(int gap) {

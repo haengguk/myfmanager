@@ -12,7 +12,7 @@ public final class ChampionRoleMatchupProfileCatalog {
     public static final String PROTOTYPE_VERSION =
             "focused-10-role-profile-prototype-v1";
     public static final String PRODUCTION_VERSION =
-            "production-role-profiles-empty-v1";
+            ChampionMatchupProductionPolicy.PROFILE_VERSION;
 
     private final String version;
     private final boolean prototypeOnly;
@@ -41,7 +41,19 @@ public final class ChampionRoleMatchupProfileCatalog {
 
     public static ChampionRoleMatchupProfileCatalog production() {
         return new ChampionRoleMatchupProfileCatalog(
-                PRODUCTION_VERSION, false, List.of());
+                PRODUCTION_VERSION, false, ThirtyChampionRoleProfiles.entries().stream()
+                .map(ThirtyChampionRoleProfiles.Entry::profile).toList());
+    }
+
+    public void validateCoverage(MatchChampionAssignments assignments) {
+        Objects.requireNonNull(assignments, "assignments");
+        for (ChampionAssignment assignment : assignments.asMap().values()) {
+            ChampionRoleKey key = new ChampionRoleKey(
+                    assignment.championId(), assignment.selectedPosition());
+            if (!profiles.containsKey(key)) {
+                throw new UnsupportedChampionRoleMatchupProfileException(key);
+            }
+        }
     }
 
     static ChampionRoleMatchupProfileCatalog diagnosticsCandidate(

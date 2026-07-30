@@ -56,7 +56,7 @@ class ChampionFoundationIntegrationTest {
     private MatchSimulator simulator() { return new MatchSimulator(new TeamfightResolver(), new EndGameEvaluator(),
             new SnapshotFactory(catalog), new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(),
             new StructureResolver(), new PushResolver(), SimulationOptions.productionDefaults()); }
-    private MatchSimulator simulatorOff(){return new MatchSimulator(new TeamfightResolver(),new EndGameEvaluator(),new SnapshotFactory(catalog),new ObjectiveResolver(),new PostFightResolver(),new ObjectiveAttemptResolver(),new StructureResolver(),new PushResolver(),SimulationOptions.productionDefaults().withChampionPowerEnabled(false));}
+    private MatchSimulator simulatorOff(){return new MatchSimulator(new TeamfightResolver(),new EndGameEvaluator(),new SnapshotFactory(catalog),new ObjectiveResolver(),new PostFightResolver(),new ObjectiveAttemptResolver(),new StructureResolver(),new PushResolver(),SimulationOptions.productionDefaults().withChampionPowerEnabled(false).withChampionMatchupMode(ChampionMatchupMode.OFF));}
     private ChampionSelectionRequest lineupC() { return new ChampionSelectionRequest(
             new ChampionLineupRequest("renekton","sejuani","azir","jinx","nautilus"),
             new ChampionLineupRequest("jax","lee-sin","ahri","kaisa","rakan")); }
