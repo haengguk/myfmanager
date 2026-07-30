@@ -294,7 +294,8 @@ public class TeamfightResolver {
         TeamState red = state.getRedTeamState();
         double goldContribution=(blue.getGold()-red.getGold())/500.0;
         double existing=goldContribution+(blue.getKills()-red.getKills())*11.0+teamfightScore(state,TeamSide.BLUE,blueTeam)-teamfightScore(state,TeamSide.RED,redTeam);
-        double pressure=existing+new CombatProgressionEvaluator().contribution(state,context,alivePlayers(blue,state.getCurrentTimeSeconds()),alivePlayers(red,state.getCurrentTimeSeconds()),existing,goldContribution)+(random.nextDouble()-.5)*56.0;
+        double scoreWithoutNoise=existing+new CombatProgressionEvaluator().contribution(state,context,alivePlayers(blue,state.getCurrentTimeSeconds()),alivePlayers(red,state.getCurrentTimeSeconds()),existing,goldContribution);
+        double pressure=new CombatOutcomeProbabilityEvaluator().resolveUniformAdvantageScore(scoreWithoutNoise,random);
         return pressure >= 0
                 ? new TeamfightSides(TeamSide.BLUE, blueTeam, blue, redTeam, red, pressure)
                 : new TeamfightSides(TeamSide.RED, redTeam, red, blueTeam, blue, Math.abs(pressure));

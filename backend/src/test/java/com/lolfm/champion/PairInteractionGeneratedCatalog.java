@@ -15,6 +15,14 @@ public final class PairInteractionGeneratedCatalog {
     }
 
     public static BuildResult build(ChampionCatalog champions) {
+        return build(champions, 1.0);
+    }
+
+    /** Builds a diagnostics-only catalog using one global post-formula gain. */
+    public static BuildResult build(ChampionCatalog champions, double gain) {
+        if (!Double.isFinite(gain) || gain <= 0) {
+            throw new IllegalArgumentException("Interaction gain must be finite and positive");
+        }
         var profiles = ThirtyChampionRoleProfiles.catalog();
         var formula = new CenteredPairInteractionFormula(
                 new ChampionMatchupRuleCatalog());
@@ -45,12 +53,13 @@ public final class PairInteractionGeneratedCatalog {
                                 .max(java.util.Comparator.comparingDouble(value ->
                                         Math.abs(value.weightedContribution())))
                                 .orElseThrow();
-                        edges.put(context, forward.finalEdge());
+                        double gainedEdge = clamp(forward.finalEdge() * gain);
+                        double reverseEdge = clamp(reverse.finalEdge() * gain);
+                        edges.put(context, gainedEdge);
                         results.put(new Key(pair, context), forward);
                         rows.add(new Row(position, pair.first().value(),
-                                pair.second().value(), context, forward.finalEdge(),
-                                reverse.finalEdge(),
-                                forward.finalEdge() + reverse.finalEdge(),
+                                pair.second().value(), context, gainedEdge,
+                                reverseEdge, gainedEdge + reverseEdge,
                                 dominant.ruleType(),
                                 absoluteSum == 0 ? 0 : Math.abs(
                                         dominant.weightedContribution()) / absoluteSum,
@@ -62,7 +71,14 @@ public final class PairInteractionGeneratedCatalog {
         }
         return new BuildResult(
                 ChampionMatchupCatalog.generatedDiagnosticsCatalog(
-                        VERSION, champions, catalogProfiles), rows, results);
+                        VERSION + (gain == 1.0 ? "" : "-gain-" + gain), champions, catalogProfiles),
+                rows, results);
+    }
+
+    private static double clamp(double value) {
+        double result = Math.max(-CenteredPairInteractionFormula.MAX_ABSOLUTE_EDGE,
+                Math.min(CenteredPairInteractionFormula.MAX_ABSOLUTE_EDGE, value));
+        return result == 0.0 ? 0.0 : result;
     }
 
     public record Key(ChampionMatchupPair pair,

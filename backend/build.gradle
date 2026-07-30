@@ -175,3 +175,31 @@ tasks.register("runChampionPairInteractionFormulaAudit", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.simulator.ChampionPairInteractionFormulaAudit"
 }
+
+tasks.register("runChampionPairInteractionGainAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13C-4.1 pair-interaction gain calibration audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionPairInteractionGainAudit"
+}
+
+tasks.register("runChampionPairInteractionShapeAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13C-4.2 interaction-shape and probability-delta audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionPairInteractionShapeAudit"
+}
+
+tasks.register("runGeometricCandidateInfluenceAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13C-4.2.1 geometric candidate influence audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.GeometricCandidateInfluenceAudit"
+}
+
+tasks.register("rebuildGeometricCandidateSummaryFromArtifacts", JavaExec) {
+    group = "verification"
+    description = "Rebuilds the Phase 13C-4.2.1 summary from existing artifacts without simulation."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.GeometricCandidateSummaryRebuilder"
+}

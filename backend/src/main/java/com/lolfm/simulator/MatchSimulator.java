@@ -540,11 +540,9 @@ public class MatchSimulator {
     private TeamSelection chooseTeamForSkirmish(Random random, Team blueTeam, Team redTeam, GameState state) {
         TeamState blue = state.getBlueTeamState();
         TeamState red = state.getRedTeamState();
-        double blueWeight = skirmishInitiative(state, TeamSide.BLUE)
-                + blue.getKills() * 3.0 + blue.getGold() / 900.0;
-        double redWeight = skirmishInitiative(state, TeamSide.RED)
-                + red.getKills() * 3.0 + red.getGold() / 900.0;
-        return random.nextDouble() < blueWeight / (blueWeight + redWeight)
+        double blueWeight = skirmishInitiative(state, TeamSide.BLUE);
+        double redWeight = skirmishInitiative(state, TeamSide.RED);
+        return random.nextDouble() < new CombatOutcomeProbabilityEvaluator().weightedSelectionProbability(blueWeight, redWeight)
                 ? new TeamSelection(blueTeam, blue, redTeam, red)
                 : new TeamSelection(redTeam, red, blueTeam, blue);
     }
@@ -563,7 +561,8 @@ public class MatchSimulator {
         if(alive==0)return .1;
         List<PlayerState> own=team.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
         List<PlayerState> enemy=state.getTeamState(side.opposite()).getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
-        return total+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.GENERIC_SKIRMISH,own,enemy,total,0,ProgressionApplicationStage.INITIATIVE);
+        double existing=total+team.getKills()*3.0+team.getGold()/900.0;
+        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.GENERIC_SKIRMISH,own,enemy,existing,0,ProgressionApplicationStage.INITIATIVE);
     }
 
     private double averageAttribute(TeamState team, java.util.function.ToIntFunction<PlayerState> attribute) {

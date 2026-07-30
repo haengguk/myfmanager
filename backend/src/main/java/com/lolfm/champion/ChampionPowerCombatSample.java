@@ -1,5 +1,7 @@
 package com.lolfm.champion;
 import com.lolfm.simulator.*;
-public record ChampionPowerCombatSample(int timeSeconds,ProgressionCombatContext context,ProgressionApplicationStage applicationStage,TeamSide ownSide,int ownParticipantCount,int enemyParticipantCount,double ownAverageChampionPower,double enemyAverageChampionPower,double rawEdge,double finalEdge,double levelContribution,double itemContribution,double contextContribution,double finalChampionContribution,double existingScoreBeforeProgression,double goldContribution,double commonLevelContribution,double commonItemContribution,double finalScoreContribution,boolean playerClampApplied,boolean teamClampApplied,boolean championPowerEnabled){
+import java.util.List;
+public record ChampionPowerCombatSample(int timeSeconds,ProgressionCombatContext context,ProgressionApplicationStage applicationStage,TeamSide ownSide,int ownParticipantCount,int enemyParticipantCount,List<PlayerKey> ownParticipantKeys,List<PlayerKey> enemyParticipantKeys,double ownAverageChampionPower,double enemyAverageChampionPower,double rawEdge,double finalEdge,double levelContribution,double itemContribution,double contextContribution,double finalChampionContribution,double existingScoreBeforeProgression,double goldContribution,double commonLevelContribution,double commonItemContribution,double finalScoreContribution,boolean playerClampApplied,boolean teamClampApplied,boolean championPowerEnabled){
+ public ChampionPowerCombatSample{ownParticipantKeys=List.copyOf(ownParticipantKeys);enemyParticipantKeys=List.copyOf(enemyParticipantKeys);}
  public int participantCount(){return ownParticipantCount+enemyParticipantCount;}
 }

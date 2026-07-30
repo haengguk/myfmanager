@@ -14,11 +14,11 @@ import com.lolfm.simulator.TeamState;
 import java.util.ArrayList;
 import java.util.List;
 
-final class ChampionMatchupAuditPlayerFactory {
+public final class ChampionMatchupAuditPlayerFactory {
     private final GoldAwardService gold = new GoldAwardService();
     private final ProgressionRewardResolver experience = new ProgressionRewardResolver();
 
-    PlayerBundle create(
+    public PlayerBundle create(
             Position position,
             AuditState state,
             int skillGap
@@ -35,7 +35,7 @@ final class ChampionMatchupAuditPlayerFactory {
         return new PlayerBundle(player, team, state);
     }
 
-    GrowthOutcome applyGrowth(
+    public GrowthOutcome applyGrowth(
             PlayerBundle bundle,
             ChampionMatchupIndependentScenario.GrowthPackage growth
     ) {
@@ -107,7 +107,7 @@ final class ChampionMatchupAuditPlayerFactory {
         }
     }
 
-    enum AuditState {
+    public enum AuditState {
         LEVEL_6_FIRST_CORE(6, ItemProgressStage.FIRST_CORE),
         LEVEL_11_SECOND_CORE(11, ItemProgressStage.SECOND_CORE),
         LEVEL_16_THIRD_CORE(16, ItemProgressStage.THIRD_CORE),
@@ -125,13 +125,13 @@ final class ChampionMatchupAuditPlayerFactory {
         ItemProgressStage itemStage() { return itemStage; }
     }
 
-    record PlayerBundle(
+    public record PlayerBundle(
             PlayerState player,
             TeamState team,
             AuditState state
     ) { }
 
-    record GrowthOutcome(
+    public record GrowthOutcome(
             int requestedKillLead,
             int achievedKillLead,
             int requestedLevelLead,
