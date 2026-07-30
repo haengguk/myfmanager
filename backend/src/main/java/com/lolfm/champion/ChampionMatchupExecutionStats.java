@@ -1,6 +1,7 @@
 package com.lolfm.champion;
 
 public final class ChampionMatchupExecutionStats {
+    private final java.util.List<Double> applicationEdges = new java.util.ArrayList<>();
     private int evaluations;
     private int enabledEvaluations;
     private int disabledEvaluations;
@@ -50,6 +51,7 @@ public final class ChampionMatchupExecutionStats {
         else eligiblePairEvaluations++;
         totalPairApplications += result.eligiblePairCount();
         for (ChampionMatchupPairContribution value : result.pairContributions()) {
+            applicationEdges.add(value.edge());
             if (value.edge() == 0.0) {
                 zeroContributionApplications++;
                 exactZeroApplications++;
@@ -107,6 +109,7 @@ public final class ChampionMatchupExecutionStats {
                 finalMatchupEdgeSum, eligiblePairCountTotal, nonZeroPairCountTotal,
                 dilutionRatioSum, dilutionSamples, coverageRatioSum,
                 netDirectionalRetentionSum, prototypeCoverageDilutionCount,
-                signCancellationCount, unexpectedAggregationDilutionCount);
+                signCancellationCount, unexpectedAggregationDilutionCount,
+                java.util.List.copyOf(applicationEdges));
     }
 }

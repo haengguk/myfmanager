@@ -36,13 +36,17 @@ public record ChampionMatchupExecutionStatsSnapshot(
         double netDirectionalRetentionSum,
         int prototypeCoverageDilutionCount,
         int signCancellationCount,
-        int unexpectedAggregationDilutionCount
+        int unexpectedAggregationDilutionCount,
+        java.util.List<Double> applicationEdges
 ) {
+    public ChampionMatchupExecutionStatsSnapshot {
+        applicationEdges = java.util.List.copyOf(applicationEdges);
+    }
     public static ChampionMatchupExecutionStatsSnapshot empty() {
         return new ChampionMatchupExecutionStatsSnapshot(
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0.0, 0.0, 0.0, 0L, 0L, 0.0, 0,
-                0.0, 0.0, 0, 0, 0);
+                0.0, 0.0, 0, 0, 0, java.util.List.of());
     }
 }

@@ -128,3 +128,50 @@ tasks.register("runPlayerChampionInteractionAudit", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.champion.PlayerChampionInteractionAudit"
 }
+
+
+tasks.register("runSideOrientationAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13B.6 side-orientation audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.SideOrientationAudit"
+}
+
+tasks.register("runChampionMatchupFoundationDiagnostics", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13C-1 champion matchup foundation audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionMatchupFoundationAudit"
+}
+
+
+tasks.register("runChampionMatchupRuleEngineDiagnostics", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13C-2 champion matchup rule-engine prototype audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionMatchupRuleEngineAudit"
+}
+
+
+tasks.register("runChampionMatchupRuleSemanticsAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13C-2.1 matchup rule semantics and independent override audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionMatchupRuleSemanticsAudit"
+}
+
+
+tasks.register("runThirtyChampionMatchupDistributionAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13C-3 thirty-champion generated matchup distribution audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ThirtyChampionMatchupDistributionAudit"
+}
+
+
+tasks.register("runChampionPairInteractionFormulaAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13C-4 pair-interaction formula and activation-gate audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.ChampionPairInteractionFormulaAudit"
+}

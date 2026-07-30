@@ -44,6 +44,15 @@ public final class ChampionRoleMatchupProfileCatalog {
                 PRODUCTION_VERSION, false, List.of());
     }
 
+    static ChampionRoleMatchupProfileCatalog diagnosticsCandidate(
+            String version, List<ChampionRoleMatchupProfile> values
+    ) {
+        if (!version.contains("candidate")) {
+            throw new IllegalArgumentException("Diagnostics candidate version required");
+        }
+        return new ChampionRoleMatchupProfileCatalog(version, true, values);
+    }
+
     public static ChampionRoleMatchupProfileCatalog prototype() {
         return new ChampionRoleMatchupProfileCatalog(
                 PROTOTYPE_VERSION, true, List.of(
