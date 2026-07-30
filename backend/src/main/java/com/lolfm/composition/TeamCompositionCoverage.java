@@ -1,0 +1,3 @@
+package com.lolfm.composition;
+import java.util.*;
+public record TeamCompositionCoverage(Map<CompositionCapability,CapabilityCoverage> capabilities,DamageChannelCoverage damageChannels){public TeamCompositionCoverage{EnumMap<CompositionCapability,CapabilityCoverage>copy=new EnumMap<>(CompositionCapability.class);copy.putAll(Objects.requireNonNull(capabilities));if(copy.size()!=CompositionCapability.values().length)throw new IllegalArgumentException();capabilities=Map.copyOf(copy);Objects.requireNonNull(damageChannels);}public CapabilityCoverage capability(CompositionCapability c){return capabilities.get(c);}}

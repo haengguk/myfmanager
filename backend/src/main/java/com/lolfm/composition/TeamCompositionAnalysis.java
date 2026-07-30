@@ -1,0 +1,2 @@
+package com.lolfm.composition;
+import java.util.*;public record TeamCompositionAnalysis(TeamCompositionLineup lineup,TeamCompositionCoverage coverage,Map<CompositionPattern,PatternEvaluation> patterns,Map<CompositionDeficiency,DeficiencyEvaluation> deficiencies,TeamCompositionExplanation explanation){public TeamCompositionAnalysis{patterns=Map.copyOf(patterns);deficiencies=Map.copyOf(deficiencies);}}

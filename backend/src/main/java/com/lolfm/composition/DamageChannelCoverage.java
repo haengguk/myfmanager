@@ -1,0 +1,2 @@
+package com.lolfm.composition;
+public record DamageChannelCoverage(int totalPhysicalThreat,int totalMagicThreat,int totalTrueDamageThreat,double physicalShare,double magicShare,double trueDamageShare,boolean shareApplicable){public DamageChannelCoverage{if(totalPhysicalThreat<0||totalMagicThreat<0||totalTrueDamageThreat<0)throw new IllegalArgumentException();for(double v:new double[]{physicalShare,magicShare,trueDamageShare})if(!Double.isFinite(v)||v<0||v>1)throw new IllegalArgumentException();}}

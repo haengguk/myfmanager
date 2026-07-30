@@ -1,0 +1,2 @@
+package com.lolfm.composition;
+import com.lolfm.champion.ChampionRoleKey;import java.util.*;public record PatternExplanation(CompositionPattern pattern,double readiness,Map<CompositionCapability,Double> componentCoverages,double contributorFactor,List<ChampionRoleKey> primaryContributors,boolean distinctRequirementSatisfied){public PatternExplanation{componentCoverages=Map.copyOf(componentCoverages);primaryContributors=List.copyOf(primaryContributors);}}

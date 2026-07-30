@@ -219,3 +219,11 @@ tasks.register("finalizeChampionMatchupProductionActivationFromArtifacts", JavaE
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.simulator.ChampionMatchupProductionActivationFinalizer"
 }
+
+
+tasks.register("runTeamCompositionFoundationAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13D-1 synthetic team-composition foundation audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.TeamCompositionFoundationAudit"
+}

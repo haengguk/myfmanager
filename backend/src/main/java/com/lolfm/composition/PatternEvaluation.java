@@ -1,0 +1,3 @@
+package com.lolfm.composition;
+import com.lolfm.champion.ChampionRoleKey;import java.util.*;
+public record PatternEvaluation(CompositionPattern pattern,double baseReadiness,double contributorFactor,double readiness,ContributorRequirement contributorRequirement,boolean distinctContributorRequirementSatisfied,Map<CompositionCapability,Double> componentCoverages,List<ChampionRoleKey> primaryContributors,List<ChampionRoleKey> supportingContributors){public PatternEvaluation{componentCoverages=Map.copyOf(componentCoverages);primaryContributors=List.copyOf(primaryContributors);supportingContributors=List.copyOf(supportingContributors);for(double v:new double[]{baseReadiness,contributorFactor,readiness})if(!Double.isFinite(v)||v<0||v>1)throw new IllegalArgumentException();}}

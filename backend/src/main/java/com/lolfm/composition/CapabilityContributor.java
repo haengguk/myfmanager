@@ -1,0 +1,3 @@
+package com.lolfm.composition;
+import com.lolfm.champion.ChampionRoleKey;import com.lolfm.domain.Position;import java.util.Objects;
+public record CapabilityContributor(ChampionRoleKey championRoleKey,Position position,int rawValue,double normalizedValue,int rank,double aggregationWeight,double weightedContribution){public CapabilityContributor{Objects.requireNonNull(championRoleKey);Objects.requireNonNull(position);if(championRoleKey.position()!=position||rawValue<0||rawValue>20||rank<1||rank>5)throw new IllegalArgumentException();if(!Double.isFinite(normalizedValue)||!Double.isFinite(aggregationWeight)||!Double.isFinite(weightedContribution))throw new IllegalArgumentException();}}

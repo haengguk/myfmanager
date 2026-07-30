@@ -1,0 +1,3 @@
+package com.lolfm.composition;
+import java.util.*;
+public record PatternDefinition(CompositionPattern pattern,List<CompositionCapability> components,ContributorRequirement contributorRequirement,List<CompositionCapability> distinctCapabilities,String explanationKey){public PatternDefinition{Objects.requireNonNull(pattern);components=List.copyOf(components);Objects.requireNonNull(contributorRequirement);distinctCapabilities=List.copyOf(distinctCapabilities);if(components.size()!=3||contributorRequirement!=ContributorRequirement.ANY&&distinctCapabilities.size()!=2||explanationKey==null||explanationKey.isBlank())throw new IllegalArgumentException();}}
