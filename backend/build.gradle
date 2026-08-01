@@ -227,3 +227,33 @@ tasks.register("runTeamCompositionFoundationAudit", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.composition.TeamCompositionFoundationAudit"
 }
+
+
+tasks.register("runThirtyChampionCompositionProfileAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13D-2 thirty champion composition profile audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.ThirtyChampionCompositionProfileAudit"
+}
+
+
+tasks.register("reviewThirtyChampionCompositionProfileWarningsFromArtifacts", JavaExec) {
+    group = "verification"
+    description = "Classifies Phase 13D-2 composition profile warnings from existing artifacts."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionProfileWarningReviewer"
+}
+
+tasks.register("runCompositionInteractionContextAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13D-3 composition interaction context audit over 60 representatives."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionInteractionContextAudit"
+}
+
+tasks.register("finalizeCompositionInteractionCandidateFromArtifacts", JavaExec) {
+    group = "verification"
+    description = "Finalizes Phase 13D-3.1 rule-level anchor correction from existing artifacts without simulation."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionInteractionCandidateFreeze"
+}

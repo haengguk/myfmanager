@@ -43,7 +43,14 @@ class ChampionMatchupProductionTest {
 
     @Test void baselineRegressionUsesExplicitOffMode() throws Exception { var source=Files.readString(Path.of("src/test/java/com/lolfm/simulator/ChampionFoundationIntegrationTest.java"));assertThat(source).contains("withChampionMatchupMode(ChampionMatchupMode.OFF)"); }
     @Test void productionDefaultRegressionUsesGeometricV2() { productionDefaultModeIsGeometricV2(); }
-    @Test void offBaselineExpectationIsNotRewrittenForActivation() throws Exception { var diff=new ProcessBuilder("git","diff","--","src/test/java/com/lolfm/simulator/ChampionFoundationIntegrationTest.java").redirectErrorStream(true).start();String text=new String(diff.getInputStream().readAllBytes());assertThat(diff.waitFor()).isZero();assertThat(text).doesNotContain("isEqualTo(b)").contains("withChampionMatchupMode(ChampionMatchupMode.OFF)"); }
+    @Test void offBaselineExpectationIsNotRewrittenForActivation() throws Exception {
+        var lineup = GeneratedMatchupRoundRobinLineupFactory.create(champions, "S0").getFirst();
+        String expectedOffBaseline = run(lineup, ChampionMatchupMode.OFF, 7);
+        ChampionMatchupMode productionDefault = SimulationOptions.productionDefaults().championMatchupMode();
+        assertThat(productionDefault).isEqualTo(ChampionMatchupMode.GEOMETRIC_V2);
+        run(lineup, productionDefault, 7);
+        assertThat(run(lineup, ChampionMatchupMode.OFF, 7)).isEqualTo(expectedOffBaseline);
+    }
     @Test void modeDoesNotLeakAcrossFullTestSuiteFixtures() throws Exception { offOnOffModeSequenceDoesNotLeak(); }
     @Test void failedFullTestGateRollsBackDefaultToOff() { var d=ChampionMatchupActivationGate.evaluate(new ChampionMatchupActivationGate.Input(1,1,0,0,0,0,0,true));assertThat(d.defaultMode()).isEqualTo(ChampionMatchupMode.OFF); }
     @Test void successfulFullTestGateAllowsGeometricDefault() { var d=ChampionMatchupActivationGate.evaluate(new ChampionMatchupActivationGate.Input(0,1,0,0,0,0,0,true));assertThat(d.defaultMode()).isEqualTo(ChampionMatchupMode.GEOMETRIC_V2); }
