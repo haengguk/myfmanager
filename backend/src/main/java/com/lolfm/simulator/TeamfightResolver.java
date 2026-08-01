@@ -2,6 +2,9 @@ package com.lolfm.simulator;
 
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
+import com.lolfm.composition.CompositionActionType;
+import com.lolfm.composition.CompositionBaselineScoreDomain;
+import com.lolfm.composition.FightScale;
 import com.lolfm.domain.Player;
 import com.lolfm.domain.Position;
 import com.lolfm.domain.Team;
@@ -38,6 +41,20 @@ public class TeamfightResolver {
         }
 
         TeamfightSides sides = determineTeamfightSides(gameState, blueTeam, redTeam, random, progressionContext);
+        CompositionActionType compositionAction = progressionContext == ProgressionCombatContext.BASE_DEFENSE
+                ? CompositionActionType.BASE_DEFENSE
+                : progressionContext == ProgressionCombatContext.LATE_GAME_SIEGE
+                ? CompositionActionType.SIEGE_COMBAT : CompositionActionType.TEAMFIGHT;
+        gameState.getCompositionRuntimeState().recordActualAttempt(
+                compositionAction, sides.winningSide(), sides.winningSide(), sides.winningSide().opposite(),
+                FightScale.FORMAL, null, false, null, null, currentTime,
+                compositionAction == CompositionActionType.TEAMFIGHT
+                        ? CompositionBaselineScoreDomain.TEAMFIGHT_COMBAT_SCORE
+                        : compositionAction == CompositionActionType.SIEGE_COMBAT
+                        ? CompositionBaselineScoreDomain.SIEGE_PUSH_SCORE
+                        : CompositionBaselineScoreDomain.BASE_DEFENSE_SCORE,
+                teamfightScore(gameState, sides.winningSide(), sides.winningTeam()),
+                teamfightScore(gameState, sides.winningSide().opposite(), sides.losingTeam()));
         List<PlayerState> blueParticipants=gameState.getBlueTeamState().getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
         List<PlayerState> redParticipants=gameState.getRedTeamState().getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
         for (PlayerState player : gameState.getBlueTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);

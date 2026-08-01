@@ -1,6 +1,9 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.MatchEvent;
+import com.lolfm.composition.CompositionActionType;
+import com.lolfm.composition.CompositionBaselineScoreDomain;
+import com.lolfm.composition.FightScale;
 import com.lolfm.domain.ObjectiveDecisionData;
 import com.lolfm.domain.ObjectiveDecisionWeightBreakdown;
 import com.lolfm.domain.ObjectivePriorityDecisionData;
@@ -45,6 +48,12 @@ public final class ObjectiveDecisionResolver {
         List<ObjectiveDecisionWeightBreakdown> responderWeights = responderWeights(state, context);
         Selection responderSelection = select(responderWeights, random);
         ObjectiveDecisionAction responderAction = responderSelection.action();
+        if (responderAction == ObjectiveDecisionAction.CONTEST) {
+            state.getCompositionRuntimeState().recordActualAttempt(
+                    CompositionActionType.OBJECTIVE_SETUP, initiative, initiative, initiative.opposite(),
+                    FightScale.FORMAL, type, true, null, null, time,
+                    CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
+        }
         TeamSide captureSide = initiative;
         TeamSide fightWinner = null;
         boolean contested = false;

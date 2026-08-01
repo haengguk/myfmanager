@@ -1,6 +1,9 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.CombatSource;
+import com.lolfm.composition.CompositionActionType;
+import com.lolfm.composition.CompositionBaselineScoreDomain;
+import com.lolfm.composition.FightScale;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.Position;
@@ -39,6 +42,9 @@ public final class RoamResolver {
         Candidate selected = weightedCandidate(triggered, random);
         stats.recordUnselectedTriggers(triggered.size() - 1);
         Lane target = selected.position() == Position.SUPPORT ? Lane.MID : weightedTarget(state, selected, time, random);
+        state.getCompositionRuntimeState().recordActualAttempt(
+                CompositionActionType.ROAM, selected.side(), selected.side(), selected.side().opposite(), FightScale.SMALL,
+                null, false, null, target, time, CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
         double targetWeight = targetWeight(state, selected, target, time);
         PlayerState roamer = player(state, selected);
         state.markMajorCombatParticipant(roamer);

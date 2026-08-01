@@ -71,6 +71,7 @@ public class ObjectiveAttemptResolver {
                 selection.rollExecuted(), selection.side());
         record(state, decision);
         if (state.isObjectiveDecisionEnabled()) return decisions.resolve(state, ObjectiveType.ELDER, selection.side(), 0, random, resolver, structures, events, decision);
+        recordLegacyCompositionAttempt(state, ObjectiveType.ELDER, selection.side());
         Optional<MatchEvent> result = resolver.captureElder(state, selection.side(), time,
                 random.nextBoolean() ? "장로 드래곤을 확보합니다." : "시야 주도권을 바탕으로 장로 드래곤을 처치합니다.")
                 .map(ElderCaptureOutcome::event);
@@ -109,6 +110,7 @@ public class ObjectiveAttemptResolver {
                 selection.redMultiplier(), selection.finalBlue(), selection.finalRed(), selection.rollExecuted(), selection.side());
         record(state, decision);
         if (state.isObjectiveDecisionEnabled()) return decisions.resolve(state, ObjectiveType.DRAGON, selection.side(), signed, random, resolver, structures, events, decision);
+        recordLegacyCompositionAttempt(state, ObjectiveType.DRAGON, selection.side());
         String message = random.nextBoolean()
                 ? "시야와 인원 우위를 바탕으로 드래곤을 확보합니다."
                 : "상대보다 먼저 드래곤 지역을 장악합니다.";
@@ -148,12 +150,20 @@ public class ObjectiveAttemptResolver {
                 selection.redMultiplier(), selection.finalBlue(), selection.finalRed(), selection.rollExecuted(), selection.side());
         record(state, decision);
         if (state.isObjectiveDecisionEnabled()) return decisions.resolve(state, ObjectiveType.BARON, selection.side(), signed, random, resolver, structures, events, decision);
+        recordLegacyCompositionAttempt(state, ObjectiveType.BARON, selection.side());
         String message = random.nextBoolean()
                 ? "상대의 빈틈을 노려 바론을 확보합니다."
                 : "시야 주도권을 바탕으로 바론을 처치합니다.";
         Optional<MatchEvent> result = resolver.captureBaron(state, selection.side(), time, message);
         result.ifPresent(event -> event.setObjectivePriorityDecision(decision));
         return result;
+    }
+
+    private void recordLegacyCompositionAttempt(GameState state, ObjectiveType type, TeamSide side) {
+        state.getCompositionRuntimeState().recordActualAttempt(
+                com.lolfm.composition.CompositionActionType.OBJECTIVE_SETUP, side, side, side.opposite(),
+                com.lolfm.composition.FightScale.FORMAL, type, true, null, null, state.getCurrentTimeSeconds(),
+                com.lolfm.composition.CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
     }
 
     double dragonExistingBaseAttemptChance(GameState state) {

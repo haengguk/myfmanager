@@ -1,6 +1,9 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.CombatSource;
+import com.lolfm.composition.CompositionActionType;
+import com.lolfm.composition.CompositionBaselineScoreDomain;
+import com.lolfm.composition.FightScale;
 import com.lolfm.domain.JungleGankData;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
@@ -43,6 +46,9 @@ public final class JungleGankResolver {
         TeamSide side = triggered.size() == 1 ? triggered.keySet().iterator().next()
                 : weightedSide(triggered, random);
         Lane lane = chooseTargetLane(state, side, time, random);
+        state.getCompositionRuntimeState().recordActualAttempt(
+                CompositionActionType.JUNGLE_GANK, side, side, side.opposite(), FightScale.SMALL,
+                null, false, null, lane, time, CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
         state.markMajorCombatParticipant(state.getTeamState(side).playerAt(Position.JUNGLE));
         state.markMajorCombatParticipant(state.getTeamState(side.opposite()).playerAt(Position.JUNGLE));
         for (TeamSide participantSide : TeamSide.values()) {

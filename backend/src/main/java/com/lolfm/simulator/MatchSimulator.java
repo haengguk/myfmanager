@@ -9,6 +9,13 @@ import com.lolfm.champion.ChampionRoleMatchupProfileCatalog;
 import com.lolfm.champion.ChampionSelectionValidator;
 import com.lolfm.champion.ChampionPowerProfileCatalog;
 import com.lolfm.champion.MatchChampionAssignments;
+import com.lolfm.composition.CompositionGameplayConfigurationException;
+import com.lolfm.composition.CompositionActionType;
+import com.lolfm.composition.CompositionBaselineScoreDomain;
+import com.lolfm.composition.FightScale;
+import com.lolfm.composition.CompositionRuntimeDiagnostics;
+import com.lolfm.composition.CompositionRuntimeState;
+import com.lolfm.composition.TeamCompositionGameplayMode;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.ObjectiveDecisionData;
 import com.lolfm.domain.MatchEventType;
@@ -78,6 +85,7 @@ public class MatchSimulator {
     private final ChampionMatchupMode championMatchupMode;
     private final ChampionMatchupCatalog championMatchupCatalog;
     private final ChampionRoleMatchupProfileCatalog championMatchupProfiles;
+    private final TeamCompositionGameplayMode teamCompositionGameplayMode;
 
     @Autowired
     public MatchSimulator(
@@ -192,6 +200,7 @@ public class MatchSimulator {
         this.championMatchupCatalog = java.util.Objects.requireNonNull(
                 championMatchupCatalog, "championMatchupCatalog");
         this.championMatchupProfiles = null;
+        this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -226,6 +235,7 @@ public class MatchSimulator {
         this.championMatchupMode = options.championMatchupMode();
         this.championMatchupProfiles = java.util.Objects.requireNonNull(championMatchupProfiles, "championMatchupProfiles");
         this.championMatchupCatalog = null;
+        this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -268,7 +278,10 @@ public class MatchSimulator {
             Random random,
             long seed
     ) {
+        validateCompositionModeBeforeMatch();
         GameState gameState = initializeGameState(blueTeam, redTeam, assignments);
+        gameState.configureCompositionRuntime(new CompositionRuntimeState(teamCompositionGameplayMode, seed));
+        gameState.getCompositionRuntimeState().initialize(assignments);
         gameState.configureProgression(progressionEnabled, progressionPowerEnabled);
         gameState.getBlueTeamState().validateCompleteLineup();
         gameState.getRedTeamState().validateCompleteLineup();
@@ -436,7 +449,8 @@ public class MatchSimulator {
                 gameState.getChampionMatchupExecutionStats().snapshot(),
                 gameState.getCombatOutcomeExecutionStats().snapshot(),
                 random instanceof SideOrientationRandomTraceObserver observer ? observer.drawCount() : 0L,
-                random instanceof SideOrientationRandomTraceObserver observer ? observer.trace() : List.of()
+                random instanceof SideOrientationRandomTraceObserver observer ? observer.trace() : List.of(),
+                gameState.getCompositionRuntimeState().snapshot()
         );
     }
 
@@ -472,8 +486,17 @@ public class MatchSimulator {
             ChampionMatchupExecutionStatsSnapshot championMatchupExecutionStats,
             CombatOutcomeExecutionStatsSnapshot combatOutcomeExecutionStats,
             long randomDrawCount,
-            List<SideOrientationRandomTraceObserver.Draw> randomTrace
+            List<SideOrientationRandomTraceObserver.Draw> randomTrace,
+            CompositionRuntimeDiagnostics compositionRuntimeDiagnostics
     ) {
+    }
+
+    private void validateCompositionModeBeforeMatch() {
+        if (teamCompositionGameplayMode == TeamCompositionGameplayMode.CANDIDATE) {
+            throw new CompositionGameplayConfigurationException(
+                    "CANDIDATE_CONTEXT_GAINS_NOT_APPROVED",
+                    "Composition candidate gameplay gains are not approved for this phase");
+        }
     }
 
     private void randomContext(
@@ -571,6 +594,15 @@ public class MatchSimulator {
                 * PlayerImpactRuleConfig.SKIRMISH_CHANCE_PER_AVERAGE_AGGRESSION_POINT, 0.05, 0.15);
         if (random.nextDouble() >= chance) return false;
         TeamSelection attacking = chooseTeamForSkirmish(random, blueTeam, redTeam, state);
+        state.getCompositionRuntimeState().recordActualAttempt(
+                CompositionActionType.SKIRMISH,
+                attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED,
+                attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED,
+                attacking.actingState() == state.getBlueTeamState() ? TeamSide.RED : TeamSide.BLUE,
+                FightScale.SMALL, null, false, null, null, state.getCurrentTimeSeconds(),
+                CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE,
+                skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED),
+                skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.RED : TeamSide.BLUE));
         boolean resolved = teamfightResolver.resolveKill(
                 state.getCurrentTimeSeconds(), random,
                 attacking.actingTeam(), attacking.actingState(),

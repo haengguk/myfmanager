@@ -333,6 +333,10 @@ public final class MidGameMacroResolver {
         }
         state.getMidGameMacroState().getExecutionStats().recordActionAttempt();
         state.recordPushAttempt();
+        state.getCompositionRuntimeState().recordActualAttempt(
+                com.lolfm.composition.CompositionActionType.SIEGE, decision.side(), decision.side(), decision.side().opposite(),
+                com.lolfm.composition.FightScale.NONE, null, false, null, lane, state.getCurrentTimeSeconds(),
+                com.lolfm.composition.CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
         double goldEdge = edge(state.getTeamState(decision.side()).getGold(),
                 state.getTeamState(decision.side().opposite()).getGold(), MidGameMacroRuleConfig.GOLD_EDGE_NORMALIZER);
         double aliveBonus = (countAlive(state.getTeamState(decision.side()), state.getCurrentTimeSeconds())

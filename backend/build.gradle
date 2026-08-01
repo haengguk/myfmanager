@@ -257,3 +257,19 @@ tasks.register("finalizeCompositionInteractionCandidateFromArtifacts", JavaExec)
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.composition.CompositionInteractionCandidateFreeze"
 }
+
+
+tasks.register("runCompositionShadowWiringAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13D-4A OFF/SHADOW composition wiring audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.CompositionShadowWiringAudit"
+}
+
+tasks.register("runCompositionShadowWiringGateClosureAudit", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4A.1 baseline score capture and shadow wiring gate closure."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.CompositionShadowWiringGateClosureAudit"
+}
+

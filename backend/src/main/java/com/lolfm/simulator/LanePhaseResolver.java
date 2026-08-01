@@ -1,6 +1,9 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.MatchEvent;
+import com.lolfm.composition.CompositionActionType;
+import com.lolfm.composition.CompositionBaselineScoreDomain;
+import com.lolfm.composition.FightScale;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.MatchPhaseChangeData;
 import com.lolfm.domain.OuterTurretSiegeData;
@@ -38,6 +41,10 @@ public final class LanePhaseResolver {
             double pressureDamage=Math.max(0,Math.abs(pressure)-LanePhaseRuleConfig.MIN_SIEGE_PRESSURE)*LanePhaseRuleConfig.PRESSURE_DAMAGE_PER_POINT_OVER_THRESHOLD;
             double absentBonus=defenderAbsent?LanePhaseRuleConfig.DEFENDER_PRIMARY_ABSENT_DAMAGE_BONUS:0;
             double supportBonus=supportPresent?LanePhaseRuleConfig.BOT_SUPPORT_PRESENT_DAMAGE_BONUS:0;
+            state.getCompositionRuntimeState().recordActualAttempt(
+                    CompositionActionType.SIEGE, attacking, attacking, defending, FightScale.NONE,
+                    null, false, com.lolfm.simulator.StructureKind.TOWER, lane, time,
+                    CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
             state.markStructureActionAttempted(attacking);
             double variance=(random.nextDouble()*2-1)*LanePhaseRuleConfig.OUTER_SIEGE_RANDOM_VARIANCE;
             double damage=clamp(LanePhaseRuleConfig.BASE_OUTER_SIEGE_DAMAGE+pressureDamage+absentBonus+supportBonus+variance,LanePhaseRuleConfig.MIN_OUTER_SIEGE_DAMAGE,LanePhaseRuleConfig.MAX_OUTER_SIEGE_DAMAGE);

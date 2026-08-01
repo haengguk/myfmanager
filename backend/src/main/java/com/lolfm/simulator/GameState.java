@@ -7,6 +7,7 @@ import com.lolfm.champion.ChampionMatchupMode;
 import com.lolfm.champion.ChampionRoleMatchupProfileCatalog;
 import com.lolfm.champion.ChampionPowerExecutionStats;
 import com.lolfm.champion.ChampionPowerProfileCatalog;
+import com.lolfm.composition.CompositionRuntimeState;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.ProgressionEventData;
@@ -30,6 +31,7 @@ public class GameState {
     private ChampionMatchupMode championMatchupMode = ChampionMatchupMode.OFF;
     private final ChampionMatchupExecutionStats championMatchupExecutionStats =
             new ChampionMatchupExecutionStats();
+    private CompositionRuntimeState compositionRuntimeState = CompositionRuntimeState.off(0L);
 
     private int currentTimeSeconds;
     private final TeamState blueTeamState;
@@ -151,6 +153,10 @@ public class GameState {
     public java.util.Optional<MatchChampionAssignments> getChampionAssignments() {
         return java.util.Optional.ofNullable(championAssignments);
     }
+    public void configureCompositionRuntime(CompositionRuntimeState runtimeState) {
+        compositionRuntimeState = java.util.Objects.requireNonNull(runtimeState, "runtimeState");
+    }
+    public CompositionRuntimeState getCompositionRuntimeState() { return compositionRuntimeState; }
     public void configureChampionPower(ChampionPowerProfileCatalog catalog,boolean enabled){championPowerProfileCatalog=java.util.Objects.requireNonNull(catalog);championPowerEnabled=enabled;}
     public java.util.Optional<ChampionPowerProfileCatalog> getChampionPowerProfileCatalog(){return java.util.Optional.ofNullable(championPowerProfileCatalog);}
     public boolean isChampionPowerEnabled(){return championPowerEnabled;}

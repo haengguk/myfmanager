@@ -1,6 +1,9 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.CombatSource;
+import com.lolfm.composition.CompositionActionType;
+import com.lolfm.composition.CompositionBaselineScoreDomain;
+import com.lolfm.composition.FightScale;
 import com.lolfm.domain.LaneCombatData;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
@@ -40,6 +43,9 @@ public final class LaneCombatResolver {
         state.laneState(lane).markCombatAttemptAt(time);
         TeamSide initiator = chooseInitiator(state, lane, random);
         double combatEdge = combatEdge(state, lane, initiator);
+        state.getCompositionRuntimeState().recordActualAttempt(
+                CompositionActionType.LANE_COMBAT, initiator, initiator, initiator.opposite(), FightScale.SMALL,
+                null, false, null, lane, time, CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
         LaneCombatOutcome outcome;
         if (random.nextDouble() >= decisiveChance(state, lane, initiator)) {
             outcome = LaneCombatOutcome.NO_KILL;

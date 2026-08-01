@@ -20,6 +20,10 @@ public class PushResolver {
             return Optional.empty();
         }
         state.recordPushAttempt();
+        state.getCompositionRuntimeState().recordActualAttempt(
+                com.lolfm.composition.CompositionActionType.SIEGE, side, side, side.opposite(),
+                com.lolfm.composition.FightScale.NONE, null, false, null, null, state.getCurrentTimeSeconds(),
+                com.lolfm.composition.CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
         state.markStructureActionAttempted(side);
         if (random.nextDouble() >= postFightChance(state, fight)) {
             state.recordPushFailure(PushFailureReason.CHANCE_ROLL_FAILED);
@@ -45,6 +49,10 @@ public class PushResolver {
         int currentTime = state.getCurrentTimeSeconds();
         if (countAlive(state.getTeamState(attacking), currentTime) < 2 || !hasAnyTarget(state, attacking)) return List.of();
         state.recordPushAttempt();
+        state.getCompositionRuntimeState().recordActualAttempt(
+                com.lolfm.composition.CompositionActionType.SIEGE, attacking, attacking, attacking.opposite(),
+                com.lolfm.composition.FightScale.NONE, null, false, null, null, currentTime,
+                com.lolfm.composition.CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
         state.markStructureActionAttempted(attacking);
         if (random.nextDouble() >= postFightChance(state, fight)) {
             state.recordPushFailure(PushFailureReason.CHANCE_ROLL_FAILED);
@@ -189,6 +197,10 @@ public class PushResolver {
             }
             Lane lane = chooseLane(state, side.opposite(), false, random);
             state.recordPushAttempt();
+            state.getCompositionRuntimeState().recordActualAttempt(
+                    com.lolfm.composition.CompositionActionType.SIEGE, side, side, side.opposite(),
+                    com.lolfm.composition.FightScale.NONE, null, false, null, null, time,
+                    com.lolfm.composition.CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
             state.markStructureActionAttempted(side);
             if (random.nextDouble() >= macroPushChance(state, side, lane)) {
                 state.recordPushFailure(PushFailureReason.CHANCE_ROLL_FAILED);
