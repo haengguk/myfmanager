@@ -3,7 +3,11 @@ package com.lolfm.simulator;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.composition.CompositionActionType;
+import com.lolfm.composition.CompositionAttemptDescriptor;
+import com.lolfm.composition.GameplayAttemptId;
+import com.lolfm.composition.TeamCompositionContext;
 import com.lolfm.composition.CompositionBaselineScoreDomain;
+import com.lolfm.composition.CompositionLocalDecisionComparison;
 import com.lolfm.composition.FightScale;
 import com.lolfm.domain.Player;
 import com.lolfm.domain.Position;
@@ -59,7 +63,35 @@ public class TeamfightResolver {
         List<PlayerState> redParticipants=gameState.getRedTeamState().getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
         for (PlayerState player : gameState.getBlueTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
         for (PlayerState player : gameState.getRedTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
-        FightGrade plannedGrade = determineFightGrade(gameState, sides, random, progressionContext);
+        GameplayAttemptId compositionAttemptId = gameState.getCompositionRuntimeState().lastActualAttemptId();
+        GradeDecision gradeDecision = determineFightGrade(gameState, sides, random, progressionContext, compositionAttemptId);
+        FightGrade plannedGrade = gradeDecision.candidateGrade();
+        if (gameState.getCompositionRuntimeState().isCandidate() && sides.localDecision() != null) {
+            String applicationKey = sides.localDecision().applicationKey();
+            boolean sideChanged = !sides.localDecision().baselineDecision()
+                    .equals(sides.localDecision().candidateDecision());
+            boolean changed = sideChanged || gradeDecision.changed();
+            boolean perspectiveWasBlue = sides.winningSide() == TeamSide.BLUE;
+            double baselinePerspective = perspectiveWasBlue
+                    ? sides.localDecision().baselineScore() : -sides.localDecision().baselineScore();
+            double adjustedPerspective = perspectiveWasBlue
+                    ? sides.localDecision().candidateScore() : -sides.localDecision().candidateScore();
+            String band = com.lolfm.composition.FrozenCompositionGameplayGainPolicy.marginBand(
+                    applicationKey, baselinePerspective);
+            String baselineDecision = sides.localDecision().baselineDecision()
+                    + "|GRADE:" + gradeDecision.baselineDecision();
+            String candidateDecision = sides.localDecision().candidateDecision()
+                    + "|GRADE:" + gradeDecision.candidateDecision();
+            gameState.getCompositionRuntimeState().recordLocalDecisionComparison(new CompositionLocalDecisionComparison(
+                    gameState.getCompositionRuntimeState().matchSeed(),
+                    gameState.getCompositionRuntimeState().lastActualAttemptId(), currentTime,
+                    applicationKey, "UNIFORM_ADVANTAGE_SIDE_SELECTION_AND_FIGHT_GRADE", sides.winningSide(),
+                    sides.localDecision().sampleIdentity(), sides.localDecision().sample(),
+                    baselinePerspective, 0.0, adjustedPerspective, 0.0,
+                    baselineDecision, candidateDecision,
+                    changed, band, sideChanged, changed,
+                    "HIGH".equals(band) && changed, true, ""));
+        }
         int winningKillTarget = Math.min(
                 determineWinningTeamKillCount(plannedGrade, random),
                 countAlivePlayers(sides.losingTeamState(), currentTime)
@@ -310,12 +342,52 @@ public class TeamfightResolver {
         TeamState blue = state.getBlueTeamState();
         TeamState red = state.getRedTeamState();
         double goldContribution=(blue.getGold()-red.getGold())/500.0;
-        double existing=goldContribution+(blue.getKills()-red.getKills())*11.0+teamfightScore(state,TeamSide.BLUE,blueTeam)-teamfightScore(state,TeamSide.RED,redTeam);
-        double scoreWithoutNoise=existing+new CombatProgressionEvaluator().contribution(state,context,alivePlayers(blue,state.getCurrentTimeSeconds()),alivePlayers(red,state.getCurrentTimeSeconds()),existing,goldContribution);
-        double pressure=new CombatOutcomeProbabilityEvaluator().resolveUniformAdvantageScore(scoreWithoutNoise,random);
+        double blueBaseline = teamfightScore(state, TeamSide.BLUE, blueTeam);
+        double redBaseline = teamfightScore(state, TeamSide.RED, redTeam);
+        CompositionActionType candidateAction = compositionAction(context);
+        CompositionBaselineScoreDomain candidateDomain = compositionDomain(context);
+        double blueScore = state.getCompositionRuntimeState().adjustedScoreForCandidate(TeamSide.BLUE,
+                compositionContext(candidateAction), candidateAction, candidateDomain, blueBaseline, redBaseline);
+        double redScore = state.getCompositionRuntimeState().adjustedScoreForCandidate(TeamSide.RED,
+                compositionContext(candidateAction), candidateAction, candidateDomain, redBaseline, blueBaseline);
+        double baselineExisting=goldContribution+(blue.getKills()-red.getKills())*11.0+blueBaseline-redBaseline;
+        double existing=goldContribution+(blue.getKills()-red.getKills())*11.0+blueScore-redScore;
+        CombatProgressionEvaluator progression = new CombatProgressionEvaluator();
+        double baselineScoreWithoutNoise=baselineExisting+progression.contribution(state,context,alivePlayers(blue,state.getCurrentTimeSeconds()),alivePlayers(red,state.getCurrentTimeSeconds()),baselineExisting,goldContribution);
+        double scoreWithoutNoise=existing+progression.contribution(state,context,alivePlayers(blue,state.getCurrentTimeSeconds()),alivePlayers(red,state.getCurrentTimeSeconds()),existing,goldContribution);
+        double sample=random.nextDouble();
+        CombatOutcomeProbabilityEvaluator evaluator = new CombatOutcomeProbabilityEvaluator();
+        double baselinePressure=evaluator.resolveUniformAdvantageScore(baselineScoreWithoutNoise,sample);
+        double pressure=evaluator.resolveUniformAdvantageScore(scoreWithoutNoise,sample);
+        LocalDecision local = new LocalDecision(
+                sample,
+                random instanceof SideOrientationRandomTraceObserver observer ? observer.drawCount() : -1L,
+                baselineScoreWithoutNoise,
+                scoreWithoutNoise,
+                baselinePressure >= 0 ? "BLUE" : "RED",
+                pressure >= 0 ? "BLUE" : "RED",
+                compositionContext(candidateAction).name()+"|"+candidateAction.name()+"|"+candidateDomain.name());
         return pressure >= 0
-                ? new TeamfightSides(TeamSide.BLUE, blueTeam, blue, redTeam, red, pressure)
-                : new TeamfightSides(TeamSide.RED, redTeam, red, blueTeam, blue, Math.abs(pressure));
+                ? new TeamfightSides(TeamSide.BLUE, blueTeam, blue, redTeam, red, pressure, Math.abs(baselinePressure), local)
+                : new TeamfightSides(TeamSide.RED, redTeam, red, blueTeam, blue, Math.abs(pressure), Math.abs(baselinePressure), local);
+    }
+
+    private CompositionActionType compositionAction(ProgressionCombatContext context) {
+        return context == ProgressionCombatContext.BASE_DEFENSE ? CompositionActionType.BASE_DEFENSE
+                : context == ProgressionCombatContext.LATE_GAME_SIEGE ? CompositionActionType.SIEGE_COMBAT
+                : CompositionActionType.TEAMFIGHT;
+    }
+
+    private CompositionBaselineScoreDomain compositionDomain(ProgressionCombatContext context) {
+        return context == ProgressionCombatContext.BASE_DEFENSE ? CompositionBaselineScoreDomain.BASE_DEFENSE_SCORE
+                : context == ProgressionCombatContext.LATE_GAME_SIEGE ? CompositionBaselineScoreDomain.SIEGE_PUSH_SCORE
+                : CompositionBaselineScoreDomain.TEAMFIGHT_COMBAT_SCORE;
+    }
+
+    private TeamCompositionContext compositionContext(CompositionActionType action) {
+        return action == CompositionActionType.BASE_DEFENSE ? TeamCompositionContext.BASE_DEFENSE
+                : action == CompositionActionType.SIEGE_COMBAT ? TeamCompositionContext.SIEGE
+                : TeamCompositionContext.TEAMFIGHT;
     }
 
     private List<PlayerState> alivePlayers(TeamState team,int time){return team.getPlayers().stream().filter(p->p.isAlive(time)).toList();}
@@ -342,28 +414,48 @@ public class TeamfightResolver {
         return score;
     }
 
-    private FightGrade determineFightGrade(GameState state, TeamfightSides sides, Random random, ProgressionCombatContext context) {
+    private GradeDecision determineFightGrade(GameState state, TeamfightSides sides, Random random,
+                                               ProgressionCombatContext context, GameplayAttemptId compositionAttemptId) {
         int currentTime = state.getCurrentTimeSeconds();
         int goldLead = Math.max(0, sides.winningTeamState().getGold() - sides.losingTeamState().getGold());
-        double existingGap=teamfightScore(state,sides.winningSide(),sides.winningTeam())-teamfightScore(state,sides.winningSide().opposite(),sides.losingTeam());
-        double teamfightGap=Math.max(0.0,existingGap+new CombatProgressionEvaluator().contribution(state,context,alivePlayers(sides.winningTeamState(),currentTime),alivePlayers(sides.losingTeamState(),currentTime),existingGap,0,ProgressionApplicationStage.FIGHT_GRADE));
+        double baselineWinningScore = teamfightScore(state, sides.winningSide(), sides.winningTeam());
+        double baselineLosingScore = teamfightScore(state, sides.winningSide().opposite(), sides.losingTeam());
+        double baselineGap = baselineWinningScore - baselineLosingScore;
+        double candidateGap = state.getCompositionRuntimeState().adjustedGapFor(
+                compositionAttemptId, baselineWinningScore, baselineLosingScore);
+        CombatProgressionEvaluator progression = new CombatProgressionEvaluator();
+        double baselineTeamfightGap = Math.max(0.0, baselineGap + progression.contribution(state, context,
+                alivePlayers(sides.winningTeamState(), currentTime), alivePlayers(sides.losingTeamState(), currentTime), baselineGap, 0,
+                ProgressionApplicationStage.FIGHT_GRADE));
+        double candidateTeamfightGap = Math.max(0.0, candidateGap + progression.contribution(state, context,
+                alivePlayers(sides.winningTeamState(), currentTime), alivePlayers(sides.losingTeamState(), currentTime), candidateGap, 0,
+                ProgressionApplicationStage.FIGHT_GRADE));
         double lateBonus = currentTime >= 2_100 ? 0.018 : currentTime >= 1_800 ? 0.012 : currentTime >= 1_500 ? 0.008 : 0.0;
         double objectiveBonus = isMajorObjectiveMoment(currentTime) ? 0.01 : 0.0;
         double dominanceBonus = Math.min(0.025, sides.advantageScore() / 1_800.0);
+        double baselineDominanceBonus = Math.min(0.025, sides.baselineAdvantageScore() / 1_800.0);
         double elderAceBonus = activeElderPlayers(sides.winningTeamState(), currentTime) > 0 ? ElderRuleConfig.ACE_CHANCE_BONUS : 0.0;
         double elderBigBonus = activeElderPlayers(sides.winningTeamState(), currentTime) > 0 ? ElderRuleConfig.BIG_WIN_CHANCE_BONUS : 0.0;
-        double aceChance = Math.min(0.10, 0.005 + elderAceBonus + goldLead / 400_000.0 + teamfightGap / PlayerImpactRuleConfig.TEAMFIGHT_GRADE_GAP_DIVISOR
-                + lateBonus + objectiveBonus + dominanceBonus);
-        if (random.nextDouble() < aceChance) {
-            return FightGrade.ACE;
-        }
-        double bigWinChance = Math.min(0.42, 0.18 + elderBigBonus + goldLead / 260_000.0 + teamfightGap / PlayerImpactRuleConfig.TEAMFIGHT_GRADE_GAP_DIVISOR
-                + lateBonus + objectiveBonus + dominanceBonus);
-        if (random.nextDouble() < bigWinChance) {
-            return FightGrade.BIG_WIN;
-        }
-        double normalWinChance = Math.min(0.78, 0.46 + goldLead / 320_000.0 + teamfightGap / PlayerImpactRuleConfig.TEAMFIGHT_GRADE_GAP_DIVISOR + dominanceBonus);
-        return random.nextDouble() < normalWinChance ? FightGrade.NORMAL_WIN : FightGrade.SMALL_WIN;
+        double baselineAceChance = Math.min(0.10, 0.005 + elderAceBonus + goldLead / 400_000.0 + baselineTeamfightGap / PlayerImpactRuleConfig.TEAMFIGHT_GRADE_GAP_DIVISOR + lateBonus + objectiveBonus + baselineDominanceBonus);
+        double candidateAceChance = Math.min(0.10, 0.005 + elderAceBonus + goldLead / 400_000.0 + candidateTeamfightGap / PlayerImpactRuleConfig.TEAMFIGHT_GRADE_GAP_DIVISOR + lateBonus + objectiveBonus + dominanceBonus);
+        double aceSample = random.nextDouble();
+        boolean baselineAce = aceSample < baselineAceChance, actualAce = aceSample < candidateAceChance;
+        boolean changed = baselineAce != actualAce;
+        if (actualAce) return new GradeDecision(FightGrade.ACE, baselineAce ? "ACE" : "NOT_ACE", "ACE", changed);
+        double baselineBig = Math.min(0.42, 0.18 + elderBigBonus + goldLead / 260_000.0 + baselineTeamfightGap / PlayerImpactRuleConfig.TEAMFIGHT_GRADE_GAP_DIVISOR + lateBonus + objectiveBonus + baselineDominanceBonus);
+        double candidateBig = Math.min(0.42, 0.18 + elderBigBonus + goldLead / 260_000.0 + candidateTeamfightGap / PlayerImpactRuleConfig.TEAMFIGHT_GRADE_GAP_DIVISOR + lateBonus + objectiveBonus + dominanceBonus);
+        double bigSample = random.nextDouble();
+        boolean baselineBigWin = bigSample < baselineBig, actualBig = bigSample < candidateBig;
+        changed |= baselineBigWin != actualBig;
+        if (actualBig) return new GradeDecision(FightGrade.BIG_WIN, baselineAce ? "ACE" : baselineBigWin ? "BIG_WIN" : "NOT_BIG_WIN", "BIG_WIN", changed);
+        double baselineNormal = Math.min(0.78, 0.46 + goldLead / 320_000.0 + baselineTeamfightGap / PlayerImpactRuleConfig.TEAMFIGHT_GRADE_GAP_DIVISOR + baselineDominanceBonus);
+        double candidateNormal = Math.min(0.78, 0.46 + goldLead / 320_000.0 + candidateTeamfightGap / PlayerImpactRuleConfig.TEAMFIGHT_GRADE_GAP_DIVISOR + dominanceBonus);
+        double normalSample = random.nextDouble();
+        boolean baselineNormalWin = normalSample < baselineNormal, actualNormal = normalSample < candidateNormal;
+        changed |= baselineNormalWin != actualNormal;
+        return new GradeDecision(actualNormal ? FightGrade.NORMAL_WIN : FightGrade.SMALL_WIN,
+                baselineAce ? "ACE" : baselineBigWin ? "BIG_WIN" : (baselineNormalWin ? "NORMAL_WIN" : "SMALL_WIN"),
+                actualNormal ? "NORMAL_WIN" : "SMALL_WIN", changed);
     }
 
     private boolean hasElderTeamWithThreeAlive(GameState state, int time) {
@@ -515,7 +607,21 @@ public class TeamfightResolver {
             TeamState winningTeamState,
             Team losingTeam,
             TeamState losingTeamState,
-            double advantageScore
+            double advantageScore,
+            double baselineAdvantageScore,
+            LocalDecision localDecision
     ) {
     }
+
+    private record GradeDecision(FightGrade candidateGrade, String baselineDecision, String candidateDecision, boolean changed) {}
+
+    private record LocalDecision(
+            double sample,
+            long sampleIdentity,
+            double baselineScore,
+            double candidateScore,
+            String baselineDecision,
+            String candidateDecision,
+            String applicationKey
+    ) {}
 }

@@ -273,3 +273,55 @@ tasks.register("runCompositionShadowWiringGateClosureAudit", JavaExec) {
     mainClass = "com.lolfm.simulator.CompositionShadowWiringGateClosureAudit"
 }
 
+
+tasks.register("runCompositionEligibleContextGainScreening", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4B artifact-only eligible context gain screening and candidate freeze."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionEligibleContextGainScreening"
+}
+
+tasks.register("runCompositionGainKeyIsolationRepairAudit", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4B.1 per-application-key metric isolation repair audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionEligibleContextGainScreening"
+    args "repair"
+}
+
+tasks.register("runCompositionMarginAwareGainPolicyReview", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4B.2 margin-aware gain safety policy review and candidate freeze."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionGainPolicyReview"
+}
+
+
+tasks.register("runCompositionFreshCandidateGameplayAudit", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C fresh OFF/audit-authorized-CANDIDATE paired gameplay application audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.CompositionFreshCandidateGameplayAudit"
+}
+
+
+tasks.register("runCompositionFreshHoldoutCandidateGameplayAudit", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C.1 fresh holdout lineup and candidate gameplay audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.CompositionFreshHoldoutCandidateGameplayAudit"
+}
+
+tasks.register("runCompositionGainGeneralizationReview", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C.2 artifact-only gain generalization review."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionGainGeneralizationReview"
+}
+
+tasks.register("runCompositionMarginIntegrityRepair", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C.2.1 canonical margin and flip-mechanism integrity repair."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionMarginIntegrityRepair"
+}

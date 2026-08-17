@@ -14,6 +14,11 @@ public final class CombatOutcomeProbabilityEvaluator {
         return scoreWithoutNoise + (random.nextDouble() - .5) * UNIFORM_ADVANTAGE_SPAN;
     }
 
+    /** Pure form used to compare baseline and candidate decisions on one draw. */
+    public double resolveUniformAdvantageScore(double scoreWithoutNoise, double sharedRandomSample) {
+        return scoreWithoutNoise + (sharedRandomSample - .5) * UNIFORM_ADVANTAGE_SPAN;
+    }
+
     public double weightedSelectionProbability(double ownWeight, double opponentWeight) {
         double total = ownWeight + opponentWeight;
         return total <= 0 ? .5 : clamp(ownWeight / total, 0, 1);

@@ -28,10 +28,15 @@ public record CompositionRuntimeDiagnostics(
         int directRandomCallCount,
         int compositionRandomDrawCount,
         List<CompositionShadowObservation> observations,
-        List<CompositionContextRouting> routings
+        List<CompositionContextRouting> routings,
+        List<CompositionCandidateApplicationObservation> candidateApplications,
+        List<CompositionLocalDecisionComparison> localDecisionComparisons,
+        int deferredCandidateApplicationCount
 ) {
     public CompositionRuntimeDiagnostics {
         observations = List.copyOf(observations);
         routings = List.copyOf(routings);
+        candidateApplications = List.copyOf(candidateApplications);
+        localDecisionComparisons = List.copyOf(localDecisionComparisons);
     }
 }

@@ -24,6 +24,8 @@ public final class CompositionRuntimeState {
     private final TeamCompositionGameplayMode mode;
     private final long matchSeed;
     private final FrozenCompositionInteractionRuntimePolicy frozenPolicy;
+    private final FrozenCompositionGameplayGainPolicy gameplayGainPolicy;
+    private final CompositionCandidateExecutionAuthorization authorization;
     private final CompositionContextRouter router = new CompositionContextRouter();
     private final EnumMap<TeamCompositionContext, Double> blueEdges = new EnumMap<>(TeamCompositionContext.class);
     private final EnumMap<TeamCompositionContext, Double> redEdges = new EnumMap<>(TeamCompositionContext.class);
@@ -33,12 +35,17 @@ public final class CompositionRuntimeState {
     private final Map<GameplayAttemptId, TeamSide> perspectiveByAttempt = new HashMap<>();
     private final Set<ObservationKey> observationKeys = new HashSet<>();
     private final Set<ApplicationKey> applicationKeys = new HashSet<>();
+    private final Set<CandidateApplicationKey> candidateApplicationKeys = new HashSet<>();
+    private final Map<GameplayAttemptId, CandidateScoreAdjustment> candidateAdjustments = new HashMap<>();
+    private final List<CompositionCandidateApplicationObservation> candidateApplications = new ArrayList<>();
+    private final List<CompositionLocalDecisionComparison> localDecisionComparisons = new ArrayList<>();
     private CompositionTeamLineup blueLineup;
     private CompositionTeamLineup redLineup;
     private TeamCompositionAnalysis blueAnalysis;
     private TeamCompositionAnalysis redAnalysis;
     private boolean initialized;
     private long nextAttemptSequence;
+    private GameplayAttemptId lastActualAttemptId;
     private int lineupBuildCount;
     private int teamCompositionAnalysisCount;
     private int interactionAnalysisCount;
@@ -57,12 +64,34 @@ public final class CompositionRuntimeState {
     private int duplicateApplicationPointCount;
     private int gameplayApplicationCount;
     private int nonZeroModifierCount;
+    private int deferredCandidateApplicationCount;
 
     public CompositionRuntimeState(TeamCompositionGameplayMode mode, long matchSeed) {
+        this(mode, matchSeed, CompositionCandidateExecutionAuthorization.none());
+    }
+
+    public CompositionRuntimeState(TeamCompositionGameplayMode mode, long matchSeed,
+                                   CompositionCandidateExecutionAuthorization authorization) {
         this.mode = Objects.requireNonNull(mode, "mode");
         this.matchSeed = matchSeed;
-        this.frozenPolicy = mode == TeamCompositionGameplayMode.SHADOW
-                ? FrozenCompositionInteractionRuntimePolicy.current() : null;
+        this.authorization = Objects.requireNonNull(authorization, "authorization");
+        if (mode == TeamCompositionGameplayMode.CANDIDATE) {
+            FrozenCompositionGameplayGainPolicy policy = FrozenCompositionGameplayGainPolicy.current();
+            if (!authorization.auditOnly()) throw new CompositionGameplayConfigurationException(
+                    "CANDIDATE_CONTEXT_GAINS_NOT_APPROVED",
+                    "Composition candidate gameplay gains require an internal audit-only authorization");
+            if (!authorization.exactFor(policy)) throw new CompositionGameplayConfigurationException(
+                    "CANDIDATE_GAIN_POLICY_IDENTITY_MISMATCH",
+                    "Composition candidate gameplay gain identity does not match the frozen policy");
+            this.frozenPolicy = FrozenCompositionInteractionRuntimePolicy.current();
+            this.gameplayGainPolicy = policy;
+        } else if (mode == TeamCompositionGameplayMode.SHADOW) {
+            this.frozenPolicy = FrozenCompositionInteractionRuntimePolicy.current();
+            this.gameplayGainPolicy = null;
+        } else {
+            this.frozenPolicy = null;
+            this.gameplayGainPolicy = null;
+        }
     }
 
     public static CompositionRuntimeState off(long matchSeed) {
@@ -71,9 +100,13 @@ public final class CompositionRuntimeState {
 
     public TeamCompositionGameplayMode mode() { return mode; }
     public boolean isShadow() { return mode == TeamCompositionGameplayMode.SHADOW; }
+    public boolean isCandidate() { return mode == TeamCompositionGameplayMode.CANDIDATE; }
+    public boolean isActive() { return mode != TeamCompositionGameplayMode.OFF; }
     public boolean initialized() { return initialized; }
     public long matchSeed() { return matchSeed; }
     public FrozenCompositionInteractionRuntimePolicy frozenPolicy() { return frozenPolicy; }
+    public FrozenCompositionGameplayGainPolicy gameplayGainPolicy() { return gameplayGainPolicy; }
+    public CompositionCandidateExecutionAuthorization authorization() { return authorization; }
     public CompositionTeamLineup blueLineup() { return blueLineup; }
     public CompositionTeamLineup redLineup() { return redLineup; }
     public TeamCompositionAnalysis blueAnalysis() { return blueAnalysis; }
@@ -81,7 +114,7 @@ public final class CompositionRuntimeState {
 
     public void initialize(MatchChampionAssignments assignments) {
         Objects.requireNonNull(assignments, "assignments");
-        if (!isShadow()) return;
+        if (!isActive()) return;
         if (initialized) throw new IllegalStateException("Composition runtime is already initialized");
         frozenPolicy.verifyExactIdentity();
         blueLineup = new CompositionTeamLineup(TeamSide.BLUE, buildLineup(TeamSide.BLUE, assignments));
@@ -110,26 +143,29 @@ public final class CompositionRuntimeState {
     public double edgeFor(TeamSide perspectiveSide, TeamCompositionContext context) {
         Objects.requireNonNull(perspectiveSide, "perspectiveSide");
         Objects.requireNonNull(context, "context");
-        if (!isShadow() || !initialized) throw new IllegalStateException("Composition runtime is not initialized");
+        if (!isActive() || !initialized) throw new IllegalStateException("Composition runtime is not initialized");
         return normalizeZero(perspectiveSide == TeamSide.BLUE ? blueEdges.get(context) : redEdges.get(context));
     }
 
+    public GameplayAttemptId lastActualAttemptId() { return lastActualAttemptId; }
+
     public GameplayAttemptId createActualAttemptId() {
-        if (!isShadow()) throw new IllegalStateException("OFF runtime cannot issue composition attempt IDs");
+        if (!isActive()) throw new IllegalStateException("OFF runtime cannot issue composition attempt IDs");
         return new GameplayAttemptId(++nextAttemptSequence);
     }
 
     public void recordResolverEvaluation() {
-        if (isShadow()) resolverEvaluationCount++;
+        if (isActive()) resolverEvaluationCount++;
     }
 
     public void recordTriggerSuccess() {
-        if (isShadow()) triggerSuccessCount++;
+        if (isActive()) triggerSuccessCount++;
     }
 
     public CompositionShadowObservation recordActualAttempt(CompositionAttemptDescriptor attempt) {
         Objects.requireNonNull(attempt, "attempt");
-        if (!isShadow()) return null;
+        if (!isActive()) return null;
+        lastActualAttemptId = attempt.attemptId();
         if (!initialized) throw new IllegalStateException("Composition runtime must initialize before attempts");
         CompositionContextRouting routing = router.route(attempt);
         ObservationKey key = routing.mapped()
@@ -174,6 +210,9 @@ public final class CompositionRuntimeState {
                 false, 0.0, routing.mappingReason());
         observations.add(observation);
         shadowObservationCount++;
+        if (isCandidate()) {
+            recordCandidateApplication(attempt, routing, gap);
+        }
         return observation;
     }
 
@@ -185,7 +224,7 @@ public final class CompositionRuntimeState {
                                                             StructureKind structureTargetType, Lane lane,
                                                             int matchTimeSeconds, CompositionBaselineScoreDomain scoreDomain,
                                                             Double ownerBaselineScore, Double opponentBaselineScore) {
-        if (!isShadow()) return null;
+        if (!isActive()) return null;
         return recordActualAttempt(new CompositionAttemptDescriptor(createActualAttemptId(), actionType,
                 ownerSide, initiatingSide, defendingSide, fightScale, objectiveType, objectiveContested,
                 structureTargetType, lane, matchTimeSeconds, scoreDomain, ownerBaselineScore, opponentBaselineScore));
@@ -193,7 +232,7 @@ public final class CompositionRuntimeState {
 
     /** Test-only semantic guard): evaluation never creates an observation. */
     public void recordEvaluationOnlyObservationAttempt() {
-        if (isShadow()) evaluationOnlyObservationCount++;
+        if (isActive()) evaluationOnlyObservationCount++;
     }
 
     public CompositionRuntimeDiagnostics snapshot() {
@@ -204,11 +243,104 @@ public final class CompositionRuntimeState {
                 shadowObservationCount, evaluationOnlyObservationCount, duplicateObservationCount,
                 multiContextAttemptCount, conflictingPerspectiveCount, duplicateApplicationPointCount,
                 gameplayApplicationCount, nonZeroModifierCount, 0, 0,
-                observations, routings);
+                observations, routings, candidateApplications, localDecisionComparisons,
+                deferredCandidateApplicationCount);
     }
 
     public List<CompositionShadowObservation> observations() { return List.copyOf(observations); }
     public List<CompositionContextRouting> routings() { return List.copyOf(routings); }
+    public List<CompositionCandidateApplicationObservation> candidateApplications() { return List.copyOf(candidateApplications); }
+    public List<CompositionLocalDecisionComparison> localDecisionComparisons() { return List.copyOf(localDecisionComparisons); }
+
+    /** Records an observational same-sample baseline comparison after the real decision. */
+    public void recordLocalDecisionComparison(CompositionLocalDecisionComparison comparison) {
+        if (!isCandidate()) return;
+        Objects.requireNonNull(comparison, "comparison");
+        if (candidateApplications.stream().noneMatch(a -> a.attemptId().equals(comparison.attemptId()) && a.applicationApplied())) {
+            throw new IllegalStateException("Local comparison requires an applied candidate attempt");
+        }
+        localDecisionComparisons.add(comparison);
+    }
+
+    /** Pure score projection used before an existing outcome Random draw. */
+    public double adjustedScoreForCandidate(TeamSide side, TeamCompositionContext context,
+                                            CompositionActionType actionType,
+                                            CompositionBaselineScoreDomain scoreDomain,
+                                            double sideBaselineScore, double opponentBaselineScore) {
+        if (!isCandidate()) return sideBaselineScore;
+        if (!Double.isFinite(sideBaselineScore) || !Double.isFinite(opponentBaselineScore)) {
+            throw new IllegalArgumentException("Candidate score projection requires finite scores");
+        }
+        double gain = gameplayGainPolicy.gainFor(context, actionType, scoreDomain);
+        return gain == 0.0 ? sideBaselineScore
+                : sideBaselineScore + gain * edgeFor(side, context) / 2.0;
+    }
+
+    public double adjustedGapFor(GameplayAttemptId attemptId, double baselinePerspectiveScore,
+                                 double baselineOpponentScore) {
+        CandidateScoreAdjustment adjustment = candidateAdjustments.get(attemptId);
+        return adjustment == null ? baselinePerspectiveScore - baselineOpponentScore : adjustment.adjustedGap();
+    }
+
+    private void recordCandidateApplication(CompositionAttemptDescriptor attempt,
+                                             CompositionContextRouting routing, Double gap) {
+        double rawEdge = edgeFor(routing.perspectiveSide(), routing.context());
+        double gain = gameplayGainPolicy.gainFor(routing.context(), attempt.actionType(), routing.scoreDomain());
+        String keyText = routing.context().name() + "|" + attempt.actionType().name()
+                + "|" + routing.scoreDomain().name();
+        CandidateApplicationKey key = new CandidateApplicationKey(attempt.attemptId(), routing.context(),
+                attempt.actionType(), routing.scoreDomain());
+        if (!candidateApplicationKeys.add(key)) {
+            duplicateApplicationPointCount++;
+            return;
+        }
+        boolean eligible = routing.applicationEligibility().eligible()
+                && routing.baselineScoreAvailable() && gain != 0.0;
+        if (!eligible) {
+            deferredCandidateApplicationCount++;
+            candidateApplications.add(candidateObservation(attempt, routing, rawEdge, gain, gap,
+                    0.0, 0.0, 0.0, null, null, null, false, keyText, routing.eligibilityReason()));
+            return;
+        }
+        double modifier = gain * rawEdge;
+        double perspectiveAdjustment = modifier / 2.0;
+        double opponentAdjustment = -perspectiveAdjustment;
+        double adjustedPerspective = routing.perspectiveBaselineScore() + perspectiveAdjustment;
+        double adjustedOpponent = routing.opponentBaselineScore() + opponentAdjustment;
+        double adjustedGap = adjustedPerspective - adjustedOpponent;
+        candidateAdjustments.put(attempt.attemptId(), new CandidateScoreAdjustment(
+                routing.perspectiveSide(), adjustedPerspective, adjustedOpponent, adjustedGap));
+        gameplayApplicationCount++;
+        if (modifier != 0.0) nonZeroModifierCount++;
+        candidateApplications.add(candidateObservation(attempt, routing, rawEdge, gain, gap, modifier,
+                perspectiveAdjustment, opponentAdjustment, adjustedPerspective, adjustedOpponent, adjustedGap,
+                true, keyText, "APPLIED_APPROVED_KEY"));
+    }
+
+    private CompositionCandidateApplicationObservation candidateObservation(CompositionAttemptDescriptor attempt,
+                                                                             CompositionContextRouting routing,
+                                                                             double rawEdge, double gain, Double gap,
+                                                                             double modifier, double perspectiveAdjustment,
+                                                                             double opponentAdjustment, Double adjustedPerspective,
+                                                                             Double adjustedOpponent, Double adjustedGap, boolean applied,
+                                                                             String keyText, String reason) {
+        String before = sign(gap);
+        String after = sign(adjustedGap);
+        boolean flip = applied && !before.equals("ZERO") && !after.equals("ZERO") && !before.equals(after);
+        String subtype = flip ? before + "_TO_" + after : "NO_SIGN_FLIP";
+        return new CompositionCandidateApplicationObservation(matchSeed, attempt.attemptId(), attempt.matchTimeSeconds(),
+                attempt.actionType(), routing.context(), routing.applicationPoint(), routing.scoreDomain(),
+                routing.perspectiveSide(), routing.perspectiveSide().opposite(), rawEdge, gain,
+                routing.baselineScoreAvailable(), routing.perspectiveBaselineScore(), routing.opponentBaselineScore(),
+                gap, modifier, perspectiveAdjustment, opponentAdjustment, adjustedPerspective, adjustedOpponent,
+                adjustedGap, true, before, after, flip, subtype, applied, keyText,
+                gameplayGainPolicy.candidateVersion(), gameplayGainPolicy.candidateHash(), authorization.policyHash(), reason);
+    }
+
+    private String sign(Double value) {
+        if (value == null || value == 0.0) return "ZERO";
+        return value > 0.0 ? "POSITIVE" : "NEGATIVE";
+    }
 
     private TeamCompositionLineup buildLineup(TeamSide side, MatchChampionAssignments assignments) {
         EnumMap<Position, ChampionRoleKey> values = new EnumMap<>(Position.class);
@@ -231,4 +363,8 @@ public final class CompositionRuntimeState {
     private record ObservationKey(GameplayAttemptId attemptId, TeamSide perspectiveSide,
                                   TeamCompositionContext context) {}
     private record ApplicationKey(GameplayAttemptId attemptId, CompositionApplicationPoint applicationPoint) {}
+    private record CandidateApplicationKey(GameplayAttemptId attemptId, TeamCompositionContext context,
+                                            CompositionActionType actionType, CompositionBaselineScoreDomain scoreDomain) {}
+    private record CandidateScoreAdjustment(TeamSide perspectiveSide, double adjustedPerspective,
+                                            double adjustedOpponent, double adjustedGap) {}
 }

@@ -15,6 +15,10 @@ import com.lolfm.composition.CompositionBaselineScoreDomain;
 import com.lolfm.composition.FightScale;
 import com.lolfm.composition.CompositionRuntimeDiagnostics;
 import com.lolfm.composition.CompositionRuntimeState;
+import com.lolfm.composition.CompositionCandidateExecutionAuthorization;
+import com.lolfm.composition.CompositionLocalDecisionComparison;
+import com.lolfm.composition.TeamCompositionContext;
+import com.lolfm.composition.FrozenCompositionGameplayGainPolicy;
 import com.lolfm.composition.TeamCompositionGameplayMode;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.ObjectiveDecisionData;
@@ -86,6 +90,7 @@ public class MatchSimulator {
     private final ChampionMatchupCatalog championMatchupCatalog;
     private final ChampionRoleMatchupProfileCatalog championMatchupProfiles;
     private final TeamCompositionGameplayMode teamCompositionGameplayMode;
+    private final CompositionCandidateExecutionAuthorization candidateExecutionAuthorization;
 
     @Autowired
     public MatchSimulator(
@@ -201,6 +206,7 @@ public class MatchSimulator {
                 championMatchupCatalog, "championMatchupCatalog");
         this.championMatchupProfiles = null;
         this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
+        this.candidateExecutionAuthorization = CompositionCandidateExecutionAuthorization.none();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -209,6 +215,18 @@ public class MatchSimulator {
             ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
             ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
             SimulationOptions options, ChampionRoleMatchupProfileCatalog championMatchupProfiles
+    ) {
+        this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
+                objectiveAttemptResolver, structureResolver, pushResolver, options, championMatchupProfiles,
+                CompositionCandidateExecutionAuthorization.none());
+    }
+
+    MatchSimulator(
+            TeamfightResolver teamfightResolver, EndGameEvaluator endGameEvaluator, SnapshotFactory snapshotFactory,
+            ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
+            ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
+            SimulationOptions options, ChampionRoleMatchupProfileCatalog championMatchupProfiles,
+            CompositionCandidateExecutionAuthorization candidateExecutionAuthorization
     ) {
         this.teamfightResolver = teamfightResolver;
         this.endGameEvaluator = endGameEvaluator;
@@ -236,6 +254,7 @@ public class MatchSimulator {
         this.championMatchupProfiles = java.util.Objects.requireNonNull(championMatchupProfiles, "championMatchupProfiles");
         this.championMatchupCatalog = null;
         this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
+        this.candidateExecutionAuthorization = java.util.Objects.requireNonNull(candidateExecutionAuthorization, "candidateExecutionAuthorization");
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -280,7 +299,7 @@ public class MatchSimulator {
     ) {
         validateCompositionModeBeforeMatch();
         GameState gameState = initializeGameState(blueTeam, redTeam, assignments);
-        gameState.configureCompositionRuntime(new CompositionRuntimeState(teamCompositionGameplayMode, seed));
+        gameState.configureCompositionRuntime(new CompositionRuntimeState(teamCompositionGameplayMode, seed, candidateExecutionAuthorization));
         gameState.getCompositionRuntimeState().initialize(assignments);
         gameState.configureProgression(progressionEnabled, progressionPowerEnabled);
         gameState.getBlueTeamState().validateCompleteLineup();
@@ -492,11 +511,14 @@ public class MatchSimulator {
     }
 
     private void validateCompositionModeBeforeMatch() {
-        if (teamCompositionGameplayMode == TeamCompositionGameplayMode.CANDIDATE) {
-            throw new CompositionGameplayConfigurationException(
-                    "CANDIDATE_CONTEXT_GAINS_NOT_APPROVED",
-                    "Composition candidate gameplay gains are not approved for this phase");
-        }
+        if (teamCompositionGameplayMode != TeamCompositionGameplayMode.CANDIDATE) return;
+        FrozenCompositionGameplayGainPolicy policy = FrozenCompositionGameplayGainPolicy.current();
+        if (!candidateExecutionAuthorization.auditOnly()) throw new CompositionGameplayConfigurationException(
+                "CANDIDATE_CONTEXT_GAINS_NOT_APPROVED",
+                "Composition candidate gameplay gains are not approved for this phase");
+        if (!candidateExecutionAuthorization.exactFor(policy)) throw new CompositionGameplayConfigurationException(
+                "CANDIDATE_GAIN_POLICY_IDENTITY_MISMATCH",
+                "Composition candidate gameplay gain identity does not match the frozen policy");
     }
 
     private void randomContext(
@@ -603,6 +625,34 @@ public class MatchSimulator {
                 CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE,
                 skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED),
                 skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.RED : TeamSide.BLUE));
+        if (state.getCompositionRuntimeState().isCandidate() && attacking.localDecision() != null) {
+            TeamSide perspective = attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED;
+            boolean perspectiveWasBlue = perspective == TeamSide.BLUE;
+            double baselinePerspective = perspectiveWasBlue
+                    ? attacking.localDecision().baselineScore() : 1.0 - attacking.localDecision().baselineScore();
+            double baselineOpponent = perspectiveWasBlue
+                    ? 1.0 - attacking.localDecision().baselineScore() : attacking.localDecision().baselineScore();
+            double adjustedPerspective = perspectiveWasBlue
+                    ? attacking.localDecision().candidateScore() : 1.0 - attacking.localDecision().candidateScore();
+            double adjustedOpponent = perspectiveWasBlue
+                    ? 1.0 - attacking.localDecision().candidateScore() : attacking.localDecision().candidateScore();
+            String applicationKey = "SKIRMISH|SKIRMISH|SKIRMISH_COMBAT_SCORE";
+            String band = FrozenCompositionGameplayGainPolicy.marginBand(applicationKey,
+                    baselinePerspective - baselineOpponent);
+            state.getCompositionRuntimeState().recordLocalDecisionComparison(new CompositionLocalDecisionComparison(
+                    state.getCompositionRuntimeState().matchSeed(),
+                    state.getCompositionRuntimeState().lastActualAttemptId(),
+                    state.getCurrentTimeSeconds(), applicationKey,
+                    "WEIGHTED_INITIATIVE_SIDE_SELECTION", perspective,
+                    attacking.localDecision().sampleIdentity(), attacking.localDecision().sample(),
+                    baselinePerspective, baselineOpponent, adjustedPerspective, adjustedOpponent,
+                    attacking.localDecision().baselineDecision(), attacking.localDecision().candidateDecision(),
+                    !attacking.localDecision().baselineDecision().equals(attacking.localDecision().candidateDecision()),
+                    band, false,
+                    !attacking.localDecision().baselineDecision().equals(attacking.localDecision().candidateDecision()),
+                    "HIGH".equals(band) && !attacking.localDecision().baselineDecision().equals(attacking.localDecision().candidateDecision()),
+                    true, ""));
+        }
         boolean resolved = teamfightResolver.resolveKill(
                 state.getCurrentTimeSeconds(), random,
                 attacking.actingTeam(), attacking.actingState(),
@@ -621,9 +671,24 @@ public class MatchSimulator {
         TeamState red = state.getRedTeamState();
         double blueWeight = skirmishInitiative(state, TeamSide.BLUE);
         double redWeight = skirmishInitiative(state, TeamSide.RED);
-        return random.nextDouble() < new CombatOutcomeProbabilityEvaluator().weightedSelectionProbability(blueWeight, redWeight)
-                ? new TeamSelection(blueTeam, blue, redTeam, red)
-                : new TeamSelection(redTeam, red, blueTeam, blue);
+        double blueCandidate = state.getCompositionRuntimeState().adjustedScoreForCandidate(
+                TeamSide.BLUE, TeamCompositionContext.SKIRMISH, CompositionActionType.SKIRMISH,
+                CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE, blueWeight, redWeight);
+        double redCandidate = state.getCompositionRuntimeState().adjustedScoreForCandidate(
+                TeamSide.RED, TeamCompositionContext.SKIRMISH, CompositionActionType.SKIRMISH,
+                CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE, redWeight, blueWeight);
+        double baselineProbability = new CombatOutcomeProbabilityEvaluator().weightedSelectionProbability(blueWeight, redWeight);
+        double candidateProbability = new CombatOutcomeProbabilityEvaluator().weightedSelectionProbability(blueCandidate, redCandidate);
+        double sample = random.nextDouble();
+        boolean candidateBlue = sample < candidateProbability;
+        boolean baselineBlue = sample < baselineProbability;
+        LocalDecision local = new LocalDecision(sample,
+                random instanceof SideOrientationRandomTraceObserver observer ? observer.drawCount() : -1L,
+                baselineProbability, candidateProbability,
+                baselineBlue ? "BLUE" : "RED", candidateBlue ? "BLUE" : "RED");
+        return candidateBlue
+                ? new TeamSelection(blueTeam, blue, redTeam, red, local)
+                : new TeamSelection(redTeam, red, blueTeam, blue, local);
     }
 
     private double skirmishInitiative(GameState state, TeamSide side) {
@@ -654,6 +719,11 @@ public class MatchSimulator {
         return Math.max(minimum, Math.min(maximum, value));
     }
 
-    private record TeamSelection(Team actingTeam, TeamState actingState, Team opposingTeam, TeamState opposingState) {
+    private record TeamSelection(Team actingTeam, TeamState actingState, Team opposingTeam, TeamState opposingState,
+                                 LocalDecision localDecision) {
+    }
+
+    private record LocalDecision(double sample, long sampleIdentity, double baselineScore, double candidateScore,
+                                 String baselineDecision, String candidateDecision) {
     }
 }
