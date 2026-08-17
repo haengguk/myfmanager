@@ -31,12 +31,28 @@ public record CompositionRuntimeDiagnostics(
         List<CompositionContextRouting> routings,
         List<CompositionCandidateApplicationObservation> candidateApplications,
         List<CompositionLocalDecisionComparison> localDecisionComparisons,
-        int deferredCandidateApplicationCount
+        int deferredCandidateApplicationCount,
+        boolean auditSemanticsEnabled,
+        String semanticsBlueprintVersion,
+        String semanticsBlueprintHash,
+        int diagnosticCaseIndex,
+        boolean keySpecificCandidateAuditEnabled,
+        String keySpecificCandidateVersion,
+        String keySpecificCandidateHash,
+        int freshHoldoutCaseIndex,
+        List<CompositionWinnerChannelObservation> winnerChannelObservations,
+        List<FightGradeDecisionDiagnostic> fightGradeDiagnostics,
+        List<BaseDefenseRoleRoutingDiagnostic> baseDefenseRoleRoutings,
+        List<CompositionWinnerDecisionProvenance> winnerDecisionProvenance
 ) {
     public CompositionRuntimeDiagnostics {
         observations = List.copyOf(observations);
         routings = List.copyOf(routings);
         candidateApplications = List.copyOf(candidateApplications);
         localDecisionComparisons = List.copyOf(localDecisionComparisons);
+        winnerChannelObservations = List.copyOf(winnerChannelObservations);
+        fightGradeDiagnostics = List.copyOf(fightGradeDiagnostics);
+        baseDefenseRoleRoutings = List.copyOf(baseDefenseRoleRoutings);
+        winnerDecisionProvenance = List.copyOf(winnerDecisionProvenance);
     }
 }

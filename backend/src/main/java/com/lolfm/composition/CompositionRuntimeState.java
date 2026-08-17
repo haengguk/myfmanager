@@ -26,6 +26,8 @@ public final class CompositionRuntimeState {
     private final FrozenCompositionInteractionRuntimePolicy frozenPolicy;
     private final FrozenCompositionGameplayGainPolicy gameplayGainPolicy;
     private final CompositionCandidateExecutionAuthorization authorization;
+    private final CompositionSemanticsAuditExecutionAuthorization semanticsAuditAuthorization;
+    private final CompositionKeySpecificCandidateAuditAuthorization keySpecificCandidateAuthorization;
     private final CompositionContextRouter router = new CompositionContextRouter();
     private final EnumMap<TeamCompositionContext, Double> blueEdges = new EnumMap<>(TeamCompositionContext.class);
     private final EnumMap<TeamCompositionContext, Double> redEdges = new EnumMap<>(TeamCompositionContext.class);
@@ -39,6 +41,10 @@ public final class CompositionRuntimeState {
     private final Map<GameplayAttemptId, CandidateScoreAdjustment> candidateAdjustments = new HashMap<>();
     private final List<CompositionCandidateApplicationObservation> candidateApplications = new ArrayList<>();
     private final List<CompositionLocalDecisionComparison> localDecisionComparisons = new ArrayList<>();
+    private final List<CompositionWinnerChannelObservation> winnerChannelObservations = new ArrayList<>();
+    private final List<FightGradeDecisionDiagnostic> fightGradeDiagnostics = new ArrayList<>();
+    private final List<BaseDefenseRoleRoutingDiagnostic> baseDefenseRoleRoutings = new ArrayList<>();
+    private final List<CompositionWinnerDecisionProvenance> winnerDecisionProvenance = new ArrayList<>();
     private CompositionTeamLineup blueLineup;
     private CompositionTeamLineup redLineup;
     private TeamCompositionAnalysis blueAnalysis;
@@ -72,9 +78,39 @@ public final class CompositionRuntimeState {
 
     public CompositionRuntimeState(TeamCompositionGameplayMode mode, long matchSeed,
                                    CompositionCandidateExecutionAuthorization authorization) {
+        this(mode, matchSeed, authorization, CompositionSemanticsAuditExecutionAuthorization.none());
+    }
+
+    public CompositionRuntimeState(TeamCompositionGameplayMode mode, long matchSeed,
+                                   CompositionCandidateExecutionAuthorization authorization,
+                                   CompositionSemanticsAuditExecutionAuthorization semanticsAuditAuthorization) {
+        this(mode, matchSeed, authorization, semanticsAuditAuthorization,
+                CompositionKeySpecificCandidateAuditAuthorization.none());
+    }
+
+    public CompositionRuntimeState(TeamCompositionGameplayMode mode, long matchSeed,
+                                   CompositionCandidateExecutionAuthorization authorization,
+                                   CompositionSemanticsAuditExecutionAuthorization semanticsAuditAuthorization,
+                                   CompositionKeySpecificCandidateAuditAuthorization keySpecificCandidateAuthorization) {
         this.mode = Objects.requireNonNull(mode, "mode");
         this.matchSeed = matchSeed;
         this.authorization = Objects.requireNonNull(authorization, "authorization");
+        this.semanticsAuditAuthorization = Objects.requireNonNull(semanticsAuditAuthorization, "semanticsAuditAuthorization");
+        this.keySpecificCandidateAuthorization = Objects.requireNonNull(keySpecificCandidateAuthorization, "keySpecificCandidateAuthorization");
+        if (keySpecificCandidateAuthorization.enabled()) {
+            if (mode != TeamCompositionGameplayMode.SHADOW || authorization.auditOnly() || !semanticsAuditAuthorization.enabled()) {
+                throw new CompositionGameplayConfigurationException("COMPOSITION_KEY_SPECIFIC_CANDIDATE_NOT_AUTHORIZED",
+                        "Key-specific candidate audit requires SHADOW semantics and no historical candidate path");
+            }
+            keySpecificCandidateAuthorization.verifyExact();
+        }
+        if (semanticsAuditAuthorization.enabled()) {
+            if (mode != TeamCompositionGameplayMode.SHADOW || authorization.auditOnly()) {
+                throw new CompositionGameplayConfigurationException("COMPOSITION_HISTORICAL_CANDIDATE_AND_AUDIT_PATH_MIXED",
+                        "Isolated semantics audit requires SHADOW mode without historical candidate authorization");
+            }
+            semanticsAuditAuthorization.verifyExact();
+        }
         if (mode == TeamCompositionGameplayMode.CANDIDATE) {
             FrozenCompositionGameplayGainPolicy policy = FrozenCompositionGameplayGainPolicy.current();
             if (!authorization.auditOnly()) throw new CompositionGameplayConfigurationException(
@@ -107,6 +143,10 @@ public final class CompositionRuntimeState {
     public FrozenCompositionInteractionRuntimePolicy frozenPolicy() { return frozenPolicy; }
     public FrozenCompositionGameplayGainPolicy gameplayGainPolicy() { return gameplayGainPolicy; }
     public CompositionCandidateExecutionAuthorization authorization() { return authorization; }
+    public CompositionSemanticsAuditExecutionAuthorization semanticsAuditAuthorization() { return semanticsAuditAuthorization; }
+    public CompositionKeySpecificCandidateAuditAuthorization keySpecificCandidateAuthorization() { return keySpecificCandidateAuthorization; }
+    public boolean isAuditSemantics() { return semanticsAuditAuthorization.enabled(); }
+    public boolean isKeySpecificCandidateAudit() { return keySpecificCandidateAuthorization.enabled(); }
     public CompositionTeamLineup blueLineup() { return blueLineup; }
     public CompositionTeamLineup redLineup() { return redLineup; }
     public TeamCompositionAnalysis blueAnalysis() { return blueAnalysis; }
@@ -244,13 +284,125 @@ public final class CompositionRuntimeState {
                 multiContextAttemptCount, conflictingPerspectiveCount, duplicateApplicationPointCount,
                 gameplayApplicationCount, nonZeroModifierCount, 0, 0,
                 observations, routings, candidateApplications, localDecisionComparisons,
-                deferredCandidateApplicationCount);
+                deferredCandidateApplicationCount, isAuditSemantics(),
+                isAuditSemantics() ? semanticsAuditAuthorization.blueprintVersion() : "NONE",
+                isAuditSemantics() ? semanticsAuditAuthorization.blueprintHash() : "NONE",
+                isAuditSemantics() ? semanticsAuditAuthorization.diagnosticCaseIndex() : -1,
+                isKeySpecificCandidateAudit(),
+                isKeySpecificCandidateAudit() ? keySpecificCandidateAuthorization.candidateVersion() : "NONE",
+                isKeySpecificCandidateAudit() ? keySpecificCandidateAuthorization.candidateHash() : "NONE",
+                isKeySpecificCandidateAudit() ? keySpecificCandidateAuthorization.holdoutCaseIndex() : -1,
+                winnerChannelObservations, fightGradeDiagnostics, baseDefenseRoleRoutings, winnerDecisionProvenance);
     }
 
     public List<CompositionShadowObservation> observations() { return List.copyOf(observations); }
     public List<CompositionContextRouting> routings() { return List.copyOf(routings); }
     public List<CompositionCandidateApplicationObservation> candidateApplications() { return List.copyOf(candidateApplications); }
     public List<CompositionLocalDecisionComparison> localDecisionComparisons() { return List.copyOf(localDecisionComparisons); }
+    public List<CompositionWinnerChannelObservation> winnerChannelObservations() { return List.copyOf(winnerChannelObservations); }
+    public List<FightGradeDecisionDiagnostic> fightGradeDiagnostics() { return List.copyOf(fightGradeDiagnostics); }
+    public List<BaseDefenseRoleRoutingDiagnostic> baseDefenseRoleRoutings() { return List.copyOf(baseDefenseRoleRoutings); }
+    public List<CompositionWinnerDecisionProvenance> winnerDecisionProvenance() { return List.copyOf(winnerDecisionProvenance); }
+
+    public void recordWinnerDecisionProvenance(CompositionWinnerDecisionProvenance value) {
+        if (!isAuditSemantics()) return;
+        Objects.requireNonNull(value, "value");
+        if (value.matchSeed() != matchSeed || value.caseIndex() != semanticsAuditAuthorization.diagnosticCaseIndex()) {
+            throw new IllegalArgumentException("Winner decision provenance match identity mismatch");
+        }
+        if (winnerDecisionProvenance.stream().anyMatch(x -> x.attemptId().equals(value.attemptId()))) {
+            throw new IllegalStateException("Duplicate winner decision provenance attempt=" + value.attemptId());
+        }
+        winnerDecisionProvenance.add(value);
+    }
+
+    public CompositionWinnerDecisionAdjustment auditWinnerAdjustment(
+            TeamSide perspectiveSide, TeamCompositionContext context, CompositionActionType actionType,
+            CompositionBaselineScoreDomain scoreDomain, double baselineGap, CompositionCombatRole perspectiveRole) {
+        Objects.requireNonNull(perspectiveSide, "perspectiveSide");
+        Objects.requireNonNull(perspectiveRole, "perspectiveRole");
+        if (!isAuditSemantics()) {
+            return new CompositionWinnerDecisionAdjustment(context.name() + "|" + actionType.name() + "|" + scoreDomain.name(),
+                    "NOT_APPLICABLE", baselineGap, 0.0, 0.0, 0.0, baselineGap, perspectiveRole);
+        }
+        FrozenCompositionApplicationSemanticsBlueprint.key(context, actionType, scoreDomain);
+        double edge = edgeFor(perspectiveSide, context);
+        double referenceGain;
+        String status;
+        if (context == TeamCompositionContext.SKIRMISH) {
+            referenceGain = isKeySpecificCandidateAudit()
+                    ? FrozenCompositionKeySpecificChannelCandidate.SKIRMISH_WINNER_GAIN
+                    : FrozenCompositionGameplayGainPolicy.SKIRMISH_GAIN;
+            status = "FROZEN_EXISTING_WINNER_GAIN";
+        } else if (context == TeamCompositionContext.TEAMFIGHT) {
+            referenceGain = isKeySpecificCandidateAudit()
+                    ? FrozenCompositionKeySpecificChannelCandidate.TEAMFIGHT_WINNER_GAIN
+                    : FrozenCompositionGameplayGainPolicy.TEAMFIGHT_GAIN;
+            status = isKeySpecificCandidateAudit() ? "FROZEN_KEY_SPECIFIC_FRESH_HOLDOUT_CANDIDATE" : "DIAGNOSTIC_HISTORICAL_REFERENCE_ONLY";
+        } else if (context == TeamCompositionContext.SIEGE) {
+            referenceGain = isKeySpecificCandidateAudit()
+                    ? FrozenCompositionKeySpecificChannelCandidate.SIEGE_WINNER_GAIN
+                    : FrozenCompositionGameplayGainPolicy.SIEGE_GAIN;
+            status = isKeySpecificCandidateAudit() ? "FROZEN_KEY_SPECIFIC_FRESH_HOLDOUT_CANDIDATE" : "DIAGNOSTIC_HISTORICAL_REFERENCE_ONLY";
+        } else if (context == TeamCompositionContext.BASE_DEFENSE) {
+            referenceGain = isKeySpecificCandidateAudit() ? FrozenCompositionKeySpecificChannelCandidate.BASE_DEFENSE_WINNER_GAIN : 0.0;
+            status = isKeySpecificCandidateAudit() ? "FROZEN_KEY_SPECIFIC_FRESH_HOLDOUT_CANDIDATE" : "BASE_DEFENSE_ROLE_AWARE_WINNER_GAIN_UNCALIBRATED";
+        } else {
+            throw new CompositionGameplayConfigurationException("COMPOSITION_SEMANTICS_APPLICATION_KEY_UNMAPPED", context.name());
+        }
+        double modifier = referenceGain * edge;
+        return new CompositionWinnerDecisionAdjustment(context.name() + "|" + actionType.name() + "|" + scoreDomain.name(),
+                status, baselineGap, edge, referenceGain, modifier, baselineGap + modifier, perspectiveRole);
+    }
+
+    public CompositionSeverityDecisionAdjustment auditSeverityAdjustment(
+            TeamCompositionContext context, CompositionActionType actionType,
+            CompositionBaselineScoreDomain scoreDomain, double baselineSeverityInput) {
+        if (isAuditSemantics()) FrozenCompositionApplicationSemanticsBlueprint.key(context, actionType, scoreDomain);
+        return new CompositionSeverityDecisionAdjustment(context.name() + "|" + actionType.name() + "|" + scoreDomain.name(),
+                baselineSeverityInput, 0.0, baselineSeverityInput);
+    }
+
+    public void recordAuditWinnerObservation(
+            GameplayAttemptId attemptId, int timeSeconds, CompositionWinnerDecisionAdjustment adjustment,
+            TeamSide perspectiveSide, TeamSide attackingSide, TeamSide defendingSide, double winnerProbability,
+            double baselineWinnerProbability, double winnerRandomSample, long winnerRandomDrawOrdinal,
+            TeamSide winnerResult) {
+        if (!isAuditSemantics()) return;
+        String[] key = adjustment.applicationKey().split("\\|");
+        TeamCompositionContext context = TeamCompositionContext.valueOf(key[0]);
+        CompositionActionType action = CompositionActionType.valueOf(key[1]);
+        CompositionBaselineScoreDomain domain = CompositionBaselineScoreDomain.valueOf(key[2]);
+        winnerChannelObservations.add(new CompositionWinnerChannelObservation(matchSeed,
+                semanticsAuditAuthorization.diagnosticCaseIndex(), attemptId, context, action, domain, timeSeconds,
+                perspectiveSide, attackingSide, defendingSide, adjustment.perspectiveRole(), adjustment.baselineGap(),
+                baselineWinnerProbability, adjustment.rawEdge(), adjustment.gainStatus(), adjustment.referenceGain(), adjustment.winnerModifier(),
+                adjustment.winnerDecisionGap(), winnerProbability, winnerRandomSample, winnerRandomDrawOrdinal, winnerResult));
+        if (context == TeamCompositionContext.BASE_DEFENSE) {
+            if (attackingSide == null || defendingSide == null) {
+                throw new CompositionGameplayConfigurationException("COMPOSITION_BASE_DEFENSE_ROLE_MISSING",
+                        "BASE_DEFENSE audit routing requires structured attacker and defender");
+            }
+            double attackerSignal = edgeFor(attackingSide, context);
+            double defenderSignal = edgeFor(defendingSide, context);
+            double canonical = normalizeZero(attackerSignal);
+            baseDefenseRoleRoutings.add(new BaseDefenseRoleRoutingDiagnostic(matchSeed,
+                    semanticsAuditAuthorization.diagnosticCaseIndex(), attemptId, timeSeconds, attackingSide, defendingSide,
+                    attackerSignal, defenderSignal, canonical, normalizeZero(-canonical),
+                    isKeySpecificCandidateAudit() ? "ROLE_ORIENTED_PRODUCT_EXPOSURE_CONTEXT_EDGE_V1" : "COMPONENTS_ONLY_UNCALIBRATED",
+                    isKeySpecificCandidateAudit() ? adjustment.winnerModifier() : 0.0, false,
+                    isKeySpecificCandidateAudit()));
+        }
+    }
+
+    public void recordFightGradeDiagnostic(FightGradeDecisionDiagnostic diagnostic) {
+        if (!isAuditSemantics()) return;
+        if (diagnostic.caseIndex() != semanticsAuditAuthorization.diagnosticCaseIndex()
+                || diagnostic.matchSeed() != matchSeed) {
+            throw new IllegalArgumentException("FightGrade diagnostic match identity mismatch");
+        }
+        fightGradeDiagnostics.add(diagnostic);
+    }
 
     /** Records an observational same-sample baseline comparison after the real decision. */
     public void recordLocalDecisionComparison(CompositionLocalDecisionComparison comparison) {
@@ -267,6 +419,9 @@ public final class CompositionRuntimeState {
                                             CompositionActionType actionType,
                                             CompositionBaselineScoreDomain scoreDomain,
                                             double sideBaselineScore, double opponentBaselineScore) {
+        if (isAuditSemantics() && context == TeamCompositionContext.SKIRMISH) {
+            return sideBaselineScore + FrozenCompositionGameplayGainPolicy.SKIRMISH_GAIN * edgeFor(side, context) / 2.0;
+        }
         if (!isCandidate()) return sideBaselineScore;
         if (!Double.isFinite(sideBaselineScore) || !Double.isFinite(opponentBaselineScore)) {
             throw new IllegalArgumentException("Candidate score projection requires finite scores");

@@ -20,6 +20,7 @@ import com.lolfm.composition.CompositionLocalDecisionComparison;
 import com.lolfm.composition.TeamCompositionContext;
 import com.lolfm.composition.FrozenCompositionGameplayGainPolicy;
 import com.lolfm.composition.TeamCompositionGameplayMode;
+import com.lolfm.composition.*;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.ObjectiveDecisionData;
 import com.lolfm.domain.MatchEventType;
@@ -91,6 +92,8 @@ public class MatchSimulator {
     private final ChampionRoleMatchupProfileCatalog championMatchupProfiles;
     private final TeamCompositionGameplayMode teamCompositionGameplayMode;
     private final CompositionCandidateExecutionAuthorization candidateExecutionAuthorization;
+    private final CompositionSemanticsAuditExecutionAuthorization semanticsAuditAuthorization;
+    private final CompositionKeySpecificCandidateAuditAuthorization keySpecificCandidateAuthorization;
 
     @Autowired
     public MatchSimulator(
@@ -207,6 +210,8 @@ public class MatchSimulator {
         this.championMatchupProfiles = null;
         this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
         this.candidateExecutionAuthorization = CompositionCandidateExecutionAuthorization.none();
+        this.semanticsAuditAuthorization = CompositionSemanticsAuditExecutionAuthorization.none();
+        this.keySpecificCandidateAuthorization = CompositionKeySpecificCandidateAuditAuthorization.none();
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -227,6 +232,19 @@ public class MatchSimulator {
             ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
             SimulationOptions options, ChampionRoleMatchupProfileCatalog championMatchupProfiles,
             CompositionCandidateExecutionAuthorization candidateExecutionAuthorization
+    ) {
+        this(teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver, postFightResolver,
+                objectiveAttemptResolver, structureResolver, pushResolver, options, championMatchupProfiles,
+                candidateExecutionAuthorization, CompositionSemanticsAuditExecutionAuthorization.none());
+    }
+
+    MatchSimulator(
+            TeamfightResolver teamfightResolver, EndGameEvaluator endGameEvaluator, SnapshotFactory snapshotFactory,
+            ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
+            ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
+            SimulationOptions options, ChampionRoleMatchupProfileCatalog championMatchupProfiles,
+            CompositionCandidateExecutionAuthorization candidateExecutionAuthorization,
+            CompositionSemanticsAuditExecutionAuthorization semanticsAuditAuthorization
     ) {
         this.teamfightResolver = teamfightResolver;
         this.endGameEvaluator = endGameEvaluator;
@@ -255,6 +273,49 @@ public class MatchSimulator {
         this.championMatchupCatalog = null;
         this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
         this.candidateExecutionAuthorization = java.util.Objects.requireNonNull(candidateExecutionAuthorization, "candidateExecutionAuthorization");
+        this.semanticsAuditAuthorization = java.util.Objects.requireNonNull(semanticsAuditAuthorization, "semanticsAuditAuthorization");
+        this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
+        this.keySpecificCandidateAuthorization = CompositionKeySpecificCandidateAuditAuthorization.none();
+    }
+
+    MatchSimulator(
+            TeamfightResolver teamfightResolver, EndGameEvaluator endGameEvaluator, SnapshotFactory snapshotFactory,
+            ObjectiveResolver objectiveResolver, PostFightResolver postFightResolver,
+            ObjectiveAttemptResolver objectiveAttemptResolver, StructureResolver structureResolver, PushResolver pushResolver,
+            SimulationOptions options, ChampionRoleMatchupProfileCatalog championMatchupProfiles,
+            CompositionCandidateExecutionAuthorization candidateExecutionAuthorization,
+            CompositionSemanticsAuditExecutionAuthorization semanticsAuditAuthorization,
+            CompositionKeySpecificCandidateAuditAuthorization keySpecificCandidateAuthorization
+    ) {
+        this.teamfightResolver = teamfightResolver;
+        this.endGameEvaluator = endGameEvaluator;
+        this.snapshotFactory = snapshotFactory;
+        this.objectiveResolver = objectiveResolver;
+        this.postFightResolver = postFightResolver;
+        this.objectiveAttemptResolver = objectiveAttemptResolver;
+        this.structureResolver = structureResolver;
+        this.pushResolver = pushResolver;
+        this.laneCombatEnabled = options.laneCombatEnabled();
+        this.farmRecoveryEnabled = options.farmRecoveryEnabled();
+        this.jungleGankEnabled = options.jungleGankEnabled();
+        this.counterGankEnabled = options.counterGankEnabled();
+        this.roamEnabled = options.roamEnabled();
+        this.diagnosticsEnabled = options.diagnosticsEnabled();
+        this.objectivePriorityEnabled = options.objectivePriorityEnabled();
+        this.midGameMacroEnabled = options.midGameMacroEnabled();
+        this.lanePhaseEnabled = options.lanePhaseEnabled();
+        this.objectiveDecisionEnabled = options.objectiveDecisionEnabled();
+        this.lateGameMacroEnabled = options.lateGameMacroEnabled();
+        this.progressionEnabled = options.progressionEnabled();
+        this.progressionPowerEnabled = options.progressionPowerEnabled();
+        this.championPowerEnabled = options.championPowerEnabled();
+        this.championMatchupMode = options.championMatchupMode();
+        this.championMatchupProfiles = java.util.Objects.requireNonNull(championMatchupProfiles, "championMatchupProfiles");
+        this.championMatchupCatalog = null;
+        this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
+        this.candidateExecutionAuthorization = java.util.Objects.requireNonNull(candidateExecutionAuthorization, "candidateExecutionAuthorization");
+        this.semanticsAuditAuthorization = java.util.Objects.requireNonNull(semanticsAuditAuthorization, "semanticsAuditAuthorization");
+        this.keySpecificCandidateAuthorization = java.util.Objects.requireNonNull(keySpecificCandidateAuthorization, "keySpecificCandidateAuthorization");
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
     }
 
@@ -299,7 +360,8 @@ public class MatchSimulator {
     ) {
         validateCompositionModeBeforeMatch();
         GameState gameState = initializeGameState(blueTeam, redTeam, assignments);
-        gameState.configureCompositionRuntime(new CompositionRuntimeState(teamCompositionGameplayMode, seed, candidateExecutionAuthorization));
+        gameState.configureCompositionRuntime(new CompositionRuntimeState(teamCompositionGameplayMode, seed,
+                candidateExecutionAuthorization, semanticsAuditAuthorization, keySpecificCandidateAuthorization));
         gameState.getCompositionRuntimeState().initialize(assignments);
         gameState.configureProgression(progressionEnabled, progressionPowerEnabled);
         gameState.getBlueTeamState().validateCompleteLineup();
@@ -511,6 +573,23 @@ public class MatchSimulator {
     }
 
     private void validateCompositionModeBeforeMatch() {
+        if (semanticsAuditAuthorization.enabled()) {
+        if (keySpecificCandidateAuthorization.enabled()) {
+            if (teamCompositionGameplayMode != TeamCompositionGameplayMode.SHADOW || !semanticsAuditAuthorization.enabled()) {
+                throw new CompositionGameplayConfigurationException("COMPOSITION_KEY_SPECIFIC_CANDIDATE_NOT_AUTHORIZED",
+                        "Key-specific candidate requires SHADOW semantics audit mode");
+            }
+            keySpecificCandidateAuthorization.verifyExact();
+        }
+
+            if (teamCompositionGameplayMode != TeamCompositionGameplayMode.SHADOW
+                    || candidateExecutionAuthorization.auditOnly()) {
+                throw new CompositionGameplayConfigurationException(
+                        "COMPOSITION_HISTORICAL_CANDIDATE_AND_AUDIT_PATH_MIXED",
+                        "Isolated semantics audit cannot mix with the historical candidate path");
+            }
+            semanticsAuditAuthorization.verifyExact();
+        }
         if (teamCompositionGameplayMode != TeamCompositionGameplayMode.CANDIDATE) return;
         FrozenCompositionGameplayGainPolicy policy = FrozenCompositionGameplayGainPolicy.current();
         if (!candidateExecutionAuthorization.auditOnly()) throw new CompositionGameplayConfigurationException(
@@ -625,6 +704,15 @@ public class MatchSimulator {
                 CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE,
                 skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED),
                 skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.RED : TeamSide.BLUE));
+        if (state.getCompositionRuntimeState().isAuditSemantics()) {
+            TeamSide winner = attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED;
+            state.getCompositionRuntimeState().recordAuditWinnerObservation(
+                    state.getCompositionRuntimeState().lastActualAttemptId(), state.getCurrentTimeSeconds(),
+                    attacking.auditAdjustment(), TeamSide.BLUE, null, null,
+                    attacking.localDecision().candidateScore(), attacking.localDecision().baselineScore(), attacking.localDecision().sample(),
+                    attacking.localDecision().sampleIdentity(), winner);
+            recordSkirmishDecisionProvenance(state, attacking, winner);
+        }
         if (state.getCompositionRuntimeState().isCandidate() && attacking.localDecision() != null) {
             TeamSide perspective = attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED;
             boolean perspectiveWasBlue = perspective == TeamSide.BLUE;
@@ -677,6 +765,10 @@ public class MatchSimulator {
         double redCandidate = state.getCompositionRuntimeState().adjustedScoreForCandidate(
                 TeamSide.RED, TeamCompositionContext.SKIRMISH, CompositionActionType.SKIRMISH,
                 CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE, redWeight, blueWeight);
+        CompositionWinnerDecisionAdjustment auditAdjustment = state.getCompositionRuntimeState().auditWinnerAdjustment(
+                TeamSide.BLUE, TeamCompositionContext.SKIRMISH, CompositionActionType.SKIRMISH,
+                CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE, blueWeight - redWeight,
+                CompositionCombatRole.SYMMETRIC);
         double baselineProbability = new CombatOutcomeProbabilityEvaluator().weightedSelectionProbability(blueWeight, redWeight);
         double candidateProbability = new CombatOutcomeProbabilityEvaluator().weightedSelectionProbability(blueCandidate, redCandidate);
         double sample = random.nextDouble();
@@ -687,8 +779,39 @@ public class MatchSimulator {
                 baselineProbability, candidateProbability,
                 baselineBlue ? "BLUE" : "RED", candidateBlue ? "BLUE" : "RED");
         return candidateBlue
-                ? new TeamSelection(blueTeam, blue, redTeam, red, local)
-                : new TeamSelection(redTeam, red, blueTeam, blue, local);
+                ? new TeamSelection(blueTeam, blue, redTeam, red, local, auditAdjustment, blueWeight, redWeight, blueCandidate, redCandidate)
+                : new TeamSelection(redTeam, red, blueTeam, blue, local, auditAdjustment, blueWeight, redWeight, blueCandidate, redCandidate);
+    }
+
+    private void recordSkirmishDecisionProvenance(GameState state, TeamSelection selection, TeamSide runtimeWinner) {
+        CompositionWinnerDecisionAdjustment adjustment = selection.auditAdjustment();
+        LocalDecision local = selection.localDecision();
+        TeamState blue = state.getBlueTeamState(), red = state.getRedTeamState();
+        MapState map = state.getMapState(); int time = state.getCurrentTimeSeconds();
+        List<CompositionDecisionScoreStage> stages = List.of(
+                new CompositionDecisionScoreStage("WEIGHTED_BLUE_INITIATIVE", 0.0, selection.blueWeight(), selection.blueWeight(), selection.blueWeight(), CompositionFactorAvailability.EXACT_RUNTIME_COMPONENT),
+                new CompositionDecisionScoreStage("COMPOSITION", selection.blueWeight(), adjustment.rawEdge(),
+                        selection.blueCandidateWeight() - selection.blueWeight(), selection.blueCandidateWeight(), CompositionFactorAvailability.EXACT_RUNTIME_COMPONENT));
+        state.getCompositionRuntimeState().recordWinnerDecisionProvenance(new CompositionWinnerDecisionProvenance(
+                state.getCompositionRuntimeState().matchSeed(), state.getCompositionRuntimeState().semanticsAuditAuthorization().diagnosticCaseIndex(),
+                state.getCompositionRuntimeState().lastActualAttemptId(), "SKIRMISH|SKIRMISH|SKIRMISH_COMBAT_SCORE",
+                TeamCompositionContext.SKIRMISH, CompositionActionType.SKIRMISH, CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE,
+                time, TeamSide.BLUE, null, null, CompositionCombatRole.SYMMETRIC, CompositionRuntimeDecisionKind.WEIGHTED_SELECTION,
+                CompositionRuntimeComparisonOperator.SAMPLE_LESS_THAN_PROBABILITY, adjustment.baselineGap(), adjustment.rawEdge(),
+                adjustment.referenceGain(), adjustment.winnerModifier(), adjustment.winnerDecisionGap(), local.baselineScore(), local.candidateScore(),
+                local.sample(), local.candidateScore(), TeamSide.valueOf(local.baselineDecision()), runtimeWinner,
+                blue.getGold(), red.getGold(), blue.getKills(), red.getKills(),
+                (int)blue.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(time)).count(),
+                (int)red.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(time)).count(),
+                selection.blueWeight(), selection.redWeight(), (blue.getGold()-red.getGold())/900.0, (blue.getKills()-red.getKills())*3.0,
+                0.0, 0.0, 0.0, 0.0, 0.0, state.getObjectiveState().isSoulOwner(TeamSide.BLUE),
+                state.getObjectiveState().isSoulOwner(TeamSide.RED), blue.hasActiveBaronBuff(time), red.hasActiveBaronBuff(time),
+                false, false, map.getDestroyedTowerCountByAttackingSide(TeamSide.BLUE), map.getDestroyedTowerCountByAttackingSide(TeamSide.RED),
+                map.getAliveInhibitorCount(TeamSide.BLUE), map.getAliveInhibitorCount(TeamSide.RED),
+                map.getBaseState(TeamSide.BLUE).getNexusTurretsRemaining(), map.getBaseState(TeamSide.RED).getNexusTurretsRemaining(),
+                map.getBaseState(TeamSide.BLUE).isNexusAlive(), map.getBaseState(TeamSide.RED).isNexusAlive(),
+                CompositionFactorAvailability.EXACT_RUNTIME_STATE, CompositionFactorAvailability.NOT_AVAILABLE,
+                CompositionFactorAvailability.NOT_AVAILABLE, CompositionFactorAvailability.NOT_AVAILABLE, stages));
     }
 
     private double skirmishInitiative(GameState state, TeamSide side) {
@@ -720,7 +843,8 @@ public class MatchSimulator {
     }
 
     private record TeamSelection(Team actingTeam, TeamState actingState, Team opposingTeam, TeamState opposingState,
-                                 LocalDecision localDecision) {
+                                 LocalDecision localDecision, CompositionWinnerDecisionAdjustment auditAdjustment,
+                                 double blueWeight, double redWeight, double blueCandidateWeight, double redCandidateWeight) {
     }
 
     private record LocalDecision(double sample, long sampleIdentity, double baselineScore, double candidateScore,

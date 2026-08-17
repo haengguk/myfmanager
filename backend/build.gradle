@@ -325,3 +325,49 @@ tasks.register("runCompositionMarginIntegrityRepair", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.composition.CompositionMarginIntegrityRepair"
 }
+
+
+tasks.register("runCompositionApplicationSemanticsReview", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C.3 artifact-only composition application semantics review."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionApplicationSemanticsReview"
+}
+
+tasks.register("runCompositionKeySpecificSemanticsDesign", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C.4 key-specific application semantics design."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionKeySpecificSemanticsDesign"
+}
+
+
+tasks.register("runCompositionAuditOnlySemanticsRuntime", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C.5 audit-only isolated application semantics runtime diagnostic."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.CompositionAuditOnlySemanticsRuntime"
+}
+
+
+tasks.register("runCompositionKeySpecificChannelCalibration", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C.6 pure offline key-specific channel calibration and candidate screening."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.composition.CompositionKeySpecificChannelCalibration"
+}
+
+tasks.register("runCompositionKeySpecificFreshHoldoutGameplayAudit", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C.7 completely fresh blind key-specific candidate gameplay audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.CompositionKeySpecificFreshHoldoutGameplayAudit"
+}
+
+
+tasks.register("runCompositionDecisionTimeProvenanceCapture", JavaExec) {
+    group = "verification"
+    description = "Runs Phase 13D-4C.7.1.1 canonical decision-time provenance capture and corrected runtime-orientation audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.CompositionDecisionTimeProvenanceCapture"
+}
