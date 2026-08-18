@@ -13,7 +13,7 @@ class ChampionPairInteractionAuditTest {
 
     @BeforeAll static void setUp() {
         audit = ChampionPairInteractionStaticAudit.evaluate(
-                new ChampionCatalog(new ObjectMapper()));
+                com.lolfm.champion.HistoricalChampionCatalog.initialThirty());
     }
 
     @Test void legacyFormulaHasZeroTripleResidual() {

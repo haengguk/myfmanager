@@ -99,17 +99,17 @@ class PairInteractionFormulaTest {
     }
     @Test void interactionEdgeIsFinite() {
         assertThat(PairInteractionGeneratedCatalog.build(
-                new ChampionCatalog(new ObjectMapper())).rows())
+                HistoricalChampionCatalog.initialThirty()).rows())
                 .allMatch(row -> Double.isFinite(row.interactionEdge()));
     }
     @Test void interactionEdgeRespectsCap() {
         assertThat(PairInteractionGeneratedCatalog.build(
-                new ChampionCatalog(new ObjectMapper())).rows())
+                HistoricalChampionCatalog.initialThirty()).rows())
                 .allMatch(row -> Math.abs(row.interactionEdge()) <= .30);
     }
     @Test void interactionExplanationSumsExactly() {
         assertThat(PairInteractionGeneratedCatalog.build(
-                new ChampionCatalog(new ObjectMapper())).results().values())
+                HistoricalChampionCatalog.initialThirty()).results().values())
                 .allMatch(result -> Math.abs(result.ruleContributions().stream()
                         .mapToDouble(value -> value.weightedContribution()).sum()
                         - result.weightedRawEdge()) <= 1e-12);

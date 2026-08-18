@@ -1,0 +1,6147 @@
+{
+  "profileVersion": "full-173-role-matchup-profile-2026-08-v1",
+  "requiredChampionPoolVersion": "full-173-2026-08-v1",
+  "championProfiles": [
+    {
+      "championId": "renekton",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 6,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 12,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 15,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 13,
+        "DISENGAGE": 5,
+        "SUSTAIN": 15,
+        "DURABILITY": 15,
+        "WAVE_CONTROL": 14,
+        "PICK": 10,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 8
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "DISENGAGE",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Dash, stun and sustain define a durable short-range trade pattern.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "jax",
+      "baseTraits": {
+        "RANGE_CONTROL": 4,
+        "POKE": 4,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 14,
+        "GAP_CLOSE": 14,
+        "CROWD_CONTROL": 9,
+        "ENGAGE": 10,
+        "DISENGAGE": 10,
+        "SUSTAIN": 7,
+        "DURABILITY": 14,
+        "WAVE_CONTROL": 11,
+        "PICK": 8,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 15
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "ANTI_DIVE",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Leap and counter-strike reward extended melee duels and anti-dive play.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "ornn",
+      "baseTraits": {
+        "RANGE_CONTROL": 7,
+        "POKE": 7,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 8,
+        "MOBILITY": 5,
+        "GAP_CLOSE": 11,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 18,
+        "DISENGAGE": 9,
+        "SUSTAIN": 7,
+        "DURABILITY": 20,
+        "WAVE_CONTROL": 12,
+        "PICK": 14,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "DURABILITY",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "SUSTAIN",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Long crowd-control chains create engages while durability absorbs return fire.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "gwen",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 5,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 15,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 4,
+        "ENGAGE": 8,
+        "DISENGAGE": 12,
+        "SUSTAIN": 10,
+        "DURABILITY": 11,
+        "WAVE_CONTROL": 13,
+        "PICK": 7,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 20
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "ANTI_DIVE",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "PICK",
+        "RANGE_CONTROL"
+      ],
+      "kitInteractionSummary": "Repeated snips and mist favor mobile extended fights into durable targets.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "kennen",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 15,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 10,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 15,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 18,
+        "DISENGAGE": 8,
+        "SUSTAIN": 4,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 13,
+        "PICK": 15,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "MOBILITY",
+        "CROWD_CONTROL",
+        "ENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Ranged marks and lightning rush enable explosive multi-target initiation.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "ksante",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 4,
+        "BURST": 11,
+        "SUSTAINED_DAMAGE": 13,
+        "MOBILITY": 13,
+        "GAP_CLOSE": 14,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 14,
+        "DISENGAGE": 15,
+        "SUSTAIN": 7,
+        "DURABILITY": 19,
+        "WAVE_CONTROL": 11,
+        "PICK": 16,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "DURABILITY",
+        "PICK",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "RANGE_CONTROL",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Displacement and defensive tools isolate targets and repel dives.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "lee-sin",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 8,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 10,
+        "MOBILITY": 18,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 15,
+        "DISENGAGE": 10,
+        "SUSTAIN": 12,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 5,
+        "PICK": 15,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 6
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "ENGAGE",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "WAVE_CONTROL",
+        "ANTI_TANK",
+        "RANGE_CONTROL"
+      ],
+      "kitInteractionSummary": "Multiple dashes and displacement produce mobile picks and flexible engages.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "viego",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 13,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 9,
+        "ENGAGE": 9,
+        "DISENGAGE": 7,
+        "SUSTAIN": 14,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 6,
+        "PICK": 10,
+        "ANTI_DIVE": 8,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN",
+        "MOBILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "WAVE_CONTROL",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Sustained sword attacks and resets reward prolonged skirmishes.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "sejuani",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 14,
+        "CROWD_CONTROL": 19,
+        "ENGAGE": 18,
+        "DISENGAGE": 11,
+        "SUSTAIN": 7,
+        "DURABILITY": 19,
+        "WAVE_CONTROL": 6,
+        "PICK": 16,
+        "ANTI_DIVE": 17,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "DURABILITY",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "RANGE_CONTROL",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Layered freezes and a long-range ultimate anchor durable initiation.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "vi",
+      "baseTraits": {
+        "RANGE_CONTROL": 4,
+        "POKE": 5,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 12,
+        "MOBILITY": 13,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 19,
+        "DISENGAGE": 5,
+        "SUSTAIN": 7,
+        "DURABILITY": 14,
+        "WAVE_CONTROL": 6,
+        "PICK": 18,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "ENGAGE",
+        "PICK",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Point-and-click lockdown and a charged dash force decisive single-target access.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "nidalee",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 18,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 10,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 15,
+        "CROWD_CONTROL": 3,
+        "ENGAGE": 5,
+        "DISENGAGE": 17,
+        "SUSTAIN": 15,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 7,
+        "PICK": 14,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "MOBILITY",
+        "SUSTAIN"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "DURABILITY",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Spears, form swaps and healing create evasive poke and pursuit.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "maokai",
+      "baseTraits": {
+        "RANGE_CONTROL": 10,
+        "POKE": 12,
+        "BURST": 8,
+        "SUSTAINED_DAMAGE": 6,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 20,
+        "ENGAGE": 19,
+        "DISENGAGE": 14,
+        "SUSTAIN": 11,
+        "DURABILITY": 19,
+        "WAVE_CONTROL": 8,
+        "PICK": 19,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "PICK",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Reliable roots and zone control start fights and punish entry.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "leblanc",
+      "baseTraits": {
+        "RANGE_CONTROL": 13,
+        "POKE": 13,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 8,
+        "DISENGAGE": 18,
+        "SUSTAIN": 3,
+        "DURABILITY": 4,
+        "WAVE_CONTROL": 8,
+        "PICK": 19,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 2
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "MOBILITY",
+        "GAP_CLOSE",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Distortion and chains create elusive burst picks with strong escape.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "viktor",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 15,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 5,
+        "DISENGAGE": 10,
+        "SUSTAIN": 4,
+        "DURABILITY": 7,
+        "WAVE_CONTROL": 19,
+        "PICK": 7,
+        "ANTI_DIVE": 13,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Long-range fields and persistent damage control waves and space.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "azir",
+      "baseTraits": {
+        "RANGE_CONTROL": 19,
+        "POKE": 16,
+        "BURST": 10,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 14,
+        "GAP_CLOSE": 11,
+        "CROWD_CONTROL": 16,
+        "ENGAGE": 12,
+        "DISENGAGE": 18,
+        "SUSTAIN": 3,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 18,
+        "PICK": 9,
+        "ANTI_DIVE": 16,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "BURST"
+      ],
+      "kitInteractionSummary": "Soldiers provide exceptional reach and sustained zone control with a defensive wall.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "orianna",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 16,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 6,
+        "GAP_CLOSE": 4,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 14,
+        "DISENGAGE": 18,
+        "SUSTAIN": 5,
+        "DURABILITY": 8,
+        "WAVE_CONTROL": 18,
+        "PICK": 13,
+        "ANTI_DIVE": 17,
+        "ANTI_TANK": 11
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "CROWD_CONTROL",
+        "DISENGAGE",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Ball positioning supplies persistent range control and fight-shaping crowd control.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "ahri",
+      "baseTraits": {
+        "RANGE_CONTROL": 14,
+        "POKE": 13,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 9,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 14,
+        "ENGAGE": 9,
+        "DISENGAGE": 17,
+        "SUSTAIN": 5,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 13,
+        "PICK": 18,
+        "ANTI_DIVE": 12,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "PICK",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Charm and repeated dashes enable safe picks and flexible repositioning.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "sylas",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 15,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 14,
+        "ENGAGE": 13,
+        "DISENGAGE": 8,
+        "SUSTAIN": 17,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 11,
+        "PICK": 16,
+        "ANTI_DIVE": 13,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Chains, dashes and healing support explosive close-range skirmishes.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "lucian",
+      "baseTraits": {
+        "RANGE_CONTROL": 11,
+        "POKE": 12,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 16,
+        "GAP_CLOSE": 11,
+        "CROWD_CONTROL": 2,
+        "ENGAGE": 5,
+        "DISENGAGE": 12,
+        "SUSTAIN": 3,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 14,
+        "PICK": 7,
+        "ANTI_DIVE": 7,
+        "ANTI_TANK": 8
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "MOBILITY",
+        "SUSTAINED_DAMAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Dash weaving and spell-triggered shots deliver mobile short-range bursts.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "jinx",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 13,
+        "BURST": 10,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 6,
+        "GAP_CLOSE": 1,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 5,
+        "DISENGAGE": 8,
+        "SUSTAIN": 2,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 17,
+        "PICK": 8,
+        "ANTI_DIVE": 6,
+        "ANTI_TANK": 15
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Weapon swapping provides exceptional sustained range and wave pressure.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "ezreal",
+      "baseTraits": {
+        "RANGE_CONTROL": 19,
+        "POKE": 20,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 13,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 3,
+        "ENGAGE": 3,
+        "DISENGAGE": 18,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 12,
+        "PICK": 10,
+        "ANTI_DIVE": 12,
+        "ANTI_TANK": 8
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "MOBILITY",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Skillshot reach and blink emphasize safe poke and escape.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "kaisa",
+      "baseTraits": {
+        "RANGE_CONTROL": 9,
+        "POKE": 8,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 3,
+        "ENGAGE": 8,
+        "DISENGAGE": 13,
+        "SUSTAIN": 4,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 12,
+        "PICK": 10,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Hybrid damage, invisibility and ultimate access combine burst with sustained output.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "aphelios",
+      "baseTraits": {
+        "RANGE_CONTROL": 17,
+        "POKE": 14,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 5,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 5,
+        "DISENGAGE": 9,
+        "SUSTAIN": 7,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 19,
+        "PICK": 8,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL",
+        "ANTI_TANK",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Weapon combinations trade mobility for dense sustained damage and wave control.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "varus",
+      "baseTraits": {
+        "RANGE_CONTROL": 20,
+        "POKE": 20,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 11,
+        "DISENGAGE": 12,
+        "SUSTAIN": 3,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 16,
+        "PICK": 17,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "PICK",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Long-range arrows and blight pressure targets before binding them.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "nautilus",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 4,
+        "BURST": 10,
+        "SUSTAINED_DAMAGE": 3,
+        "MOBILITY": 5,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 20,
+        "ENGAGE": 20,
+        "DISENGAGE": 7,
+        "SUSTAIN": 2,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 5,
+        "PICK": 19,
+        "ANTI_DIVE": 12,
+        "ANTI_TANK": 3
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "PICK",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Hook and layered lockdown create direct, durable initiation.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "lulu",
+      "baseTraits": {
+        "RANGE_CONTROL": 14,
+        "POKE": 11,
+        "BURST": 5,
+        "SUSTAINED_DAMAGE": 4,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 14,
+        "ENGAGE": 4,
+        "DISENGAGE": 19,
+        "SUSTAIN": 8,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 8,
+        "PICK": 5,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 2
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "ANTI_TANK",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Polymorph, shields and growth excel at denying dives.",
+      "profileSource": "EXISTING_PROTOTYPE_RETAINED"
+    },
+    {
+      "championId": "rakan",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 6,
+        "BURST": 10,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 19,
+        "DISENGAGE": 17,
+        "SUSTAIN": 10,
+        "DURABILITY": 9,
+        "WAVE_CONTROL": 6,
+        "PICK": 16,
+        "ANTI_DIVE": 16,
+        "ANTI_TANK": 3
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "ENGAGE",
+        "CROWD_CONTROL",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "WAVE_CONTROL",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Long dashes and chained charm/knock-up make initiation highly mobile.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "braum",
+      "baseTraits": {
+        "RANGE_CONTROL": 7,
+        "POKE": 5,
+        "BURST": 5,
+        "SUSTAINED_DAMAGE": 4,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 9,
+        "DISENGAGE": 20,
+        "SUSTAIN": 9,
+        "DURABILITY": 20,
+        "WAVE_CONTROL": 4,
+        "PICK": 8,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "DURABILITY",
+        "ANTI_DIVE",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Shielding and passive stun protect allies and punish divers.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "renata-glasc",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 13,
+        "BURST": 8,
+        "SUSTAINED_DAMAGE": 4,
+        "MOBILITY": 6,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 11,
+        "DISENGAGE": 20,
+        "SUSTAIN": 10,
+        "DURABILITY": 7,
+        "WAVE_CONTROL": 8,
+        "PICK": 16,
+        "ANTI_DIVE": 19,
+        "ANTI_TANK": 3
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Hostile takeover and bailout reverse committed enemy engages.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "bard",
+      "baseTraits": {
+        "RANGE_CONTROL": 14,
+        "POKE": 13,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 6,
+        "MOBILITY": 18,
+        "GAP_CLOSE": 10,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 10,
+        "DISENGAGE": 17,
+        "SUSTAIN": 12,
+        "DURABILITY": 7,
+        "WAVE_CONTROL": 9,
+        "PICK": 15,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "DISENGAGE",
+        "PICK",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "DURABILITY",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Portals, stasis and roaming mobility create unconventional picks and escapes.",
+      "profileSource": "MANUAL_KIT_ASSESSMENT"
+    },
+    {
+      "championId": "aatrox",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 11,
+        "ENGAGE": 9,
+        "DISENGAGE": 6,
+        "SUSTAIN": 17,
+        "DURABILITY": 15,
+        "WAVE_CONTROL": 12,
+        "PICK": 8,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN",
+        "BURST",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Healing-heavy Darkin fighter who wins extended melee trades and threatens grouped fights with repeated Q sweet spots.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "akali",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 8,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 7,
+        "ENGAGE": 9,
+        "DISENGAGE": 18,
+        "SUSTAIN": 5,
+        "DURABILITY": 4,
+        "WAVE_CONTROL": 10,
+        "PICK": 20,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 6
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "PICK",
+        "GAP_CLOSE",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "DURABILITY",
+        "SUSTAIN",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Shroud, repeated dashes and execution damage create elusive backline access with limited wave and objective utility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "akshan",
+      "baseTraits": {
+        "RANGE_CONTROL": 14,
+        "POKE": 13,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 13,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 3,
+        "ENGAGE": 5,
+        "DISENGAGE": 15,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 14,
+        "PICK": 14,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "DISENGAGE",
+        "RANGE_CONTROL",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "SUSTAIN",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Ranged lane pressure, grappling-hook mobility and revive utility favor tempo picks and side skirmishes over front-to-back fights.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "alistar",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 20,
+        "ENGAGE": 19,
+        "DISENGAGE": 18,
+        "SUSTAIN": 8,
+        "DURABILITY": 19,
+        "WAVE_CONTROL": 4,
+        "PICK": 17,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ANTI_DIVE",
+        "ENGAGE",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "WAVE_CONTROL",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Point-blank knockup and displacement give reliable initiation and peel while his ultimate supplies exceptional temporary durability.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "ambessa",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 13,
+        "DISENGAGE": 8,
+        "SUSTAIN": 10,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 11,
+        "PICK": 14,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 14
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Ability-cast dashes, shields and sustained melee pressure make Ambessa a highly mobile diver with strong access but modest peel.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "amumu",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 14,
+        "CROWD_CONTROL": 20,
+        "ENGAGE": 19,
+        "DISENGAGE": 11,
+        "SUSTAIN": 8,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 10,
+        "PICK": 17,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 7,
+            "SUSTAINED_DAMAGE": 5,
+            "ANTI_TANK": 7,
+            "CROWD_CONTROL": 20,
+            "ENGAGE": 20,
+            "PICK": 18
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "ANTI_DIVE",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Double Bandage Toss and large-area curse make Amumu a high-commitment magic-damage initiator with strong teamfight lockdown.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "anivia",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 16,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 6,
+        "GAP_CLOSE": 4,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 9,
+        "DISENGAGE": 19,
+        "SUSTAIN": 5,
+        "DURABILITY": 8,
+        "WAVE_CONTROL": 20,
+        "PICK": 12,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "WAVE_CONTROL",
+        "DISENGAGE",
+        "RANGE_CONTROL",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "MOBILITY"
+      ],
+      "kitInteractionSummary": "Persistent storm, wall and stun provide elite zone and wave control; egg passive improves defensive staying power but mobility is very low.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "annie",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 14,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 9,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 13,
+        "DISENGAGE": 14,
+        "SUSTAIN": 5,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 16,
+        "PICK": 17,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "CROWD_CONTROL",
+        "PICK",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Stored stun plus Tibbers creates simple, reliable burst initiation and pick threat at short-to-medium range.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "ashe",
+      "baseTraits": {
+        "RANGE_CONTROL": 19,
+        "POKE": 16,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 11,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 15,
+        "DISENGAGE": 15,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 14,
+        "PICK": 16,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "GAP_CLOSE"
+      ],
+      "kitInteractionSummary": "Long-range slows, Hawkshot and global arrow add engage and information to sustained marksman output.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "aurelion-sol",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 16,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 9,
+        "DISENGAGE": 12,
+        "SUSTAIN": 14,
+        "DURABILITY": 11,
+        "WAVE_CONTROL": 19,
+        "PICK": 10,
+        "ANTI_DIVE": 16,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL",
+        "RANGE_CONTROL",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Stardust scaling turns sustained breath and large area control into extreme late-game zone, wave and teamfight pressure.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "aurora",
+      "baseTraits": {
+        "RANGE_CONTROL": 10,
+        "POKE": 10,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 9,
+        "MOBILITY": 18,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 14,
+        "ENGAGE": 14,
+        "DISENGAGE": 16,
+        "SUSTAIN": 6,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 12,
+        "PICK": 18,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "PICK",
+        "BURST",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "DURABILITY",
+        "ANTI_TANK",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Ranged harass, spirit mobility and a trapping ultimate combine lane control with explosive multi-target access.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "belveth",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 18,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 10,
+        "DISENGAGE": 12,
+        "SUSTAIN": 11,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 13,
+        "PICK": 11,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "ANTI_TANK",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Attack-speed scaling, four-direction dashes and true-form resets reward extended skirmishes and objective conversion.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "blitzcrank",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 12,
+        "BURST": 10,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 11,
+        "GAP_CLOSE": 11,
+        "CROWD_CONTROL": 20,
+        "ENGAGE": 18,
+        "DISENGAGE": 15,
+        "SUSTAIN": 7,
+        "DURABILITY": 13,
+        "WAVE_CONTROL": 4,
+        "PICK": 20,
+        "ANTI_DIVE": 16,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "PICK",
+        "ENGAGE",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "WAVE_CONTROL",
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Rocket Grab creates one of the game's strongest single-target pick threats, backed by knockup and silence.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "brand",
+      "baseTraits": {
+        "RANGE_CONTROL": 14,
+        "POKE": 17,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 9,
+        "DISENGAGE": 12,
+        "SUSTAIN": 14,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 16,
+        "PICK": 10,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [
+        {
+          "position": "JUNGLE",
+          "traits": {
+            "WAVE_CONTROL": 18,
+            "SUSTAINED_DAMAGE": 19,
+            "ANTI_TANK": 20,
+            "SUSTAIN": 15
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "ANTI_TANK",
+        "POKE",
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "DURABILITY",
+        "GAP_CLOSE",
+        "MOBILITY"
+      ],
+      "kitInteractionSummary": "Percent-health burns and bouncing area damage punish clustered teams and neutral objectives, with limited mobility and frontline value.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "briar",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 16,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 11,
+        "ENGAGE": 15,
+        "DISENGAGE": 4,
+        "SUSTAIN": 18,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 10,
+        "PICK": 15,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "MOBILITY",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "DISENGAGE",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Frenzy pursuit, strong healing and a global engage ultimate create powerful commit-heavy skirmishes with limited disengage control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "caitlyn",
+      "baseTraits": {
+        "RANGE_CONTROL": 20,
+        "POKE": 17,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 7,
+        "DISENGAGE": 13,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 15,
+        "PICK": 13,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 14
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "GAP_CLOSE",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Elite attack range, traps and headshots drive lane pressure, siege and zone control while preserving marksman objective damage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "camille",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 18,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 17,
+        "DISENGAGE": 8,
+        "SUSTAIN": 10,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 10,
+        "PICK": 17,
+        "ANTI_DIVE": 12,
+        "ANTI_TANK": 19
+      },
+      "roleOverrides": [
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "BURST": 13,
+            "SUSTAINED_DAMAGE": 10,
+            "WAVE_CONTROL": 5,
+            "ANTI_TANK": 14,
+            "PICK": 19,
+            "CROWD_CONTROL": 15,
+            "ENGAGE": 19,
+            "DURABILITY": 11
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "ANTI_TANK",
+        "MOBILITY",
+        "ENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Hookshot and Hextech Ultimatum provide exceptional target access and isolation; true damage keeps her dangerous into durable targets.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "cassiopeia",
+      "baseTraits": {
+        "RANGE_CONTROL": 14,
+        "POKE": 13,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 6,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 9,
+        "DISENGAGE": 16,
+        "SUSTAIN": 14,
+        "DURABILITY": 11,
+        "WAVE_CONTROL": 17,
+        "PICK": 10,
+        "ANTI_DIVE": 16,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "WAVE_CONTROL",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Poison-enabled repeated fangs supply very high sustained magic DPS while Miasma and Petrifying Gaze punish dives.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "chogath",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 14,
+        "DISENGAGE": 11,
+        "SUSTAIN": 8,
+        "DURABILITY": 20,
+        "WAVE_CONTROL": 11,
+        "PICK": 14,
+        "ANTI_DIVE": 19,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DURABILITY",
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "ENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Knockup, silence and Feast combine tank scaling, zone denial and secure/execute threat with poor mobility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "corki",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 18,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 3,
+        "ENGAGE": 7,
+        "DISENGAGE": 13,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 17,
+        "PICK": 12,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 14
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "WAVE_CONTROL",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "SUSTAIN",
+        "GAP_CLOSE"
+      ],
+      "kitInteractionSummary": "Missiles and mixed spell damage provide strong mid-game poke and siege with Valkyrie safety, but limited hard crowd control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "darius",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 9,
+        "ENGAGE": 9,
+        "DISENGAGE": 6,
+        "SUSTAIN": 16,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 12,
+        "PICK": 8,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "DURABILITY",
+        "SUSTAIN",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Bleed stacks, healing and reset execution make Darius dominant in prolonged close fights but vulnerable to range and disengage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "diana",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 16,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 17,
+        "DISENGAGE": 6,
+        "SUSTAIN": 9,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 12,
+        "PICK": 16,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "BURST",
+        "ENGAGE",
+        "MOBILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "DISENGAGE",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Fast dash access and Moonfall create explosive AP initiation and follow-up, with limited exit options after committing.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "dr-mundo",
+      "baseTraits": {
+        "RANGE_CONTROL": 9,
+        "POKE": 8,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 4,
+        "ENGAGE": 7,
+        "DISENGAGE": 6,
+        "SUSTAIN": 20,
+        "DURABILITY": 20,
+        "WAVE_CONTROL": 13,
+        "PICK": 8,
+        "ANTI_DIVE": 16,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "SUSTAINED_DAMAGE",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "DISENGAGE",
+        "MOBILITY"
+      ],
+      "kitInteractionSummary": "Massive regeneration and crowd-control resistance create a scaling health frontliner with persistent cleaver poke and low lockdown.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "draven",
+      "baseTraits": {
+        "RANGE_CONTROL": 14,
+        "POKE": 10,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 9,
+        "CROWD_CONTROL": 5,
+        "ENGAGE": 5,
+        "DISENGAGE": 10,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 13,
+        "PICK": 10,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 15
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "CROWD_CONTROL",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Spinning axes create exceptional early raw damage and snowball pressure, trading safety and late consistency for lane dominance.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "ekko",
+      "baseTraits": {
+        "RANGE_CONTROL": 10,
+        "POKE": 10,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 9,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 10,
+        "DISENGAGE": 19,
+        "SUSTAIN": 6,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 12,
+        "PICK": 17,
+        "ANTI_DIVE": 12,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "DISENGAGE",
+        "GAP_CLOSE",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "DURABILITY",
+        "ANTI_TANK",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Three-hit burst, parallel convergence and Chronobreak give strong pick, dive and escape patterns with useful zone control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "elise",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 16,
+        "ENGAGE": 14,
+        "DISENGAGE": 11,
+        "SUSTAIN": 9,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 12,
+        "PICK": 18,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "PICK",
+        "MOBILITY",
+        "GAP_CLOSE",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "DURABILITY",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Long-range cocoon, percent-health damage and rappel make Elise a premier early ganker and tower-diver who falls off in sustained late fights.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "evelynn",
+      "baseTraits": {
+        "RANGE_CONTROL": 7,
+        "POKE": 8,
+        "BURST": 19,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 9,
+        "DISENGAGE": 15,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 10,
+        "PICK": 20,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "PICK",
+        "BURST",
+        "MOBILITY",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Permanent camouflage and charm create exceptional fog-of-war pick pressure and AP execution, with poor front-to-back durability.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "fiddlesticks",
+      "baseTraits": {
+        "RANGE_CONTROL": 14,
+        "POKE": 11,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 9,
+        "CROWD_CONTROL": 19,
+        "ENGAGE": 20,
+        "DISENGAGE": 12,
+        "SUSTAIN": 17,
+        "DURABILITY": 7,
+        "WAVE_CONTROL": 16,
+        "PICK": 11,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 15
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ENGAGE",
+        "CROWD_CONTROL",
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN"
+      ],
+      "primaryWeaknessTraits": [
+        "DURABILITY",
+        "MOBILITY",
+        "GAP_CLOSE"
+      ],
+      "kitInteractionSummary": "Vision denial and Crowstorm produce devastating surprise area engages, while Drain rewards clustered stationary fights.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "fiora",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 15,
+        "CROWD_CONTROL": 4,
+        "ENGAGE": 10,
+        "DISENGAGE": 14,
+        "SUSTAIN": 12,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 13,
+        "PICK": 10,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 20
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ANTI_TANK",
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Vitals, Riposte and mobility make Fiora an elite duelist and anti-tank split pusher with limited five-on-five control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "fizz",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 8,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 9,
+        "DISENGAGE": 20,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 10,
+        "PICK": 20,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "PICK",
+        "MOBILITY",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Untargetability, gap closing and long-range shark engage create slippery AP burst picks, but wave and sustained front-line damage are limited.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "galio",
+      "baseTraits": {
+        "RANGE_CONTROL": 10,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 19,
+        "ENGAGE": 18,
+        "DISENGAGE": 17,
+        "SUSTAIN": 8,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 11,
+        "PICK": 17,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [
+        {
+          "position": "TOP",
+          "traits": {
+            "SUSTAIN": 10,
+            "DURABILITY": 20,
+            "WAVE_CONTROL": 12,
+            "ANTI_DIVE": 20,
+            "PICK": 16
+          }
+        },
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "BURST": 6,
+            "SUSTAINED_DAMAGE": 5,
+            "WAVE_CONTROL": 7,
+            "PICK": 19,
+            "CROWD_CONTROL": 20,
+            "ENGAGE": 19,
+            "ANTI_DIVE": 20
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Area taunt, knockup and global defensive arrival make Galio a magic-resistant facilitator with elite follow-up and peel.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "gangplank",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 17,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 10,
+        "GAP_CLOSE": 9,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 10,
+        "DISENGAGE": 15,
+        "SUSTAIN": 10,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 18,
+        "PICK": 10,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 14
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "WAVE_CONTROL",
+        "POKE",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Barrel chains, cleanse and global Cannon Barrage combine side-lane scaling with high-range burst and team-wide zone pressure.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "garen",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 7,
+        "CROWD_CONTROL": 6,
+        "ENGAGE": 9,
+        "DISENGAGE": 6,
+        "SUSTAIN": 15,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 13,
+        "PICK": 8,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DURABILITY",
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Passive sustain, tenacity and execute damage make Garen a durable side-lane juggernaut with simple target access and limited utility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "gnar",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 14,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 14,
+        "GAP_CLOSE": 9,
+        "CROWD_CONTROL": 16,
+        "ENGAGE": 17,
+        "DISENGAGE": 12,
+        "SUSTAIN": 10,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 14,
+        "PICK": 10,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 11
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ENGAGE",
+        "CROWD_CONTROL",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "PICK"
+      ],
+      "kitInteractionSummary": "Mini Gnar supplies ranged kiting while Mega Gnar converts rage into tanky area engage, creating powerful but timing-dependent flexibility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "gragas",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 14,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 16,
+        "DISENGAGE": 19,
+        "SUSTAIN": 15,
+        "DURABILITY": 14,
+        "WAVE_CONTROL": 10,
+        "PICK": 15,
+        "ANTI_DIVE": 19,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "ENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Body Slam and Explosive Cask give flexible engage/disengage, while passive sustain and burst allow both tank and AP play patterns.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "graves",
+      "baseTraits": {
+        "RANGE_CONTROL": 10,
+        "POKE": 11,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 15,
+        "GAP_CLOSE": 15,
+        "CROWD_CONTROL": 2,
+        "ENGAGE": 6,
+        "DISENGAGE": 12,
+        "SUSTAIN": 11,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 13,
+        "PICK": 10,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "BURST",
+        "MOBILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "RANGE_CONTROL"
+      ],
+      "kitInteractionSummary": "Shotgun autos, dash resets and armor stacking create strong farming and close-range skirmishing with little hard control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "hecarim",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 18,
+        "DISENGAGE": 8,
+        "SUSTAIN": 14,
+        "DURABILITY": 14,
+        "WAVE_CONTROL": 10,
+        "PICK": 15,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "ENGAGE",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Extreme movement speed, displacement and fear enable long-range dives and multi-target disruption with sustained fighter damage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "heimerdinger",
+      "baseTraits": {
+        "RANGE_CONTROL": 17,
+        "POKE": 18,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 1,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 10,
+        "DISENGAGE": 11,
+        "SUSTAIN": 10,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 18,
+        "PICK": 10,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 11
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "POKE",
+        "WAVE_CONTROL",
+        "RANGE_CONTROL",
+        "SUSTAINED_DAMAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Turrets and grenades establish persistent zones that control objectives and lanes; immobility makes positioning critical.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "hwei",
+      "baseTraits": {
+        "RANGE_CONTROL": 19,
+        "POKE": 19,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 6,
+        "GAP_CLOSE": 4,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 9,
+        "DISENGAGE": 18,
+        "SUSTAIN": 5,
+        "DURABILITY": 7,
+        "WAVE_CONTROL": 19,
+        "PICK": 12,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "WAVE_CONTROL",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "MOBILITY"
+      ],
+      "kitInteractionSummary": "A broad spellbook supplies long-range poke, wave clear, control and defensive tools, balanced by low mobility and setup demands.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "illaoi",
+      "baseTraits": {
+        "RANGE_CONTROL": 7,
+        "POKE": 5,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 9,
+        "DISENGAGE": 6,
+        "SUSTAIN": 19,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 13,
+        "PICK": 8,
+        "ANTI_DIVE": 19,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAIN",
+        "ANTI_DIVE",
+        "SUSTAINED_DAMAGE",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "GAP_CLOSE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Tentacles and spirit tests dominate constrained melee zones, producing huge sustain and area damage when enemies commit into her.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "irelia",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 9,
+        "ENGAGE": 10,
+        "DISENGAGE": 12,
+        "SUSTAIN": 13,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 13,
+        "PICK": 10,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 14
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "SUSTAINED_DAMAGE",
+        "GAP_CLOSE",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Q resets through minion waves create exceptional combat mobility and sustained dueling, with conditional stun and backline access.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "ivern",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 11,
+        "BURST": 6,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 4,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 9,
+        "DISENGAGE": 18,
+        "SUSTAIN": 14,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 5,
+        "PICK": 9,
+        "ANTI_DIVE": 19,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ANTI_DIVE",
+        "DISENGAGE",
+        "RANGE_CONTROL",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL"
+      ],
+      "kitInteractionSummary": "Brush creation, shields, root and Daisy make Ivern a supportive jungler whose value comes from protection and control rather than personal damage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "janna",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 11,
+        "BURST": 6,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 14,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 8,
+        "DISENGAGE": 20,
+        "SUSTAIN": 13,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 10,
+        "PICK": 9,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Speed manipulation, tornado and Monsoon provide elite anti-engage and peel with low direct damage and frontline presence.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "jarvan-iv",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 16,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 16,
+        "ENGAGE": 18,
+        "DISENGAGE": 8,
+        "SUSTAIN": 10,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 10,
+        "PICK": 15,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "ENGAGE",
+        "MOBILITY",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Flag-and-drag and Cataclysm create reliable early ganks, armor shred and hard commitment around priority targets.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "jayce",
+      "baseTraits": {
+        "RANGE_CONTROL": 17,
+        "POKE": 18,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 12,
+        "CROWD_CONTROL": 7,
+        "ENGAGE": 8,
+        "DISENGAGE": 11,
+        "SUSTAIN": 5,
+        "DURABILITY": 9,
+        "WAVE_CONTROL": 15,
+        "PICK": 11,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "POKE",
+        "RANGE_CONTROL",
+        "BURST",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "CROWD_CONTROL",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Stance swapping combines long-range acceleration-gate poke with melee burst, giving flexible lane, jungle and siege pressure.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "jhin",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 16,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 11,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 7,
+        "DISENGAGE": 13,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 15,
+        "PICK": 16,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 14
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "BURST",
+        "POKE",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "GAP_CLOSE",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Long-range roots and Curtain Call complement high single-shot burst, offering pick and siege utility at the cost of sustained attack speed.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "kalista",
+      "baseTraits": {
+        "RANGE_CONTROL": 13,
+        "POKE": 10,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 15,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 12,
+        "DISENGAGE": 15,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 14,
+        "PICK": 14,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "SUSTAINED_DAMAGE",
+        "GAP_CLOSE",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Martial Poise and Rend create strong lane and objective control, while Fate's Call adds unique support engage/escape utility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "karma",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 17,
+        "BURST": 6,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 6,
+        "DISENGAGE": 18,
+        "SUSTAIN": 10,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 14,
+        "PICK": 8,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "POKE",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Mantra empowers early poke or team shields, making Karma a lane-priority enchanter with flexible speed and protection.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "karthus",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 15,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 2,
+        "GAP_CLOSE": 1,
+        "CROWD_CONTROL": 6,
+        "ENGAGE": 9,
+        "DISENGAGE": 8,
+        "SUSTAIN": 14,
+        "DURABILITY": 11,
+        "WAVE_CONTROL": 18,
+        "PICK": 10,
+        "ANTI_DIVE": 16,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "RANGE_CONTROL",
+        "WAVE_CONTROL",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "High-frequency Q damage, death passive and global Requiem turn farm into enormous map-wide sustained magic pressure.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "kassadin",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 5,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 20,
+        "CROWD_CONTROL": 6,
+        "ENGAGE": 10,
+        "DISENGAGE": 16,
+        "SUSTAIN": 6,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 12,
+        "PICK": 19,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "PICK",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "DURABILITY",
+        "RANGE_CONTROL"
+      ],
+      "kitInteractionSummary": "Riftwalk scaling grants extreme late mobility and repeated AP burst, but early range, wave control and pressure are intentionally weak.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "katarina",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 20,
+        "CROWD_CONTROL": 2,
+        "ENGAGE": 6,
+        "DISENGAGE": 17,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 13,
+        "PICK": 19,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "PICK",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "ANTI_TANK",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Dagger resets and Shunpo enable explosive cleanup chains; she lacks reliable crowd control and is vulnerable to interruption.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "kayle",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 11,
+        "BURST": 10,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 6,
+        "ENGAGE": 4,
+        "DISENGAGE": 13,
+        "SUSTAIN": 12,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 15,
+        "PICK": 7,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "RANGE_CONTROL",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "ENGAGE",
+        "GAP_CLOSE",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Level-driven range evolution, mixed sustained damage and invulnerability make Kayle an extreme scaling carry with weak early control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "kayn",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 15,
+        "DISENGAGE": 15,
+        "SUSTAIN": 15,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 10,
+        "PICK": 16,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Terrain traversal and form choice create adaptive ganks: Shadow Assassin excels at burst access while Rhaast adds sustain and anti-frontline fighting.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "khazix",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 19,
+        "SUSTAINED_DAMAGE": 8,
+        "MOBILITY": 18,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 5,
+        "ENGAGE": 9,
+        "DISENGAGE": 15,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 10,
+        "PICK": 20,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 8
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "PICK",
+        "BURST",
+        "MOBILITY",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Isolation amplification, leap resets and stealth create elite single-target jungle picks but weaker clustered teamfights.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "kindred",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 10,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 16,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 7,
+        "ENGAGE": 9,
+        "DISENGAGE": 16,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 14,
+        "PICK": 14,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "ANTI_DIVE",
+        "ANTI_TANK",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Marks scale range and damage while Lamb's Respite creates a unique anti-execute zone, combining carry DPS with tactical protection.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "kled",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 14,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 17,
+        "DISENGAGE": 8,
+        "SUSTAIN": 10,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 11,
+        "PICK": 14,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "ENGAGE",
+        "DURABILITY",
+        "SUSTAINED_DAMAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Mounted health, remounting and long-range charge support reckless dives and side pressure with strong early-mid dueling.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "kogmaw",
+      "baseTraits": {
+        "RANGE_CONTROL": 20,
+        "POKE": 17,
+        "BURST": 10,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 3,
+        "GAP_CLOSE": 1,
+        "CROWD_CONTROL": 5,
+        "ENGAGE": 4,
+        "DISENGAGE": 6,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 15,
+        "PICK": 7,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 20
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "POKE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Percent-health on-hit range steroid gives elite anti-frontline DPS, while artillery poke adds reach; mobility and self-peel are minimal.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "leona",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 20,
+        "ENGAGE": 20,
+        "DISENGAGE": 8,
+        "SUSTAIN": 8,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 3,
+        "PICK": 18,
+        "ANTI_DIVE": 17,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "DURABILITY",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "WAVE_CONTROL",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Layered point-and-click-adjacent crowd control and Solar Flare make Leona a durable all-in initiator with little disengage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "lillia",
+      "baseTraits": {
+        "RANGE_CONTROL": 13,
+        "POKE": 11,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 10,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 14,
+        "DISENGAGE": 16,
+        "SUSTAIN": 14,
+        "DURABILITY": 11,
+        "WAVE_CONTROL": 16,
+        "PICK": 11,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "POKE",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Movement-speed stacking, percent-health magic damage and mass sleep create mobile sustained teamfight pressure.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "lissandra",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 14,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 9,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 19,
+        "ENGAGE": 18,
+        "DISENGAGE": 17,
+        "SUSTAIN": 5,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 17,
+        "PICK": 18,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Point-and-click ultimate, claw mobility and area roots give unusually reliable initiation and anti-assassin control for a mage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "locke",
+      "baseTraits": {
+        "RANGE_CONTROL": 13,
+        "POKE": 14,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 12,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 10,
+        "DISENGAGE": 16,
+        "SUSTAIN": 9,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 14,
+        "PICK": 18,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "BURST",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "DURABILITY",
+        "ANTI_TANK",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Nail marks, self-accelerating attack pattern, teleport-dash pursuit and execute ultimate create aggressive AP mid-lane snowball pressure.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "lux",
+      "baseTraits": {
+        "RANGE_CONTROL": 20,
+        "POKE": 19,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 11,
+        "MOBILITY": 5,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 5,
+        "DISENGAGE": 15,
+        "SUSTAIN": 4,
+        "DURABILITY": 4,
+        "WAVE_CONTROL": 18,
+        "PICK": 18,
+        "ANTI_DIVE": 13,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 14,
+            "BURST": 14,
+            "SUSTAINED_DAMAGE": 10,
+            "PICK": 19,
+            "DISENGAGE": 16
+          }
+        },
+        {
+          "position": "MID",
+          "traits": {
+            "WAVE_CONTROL": 20,
+            "BURST": 17,
+            "SUSTAINED_DAMAGE": 12
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "WAVE_CONTROL",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Long-range binding, shielding and laser burst offer pick and artillery utility from safety, though she is fragile when engaged.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "malphite",
+      "baseTraits": {
+        "RANGE_CONTROL": 9,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 10,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 20,
+        "DISENGAGE": 11,
+        "SUSTAIN": 8,
+        "DURABILITY": 19,
+        "WAVE_CONTROL": 11,
+        "PICK": 16,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ENGAGE",
+        "DURABILITY",
+        "CROWD_CONTROL",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Unstoppable Force is elite long-range initiation while armor scaling and attack-speed reduction specialize him against physical attackers.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "malzahar",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 13,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 4,
+        "CROWD_CONTROL": 16,
+        "ENGAGE": 9,
+        "DISENGAGE": 14,
+        "SUSTAIN": 5,
+        "DURABILITY": 7,
+        "WAVE_CONTROL": 19,
+        "PICK": 19,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "WAVE_CONTROL",
+        "PICK",
+        "ANTI_DIVE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Suppression gives deterministic single-target lockdown while voidlings and damage-over-time provide safe wave and objective pressure.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "master-yi",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 1,
+        "ENGAGE": 5,
+        "DISENGAGE": 15,
+        "SUSTAIN": 14,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 12,
+        "PICK": 10,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 19
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "ANTI_TANK",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Reset mobility, untargetability and true damage produce exceptional late cleanup and objective DPS with no native crowd control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "mel",
+      "baseTraits": {
+        "RANGE_CONTROL": 19,
+        "POKE": 18,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 12,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 11,
+        "ENGAGE": 10,
+        "DISENGAGE": 20,
+        "SUSTAIN": 5,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 18,
+        "PICK": 13,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [
+        {
+          "position": "ADC",
+          "traits": {
+            "SUSTAINED_DAMAGE": 15,
+            "WAVE_CONTROL": 19,
+            "ANTI_TANK": 9,
+            "BURST": 16,
+            "DURABILITY": 5
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Long-range spell damage, projectile reflection and Overwhelm execution create safe scaling burst and unusual anti-projectile defense.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "milio",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 9,
+        "BURST": 6,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 5,
+        "DISENGAGE": 19,
+        "SUSTAIN": 15,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 6,
+        "PICK": 8,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ANTI_DIVE",
+        "DISENGAGE",
+        "RANGE_CONTROL",
+        "SUSTAIN"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Range extension, shields, healing and a cleansing ultimate amplify allied carries while offering strong anti-engage utility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "miss-fortune",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 14,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 7,
+        "ENGAGE": 5,
+        "DISENGAGE": 10,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 16,
+        "PICK": 10,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 14
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "SUSTAINED_DAMAGE",
+        "RANGE_CONTROL",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Double Up pressure and Bullet Time create strong lane burst and devastating area teamfight damage with limited mobility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "mordekaiser",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 5,
+        "GAP_CLOSE": 6,
+        "CROWD_CONTROL": 11,
+        "ENGAGE": 10,
+        "DISENGAGE": 5,
+        "SUSTAIN": 17,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 12,
+        "PICK": 8,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "DURABILITY",
+        "SUSTAIN",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "MOBILITY"
+      ],
+      "kitInteractionSummary": "Passive AoE, shielding and Realm of Death force isolated extended fights and remove key targets from team contexts.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "morgana",
+      "baseTraits": {
+        "RANGE_CONTROL": 17,
+        "POKE": 15,
+        "BURST": 10,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 10,
+        "GAP_CLOSE": 11,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 16,
+        "DISENGAGE": 18,
+        "SUSTAIN": 10,
+        "DURABILITY": 11,
+        "WAVE_CONTROL": 16,
+        "PICK": 19,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 13,
+            "SUSTAINED_DAMAGE": 5,
+            "PICK": 20,
+            "ANTI_DIVE": 20
+          }
+        },
+        {
+          "position": "JUNGLE",
+          "traits": {
+            "WAVE_CONTROL": 19,
+            "SUSTAINED_DAMAGE": 9,
+            "ANTI_TANK": 9,
+            "SUSTAIN": 11
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "ANTI_DIVE",
+        "PICK",
+        "CROWD_CONTROL",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "BURST"
+      ],
+      "kitInteractionSummary": "Long root duration and Black Shield create pick plus anti-CC utility; Tormented Shadow adds reliable area clear and objective damage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "naafiri",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 6,
+        "ENGAGE": 9,
+        "DISENGAGE": 10,
+        "SUSTAIN": 10,
+        "DURABILITY": 7,
+        "WAVE_CONTROL": 10,
+        "PICK": 18,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "BURST",
+        "PICK",
+        "MOBILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "CROWD_CONTROL",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Packmates, targeted gap close and execution-focused damage create direct AD assassination with strong pursuit and limited defensive utility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "nami",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 13,
+        "BURST": 6,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 10,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 15,
+        "DISENGAGE": 18,
+        "SUSTAIN": 15,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 9,
+        "PICK": 8,
+        "ANTI_DIVE": 19,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ANTI_DIVE",
+        "DISENGAGE",
+        "CROWD_CONTROL",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Healing, attack enhancement, bubble and tidal wave offer balanced lane sustain, peel and long-range initiation.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "nasus",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 4,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 6,
+        "DISENGAGE": 6,
+        "SUSTAIN": 18,
+        "DURABILITY": 19,
+        "WAVE_CONTROL": 11,
+        "PICK": 8,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DURABILITY",
+        "SUSTAIN",
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "RANGE_CONTROL"
+      ],
+      "kitInteractionSummary": "Stacking Q and Wither turn time into single-target side pressure and frontline durability, but range and mobility remain poor.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "neeko",
+      "baseTraits": {
+        "RANGE_CONTROL": 17,
+        "POKE": 16,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 9,
+        "MOBILITY": 10,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 18,
+        "DISENGAGE": 14,
+        "SUSTAIN": 5,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 16,
+        "PICK": 17,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 12,
+            "BURST": 14,
+            "SUSTAINED_DAMAGE": 7,
+            "PICK": 19,
+            "ENGAGE": 20,
+            "CROWD_CONTROL": 19
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "RANGE_CONTROL",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Disguise, root and Pop Blossom create deceptive multi-target initiation, while ranged spells preserve lane and wave pressure.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "nilah",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 5,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 16,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 10,
+        "DISENGAGE": 18,
+        "SUSTAIN": 16,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 12,
+        "PICK": 10,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "RANGE_CONTROL",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Melee marksman scaling, dodge veil and area healing reward close-range coordinated fights and multi-target lifesteal patterns.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "nocturne",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 16,
+        "GAP_CLOSE": 20,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 16,
+        "DISENGAGE": 11,
+        "SUSTAIN": 10,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 10,
+        "PICK": 19,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "PICK",
+        "BURST",
+        "MOBILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Paranoia removes vision and enables long-range point access, making Nocturne a premier side-target punisher with spell-shield safety.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "nunu-willump",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 14,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 18,
+        "DISENGAGE": 11,
+        "SUSTAIN": 15,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 10,
+        "PICK": 14,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ENGAGE",
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Snowball ganks and Consume give powerful initiation and neutral-objective security; ultimate controls space but is interruptible.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "olaf",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 10,
+        "CROWD_CONTROL": 5,
+        "ENGAGE": 10,
+        "DISENGAGE": 7,
+        "SUSTAIN": 18,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 12,
+        "PICK": 8,
+        "ANTI_DIVE": 17,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN",
+        "DURABILITY",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Axe slows, healing and crowd-control immunity make Olaf a relentless anti-control melee carry who must run directly through opponents.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "pantheon",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 14,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 15,
+        "DISENGAGE": 16,
+        "SUSTAIN": 10,
+        "DURABILITY": 11,
+        "WAVE_CONTROL": 10,
+        "PICK": 18,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 6
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "PICK",
+        "BURST",
+        "GAP_CLOSE",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Point-and-click stun, shield immunity and semi-global ultimate produce excellent early picks and cross-map tempo.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "poppy",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 5,
+        "BURST": 7,
+        "SUSTAINED_DAMAGE": 6,
+        "MOBILITY": 10,
+        "GAP_CLOSE": 12,
+        "CROWD_CONTROL": 19,
+        "ENGAGE": 16,
+        "DISENGAGE": 20,
+        "SUSTAIN": 8,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 8,
+        "PICK": 15,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 8
+      },
+      "roleOverrides": [
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 5,
+            "SUSTAINED_DAMAGE": 4,
+            "PICK": 16,
+            "CROWD_CONTROL": 20,
+            "ANTI_DIVE": 20
+          }
+        },
+        {
+          "position": "JUNGLE",
+          "traits": {
+            "SUSTAINED_DAMAGE": 8,
+            "WAVE_CONTROL": 10,
+            "SUSTAIN": 9,
+            "ANTI_TANK": 10,
+            "PICK": 16
+          }
+        },
+        {
+          "position": "TOP",
+          "traits": {
+            "SUSTAINED_DAMAGE": 10,
+            "WAVE_CONTROL": 12,
+            "SUSTAIN": 10,
+            "DURABILITY": 19,
+            "ANTI_TANK": 11,
+            "PICK": 14
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "RANGE_CONTROL",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Steadfast Presence hard-counters dashes, while wall stun and Keeper's Verdict provide elite anti-dive peel and selective engage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "pyke",
+      "baseTraits": {
+        "RANGE_CONTROL": 11,
+        "POKE": 9,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 6,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 15,
+        "DISENGAGE": 18,
+        "SUSTAIN": 7,
+        "DURABILITY": 4,
+        "WAVE_CONTROL": 4,
+        "PICK": 20,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "PICK",
+        "GAP_CLOSE",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "DURABILITY",
+        "WAVE_CONTROL",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Camouflage, hook, stun and resetting execute turn support economy into extreme roaming pick pressure with very low durability.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "qiyana",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 8,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 14,
+        "ENGAGE": 15,
+        "DISENGAGE": 16,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 12,
+        "PICK": 18,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "BURST",
+        "GAP_CLOSE",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Elemental terrain empowers stealth, root and wall-stun burst, giving Qiyana unusually high teamfight control for an AD assassin.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "quinn",
+      "baseTraits": {
+        "RANGE_CONTROL": 17,
+        "POKE": 14,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 14,
+        "CROWD_CONTROL": 9,
+        "ENGAGE": 9,
+        "DISENGAGE": 16,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 15,
+        "PICK": 15,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "RANGE_CONTROL",
+        "DISENGAGE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Ranged lane bullying and extreme out-of-combat speed create side-lane tempo and picks, with weak conventional five-on-five scaling.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "rammus",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 18,
+        "DISENGAGE": 12,
+        "SUSTAIN": 8,
+        "DURABILITY": 20,
+        "WAVE_CONTROL": 10,
+        "PICK": 17,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DURABILITY",
+        "ANTI_DIVE",
+        "CROWD_CONTROL",
+        "ENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Powerball access, taunt and armor/reflection scaling make Rammus a specialized anti-basic-attack tank and ganker.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "reksai",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 15,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 14,
+        "DISENGAGE": 8,
+        "SUSTAIN": 12,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 10,
+        "PICK": 16,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "PICK",
+        "BURST",
+        "MOBILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Tunnel mobility, knockup and execute ultimate create oppressive early pathing and skirmish threat that scales down in front-to-back fights.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "rell",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 11,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 20,
+        "ENGAGE": 20,
+        "DISENGAGE": 13,
+        "SUSTAIN": 8,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 10,
+        "PICK": 17,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "DURABILITY",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Mounted crash, magnetism and armor/MR interactions create high-value multi-target engage and follow-up at the cost of mobility after commitment.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "rengar",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 19,
+        "SUSTAINED_DAMAGE": 8,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 10,
+        "DISENGAGE": 12,
+        "SUSTAIN": 13,
+        "DURABILITY": 8,
+        "WAVE_CONTROL": 10,
+        "PICK": 20,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "PICK",
+        "BURST",
+        "GAP_CLOSE",
+        "MOBILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Brush leaps and ultimate camouflage create extreme access to isolated targets, while empowered abilities let him adapt damage, cleanse or control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "riven",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 10,
+        "DISENGAGE": 18,
+        "SUSTAIN": 9,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 13,
+        "PICK": 10,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "SUSTAINED_DAMAGE",
+        "GAP_CLOSE",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Repeated dashes, shields and animation-driven combos create high mechanical burst-sustain dueling and flexible backline access.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "rumble",
+      "baseTraits": {
+        "RANGE_CONTROL": 13,
+        "POKE": 15,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 9,
+        "ENGAGE": 12,
+        "DISENGAGE": 12,
+        "SUSTAIN": 14,
+        "DURABILITY": 11,
+        "WAVE_CONTROL": 16,
+        "PICK": 10,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "WAVE_CONTROL",
+        "POKE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Heat-enhanced short-range spells and Equalizer provide oppressive lane trades and elite corridor/neutral-objective zone damage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "ryze",
+      "baseTraits": {
+        "RANGE_CONTROL": 12,
+        "POKE": 11,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 4,
+        "CROWD_CONTROL": 11,
+        "ENGAGE": 9,
+        "DISENGAGE": 10,
+        "SUSTAIN": 14,
+        "DURABILITY": 9,
+        "WAVE_CONTROL": 19,
+        "PICK": 10,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL",
+        "ANTI_TANK",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Short-range spell chaining gives high sustained magic DPS and wave control, while Realm Warp adds coordinated map movement.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "samira",
+      "baseTraits": {
+        "RANGE_CONTROL": 10,
+        "POKE": 7,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 18,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 6,
+        "ENGAGE": 7,
+        "DISENGAGE": 18,
+        "SUSTAIN": 12,
+        "DURABILITY": 7,
+        "WAVE_CONTROL": 13,
+        "PICK": 10,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 14
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "DISENGAGE",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "POKE",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Dash resets, projectile destruction and style-fueled Inferno Trigger reward aggressive close-range cleanup with high commit risk.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "senna",
+      "baseTraits": {
+        "RANGE_CONTROL": 20,
+        "POKE": 17,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 11,
+        "ENGAGE": 9,
+        "DISENGAGE": 16,
+        "SUSTAIN": 15,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 10,
+        "PICK": 13,
+        "ANTI_DIVE": 13,
+        "ANTI_TANK": 15
+      },
+      "roleOverrides": [
+        {
+          "position": "ADC",
+          "traits": {
+            "SUSTAINED_DAMAGE": 20,
+            "WAVE_CONTROL": 12,
+            "ANTI_TANK": 17,
+            "SUSTAIN": 14,
+            "CROWD_CONTROL": 10
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "DURABILITY",
+        "MOBILITY"
+      ],
+      "kitInteractionSummary": "Soul scaling expands range and crit while Q healing and global shield/damage provide unusual carry-support hybrid utility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "seraphine",
+      "baseTraits": {
+        "RANGE_CONTROL": 19,
+        "POKE": 18,
+        "BURST": 11,
+        "SUSTAINED_DAMAGE": 10,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 14,
+        "DISENGAGE": 20,
+        "SUSTAIN": 17,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 18,
+        "PICK": 12,
+        "ANTI_DIVE": 19,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [
+        {
+          "position": "ADC",
+          "traits": {
+            "SUSTAINED_DAMAGE": 13,
+            "WAVE_CONTROL": 20,
+            "ANTI_TANK": 9,
+            "POKE": 19,
+            "SUSTAIN": 16
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "RANGE_CONTROL",
+        "ANTI_DIVE",
+        "POKE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "DURABILITY",
+        "MOBILITY"
+      ],
+      "kitInteractionSummary": "Long-range notes combine wave clear, shields/healing and a chaining charm ultimate, making Seraphine a strong grouped-fight facilitator.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "sett",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 10,
+        "CROWD_CONTROL": 14,
+        "ENGAGE": 15,
+        "DISENGAGE": 13,
+        "SUSTAIN": 14,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 12,
+        "PICK": 8,
+        "ANTI_DIVE": 17,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DURABILITY",
+        "ANTI_DIVE",
+        "BURST",
+        "SUSTAINED_DAMAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "MOBILITY"
+      ],
+      "kitInteractionSummary": "Grit-powered true damage, displacement and durable melee trading create front-to-back disruption and counter-engage threat.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "shaco",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 18,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 8,
+        "DISENGAGE": 19,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 9,
+        "PICK": 18,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "MOBILITY",
+        "PICK",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Invisibility, traps and clone deception produce unpredictable ganks and objective setup; direct front-to-back contribution is inconsistent.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "shen",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 5,
+        "BURST": 7,
+        "SUSTAINED_DAMAGE": 6,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 9,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 14,
+        "DISENGAGE": 20,
+        "SUSTAIN": 12,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 8,
+        "PICK": 12,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 8
+      },
+      "roleOverrides": [
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 4,
+            "SUSTAINED_DAMAGE": 3,
+            "ANTI_TANK": 6,
+            "PICK": 13,
+            "CROWD_CONTROL": 16,
+            "ANTI_DIVE": 20,
+            "DISENGAGE": 20
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "DURABILITY",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "POKE",
+        "RANGE_CONTROL",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Spirit's Refuge, taunt and global Stand United make Shen an elite anti-dive protector with side-lane map pressure.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "shyvana",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 12,
+        "CROWD_CONTROL": 4,
+        "ENGAGE": 10,
+        "DISENGAGE": 8,
+        "SUSTAIN": 10,
+        "DURABILITY": 15,
+        "WAVE_CONTROL": 13,
+        "PICK": 8,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "DURABILITY",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Dragon-form transformation and mixed area damage reward farming, neutral objectives and mid-late brawls, with limited basic-form control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "singed",
+      "baseTraits": {
+        "RANGE_CONTROL": 7,
+        "POKE": 8,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 12,
+        "DISENGAGE": 18,
+        "SUSTAIN": 16,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 17,
+        "PICK": 10,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 11
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "BURST"
+      ],
+      "kitInteractionSummary": "Poison trails, Fling and grounding turn movement itself into zone control, enabling proxy/side pressure and disruptive teamfights.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "sion",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 6,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 18,
+        "DISENGAGE": 10,
+        "SUSTAIN": 8,
+        "DURABILITY": 20,
+        "WAVE_CONTROL": 18,
+        "PICK": 15,
+        "ANTI_DIVE": 16,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DURABILITY",
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "MOBILITY"
+      ],
+      "kitInteractionSummary": "Health scaling, charged knockup and long-range unstoppable ultimate create enormous frontline and engage presence with predictable mobility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "sivir",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 15,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 3,
+        "ENGAGE": 9,
+        "DISENGAGE": 15,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 20,
+        "PICK": 7,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 15
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "WAVE_CONTROL",
+        "SUSTAINED_DAMAGE",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "CROWD_CONTROL",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Ricochet wave clear and team movement ultimate support grouped tempo and late front-to-back DPS; range is shorter than most marksmen.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "skarner",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 19,
+        "ENGAGE": 19,
+        "DISENGAGE": 14,
+        "SUSTAIN": 8,
+        "DURABILITY": 19,
+        "WAVE_CONTROL": 10,
+        "PICK": 19,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "DURABILITY",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Terrain traversal, displacement and suppression create strong ganks and target kidnapping backed by tank durability.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "smolder",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 17,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 6,
+        "CROWD_CONTROL": 7,
+        "ENGAGE": 4,
+        "DISENGAGE": 12,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 19,
+        "PICK": 7,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL",
+        "RANGE_CONTROL",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "ENGAGE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Stacking fire damage evolves into long-range area execution pressure, making Smolder an extreme scaling poke-DPS carry with weak early agency.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "sona",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 12,
+        "BURST": 6,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 12,
+        "DISENGAGE": 18,
+        "SUSTAIN": 17,
+        "DURABILITY": 4,
+        "WAVE_CONTROL": 9,
+        "PICK": 8,
+        "ANTI_DIVE": 19,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ANTI_DIVE",
+        "DISENGAGE",
+        "SUSTAIN",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "DURABILITY",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Low-cooldown auras provide sustained healing, shielding, speed and damage amplification, culminating in broad teamfight utility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "soraka",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 12,
+        "BURST": 6,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 4,
+        "DISENGAGE": 19,
+        "SUSTAIN": 20,
+        "DURABILITY": 4,
+        "WAVE_CONTROL": 10,
+        "PICK": 8,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAIN",
+        "ANTI_DIVE",
+        "DISENGAGE",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "ENGAGE",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Massive targeted and global healing plus silence/grounding make Soraka an elite sustain protector vulnerable to direct focus.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "swain",
+      "baseTraits": {
+        "RANGE_CONTROL": 13,
+        "POKE": 12,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 5,
+        "GAP_CLOSE": 4,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 10,
+        "DISENGAGE": 10,
+        "SUSTAIN": 19,
+        "DURABILITY": 16,
+        "WAVE_CONTROL": 16,
+        "PICK": 10,
+        "ANTI_DIVE": 17,
+        "ANTI_TANK": 15
+      },
+      "roleOverrides": [
+        {
+          "position": "MID",
+          "traits": {
+            "WAVE_CONTROL": 18,
+            "SUSTAINED_DAMAGE": 20,
+            "BURST": 13
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "SUSTAIN",
+        "SUSTAINED_DAMAGE",
+        "ANTI_DIVE",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Demonic Ascension, pulls and drain-style healing reward prolonged clustered fights and semi-frontline positioning.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "syndra",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 17,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 9,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 16,
+        "ENGAGE": 9,
+        "DISENGAGE": 17,
+        "SUSTAIN": 5,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 18,
+        "PICK": 18,
+        "ANTI_DIVE": 17,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "BURST",
+        "WAVE_CONTROL",
+        "PICK"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Long-range sphere control, stun and execute-like ultimate deliver high single-target burst plus scalable zone threat.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "tahm-kench",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 9,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 11,
+        "MOBILITY": 6,
+        "GAP_CLOSE": 10,
+        "CROWD_CONTROL": 14,
+        "ENGAGE": 10,
+        "DISENGAGE": 20,
+        "SUSTAIN": 17,
+        "DURABILITY": 20,
+        "WAVE_CONTROL": 8,
+        "PICK": 13,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 8
+      },
+      "roleOverrides": [
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 5,
+            "SUSTAINED_DAMAGE": 9,
+            "ANTI_DIVE": 20,
+            "DISENGAGE": 20,
+            "PICK": 14
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "DURABILITY",
+        "ANTI_DIVE",
+        "SUSTAIN"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "RANGE_CONTROL",
+        "WAVE_CONTROL"
+      ],
+      "kitInteractionSummary": "Thick Skin and Devour provide exceptional ally rescue and personal durability, while tongue stacks give conditional pick power.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "taliyah",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 16,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 11,
+        "DISENGAGE": 19,
+        "SUSTAIN": 5,
+        "DURABILITY": 7,
+        "WAVE_CONTROL": 19,
+        "PICK": 14,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ANTI_DIVE",
+        "DISENGAGE",
+        "WAVE_CONTROL",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Seismic Shove and anti-dash rocks punish movement, while Weaver's Wall enables rapid map control and objective setup.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "talon",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 18,
+        "CROWD_CONTROL": 6,
+        "ENGAGE": 8,
+        "DISENGAGE": 15,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 15,
+        "PICK": 19,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "PICK",
+        "BURST",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "ANTI_TANK",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Terrain vaulting enables unmatched roaming paths and quick AD burst, but sustained fighting and defensive utility are low.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "taric",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 5,
+        "BURST": 7,
+        "SUSTAINED_DAMAGE": 6,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 9,
+        "CROWD_CONTROL": 16,
+        "ENGAGE": 10,
+        "DISENGAGE": 20,
+        "SUSTAIN": 17,
+        "DURABILITY": 16,
+        "WAVE_CONTROL": 4,
+        "PICK": 13,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 8
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "SUSTAIN",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "WAVE_CONTROL",
+        "POKE",
+        "RANGE_CONTROL"
+      ],
+      "kitInteractionSummary": "Linked stun, repeated healing/shields and Cosmic Radiance provide exceptional close-range peel and teamwide invulnerability timing.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "teemo",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 16,
+        "BURST": 11,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 13,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 4,
+        "DISENGAGE": 15,
+        "SUSTAIN": 10,
+        "DURABILITY": 10,
+        "WAVE_CONTROL": 15,
+        "PICK": 10,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "ENGAGE",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Ranged poison pressure, blind and mushrooms create lane control and persistent map traps, while direct engage and frontline value are minimal.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "thresh",
+      "baseTraits": {
+        "RANGE_CONTROL": 14,
+        "POKE": 11,
+        "BURST": 8,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 11,
+        "GAP_CLOSE": 13,
+        "CROWD_CONTROL": 20,
+        "ENGAGE": 18,
+        "DISENGAGE": 20,
+        "SUSTAIN": 4,
+        "DURABILITY": 12,
+        "WAVE_CONTROL": 6,
+        "PICK": 20,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "CROWD_CONTROL",
+        "DISENGAGE",
+        "PICK",
+        "ANTI_DIVE"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL"
+      ],
+      "kitInteractionSummary": "Hook, Flay and Lantern form one of the game's most flexible pick-and-protection kits with high positional playmaking.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "tristana",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 9,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 6,
+        "ENGAGE": 7,
+        "DISENGAGE": 16,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 15,
+        "PICK": 10,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "BURST",
+        "MOBILITY",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Explosive Charge and jump resets combine tower/objective damage with strong all-in burst and self-peel knockback.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "trundle",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 7,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 8,
+        "DISENGAGE": 13,
+        "SUSTAIN": 17,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 10,
+        "PICK": 9,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 20
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ANTI_TANK",
+        "DURABILITY",
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "GAP_CLOSE"
+      ],
+      "kitInteractionSummary": "Pillar terrain, stat theft and strong attacks make Trundle a durable anti-tank duelist with powerful objective and chase control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "tryndamere",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 15,
+        "CROWD_CONTROL": 5,
+        "ENGAGE": 8,
+        "DISENGAGE": 16,
+        "SUSTAIN": 17,
+        "DURABILITY": 13,
+        "WAVE_CONTROL": 13,
+        "PICK": 10,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 15
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "SUSTAIN",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "CROWD_CONTROL"
+      ],
+      "kitInteractionSummary": "Critical attacks, spin mobility and temporary death immunity create relentless side-lane pressure and melee sustained damage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "twisted-fate",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 13,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 12,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 14,
+        "ENGAGE": 8,
+        "DISENGAGE": 11,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 17,
+        "PICK": 20,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 12
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "PICK",
+        "WAVE_CONTROL",
+        "RANGE_CONTROL",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Gold Card and Destiny provide deterministic picks and global side-lane tempo, with moderate sustained damage and low defensive power.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "twitch",
+      "baseTraits": {
+        "RANGE_CONTROL": 17,
+        "POKE": 10,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 14,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 5,
+        "ENGAGE": 6,
+        "DISENGAGE": 11,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 15,
+        "PICK": 13,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "RANGE_CONTROL",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "CROWD_CONTROL",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Camouflage and Spray and Pray enable surprise angles and extreme multi-target late DPS, balanced by fragility and weak self-peel.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "udyr",
+      "baseTraits": {
+        "RANGE_CONTROL": 4,
+        "POKE": 5,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 8,
+        "CROWD_CONTROL": 9,
+        "ENGAGE": 9,
+        "DISENGAGE": 14,
+        "SUSTAIN": 17,
+        "DURABILITY": 18,
+        "WAVE_CONTROL": 13,
+        "PICK": 9,
+        "ANTI_DIVE": 17,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DURABILITY",
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "SUSTAIN"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "GAP_CLOSE"
+      ],
+      "kitInteractionSummary": "Stance swapping offers sustained damage, shielding, movement and area slows, making Udyr a flexible durable skirmisher without long-range engage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "urgot",
+      "baseTraits": {
+        "RANGE_CONTROL": 11,
+        "POKE": 10,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 10,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 10,
+        "DISENGAGE": 8,
+        "SUSTAIN": 10,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 15,
+        "PICK": 8,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "DURABILITY",
+        "ANTI_TANK",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "MOBILITY",
+        "DISENGAGE",
+        "PICK"
+      ],
+      "kitInteractionSummary": "Shotgun knees, shield dash and fear-execute ultimate create ranged juggernaut pressure and strong mid-game dueling.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "vayne",
+      "baseTraits": {
+        "RANGE_CONTROL": 13,
+        "POKE": 6,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 12,
+        "CROWD_CONTROL": 10,
+        "ENGAGE": 5,
+        "DISENGAGE": 17,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 6,
+        "PICK": 8,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 20
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "ANTI_TANK",
+        "MOBILITY",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "ENGAGE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Tumble, Condemn and percent-health true damage produce elite tank killing and dueling with short range and weak wave control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "veigar",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 15,
+        "BURST": 20,
+        "SUSTAINED_DAMAGE": 10,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 1,
+        "CROWD_CONTROL": 19,
+        "ENGAGE": 8,
+        "DISENGAGE": 20,
+        "SUSTAIN": 5,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 18,
+        "PICK": 18,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "BURST",
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Infinite AP scaling and Event Horizon create immense late burst plus one of the strongest non-ultimate zoning cages in the game.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "velkoz",
+      "baseTraits": {
+        "RANGE_CONTROL": 20,
+        "POKE": 20,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 1,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 6,
+        "DISENGAGE": 14,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 18,
+        "PICK": 12,
+        "ANTI_DIVE": 12,
+        "ANTI_TANK": 20
+      },
+      "roleOverrides": [
+        {
+          "position": "MID",
+          "traits": {
+            "WAVE_CONTROL": 20,
+            "BURST": 16
+          }
+        },
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 15,
+            "BURST": 14,
+            "SUSTAINED_DAMAGE": 13,
+            "PICK": 13
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "ANTI_TANK",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Long-range geometry and researched-target true damage make Vel'Koz a high-reach artillery anti-frontline mage with low mobility.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "vex",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 15,
+        "BURST": 17,
+        "SUSTAINED_DAMAGE": 9,
+        "MOBILITY": 8,
+        "GAP_CLOSE": 15,
+        "CROWD_CONTROL": 17,
+        "ENGAGE": 16,
+        "DISENGAGE": 16,
+        "SUSTAIN": 5,
+        "DURABILITY": 6,
+        "WAVE_CONTROL": 16,
+        "PICK": 18,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 7
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ANTI_DIVE",
+        "PICK",
+        "BURST",
+        "CROWD_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "ANTI_TANK"
+      ],
+      "kitInteractionSummary": "Gloom punishes dashes while Shadow Surge provides long-range reset engage, combining anti-mobility control with burst access.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "vladimir",
+      "baseTraits": {
+        "RANGE_CONTROL": 13,
+        "POKE": 12,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 2,
+        "ENGAGE": 7,
+        "DISENGAGE": 19,
+        "SUSTAIN": 20,
+        "DURABILITY": 13,
+        "WAVE_CONTROL": 16,
+        "PICK": 10,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAIN",
+        "DISENGAGE",
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "GAP_CLOSE",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Health-cost magic, pool untargetability and area amplification scale into high-sustain late teamfight damage with weak hard control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "volibear",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 7,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 12,
+        "GAP_CLOSE": 15,
+        "CROWD_CONTROL": 11,
+        "ENGAGE": 14,
+        "DISENGAGE": 7,
+        "SUSTAIN": 17,
+        "DURABILITY": 17,
+        "WAVE_CONTROL": 10,
+        "PICK": 15,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "SUSTAINED_DAMAGE",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Stun, repeated bite healing and turret-disabling leap enable robust dives and brawls with mixed damage and frontline durability.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "warwick",
+      "baseTraits": {
+        "RANGE_CONTROL": 4,
+        "POKE": 4,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 18,
+        "GAP_CLOSE": 17,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 13,
+        "DISENGAGE": 9,
+        "SUSTAIN": 20,
+        "DURABILITY": 15,
+        "WAVE_CONTROL": 10,
+        "PICK": 16,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAIN",
+        "MOBILITY",
+        "SUSTAINED_DAMAGE",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Blood Hunt speed, suppression and extreme low-health healing create powerful pursuit and early-mid dueling, but predictable access.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "wukong",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 15,
+        "MOBILITY": 17,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 18,
+        "DISENGAGE": 13,
+        "SUSTAIN": 10,
+        "DURABILITY": 14,
+        "WAVE_CONTROL": 11,
+        "PICK": 13,
+        "ANTI_DIVE": 11,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "ENGAGE",
+        "MOBILITY",
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Clone trickery and double Cyclone give strong physical skirmishing plus repeated multi-target knockup initiation.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "xayah",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 10,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 9,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 5,
+        "DISENGAGE": 20,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 17,
+        "PICK": 10,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "SUSTAINED_DAMAGE",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "ENGAGE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Feather recall roots and untargetable ultimate give unusually strong self-peel and front-to-back DPS for a marksman.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "xerath",
+      "baseTraits": {
+        "RANGE_CONTROL": 20,
+        "POKE": 20,
+        "BURST": 15,
+        "SUSTAINED_DAMAGE": 11,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 1,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 5,
+        "DISENGAGE": 12,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 19,
+        "PICK": 14,
+        "ANTI_DIVE": 10,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [
+        {
+          "position": "MID",
+          "traits": {
+            "WAVE_CONTROL": 20,
+            "BURST": 16
+          }
+        },
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 15,
+            "BURST": 14,
+            "SUSTAINED_DAMAGE": 9,
+            "PICK": 15
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "WAVE_CONTROL",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Exceptional spell range and global-ish artillery provide siege, wave clear and pick damage while leaving him immobile under dive.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "xin-zhao",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 16,
+        "MOBILITY": 14,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 14,
+        "DISENGAGE": 18,
+        "SUSTAIN": 15,
+        "DURABILITY": 15,
+        "WAVE_CONTROL": 10,
+        "PICK": 15,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "SUSTAINED_DAMAGE",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "WAVE_CONTROL"
+      ],
+      "kitInteractionSummary": "Targeted dash, knockup and Crescent Guard create reliable early fighting and a projectile-denial dueling zone.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "yasuo",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 20,
+        "CROWD_CONTROL": 11,
+        "ENGAGE": 13,
+        "DISENGAGE": 19,
+        "SUSTAIN": 8,
+        "DURABILITY": 8,
+        "WAVE_CONTROL": 17,
+        "PICK": 10,
+        "ANTI_DIVE": 19,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "GAP_CLOSE",
+        "SUSTAINED_DAMAGE",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Dash chains, Wind Wall and airborne synergy give high sustained melee carry damage with strong conditional teamfight access.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "yone",
+      "baseTraits": {
+        "RANGE_CONTROL": 9,
+        "POKE": 9,
+        "BURST": 16,
+        "SUSTAINED_DAMAGE": 19,
+        "MOBILITY": 19,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 13,
+        "ENGAGE": 17,
+        "DISENGAGE": 17,
+        "SUSTAIN": 9,
+        "DURABILITY": 8,
+        "WAVE_CONTROL": 17,
+        "PICK": 13,
+        "ANTI_DIVE": 15,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "GAP_CLOSE",
+        "ENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "DURABILITY",
+        "RANGE_CONTROL",
+        "POKE"
+      ],
+      "kitInteractionSummary": "Mixed damage, spirit return and long-range multi-target ultimate combine scaling dueling with reliable backline teamfight access.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "yorick",
+      "baseTraits": {
+        "RANGE_CONTROL": 7,
+        "POKE": 7,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 18,
+        "MOBILITY": 4,
+        "GAP_CLOSE": 3,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 6,
+        "DISENGAGE": 7,
+        "SUSTAIN": 15,
+        "DURABILITY": 16,
+        "WAVE_CONTROL": 19,
+        "PICK": 8,
+        "ANTI_DIVE": 14,
+        "ANTI_TANK": 16
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "WAVE_CONTROL",
+        "SUSTAINED_DAMAGE",
+        "DURABILITY",
+        "ANTI_TANK"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Ghouls and Maiden create exceptional autonomous side-lane and structure pressure, while direct mobility and teamfight control are weak.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "yunara",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 14,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 13,
+        "GAP_CLOSE": 6,
+        "CROWD_CONTROL": 8,
+        "ENGAGE": 6,
+        "DISENGAGE": 14,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 16,
+        "PICK": 7,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 18
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "RANGE_CONTROL",
+        "ANTI_TANK",
+        "WAVE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "DURABILITY",
+        "GAP_CLOSE"
+      ],
+      "kitInteractionSummary": "Traditional auto-attack marksman scaling with crit magic bonus and a temporary transcendent state that upgrades range, mobility and area damage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "yuumi",
+      "baseTraits": {
+        "RANGE_CONTROL": 15,
+        "POKE": 11,
+        "BURST": 6,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 7,
+        "DISENGAGE": 18,
+        "SUSTAIN": 16,
+        "DURABILITY": 2,
+        "WAVE_CONTROL": 4,
+        "PICK": 8,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "SUSTAIN",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "DURABILITY",
+        "WAVE_CONTROL"
+      ],
+      "kitInteractionSummary": "Attachment makes Yuumi uniquely safe while supplying healing/shields, speed and ranged control, but she offers no independent frontline.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "zaahen",
+      "baseTraits": {
+        "RANGE_CONTROL": 5,
+        "POKE": 5,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 17,
+        "MOBILITY": 15,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 12,
+        "ENGAGE": 14,
+        "DISENGAGE": 10,
+        "SUSTAIN": 17,
+        "DURABILITY": 15,
+        "WAVE_CONTROL": 10,
+        "PICK": 14,
+        "ANTI_DIVE": 12,
+        "ANTI_TANK": 14
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "SUSTAIN",
+        "GAP_CLOSE",
+        "MOBILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "DISENGAGE"
+      ],
+      "kitInteractionSummary": "Determination stacks grant AD and a revive, while glaive control and dash tools reward extended fighter skirmishes across top and jungle.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "zac",
+      "baseTraits": {
+        "RANGE_CONTROL": 6,
+        "POKE": 6,
+        "BURST": 9,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 13,
+        "GAP_CLOSE": 20,
+        "CROWD_CONTROL": 20,
+        "ENGAGE": 20,
+        "DISENGAGE": 15,
+        "SUSTAIN": 18,
+        "DURABILITY": 19,
+        "WAVE_CONTROL": 10,
+        "PICK": 17,
+        "ANTI_DIVE": 18,
+        "ANTI_TANK": 9
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "GAP_CLOSE",
+        "CROWD_CONTROL",
+        "ENGAGE",
+        "DURABILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Long-range elastic slingshot, repeated knockups and blob healing create exceptional fog engage and durable disruption.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "zed",
+      "baseTraits": {
+        "RANGE_CONTROL": 8,
+        "POKE": 8,
+        "BURST": 19,
+        "SUSTAINED_DAMAGE": 7,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 19,
+        "CROWD_CONTROL": 3,
+        "ENGAGE": 8,
+        "DISENGAGE": 20,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 14,
+        "PICK": 19,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 4
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "MOBILITY",
+        "DISENGAGE",
+        "BURST",
+        "GAP_CLOSE"
+      ],
+      "primaryWeaknessTraits": [
+        "CROWD_CONTROL",
+        "ANTI_TANK",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Shadow swaps, shuriken poke and Death Mark deliver high physical assassination and escape potential with limited control.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "zeri",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 13,
+        "BURST": 12,
+        "SUSTAINED_DAMAGE": 20,
+        "MOBILITY": 20,
+        "GAP_CLOSE": 16,
+        "CROWD_CONTROL": 6,
+        "ENGAGE": 5,
+        "DISENGAGE": 16,
+        "SUSTAIN": 5,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 16,
+        "PICK": 7,
+        "ANTI_DIVE": 9,
+        "ANTI_TANK": 17
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "SUSTAINED_DAMAGE",
+        "MOBILITY",
+        "ANTI_TANK",
+        "RANGE_CONTROL"
+      ],
+      "primaryWeaknessTraits": [
+        "ENGAGE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Skillshot autos, wall mobility and stacking ultimate movement create highly mobile sustained teamfight DPS and chase potential.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "ziggs",
+      "baseTraits": {
+        "RANGE_CONTROL": 20,
+        "POKE": 20,
+        "BURST": 14,
+        "SUSTAINED_DAMAGE": 13,
+        "MOBILITY": 7,
+        "GAP_CLOSE": 5,
+        "CROWD_CONTROL": 9,
+        "ENGAGE": 5,
+        "DISENGAGE": 16,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 20,
+        "PICK": 10,
+        "ANTI_DIVE": 12,
+        "ANTI_TANK": 11
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "WAVE_CONTROL",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "SUSTAIN",
+        "GAP_CLOSE",
+        "ENGAGE"
+      ],
+      "kitInteractionSummary": "Long-range explosives and turret execute specialize Ziggs in wave control, siege and structure conversion from safe distance.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "zilean",
+      "baseTraits": {
+        "RANGE_CONTROL": 16,
+        "POKE": 12,
+        "BURST": 7,
+        "SUSTAINED_DAMAGE": 5,
+        "MOBILITY": 16,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 9,
+        "DISENGAGE": 20,
+        "SUSTAIN": 10,
+        "DURABILITY": 4,
+        "WAVE_CONTROL": 12,
+        "PICK": 12,
+        "ANTI_DIVE": 20,
+        "ANTI_TANK": 5
+      },
+      "roleOverrides": [
+        {
+          "position": "SUPPORT",
+          "traits": {
+            "WAVE_CONTROL": 10,
+            "BURST": 6,
+            "ANTI_DIVE": 20,
+            "DISENGAGE": 20
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "DISENGAGE",
+        "ANTI_DIVE",
+        "RANGE_CONTROL",
+        "MOBILITY"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "DURABILITY",
+        "SUSTAINED_DAMAGE"
+      ],
+      "kitInteractionSummary": "Extreme speed control, double-bomb stun and resurrection provide powerful tempo and anti-burst utility with modest direct damage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "zoe",
+      "baseTraits": {
+        "RANGE_CONTROL": 20,
+        "POKE": 20,
+        "BURST": 18,
+        "SUSTAINED_DAMAGE": 11,
+        "MOBILITY": 11,
+        "GAP_CLOSE": 4,
+        "CROWD_CONTROL": 15,
+        "ENGAGE": 7,
+        "DISENGAGE": 14,
+        "SUSTAIN": 4,
+        "DURABILITY": 5,
+        "WAVE_CONTROL": 15,
+        "PICK": 20,
+        "ANTI_DIVE": 12,
+        "ANTI_TANK": 10
+      },
+      "roleOverrides": [],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "PICK",
+        "BURST"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "SUSTAIN",
+        "DURABILITY"
+      ],
+      "kitInteractionSummary": "Sleepy Trouble Bubble and portal-assisted Paddle Star create extreme long-range pick burst through fog, but sustained fights are weak.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    },
+    {
+      "championId": "zyra",
+      "baseTraits": {
+        "RANGE_CONTROL": 18,
+        "POKE": 18,
+        "BURST": 13,
+        "SUSTAINED_DAMAGE": 14,
+        "MOBILITY": 5,
+        "GAP_CLOSE": 2,
+        "CROWD_CONTROL": 18,
+        "ENGAGE": 14,
+        "DISENGAGE": 17,
+        "SUSTAIN": 7,
+        "DURABILITY": 11,
+        "WAVE_CONTROL": 15,
+        "PICK": 15,
+        "ANTI_DIVE": 17,
+        "ANTI_TANK": 13
+      },
+      "roleOverrides": [
+        {
+          "position": "JUNGLE",
+          "traits": {
+            "WAVE_CONTROL": 17,
+            "SUSTAINED_DAMAGE": 16,
+            "ANTI_TANK": 16,
+            "SUSTAIN": 8
+          }
+        }
+      ],
+      "primaryStrengthTraits": [
+        "RANGE_CONTROL",
+        "POKE",
+        "CROWD_CONTROL",
+        "DISENGAGE"
+      ],
+      "primaryWeaknessTraits": [
+        "GAP_CLOSE",
+        "MOBILITY",
+        "SUSTAIN"
+      ],
+      "kitInteractionSummary": "Plants, roots and Stranglethorns build persistent zones that punish narrow objectives and supply ranged support damage.",
+      "profileSource": "RIOT_KIT_S16_REVIEW_2026_08_18"
+    }
+  ]
+}

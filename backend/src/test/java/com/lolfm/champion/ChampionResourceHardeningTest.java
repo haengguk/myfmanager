@@ -29,7 +29,7 @@ class ChampionResourceHardeningTest {
         assertThat(first.composition().canonicalSerialization())
                 .isEqualTo(second.composition().canonicalSerialization());
         assertThat(first.composition().profileHash())
-                .isEqualTo("fbf58dc5be12f2b07c5dff7ded9e182d7829999d2255e65dbbd073ccde2688d1");
+                .isEqualTo("1428a48dbe7db935100ae1bfcbfb84cda4f80362e08d80a3c6c1c6233f9f6b83");
     }
 
     @Test

@@ -9,18 +9,22 @@ import org.junit.jupiter.api.Test;
 class ChampionCatalogTest {
     private final ChampionCatalog catalog = new ChampionCatalog(new ObjectMapper());
 
-    @Test void containsExactlyThirtyAndSixPerPositionInRequiredOrder() {
-        assertThat(catalog.all()).hasSize(30);
-        for (Position position : Position.values()) assertThat(catalog.forPosition(position)).hasSize(6);
+    @Test void containsExactlyFullPopulationAndExpectedLegalRolesInRequiredOrder() {
+        assertThat(catalog.all()).hasSize(173);
+        assertThat(catalog.forPosition(Position.TOP)).hasSize(52);
+        assertThat(catalog.forPosition(Position.JUNGLE)).hasSize(51);
+        assertThat(catalog.forPosition(Position.MID)).hasSize(45);
+        assertThat(catalog.forPosition(Position.ADC)).hasSize(29);
+        assertThat(catalog.forPosition(Position.SUPPORT)).hasSize(35);
         assertThat(catalog.all()).extracting(c -> c.primaryPosition()).startsWith(
                 Position.TOP, Position.TOP, Position.TOP, Position.TOP, Position.TOP, Position.TOP,
                 Position.JUNGLE);
     }
 
     @Test void metadataAndCollectionsAreImmutable() {
-        assertThat(catalog.championPoolVersion()).isEqualTo("initial-30-v1");
-        assertThat(catalog.championBalanceVersion()).isEqualTo("initial-30-power-v1");
-        assertThat(catalog.riotDataVersion()).isEqualTo("16.14.1");
+        assertThat(catalog.championPoolVersion()).isEqualTo("full-173-2026-08-v1");
+        assertThat(catalog.championBalanceVersion()).isEqualTo("full-173-power-2026-08-v1");
+        assertThat(catalog.riotDataVersion()).isEqualTo("16.15.1");
         assertThatThrownBy(() -> catalog.all().clear()).isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> catalog.get(new ChampionId("renekton")).supportedPositions().clear())
                 .isInstanceOf(UnsupportedOperationException.class);

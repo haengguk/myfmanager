@@ -14,14 +14,14 @@ import org.springframework.test.web.servlet.MockMvc;
 class ChampionApiTest {
     @Autowired MockMvc mvc;
 
-    @Test void catalogEndpointReturnsPinnedOrderedThirtyChampionContract() throws Exception {
+    @Test void catalogEndpointReturnsPinnedOrderedFullChampionContract() throws Exception {
         mvc.perform(get("/api/champions"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.championPoolVersion").value("initial-30-v1"))
-                .andExpect(jsonPath("$.championBalanceVersion").value("initial-30-power-v1"))
-                .andExpect(jsonPath("$.championPowerProfileVersion").value("initial-30-power-v1"))
-                .andExpect(jsonPath("$.riotDataVersion").value("16.14.1"))
-                .andExpect(jsonPath("$.champions.length()").value(30))
+                .andExpect(jsonPath("$.championPoolVersion").value("full-173-2026-08-v1"))
+                .andExpect(jsonPath("$.championBalanceVersion").value("full-173-power-2026-08-v1"))
+                .andExpect(jsonPath("$.championPowerProfileVersion").value("full-173-power-2026-08-v1"))
+                .andExpect(jsonPath("$.riotDataVersion").value("16.15.1"))
+                .andExpect(jsonPath("$.champions.length()").value(173))
                 .andExpect(jsonPath("$.champions[0].id").value("renekton"))
                 .andExpect(jsonPath("$.champions[6].id").value("lee-sin"))
                 .andExpect(jsonPath("$.champions[0].levelCurveId").value("EARLY_DOMINANT"))
@@ -33,8 +33,8 @@ class ChampionApiTest {
         mvc.perform(post("/api/matches/simulate").contentType(MediaType.APPLICATION_JSON).content("{\"seed\":7}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.championMetadata.selectionMode").value("DEFAULT_FIXED"))
                 .andExpect(jsonPath("$.championMetadata.championPowerEnabled").value(true))
-                .andExpect(jsonPath("$.championMetadata.championPowerProfileVersion").value("initial-30-power-v1"))
-                .andExpect(jsonPath("$.championMetadata.blue.top.powerProfile.profileVersion").value("initial-30-power-v1"))
+                .andExpect(jsonPath("$.championMetadata.championPowerProfileVersion").value("full-173-power-2026-08-v1"))
+                .andExpect(jsonPath("$.championMetadata.blue.top.powerProfile.profileVersion").value("full-173-power-2026-08-v1"))
                 .andExpect(jsonPath("$.championMetadata.blue.top.powerProfile.currentLevelModifier").value(0.18))
                 .andExpect(jsonPath("$.championMetadata.blue.top.powerProfile.currentItemModifier").value(0.0))
                 .andExpect(jsonPath("$.timeline.snapshots[0].playerSnapshots[0].champion.id").isString());

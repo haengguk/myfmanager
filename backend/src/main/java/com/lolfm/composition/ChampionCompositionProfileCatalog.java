@@ -25,8 +25,6 @@ import java.util.Set;
 
 /** Fully materialized composition profiles loaded from the active manifest. */
 public final class ChampionCompositionProfileCatalog {
-    public static final String VERSION = "thirty-champion-composition-profile-candidate-v2";
-
     private final String version;
     private final Map<ChampionRoleKey, ChampionCompositionProfile> profiles;
 

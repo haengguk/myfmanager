@@ -1,0 +1,3952 @@
+{
+  "profileVersion": "full-173-power-2026-08-v1",
+  "requiredChampionPoolVersion": "full-173-2026-08-v1",
+  "levelCurves": {
+    "EARLY_DOMINANT": {
+      "1": 0.18,
+      "6": 0.28,
+      "11": 0.12,
+      "16": -0.08,
+      "18": -0.14
+    },
+    "EARLY_MID": {
+      "1": 0.1,
+      "6": 0.2,
+      "11": 0.2,
+      "16": 0.04,
+      "18": -0.02
+    },
+    "BALANCED": {
+      "1": 0.0,
+      "6": 0.04,
+      "11": 0.08,
+      "16": 0.08,
+      "18": 0.06
+    },
+    "MID_SPIKE": {
+      "1": -0.06,
+      "6": 0.08,
+      "11": 0.22,
+      "16": 0.16,
+      "18": 0.1
+    },
+    "LATE_SCALING": {
+      "1": -0.14,
+      "6": -0.08,
+      "11": 0.06,
+      "16": 0.24,
+      "18": 0.34
+    },
+    "HYPER_SCALING": {
+      "1": -0.2,
+      "6": -0.12,
+      "11": 0.02,
+      "16": 0.32,
+      "18": 0.44
+    },
+    "TANK_SCALING": {
+      "1": -0.08,
+      "6": 0.0,
+      "11": 0.12,
+      "16": 0.22,
+      "18": 0.26
+    },
+    "UTILITY_STABLE": {
+      "1": 0.02,
+      "6": 0.06,
+      "11": 0.08,
+      "16": 0.08,
+      "18": 0.06
+    }
+  },
+  "itemCurves": {
+    "EARLY_ONE_CORE": {
+      "STARTING": 0.0,
+      "COMPONENT": 0.04,
+      "FIRST_CORE": 0.18,
+      "SECOND_CORE": 0.1,
+      "THIRD_CORE": -0.04,
+      "FOURTH_CORE": -0.12,
+      "FULL_BUILD": -0.18
+    },
+    "TEMPO_TWO_CORE": {
+      "STARTING": 0.0,
+      "COMPONENT": 0.0,
+      "FIRST_CORE": 0.06,
+      "SECOND_CORE": 0.18,
+      "THIRD_CORE": 0.1,
+      "FOURTH_CORE": -0.02,
+      "FULL_BUILD": -0.08
+    },
+    "BALANCED_ITEMS": {
+      "STARTING": 0.0,
+      "COMPONENT": 0.0,
+      "FIRST_CORE": 0.02,
+      "SECOND_CORE": 0.04,
+      "THIRD_CORE": 0.04,
+      "FOURTH_CORE": 0.02,
+      "FULL_BUILD": 0.0
+    },
+    "THREE_CORE_SCALING": {
+      "STARTING": 0.0,
+      "COMPONENT": -0.06,
+      "FIRST_CORE": -0.08,
+      "SECOND_CORE": 0.0,
+      "THIRD_CORE": 0.14,
+      "FOURTH_CORE": 0.2,
+      "FULL_BUILD": 0.24
+    },
+    "HYPER_CARRY": {
+      "STARTING": 0.0,
+      "COMPONENT": -0.1,
+      "FIRST_CORE": -0.14,
+      "SECOND_CORE": -0.04,
+      "THIRD_CORE": 0.16,
+      "FOURTH_CORE": 0.26,
+      "FULL_BUILD": 0.32
+    },
+    "TANK_UTILITY": {
+      "STARTING": 0.0,
+      "COMPONENT": 0.02,
+      "FIRST_CORE": 0.08,
+      "SECOND_CORE": 0.1,
+      "THIRD_CORE": 0.06,
+      "FOURTH_CORE": 0.0,
+      "FULL_BUILD": -0.04
+    },
+    "SUPPORT_TEMPO": {
+      "STARTING": 0.0,
+      "COMPONENT": 0.08,
+      "FIRST_CORE": 0.14,
+      "SECOND_CORE": 0.06,
+      "THIRD_CORE": -0.04,
+      "FOURTH_CORE": -0.08,
+      "FULL_BUILD": -0.1
+    },
+    "SUPPORT_SCALING": {
+      "STARTING": 0.0,
+      "COMPONENT": -0.04,
+      "FIRST_CORE": -0.02,
+      "SECOND_CORE": 0.04,
+      "THIRD_CORE": 0.1,
+      "FOURTH_CORE": 0.14,
+      "FULL_BUILD": 0.16
+    }
+  },
+  "championProfiles": [
+    {
+      "championId": "renekton",
+      "levelCurveId": "EARLY_DOMINANT",
+      "itemCurveId": "EARLY_ONE_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.22,
+        "JUNGLE_GANK": 0.12,
+        "COUNTER_GANK": 0.0,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.12,
+        "TEAMFIGHT": -0.08,
+        "OBJECTIVE_FIGHT": 0.0,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": -0.08
+      },
+      "tags": [
+        "EARLY_PRESSURE",
+        "LANE_BULLY",
+        "ENGAGE",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "ornn",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.08,
+        "JUNGLE_GANK": 0.06,
+        "COUNTER_GANK": 0.1,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.22
+      },
+      "tags": [
+        "SCALING",
+        "FRONTLINE",
+        "ENGAGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "jax",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.08,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": -0.08,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.2,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "SCALING",
+        "SPLIT_PUSH",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "gwen",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.04,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.1,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.14,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "SCALING",
+        "SPLIT_PUSH",
+        "OBJECTIVE_DAMAGE",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "kennen",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.06,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.26,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.1
+      },
+      "tags": [
+        "LANE_BULLY",
+        "ENGAGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "ksante",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": 0.04,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.06,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.16,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.2
+      },
+      "tags": [
+        "FRONTLINE",
+        "PEEL",
+        "SKIRMISH",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "lee-sin",
+      "levelCurveId": "EARLY_DOMINANT",
+      "itemCurveId": "EARLY_ONE_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.28,
+        "COUNTER_GANK": 0.12,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": -0.06,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": -0.1,
+        "BASE_DEFENSE": -0.06
+      },
+      "tags": [
+        "EARLY_PRESSURE",
+        "GANKING",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "sejuani",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.12,
+        "COUNTER_GANK": 0.16,
+        "ROAM": 0.06,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.02,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "FRONTLINE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "vi",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.08,
+        "ROAM": 0.14,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.04,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.0
+      },
+      "tags": [
+        "GANKING",
+        "PICK",
+        "ENGAGE"
+      ]
+    },
+    {
+      "championId": "nidalee",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.12,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.04,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.12,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "EARLY_PRESSURE",
+        "POKE",
+        "OBJECTIVE_DAMAGE"
+      ]
+    },
+    {
+      "championId": "viego",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.12,
+        "COUNTER_GANK": 0.12,
+        "ROAM": 0.06,
+        "GENERIC_SKIRMISH": 0.22,
+        "TEAMFIGHT": 0.14,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "SCALING",
+        "SKIRMISH",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "maokai",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.14,
+        "ROAM": 0.06,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.24,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.14
+      },
+      "tags": [
+        "ENGAGE",
+        "FRONTLINE",
+        "OBJECTIVE_CONTROL",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "azir",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.06,
+        "JUNGLE_GANK": -0.04,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.2
+      },
+      "tags": [
+        "SCALING",
+        "TEAMFIGHT",
+        "SIEGE",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "orianna",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "BALANCED_ITEMS",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.1,
+        "BASE_DEFENSE": 0.14
+      },
+      "tags": [
+        "TEAMFIGHT",
+        "WAVE_CLEAR",
+        "PEEL"
+      ]
+    },
+    {
+      "championId": "ahri",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.04,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.04,
+        "ROAM": 0.24,
+        "GENERIC_SKIRMISH": 0.12,
+        "TEAMFIGHT": 0.02,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": -0.06,
+        "BASE_DEFENSE": 0.0
+      },
+      "tags": [
+        "ROAMING",
+        "PICK",
+        "SAFE_LANER"
+      ]
+    },
+    {
+      "championId": "leblanc",
+      "levelCurveId": "EARLY_DOMINANT",
+      "itemCurveId": "EARLY_ONE_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.04,
+        "ROAM": 0.26,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": -0.1,
+        "OBJECTIVE_FIGHT": 0.0,
+        "LATE_GAME_SIEGE": -0.1,
+        "BASE_DEFENSE": -0.06
+      },
+      "tags": [
+        "EARLY_PRESSURE",
+        "ROAMING",
+        "PICK",
+        "LANE_BULLY"
+      ]
+    },
+    {
+      "championId": "sylas",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.22,
+        "TEAMFIGHT": 0.16,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "SKIRMISH",
+        "ENGAGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "viktor",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": -0.04,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.22,
+        "BASE_DEFENSE": 0.22
+      },
+      "tags": [
+        "SCALING",
+        "WAVE_CLEAR",
+        "SIEGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "jinx",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.1,
+        "JUNGLE_GANK": -0.06,
+        "COUNTER_GANK": -0.02,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.02,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": 0.18,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "HYPER_SCALING",
+        "TEAMFIGHT",
+        "SIEGE"
+      ]
+    },
+    {
+      "championId": "lucian",
+      "levelCurveId": "EARLY_DOMINANT",
+      "itemCurveId": "EARLY_ONE_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.24,
+        "JUNGLE_GANK": 0.06,
+        "COUNTER_GANK": 0.0,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": -0.04,
+        "OBJECTIVE_FIGHT": 0.02,
+        "LATE_GAME_SIEGE": 0.06,
+        "BASE_DEFENSE": -0.04
+      },
+      "tags": [
+        "EARLY_PRESSURE",
+        "LANE_BULLY",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "ezreal",
+      "levelCurveId": "BALANCED",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.04,
+        "JUNGLE_GANK": -0.06,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.06,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.1,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "SAFE_LANER",
+        "POKE",
+        "SIEGE"
+      ]
+    },
+    {
+      "championId": "kaisa",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.04,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.06,
+        "BASE_DEFENSE": 0.0
+      },
+      "tags": [
+        "SCALING",
+        "SKIRMISH",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "aphelios",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.12,
+        "JUNGLE_GANK": -0.06,
+        "COUNTER_GANK": -0.02,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.02,
+        "TEAMFIGHT": 0.26,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.1
+      },
+      "tags": [
+        "HYPER_SCALING",
+        "TEAMFIGHT",
+        "OBJECTIVE_DAMAGE"
+      ]
+    },
+    {
+      "championId": "varus",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": 0.02,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": 0.22,
+        "BASE_DEFENSE": 0.1
+      },
+      "tags": [
+        "LANE_BULLY",
+        "POKE",
+        "PICK",
+        "SIEGE"
+      ]
+    },
+    {
+      "championId": "nautilus",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": 0.08,
+        "JUNGLE_GANK": 0.12,
+        "COUNTER_GANK": 0.08,
+        "ROAM": 0.18,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "ENGAGE",
+        "PICK",
+        "ROAMING"
+      ]
+    },
+    {
+      "championId": "rakan",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.26,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "ENGAGE",
+        "ROAMING",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "lulu",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.14,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.26
+      },
+      "tags": [
+        "PEEL",
+        "DISENGAGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "braum",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.18,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": 0.02,
+        "BASE_DEFENSE": 0.24
+      },
+      "tags": [
+        "PEEL",
+        "DISENGAGE",
+        "FRONTLINE"
+      ]
+    },
+    {
+      "championId": "renata-glasc",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.12,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.26,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "DISENGAGE",
+        "TEAMFIGHT",
+        "PEEL"
+      ]
+    },
+    {
+      "championId": "bard",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": 0.14,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.28,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.1,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "ROAMING",
+        "PICK",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "aatrox",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "FRONTLINE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "akali",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.04,
+        "JUNGLE_GANK": 0.06,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.16,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.04,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": -0.08,
+        "BASE_DEFENSE": -0.04
+      },
+      "tags": [
+        "ROAMING",
+        "PICK",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "akshan",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "LANE_BULLY",
+        "ROAMING",
+        "PICK",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "alistar",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.16,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.22
+      },
+      "tags": [
+        "ENGAGE",
+        "ROAMING",
+        "PEEL",
+        "FRONTLINE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "ambessa",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "SKIRMISH",
+        "PICK",
+        "SPLIT_PUSH",
+        "TEAMFIGHT",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "amumu",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.12,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.26,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "TEAMFIGHT",
+        "FRONTLINE",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "anivia",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "WAVE_CLEAR",
+        "TEAMFIGHT",
+        "OBJECTIVE_CONTROL",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "annie",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.26,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "LANE_BULLY",
+        "PICK",
+        "ENGAGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "ashe",
+      "levelCurveId": "BALANCED",
+      "itemCurveId": "BALANCED_ITEMS",
+      "contexts": {
+        "LANE_COMBAT": 0.04,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.02,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.28,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "POKE",
+        "PICK",
+        "ENGAGE",
+        "SIEGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "aurelion-sol",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.12,
+        "JUNGLE_GANK": -0.04,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.02,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.18,
+        "LATE_GAME_SIEGE": 0.22,
+        "BASE_DEFENSE": 0.24
+      },
+      "tags": [
+        "SCALING",
+        "TEAMFIGHT",
+        "WAVE_CLEAR",
+        "OBJECTIVE_CONTROL",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "aurora",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.1,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "LANE_BULLY",
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "PICK",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "belveth",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": 0.1,
+        "OBJECTIVE_FIGHT": 0.24,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "GANKING",
+        "SKIRMISH",
+        "OBJECTIVE_DAMAGE",
+        "SPLIT_PUSH",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "blitzcrank",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.06,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "PICK",
+        "ROAMING",
+        "ENGAGE"
+      ]
+    },
+    {
+      "championId": "brand",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.16,
+        "OBJECTIVE_FIGHT": 0.28,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.0
+      },
+      "tags": [
+        "POKE",
+        "TEAMFIGHT",
+        "OBJECTIVE_DAMAGE",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "briar",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.2,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.24,
+        "TEAMFIGHT": 0.06,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "GANKING",
+        "SKIRMISH",
+        "PICK",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "caitlyn",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.22,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.1,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": 0.26,
+        "BASE_DEFENSE": 0.1
+      },
+      "tags": [
+        "LANE_BULLY",
+        "POKE",
+        "SIEGE",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "camille",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.14,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.2,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": 0.1,
+        "BASE_DEFENSE": -0.02
+      },
+      "tags": [
+        "PICK",
+        "ENGAGE",
+        "ROAMING",
+        "SKIRMISH",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "cassiopeia",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.08,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "LANE_BULLY",
+        "TEAMFIGHT",
+        "OBJECTIVE_DAMAGE",
+        "WAVE_CLEAR",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "chogath",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "FRONTLINE",
+        "OBJECTIVE_CONTROL",
+        "PICK",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "corki",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.04,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.12,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.28,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "POKE",
+        "SIEGE",
+        "SKIRMISH",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "darius",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.22,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.02,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.1,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "LANE_BULLY",
+        "SKIRMISH",
+        "FRONTLINE"
+      ]
+    },
+    {
+      "championId": "diana",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.18,
+        "COUNTER_GANK": 0.08,
+        "ROAM": 0.1,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "SKIRMISH",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "dr-mundo",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "SKIRMISH",
+        "FRONTLINE",
+        "SCALING",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "draven",
+      "levelCurveId": "EARLY_DOMINANT",
+      "itemCurveId": "EARLY_ONE_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.28,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": -0.06,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": -0.06
+      },
+      "tags": [
+        "LANE_BULLY",
+        "EARLY_PRESSURE",
+        "SKIRMISH",
+        "OBJECTIVE_DAMAGE"
+      ]
+    },
+    {
+      "championId": "ekko",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.14,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "GANKING",
+        "ROAMING",
+        "SKIRMISH",
+        "PICK",
+        "DISENGAGE"
+      ]
+    },
+    {
+      "championId": "elise",
+      "levelCurveId": "EARLY_DOMINANT",
+      "itemCurveId": "EARLY_ONE_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.06,
+        "JUNGLE_GANK": 0.28,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.14,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": -0.06,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": -0.1,
+        "BASE_DEFENSE": -0.04
+      },
+      "tags": [
+        "GANKING",
+        "EARLY_PRESSURE",
+        "PICK",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "evelynn",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.24,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.18,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": -0.04,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.06,
+        "BASE_DEFENSE": -0.02
+      },
+      "tags": [
+        "GANKING",
+        "ROAMING",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "fiddlesticks",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.12,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.18,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "TEAMFIGHT",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "fiora",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.1,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.1,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": -0.1,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.26,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "SPLIT_PUSH",
+        "SKIRMISH",
+        "OBJECTIVE_DAMAGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "fizz",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.08,
+        "JUNGLE_GANK": 0.06,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.14,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.02,
+        "OBJECTIVE_FIGHT": 0.02,
+        "LATE_GAME_SIEGE": -0.1,
+        "BASE_DEFENSE": -0.06
+      },
+      "tags": [
+        "ROAMING",
+        "PICK",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "galio",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.18,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "ROAMING",
+        "ENGAGE",
+        "PEEL",
+        "TEAMFIGHT",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "gangplank",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.14,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.18,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "LANE_BULLY",
+        "POKE",
+        "SPLIT_PUSH",
+        "TEAMFIGHT",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "garen",
+      "levelCurveId": "BALANCED",
+      "itemCurveId": "BALANCED_ITEMS",
+      "contexts": {
+        "LANE_COMBAT": 0.14,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "LANE_BULLY",
+        "SKIRMISH",
+        "FRONTLINE",
+        "SPLIT_PUSH"
+      ]
+    },
+    {
+      "championId": "gnar",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.16,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "LANE_BULLY",
+        "POKE",
+        "ENGAGE",
+        "TEAMFIGHT",
+        "SPLIT_PUSH"
+      ]
+    },
+    {
+      "championId": "gragas",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.14,
+        "COUNTER_GANK": 0.14,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.14
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "DISENGAGE",
+        "SKIRMISH",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "graves",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.06,
+        "JUNGLE_GANK": 0.06,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.18,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "EARLY_PRESSURE",
+        "SKIRMISH",
+        "OBJECTIVE_DAMAGE",
+        "SPLIT_PUSH",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "hecarim",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "SKIRMISH",
+        "PICK",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "heimerdinger",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.14,
+        "OBJECTIVE_FIGHT": 0.28,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "POKE",
+        "OBJECTIVE_CONTROL",
+        "SIEGE"
+      ]
+    },
+    {
+      "championId": "hwei",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.06,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.24
+      },
+      "tags": [
+        "POKE",
+        "WAVE_CLEAR",
+        "TEAMFIGHT",
+        "SIEGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "illaoi",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.14,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "LANE_BULLY",
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "SPLIT_PUSH"
+      ]
+    },
+    {
+      "championId": "irelia",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.14,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.02,
+        "GENERIC_SKIRMISH": 0.22,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.14,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "LANE_BULLY",
+        "SKIRMISH",
+        "SPLIT_PUSH",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "ivern",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "BALANCED_ITEMS",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.18,
+        "ROAM": 0.12,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.22
+      },
+      "tags": [
+        "GANKING",
+        "PEEL",
+        "TEAMFIGHT",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "janna",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.2,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "DISENGAGE",
+        "PEEL",
+        "ROAMING",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "jarvan-iv",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.0
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "SKIRMISH",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "jayce",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.14,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.06,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "LANE_BULLY",
+        "POKE",
+        "SIEGE",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "jhin",
+      "levelCurveId": "BALANCED",
+      "itemCurveId": "BALANCED_ITEMS",
+      "contexts": {
+        "LANE_COMBAT": 0.04,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.28,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "PICK",
+        "POKE",
+        "SIEGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "kalista",
+      "levelCurveId": "EARLY_DOMINANT",
+      "itemCurveId": "EARLY_ONE_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.24,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.06,
+        "OBJECTIVE_FIGHT": 0.18,
+        "LATE_GAME_SIEGE": 0.06,
+        "BASE_DEFENSE": -0.04
+      },
+      "tags": [
+        "LANE_BULLY",
+        "EARLY_PRESSURE",
+        "OBJECTIVE_DAMAGE",
+        "ENGAGE"
+      ]
+    },
+    {
+      "championId": "karma",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.14,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.18
+      },
+      "tags": [
+        "LANE_BULLY",
+        "POKE",
+        "PEEL",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "karthus",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.1,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.12,
+        "BASE_DEFENSE": 0.18
+      },
+      "tags": [
+        "SCALING",
+        "OBJECTIVE_DAMAGE",
+        "TEAMFIGHT",
+        "WAVE_CLEAR",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "kassadin",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.12,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.02,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": 0.1,
+        "BASE_DEFENSE": 0.1
+      },
+      "tags": [
+        "SCALING",
+        "ROAMING",
+        "SKIRMISH",
+        "PICK",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "katarina",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.18,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "ROAMING",
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "kayle",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.12,
+        "JUNGLE_GANK": -0.06,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.1,
+        "GENERIC_SKIRMISH": 0.0,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.18,
+        "LATE_GAME_SIEGE": 0.22,
+        "BASE_DEFENSE": 0.18
+      },
+      "tags": [
+        "SCALING",
+        "TEAMFIGHT",
+        "SPLIT_PUSH",
+        "OBJECTIVE_DAMAGE",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "kayn",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.24,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.18,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "GANKING",
+        "ROAMING",
+        "SKIRMISH",
+        "PICK",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "khazix",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.08,
+        "ROAM": 0.14,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": -0.06,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": -0.08,
+        "BASE_DEFENSE": -0.04
+      },
+      "tags": [
+        "GANKING",
+        "PICK",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "kindred",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.22,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "SCALING",
+        "SKIRMISH",
+        "OBJECTIVE_DAMAGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "kled",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.14,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "LANE_BULLY",
+        "ENGAGE",
+        "SKIRMISH",
+        "SPLIT_PUSH"
+      ]
+    },
+    {
+      "championId": "kogmaw",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.1,
+        "JUNGLE_GANK": -0.08,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.1,
+        "GENERIC_SKIRMISH": 0.02,
+        "TEAMFIGHT": 0.26,
+        "OBJECTIVE_FIGHT": 0.22,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "SCALING",
+        "OBJECTIVE_DAMAGE",
+        "TEAMFIGHT",
+        "SIEGE",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "leona",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.08,
+        "ROAM": 0.26,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "ENGAGE",
+        "ROAMING",
+        "PICK",
+        "FRONTLINE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "lillia",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": 0.2,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.16,
+        "OBJECTIVE_FIGHT": 0.22,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "GANKING",
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "OBJECTIVE_CONTROL",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "lissandra",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.26,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.14
+      },
+      "tags": [
+        "ROAMING",
+        "ENGAGE",
+        "PICK",
+        "TEAMFIGHT",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "locke",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.1,
+        "JUNGLE_GANK": 0.06,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.2,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": -0.02,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": -0.08,
+        "BASE_DEFENSE": -0.04
+      },
+      "tags": [
+        "LANE_BULLY",
+        "ROAMING",
+        "PICK",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "lux",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.12,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "POKE",
+        "PICK",
+        "SIEGE",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "malphite",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "ENGAGE",
+        "TEAMFIGHT",
+        "FRONTLINE",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "malzahar",
+      "levelCurveId": "BALANCED",
+      "itemCurveId": "BALANCED_ITEMS",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.26
+      },
+      "tags": [
+        "PICK",
+        "WAVE_CLEAR",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "master-yi",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.1,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.06,
+        "ROAM": -0.02,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": 0.1,
+        "OBJECTIVE_FIGHT": 0.18,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "SCALING",
+        "SKIRMISH",
+        "OBJECTIVE_DAMAGE",
+        "PICK",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "mel",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "POKE",
+        "TEAMFIGHT",
+        "WAVE_CLEAR",
+        "SIEGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "milio",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.22,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.12,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "PEEL",
+        "DISENGAGE",
+        "TEAMFIGHT",
+        "SIEGE"
+      ]
+    },
+    {
+      "championId": "miss-fortune",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.1,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "LANE_BULLY",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "mordekaiser",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "SKIRMISH",
+        "FRONTLINE",
+        "OBJECTIVE_CONTROL",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "morgana",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.14,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.24
+      },
+      "tags": [
+        "PICK",
+        "PEEL",
+        "OBJECTIVE_CONTROL",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "naafiri",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.24,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "GANKING",
+        "ROAMING",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "nami",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.08,
+        "JUNGLE_GANK": 0.06,
+        "COUNTER_GANK": 0.14,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.18
+      },
+      "tags": [
+        "LANE_BULLY",
+        "PEEL",
+        "ENGAGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "nasus",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.14,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.2,
+        "BASE_DEFENSE": 0.14
+      },
+      "tags": [
+        "SCALING",
+        "SKIRMISH",
+        "SPLIT_PUSH",
+        "FRONTLINE"
+      ]
+    },
+    {
+      "championId": "neeko",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.26,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "ROAMING",
+        "ENGAGE",
+        "PICK",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "nilah",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.24,
+        "LATE_GAME_SIEGE": 0.1,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "OBJECTIVE_DAMAGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "nocturne",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.24,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.18,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "GANKING",
+        "PICK",
+        "ROAMING"
+      ]
+    },
+    {
+      "championId": "nunu-willump",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.2,
+        "COUNTER_GANK": 0.08,
+        "ROAM": 0.14,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.24,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "GANKING",
+        "OBJECTIVE_CONTROL",
+        "ENGAGE",
+        "FRONTLINE"
+      ]
+    },
+    {
+      "championId": "olaf",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.16,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.22,
+        "TEAMFIGHT": 0.04,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.0
+      },
+      "tags": [
+        "LANE_BULLY",
+        "SKIRMISH",
+        "FRONTLINE"
+      ]
+    },
+    {
+      "championId": "pantheon",
+      "levelCurveId": "EARLY_DOMINANT",
+      "itemCurveId": "EARLY_ONE_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.06,
+        "JUNGLE_GANK": 0.24,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": -0.02,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": -0.06,
+        "BASE_DEFENSE": -0.02
+      },
+      "tags": [
+        "GANKING",
+        "ROAMING",
+        "PICK",
+        "EARLY_PRESSURE"
+      ]
+    },
+    {
+      "championId": "poppy",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.22,
+        "ROAM": 0.18,
+        "GENERIC_SKIRMISH": 0.12,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.22
+      },
+      "tags": [
+        "PEEL",
+        "DISENGAGE",
+        "ENGAGE",
+        "ROAMING",
+        "FRONTLINE"
+      ]
+    },
+    {
+      "championId": "pyke",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.26,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "ROAMING",
+        "PICK",
+        "ENGAGE",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "qiyana",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.12,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "ROAMING",
+        "PICK",
+        "SKIRMISH",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "quinn",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.14,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.02,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "LANE_BULLY",
+        "ROAMING",
+        "SPLIT_PUSH",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "rammus",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.16,
+        "ROAM": 0.12,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.06,
+        "BASE_DEFENSE": 0.18
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "FRONTLINE",
+        "PEEL"
+      ]
+    },
+    {
+      "championId": "reksai",
+      "levelCurveId": "EARLY_DOMINANT",
+      "itemCurveId": "EARLY_ONE_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.06,
+        "JUNGLE_GANK": 0.26,
+        "COUNTER_GANK": 0.14,
+        "ROAM": 0.12,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": -0.02,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.08,
+        "BASE_DEFENSE": -0.02
+      },
+      "tags": [
+        "GANKING",
+        "EARLY_PRESSURE",
+        "SKIRMISH",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "rell",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.08,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "ENGAGE",
+        "ROAMING",
+        "FRONTLINE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "rengar",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.24,
+        "COUNTER_GANK": 0.08,
+        "ROAM": 0.16,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": -0.08,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.06,
+        "BASE_DEFENSE": -0.04
+      },
+      "tags": [
+        "GANKING",
+        "PICK",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "riven",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.16,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": 0.1,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": 0.12,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "LANE_BULLY",
+        "SKIRMISH",
+        "SPLIT_PUSH",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "rumble",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.28,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "LANE_BULLY",
+        "TEAMFIGHT",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "ryze",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.2,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "WAVE_CLEAR",
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "SPLIT_PUSH",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "samira",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.1,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "PICK",
+        "ENGAGE"
+      ]
+    },
+    {
+      "championId": "senna",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.08,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.28,
+        "BASE_DEFENSE": 0.2
+      },
+      "tags": [
+        "SCALING",
+        "POKE",
+        "PEEL",
+        "SIEGE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "seraphine",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.14,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "POKE",
+        "PEEL",
+        "TEAMFIGHT",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "sett",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.16,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "LANE_BULLY",
+        "ENGAGE",
+        "FRONTLINE",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "shaco",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.08,
+        "ROAM": 0.16,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": -0.06,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": 0.06,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "GANKING",
+        "ROAMING",
+        "PICK",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "shen",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.18,
+        "ROAM": 0.18,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.14,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.22
+      },
+      "tags": [
+        "PEEL",
+        "DISENGAGE",
+        "ROAMING",
+        "FRONTLINE"
+      ]
+    },
+    {
+      "championId": "shyvana",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.22,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "SCALING",
+        "OBJECTIVE_DAMAGE",
+        "SKIRMISH",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "singed",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.1,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "SPLIT_PUSH",
+        "SKIRMISH",
+        "DISENGAGE",
+        "TEAMFIGHT",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "sion",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "FRONTLINE",
+        "ENGAGE",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "sivir",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.18,
+        "BASE_DEFENSE": 0.26
+      },
+      "tags": [
+        "WAVE_CLEAR",
+        "SIEGE",
+        "TEAMFIGHT",
+        "OBJECTIVE_DAMAGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "skarner",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.12,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.12,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "PICK",
+        "FRONTLINE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "smolder",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.06,
+        "JUNGLE_GANK": -0.08,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.1,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.26,
+        "BASE_DEFENSE": 0.2
+      },
+      "tags": [
+        "SCALING",
+        "POKE",
+        "WAVE_CLEAR",
+        "TEAMFIGHT",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "sona",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.14,
+        "ROAM": 0.02,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": 0.06,
+        "BASE_DEFENSE": 0.24
+      },
+      "tags": [
+        "PEEL",
+        "TEAMFIGHT",
+        "SCALING",
+        "SIEGE"
+      ]
+    },
+    {
+      "championId": "soraka",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.22,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "PEEL",
+        "DISENGAGE",
+        "TEAMFIGHT",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "swain",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.04,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "FRONTLINE",
+        "OBJECTIVE_CONTROL",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "syndra",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.1,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.12,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "LANE_BULLY",
+        "PICK",
+        "POKE",
+        "TEAMFIGHT",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "tahm-kench",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.2,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.26
+      },
+      "tags": [
+        "PEEL",
+        "FRONTLINE",
+        "DISENGAGE",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "taliyah",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.06,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.14,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.24
+      },
+      "tags": [
+        "ROAMING",
+        "WAVE_CLEAR",
+        "TEAMFIGHT",
+        "PEEL",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "talon",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.06,
+        "JUNGLE_GANK": 0.12,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.0
+      },
+      "tags": [
+        "ROAMING",
+        "PICK",
+        "EARLY_PRESSURE"
+      ]
+    },
+    {
+      "championId": "taric",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.24,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "PEEL",
+        "DISENGAGE",
+        "FRONTLINE",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "teemo",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.16,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.06,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "LANE_BULLY",
+        "POKE",
+        "SPLIT_PUSH",
+        "OBJECTIVE_CONTROL"
+      ]
+    },
+    {
+      "championId": "thresh",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "SUPPORT_TEMPO",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.1,
+        "COUNTER_GANK": 0.14,
+        "ROAM": 0.26,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": -0.04,
+        "BASE_DEFENSE": 0.18
+      },
+      "tags": [
+        "PICK",
+        "PEEL",
+        "ENGAGE",
+        "ROAMING"
+      ]
+    },
+    {
+      "championId": "tristana",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.12,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.22,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "LANE_BULLY",
+        "SKIRMISH",
+        "SIEGE",
+        "OBJECTIVE_DAMAGE"
+      ]
+    },
+    {
+      "championId": "trundle",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.2,
+        "COUNTER_GANK": 0.12,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.12,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.18,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "GANKING",
+        "SKIRMISH",
+        "FRONTLINE",
+        "OBJECTIVE_DAMAGE"
+      ]
+    },
+    {
+      "championId": "tryndamere",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.08,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.2,
+        "TEAMFIGHT": -0.1,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "SPLIT_PUSH",
+        "SKIRMISH",
+        "OBJECTIVE_DAMAGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "twisted-fate",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.06,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.28,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.0,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.1
+      },
+      "tags": [
+        "ROAMING",
+        "PICK",
+        "WAVE_CLEAR",
+        "SPLIT_PUSH"
+      ]
+    },
+    {
+      "championId": "twitch",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": 0.06,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.26,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.12,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "ROAMING",
+        "TEAMFIGHT",
+        "PICK",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "udyr",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.12,
+        "COUNTER_GANK": 0.08,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "GANKING",
+        "SKIRMISH",
+        "FRONTLINE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "urgot",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "LANE_BULLY",
+        "SKIRMISH",
+        "FRONTLINE",
+        "SPLIT_PUSH",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "vayne",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": -0.06,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.1,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.18,
+        "LATE_GAME_SIEGE": 0.1,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "SCALING",
+        "SKIRMISH",
+        "SPLIT_PUSH",
+        "OBJECTIVE_DAMAGE",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "veigar",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.06,
+        "JUNGLE_GANK": -0.04,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.06,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.18,
+        "BASE_DEFENSE": 0.22
+      },
+      "tags": [
+        "SCALING",
+        "PICK",
+        "OBJECTIVE_CONTROL",
+        "WAVE_CLEAR",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "velkoz",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.06,
+        "TEAMFIGHT": 0.18,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "POKE",
+        "SIEGE",
+        "TEAMFIGHT",
+        "OBJECTIVE_DAMAGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "vex",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.26,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.14
+      },
+      "tags": [
+        "PICK",
+        "ENGAGE",
+        "PEEL",
+        "TEAMFIGHT"
+      ]
+    },
+    {
+      "championId": "vladimir",
+      "levelCurveId": "HYPER_SCALING",
+      "itemCurveId": "HYPER_CARRY",
+      "contexts": {
+        "LANE_COMBAT": -0.08,
+        "JUNGLE_GANK": -0.06,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.1,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.24,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.08,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "SCALING",
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "PICK",
+        "HYPER_SCALING"
+      ]
+    },
+    {
+      "championId": "volibear",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.14,
+        "COUNTER_GANK": 0.06,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.2,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "GANKING",
+        "SKIRMISH",
+        "ENGAGE",
+        "OBJECTIVE_DAMAGE"
+      ]
+    },
+    {
+      "championId": "warwick",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.2,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.24,
+        "TEAMFIGHT": 0.06,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.02
+      },
+      "tags": [
+        "GANKING",
+        "SKIRMISH",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "wukong",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.16,
+        "COUNTER_GANK": 0.1,
+        "ROAM": 0.08,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "TEAMFIGHT",
+        "SKIRMISH"
+      ]
+    },
+    {
+      "championId": "xayah",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.12,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.14,
+        "BASE_DEFENSE": 0.18
+      },
+      "tags": [
+        "TEAMFIGHT",
+        "PEEL",
+        "OBJECTIVE_DAMAGE",
+        "WAVE_CLEAR",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "xerath",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.02,
+        "TEAMFIGHT": 0.14,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.28,
+        "BASE_DEFENSE": 0.18
+      },
+      "tags": [
+        "POKE",
+        "SIEGE",
+        "WAVE_CLEAR",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "xin-zhao",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.12,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.16,
+        "TEAMFIGHT": 0.16,
+        "OBJECTIVE_FIGHT": 0.1,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.04
+      },
+      "tags": [
+        "GANKING",
+        "SKIRMISH",
+        "ENGAGE",
+        "FRONTLINE"
+      ]
+    },
+    {
+      "championId": "yasuo",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "SKIRMISH",
+        "SPLIT_PUSH",
+        "TEAMFIGHT",
+        "PICK",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "yone",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.0,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.16,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.16,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "SKIRMISH",
+        "ENGAGE",
+        "SPLIT_PUSH",
+        "PICK",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "yorick",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.06,
+        "JUNGLE_GANK": 0.0,
+        "COUNTER_GANK": 0.02,
+        "ROAM": -0.1,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": -0.08,
+        "OBJECTIVE_FIGHT": 0.16,
+        "LATE_GAME_SIEGE": 0.28,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "SPLIT_PUSH",
+        "OBJECTIVE_DAMAGE",
+        "SKIRMISH",
+        "SIEGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "yunara",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.24,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "SCALING",
+        "TEAMFIGHT",
+        "OBJECTIVE_DAMAGE",
+        "SIEGE"
+      ]
+    },
+    {
+      "championId": "yuumi",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.06,
+        "JUNGLE_GANK": 0.04,
+        "COUNTER_GANK": 0.12,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.02,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.06,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.2
+      },
+      "tags": [
+        "PEEL",
+        "TEAMFIGHT",
+        "SCALING",
+        "SIEGE"
+      ]
+    },
+    {
+      "championId": "zaahen",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.0,
+        "JUNGLE_GANK": 0.02,
+        "COUNTER_GANK": 0.04,
+        "ROAM": -0.04,
+        "GENERIC_SKIRMISH": 0.18,
+        "TEAMFIGHT": 0.16,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.12
+      },
+      "tags": [
+        "SKIRMISH",
+        "ENGAGE",
+        "FRONTLINE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "zac",
+      "levelCurveId": "TANK_SCALING",
+      "itemCurveId": "TANK_UTILITY",
+      "contexts": {
+        "LANE_COMBAT": -0.04,
+        "JUNGLE_GANK": 0.22,
+        "COUNTER_GANK": 0.12,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.12,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.14,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.16
+      },
+      "tags": [
+        "GANKING",
+        "ENGAGE",
+        "SKIRMISH",
+        "TEAMFIGHT",
+        "FRONTLINE"
+      ]
+    },
+    {
+      "championId": "zed",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.12,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.14,
+        "TEAMFIGHT": 0.12,
+        "OBJECTIVE_FIGHT": 0.04,
+        "LATE_GAME_SIEGE": 0.04,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "LANE_BULLY",
+        "ROAMING",
+        "PICK"
+      ]
+    },
+    {
+      "championId": "zeri",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.08,
+        "GENERIC_SKIRMISH": 0.12,
+        "TEAMFIGHT": 0.22,
+        "OBJECTIVE_FIGHT": 0.12,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.08
+      },
+      "tags": [
+        "SCALING",
+        "TEAMFIGHT",
+        "SKIRMISH",
+        "SIEGE"
+      ]
+    },
+    {
+      "championId": "ziggs",
+      "levelCurveId": "LATE_SCALING",
+      "itemCurveId": "THREE_CORE_SCALING",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.0,
+        "ROAM": -0.06,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.14,
+        "OBJECTIVE_FIGHT": 0.18,
+        "LATE_GAME_SIEGE": 0.28,
+        "BASE_DEFENSE": 0.22
+      },
+      "tags": [
+        "POKE",
+        "SIEGE",
+        "WAVE_CLEAR",
+        "OBJECTIVE_DAMAGE",
+        "SCALING"
+      ]
+    },
+    {
+      "championId": "zilean",
+      "levelCurveId": "UTILITY_STABLE",
+      "itemCurveId": "SUPPORT_SCALING",
+      "contexts": {
+        "LANE_COMBAT": -0.02,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.14,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.04,
+        "TEAMFIGHT": 0.28,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.0,
+        "BASE_DEFENSE": 0.28
+      },
+      "tags": [
+        "PEEL",
+        "ROAMING",
+        "TEAMFIGHT",
+        "WAVE_CLEAR"
+      ]
+    },
+    {
+      "championId": "zoe",
+      "levelCurveId": "MID_SPIKE",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.04,
+        "JUNGLE_GANK": -0.02,
+        "COUNTER_GANK": 0.02,
+        "ROAM": 0.22,
+        "GENERIC_SKIRMISH": 0.1,
+        "TEAMFIGHT": 0.08,
+        "OBJECTIVE_FIGHT": 0.08,
+        "LATE_GAME_SIEGE": 0.24,
+        "BASE_DEFENSE": 0.06
+      },
+      "tags": [
+        "POKE",
+        "PICK",
+        "SIEGE",
+        "ROAMING"
+      ]
+    },
+    {
+      "championId": "zyra",
+      "levelCurveId": "EARLY_MID",
+      "itemCurveId": "TEMPO_TWO_CORE",
+      "contexts": {
+        "LANE_COMBAT": 0.02,
+        "JUNGLE_GANK": 0.08,
+        "COUNTER_GANK": 0.06,
+        "ROAM": 0.04,
+        "GENERIC_SKIRMISH": 0.08,
+        "TEAMFIGHT": 0.2,
+        "OBJECTIVE_FIGHT": 0.28,
+        "LATE_GAME_SIEGE": -0.02,
+        "BASE_DEFENSE": 0.0
+      },
+      "tags": [
+        "POKE",
+        "OBJECTIVE_CONTROL",
+        "TEAMFIGHT"
+      ]
+    }
+  ]
+}

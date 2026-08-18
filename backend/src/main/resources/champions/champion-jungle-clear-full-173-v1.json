@@ -1,0 +1,414 @@
+{
+  "profileVersion": "full-173-jungle-clear-candidate-2026-08-v1",
+  "requiredChampionPoolVersion": "full-173-2026-08-v1",
+  "profiles": [
+    {
+      "championId": "lee-sin",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "sejuani",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "vi",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "nidalee",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "viego",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "maokai",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "amumu",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.02,
+      "late": 1.02,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "belveth",
+      "position": "JUNGLE",
+      "early": 1.05,
+      "mid": 1.08,
+      "late": 1.1,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "brand",
+      "position": "JUNGLE",
+      "early": 1.07,
+      "mid": 1.08,
+      "late": 1.07,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "briar",
+      "position": "JUNGLE",
+      "early": 1.05,
+      "mid": 1.07,
+      "late": 1.08,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "diana",
+      "position": "JUNGLE",
+      "early": 1.06,
+      "mid": 1.08,
+      "late": 1.08,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "dr-mundo",
+      "position": "JUNGLE",
+      "early": 1.06,
+      "mid": 1.07,
+      "late": 1.07,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "elise",
+      "position": "JUNGLE",
+      "early": 1.03,
+      "mid": 1.02,
+      "late": 0.98,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "evelynn",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.04,
+      "late": 1.05,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "fiddlesticks",
+      "position": "JUNGLE",
+      "early": 1.05,
+      "mid": 1.07,
+      "late": 1.07,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "graves",
+      "position": "JUNGLE",
+      "early": 1.08,
+      "mid": 1.09,
+      "late": 1.09,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "hecarim",
+      "position": "JUNGLE",
+      "early": 1.05,
+      "mid": 1.08,
+      "late": 1.08,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "ivern",
+      "position": "JUNGLE",
+      "early": 1.03,
+      "mid": 1.04,
+      "late": 1.04,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "jarvan-iv",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.01,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "jayce",
+      "position": "JUNGLE",
+      "early": 0.98,
+      "mid": 1.02,
+      "late": 1.04,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "karthus",
+      "position": "JUNGLE",
+      "early": 1.1,
+      "mid": 1.11,
+      "late": 1.1,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "kayn",
+      "position": "JUNGLE",
+      "early": 1.05,
+      "mid": 1.08,
+      "late": 1.09,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "khazix",
+      "position": "JUNGLE",
+      "early": 1.04,
+      "mid": 1.06,
+      "late": 1.06,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "kindred",
+      "position": "JUNGLE",
+      "early": 1.04,
+      "mid": 1.07,
+      "late": 1.08,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "lillia",
+      "position": "JUNGLE",
+      "early": 1.08,
+      "mid": 1.1,
+      "late": 1.1,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "master-yi",
+      "position": "JUNGLE",
+      "early": 1.06,
+      "mid": 1.09,
+      "late": 1.1,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "morgana",
+      "position": "JUNGLE",
+      "early": 1.04,
+      "mid": 1.06,
+      "late": 1.06,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "naafiri",
+      "position": "JUNGLE",
+      "early": 1.04,
+      "mid": 1.07,
+      "late": 1.08,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "nocturne",
+      "position": "JUNGLE",
+      "early": 1.05,
+      "mid": 1.07,
+      "late": 1.07,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "nunu-willump",
+      "position": "JUNGLE",
+      "early": 1.06,
+      "mid": 1.06,
+      "late": 1.05,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "olaf",
+      "position": "JUNGLE",
+      "early": 1.05,
+      "mid": 1.07,
+      "late": 1.06,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "pantheon",
+      "position": "JUNGLE",
+      "early": 0.98,
+      "mid": 1.0,
+      "late": 0.99,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "poppy",
+      "position": "JUNGLE",
+      "early": 0.99,
+      "mid": 1.01,
+      "late": 1.01,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "qiyana",
+      "position": "JUNGLE",
+      "early": 0.98,
+      "mid": 1.01,
+      "late": 1.02,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "rammus",
+      "position": "JUNGLE",
+      "early": 0.96,
+      "mid": 0.99,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "reksai",
+      "position": "JUNGLE",
+      "early": 1.03,
+      "mid": 1.05,
+      "late": 1.03,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "rengar",
+      "position": "JUNGLE",
+      "early": 1.02,
+      "mid": 1.05,
+      "late": 1.06,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "shaco",
+      "position": "JUNGLE",
+      "early": 1.04,
+      "mid": 1.05,
+      "late": 1.04,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "shyvana",
+      "position": "JUNGLE",
+      "early": 1.07,
+      "mid": 1.09,
+      "late": 1.1,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "skarner",
+      "position": "JUNGLE",
+      "early": 1.01,
+      "mid": 1.03,
+      "late": 1.04,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "taliyah",
+      "position": "JUNGLE",
+      "early": 1.04,
+      "mid": 1.07,
+      "late": 1.07,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "talon",
+      "position": "JUNGLE",
+      "early": 1.01,
+      "mid": 1.04,
+      "late": 1.04,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "trundle",
+      "position": "JUNGLE",
+      "early": 1.03,
+      "mid": 1.05,
+      "late": 1.05,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "udyr",
+      "position": "JUNGLE",
+      "early": 1.07,
+      "mid": 1.09,
+      "late": 1.09,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "volibear",
+      "position": "JUNGLE",
+      "early": 1.02,
+      "mid": 1.04,
+      "late": 1.03,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "warwick",
+      "position": "JUNGLE",
+      "early": 1.03,
+      "mid": 1.05,
+      "late": 1.05,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "wukong",
+      "position": "JUNGLE",
+      "early": 1.04,
+      "mid": 1.06,
+      "late": 1.06,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "xin-zhao",
+      "position": "JUNGLE",
+      "early": 1.03,
+      "mid": 1.05,
+      "late": 1.04,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "zaahen",
+      "position": "JUNGLE",
+      "early": 1.02,
+      "mid": 1.05,
+      "late": 1.06,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "zac",
+      "position": "JUNGLE",
+      "early": 0.97,
+      "mid": 1.0,
+      "late": 1.01,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "zyra",
+      "position": "JUNGLE",
+      "early": 1.06,
+      "mid": 1.08,
+      "late": 1.08,
+      "gameplayEnabled": false
+    }
+  ]
+}

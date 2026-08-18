@@ -35,9 +35,8 @@ class ThirtyChampionRoleProfilesTest {
         assertThat(candidate.profiles().keySet().stream().distinct()).hasSize(30);
     }
     @Test void noCatalogChampionIsMissing() {
-        assertThat(champions.all()).allMatch(definition ->
-                candidate.find(new ChampionRoleKey(definition.id(),
-                        definition.primaryPosition())).isPresent());
+        assertThat(candidate.profiles().keySet()).allMatch(key ->
+                champions.find(key.championId()).isPresent());
     }
     @Test void noUnknownChampionRoleKeyExists() {
         assertThat(candidate.profiles().keySet()).allMatch(key ->
@@ -73,12 +72,16 @@ class ThirtyChampionRoleProfilesTest {
                 .doesNotContain("diagnosticsCandidate", "candidate");
     }
     @Test void productionCatalogContainsApprovedFrozenProfiles() {
-        assertThat(ChampionRoleMatchupProfileCatalog.production().profiles())
-                .hasSize(30);
+        var production = ChampionRoleMatchupProfileCatalog.production();
+        assertThat(production.profiles()).hasSize(212);
+        candidate.profiles().forEach((key, historical) ->
+                assertThat(production.profiles().get(key).traits()).isEqualTo(historical.traits()));
     }
-    @Test void productionProfileVersionRemainsUnchanged() {
+    @Test void activeProfileVersionIsIndependentFromHistoricalVersion() {
         assertThat(ChampionRoleMatchupProfileCatalog.production().version())
-                .isEqualTo(ChampionRoleMatchupProfileCatalog.PRODUCTION_VERSION);
+                .isEqualTo("full-173-role-matchup-profile-2026-08-v1");
+        assertThat(ChampionRoleMatchupProfileCatalog.PRODUCTION_VERSION)
+                .isEqualTo("initial-30-role-matchup-profile-candidate-v1");
     }
     @Test void candidateVersionIsExact() {
         assertThat(candidate.version()).isEqualTo(
@@ -147,8 +150,8 @@ class ThirtyChampionRoleProfilesTest {
     }
 
     static List<String> championIds() {
-        return new ChampionCatalog(new ObjectMapper()).all().stream()
-                .map(definition -> definition.id().value()).toList();
+        return ThirtyChampionRoleProfiles.entries().stream()
+                .map(entry -> entry.profile().roleKey().championId().value()).toList();
     }
     static List<String> prototypeIds() {
         return List.of("renekton", "jax", "lee-sin", "viego", "leblanc",

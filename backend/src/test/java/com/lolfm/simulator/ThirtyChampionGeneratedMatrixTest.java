@@ -10,6 +10,7 @@ import com.lolfm.champion.ChampionMatchupMode;
 import com.lolfm.champion.ChampionMatchupOverrideCatalog;
 import com.lolfm.champion.ChampionMatchupRuleType;
 import com.lolfm.champion.GeneratedChampionMatchupCatalogFactory;
+import com.lolfm.champion.HistoricalChampionCatalog;
 import com.lolfm.champion.ThirtyChampionGeneratedCatalog;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
@@ -21,7 +22,7 @@ class ThirtyChampionGeneratedMatrixTest {
 
     @BeforeAll static void setUp() {
         build = ThirtyChampionGeneratedCatalog.build(
-                new ChampionCatalog(new ObjectMapper()));
+                HistoricalChampionCatalog.initialThirty());
         audit = ThirtyChampionMatrixAudit.evaluate(build);
     }
 

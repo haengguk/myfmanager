@@ -5,7 +5,7 @@ import com.lolfm.champion.*;
 import java.nio.file.*;
 import org.junit.jupiter.api.Test;
 class GeometricCandidateTest {
- final ChampionCatalog champions=new ChampionCatalog(new ObjectMapper());
+ final ChampionCatalog champions=HistoricalChampionCatalog.initialThirty();
  @Test void geometricFormulaMatchesPhase13C42Exactly()throws Exception{var b=InteractionShapeGeneratedCatalog.build(champions,InteractionShapeFormula.Type.EXPOSURE_GATED_GEOMETRIC_V2,1);var matrix=GeometricCandidateInfluenceAudit.gainMatrix(java.util.Map.of(1d,b,2d,InteractionShapeGeneratedCatalog.build(champions,InteractionShapeFormula.Type.EXPOSURE_GATED_GEOMETRIC_V2,2),3d,InteractionShapeGeneratedCatalog.build(champions,InteractionShapeFormula.Type.EXPOSURE_GATED_GEOMETRIC_V2,3)));assertThat(GeometricCandidateInfluenceAudit.matrixExactRegression(matrix)).isEqualTo(675);}
  @Test void productFormulasAreRegressionOnly(){assertThat(GeometricCandidateInfluenceAudit.FORMULA).isEqualTo(InteractionShapeFormula.Type.EXPOSURE_GATED_GEOMETRIC_V2);}
  @Test void gainOneTwoThreeScaleLinearly(){var one=InteractionShapeGeneratedCatalog.build(champions,GeometricCandidateInfluenceAudit.FORMULA,1).rows();var twos=InteractionShapeGeneratedCatalog.build(champions,GeometricCandidateInfluenceAudit.FORMULA,2).rows();for(var r:one){var two=twos.stream().filter(x->x.pair().equals(r.pair())&&x.context()==r.context()).findFirst().orElseThrow();assertThat(two.forwardEdge()).isEqualTo(r.forwardEdge()*2);}}

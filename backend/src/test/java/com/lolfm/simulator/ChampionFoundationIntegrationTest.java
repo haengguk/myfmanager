@@ -23,7 +23,7 @@ class ChampionFoundationIntegrationTest {
         var first = timeline.getSnapshots().getFirst().getPlayerSnapshots().getFirst().getChampion();
         var last = timeline.getSnapshots().getLast().getPlayerSnapshots().getFirst().getChampion();
         assertThat(first.id()).isEqualTo(last.id());
-        assertThat(first.powerProfile().profileVersion()).isEqualTo("initial-30-power-v1");
+        assertThat(first.powerProfile().profileVersion()).isEqualTo("full-173-power-2026-08-v1");
     }
 
     @Test void differentValidLineupsChangeOnlyChampionMetadata() {

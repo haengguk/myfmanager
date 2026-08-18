@@ -22,18 +22,20 @@ class ChampionMatchupCatalogTest {
         catalog = ChampionMatchupCatalog.neutral(champions);
     }
 
-    @Test void neutralCatalogContainsThirtyChampions() {
-        assertThat(catalog.championIds()).hasSize(30);
+    @Test void neutralCatalogContainsFullChampionPopulation() {
+        assertThat(catalog.championIds()).hasSize(173);
     }
 
-    @Test void neutralCatalogContainsSixChampionsPerPosition() {
-        for (Position position : Position.values()) {
-            assertThat(champions.forPosition(position)).hasSize(6);
-        }
+    @Test void neutralCatalogUsesExactPrimaryPositionPopulation() {
+        assertThat(champions.all().stream().filter(c -> c.primaryPosition() == Position.TOP)).hasSize(41);
+        assertThat(champions.all().stream().filter(c -> c.primaryPosition() == Position.JUNGLE)).hasSize(42);
+        assertThat(champions.all().stream().filter(c -> c.primaryPosition() == Position.MID)).hasSize(37);
+        assertThat(champions.all().stream().filter(c -> c.primaryPosition() == Position.ADC)).hasSize(25);
+        assertThat(champions.all().stream().filter(c -> c.primaryPosition() == Position.SUPPORT)).hasSize(28);
     }
 
-    @Test void neutralCatalogContainsSeventyFiveUnorderedPairs() {
-        assertThat(catalog.profiles()).hasSize(75);
+    @Test void neutralCatalogDoesNotMaterializeQuadraticZeroPairs() {
+        assertThat(catalog.profiles()).isEmpty();
     }
 
     @Test void neutralCatalogContainsNoSelfPair() {
@@ -51,12 +53,10 @@ class ChampionMatchupCatalogTest {
         assertThat(catalog.profiles().keySet()).doesNotHaveDuplicates();
     }
 
-    @Test void neutralCatalogContainsEverySamePositionPairExactlyOnce() {
-        for (Position position : Position.values()) {
-            long count = catalog.profiles().keySet().stream()
-                    .filter(pair -> pair.position() == position).count();
-            assertThat(count).isEqualTo(15);
-        }
+    @Test void sparseNeutralCatalogReturnsZeroForFullPopulationPair() {
+        assertThat(catalog.contribution(
+                new ChampionId("aatrox"), new ChampionId("camille"),
+                Position.TOP, ProgressionCombatContext.LANE_COMBAT)).isZero();
     }
 
     @Test void productionCatalogContainsOnlyZeroEdges() {
@@ -74,7 +74,8 @@ class ChampionMatchupCatalogTest {
     @Test void catalogCollectionsAreImmutable() {
         assertThatThrownBy(() -> catalog.profiles().clear())
                 .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> catalog.profiles().values().iterator().next()
+        ChampionMatchupCatalog focused = ChampionMatchupTestCatalogFactory.focused(champions);
+        assertThatThrownBy(() -> focused.profiles().values().iterator().next()
                 .firstChampionEdges().clear()).isInstanceOf(UnsupportedOperationException.class);
     }
 
@@ -128,12 +129,9 @@ class ChampionMatchupCatalogTest {
     }
 
     @Test void missingProductionPairFailsCatalogValidation() {
-        List<ChampionMatchupProfile> profiles =
-                new ArrayList<>(catalog.profiles().values());
-        profiles.removeLast();
         assertThatThrownBy(() ->
-                ChampionMatchupCatalog.validatedNeutralCatalog(champions, profiles))
+                ChampionMatchupCatalog.validatedNeutralCatalog(champions, List.of()))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("75");
+                .hasMessageContaining("3025");
     }
 }

@@ -20,7 +20,8 @@ final class GeneratedMatchupRoundRobinLineupFactory {
         };
         EnumMap<Position, List<Pair>> pairs = new EnumMap<>(Position.class);
         for (Position position : Position.values()) {
-            List<String> ids = champions.forPosition(position).stream()
+            List<String> ids = champions.all().stream()
+                    .filter(champion -> champion.primaryPosition() == position)
                     .map(ChampionDefinition::id).map(value -> value.value())
                     .sorted().toList();
             List<Pair> values = new ArrayList<>();

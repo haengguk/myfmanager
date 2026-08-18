@@ -38,19 +38,8 @@ public final class ChampionMatchupCatalog {
     }
 
     public static ChampionMatchupCatalog neutral(ChampionCatalog champions) {
-        List<ChampionMatchupProfile> profiles = new ArrayList<>();
-        for (Position position : Position.values()) {
-            List<ChampionDefinition> pool = champions.forPosition(position);
-            for (ChampionDefinition left : pool) {
-                for (ChampionDefinition right : pool) {
-                    if (left.id().value().compareTo(right.id().value()) < 0) {
-                        profiles.add(new ChampionMatchupProfile(
-                                ChampionMatchupPair.of(left, right), Map.of()));
-                    }
-                }
-            }
-        }
-        return new ChampionMatchupCatalog(PRODUCTION_VERSION, champions, profiles, true);
+        return new ChampionMatchupCatalog(
+                PRODUCTION_VERSION, champions, List.of(), false);
     }
 
     static ChampionMatchupCatalog testCatalog(
@@ -70,9 +59,10 @@ public final class ChampionMatchupCatalog {
         }
         ChampionMatchupCatalog catalog =
                 new ChampionMatchupCatalog(version, champions, profiles, false);
-        if (catalog.profiles.size() != 75) {
+        int expected = expectedPrimaryPositionPairCount(champions);
+        if (catalog.profiles.size() != expected) {
             throw new IllegalArgumentException(
-                    "Generated diagnostics catalog requires 75 pairs");
+                    "Generated diagnostics catalog requires " + expected + " pairs");
         }
         return catalog;
     }
@@ -124,7 +114,8 @@ public final class ChampionMatchupCatalog {
                 || left.primaryPosition() != position
                 || right.primaryPosition() != position) return Optional.empty();
         ChampionMatchupPair pair = ChampionMatchupPair.of(left, right);
-        return profiles.containsKey(pair) ? Optional.of(pair) : Optional.empty();
+        return profiles.containsKey(pair) || version.equals(PRODUCTION_VERSION)
+                ? Optional.of(pair) : Optional.empty();
     }
 
     private void validatePair(ChampionMatchupPair pair) {
@@ -138,17 +129,31 @@ public final class ChampionMatchupCatalog {
     }
 
     private void validateCompleteNeutral() {
-        if (champions.size() != 30) throw new IllegalStateException("Expected 30 champions");
-        if (profiles.size() != 75) throw new IllegalStateException("Expected 75 matchup pairs");
-        for (Position position : Position.values()) {
-            long count = champions.values().stream()
-                    .filter(value -> value.primaryPosition() == position).count();
-            if (count != 6) throw new IllegalStateException("Expected 6 champions for " + position);
+        int expected = expectedPrimaryPositionPairCount(champions.values());
+        if (profiles.size() != expected) {
+            throw new IllegalStateException("Expected " + expected + " matchup pairs");
         }
         for (ChampionMatchupProfile profile : profiles.values()) {
             for (double edge : profile.firstChampionEdges().values()) {
                 if (edge != 0.0) throw new IllegalStateException("Production matchup must be neutral");
             }
         }
+    }
+
+    private static int expectedPrimaryPositionPairCount(ChampionCatalog champions) {
+        return expectedPrimaryPositionPairCount(champions.all());
+    }
+
+    private static int expectedPrimaryPositionPairCount(
+            java.util.Collection<ChampionDefinition> champions
+    ) {
+        int expected = 0;
+        for (Position position : Position.values()) {
+            long count = champions.stream()
+                    .filter(champion -> champion.primaryPosition() == position)
+                    .count();
+            expected += Math.toIntExact(count * (count - 1) / 2);
+        }
+        return expected;
     }
 }

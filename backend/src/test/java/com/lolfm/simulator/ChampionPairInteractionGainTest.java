@@ -6,7 +6,7 @@ import com.lolfm.champion.*;
 import org.junit.jupiter.api.Test;
 
 class ChampionPairInteractionGainTest {
-    private final ChampionCatalog champions = new ChampionCatalog(new ObjectMapper());
+    private final ChampionCatalog champions = HistoricalChampionCatalog.initialThirty();
 
     @Test void gainMatrixHasExactlyTwentySevenHundredRows() {
         assertThat(ChampionPairInteractionGainAudit.matrix(PairInteractionGeneratedCatalog.build(champions))).hasSize(2_700);

@@ -15,7 +15,7 @@ class ThirtyChampionCompositionProfilesTest {
  private static final ThirtyChampionCompositionProfileAudit.AuditSnapshot AUDIT=ThirtyChampionCompositionProfileAudit.compute();
  @Test void catalogContainsExactlyThirtyProfiles(){assertThat(PROFILES).hasSize(30);}
  @Test void catalogContainsSixProfilesPerPosition(){for(var p:Position.values())assertThat(PROFILES.keySet()).filteredOn(k->k.position()==p).hasSize(6);}
- @Test void catalogKeysExactlyMatchProductionMatchupCatalog(){assertThat(PROFILES.keySet()).containsExactlyInAnyOrderElementsOf(ChampionRoleMatchupProfileCatalog.production().profiles().keySet());}
+ @Test void historicalCatalogKeysRemainCoveredByProductionMatchupCatalog(){assertThat(ChampionRoleMatchupProfileCatalog.production().profiles().keySet()).containsAll(PROFILES.keySet());}
  @Test void catalogHasNoMissingCapability(){assertThat(PROFILES.values()).allMatch(p->p.capabilities().size()==15);}
  @Test void catalogRejectsInvalidCapabilityRange(){var key=key("fixture",Position.TOP);var m=values(0);m.put(CompositionCapability.ENGAGE,21);assertThatThrownBy(()->new ChampionCompositionProfile(key,m,new DamageChannelProfile(0,0,0))).isInstanceOf(IllegalArgumentException.class);}
  @Test void catalogRejectsInvalidDamageRange(){assertThatThrownBy(()->new DamageChannelProfile(0,-1,0)).isInstanceOf(IllegalArgumentException.class);}

@@ -1,8 +1,8 @@
 {
-  "manifestVersion": "initial-30-resource-set-v1",
-  "catalog": "/champions/champion-pool-initial-30-v1.json",
-  "power": "/champions/champion-power-initial-30-v1.json",
-  "matchup": "/champions/champion-matchup-role-profiles-initial-30-v1.json",
-  "composition": "/champions/champion-composition-role-profiles-initial-30-v1.json",
-  "jungleClear": "/champions/champion-jungle-clear-initial-30-neutral-v1.json"
+  "manifestVersion": "full-173-resource-set-2026-08-v1",
+  "catalog": "/champions/champion-pool-full-173-2026-08-v1.json",
+  "power": "/champions/champion-power-full-173-2026-08-v1.json",
+  "matchup": "/champions/champion-matchup-role-profiles-full-173-v1.json",
+  "composition": "/champions/champion-composition-role-profiles-full-173-v1.json",
+  "jungleClear": "/champions/champion-jungle-clear-full-173-v1.json"
 }

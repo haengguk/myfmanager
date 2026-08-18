@@ -26,6 +26,7 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    maxHeapSize = '2g'
 }
 
 tasks.register('runBountyDiagnostics', JavaExec) {
@@ -370,4 +371,20 @@ tasks.register("runCompositionDecisionTimeProvenanceCapture", JavaExec) {
     description = "Runs Phase 13D-4C.7.1.1 canonical decision-time provenance capture and corrected runtime-orientation audit."
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.simulator.CompositionDecisionTimeProvenanceCapture"
+}
+
+
+tasks.register("runPhase13DFinalValidation", JavaExec) {
+    group = "verification"
+    description = "Runs the frozen V2 blind holdout before production activation."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.Phase13DFinalization"
+}
+
+tasks.register("runPhase13DFinalization", JavaExec) {
+    group = "verification"
+    description = "Verifies production activation, rollback, and Phase 13D closure."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.Phase13DFinalization"
+    args "finalize"
 }

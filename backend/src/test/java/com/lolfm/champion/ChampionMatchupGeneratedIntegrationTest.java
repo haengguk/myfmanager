@@ -128,7 +128,8 @@ class ChampionMatchupGeneratedIntegrationTest {
         ChampionMatchupTestFixture fixture =
                 new ChampionMatchupTestFixture(ChampionMatchupMode.ON, false);
         fixture.state().configureChampionMatchup(
-                GeneratedChampionMatchupCatalogFactory.prototype(fixture.champions())
+                GeneratedChampionMatchupCatalogFactory.prototype(
+                        HistoricalChampionCatalog.initialThirty())
                         .catalog(), ChampionMatchupMode.ON);
         return fixture;
     }

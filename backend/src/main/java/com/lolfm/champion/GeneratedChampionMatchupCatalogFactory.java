@@ -26,7 +26,9 @@ public final class GeneratedChampionMatchupCatalogFactory {
         LinkedHashMap<MatrixKey, ChampionMatchupGeneratedResult> generated =
                 new LinkedHashMap<>();
         for (Position position : Position.values()) {
-            List<ChampionDefinition> pool = champions.forPosition(position);
+            List<ChampionDefinition> pool = champions.all().stream()
+                    .filter(champion -> champion.primaryPosition() == position)
+                    .toList();
             for (ChampionDefinition first : pool) {
                 for (ChampionDefinition second : pool) {
                     if (first.id().value().compareTo(second.id().value()) >= 0) {

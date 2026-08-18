@@ -52,8 +52,8 @@ class ChampionMatchupRuleEngineTest {
         assertEquals(10, profiles.profiles().size());
     }
 
-    @Test void productionProfileCatalogContainsFrozenThirtyProfiles() {
-        assertEquals(30, ChampionRoleMatchupProfileCatalog.production().profiles().size());
+    @Test void productionProfileCatalogContainsEveryFullLegalRole() {
+        assertEquals(212, ChampionRoleMatchupProfileCatalog.production().profiles().size());
     }
 
     @Test void everyContextWeightSumsToOne() {
@@ -127,8 +127,9 @@ class ChampionMatchupRuleEngineTest {
                 ProgressionCombatContext.BASE_DEFENSE) < 0.0);
     }
 
-    @Test void generatedPrototypeCatalogContainsSeventyFivePairs() {
-        var build = GeneratedChampionMatchupCatalogFactory.prototype(champions);
+    @Test void generatedPrototypeCatalogRemainsFrozenThirtyDiagnostics() {
+        var build = GeneratedChampionMatchupCatalogFactory.prototype(
+                HistoricalChampionCatalog.initialThirty());
         assertEquals(75, build.catalog().profiles().size());
         assertEquals(675, build.generatedResults().size());
         long both = build.generatedResults().entrySet().stream()

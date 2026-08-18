@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionMatchupIndependentRow;
 import com.lolfm.champion.ChampionMatchupIndependentScenario;
+import com.lolfm.champion.HistoricalChampionCatalog;
 import com.lolfm.champion.ThirtyChampionDynamicOverrideAudit;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
@@ -16,7 +17,7 @@ class ThirtyChampionDynamicAndLineupTest {
     private static List<ChampionMatchupIndependentRow> dynamic;
 
     @BeforeAll static void setUp() {
-        champions = new ChampionCatalog(new ObjectMapper());
+        champions = HistoricalChampionCatalog.initialThirty();
         dynamic = new ThirtyChampionDynamicOverrideAudit().generate(champions);
     }
 
