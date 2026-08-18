@@ -53,7 +53,7 @@ class ChampionMatchupRuleEngineTest {
     }
 
     @Test void productionProfileCatalogContainsEveryFullLegalRole() {
-        assertEquals(212, ChampionRoleMatchupProfileCatalog.production().profiles().size());
+        assertEquals(216, ChampionRoleMatchupProfileCatalog.production().profiles().size());
     }
 
     @Test void everyContextWeightSumsToOne() {

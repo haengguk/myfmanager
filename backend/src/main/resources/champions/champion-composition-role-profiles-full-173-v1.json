@@ -1,5 +1,5 @@
 {
-  "profileVersion": "full-173-composition-profile-2026-08-v1",
+  "profileVersion": "full-173-composition-profile-2026-08-v2",
   "requiredChampionPoolVersion": "full-173-2026-08-v1",
   "championProfiles": [
     {
@@ -624,7 +624,16 @@
         "magicThreat": 10,
         "trueDamageThreat": 0
       },
-      "roleOverrides": []
+      "roleOverrides": [
+        {
+          "position": "TOP",
+          "capabilities": {
+            "SIDE_LANE_PRESSURE": 13,
+            "WAVE_CLEAR": 18,
+            "SUSTAINED_DAMAGE": 17
+          }
+        }
+      ]
     },
     {
       "championId": "nautilus",
@@ -980,7 +989,16 @@
         "magicThreat": 19,
         "trueDamageThreat": 0
       },
-      "roleOverrides": []
+      "roleOverrides": [
+        {
+          "position": "TOP",
+          "capabilities": {
+            "FRONTLINE": 8,
+            "SIDE_LANE_PRESSURE": 12,
+            "SUSTAINED_DAMAGE": 17
+          }
+        }
+      ]
     },
     {
       "championId": "annie",
@@ -1296,7 +1314,17 @@
         "magicThreat": 20,
         "trueDamageThreat": 0
       },
-      "roleOverrides": []
+      "roleOverrides": [
+        {
+          "position": "ADC",
+          "capabilities": {
+            "FRONTLINE": 5,
+            "SIEGE": 15,
+            "OBJECTIVE_DAMAGE": 19,
+            "BACKLINE_ACCESS": 11
+          }
+        }
+      ]
     },
     {
       "championId": "chogath",
@@ -3891,7 +3919,17 @@
         "magicThreat": 20,
         "trueDamageThreat": 0
       },
-      "roleOverrides": []
+      "roleOverrides": [
+        {
+          "position": "ADC",
+          "capabilities": {
+            "POKE": 18,
+            "SIEGE": 18,
+            "WAVE_CLEAR": 20,
+            "BACKLINE_ACCESS": 11
+          }
+        }
+      ]
     },
     {
       "championId": "talon",

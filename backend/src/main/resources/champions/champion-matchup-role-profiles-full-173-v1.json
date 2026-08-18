@@ -1,5 +1,5 @@
 {
-  "profileVersion": "full-173-role-matchup-profile-2026-08-v1",
+  "profileVersion": "full-173-role-matchup-profile-2026-08-v2",
   "requiredChampionPoolVersion": "full-173-2026-08-v1",
   "championProfiles": [
     {
@@ -801,7 +801,16 @@
         "ANTI_DIVE": 11,
         "ANTI_TANK": 18
       },
-      "roleOverrides": [],
+      "roleOverrides": [
+        {
+          "position": "TOP",
+          "traits": {
+            "SUSTAINED_DAMAGE": 17,
+            "WAVE_CONTROL": 18,
+            "ANTI_DIVE": 13
+          }
+        }
+      ],
       "primaryStrengthTraits": [
         "RANGE_CONTROL",
         "POKE",
@@ -1255,7 +1264,16 @@
         "ANTI_DIVE": 18,
         "ANTI_TANK": 12
       },
-      "roleOverrides": [],
+      "roleOverrides": [
+        {
+          "position": "TOP",
+          "traits": {
+            "SUSTAINED_DAMAGE": 16,
+            "DURABILITY": 10,
+            "ANTI_TANK": 14
+          }
+        }
+      ],
       "primaryStrengthTraits": [
         "WAVE_CONTROL",
         "DISENGAGE",
@@ -1653,7 +1671,16 @@
         "ANTI_DIVE": 16,
         "ANTI_TANK": 18
       },
-      "roleOverrides": [],
+      "roleOverrides": [
+        {
+          "position": "ADC",
+          "traits": {
+            "RANGE_CONTROL": 16,
+            "WAVE_CONTROL": 18,
+            "ANTI_DIVE": 17
+          }
+        }
+      ],
       "primaryStrengthTraits": [
         "SUSTAINED_DAMAGE",
         "ANTI_TANK",
@@ -4884,7 +4911,17 @@
         "ANTI_DIVE": 20,
         "ANTI_TANK": 12
       },
-      "roleOverrides": [],
+      "roleOverrides": [
+        {
+          "position": "ADC",
+          "traits": {
+            "RANGE_CONTROL": 19,
+            "POKE": 18,
+            "WAVE_CONTROL": 20,
+            "SUSTAINED_DAMAGE": 17
+          }
+        }
+      ],
       "primaryStrengthTraits": [
         "ANTI_DIVE",
         "DISENGAGE",

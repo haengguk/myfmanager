@@ -41,24 +41,24 @@ class ChampionFullPopulationIntegrationTest {
                 .isEqualTo("full-173-power-2026-08-v1");
         assertThat(resources.catalog().riotDataVersion()).isEqualTo("16.15.1");
         assertThat(resources.catalog().all()).hasSize(173);
-        assertThat(resources.catalog().legalRoleKeys()).hasSize(212);
+        assertThat(resources.catalog().legalRoleKeys()).hasSize(216);
         assertThat(roleCounts(resources.catalog())).containsExactlyInAnyOrderEntriesOf(Map.of(
-                Position.TOP, 52,
+                Position.TOP, 54,
                 Position.JUNGLE, 51,
                 Position.MID, 45,
-                Position.ADC, 29,
+                Position.ADC, 31,
                 Position.SUPPORT, 35));
 
         assertThat(resources.power().profileVersion()).isEqualTo("full-173-power-2026-08-v1");
         assertThat(resources.power().all()).hasSize(173);
         assertThat(resources.matchup().version())
-                .isEqualTo("full-173-role-matchup-profile-2026-08-v1");
-        assertThat(resources.matchup().profiles()).hasSize(212);
+                .isEqualTo("full-173-role-matchup-profile-2026-08-v2");
+        assertThat(resources.matchup().profiles()).hasSize(216);
         assertThat(resources.composition().version())
-                .isEqualTo("full-173-composition-profile-2026-08-v1");
-        assertThat(resources.composition().profiles()).hasSize(212);
+                .isEqualTo("full-173-composition-profile-2026-08-v2");
+        assertThat(resources.composition().profiles()).hasSize(216);
         assertThat(resources.composition().profileHash())
-                .isEqualTo("1428a48dbe7db935100ae1bfcbfb84cda4f80362e08d80a3c6c1c6233f9f6b83");
+                .isEqualTo("23d616cab6abea69d5ad783f405b0b4518a14608b0be4eac3d53f669acab6877");
         assertThat(resources.jungleClear().profiles()).hasSize(51);
         assertThat(resources.jungleClear().profiles().values())
                 .allMatch(profile -> !profile.gameplayEnabled());
@@ -76,7 +76,11 @@ class ChampionFullPopulationIntegrationTest {
             assertThat(actual.displayNameEn()).isEqualTo(expected.displayNameEn());
             assertThat(actual.riotAssetId()).isEqualTo(expected.riotAssetId());
             assertThat(actual.primaryPosition()).isEqualTo(expected.primaryPosition());
-            assertThat(actual.supportedPositions()).isEqualTo(expected.supportedPositions());
+            if (expected.id().value().equals("varus")) {
+                assertThat(actual.supportedPositions()).containsExactlyInAnyOrder(Position.TOP, Position.ADC);
+            } else {
+                assertThat(actual.supportedPositions()).isEqualTo(expected.supportedPositions());
+            }
 
             ChampionPowerProfile expectedPower = historical.power().get(expected.id());
             ChampionPowerProfile actualPower = active.power().get(expected.id());
@@ -113,7 +117,7 @@ class ChampionFullPopulationIntegrationTest {
         assertThat(active.catalog().all().stream()
                 .filter(champion -> !historicalIds.contains(champion.id().value()))
                 .filter(champion -> champion.supportedPositions().size() > 1))
-                .hasSize(33);
+                .hasSize(35);
         assertThat(active.power().warnings()).noneMatch(warning -> warning.startsWith("EXACT_DUPLICATE:"));
         assertThat(active.power().warnings()).noneMatch(warning ->
                 (warning.startsWith("NO_STRENGTH:") || warning.startsWith("NO_WEAKNESS:"))
@@ -121,8 +125,8 @@ class ChampionFullPopulationIntegrationTest {
 
         JsonNode matchup = read(active.manifest().matchup());
         JsonNode composition = read(active.manifest().composition());
-        assertThat(newOverrideCount(matchup, historicalIds)).isEqualTo(25);
-        assertThat(newOverrideCount(composition, historicalIds)).isEqualTo(26);
+        assertThat(newOverrideCount(matchup, historicalIds)).isEqualTo(28);
+        assertThat(newOverrideCount(composition, historicalIds)).isEqualTo(29);
         assertUniqueNewSignatures(matchup, historicalIds, profile ->
                 profile.required("baseTraits").toString());
         assertUniqueNewSignatures(composition, historicalIds, profile ->

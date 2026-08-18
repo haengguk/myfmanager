@@ -11,10 +11,10 @@ class ChampionCatalogTest {
 
     @Test void containsExactlyFullPopulationAndExpectedLegalRolesInRequiredOrder() {
         assertThat(catalog.all()).hasSize(173);
-        assertThat(catalog.forPosition(Position.TOP)).hasSize(52);
+        assertThat(catalog.forPosition(Position.TOP)).hasSize(54);
         assertThat(catalog.forPosition(Position.JUNGLE)).hasSize(51);
         assertThat(catalog.forPosition(Position.MID)).hasSize(45);
-        assertThat(catalog.forPosition(Position.ADC)).hasSize(29);
+        assertThat(catalog.forPosition(Position.ADC)).hasSize(31);
         assertThat(catalog.forPosition(Position.SUPPORT)).hasSize(35);
         assertThat(catalog.all()).extracting(c -> c.primaryPosition()).startsWith(
                 Position.TOP, Position.TOP, Position.TOP, Position.TOP, Position.TOP, Position.TOP,

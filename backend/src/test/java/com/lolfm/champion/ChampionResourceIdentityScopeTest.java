@@ -51,11 +51,11 @@ class ChampionResourceIdentityScopeTest {
         assertHistoricalCompositionSubset(current.composition());
         assertHistoricalMatchupSubset(current.matchup());
         assertThat(current.composition().version())
-                .isEqualTo("full-173-composition-profile-2026-08-v1");
+                .isEqualTo("full-173-composition-profile-2026-08-v2");
         assertThat(current.composition().profileHash())
                 .isNotEqualTo(FrozenCompositionInteractionRuntimePolicy.PROFILE_HASH);
         assertThat(current.matchup().version())
-                .isEqualTo("full-173-role-matchup-profile-2026-08-v1");
+                .isEqualTo("full-173-role-matchup-profile-2026-08-v2");
         assertThat(ThirtyChampionCompositionProfiles.profileHash())
                 .isEqualTo(FrozenCompositionInteractionRuntimePolicy.PROFILE_HASH);
         assertThat(ChampionMatchupProductionPolicy.PROFILE_VERSION)

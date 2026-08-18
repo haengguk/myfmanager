@@ -73,13 +73,13 @@ class ThirtyChampionRoleProfilesTest {
     }
     @Test void productionCatalogContainsApprovedFrozenProfiles() {
         var production = ChampionRoleMatchupProfileCatalog.production();
-        assertThat(production.profiles()).hasSize(212);
+        assertThat(production.profiles()).hasSize(216);
         candidate.profiles().forEach((key, historical) ->
                 assertThat(production.profiles().get(key).traits()).isEqualTo(historical.traits()));
     }
     @Test void activeProfileVersionIsIndependentFromHistoricalVersion() {
         assertThat(ChampionRoleMatchupProfileCatalog.production().version())
-                .isEqualTo("full-173-role-matchup-profile-2026-08-v1");
+                .isEqualTo("full-173-role-matchup-profile-2026-08-v2");
         assertThat(ChampionRoleMatchupProfileCatalog.PRODUCTION_VERSION)
                 .isEqualTo("initial-30-role-matchup-profile-candidate-v1");
     }

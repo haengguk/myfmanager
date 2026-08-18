@@ -256,6 +256,7 @@
       "riotAssetId": "Varus",
       "primaryPosition": "ADC",
       "supportedPositions": [
+        "TOP",
         "ADC"
       ]
     },
@@ -388,6 +389,7 @@
       "riotAssetId": "Anivia",
       "primaryPosition": "MID",
       "supportedPositions": [
+        "TOP",
         "MID"
       ]
     },
@@ -500,7 +502,8 @@
       "riotAssetId": "Cassiopeia",
       "primaryPosition": "MID",
       "supportedPositions": [
-        "MID"
+        "MID",
+        "ADC"
       ]
     },
     {
@@ -1422,7 +1425,8 @@
       "primaryPosition": "MID",
       "supportedPositions": [
         "MID",
-        "JUNGLE"
+        "JUNGLE",
+        "ADC"
       ]
     },
     {
