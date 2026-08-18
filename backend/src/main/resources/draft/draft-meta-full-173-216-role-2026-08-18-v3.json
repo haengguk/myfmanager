@@ -1,0 +1,1093 @@
+{
+  "metaVersion": "draft-meta-full-173-216-role-2026-08-18-v3",
+  "requiredChampionPoolVersion": "full-173-2026-08-v1",
+  "requiredLegalRoleKeyCount": 216,
+  "requiredLegalRoleKeyHash": "18036bba3ec815a732d251e82cdc72d7d6dbed0f9fc3b373b2840da936b72b8e",
+  "legalRoleKeyHashAlgorithm": "SHA256_UTF8_SORTED_CHAMPION_ID_COLON_POSITION_LINES_TRAILING_NEWLINE_V1",
+  "asOfDate": "2026-08-18",
+  "priorityScale": "1-20",
+  "hardFearlessContext": true,
+  "authoringMethod": "ROLE_FIRST_V3_216_SCOPE_PINNED",
+  "profiles": [
+    {
+      "championId": "aatrox",
+      "position": "TOP",
+      "priority": 12
+    },
+    {
+      "championId": "akali",
+      "position": "TOP",
+      "priority": 7
+    },
+    {
+      "championId": "ambessa",
+      "position": "TOP",
+      "priority": 18
+    },
+    {
+      "championId": "anivia",
+      "position": "TOP",
+      "priority": 17
+    },
+    {
+      "championId": "aurora",
+      "position": "TOP",
+      "priority": 11
+    },
+    {
+      "championId": "camille",
+      "position": "TOP",
+      "priority": 8
+    },
+    {
+      "championId": "chogath",
+      "position": "TOP",
+      "priority": 7
+    },
+    {
+      "championId": "darius",
+      "position": "TOP",
+      "priority": 5
+    },
+    {
+      "championId": "dr-mundo",
+      "position": "TOP",
+      "priority": 10
+    },
+    {
+      "championId": "fiora",
+      "position": "TOP",
+      "priority": 11
+    },
+    {
+      "championId": "galio",
+      "position": "TOP",
+      "priority": 10
+    },
+    {
+      "championId": "gangplank",
+      "position": "TOP",
+      "priority": 8
+    },
+    {
+      "championId": "garen",
+      "position": "TOP",
+      "priority": 5
+    },
+    {
+      "championId": "gnar",
+      "position": "TOP",
+      "priority": 18
+    },
+    {
+      "championId": "gragas",
+      "position": "TOP",
+      "priority": 11
+    },
+    {
+      "championId": "gwen",
+      "position": "TOP",
+      "priority": 13
+    },
+    {
+      "championId": "illaoi",
+      "position": "TOP",
+      "priority": 4
+    },
+    {
+      "championId": "irelia",
+      "position": "TOP",
+      "priority": 8
+    },
+    {
+      "championId": "jax",
+      "position": "TOP",
+      "priority": 16
+    },
+    {
+      "championId": "jayce",
+      "position": "TOP",
+      "priority": 19
+    },
+    {
+      "championId": "kayle",
+      "position": "TOP",
+      "priority": 7
+    },
+    {
+      "championId": "kennen",
+      "position": "TOP",
+      "priority": 12
+    },
+    {
+      "championId": "kled",
+      "position": "TOP",
+      "priority": 5
+    },
+    {
+      "championId": "ksante",
+      "position": "TOP",
+      "priority": 17
+    },
+    {
+      "championId": "malphite",
+      "position": "TOP",
+      "priority": 14
+    },
+    {
+      "championId": "mordekaiser",
+      "position": "TOP",
+      "priority": 7
+    },
+    {
+      "championId": "naafiri",
+      "position": "TOP",
+      "priority": 8
+    },
+    {
+      "championId": "nasus",
+      "position": "TOP",
+      "priority": 5
+    },
+    {
+      "championId": "olaf",
+      "position": "TOP",
+      "priority": 17
+    },
+    {
+      "championId": "ornn",
+      "position": "TOP",
+      "priority": 15
+    },
+    {
+      "championId": "poppy",
+      "position": "TOP",
+      "priority": 7
+    },
+    {
+      "championId": "quinn",
+      "position": "TOP",
+      "priority": 6
+    },
+    {
+      "championId": "renekton",
+      "position": "TOP",
+      "priority": 16
+    },
+    {
+      "championId": "riven",
+      "position": "TOP",
+      "priority": 5
+    },
+    {
+      "championId": "rumble",
+      "position": "TOP",
+      "priority": 20
+    },
+    {
+      "championId": "sett",
+      "position": "TOP",
+      "priority": 8
+    },
+    {
+      "championId": "shen",
+      "position": "TOP",
+      "priority": 9
+    },
+    {
+      "championId": "singed",
+      "position": "TOP",
+      "priority": 3
+    },
+    {
+      "championId": "sion",
+      "position": "TOP",
+      "priority": 15
+    },
+    {
+      "championId": "smolder",
+      "position": "TOP",
+      "priority": 4
+    },
+    {
+      "championId": "swain",
+      "position": "TOP",
+      "priority": 5
+    },
+    {
+      "championId": "teemo",
+      "position": "TOP",
+      "priority": 3
+    },
+    {
+      "championId": "tryndamere",
+      "position": "TOP",
+      "priority": 4
+    },
+    {
+      "championId": "udyr",
+      "position": "TOP",
+      "priority": 9
+    },
+    {
+      "championId": "urgot",
+      "position": "TOP",
+      "priority": 8
+    },
+    {
+      "championId": "varus",
+      "position": "TOP",
+      "priority": 18
+    },
+    {
+      "championId": "vayne",
+      "position": "TOP",
+      "priority": 15
+    },
+    {
+      "championId": "vladimir",
+      "position": "TOP",
+      "priority": 8
+    },
+    {
+      "championId": "volibear",
+      "position": "TOP",
+      "priority": 9
+    },
+    {
+      "championId": "warwick",
+      "position": "TOP",
+      "priority": 4
+    },
+    {
+      "championId": "yasuo",
+      "position": "TOP",
+      "priority": 5
+    },
+    {
+      "championId": "yone",
+      "position": "TOP",
+      "priority": 6
+    },
+    {
+      "championId": "yorick",
+      "position": "TOP",
+      "priority": 13
+    },
+    {
+      "championId": "zaahen",
+      "position": "TOP",
+      "priority": 14
+    },
+    {
+      "championId": "amumu",
+      "position": "JUNGLE",
+      "priority": 9
+    },
+    {
+      "championId": "belveth",
+      "position": "JUNGLE",
+      "priority": 11
+    },
+    {
+      "championId": "brand",
+      "position": "JUNGLE",
+      "priority": 7
+    },
+    {
+      "championId": "briar",
+      "position": "JUNGLE",
+      "priority": 2
+    },
+    {
+      "championId": "diana",
+      "position": "JUNGLE",
+      "priority": 8
+    },
+    {
+      "championId": "dr-mundo",
+      "position": "JUNGLE",
+      "priority": 6
+    },
+    {
+      "championId": "elise",
+      "position": "JUNGLE",
+      "priority": 11
+    },
+    {
+      "championId": "evelynn",
+      "position": "JUNGLE",
+      "priority": 3
+    },
+    {
+      "championId": "fiddlesticks",
+      "position": "JUNGLE",
+      "priority": 6
+    },
+    {
+      "championId": "graves",
+      "position": "JUNGLE",
+      "priority": 10
+    },
+    {
+      "championId": "hecarim",
+      "position": "JUNGLE",
+      "priority": 7
+    },
+    {
+      "championId": "ivern",
+      "position": "JUNGLE",
+      "priority": 9
+    },
+    {
+      "championId": "jarvan-iv",
+      "position": "JUNGLE",
+      "priority": 19
+    },
+    {
+      "championId": "jayce",
+      "position": "JUNGLE",
+      "priority": 10
+    },
+    {
+      "championId": "karthus",
+      "position": "JUNGLE",
+      "priority": 9
+    },
+    {
+      "championId": "kayn",
+      "position": "JUNGLE",
+      "priority": 5
+    },
+    {
+      "championId": "khazix",
+      "position": "JUNGLE",
+      "priority": 5
+    },
+    {
+      "championId": "kindred",
+      "position": "JUNGLE",
+      "priority": 10
+    },
+    {
+      "championId": "lee-sin",
+      "position": "JUNGLE",
+      "priority": 17
+    },
+    {
+      "championId": "lillia",
+      "position": "JUNGLE",
+      "priority": 9
+    },
+    {
+      "championId": "maokai",
+      "position": "JUNGLE",
+      "priority": 14
+    },
+    {
+      "championId": "master-yi",
+      "position": "JUNGLE",
+      "priority": 2
+    },
+    {
+      "championId": "morgana",
+      "position": "JUNGLE",
+      "priority": 6
+    },
+    {
+      "championId": "naafiri",
+      "position": "JUNGLE",
+      "priority": 18
+    },
+    {
+      "championId": "nidalee",
+      "position": "JUNGLE",
+      "priority": 15
+    },
+    {
+      "championId": "nocturne",
+      "position": "JUNGLE",
+      "priority": 19
+    },
+    {
+      "championId": "nunu-willump",
+      "position": "JUNGLE",
+      "priority": 4
+    },
+    {
+      "championId": "olaf",
+      "position": "JUNGLE",
+      "priority": 6
+    },
+    {
+      "championId": "pantheon",
+      "position": "JUNGLE",
+      "priority": 17
+    },
+    {
+      "championId": "poppy",
+      "position": "JUNGLE",
+      "priority": 19
+    },
+    {
+      "championId": "qiyana",
+      "position": "JUNGLE",
+      "priority": 14
+    },
+    {
+      "championId": "rammus",
+      "position": "JUNGLE",
+      "priority": 4
+    },
+    {
+      "championId": "reksai",
+      "position": "JUNGLE",
+      "priority": 7
+    },
+    {
+      "championId": "rengar",
+      "position": "JUNGLE",
+      "priority": 4
+    },
+    {
+      "championId": "sejuani",
+      "position": "JUNGLE",
+      "priority": 15
+    },
+    {
+      "championId": "shaco",
+      "position": "JUNGLE",
+      "priority": 2
+    },
+    {
+      "championId": "shyvana",
+      "position": "JUNGLE",
+      "priority": 5
+    },
+    {
+      "championId": "skarner",
+      "position": "JUNGLE",
+      "priority": 14
+    },
+    {
+      "championId": "taliyah",
+      "position": "JUNGLE",
+      "priority": 9
+    },
+    {
+      "championId": "talon",
+      "position": "JUNGLE",
+      "priority": 7
+    },
+    {
+      "championId": "trundle",
+      "position": "JUNGLE",
+      "priority": 12
+    },
+    {
+      "championId": "udyr",
+      "position": "JUNGLE",
+      "priority": 8
+    },
+    {
+      "championId": "vi",
+      "position": "JUNGLE",
+      "priority": 19
+    },
+    {
+      "championId": "viego",
+      "position": "JUNGLE",
+      "priority": 14
+    },
+    {
+      "championId": "volibear",
+      "position": "JUNGLE",
+      "priority": 8
+    },
+    {
+      "championId": "warwick",
+      "position": "JUNGLE",
+      "priority": 5
+    },
+    {
+      "championId": "wukong",
+      "position": "JUNGLE",
+      "priority": 16
+    },
+    {
+      "championId": "xin-zhao",
+      "position": "JUNGLE",
+      "priority": 18
+    },
+    {
+      "championId": "zaahen",
+      "position": "JUNGLE",
+      "priority": 7
+    },
+    {
+      "championId": "zac",
+      "position": "JUNGLE",
+      "priority": 7
+    },
+    {
+      "championId": "zyra",
+      "position": "JUNGLE",
+      "priority": 8
+    },
+    {
+      "championId": "ahri",
+      "position": "MID",
+      "priority": 15
+    },
+    {
+      "championId": "akali",
+      "position": "MID",
+      "priority": 14
+    },
+    {
+      "championId": "akshan",
+      "position": "MID",
+      "priority": 5
+    },
+    {
+      "championId": "anivia",
+      "position": "MID",
+      "priority": 16
+    },
+    {
+      "championId": "annie",
+      "position": "MID",
+      "priority": 13
+    },
+    {
+      "championId": "aurelion-sol",
+      "position": "MID",
+      "priority": 8
+    },
+    {
+      "championId": "aurora",
+      "position": "MID",
+      "priority": 15
+    },
+    {
+      "championId": "azir",
+      "position": "MID",
+      "priority": 17
+    },
+    {
+      "championId": "cassiopeia",
+      "position": "MID",
+      "priority": 18
+    },
+    {
+      "championId": "diana",
+      "position": "MID",
+      "priority": 5
+    },
+    {
+      "championId": "ekko",
+      "position": "MID",
+      "priority": 6
+    },
+    {
+      "championId": "fizz",
+      "position": "MID",
+      "priority": 3
+    },
+    {
+      "championId": "galio",
+      "position": "MID",
+      "priority": 14
+    },
+    {
+      "championId": "hwei",
+      "position": "MID",
+      "priority": 10
+    },
+    {
+      "championId": "irelia",
+      "position": "MID",
+      "priority": 7
+    },
+    {
+      "championId": "jayce",
+      "position": "MID",
+      "priority": 9
+    },
+    {
+      "championId": "kassadin",
+      "position": "MID",
+      "priority": 4
+    },
+    {
+      "championId": "katarina",
+      "position": "MID",
+      "priority": 2
+    },
+    {
+      "championId": "leblanc",
+      "position": "MID",
+      "priority": 14
+    },
+    {
+      "championId": "lissandra",
+      "position": "MID",
+      "priority": 12
+    },
+    {
+      "championId": "locke",
+      "position": "MID",
+      "priority": 11
+    },
+    {
+      "championId": "lux",
+      "position": "MID",
+      "priority": 7
+    },
+    {
+      "championId": "malzahar",
+      "position": "MID",
+      "priority": 6
+    },
+    {
+      "championId": "mel",
+      "position": "MID",
+      "priority": 13
+    },
+    {
+      "championId": "morgana",
+      "position": "MID",
+      "priority": 6
+    },
+    {
+      "championId": "orianna",
+      "position": "MID",
+      "priority": 20
+    },
+    {
+      "championId": "ryze",
+      "position": "MID",
+      "priority": 19
+    },
+    {
+      "championId": "smolder",
+      "position": "MID",
+      "priority": 5
+    },
+    {
+      "championId": "swain",
+      "position": "MID",
+      "priority": 8
+    },
+    {
+      "championId": "sylas",
+      "position": "MID",
+      "priority": 13
+    },
+    {
+      "championId": "syndra",
+      "position": "MID",
+      "priority": 19
+    },
+    {
+      "championId": "taliyah",
+      "position": "MID",
+      "priority": 13
+    },
+    {
+      "championId": "tristana",
+      "position": "MID",
+      "priority": 6
+    },
+    {
+      "championId": "twisted-fate",
+      "position": "MID",
+      "priority": 10
+    },
+    {
+      "championId": "veigar",
+      "position": "MID",
+      "priority": 8
+    },
+    {
+      "championId": "velkoz",
+      "position": "MID",
+      "priority": 8
+    },
+    {
+      "championId": "vex",
+      "position": "MID",
+      "priority": 7
+    },
+    {
+      "championId": "viktor",
+      "position": "MID",
+      "priority": 16
+    },
+    {
+      "championId": "vladimir",
+      "position": "MID",
+      "priority": 7
+    },
+    {
+      "championId": "xerath",
+      "position": "MID",
+      "priority": 11
+    },
+    {
+      "championId": "yasuo",
+      "position": "MID",
+      "priority": 9
+    },
+    {
+      "championId": "yone",
+      "position": "MID",
+      "priority": 11
+    },
+    {
+      "championId": "zed",
+      "position": "MID",
+      "priority": 5
+    },
+    {
+      "championId": "ziggs",
+      "position": "MID",
+      "priority": 8
+    },
+    {
+      "championId": "zoe",
+      "position": "MID",
+      "priority": 10
+    },
+    {
+      "championId": "aphelios",
+      "position": "ADC",
+      "priority": 13
+    },
+    {
+      "championId": "ashe",
+      "position": "ADC",
+      "priority": 16
+    },
+    {
+      "championId": "caitlyn",
+      "position": "ADC",
+      "priority": 14
+    },
+    {
+      "championId": "cassiopeia",
+      "position": "ADC",
+      "priority": 9
+    },
+    {
+      "championId": "corki",
+      "position": "ADC",
+      "priority": 15
+    },
+    {
+      "championId": "draven",
+      "position": "ADC",
+      "priority": 9
+    },
+    {
+      "championId": "ezreal",
+      "position": "ADC",
+      "priority": 19
+    },
+    {
+      "championId": "jhin",
+      "position": "ADC",
+      "priority": 16
+    },
+    {
+      "championId": "jinx",
+      "position": "ADC",
+      "priority": 12
+    },
+    {
+      "championId": "kaisa",
+      "position": "ADC",
+      "priority": 15
+    },
+    {
+      "championId": "kalista",
+      "position": "ADC",
+      "priority": 11
+    },
+    {
+      "championId": "kogmaw",
+      "position": "ADC",
+      "priority": 10
+    },
+    {
+      "championId": "lucian",
+      "position": "ADC",
+      "priority": 15
+    },
+    {
+      "championId": "mel",
+      "position": "ADC",
+      "priority": 16
+    },
+    {
+      "championId": "miss-fortune",
+      "position": "ADC",
+      "priority": 12
+    },
+    {
+      "championId": "nilah",
+      "position": "ADC",
+      "priority": 5
+    },
+    {
+      "championId": "samira",
+      "position": "ADC",
+      "priority": 7
+    },
+    {
+      "championId": "senna",
+      "position": "ADC",
+      "priority": 10
+    },
+    {
+      "championId": "seraphine",
+      "position": "ADC",
+      "priority": 12
+    },
+    {
+      "championId": "sivir",
+      "position": "ADC",
+      "priority": 14
+    },
+    {
+      "championId": "smolder",
+      "position": "ADC",
+      "priority": 8
+    },
+    {
+      "championId": "taliyah",
+      "position": "ADC",
+      "priority": 13
+    },
+    {
+      "championId": "tristana",
+      "position": "ADC",
+      "priority": 7
+    },
+    {
+      "championId": "twitch",
+      "position": "ADC",
+      "priority": 5
+    },
+    {
+      "championId": "varus",
+      "position": "ADC",
+      "priority": 20
+    },
+    {
+      "championId": "vayne",
+      "position": "ADC",
+      "priority": 9
+    },
+    {
+      "championId": "xayah",
+      "position": "ADC",
+      "priority": 11
+    },
+    {
+      "championId": "yasuo",
+      "position": "ADC",
+      "priority": 7
+    },
+    {
+      "championId": "yunara",
+      "position": "ADC",
+      "priority": 17
+    },
+    {
+      "championId": "zeri",
+      "position": "ADC",
+      "priority": 9
+    },
+    {
+      "championId": "ziggs",
+      "position": "ADC",
+      "priority": 18
+    },
+    {
+      "championId": "alistar",
+      "position": "SUPPORT",
+      "priority": 15
+    },
+    {
+      "championId": "amumu",
+      "position": "SUPPORT",
+      "priority": 8
+    },
+    {
+      "championId": "bard",
+      "position": "SUPPORT",
+      "priority": 18
+    },
+    {
+      "championId": "blitzcrank",
+      "position": "SUPPORT",
+      "priority": 8
+    },
+    {
+      "championId": "braum",
+      "position": "SUPPORT",
+      "priority": 15
+    },
+    {
+      "championId": "camille",
+      "position": "SUPPORT",
+      "priority": 19
+    },
+    {
+      "championId": "galio",
+      "position": "SUPPORT",
+      "priority": 11
+    },
+    {
+      "championId": "heimerdinger",
+      "position": "SUPPORT",
+      "priority": 6
+    },
+    {
+      "championId": "janna",
+      "position": "SUPPORT",
+      "priority": 10
+    },
+    {
+      "championId": "karma",
+      "position": "SUPPORT",
+      "priority": 18
+    },
+    {
+      "championId": "leona",
+      "position": "SUPPORT",
+      "priority": 13
+    },
+    {
+      "championId": "lulu",
+      "position": "SUPPORT",
+      "priority": 14
+    },
+    {
+      "championId": "lux",
+      "position": "SUPPORT",
+      "priority": 9
+    },
+    {
+      "championId": "milio",
+      "position": "SUPPORT",
+      "priority": 13
+    },
+    {
+      "championId": "morgana",
+      "position": "SUPPORT",
+      "priority": 8
+    },
+    {
+      "championId": "nami",
+      "position": "SUPPORT",
+      "priority": 16
+    },
+    {
+      "championId": "nautilus",
+      "position": "SUPPORT",
+      "priority": 19
+    },
+    {
+      "championId": "neeko",
+      "position": "SUPPORT",
+      "priority": 18
+    },
+    {
+      "championId": "poppy",
+      "position": "SUPPORT",
+      "priority": 19
+    },
+    {
+      "championId": "pyke",
+      "position": "SUPPORT",
+      "priority": 12
+    },
+    {
+      "championId": "rakan",
+      "position": "SUPPORT",
+      "priority": 16
+    },
+    {
+      "championId": "rell",
+      "position": "SUPPORT",
+      "priority": 17
+    },
+    {
+      "championId": "renata-glasc",
+      "position": "SUPPORT",
+      "priority": 14
+    },
+    {
+      "championId": "senna",
+      "position": "SUPPORT",
+      "priority": 10
+    },
+    {
+      "championId": "seraphine",
+      "position": "SUPPORT",
+      "priority": 16
+    },
+    {
+      "championId": "shen",
+      "position": "SUPPORT",
+      "priority": 17
+    },
+    {
+      "championId": "sona",
+      "position": "SUPPORT",
+      "priority": 4
+    },
+    {
+      "championId": "soraka",
+      "position": "SUPPORT",
+      "priority": 6
+    },
+    {
+      "championId": "tahm-kench",
+      "position": "SUPPORT",
+      "priority": 10
+    },
+    {
+      "championId": "taric",
+      "position": "SUPPORT",
+      "priority": 7
+    },
+    {
+      "championId": "thresh",
+      "position": "SUPPORT",
+      "priority": 12
+    },
+    {
+      "championId": "velkoz",
+      "position": "SUPPORT",
+      "priority": 8
+    },
+    {
+      "championId": "xerath",
+      "position": "SUPPORT",
+      "priority": 5
+    },
+    {
+      "championId": "yuumi",
+      "position": "SUPPORT",
+      "priority": 6
+    },
+    {
+      "championId": "zilean",
+      "position": "SUPPORT",
+      "priority": 7
+    }
+  ]
+}

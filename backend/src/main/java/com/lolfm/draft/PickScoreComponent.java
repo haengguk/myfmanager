@@ -1,0 +1,5 @@
+package com.lolfm.draft;
+public enum PickScoreComponent {
+    META_PRIORITY, PLAYER_FIT, MATCHUP, COMPOSITION_FIT, COMPOSITION_RESPONSE,
+    FLEXIBILITY, DENIAL, FUTURE_FEASIBILITY
+}
