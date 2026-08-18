@@ -59,6 +59,32 @@ class ChampionMatchupCatalogTest {
                 Position.TOP, ProgressionCombatContext.LANE_COMBAT)).isZero();
     }
 
+    @Test void sparseNeutralCatalogSupportsLegalFlexRoleWithoutMaterializingPair() {
+        ChampionId galio = new ChampionId("galio");
+        ChampionId akali = new ChampionId("akali");
+        assertThat(catalog.findPair(galio, akali, Position.TOP)).isPresent();
+        assertThat(catalog.contribution(
+                galio, akali, Position.TOP,
+                ProgressionCombatContext.LANE_COMBAT)).isZero();
+        assertThat(catalog.profiles()).isEmpty();
+    }
+
+    @Test void sparseNeutralCatalogRejectsUnknownChampionInsteadOfSilentlyReturningZero() {
+        assertThatThrownBy(() -> catalog.contribution(
+                new ChampionId("unknown"), new ChampionId("jax"),
+                Position.TOP, ProgressionCombatContext.LANE_COMBAT))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unknown ChampionId");
+    }
+
+    @Test void sparseNeutralCatalogRejectsUnsupportedRoleInsteadOfSilentlyReturningZero() {
+        assertThatThrownBy(() -> catalog.contribution(
+                new ChampionId("jax"), new ChampionId("renekton"),
+                Position.SUPPORT, ProgressionCombatContext.LANE_COMBAT))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unsupported ChampionRoleKey");
+    }
+
     @Test void productionCatalogContainsOnlyZeroEdges() {
         assertThat(catalog.profiles().values())
                 .allMatch(profile -> profile.firstChampionEdges().values().stream()
@@ -106,10 +132,12 @@ class ChampionMatchupCatalogTest {
                 Position.TOP, ProgressionCombatContext.LANE_COMBAT)).isZero();
     }
 
-    @Test void crossPositionLookupIsNotApplied() {
-        assertThat(catalog.contribution(
+    @Test void crossPositionLookupRejectsUnsupportedRole() {
+        assertThatThrownBy(() -> catalog.contribution(
                 new ChampionId("jax"), new ChampionId("viktor"),
-                Position.TOP, ProgressionCombatContext.LANE_COMBAT)).isZero();
+                Position.TOP, ProgressionCombatContext.LANE_COMBAT))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unsupported ChampionRoleKey");
     }
 
     @Test void negativeZeroIsNormalizedToZero() {

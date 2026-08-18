@@ -26,6 +26,8 @@ class ChampionApiTest {
                 .andExpect(jsonPath("$.champions[6].id").value("lee-sin"))
                 .andExpect(jsonPath("$.champions[0].levelCurveId").value("EARLY_DOMINANT"))
                 .andExpect(jsonPath("$.champions[0].tags.length()").value(4))
+                .andExpect(jsonPath("$.champions[?(@.id == 'galio')].supportedPositions.length()")
+                        .value(3))
                 .andExpect(jsonPath("$.defaultSelection.red.adc").value("kaisa"));
     }
 

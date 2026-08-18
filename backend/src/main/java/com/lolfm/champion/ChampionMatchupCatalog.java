@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 public final class ChampionMatchupCatalog {
     public static final String PRODUCTION_VERSION = "initial-30-matchup-neutral-v1";
     private final String version;
+    private final boolean sparseNeutral;
     private final Map<ChampionId, ChampionDefinition> champions;
     private final Map<ChampionMatchupPair, ChampionMatchupProfile> profiles;
 
@@ -21,9 +22,11 @@ public final class ChampionMatchupCatalog {
             String version,
             ChampionCatalog championCatalog,
             List<ChampionMatchupProfile> values,
-            boolean requireComplete
+            boolean requireComplete,
+            boolean sparseNeutral
     ) {
         this.version = Objects.requireNonNull(version, "version");
+        this.sparseNeutral = sparseNeutral;
         champions = Map.copyOf(championCatalog.all().stream().collect(
                 Collectors.toMap(ChampionDefinition::id, value -> value)));
         LinkedHashMap<ChampionMatchupPair, ChampionMatchupProfile> indexed = new LinkedHashMap<>();
@@ -39,14 +42,14 @@ public final class ChampionMatchupCatalog {
 
     public static ChampionMatchupCatalog neutral(ChampionCatalog champions) {
         return new ChampionMatchupCatalog(
-                PRODUCTION_VERSION, champions, List.of(), false);
+                PRODUCTION_VERSION, champions, List.of(), false, true);
     }
 
     static ChampionMatchupCatalog testCatalog(
             ChampionCatalog champions,
             List<ChampionMatchupProfile> profiles
     ) {
-        return new ChampionMatchupCatalog("test-only", champions, profiles, false);
+        return new ChampionMatchupCatalog("test-only", champions, profiles, false, false);
     }
 
     static ChampionMatchupCatalog generatedDiagnosticsCatalog(
@@ -58,7 +61,7 @@ public final class ChampionMatchupCatalog {
             throw new IllegalArgumentException("Generated catalog must be diagnostics-only");
         }
         ChampionMatchupCatalog catalog =
-                new ChampionMatchupCatalog(version, champions, profiles, false);
+                new ChampionMatchupCatalog(version, champions, profiles, false, false);
         int expected = expectedPrimaryPositionPairCount(champions);
         if (catalog.profiles.size() != expected) {
             throw new IllegalArgumentException(
@@ -71,7 +74,7 @@ public final class ChampionMatchupCatalog {
             ChampionCatalog champions,
             List<ChampionMatchupProfile> profiles
     ) {
-        return new ChampionMatchupCatalog(PRODUCTION_VERSION, champions, profiles, true);
+        return new ChampionMatchupCatalog(PRODUCTION_VERSION, champions, profiles, true, false);
     }
 
     public double contribution(
@@ -84,9 +87,14 @@ public final class ChampionMatchupCatalog {
         Objects.requireNonNull(opponent, "opponent");
         Objects.requireNonNull(position, "position");
         Objects.requireNonNull(context, "context");
-        if (source.equals(opponent)) return 0.0;
         ChampionDefinition sourceDefinition = champions.get(source);
         ChampionDefinition opponentDefinition = champions.get(opponent);
+        if (sparseNeutral) {
+            requireLegalRole(sourceDefinition, source, position);
+            requireLegalRole(opponentDefinition, opponent, position);
+            return 0.0;
+        }
+        if (source.equals(opponent)) return 0.0;
         if (sourceDefinition == null || opponentDefinition == null) return 0.0;
         if (sourceDefinition.primaryPosition() != position
                 || opponentDefinition.primaryPosition() != position) return 0.0;
@@ -107,15 +115,33 @@ public final class ChampionMatchupCatalog {
             ChampionId opponent,
             Position position
     ) {
-        if (source.equals(opponent)) return Optional.empty();
         ChampionDefinition left = champions.get(source);
         ChampionDefinition right = champions.get(opponent);
+        if (sparseNeutral) {
+            requireLegalRole(left, source, position);
+            requireLegalRole(right, opponent, position);
+            return source.equals(opponent)
+                    ? Optional.empty()
+                    : Optional.of(ChampionMatchupPair.of(source, opponent, position));
+        }
+        if (source.equals(opponent)) return Optional.empty();
         if (left == null || right == null
                 || left.primaryPosition() != position
                 || right.primaryPosition() != position) return Optional.empty();
         ChampionMatchupPair pair = ChampionMatchupPair.of(left, right);
-        return profiles.containsKey(pair) || version.equals(PRODUCTION_VERSION)
-                ? Optional.of(pair) : Optional.empty();
+        return profiles.containsKey(pair) ? Optional.of(pair) : Optional.empty();
+    }
+
+    private void requireLegalRole(
+            ChampionDefinition definition, ChampionId championId, Position position
+    ) {
+        if (definition == null) {
+            throw new IllegalArgumentException("Unknown ChampionId: " + championId);
+        }
+        if (!definition.supportedPositions().contains(position)) {
+            throw new IllegalArgumentException(
+                    "Unsupported ChampionRoleKey: " + championId + ":" + position);
+        }
     }
 
     private void validatePair(ChampionMatchupPair pair) {
