@@ -12,6 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class CompositionDecisionTimeProvenanceCaptureTest {
     private static final Path OUT = CompositionDecisionTimeProvenanceCapture.OUT;
+    private static final Path HISTORICAL = historicalFixture();
     private static Map<String, String> summary;
     private static List<Map<String, String>> provenance;
     private static List<CompositionWinnerDecisionProvenance> live;
@@ -22,11 +23,11 @@ class CompositionDecisionTimeProvenanceCaptureTest {
     static void loadEvidenceAndRunOneFocusedReplay() throws Exception {
         summary = twoColumn("composition-decision-time-provenance-summary.csv", "field", "value");
         provenance = rows("composition-runtime-decision-provenance.csv");
-        var games = CompositionDecisionTimeProvenanceCapture.readSourceGames();
-        source = games.values().stream().filter(CompositionDecisionTimeProvenanceCapture.SourceGame::publicDivergence).findFirst().orElseThrow();
-        var schedule = CompositionDecisionTimeProvenanceCapture.readSchedule().get(source.caseIndex());
-        var lineups = new HashMap<String, CompositionFreshHoldoutCandidateGameplayAudit.Lineup>();
-        for (var lineup : CompositionFreshHoldoutCandidateGameplayAudit.readCanonical()) lineups.put(lineup.id(), lineup);
+        var games = CompositionDecisionTimeProvenanceCapture.readSourceGames(HISTORICAL);
+        source = games.get(12);
+        var schedule = CompositionDecisionTimeProvenanceCapture.readSchedule(HISTORICAL).get(source.caseIndex());
+        var lineups = Map.of(schedule.blueLineupId(), lineup(schedule.blueLineupId()),
+                schedule.redLineupId(), lineup(schedule.redLineupId()));
         MatchChampionAssignments assignments = CompositionAuditOnlySemanticsRuntime.assignments(
                 lineups.get(schedule.blueLineupId()), lineups.get(schedule.redLineupId()));
         var off = CompositionAuditOnlySemanticsRuntime.simulate(
@@ -100,6 +101,21 @@ class CompositionDecisionTimeProvenanceCaptureTest {
     @Test void apiRemainsUnchanged() { assertThat(summary.get("apiChanged")).isEqualTo("false"); }
     @Test void frontendRemainsUnchanged() { assertThat(summary.get("frontendChanged")).isEqualTo("false"); }
     @Test void historicalThresholdCannotChange() throws Exception { assertThat(rows("composition-historical-policy-vs-corrected-measurement.csv")).extracting(r -> r.get("metric")).contains("Objective macro gate","Structure macro gate","Side macro gate","Winner macro gate"); }
+
+    private static Path historicalFixture() {
+        try {
+            return Path.of(Objects.requireNonNull(CompositionDecisionTimeProvenanceCaptureTest.class
+                    .getResource("/composition-provenance-historical/composition-fresh-holdout-schedule.csv")).toURI()).getParent();
+        } catch (Exception error) { throw new IllegalStateException(error); }
+    }
+    private static CompositionFreshHoldoutCandidateGameplayAudit.Lineup lineup(String id) {
+        EnumMap<com.lolfm.domain.Position, com.lolfm.champion.ChampionId> champions = new EnumMap<>(com.lolfm.domain.Position.class);
+        for (String role : id.split("\\+")) {
+            String[] parts = role.split(":");
+            champions.put(com.lolfm.domain.Position.valueOf(parts[1]), new com.lolfm.champion.ChampionId(parts[0]));
+        }
+        return new CompositionFreshHoldoutCandidateGameplayAudit.Lineup(id, champions, Map.of());
+    }
 
     private static <T> Predicate<T> thisOrStatic(Predicate<T> predicate) { return predicate; }
     private static void zero(String key) { assertThat(summary.get(key)).isEqualTo("0"); }

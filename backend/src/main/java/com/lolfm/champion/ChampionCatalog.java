@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public final class ChampionCatalog {
-    private static final String RESOURCE = "/champions/champion-pool-initial-30-v1.json";
     private final String championPoolVersion;
     private final String championBalanceVersion;
     private final String riotDataVersion;
@@ -25,10 +24,15 @@ public final class ChampionCatalog {
     private final Map<Position, List<ChampionDefinition>> byPosition;
     private final ChampionSelectionRequest defaultSelection;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public ChampionCatalog(ObjectMapper objectMapper) {
+        this(objectMapper, activeCatalogResource(objectMapper));
+    }
+
+    public ChampionCatalog(ObjectMapper objectMapper, InputStream input) {
         RawCatalog raw;
-        try (InputStream input = ChampionCatalog.class.getResourceAsStream(RESOURCE)) {
-            if (input == null) throw new IllegalStateException("Champion catalog resource not found: " + RESOURCE);
+        try (input) {
+            if (input == null) throw new IllegalStateException("Champion catalog resource not found");
             raw = objectMapper.readValue(input, RawCatalog.class);
         } catch (IOException error) {
             throw new IllegalStateException("Failed to load champion catalog", error);
@@ -43,30 +47,36 @@ public final class ChampionCatalog {
         EnumMap<Position, List<ChampionDefinition>> grouped = new EnumMap<>(Position.class);
         for (Position position : Position.values()) grouped.put(position, new ArrayList<>());
         Set<String> riotIds = new HashSet<>();
+        if (raw.champions() == null || raw.champions().isEmpty()) throw new IllegalStateException("Champion catalog must not be empty");
         for (RawChampion item : raw.champions()) {
             ChampionId id = new ChampionId(item.id());
+            if (item.supportedPositions() == null || item.supportedPositions().isEmpty()) throw new IllegalStateException("supportedPositions must not be empty: " + id);
+            if (new HashSet<>(item.supportedPositions()).size() != item.supportedPositions().size()) throw new IllegalStateException("Duplicate supported position: " + id);
             String portrait = "https://ddragon.leagueoflegends.com/cdn/" + riotDataVersion
                     + "/img/champion/" + item.riotAssetId() + ".png";
             ChampionDefinition definition = new ChampionDefinition(id, item.displayNameKo(), item.displayNameEn(),
-                    item.riotAssetId(), item.primaryPosition(), item.supportedPositions(), portrait,
+                    item.riotAssetId(), item.primaryPosition(), Set.copyOf(item.supportedPositions()), portrait,
                     championPoolVersion, riotDataVersion);
             if (indexed.put(id, definition) != null) throw new IllegalStateException("Duplicate ChampionId: " + id);
             if (!riotIds.add(definition.riotAssetId())) throw new IllegalStateException("Duplicate riotAssetId: " + definition.riotAssetId());
-            if (!definition.supportedPositions().contains(definition.primaryPosition()) || definition.supportedPositions().size() != 1) {
-                throw new IllegalStateException("13A requires exactly the primary supported position: " + id);
-            }
+            if (!definition.supportedPositions().contains(definition.primaryPosition())) throw new IllegalStateException("primaryPosition must be supported: " + id);
             ordered.add(definition);
-            grouped.get(definition.primaryPosition()).add(definition);
+            definition.supportedPositions().forEach(position -> grouped.get(position).add(definition));
         }
-        if (ordered.size() != 30) throw new IllegalStateException("Expected exactly 30 champions, found " + ordered.size());
         for (Position position : Position.values()) {
-            if (grouped.get(position).size() != 6) throw new IllegalStateException("Expected 6 " + position + " champions");
             grouped.put(position, List.copyOf(grouped.get(position)));
         }
         champions = List.copyOf(ordered);
         byId = Map.copyOf(indexed);
         byPosition = Map.copyOf(grouped);
-        new ChampionSelectionValidator(this).validate(defaultSelection, ChampionSelectionMode.DEFAULT_FIXED);
+        if (defaultSelection != null) new ChampionSelectionValidator(this).validate(defaultSelection, ChampionSelectionMode.DEFAULT_FIXED);
+    }
+
+    private static InputStream activeCatalogResource(ObjectMapper mapper) {
+        ChampionResourceManifest manifest = ChampionResourceManifest.loadDefault(mapper);
+        InputStream input = ChampionResourceManifest.open(manifest.catalog());
+        if (input == null) throw new IllegalStateException("Champion catalog resource not found: " + manifest.catalog());
+        return input;
     }
 
     private static String required(String value, String field) {
@@ -81,9 +91,15 @@ public final class ChampionCatalog {
     public Optional<ChampionDefinition> find(ChampionId id) { return Optional.ofNullable(byId.get(id)); }
     public ChampionDefinition get(ChampionId id) { return find(id).orElseThrow(() -> new IllegalArgumentException("Unknown ChampionId: " + id)); }
     public ChampionSelectionRequest defaultSelection() { return defaultSelection; }
+    public Set<ChampionRoleKey> legalRoleKeys() {
+        java.util.LinkedHashSet<ChampionRoleKey> keys = new java.util.LinkedHashSet<>();
+        for (ChampionDefinition champion : champions) champion.supportedPositions().stream().sorted().forEach(position -> keys.add(new ChampionRoleKey(champion.id(), position)));
+        return java.util.Collections.unmodifiableSet(keys);
+    }
+    public boolean supports(ChampionRoleKey key) { ChampionDefinition champion = byId.get(key.championId()); return champion != null && champion.supportedPositions().contains(key.position()); }
 
     private record RawCatalog(String championPoolVersion, String championBalanceVersion, String riotDataVersion,
                               ChampionSelectionRequest defaultSelection, List<RawChampion> champions) { }
     private record RawChampion(String id, String displayNameKo, String displayNameEn, String riotAssetId,
-                               Position primaryPosition, Set<Position> supportedPositions) { }
+                               Position primaryPosition, List<Position> supportedPositions) { }
 }

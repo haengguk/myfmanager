@@ -1,0 +1,54 @@
+{
+  "profileVersion": "initial-30-jungle-clear-neutral-v1",
+  "requiredChampionPoolVersion": "initial-30-v1",
+  "profiles": [
+    {
+      "championId": "lee-sin",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "sejuani",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "vi",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "nidalee",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "viego",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    },
+    {
+      "championId": "maokai",
+      "position": "JUNGLE",
+      "early": 1.0,
+      "mid": 1.0,
+      "late": 1.0,
+      "gameplayEnabled": false
+    }
+  ]
+}

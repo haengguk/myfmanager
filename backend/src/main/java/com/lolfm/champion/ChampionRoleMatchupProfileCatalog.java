@@ -40,9 +40,11 @@ public final class ChampionRoleMatchupProfileCatalog {
     }
 
     public static ChampionRoleMatchupProfileCatalog production() {
-        return new ChampionRoleMatchupProfileCatalog(
-                PRODUCTION_VERSION, false, ThirtyChampionRoleProfiles.entries().stream()
-                .map(ThirtyChampionRoleProfiles.Entry::profile).toList());
+        return ChampionMatchupProfileResourceLoader.loadDefault();
+    }
+
+    static ChampionRoleMatchupProfileCatalog materialized(String version, boolean prototypeOnly, List<ChampionRoleMatchupProfile> values) {
+        return new ChampionRoleMatchupProfileCatalog(version, prototypeOnly, values);
     }
 
     public void validateCoverage(MatchChampionAssignments assignments) {

@@ -1,0 +1,786 @@
+{
+  "profileVersion": "thirty-champion-composition-profile-candidate-v2",
+  "requiredChampionPoolVersion": "initial-30-v1",
+  "championProfiles": [
+    {
+      "championId": "renekton",
+      "baseCapabilities": {
+        "ENGAGE": 10,
+        "FOLLOW_UP": 12,
+        "DISENGAGE": 4,
+        "FRONTLINE": 13,
+        "PEEL": 4,
+        "PICK": 11,
+        "POKE": 4,
+        "SIEGE": 8,
+        "WAVE_CLEAR": 12,
+        "ZONE_CONTROL": 5,
+        "SIDE_LANE_PRESSURE": 16,
+        "OBJECTIVE_DAMAGE": 10,
+        "SUSTAINED_DAMAGE": 14,
+        "BURST_DAMAGE": 15,
+        "BACKLINE_ACCESS": 14
+      },
+      "damageProfile": {
+        "physicalThreat": 20,
+        "magicThreat": 0,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "jax",
+      "baseCapabilities": {
+        "ENGAGE": 9,
+        "FOLLOW_UP": 11,
+        "DISENGAGE": 7,
+        "FRONTLINE": 12,
+        "PEEL": 7,
+        "PICK": 8,
+        "POKE": 3,
+        "SIEGE": 11,
+        "WAVE_CLEAR": 11,
+        "ZONE_CONTROL": 5,
+        "SIDE_LANE_PRESSURE": 19,
+        "OBJECTIVE_DAMAGE": 15,
+        "SUSTAINED_DAMAGE": 18,
+        "BURST_DAMAGE": 12,
+        "BACKLINE_ACCESS": 17
+      },
+      "damageProfile": {
+        "physicalThreat": 18,
+        "magicThreat": 3,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "ornn",
+      "baseCapabilities": {
+        "ENGAGE": 19,
+        "FOLLOW_UP": 17,
+        "DISENGAGE": 12,
+        "FRONTLINE": 20,
+        "PEEL": 15,
+        "PICK": 14,
+        "POKE": 6,
+        "SIEGE": 8,
+        "WAVE_CLEAR": 12,
+        "ZONE_CONTROL": 17,
+        "SIDE_LANE_PRESSURE": 7,
+        "OBJECTIVE_DAMAGE": 8,
+        "SUSTAINED_DAMAGE": 6,
+        "BURST_DAMAGE": 8,
+        "BACKLINE_ACCESS": 10
+      },
+      "damageProfile": {
+        "physicalThreat": 4,
+        "magicThreat": 12,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "gwen",
+      "baseCapabilities": {
+        "ENGAGE": 6,
+        "FOLLOW_UP": 10,
+        "DISENGAGE": 8,
+        "FRONTLINE": 7,
+        "PEEL": 4,
+        "PICK": 5,
+        "POKE": 8,
+        "SIEGE": 9,
+        "WAVE_CLEAR": 11,
+        "ZONE_CONTROL": 9,
+        "SIDE_LANE_PRESSURE": 18,
+        "OBJECTIVE_DAMAGE": 18,
+        "SUSTAINED_DAMAGE": 20,
+        "BURST_DAMAGE": 10,
+        "BACKLINE_ACCESS": 15
+      },
+      "damageProfile": {
+        "physicalThreat": 2,
+        "magicThreat": 20,
+        "trueDamageThreat": 3
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "kennen",
+      "baseCapabilities": {
+        "ENGAGE": 17,
+        "FOLLOW_UP": 16,
+        "DISENGAGE": 8,
+        "FRONTLINE": 8,
+        "PEEL": 5,
+        "PICK": 10,
+        "POKE": 13,
+        "SIEGE": 9,
+        "WAVE_CLEAR": 14,
+        "ZONE_CONTROL": 15,
+        "SIDE_LANE_PRESSURE": 11,
+        "OBJECTIVE_DAMAGE": 9,
+        "SUSTAINED_DAMAGE": 13,
+        "BURST_DAMAGE": 16,
+        "BACKLINE_ACCESS": 18
+      },
+      "damageProfile": {
+        "physicalThreat": 1,
+        "magicThreat": 19,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "ksante",
+      "baseCapabilities": {
+        "ENGAGE": 14,
+        "FOLLOW_UP": 13,
+        "DISENGAGE": 14,
+        "FRONTLINE": 19,
+        "PEEL": 16,
+        "PICK": 13,
+        "POKE": 3,
+        "SIEGE": 6,
+        "WAVE_CLEAR": 10,
+        "ZONE_CONTROL": 12,
+        "SIDE_LANE_PRESSURE": 16,
+        "OBJECTIVE_DAMAGE": 8,
+        "SUSTAINED_DAMAGE": 10,
+        "BURST_DAMAGE": 8,
+        "BACKLINE_ACCESS": 14
+      },
+      "damageProfile": {
+        "physicalThreat": 12,
+        "magicThreat": 3,
+        "trueDamageThreat": 2
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "lee-sin",
+      "baseCapabilities": {
+        "ENGAGE": 13,
+        "FOLLOW_UP": 15,
+        "DISENGAGE": 13,
+        "FRONTLINE": 11,
+        "PEEL": 10,
+        "PICK": 15,
+        "POKE": 6,
+        "SIEGE": 5,
+        "WAVE_CLEAR": 8,
+        "ZONE_CONTROL": 7,
+        "SIDE_LANE_PRESSURE": 14,
+        "OBJECTIVE_DAMAGE": 12,
+        "SUSTAINED_DAMAGE": 13,
+        "BURST_DAMAGE": 14,
+        "BACKLINE_ACCESS": 17
+      },
+      "damageProfile": {
+        "physicalThreat": 20,
+        "magicThreat": 0,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "viego",
+      "baseCapabilities": {
+        "ENGAGE": 8,
+        "FOLLOW_UP": 13,
+        "DISENGAGE": 4,
+        "FRONTLINE": 9,
+        "PEEL": 3,
+        "PICK": 10,
+        "POKE": 2,
+        "SIEGE": 8,
+        "WAVE_CLEAR": 9,
+        "ZONE_CONTROL": 4,
+        "SIDE_LANE_PRESSURE": 13,
+        "OBJECTIVE_DAMAGE": 19,
+        "SUSTAINED_DAMAGE": 19,
+        "BURST_DAMAGE": 14,
+        "BACKLINE_ACCESS": 18
+      },
+      "damageProfile": {
+        "physicalThreat": 17,
+        "magicThreat": 7,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "sejuani",
+      "baseCapabilities": {
+        "ENGAGE": 18,
+        "FOLLOW_UP": 18,
+        "DISENGAGE": 14,
+        "FRONTLINE": 19,
+        "PEEL": 14,
+        "PICK": 16,
+        "POKE": 5,
+        "SIEGE": 4,
+        "WAVE_CLEAR": 8,
+        "ZONE_CONTROL": 16,
+        "SIDE_LANE_PRESSURE": 6,
+        "OBJECTIVE_DAMAGE": 5,
+        "SUSTAINED_DAMAGE": 5,
+        "BURST_DAMAGE": 7,
+        "BACKLINE_ACCESS": 13
+      },
+      "damageProfile": {
+        "physicalThreat": 2,
+        "magicThreat": 10,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "vi",
+      "baseCapabilities": {
+        "ENGAGE": 18,
+        "FOLLOW_UP": 16,
+        "DISENGAGE": 5,
+        "FRONTLINE": 14,
+        "PEEL": 6,
+        "PICK": 18,
+        "POKE": 3,
+        "SIEGE": 6,
+        "WAVE_CLEAR": 9,
+        "ZONE_CONTROL": 7,
+        "SIDE_LANE_PRESSURE": 10,
+        "OBJECTIVE_DAMAGE": 15,
+        "SUSTAINED_DAMAGE": 12,
+        "BURST_DAMAGE": 15,
+        "BACKLINE_ACCESS": 20
+      },
+      "damageProfile": {
+        "physicalThreat": 18,
+        "magicThreat": 2,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "nidalee",
+      "baseCapabilities": {
+        "ENGAGE": 4,
+        "FOLLOW_UP": 8,
+        "DISENGAGE": 15,
+        "FRONTLINE": 4,
+        "PEEL": 8,
+        "PICK": 10,
+        "POKE": 18,
+        "SIEGE": 11,
+        "WAVE_CLEAR": 8,
+        "ZONE_CONTROL": 10,
+        "SIDE_LANE_PRESSURE": 15,
+        "OBJECTIVE_DAMAGE": 18,
+        "SUSTAINED_DAMAGE": 14,
+        "BURST_DAMAGE": 15,
+        "BACKLINE_ACCESS": 13
+      },
+      "damageProfile": {
+        "physicalThreat": 2,
+        "magicThreat": 20,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "maokai",
+      "baseCapabilities": {
+        "ENGAGE": 17,
+        "FOLLOW_UP": 17,
+        "DISENGAGE": 16,
+        "FRONTLINE": 18,
+        "PEEL": 17,
+        "PICK": 16,
+        "POKE": 10,
+        "SIEGE": 5,
+        "WAVE_CLEAR": 9,
+        "ZONE_CONTROL": 20,
+        "SIDE_LANE_PRESSURE": 5,
+        "OBJECTIVE_DAMAGE": 6,
+        "SUSTAINED_DAMAGE": 6,
+        "BURST_DAMAGE": 8,
+        "BACKLINE_ACCESS": 11
+      },
+      "damageProfile": {
+        "physicalThreat": 2,
+        "magicThreat": 12,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "leblanc",
+      "baseCapabilities": {
+        "ENGAGE": 7,
+        "FOLLOW_UP": 12,
+        "DISENGAGE": 14,
+        "FRONTLINE": 4,
+        "PEEL": 3,
+        "PICK": 19,
+        "POKE": 15,
+        "SIEGE": 11,
+        "WAVE_CLEAR": 9,
+        "ZONE_CONTROL": 7,
+        "SIDE_LANE_PRESSURE": 15,
+        "OBJECTIVE_DAMAGE": 6,
+        "SUSTAINED_DAMAGE": 7,
+        "BURST_DAMAGE": 20,
+        "BACKLINE_ACCESS": 20
+      },
+      "damageProfile": {
+        "physicalThreat": 1,
+        "magicThreat": 20,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "viktor",
+      "baseCapabilities": {
+        "ENGAGE": 5,
+        "FOLLOW_UP": 11,
+        "DISENGAGE": 13,
+        "FRONTLINE": 6,
+        "PEEL": 8,
+        "PICK": 8,
+        "POKE": 16,
+        "SIEGE": 17,
+        "WAVE_CLEAR": 20,
+        "ZONE_CONTROL": 17,
+        "SIDE_LANE_PRESSURE": 7,
+        "OBJECTIVE_DAMAGE": 13,
+        "SUSTAINED_DAMAGE": 18,
+        "BURST_DAMAGE": 16,
+        "BACKLINE_ACCESS": 5
+      },
+      "damageProfile": {
+        "physicalThreat": 0,
+        "magicThreat": 20,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "azir",
+      "baseCapabilities": {
+        "ENGAGE": 10,
+        "FOLLOW_UP": 14,
+        "DISENGAGE": 19,
+        "FRONTLINE": 8,
+        "PEEL": 12,
+        "PICK": 7,
+        "POKE": 15,
+        "SIEGE": 18,
+        "WAVE_CLEAR": 18,
+        "ZONE_CONTROL": 16,
+        "SIDE_LANE_PRESSURE": 12,
+        "OBJECTIVE_DAMAGE": 19,
+        "SUSTAINED_DAMAGE": 20,
+        "BURST_DAMAGE": 10,
+        "BACKLINE_ACCESS": 7
+      },
+      "damageProfile": {
+        "physicalThreat": 2,
+        "magicThreat": 20,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "orianna",
+      "baseCapabilities": {
+        "ENGAGE": 15,
+        "FOLLOW_UP": 18,
+        "DISENGAGE": 17,
+        "FRONTLINE": 7,
+        "PEEL": 17,
+        "PICK": 12,
+        "POKE": 14,
+        "SIEGE": 15,
+        "WAVE_CLEAR": 18,
+        "ZONE_CONTROL": 18,
+        "SIDE_LANE_PRESSURE": 5,
+        "OBJECTIVE_DAMAGE": 12,
+        "SUSTAINED_DAMAGE": 14,
+        "BURST_DAMAGE": 15,
+        "BACKLINE_ACCESS": 8
+      },
+      "damageProfile": {
+        "physicalThreat": 1,
+        "magicThreat": 19,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "ahri",
+      "baseCapabilities": {
+        "ENGAGE": 8,
+        "FOLLOW_UP": 14,
+        "DISENGAGE": 13,
+        "FRONTLINE": 5,
+        "PEEL": 7,
+        "PICK": 18,
+        "POKE": 13,
+        "SIEGE": 10,
+        "WAVE_CLEAR": 14,
+        "ZONE_CONTROL": 9,
+        "SIDE_LANE_PRESSURE": 14,
+        "OBJECTIVE_DAMAGE": 8,
+        "SUSTAINED_DAMAGE": 10,
+        "BURST_DAMAGE": 18,
+        "BACKLINE_ACCESS": 17
+      },
+      "damageProfile": {
+        "physicalThreat": 3,
+        "magicThreat": 12,
+        "trueDamageThreat": 2
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "sylas",
+      "baseCapabilities": {
+        "ENGAGE": 13,
+        "FOLLOW_UP": 15,
+        "DISENGAGE": 8,
+        "FRONTLINE": 13,
+        "PEEL": 5,
+        "PICK": 13,
+        "POKE": 4,
+        "SIEGE": 8,
+        "WAVE_CLEAR": 12,
+        "ZONE_CONTROL": 8,
+        "SIDE_LANE_PRESSURE": 14,
+        "OBJECTIVE_DAMAGE": 12,
+        "SUSTAINED_DAMAGE": 16,
+        "BURST_DAMAGE": 17,
+        "BACKLINE_ACCESS": 17
+      },
+      "damageProfile": {
+        "physicalThreat": 3,
+        "magicThreat": 18,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "lucian",
+      "baseCapabilities": {
+        "ENGAGE": 3,
+        "FOLLOW_UP": 10,
+        "DISENGAGE": 9,
+        "FRONTLINE": 3,
+        "PEEL": 2,
+        "PICK": 6,
+        "POKE": 12,
+        "SIEGE": 15,
+        "WAVE_CLEAR": 14,
+        "ZONE_CONTROL": 3,
+        "SIDE_LANE_PRESSURE": 12,
+        "OBJECTIVE_DAMAGE": 17,
+        "SUSTAINED_DAMAGE": 17,
+        "BURST_DAMAGE": 17,
+        "BACKLINE_ACCESS": 8
+      },
+      "damageProfile": {
+        "physicalThreat": 20,
+        "magicThreat": 0,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "jinx",
+      "baseCapabilities": {
+        "ENGAGE": 4,
+        "FOLLOW_UP": 12,
+        "DISENGAGE": 8,
+        "FRONTLINE": 2,
+        "PEEL": 3,
+        "PICK": 5,
+        "POKE": 15,
+        "SIEGE": 20,
+        "WAVE_CLEAR": 18,
+        "ZONE_CONTROL": 11,
+        "SIDE_LANE_PRESSURE": 8,
+        "OBJECTIVE_DAMAGE": 20,
+        "SUSTAINED_DAMAGE": 20,
+        "BURST_DAMAGE": 14,
+        "BACKLINE_ACCESS": 3
+      },
+      "damageProfile": {
+        "physicalThreat": 20,
+        "magicThreat": 1,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "ezreal",
+      "baseCapabilities": {
+        "ENGAGE": 2,
+        "FOLLOW_UP": 8,
+        "DISENGAGE": 18,
+        "FRONTLINE": 2,
+        "PEEL": 4,
+        "PICK": 7,
+        "POKE": 20,
+        "SIEGE": 17,
+        "WAVE_CLEAR": 15,
+        "ZONE_CONTROL": 5,
+        "SIDE_LANE_PRESSURE": 14,
+        "OBJECTIVE_DAMAGE": 15,
+        "SUSTAINED_DAMAGE": 16,
+        "BURST_DAMAGE": 15,
+        "BACKLINE_ACCESS": 4
+      },
+      "damageProfile": {
+        "physicalThreat": 18,
+        "magicThreat": 6,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "kaisa",
+      "baseCapabilities": {
+        "ENGAGE": 6,
+        "FOLLOW_UP": 14,
+        "DISENGAGE": 10,
+        "FRONTLINE": 4,
+        "PEEL": 3,
+        "PICK": 8,
+        "POKE": 8,
+        "SIEGE": 14,
+        "WAVE_CLEAR": 13,
+        "ZONE_CONTROL": 4,
+        "SIDE_LANE_PRESSURE": 14,
+        "OBJECTIVE_DAMAGE": 19,
+        "SUSTAINED_DAMAGE": 19,
+        "BURST_DAMAGE": 18,
+        "BACKLINE_ACCESS": 18
+      },
+      "damageProfile": {
+        "physicalThreat": 10,
+        "magicThreat": 16,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "aphelios",
+      "baseCapabilities": {
+        "ENGAGE": 4,
+        "FOLLOW_UP": 11,
+        "DISENGAGE": 5,
+        "FRONTLINE": 3,
+        "PEEL": 5,
+        "PICK": 5,
+        "POKE": 10,
+        "SIEGE": 17,
+        "WAVE_CLEAR": 18,
+        "ZONE_CONTROL": 12,
+        "SIDE_LANE_PRESSURE": 6,
+        "OBJECTIVE_DAMAGE": 20,
+        "SUSTAINED_DAMAGE": 20,
+        "BURST_DAMAGE": 16,
+        "BACKLINE_ACCESS": 3
+      },
+      "damageProfile": {
+        "physicalThreat": 20,
+        "magicThreat": 3,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "varus",
+      "baseCapabilities": {
+        "ENGAGE": 12,
+        "FOLLOW_UP": 15,
+        "DISENGAGE": 7,
+        "FRONTLINE": 3,
+        "PEEL": 5,
+        "PICK": 18,
+        "POKE": 19,
+        "SIEGE": 17,
+        "WAVE_CLEAR": 16,
+        "ZONE_CONTROL": 14,
+        "SIDE_LANE_PRESSURE": 5,
+        "OBJECTIVE_DAMAGE": 18,
+        "SUSTAINED_DAMAGE": 16,
+        "BURST_DAMAGE": 19,
+        "BACKLINE_ACCESS": 4
+      },
+      "damageProfile": {
+        "physicalThreat": 15,
+        "magicThreat": 10,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "nautilus",
+      "baseCapabilities": {
+        "ENGAGE": 20,
+        "FOLLOW_UP": 18,
+        "DISENGAGE": 8,
+        "FRONTLINE": 17,
+        "PEEL": 5,
+        "PICK": 19,
+        "POKE": 3,
+        "SIEGE": 3,
+        "WAVE_CLEAR": 5,
+        "ZONE_CONTROL": 12,
+        "SIDE_LANE_PRESSURE": 2,
+        "OBJECTIVE_DAMAGE": 3,
+        "SUSTAINED_DAMAGE": 2,
+        "BURST_DAMAGE": 5,
+        "BACKLINE_ACCESS": 15
+      },
+      "damageProfile": {
+        "physicalThreat": 2,
+        "magicThreat": 2,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "lulu",
+      "baseCapabilities": {
+        "ENGAGE": 2,
+        "FOLLOW_UP": 9,
+        "DISENGAGE": 20,
+        "FRONTLINE": 4,
+        "PEEL": 20,
+        "PICK": 8,
+        "POKE": 9,
+        "SIEGE": 7,
+        "WAVE_CLEAR": 8,
+        "ZONE_CONTROL": 12,
+        "SIDE_LANE_PRESSURE": 2,
+        "OBJECTIVE_DAMAGE": 2,
+        "SUSTAINED_DAMAGE": 4,
+        "BURST_DAMAGE": 5,
+        "BACKLINE_ACCESS": 1
+      },
+      "damageProfile": {
+        "physicalThreat": 0,
+        "magicThreat": 5,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "rakan",
+      "baseCapabilities": {
+        "ENGAGE": 19,
+        "FOLLOW_UP": 19,
+        "DISENGAGE": 17,
+        "FRONTLINE": 10,
+        "PEEL": 16,
+        "PICK": 14,
+        "POKE": 5,
+        "SIEGE": 4,
+        "WAVE_CLEAR": 6,
+        "ZONE_CONTROL": 12,
+        "SIDE_LANE_PRESSURE": 5,
+        "OBJECTIVE_DAMAGE": 2,
+        "SUSTAINED_DAMAGE": 3,
+        "BURST_DAMAGE": 5,
+        "BACKLINE_ACCESS": 16
+      },
+      "damageProfile": {
+        "physicalThreat": 1,
+        "magicThreat": 6,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "braum",
+      "baseCapabilities": {
+        "ENGAGE": 10,
+        "FOLLOW_UP": 16,
+        "DISENGAGE": 20,
+        "FRONTLINE": 16,
+        "PEEL": 20,
+        "PICK": 8,
+        "POKE": 6,
+        "SIEGE": 3,
+        "WAVE_CLEAR": 5,
+        "ZONE_CONTROL": 15,
+        "SIDE_LANE_PRESSURE": 2,
+        "OBJECTIVE_DAMAGE": 3,
+        "SUSTAINED_DAMAGE": 3,
+        "BURST_DAMAGE": 4,
+        "BACKLINE_ACCESS": 7
+      },
+      "damageProfile": {
+        "physicalThreat": 2,
+        "magicThreat": 3,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "renata-glasc",
+      "baseCapabilities": {
+        "ENGAGE": 8,
+        "FOLLOW_UP": 15,
+        "DISENGAGE": 19,
+        "FRONTLINE": 5,
+        "PEEL": 19,
+        "PICK": 13,
+        "POKE": 13,
+        "SIEGE": 8,
+        "WAVE_CLEAR": 10,
+        "ZONE_CONTROL": 18,
+        "SIDE_LANE_PRESSURE": 2,
+        "OBJECTIVE_DAMAGE": 3,
+        "SUSTAINED_DAMAGE": 4,
+        "BURST_DAMAGE": 7,
+        "BACKLINE_ACCESS": 3
+      },
+      "damageProfile": {
+        "physicalThreat": 0,
+        "magicThreat": 7,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    },
+    {
+      "championId": "bard",
+      "baseCapabilities": {
+        "ENGAGE": 11,
+        "FOLLOW_UP": 13,
+        "DISENGAGE": 18,
+        "FRONTLINE": 6,
+        "PEEL": 12,
+        "PICK": 17,
+        "POKE": 12,
+        "SIEGE": 7,
+        "WAVE_CLEAR": 9,
+        "ZONE_CONTROL": 14,
+        "SIDE_LANE_PRESSURE": 9,
+        "OBJECTIVE_DAMAGE": 2,
+        "SUSTAINED_DAMAGE": 6,
+        "BURST_DAMAGE": 10,
+        "BACKLINE_ACCESS": 8
+      },
+      "damageProfile": {
+        "physicalThreat": 3,
+        "magicThreat": 7,
+        "trueDamageThreat": 0
+      },
+      "roleOverrides": []
+    }
+  ]
+}

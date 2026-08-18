@@ -1,11 +1,11 @@
 package com.lolfm.simulator;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionMatchupCatalog;
 import com.lolfm.champion.ChampionMatchupExecutionStatsSnapshot;
 import com.lolfm.champion.ChampionMatchupMode;
 import com.lolfm.champion.ChampionRoleMatchupProfileCatalog;
+import com.lolfm.champion.ChampionResourceSet;
 import com.lolfm.champion.ChampionSelectionValidator;
 import com.lolfm.champion.ChampionPowerProfileCatalog;
 import com.lolfm.champion.MatchChampionAssignments;
@@ -43,12 +43,13 @@ import org.springframework.stereotype.Component;
 @Component
 public class MatchSimulator {
 
-    private static final ChampionCatalog DEFAULT_CHAMPION_CATALOG = new ChampionCatalog(new ObjectMapper());
-    private static final ChampionPowerProfileCatalog DEFAULT_CHAMPION_POWER_CATALOG = new ChampionPowerProfileCatalog(new ObjectMapper(), DEFAULT_CHAMPION_CATALOG);
+    private static final ChampionResourceSet DEFAULT_CHAMPION_RESOURCES = ChampionResourceSet.loadDefault();
+    private static final ChampionCatalog DEFAULT_CHAMPION_CATALOG = DEFAULT_CHAMPION_RESOURCES.catalog();
+    private static final ChampionPowerProfileCatalog DEFAULT_CHAMPION_POWER_CATALOG = DEFAULT_CHAMPION_RESOURCES.power();
     private static final ChampionMatchupCatalog DEFAULT_CHAMPION_MATCHUP_CATALOG =
             ChampionMatchupCatalog.neutral(DEFAULT_CHAMPION_CATALOG);
     private static final ChampionRoleMatchupProfileCatalog DEFAULT_CHAMPION_MATCHUP_PROFILES =
-            ChampionRoleMatchupProfileCatalog.production();
+            DEFAULT_CHAMPION_RESOURCES.matchup();
 
     private static final Logger logger = LoggerFactory.getLogger(MatchSimulator.class);
     public static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = 5_400;

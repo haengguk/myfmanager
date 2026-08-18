@@ -52,8 +52,8 @@ public record FrozenCompositionInteractionRuntimePolicy(
 
     public void verifyExactIdentity() {
         if (!PROFILE_VERSION.equals(profileVersion) || !PROFILE_HASH.equals(profileHash)
-                || !ThirtyChampionCompositionProfiles.VERSION.equals(profileVersion)
-                || !ThirtyChampionCompositionProfiles.profileHash().equals(profileHash)) {
+                || !ChampionCompositionProfileCatalog.VERSION.equals(profileVersion)
+                || !ChampionCompositionProfileCatalog.loadDefault().profileHash().equals(profileHash)) {
             throw new IllegalStateException("Frozen composition profile identity mismatch");
         }
         if (!RULE_CATALOG_VERSION.equals(ruleCatalogVersion) || !RULE_CATALOG_HASH.equals(ruleCatalogHash)

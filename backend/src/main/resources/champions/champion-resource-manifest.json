@@ -1,0 +1,8 @@
+{
+  "manifestVersion": "initial-30-resource-set-v1",
+  "catalog": "/champions/champion-pool-initial-30-v1.json",
+  "power": "/champions/champion-power-initial-30-v1.json",
+  "matchup": "/champions/champion-matchup-role-profiles-initial-30-v1.json",
+  "composition": "/champions/champion-composition-role-profiles-initial-30-v1.json",
+  "jungleClear": "/champions/champion-jungle-clear-initial-30-neutral-v1.json"
+}

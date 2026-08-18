@@ -3,6 +3,7 @@ package com.lolfm.composition;
 import com.lolfm.champion.ChampionAssignment;
 import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionRoleKey;
+import com.lolfm.champion.ChampionResourceSet;
 import com.lolfm.champion.MatchChampionAssignments;
 import com.lolfm.domain.Position;
 import com.lolfm.simulator.PlayerKey;
@@ -21,6 +22,8 @@ import java.util.Set;
 
 /** Match-owned composition state. No resolver or static/global collection owns this data. */
 public final class CompositionRuntimeState {
+    private static final ChampionCompositionProfileCatalog PROFILES =
+            ChampionResourceSet.loadDefault().composition();
     private final TeamCompositionGameplayMode mode;
     private final long matchSeed;
     private final FrozenCompositionInteractionRuntimePolicy frozenPolicy;
@@ -172,7 +175,7 @@ public final class CompositionRuntimeState {
         redLineup = new CompositionTeamLineup(TeamSide.RED, buildLineup(TeamSide.RED, assignments));
         lineupBuildCount = 2;
         TeamCompositionAnalyzer analyzer = new TeamCompositionAnalyzer();
-        Map<ChampionRoleKey, ChampionCompositionProfile> profiles = ThirtyChampionCompositionProfiles.all();
+        Map<ChampionRoleKey, ChampionCompositionProfile> profiles = PROFILES.profiles();
         blueAnalysis = analyzer.analyze(blueLineup.lineup(), profiles);
         redAnalysis = analyzer.analyze(redLineup.lineup(), profiles);
         teamCompositionAnalysisCount = 2;
@@ -522,7 +525,7 @@ public final class CompositionRuntimeState {
                 throw new IllegalStateException("Composition assignment position mismatch for " + side + "/" + position);
             }
             ChampionRoleKey key = new ChampionRoleKey(new ChampionId(assignment.championId().value()), position);
-            if (!ThirtyChampionCompositionProfiles.all().containsKey(key)) {
+            if (!PROFILES.profiles().containsKey(key)) {
                 throw new IllegalStateException("Missing frozen composition profile: " + key.stableId());
             }
             if (values.put(position, key) != null) throw new IllegalStateException("Duplicate composition position");
