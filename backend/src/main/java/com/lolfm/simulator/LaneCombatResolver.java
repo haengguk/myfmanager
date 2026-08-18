@@ -14,6 +14,7 @@ import java.util.Random;
 
 /** Stateless early lane combat; GameState and LaneState own all mutable timing. */
 public final class LaneCombatResolver {
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
     private final KillRewardResolver rewards = new KillRewardResolver();
 
     public boolean resolve(GameState state, Random random, List<MatchEvent> events) {
@@ -118,12 +119,17 @@ public final class LaneCombatResolver {
     }
 
     double initiativeWeight(GameState state, Lane lane, TeamSide side) {
-        double signedPressure = side == TeamSide.BLUE
-                ? Math.max(state.laneState(lane).getPressure(), 0)
-                : Math.max(-state.laneState(lane).getPressure(), 0);
+        double relativePressure = side == TeamSide.BLUE
+                ? state.laneState(lane).getPressure() : -state.laneState(lane).getPressure();
+        double favorablePressure = Math.max(relativePressure, 0);
+        double decisionModifier = (laneDecision(state, lane, side) - 14)
+                * LaneCombatRuleConfig.INITIATIVE_AGGRESSION_FACTOR;
+        if (participants(state.getTeamState(side), lane).stream().anyMatch(PlayerState::hasMatchPerformance)) {
+            decisionModifier *= clamp(relativePressure / 100.0, -1.0, 1.0);
+        }
         return Math.max(LaneCombatRuleConfig.MIN_INITIATIVE_WEIGHT,
-                1 + (laneAggression(state, lane, side) - 14) * LaneCombatRuleConfig.INITIATIVE_AGGRESSION_FACTOR
-                        + signedPressure / LaneCombatRuleConfig.INITIATIVE_PRESSURE_DIVISOR);
+                1 + decisionModifier
+                        + favorablePressure / LaneCombatRuleConfig.INITIATIVE_PRESSURE_DIVISOR);
     }
 
     double combatEdge(GameState state, Lane lane, TeamSide attacker) {
@@ -172,10 +178,24 @@ public final class LaneCombatResolver {
 
     private double laneAggression(GameState state, Lane lane, TeamSide side) {
         List<PlayerState> players = participants(state.getTeamState(side), lane);
-        return lane == Lane.BOT
-                ? players.get(0).getAggression() * LaneCombatRuleConfig.BOT_ADC_AGGRESSION_CONTRIBUTION
+        if (!players.getFirst().hasMatchPerformance()) {
+            return lane == Lane.BOT
+                    ? players.get(0).getAggression() * LaneCombatRuleConfig.BOT_ADC_AGGRESSION_CONTRIBUTION
                     + players.get(1).getAggression() * LaneCombatRuleConfig.BOT_SUPPORT_AGGRESSION_CONTRIBUTION
-                : players.getFirst().getAggression();
+                    : players.getFirst().getAggression();
+        }
+        return lane == Lane.BOT
+                ? playerSkills.laneTrade(players.get(0)) * LaneCombatRuleConfig.BOT_ADC_AGGRESSION_CONTRIBUTION
+                    + playerSkills.laneSupport(players.get(1)) * LaneCombatRuleConfig.BOT_SUPPORT_AGGRESSION_CONTRIBUTION
+                : playerSkills.laneTrade(players.getFirst());
+    }
+
+    private double laneDecision(GameState state, Lane lane, TeamSide side) {
+        List<PlayerState> players = participants(state.getTeamState(side), lane);
+        return lane == Lane.BOT
+                ? playerSkills.decisionQuality(players.get(0)) * LaneCombatRuleConfig.BOT_ADC_AGGRESSION_CONTRIBUTION
+                    + playerSkills.decisionQuality(players.get(1)) * LaneCombatRuleConfig.BOT_SUPPORT_AGGRESSION_CONTRIBUTION
+                : playerSkills.decisionQuality(players.getFirst());
     }
 
     private double laneMechanics(GameState state, Lane lane, TeamSide side) {

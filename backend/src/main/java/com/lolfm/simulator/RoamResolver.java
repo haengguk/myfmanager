@@ -14,6 +14,7 @@ import java.util.Random;
 
 /** Stateless resolver for one possible MID or SUPPORT roam per evaluation tick. */
 public final class RoamResolver {
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
     private final KillRewardResolver rewards = new KillRewardResolver();
 
     public boolean resolve(GameState state, Random random, List<MatchEvent> events) {
@@ -101,7 +102,7 @@ public final class RoamResolver {
                 originBefore, originAfter, targetBefore, targetAfter, originPriority(state, selected), overextension,
                 roamer.getActivityState().getActivityUntilSeconds(), roamer.getRoamActionState().getRoamFarmBlockedUntilSeconds(),
                 selected.attemptChance(), targetWeight, edge, decisive, successChance(edge), repeatTarget, repeatTarget,
-                roamer.getMechanics(), roamer.getAggression(), roamer.getFarming(), roamer.getTeamfighting(),
+                roamer.getMechanics(), combatTendency(roamer), roamer.getFarming(), roamer.getTeamfighting(),
                 edgeBreakdown.attackerMechanics(), edgeBreakdown.defenderMechanics(), edgeBreakdown.attackerAggression(),
                 edgeBreakdown.defenderAggression(), edgeBreakdown.attackerTeamfighting(), edgeBreakdown.defenderTeamfighting(),
                 edgeBreakdown.mechanicsEdge(), edgeBreakdown.aggressionEdge(), edgeBreakdown.teamfightingEdge(),
@@ -146,13 +147,13 @@ public final class RoamResolver {
         PlayerState p = player(state, c);
         double best = targets(c.position()).stream().filter(l -> targetEligible(state,c.side(),l,state.getCurrentTimeSeconds())).mapToDouble(l -> enemyOverextension(state,c.side(),l)).max().orElse(0);
         double base = c.position() == Position.MID ? RoamRuleConfig.BASE_MID_ROAM_ATTEMPT_CHANCE : RoamRuleConfig.BASE_SUPPORT_ROAM_ATTEMPT_CHANCE;
-        return clamp(base + clamp((p.getAggression()-14)*RoamRuleConfig.ROAMER_AGGRESSION_ATTEMPT_FACTOR, RoamRuleConfig.ROAMER_AGGRESSION_ATTEMPT_MIN, RoamRuleConfig.ROAMER_AGGRESSION_ATTEMPT_MAX)
+        return clamp(base + clamp((roamPlanning(p)-14)*RoamRuleConfig.ROAMER_AGGRESSION_ATTEMPT_FACTOR, RoamRuleConfig.ROAMER_AGGRESSION_ATTEMPT_MIN, RoamRuleConfig.ROAMER_AGGRESSION_ATTEMPT_MAX)
                 + originPriority(state,c)/100*RoamRuleConfig.ORIGIN_PRIORITY_ATTEMPT_MAX_BONUS + best/100*RoamRuleConfig.TARGET_OVEREXTENSION_ATTEMPT_MAX_BONUS,
                 RoamRuleConfig.MIN_ROAM_ATTEMPT_CHANCE, RoamRuleConfig.MAX_ROAM_ATTEMPT_CHANCE);
     }
     double targetWeight(GameState state, Candidate c, Lane lane, int time) {
         if (c.position() == Position.SUPPORT) return RoamRuleConfig.BASE_TARGET_WEIGHT;
-        double followup = clamp((group(state,c.side(),lane, PlayerState::getMechanics)*.55 + group(state,c.side(),lane, PlayerState::getAggression)*.45 - 14)*RoamRuleConfig.FOLLOWUP_TARGET_FACTOR, RoamRuleConfig.FOLLOWUP_TARGET_MIN, RoamRuleConfig.FOLLOWUP_TARGET_MAX);
+        double followup = clamp((group(state,c.side(),lane, PlayerState::getMechanics)*.55 + group(state,c.side(),lane, this::combatTendency)*.45 - 14)*RoamRuleConfig.FOLLOWUP_TARGET_FACTOR, RoamRuleConfig.FOLLOWUP_TARGET_MIN, RoamRuleConfig.FOLLOWUP_TARGET_MAX);
         double gold = clamp((group(state,c.side().opposite(),lane,PlayerState::getGold)-group(state,c.side(),lane,PlayerState::getGold))/RoamRuleConfig.TARGET_GOLD_DIVISOR, RoamRuleConfig.TARGET_GOLD_MIN, RoamRuleConfig.TARGET_GOLD_MAX);
         double weight = Math.max(RoamRuleConfig.MIN_TARGET_WEIGHT, RoamRuleConfig.BASE_TARGET_WEIGHT + enemyOverextension(state,c.side(),lane)/100*RoamRuleConfig.TARGET_OVEREXTENSION_WEIGHT_MAX_BONUS + followup + gold);
         int last = player(state,c).getRoamActionState().getLastRoamAttemptAtSeconds(lane);
@@ -173,9 +174,9 @@ public final class RoamResolver {
     RoamCombatEdgeBreakdown combatEdgeBreakdown(GameState s, Candidate c, Lane l, double over) {
         PlayerState roamer = player(s, c); TeamSide defender = c.side().opposite();
         double attackerMechanics = roamer.getMechanics() * .45 + group(s, c.side(), l, PlayerState::getMechanics) * .55;
-        double attackerAggression = roamer.getAggression() * .55 + group(s, c.side(), l, PlayerState::getAggression) * .45;
-        double attackerTeamfighting = roamer.getTeamfighting() * .40 + group(s, c.side(), l, PlayerState::getTeamfighting) * .60;
-        double defenderMechanics = group(s, defender, l, PlayerState::getMechanics), defenderAggression = group(s, defender, l, PlayerState::getAggression), defenderTeamfighting = group(s, defender, l, PlayerState::getTeamfighting);
+        double attackerAggression = combatTendency(roamer) * .55 + group(s, c.side(), l, this::combatTendency) * .45;
+        double attackerTeamfighting = (roamer.hasMatchPerformance()?playerSkills.combatExecution(roamer):roamer.getTeamfighting()) * .40 + group(s, c.side(), l, PlayerState::getTeamfighting) * .60;
+        double defenderMechanics = group(s, defender, l, PlayerState::getMechanics), defenderAggression = group(s, defender, l, this::combatTendency), defenderTeamfighting = group(s, defender, l, PlayerState::getTeamfighting);
         double mechanicsEdge = (attackerMechanics - defenderMechanics) * RoamRuleConfig.ROAM_MECHANICS_EDGE_FACTOR;
         double aggressionEdge = (attackerAggression - defenderAggression) * RoamRuleConfig.ROAM_AGGRESSION_EDGE_FACTOR;
         double teamfightingEdge = (attackerTeamfighting - defenderTeamfighting) * RoamRuleConfig.ROAM_TEAMFIGHTING_EDGE_FACTOR;
@@ -187,8 +188,9 @@ public final class RoamResolver {
         double progression=new CombatProgressionEvaluator().contribution(s,ProgressionCombatContext.ROAM,own,lanePlayers(s.getTeamState(defender),l),existing,goldEdge);
         return new RoamCombatEdgeBreakdown(attackerMechanics,defenderMechanics,attackerAggression,defenderAggression,attackerTeamfighting,defenderTeamfighting,mechanicsEdge,aggressionEdge,teamfightingEdge,goldEdge,vulnerabilityEdge,numbersEdge,existing+progression);
     }
-    double decisiveChance(PlayerState p,double edge,double over){return clamp(RoamRuleConfig.BASE_ROAM_DECISIVE_CHANCE+(p.getAggression()-14)*RoamRuleConfig.ROAMER_AGGRESSION_DECISIVE_FACTOR+Math.abs(edge)*RoamRuleConfig.ROAM_DECISIVE_EDGE_FACTOR+over/100*RoamRuleConfig.ROAM_DECISIVE_OVEREXTENSION_MAX_BONUS,RoamRuleConfig.MIN_ROAM_DECISIVE_CHANCE,RoamRuleConfig.MAX_ROAM_DECISIVE_CHANCE);}
+    double decisiveChance(PlayerState p,double edge,double over){return clamp(RoamRuleConfig.BASE_ROAM_DECISIVE_CHANCE+((p.hasMatchPerformance()?playerSkills.combatExecution(p):p.getAggression())-14)*RoamRuleConfig.ROAMER_AGGRESSION_DECISIVE_FACTOR+Math.abs(edge)*RoamRuleConfig.ROAM_DECISIVE_EDGE_FACTOR+over/100*RoamRuleConfig.ROAM_DECISIVE_OVEREXTENSION_MAX_BONUS,RoamRuleConfig.MIN_ROAM_DECISIVE_CHANCE,RoamRuleConfig.MAX_ROAM_DECISIVE_CHANCE);}
     double successChance(double edge){return clamp(RoamRuleConfig.BASE_ROAM_SUCCESS_CHANCE+edge*RoamRuleConfig.ROAM_SUCCESS_EDGE_FACTOR,RoamRuleConfig.MIN_ROAM_SUCCESS_CHANCE,RoamRuleConfig.MAX_ROAM_SUCCESS_CHANCE);}
+    private int combatTendency(PlayerState p){return p.hasMatchPerformance()?PlayerImpactRuleConfig.BASELINE_ATTRIBUTE:p.getAggression();}
     private double group(GameState s,TeamSide side,Lane l,java.util.function.ToIntFunction<PlayerState> value){List<PlayerState> ps=lanePlayers(s.getTeamState(side),l);return l==Lane.BOT?value.applyAsInt(ps.get(0))*.60+value.applyAsInt(ps.get(1))*.40:value.applyAsInt(ps.getFirst());}
     private double averageGold(PlayerState roamer,List<PlayerState> ps){double sum=roamer==null?0:roamer.getGold();for(PlayerState p:ps)sum+=p.getGold();return sum/(ps.size()+(roamer==null?0:1));}
     double originPriority(GameState s,Candidate c){return Math.max(relativePressure(s,c.side(),origin(c.position())),0);}
@@ -200,6 +202,7 @@ public final class RoamResolver {
     private List<Lane> targets(Position p){return p==Position.MID?List.of(Lane.TOP,Lane.BOT):List.of(Lane.MID);}
     private Lane origin(Position p){return p==Position.MID?Lane.MID:Lane.BOT;}
     private double originCost(Position p){return p==Position.MID?RoamRuleConfig.MID_ORIGIN_PRESSURE_COST:RoamRuleConfig.SUPPORT_ORIGIN_PRESSURE_COST;}
+    private double roamPlanning(PlayerState p){return !p.hasMatchPerformance()?p.getAggression():p.getPosition()==Position.SUPPORT?playerSkills.rotationPlanning(p):playerSkills.priorityConversion(p);}
     private List<PlayerState> lanePlayers(TeamState t,Lane l){return switch(l){case TOP->List.of(t.playerAt(Position.TOP));case MID->List.of(t.playerAt(Position.MID));case BOT->List.of(t.playerAt(Position.ADC),t.playerAt(Position.SUPPORT));};}
     private List<String> ids(List<PlayerState> ps){return ps.stream().map(PlayerState::getPlayerName).toList();}
     private int respawnDelay(int time){return time<600?RespawnRuleConfig.BEFORE_10_MINUTES_SECONDS:RespawnRuleConfig.FROM_10_TO_20_MINUTES_SECONDS;}

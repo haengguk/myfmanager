@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class TeamfightResolver {
 
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
     private static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = MatchSimulator.SIMULATION_SAFETY_TIMEOUT_SECONDS;
     private final KillRewardResolver killRewards = new KillRewardResolver();
 
@@ -301,10 +302,16 @@ public class TeamfightResolver {
 
         Player killer = pickWeightedPlayer(killerCandidates, random, player -> {
             PlayerState candidate = attackingTeamState.getPlayerState(player.getName());
-            double weight = candidate.getMechanics() * PlayerImpactRuleConfig.KILLER_MECHANICS_WEIGHT
+            double weight = candidate.hasMatchPerformance()
+                    ? playerSkills.combatExecution(candidate)
+                    * (PlayerImpactRuleConfig.KILLER_MECHANICS_WEIGHT
+                    + PlayerImpactRuleConfig.KILLER_AGGRESSION_WEIGHT
+                    + PlayerImpactRuleConfig.KILLER_TEAMFIGHTING_WEIGHT)
+                    : candidate.getMechanics() * PlayerImpactRuleConfig.KILLER_MECHANICS_WEIGHT
                     + candidate.getAggression() * PlayerImpactRuleConfig.KILLER_AGGRESSION_WEIGHT
                     + candidate.getTeamfighting() * PlayerImpactRuleConfig.KILLER_TEAMFIGHTING_WEIGHT;
-            if (teamfight) weight += candidate.getTeamfighting() * 0.8;
+            if (teamfight) weight += (candidate.hasMatchPerformance()
+                    ? playerSkills.combatExecution(candidate) : candidate.getTeamfighting()) * 0.8;
             if (player.getPosition() == Position.ADC || player.getPosition() == Position.MID) weight += 8.0;
             return weight;
         });
@@ -317,9 +324,15 @@ public class TeamfightResolver {
                 case JUNGLE -> 1.0;
                 case TOP -> 0.9;
             };
+            if (!candidate.hasMatchPerformance()) {
+                return Math.max(0.15, positionRisk
+                        + candidate.getAggression() * PlayerImpactRuleConfig.VICTIM_AGGRESSION_RISK_WEIGHT
+                        - candidate.getMechanics() * PlayerImpactRuleConfig.VICTIM_MECHANICS_PROTECTION_WEIGHT
+                        + candidate.getDeaths() * 0.08);
+            }
             return Math.max(0.15, positionRisk
-                    + candidate.getAggression() * PlayerImpactRuleConfig.VICTIM_AGGRESSION_RISK_WEIGHT
-                    - candidate.getMechanics() * PlayerImpactRuleConfig.VICTIM_MECHANICS_PROTECTION_WEIGHT
+                    - playerSkills.exposureSafety(candidate)
+                    * PlayerImpactRuleConfig.VICTIM_MECHANICS_PROTECTION_WEIGHT
                     + candidate.getDeaths() * 0.08);
         });
         List<String> assists = pickAssistNames(
@@ -512,13 +525,19 @@ public class TeamfightResolver {
         for (PlayerState player : teamState.getPlayers()) {
             if (!player.isAlive(currentTime)) continue;
             alive++;
-            totalTeamfighting += player.getTeamfighting();
-            totalMechanics += player.getMechanics();
+            if (player.hasMatchPerformance()) {
+                totalTeamfighting += playerSkills.combatExecution(player);
+                totalMechanics += playerSkills.exposureSafety(player);
+            } else {
+                totalTeamfighting += player.getTeamfighting();
+                totalMechanics += player.getMechanics();
+        }
         }
         if (alive == 0) return 0.0;
         double score = totalTeamfighting / alive * PlayerImpactRuleConfig.TEAMFIGHTING_SCORE_WEIGHT
                 + totalMechanics / alive * PlayerImpactRuleConfig.TEAMFIGHT_MECHANICS_SCORE_WEIGHT
                 + alive * PlayerImpactRuleConfig.ALIVE_PLAYER_SCORE_WEIGHT;
+        score += supportToolExecution(state, side);
         if (state.getObjectiveState().isSoulOwner(side)) score += DragonSoulRuleConfig.SOUL_TEAMFIGHT_SCORE_BONUS;
         if (teamState.hasActiveBaronBuff(currentTime)) score += PlayerImpactRuleConfig.BARON_TEAMFIGHT_SCORE_BONUS;
         score += Math.min(ElderRuleConfig.MAX_TEAMFIGHT_SCORE_BONUS, activeElderPlayers(teamState, currentTime) * ElderRuleConfig.TEAMFIGHT_SCORE_BONUS_PER_PLAYER);
@@ -671,6 +690,24 @@ public class TeamfightResolver {
 
     private boolean hasElderTeamWithThreeAlive(GameState state, int time) {
         return activeElderPlayers(state.getBlueTeamState(), time) >= 3 || activeElderPlayers(state.getRedTeamState(), time) >= 3;
+    }
+
+    private double supportToolExecution(GameState state, TeamSide side) {
+        CompositionRuntimeState runtime = state.getCompositionRuntimeState();
+        if (!runtime.isActive() || !runtime.initialized()) return 0;
+        TeamCompositionAnalysis analysis = side == TeamSide.BLUE ? runtime.blueAnalysis() : runtime.redAnalysis();
+        PlayerState support = state.getTeamState(side).playerAt(Position.SUPPORT);
+        double engageTool = supportCapability(analysis, CompositionCapability.ENGAGE);
+        double peelTool = supportCapability(analysis, CompositionCapability.PEEL);
+        return (playerSkills.engageExecution(support) - 14) * engageTool * .30
+                + (playerSkills.allyProtection(support) - 14) * peelTool * .30;
+    }
+
+    private double supportCapability(TeamCompositionAnalysis analysis, CompositionCapability capability) {
+        return analysis.coverage().capability(capability).contributors().stream()
+                .filter(contributor -> contributor.position() == Position.SUPPORT)
+                .mapToDouble(CapabilityContributor::normalizedValue)
+                .findFirst().orElse(0.0);
     }
 
     private int activeElderPlayers(TeamState team, int time) { int count = 0; for (PlayerState player : team.getPlayers()) if (player.hasActiveElderBuff(time)) count++; return count; }

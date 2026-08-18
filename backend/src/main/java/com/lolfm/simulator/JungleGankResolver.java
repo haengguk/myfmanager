@@ -16,6 +16,7 @@ import java.util.Random;
 
 /** Stateless jungle-gank resolver. All mutable clocks live in GameState. */
 public final class JungleGankResolver {
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
     private final KillRewardResolver rewards = new KillRewardResolver();
     private final CounterGankResolver counterGankResolver = new CounterGankResolver();
     private final boolean counterGankEnabled;
@@ -141,7 +142,8 @@ public final class JungleGankResolver {
         double best = java.util.Arrays.stream(Lane.values())
                 .filter(lane -> laneEligible(state, lane, state.getCurrentTimeSeconds()))
                 .mapToDouble(lane -> enemyOverextension(state, side, lane)).max().orElse(0.0);
-        double aggression = clamp((jungler.getAggression() - 14) * JungleGankRuleConfig.JUNGLE_AGGRESSION_ATTEMPT_FACTOR,
+        double pathing = jungler.hasMatchPerformance() ? playerSkills.pathing(jungler) : jungler.getAggression();
+        double aggression = clamp((pathing - 14) * JungleGankRuleConfig.JUNGLE_AGGRESSION_ATTEMPT_FACTOR,
                 JungleGankRuleConfig.JUNGLE_AGGRESSION_ATTEMPT_MIN, JungleGankRuleConfig.JUNGLE_AGGRESSION_ATTEMPT_MAX);
         return clamp(JungleGankRuleConfig.BASE_GANK_ATTEMPT_CHANCE + aggression
                         + best / 100.0 * JungleGankRuleConfig.OVEREXTENSION_ATTEMPT_MAX_BONUS,
@@ -179,13 +181,15 @@ public final class JungleGankResolver {
     }
 
     double attackerMechanics(GameState state, TeamSide side, Lane lane) {
-        return state.getTeamState(side).playerAt(Position.JUNGLE).getMechanics()
+        PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
+        return (jungler.hasMatchPerformance() ? playerSkills.laneIntervention(jungler) : jungler.getMechanics())
                 * JungleGankRuleConfig.JUNGLER_MECHANICS_CONTRIBUTION
                 + laneMechanics(state, side, lane) * JungleGankRuleConfig.LANE_MECHANICS_CONTRIBUTION;
     }
 
     double attackerAggression(GameState state, TeamSide side, Lane lane) {
-        return state.getTeamState(side).playerAt(Position.JUNGLE).getAggression()
+        PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
+        return (jungler.hasMatchPerformance() ? playerSkills.combatExecution(jungler) : jungler.getAggression())
                 * JungleGankRuleConfig.JUNGLER_AGGRESSION_CONTRIBUTION
                 + laneAggression(state, side, lane) * JungleGankRuleConfig.LANE_AGGRESSION_CONTRIBUTION;
     }
@@ -218,7 +222,8 @@ public final class JungleGankResolver {
     double decisiveChance(GameState state, TeamSide side, Lane lane) {
         PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
         return clamp(JungleGankRuleConfig.BASE_GANK_DECISIVE_CHANCE
-                        + (jungler.getAggression() - 14) * JungleGankRuleConfig.GANK_DECISIVE_AGGRESSION_FACTOR
+                        + ((jungler.hasMatchPerformance() ? playerSkills.laneIntervention(jungler) : jungler.getAggression()) - 14)
+                        * JungleGankRuleConfig.GANK_DECISIVE_AGGRESSION_FACTOR
                         + Math.abs(combatEdge(state, side, lane)) * JungleGankRuleConfig.GANK_DECISIVE_EDGE_FACTOR
                         + enemyOverextension(state, side, lane) / 100.0
                         * JungleGankRuleConfig.GANK_DECISIVE_OVEREXTENSION_MAX_BONUS,
@@ -312,9 +317,13 @@ public final class JungleGankResolver {
 
     private double laneAggression(GameState state, TeamSide side, Lane lane) {
         List<PlayerState> players = lanePlayers(state.getTeamState(side), lane);
-        return lane == Lane.BOT ? players.get(0).getAggression() * JungleGankRuleConfig.BOT_ADC_AGGRESSION_CONTRIBUTION
-                + players.get(1).getAggression() * JungleGankRuleConfig.BOT_SUPPORT_AGGRESSION_CONTRIBUTION
-                : players.getFirst().getAggression();
+        return lane == Lane.BOT ? combatTendency(players.get(0)) * JungleGankRuleConfig.BOT_ADC_AGGRESSION_CONTRIBUTION
+                + combatTendency(players.get(1)) * JungleGankRuleConfig.BOT_SUPPORT_AGGRESSION_CONTRIBUTION
+                : combatTendency(players.getFirst());
+    }
+
+    private double combatTendency(PlayerState player) {
+        return player.hasMatchPerformance() ? PlayerImpactRuleConfig.BASELINE_ATTRIBUTE : player.getAggression();
     }
 
     private double laneGold(GameState state, TeamSide side, Lane lane) {

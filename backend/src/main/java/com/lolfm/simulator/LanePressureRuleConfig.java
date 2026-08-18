@@ -17,5 +17,7 @@ public final class LanePressureRuleConfig {
     public static final double MAX_LANE_CS_MODIFIER = 0.05;
     public static final double BOT_ADC_CONTRIBUTION = 0.60;
     public static final double BOT_SUPPORT_CONTRIBUTION = 0.40;
+    public static final double CHAMPION_LANE_OPPORTUNITY_SCALE = 4.0;
+    public static final double MAX_CHAMPION_LANE_OPPORTUNITY_ATTRIBUTE = 3.0;
     private LanePressureRuleConfig() { }
 }

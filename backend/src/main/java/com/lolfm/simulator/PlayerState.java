@@ -2,6 +2,7 @@ package com.lolfm.simulator;
 
 import com.lolfm.domain.Position;
 import com.lolfm.domain.PlayerAttributes;
+import com.lolfm.domain.PlayerSkill;
 import java.util.Objects;
 
 public class PlayerState {
@@ -12,6 +13,7 @@ public class PlayerState {
     private final int aggression;
     private final int farming;
     private final int teamfighting;
+    private final PlayerMatchPerformance matchPerformance;
     private int kills;
     private int deaths;
     private int assists;
@@ -46,8 +48,15 @@ public class PlayerState {
 
     PlayerState(String playerName, Position position, PlayerAttributes attributes, int startingGold,
                 boolean farmRecoveryEnabled) {
+        this(playerName, position, attributes, null, startingGold, farmRecoveryEnabled);
+    }
+
+    PlayerState(String playerName, Position position, PlayerAttributes attributes,
+                PlayerMatchPerformance matchPerformance, int startingGold,
+                boolean farmRecoveryEnabled) {
         this.playerName = playerName;
         this.position = Objects.requireNonNull(position, "position");
+        this.matchPerformance = matchPerformance;
         this.mechanics = PlayerImpactRuleConfig.normalize(attributes.getMechanics());
         this.aggression = PlayerImpactRuleConfig.normalize(attributes.getAggression());
         this.farming = PlayerImpactRuleConfig.normalize(attributes.getFarming());
@@ -67,10 +76,54 @@ public class PlayerState {
         return position;
     }
 
-    public int getMechanics() { return mechanics; }
-    public int getAggression() { return aggression; }
-    public int getFarming() { return farming; }
-    public int getTeamfighting() { return teamfighting; }
+    public int getMechanics() { return rounded(execution(PlayerSkill.MECHANICS, mechanics)); }
+    public int getAggression() { return rounded(rating(PlayerSkill.DECISION_MAKING, aggression)); }
+    public int getFarming() {
+        PlayerSkill skill = position == Position.JUNGLE
+                ? PlayerSkill.JUNGLE_RESOURCE_MANAGEMENT
+                : position == Position.SUPPORT ? PlayerSkill.LANE_SUPPORT : PlayerSkill.FARMING;
+        return rounded(rating(skill, farming));
+    }
+    public int getTeamfighting() { return rounded(execution(PlayerSkill.COMBAT_EXECUTION, teamfighting)); }
+
+    public double rating(PlayerSkill skill) {
+        return rating(skill, PlayerImpactRuleConfig.BASELINE_ATTRIBUTE);
+    }
+
+    public double execution(PlayerSkill skill) {
+        return execution(skill, PlayerImpactRuleConfig.BASELINE_ATTRIBUTE);
+    }
+
+    public int getChampionProficiency() {
+        return matchPerformance == null
+                ? com.lolfm.domain.ChampionProficiencies.NEUTRAL
+                : matchPerformance.championProficiency();
+    }
+
+    public boolean hasMatchPerformance() { return matchPerformance != null; }
+    public PlayerMatchPerformance getMatchPerformance() { return matchPerformance; }
+
+    private double rating(PlayerSkill skill, int legacyFallback) {
+        if (matchPerformance != null) return matchPerformance.rating(skill);
+        if (!skill.appliesTo(position)) throw new IllegalArgumentException(skill + " does not apply to " + position);
+        return switch (skill) {
+            case MECHANICS -> mechanics;
+            case DECISION_MAKING -> aggression;
+            case COMBAT_EXECUTION -> teamfighting;
+            case FARMING, JUNGLE_RESOURCE_MANAGEMENT, LANE_SUPPORT -> farming;
+            case TRADING, LANE_PRESSURE, LANE_INTERVENTION, ENGAGE_EXECUTION -> aggression;
+            default -> legacyFallback;
+        };
+    }
+
+    private double execution(PlayerSkill skill, int legacyFallback) {
+        if (matchPerformance != null) return matchPerformance.execution(skill);
+        return rating(skill, legacyFallback);
+    }
+
+    private int rounded(double value) {
+        return (int) Math.round(value);
+    }
 
     public int getKills() {
         return kills;

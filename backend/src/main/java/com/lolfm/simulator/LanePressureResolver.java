@@ -5,6 +5,8 @@ import java.util.Random;
 
 /** Stateless lane-pressure calculation; all mutable pressure and timing live in GameState. */
 public final class LanePressureResolver {
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
+    private final LaneOpportunityEvaluator laneOpportunity = new LaneOpportunityEvaluator();
     public void resolve(GameState state, int currentTimeSeconds, Random random) {
         if (!state.shouldResolveLanePressureAt(currentTimeSeconds)) return;
         for (Lane lane : Lane.values()) {
@@ -17,7 +19,8 @@ public final class LanePressureResolver {
                 state.getLanePhaseExecutionStats().recordPressureDecay(before, next);
                 continue;
             }
-            double next = calculateNextPressure(laneState.getPressure(), lanePowerDifference(state, lane),
+            double next = calculateNextPressure(laneState.getPressure(), lanePowerDifference(state, lane)
+                            + laneOpportunity.attributeDifference(state, lane),
                     goldModifier(state, lane), randomVariation(random));
             laneState.setPressure(next);
         }
@@ -43,10 +46,21 @@ public final class LanePressureResolver {
 
     private double lanePower(TeamState team, Lane lane) {
         return switch (lane) {
-            case TOP -> power(team.playerAt(Position.TOP), .40, .30, .20, .10);
-            case MID -> power(team.playerAt(Position.MID), .35, .30, .20, .15);
-            case BOT -> power(team.playerAt(Position.ADC), .35, .40, .10, .15) * LanePressureRuleConfig.BOT_ADC_CONTRIBUTION
-                    + power(team.playerAt(Position.SUPPORT), .25, .10, .35, .30) * LanePressureRuleConfig.BOT_SUPPORT_CONTRIBUTION;
+            case TOP -> team.playerAt(Position.TOP).hasMatchPerformance()
+                    ? playerSkills.lanePressure(team.playerAt(Position.TOP))
+                    : power(team.playerAt(Position.TOP), .40, .30, .20, .10);
+            case MID -> team.playerAt(Position.MID).hasMatchPerformance()
+                    ? playerSkills.lanePressure(team.playerAt(Position.MID))
+                    : power(team.playerAt(Position.MID), .35, .30, .20, .15);
+            case BOT -> team.playerAt(Position.ADC).hasMatchPerformance()
+                    ? playerSkills.lanePressure(team.playerAt(Position.ADC))
+                            * LanePressureRuleConfig.BOT_ADC_CONTRIBUTION
+                            + playerSkills.laneSupport(team.playerAt(Position.SUPPORT))
+                            * LanePressureRuleConfig.BOT_SUPPORT_CONTRIBUTION
+                    : power(team.playerAt(Position.ADC), .35, .40, .10, .15)
+                            * LanePressureRuleConfig.BOT_ADC_CONTRIBUTION
+                            + power(team.playerAt(Position.SUPPORT), .25, .10, .35, .30)
+                            * LanePressureRuleConfig.BOT_SUPPORT_CONTRIBUTION;
         };
     }
 

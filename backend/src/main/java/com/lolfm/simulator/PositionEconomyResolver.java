@@ -5,6 +5,7 @@ import java.util.Random;
 
 /** Resolves all CS and FARM-gold income through one seed-driven path. */
 public final class PositionEconomyResolver {
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
     private final GoldAwardService awards = new GoldAwardService();
 
     public void resolve(TeamState team, int currentTimeSeconds, int elapsedSeconds, Random random) {
@@ -27,7 +28,7 @@ public final class PositionEconomyResolver {
                     && currentTimeSeconds < player.getRoamActionState().getRoamFarmBlockedUntilSeconds()) continue;
             if (player.getPosition() == Position.JUNGLE && gameState != null && side != null
                     && currentTimeSeconds < gameState.jungleActionState(side).getJungleFarmBlockedUntilSeconds()) continue;
-            int cs = actualCs(player, gameState, side, elapsedSeconds, random);
+            int cs = actualCs(player, gameState, side, currentTimeSeconds, elapsedSeconds, random);
             if (cs <= 0) continue;
             player.addCs(cs);
             awards.awardGold(team, player, cs * PositionEconomyRuleConfig.CS_GOLD, GoldSource.FARM, false, currentTimeSeconds);
@@ -35,15 +36,32 @@ public final class PositionEconomyResolver {
     }
 
     public double farmingMultiplier(PlayerState player) {
-        double multiplier = 1.0 + (player.getFarming() - PositionEconomyRuleConfig.FARMING_BASELINE)
+        return farmingMultiplier(player, PositionEconomyRuleConfig.EXPLICIT_FARMING_REALIZATION_FULL_SECONDS);
+    }
+
+    public double farmingMultiplier(PlayerState player, int currentTimeSeconds) {
+        if (player.getPosition() == Position.SUPPORT) return 1.0;
+        double farmingScore = !player.hasMatchPerformance()
+                ? player.getFarming()
+                : player.getPosition() == Position.JUNGLE
+                ? playerSkills.jungleResources(player) : playerSkills.farming(player);
+        if (player.hasMatchPerformance()) {
+            double timeFactor = clamp((currentTimeSeconds
+                            - PositionEconomyRuleConfig.EXPLICIT_FARMING_REALIZATION_START_SECONDS)
+                            / (double) (PositionEconomyRuleConfig.EXPLICIT_FARMING_REALIZATION_FULL_SECONDS
+                            - PositionEconomyRuleConfig.EXPLICIT_FARMING_REALIZATION_START_SECONDS), 0.0, 1.0);
+            farmingScore = PositionEconomyRuleConfig.FARMING_BASELINE
+                    + (farmingScore - PositionEconomyRuleConfig.FARMING_BASELINE) * timeFactor;
+        }
+        double multiplier = 1.0 + (farmingScore - PositionEconomyRuleConfig.FARMING_BASELINE)
                 * PositionEconomyRuleConfig.FARMING_MULTIPLIER_PER_POINT;
         return Math.max(PositionEconomyRuleConfig.MIN_FARMING_MULTIPLIER,
                 Math.min(PositionEconomyRuleConfig.MAX_FARMING_MULTIPLIER, multiplier));
     }
 
-    private int actualCs(PlayerState player, GameState gameState, TeamSide side,
+    private int actualCs(PlayerState player, GameState gameState, TeamSide side, int currentTimeSeconds,
                          int elapsedSeconds, Random random) {
-        double expectedCs = baseCsPerMinute(player.getPosition()) * farmingMultiplier(player)
+        double expectedCs = baseCsPerMinute(player.getPosition()) * farmingMultiplier(player, currentTimeSeconds)
                 * laneCsMultiplier(player.getPosition(), gameState, side) * elapsedSeconds / 60.0;
         if (expectedCs <= 0.0) return 0;
         int wholeCs = (int) Math.floor(expectedCs);
@@ -75,5 +93,9 @@ public final class PositionEconomyResolver {
             case ADC -> PositionEconomyRuleConfig.ADC_BASE_CS_PER_MINUTE;
             case SUPPORT -> PositionEconomyRuleConfig.SUPPORT_BASE_CS_PER_MINUTE;
         };
+    }
+
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

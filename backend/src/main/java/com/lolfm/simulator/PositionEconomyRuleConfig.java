@@ -11,6 +11,8 @@ public final class PositionEconomyRuleConfig {
     public static final double FARMING_MULTIPLIER_PER_POINT = 0.02;
     public static final double MIN_FARMING_MULTIPLIER = 0.74;
     public static final double MAX_FARMING_MULTIPLIER = 1.12;
+    public static final int EXPLICIT_FARMING_REALIZATION_START_SECONDS = 180;
+    public static final int EXPLICIT_FARMING_REALIZATION_FULL_SECONDS = 900;
     public static final int CS_GOLD = 20;
     public static final int PASSIVE_GOLD_PER_TICK = 14;
 

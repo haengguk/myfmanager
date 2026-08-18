@@ -196,7 +196,7 @@ public class GameState {
         for (TeamSide side : TeamSide.values()) for (PlayerState player : getTeamState(side).getPlayers()) {
             for (ProgressionEventData data : player.getProgressionState().drainEvents()) {
                 MatchEventType type = data.type() == ProgressionEventType.LEVEL_UP ? MatchEventType.LEVEL_UP : MatchEventType.ITEM_STAGE_REACHED;
-                MatchEvent event = new MatchEvent(data.timeSeconds(), type, type == MatchEventType.LEVEL_UP ? "Level up" : "Item stage reached", null, null, List.of());
+                MatchEvent event = new MatchEvent(Math.min(data.timeSeconds(), currentTimeSeconds), type, type == MatchEventType.LEVEL_UP ? "Level up" : "Item stage reached", null, null, List.of());
                 event.setProgressionEvent(data); events.add(event);
             }
         }

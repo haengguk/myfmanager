@@ -11,6 +11,7 @@ import java.util.Random;
 
 /** Resolves a defender response after a real gank side and lane have already been selected. */
 public final class CounterGankResolver {
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
     private final KillRewardResolver rewards = new KillRewardResolver();
 
     public ResponseDecision tryResolve(GameState state, TeamSide attackingSide, Lane lane,
@@ -120,7 +121,8 @@ public final class CounterGankResolver {
     double responseChance(GameState state, TeamSide attackingSide, boolean defenderInitiallyTriggered,
                           double overextension) {
         PlayerState defender = state.getTeamState(attackingSide.opposite()).playerAt(Position.JUNGLE);
-        double aggression = clamp((defender.getAggression() - 14)
+        double tracking = defender.hasMatchPerformance() ? playerSkills.jungleTracking(defender) : defender.getAggression();
+        double aggression = clamp((tracking - 14)
                         * CounterGankRuleConfig.DEFENDER_AGGRESSION_RESPONSE_FACTOR,
                 CounterGankRuleConfig.DEFENDER_AGGRESSION_RESPONSE_MIN,
                 CounterGankRuleConfig.DEFENDER_AGGRESSION_RESPONSE_MAX);
@@ -133,19 +135,22 @@ public final class CounterGankResolver {
     }
 
     double groupMechanics(GameState state, TeamSide side, Lane lane) {
-        return state.getTeamState(side).playerAt(Position.JUNGLE).getMechanics()
+        PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
+        return (jungler.hasMatchPerformance() ? playerSkills.laneIntervention(jungler) : jungler.getMechanics())
                 * CounterGankRuleConfig.JUNGLER_MECHANICS_CONTRIBUTION
                 + laneMechanics(state, side, lane) * CounterGankRuleConfig.LANE_MECHANICS_CONTRIBUTION;
     }
 
     double groupAggression(GameState state, TeamSide side, Lane lane) {
-        return state.getTeamState(side).playerAt(Position.JUNGLE).getAggression()
+        PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
+        return combatTendency(jungler)
                 * CounterGankRuleConfig.JUNGLER_AGGRESSION_CONTRIBUTION
                 + laneAggression(state, side, lane) * CounterGankRuleConfig.LANE_AGGRESSION_CONTRIBUTION;
     }
 
     double groupTeamfighting(GameState state, TeamSide side, Lane lane) {
-        return state.getTeamState(side).playerAt(Position.JUNGLE).getTeamfighting()
+        PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
+        return (jungler.hasMatchPerformance() ? playerSkills.combatExecution(jungler) : jungler.getTeamfighting())
                 * CounterGankRuleConfig.JUNGLER_TEAMFIGHTING_CONTRIBUTION
                 + laneTeamfighting(state, side, lane) * CounterGankRuleConfig.LANE_TEAMFIGHTING_CONTRIBUTION;
     }
@@ -240,9 +245,13 @@ public final class CounterGankResolver {
     private double laneAggression(GameState state, TeamSide side, Lane lane) {
         List<PlayerState> players = lanePlayers(state.getTeamState(side), lane);
         return lane == Lane.BOT
-                ? players.get(0).getAggression() * CounterGankRuleConfig.BOT_ADC_AGGRESSION_CONTRIBUTION
-                + players.get(1).getAggression() * CounterGankRuleConfig.BOT_SUPPORT_AGGRESSION_CONTRIBUTION
-                : players.getFirst().getAggression();
+                ? combatTendency(players.get(0)) * CounterGankRuleConfig.BOT_ADC_AGGRESSION_CONTRIBUTION
+                + combatTendency(players.get(1)) * CounterGankRuleConfig.BOT_SUPPORT_AGGRESSION_CONTRIBUTION
+                : combatTendency(players.getFirst());
+    }
+
+    private double combatTendency(PlayerState player) {
+        return player.hasMatchPerformance() ? PlayerImpactRuleConfig.BASELINE_ATTRIBUTE : player.getAggression();
     }
 
     private double laneTeamfighting(GameState state, TeamSide side, Lane lane) {

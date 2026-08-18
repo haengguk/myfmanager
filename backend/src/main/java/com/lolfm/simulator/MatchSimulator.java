@@ -359,7 +359,7 @@ public class MatchSimulator {
             long seed
     ) {
         validateCompositionModeBeforeMatch();
-        GameState gameState = initializeGameState(blueTeam, redTeam, assignments);
+        GameState gameState = initializeGameState(blueTeam, redTeam, assignments, seed);
         gameState.configureCompositionRuntime(new CompositionRuntimeState(teamCompositionGameplayMode, seed,
                 candidateExecutionAuthorization, semanticsAuditAuthorization, keySpecificCandidateAuthorization));
         gameState.getCompositionRuntimeState().initialize(assignments);
@@ -646,8 +646,10 @@ public class MatchSimulator {
             default -> { }
         }
     }
-    private GameState initializeGameState(Team blueTeam, Team redTeam, MatchChampionAssignments assignments) {
-        GameState state = new GameState(buildTeamState(blueTeam), buildTeamState(redTeam), diagnosticsEnabled,
+    private GameState initializeGameState(Team blueTeam, Team redTeam, MatchChampionAssignments assignments,
+                                          long seed) {
+        GameState state = new GameState(buildTeamState(blueTeam, TeamSide.BLUE, assignments, seed),
+                buildTeamState(redTeam, TeamSide.RED, assignments, seed), diagnosticsEnabled,
                 objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled,
                 lateGameMacroEnabled, assignments);
         state.configureChampionPower(DEFAULT_CHAMPION_POWER_CATALOG, championPowerEnabled);
@@ -663,11 +665,23 @@ public class MatchSimulator {
         return state;
     }
 
-    private TeamState buildTeamState(Team team) {
+    private TeamState buildTeamState(Team team, TeamSide side, MatchChampionAssignments assignments, long seed) {
         List<PlayerState> states = new ArrayList<>();
         for (Player player : team.getPlayers()) {
-            states.add(new PlayerState(player.getName(), player.getPosition(), player.getAttributes(), STARTING_GOLD,
-                    farmRecoveryEnabled));
+            PlayerKey playerKey = new PlayerKey(side, player.getPosition());
+            if (player.isLegacyProfile()) {
+                states.add(new PlayerState(player.getName(), player.getPosition(), player.getAttributes(),
+                        STARTING_GOLD, farmRecoveryEnabled));
+                continue;
+            }
+            com.lolfm.champion.ChampionRoleKey championRoleKey =
+                    new com.lolfm.champion.ChampionRoleKey(
+                            assignments.get(playerKey).championId(), player.getPosition());
+            int proficiency = player.getChampionProficiencies().get(championRoleKey);
+            PlayerMatchPerformance performance = PlayerMatchPerformance.realize(
+                    player.getRatings(), proficiency, seed, side);
+            states.add(new PlayerState(player.getName(), player.getPosition(), player.getAttributes(),
+                    performance, STARTING_GOLD, farmRecoveryEnabled));
         }
         return new TeamState(team.getName(), states);
     }
@@ -699,11 +713,7 @@ public class MatchSimulator {
     private int passiveGoldPerTick() { return PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK; }
 
     private boolean maybeCreateKillEvent(Random random, Team blueTeam, Team redTeam, GameState state, List<MatchEvent> events) {
-        double averageAggression = (averageAttribute(state.getBlueTeamState(), PlayerState::getAggression)
-                + averageAttribute(state.getRedTeamState(), PlayerState::getAggression)) / 2.0;
-        double baseChance = state.getCurrentTimeSeconds() >= 900 ? 0.11 : 0.08;
-        double chance = clamp(baseChance + (averageAggression - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE)
-                * PlayerImpactRuleConfig.SKIRMISH_CHANCE_PER_AVERAGE_AGGRESSION_POINT, 0.05, 0.15);
+        double chance = genericSkirmishChance(state);
         if (random.nextDouble() >= chance) return false;
         TeamSelection attacking = chooseTeamForSkirmish(random, blueTeam, redTeam, state);
         state.getCompositionRuntimeState().recordActualAttempt(
@@ -832,7 +842,7 @@ public class MatchSimulator {
         for (PlayerState player : team.getPlayers()) {
             if (!player.canParticipateInMajorCombatAt(currentTime)) continue;
             alive++;
-            total += player.getAggression() * PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_AGGRESSION_WEIGHT
+            total += combatTendency(player) * PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_AGGRESSION_WEIGHT
                     + player.getMechanics() * PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_MECHANICS_WEIGHT
                     + player.getTeamfighting() * PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_TEAMFIGHTING_WEIGHT;
         }
@@ -843,10 +853,22 @@ public class MatchSimulator {
         return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.GENERIC_SKIRMISH,own,enemy,existing,0,ProgressionApplicationStage.INITIATIVE);
     }
 
-    private double averageAttribute(TeamState team, java.util.function.ToIntFunction<PlayerState> attribute) {
-        double total = 0.0;
-        for (PlayerState player : team.getPlayers()) total += attribute.applyAsInt(player);
-        return team.getPlayers().isEmpty() ? PlayerImpactRuleConfig.BASELINE_ATTRIBUTE : total / team.getPlayers().size();
+    double genericSkirmishChance(GameState state) {
+        double averageTendency = (averageSkirmishTendency(state.getBlueTeamState())
+                + averageSkirmishTendency(state.getRedTeamState())) / 2.0;
+        double baseChance = state.getCurrentTimeSeconds() >= 900 ? 0.11 : 0.08;
+        return clamp(baseChance + (averageTendency - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE)
+                * PlayerImpactRuleConfig.SKIRMISH_CHANCE_PER_AVERAGE_AGGRESSION_POINT, 0.05, 0.15);
+    }
+
+    private double averageSkirmishTendency(TeamState team) {
+        if (team.getPlayers().isEmpty()) return PlayerImpactRuleConfig.BASELINE_ATTRIBUTE;
+        return team.getPlayers().stream().mapToDouble(this::combatTendency).average()
+                .orElse(PlayerImpactRuleConfig.BASELINE_ATTRIBUTE);
+    }
+
+    private double combatTendency(PlayerState player) {
+        return player.hasMatchPerformance() ? PlayerImpactRuleConfig.BASELINE_ATTRIBUTE : player.getAggression();
     }
 
     private double clamp(double value, double minimum, double maximum) {

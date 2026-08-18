@@ -16,6 +16,7 @@ import java.util.Random;
 /** Stateless decision and resolution layer entered only after the legacy initiative side is selected. */
 public final class ObjectiveDecisionResolver {
     private final ObjectiveFightResolver objectiveFights = new ObjectiveFightResolver();
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
 
     public Optional<MatchEvent> resolve(
             GameState state,
@@ -34,7 +35,7 @@ public final class ObjectiveDecisionResolver {
         ObjectiveDecisionKey key = new ObjectiveDecisionKey(type, spawnedAt, time, initiative);
         if (!state.getObjectiveDecisionState().reserve(key)) return Optional.empty();
 
-        List<ObjectiveDecisionWeightBreakdown> initiativeWeights = initiativeWeights(context);
+        List<ObjectiveDecisionWeightBreakdown> initiativeWeights = initiativeWeights(state, context);
         Selection initiativeSelection = select(initiativeWeights, random);
         ObjectiveDecisionAction initiativeAction = initiativeSelection.action();
         if (initiativeAction == ObjectiveDecisionAction.RESET) {
@@ -138,6 +139,11 @@ public final class ObjectiveDecisionResolver {
     }
 
     List<ObjectiveDecisionWeightBreakdown> initiativeWeights(ObjectiveDecisionContext context) {
+        return initiativeWeights(null, context);
+    }
+
+    private List<ObjectiveDecisionWeightBreakdown> initiativeWeights(
+            GameState state, ObjectiveDecisionContext context) {
         TeamSide side = context.initiativeSide();
         Edges edge = edges(context, side);
         double urgency = urgency(context, side);
@@ -340,8 +346,10 @@ public final class ObjectiveDecisionResolver {
     private double farmingEdge(GameState state, TeamSide side, ObjectiveDecisionContext.TradeTarget target) {
         if (target == null) return 0;
         Position position = target.primaryPusher().getPosition();
-        int own = state.getTeamState(side).playerAt(position).getFarming();
-        int enemy = state.getTeamState(side.opposite()).playerAt(position).getFarming();
+        PlayerState ownPlayer = state.getTeamState(side).playerAt(position);
+        PlayerState enemyPlayer = state.getTeamState(side.opposite()).playerAt(position);
+        double own = ownPlayer.hasMatchPerformance() ? playerSkills.sideLane(ownPlayer) : ownPlayer.getFarming();
+        double enemy = enemyPlayer.hasMatchPerformance() ? playerSkills.sideLane(enemyPlayer) : enemyPlayer.getFarming();
         return clamp((own - enemy) / ObjectiveDecisionRuleConfig.ATTRIBUTE_EDGE_NORMALIZER, -1, 1);
     }
 
@@ -384,6 +392,15 @@ public final class ObjectiveDecisionResolver {
     private int nextAttempt(ObjectiveState state, ObjectiveType type) {
         return switch (type) { case DRAGON -> state.getNextDragonAttemptSeconds(); case BARON -> state.getNextBaronAttemptSeconds(); case ELDER -> state.getNextElderAttemptSeconds(); };
     }
+    private double objectiveDecisionAdjustment(GameState state, TeamSide side, Edges edge) {
+        if (state == null || !state.getTeamState(side).playerAt(Position.JUNGLE).hasMatchPerformance()) return 0;
+        PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
+        double skillDelta = playerSkills.objectiveDecision(jungler) - 14;
+        double favorability = clamp(
+                edge.priority() + edge.alive() + edge.gold() + edge.teamfight(), -1, 1);
+        return skillDelta * favorability * 8.0;
+    }
+
     private double clamp(double value, double min, double max) { return Math.max(min, Math.min(max, value)); }
     private record Edges(double priority, double alive, double gold, double teamfight, double farming) { }
     private record Selection(ObjectiveDecisionAction action, boolean rollExecuted, Double roll) { }

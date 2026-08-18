@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 /** Stateless general-objective attempt resolver. */
 @Component
 public class ObjectiveAttemptResolver {
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
     private final ObjectivePriorityResolver priority = new ObjectivePriorityResolver();
     private final ObjectiveDecisionResolver decisions = new ObjectiveDecisionResolver();
 
@@ -198,7 +199,11 @@ public class ObjectiveAttemptResolver {
         double kills = team.getKills() * 65.0;
         double bigWin = state.hasRecentBigWin(side, 120) ? 450.0 : 0;
         double ace = state.hasRecentAce(side, 120) ? 800.0 : 0;
-        double other = 0;
+        PlayerState jungler = team.playerAt(com.lolfm.domain.Position.JUNGLE);
+        double other = !jungler.hasMatchPerformance() ? 0.0
+                : (playerSkills.objectiveSecure(jungler) - 14) * 12.0
+                + (playerSkills.areaSetup(team.playerAt(com.lolfm.domain.Position.SUPPORT)) - 14) * 6.0
+                + (playerSkills.visionControl(team.playerAt(com.lolfm.domain.Position.SUPPORT)) - 14) * 4.0;
         return new ObjectiveSelectionWeightBreakdown(alive, gold, kills, bigWin, ace, other,
                 alive + gold + kills + bigWin + ace + other);
     }
