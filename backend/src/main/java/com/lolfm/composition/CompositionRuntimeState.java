@@ -111,7 +111,17 @@ public final class CompositionRuntimeState {
             }
             semanticsAuditAuthorization.verifyExact();
         }
-        if (mode == TeamCompositionGameplayMode.CANDIDATE) {
+        if (mode == TeamCompositionGameplayMode.PRODUCTION_V2) {
+            if (authorization.auditOnly() || semanticsAuditAuthorization.enabled()
+                    || keySpecificCandidateAuthorization.enabled()) {
+                throw new CompositionGameplayConfigurationException(
+                        "COMPOSITION_PRODUCTION_AUTHORIZATION_MIXED",
+                        "Frozen V2 production execution cannot mix with candidate or audit authorization");
+            }
+            FrozenCompositionProductionCandidate.verifyExact();
+            this.frozenPolicy = FrozenCompositionInteractionRuntimePolicy.current();
+            this.gameplayGainPolicy = null;
+        } else if (mode == TeamCompositionGameplayMode.CANDIDATE) {
             FrozenCompositionGameplayGainPolicy policy = FrozenCompositionGameplayGainPolicy.current();
             if (!authorization.auditOnly()) throw new CompositionGameplayConfigurationException(
                     "CANDIDATE_CONTEXT_GAINS_NOT_APPROVED",
@@ -137,6 +147,7 @@ public final class CompositionRuntimeState {
     public TeamCompositionGameplayMode mode() { return mode; }
     public boolean isShadow() { return mode == TeamCompositionGameplayMode.SHADOW; }
     public boolean isCandidate() { return mode == TeamCompositionGameplayMode.CANDIDATE; }
+    public boolean isProductionV2() { return mode == TeamCompositionGameplayMode.PRODUCTION_V2; }
     public boolean isActive() { return mode != TeamCompositionGameplayMode.OFF; }
     public boolean initialized() { return initialized; }
     public long matchSeed() { return matchSeed; }
@@ -321,7 +332,7 @@ public final class CompositionRuntimeState {
             CompositionBaselineScoreDomain scoreDomain, double baselineGap, CompositionCombatRole perspectiveRole) {
         Objects.requireNonNull(perspectiveSide, "perspectiveSide");
         Objects.requireNonNull(perspectiveRole, "perspectiveRole");
-        if (!isAuditSemantics()) {
+        if (!isAuditSemantics() && !isProductionV2()) {
             return new CompositionWinnerDecisionAdjustment(context.name() + "|" + actionType.name() + "|" + scoreDomain.name(),
                     "NOT_APPLICABLE", baselineGap, 0.0, 0.0, 0.0, baselineGap, perspectiveRole);
         }
@@ -330,22 +341,26 @@ public final class CompositionRuntimeState {
         double referenceGain;
         String status;
         if (context == TeamCompositionContext.SKIRMISH) {
-            referenceGain = isKeySpecificCandidateAudit()
-                    ? FrozenCompositionKeySpecificChannelCandidate.SKIRMISH_WINNER_GAIN
+            referenceGain = isProductionV2() ? FrozenCompositionProductionCandidate.winnerGain(context)
+                    : isKeySpecificCandidateAudit()
+                    ? keySpecificCandidateAuthorization.winnerGain(context)
                     : FrozenCompositionGameplayGainPolicy.SKIRMISH_GAIN;
             status = "FROZEN_EXISTING_WINNER_GAIN";
         } else if (context == TeamCompositionContext.TEAMFIGHT) {
-            referenceGain = isKeySpecificCandidateAudit()
-                    ? FrozenCompositionKeySpecificChannelCandidate.TEAMFIGHT_WINNER_GAIN
+            referenceGain = isProductionV2() ? FrozenCompositionProductionCandidate.winnerGain(context)
+                    : isKeySpecificCandidateAudit()
+                    ? keySpecificCandidateAuthorization.winnerGain(context)
                     : FrozenCompositionGameplayGainPolicy.TEAMFIGHT_GAIN;
             status = isKeySpecificCandidateAudit() ? "FROZEN_KEY_SPECIFIC_FRESH_HOLDOUT_CANDIDATE" : "DIAGNOSTIC_HISTORICAL_REFERENCE_ONLY";
         } else if (context == TeamCompositionContext.SIEGE) {
-            referenceGain = isKeySpecificCandidateAudit()
-                    ? FrozenCompositionKeySpecificChannelCandidate.SIEGE_WINNER_GAIN
+            referenceGain = isProductionV2() ? FrozenCompositionProductionCandidate.winnerGain(context)
+                    : isKeySpecificCandidateAudit()
+                    ? keySpecificCandidateAuthorization.winnerGain(context)
                     : FrozenCompositionGameplayGainPolicy.SIEGE_GAIN;
             status = isKeySpecificCandidateAudit() ? "FROZEN_KEY_SPECIFIC_FRESH_HOLDOUT_CANDIDATE" : "DIAGNOSTIC_HISTORICAL_REFERENCE_ONLY";
         } else if (context == TeamCompositionContext.BASE_DEFENSE) {
-            referenceGain = isKeySpecificCandidateAudit() ? FrozenCompositionKeySpecificChannelCandidate.BASE_DEFENSE_WINNER_GAIN : 0.0;
+            referenceGain = isProductionV2() ? FrozenCompositionProductionCandidate.winnerGain(context)
+                    : isKeySpecificCandidateAudit() ? keySpecificCandidateAuthorization.winnerGain(context) : 0.0;
             status = isKeySpecificCandidateAudit() ? "FROZEN_KEY_SPECIFIC_FRESH_HOLDOUT_CANDIDATE" : "BASE_DEFENSE_ROLE_AWARE_WINNER_GAIN_UNCALIBRATED";
         } else {
             throw new CompositionGameplayConfigurationException("COMPOSITION_SEMANTICS_APPLICATION_KEY_UNMAPPED", context.name());
@@ -419,8 +434,10 @@ public final class CompositionRuntimeState {
                                             CompositionActionType actionType,
                                             CompositionBaselineScoreDomain scoreDomain,
                                             double sideBaselineScore, double opponentBaselineScore) {
-        if (isAuditSemantics() && context == TeamCompositionContext.SKIRMISH) {
-            return sideBaselineScore + FrozenCompositionGameplayGainPolicy.SKIRMISH_GAIN * edgeFor(side, context) / 2.0;
+        if ((isAuditSemantics() || isProductionV2()) && context == TeamCompositionContext.SKIRMISH) {
+            double gain = isProductionV2() ? FrozenCompositionProductionCandidate.SKIRMISH_WINNER_GAIN
+                    : FrozenCompositionGameplayGainPolicy.SKIRMISH_GAIN;
+            return sideBaselineScore + gain * edgeFor(side, context) / 2.0;
         }
         if (!isCandidate()) return sideBaselineScore;
         if (!Double.isFinite(sideBaselineScore) || !Double.isFinite(opponentBaselineScore)) {

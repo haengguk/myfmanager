@@ -13,9 +13,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CompositionRuntimeStateTest {
     @Test
-    void productionDefaultCompositionModeIsOff() {
+    void productionDefaultCompositionModeIsFrozenV2() {
         assertThat(SimulationOptions.productionDefaults().teamCompositionGameplayMode())
-                .isEqualTo(TeamCompositionGameplayMode.OFF);
+                .isEqualTo(TeamCompositionGameplayMode.PRODUCTION_V2);
+        assertThat(new CompositionRuntimeState(TeamCompositionGameplayMode.PRODUCTION_V2, 7L).isProductionV2()).isTrue();
     }
 
     @Test

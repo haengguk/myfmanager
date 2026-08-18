@@ -590,6 +590,17 @@ public class MatchSimulator {
             }
             semanticsAuditAuthorization.verifyExact();
         }
+        if (teamCompositionGameplayMode == TeamCompositionGameplayMode.PRODUCTION_V2) {
+            if (candidateExecutionAuthorization.auditOnly()
+                    || semanticsAuditAuthorization.enabled()
+                    || keySpecificCandidateAuthorization.enabled()) {
+                throw new CompositionGameplayConfigurationException(
+                        "COMPOSITION_PRODUCTION_AUTHORIZATION_MIXED",
+                        "Frozen V2 production execution cannot mix with candidate or audit authorization");
+            }
+            FrozenCompositionProductionCandidate.verifyExact();
+            return;
+        }
         if (teamCompositionGameplayMode != TeamCompositionGameplayMode.CANDIDATE) return;
         FrozenCompositionGameplayGainPolicy policy = FrozenCompositionGameplayGainPolicy.current();
         if (!candidateExecutionAuthorization.auditOnly()) throw new CompositionGameplayConfigurationException(

@@ -16,6 +16,13 @@ public record CompositionKeySpecificCandidateAuditAuthorization(
         return new CompositionKeySpecificCandidateAuditAuthorization("NONE", "NONE", -1, false);
     }
 
+    public static CompositionKeySpecificCandidateAuditAuthorization frozenFinalHoldoutCase(int caseIndex) {
+        if (caseIndex < 0) throw new IllegalArgumentException("caseIndex must be non-negative");
+        return new CompositionKeySpecificCandidateAuditAuthorization(
+                FrozenCompositionProductionCandidate.VERSION,
+                FrozenCompositionProductionCandidate.HASH, caseIndex, true);
+    }
+
     public static CompositionKeySpecificCandidateAuditAuthorization frozenFreshHoldoutCase(int caseIndex) {
         if (caseIndex < 0) throw new IllegalArgumentException("caseIndex must be non-negative");
         return new CompositionKeySpecificCandidateAuditAuthorization(
@@ -31,6 +38,18 @@ public record CompositionKeySpecificCandidateAuditAuthorization(
                     "COMPOSITION_KEY_SPECIFIC_CANDIDATE_NOT_AUTHORIZED",
                     "Key-specific candidate execution requires explicit match-scoped audit authorization");
         }
-        FrozenCompositionKeySpecificChannelCandidate.verifyIdentity(candidateVersion, candidateHash);
+        if (FrozenCompositionProductionCandidate.VERSION.equals(candidateVersion)) {
+            if (!FrozenCompositionProductionCandidate.HASH.equals(candidateHash)) throw new CompositionGameplayConfigurationException(
+                    "COMPOSITION_KEY_SPECIFIC_CANDIDATE_IDENTITY_MISMATCH", "Final candidate identity mismatch");
+            FrozenCompositionProductionCandidate.verifyExact();
+        } else {
+            FrozenCompositionKeySpecificChannelCandidate.verifyIdentity(candidateVersion, candidateHash);
+        }
+    }
+
+    public double winnerGain(TeamCompositionContext context) {
+        return FrozenCompositionProductionCandidate.VERSION.equals(candidateVersion)
+                ? FrozenCompositionProductionCandidate.winnerGain(context)
+                : FrozenCompositionKeySpecificChannelCandidate.winnerGain(context);
     }
 }

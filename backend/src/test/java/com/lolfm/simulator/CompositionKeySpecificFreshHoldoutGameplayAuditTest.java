@@ -31,7 +31,7 @@ class CompositionKeySpecificFreshHoldoutGameplayAuditTest {
     @Test void wrongCandidateAuthorizationFailsFast(){var a=new CompositionKeySpecificCandidateAuditAuthorization(FrozenCompositionKeySpecificChannelCandidate.VERSION,"bad",0,true);var e=assertThrows(CompositionGameplayConfigurationException.class,a::verifyExact);assertEquals("COMPOSITION_KEY_SPECIFIC_CANDIDATE_IDENTITY_MISMATCH",e.code());}
     @Test void candidateAuthorizationIsMatchScoped(){assertEquals(prepared.schedule().getFirst().caseIndex(),runtime.keySpecificCandidateAuthorization().holdoutCaseIndex());}
     @Test void publicApiCannotEnableFreshHoldoutCandidate(){assertFalse(CompositionKeySpecificCandidateAuditAuthorization.none().enabled());}
-    @Test void productionRemainsOff(){assertEquals(TeamCompositionGameplayMode.OFF,SimulationOptions.productionDefaults().teamCompositionGameplayMode());}
+    @Test void productionUsesFrozenV2(){assertEquals(TeamCompositionGameplayMode.PRODUCTION_V2,SimulationOptions.productionDefaults().teamCompositionGameplayMode());}
 
     @Test void freshHoldoutUsesNoPriorOrderedPairs(){assertEquals(0,prepared.priorOrderedOverlap());}
     @Test void freshHoldoutUsesNoPriorUnorderedPairs(){assertEquals(0,prepared.priorUnorderedOverlap());}

@@ -169,11 +169,14 @@ class CompositionAuditOnlySemanticsRuntimeTest {
     @Test void replayPreservesChannelDiagnostics() { assertEquals(CompositionAuditOnlySemanticsRuntime.hash(audit.compositionRuntimeDiagnostics().winnerChannelObservations()), CompositionAuditOnlySemanticsRuntime.hash(replay.compositionRuntimeDiagnostics().winnerChannelObservations())); }
     @Test void replayPreservesGameplayResult() { assertEquals(CompositionAuditOnlySemanticsRuntime.hash(audit.timeline()), CompositionAuditOnlySemanticsRuntime.hash(replay.timeline())); }
 
-    @Test void productionDefaultRemainsOff() { assertEquals(TeamCompositionGameplayMode.OFF, SimulationOptions.productionDefaults().teamCompositionGameplayMode()); }
+    @Test void productionDefaultUsesFrozenV2WithoutWeakeningCandidateGuard() { assertEquals(TeamCompositionGameplayMode.PRODUCTION_V2, SimulationOptions.productionDefaults().teamCompositionGameplayMode()); }
 
     @Test void publicCandidateRemainsGuarded() {
         assertThrows(CompositionGameplayConfigurationException.class,
                 () -> new CompositionRuntimeState(TeamCompositionGameplayMode.CANDIDATE, 1L));
+        var invalid = new CompositionCandidateExecutionAuthorization("bad", "bad", "bad", true);
+        assertThrows(CompositionGameplayConfigurationException.class,
+                () -> new CompositionRuntimeState(TeamCompositionGameplayMode.CANDIDATE, 1L, invalid));
     }
 
     @Test void noNewGameplayCandidateIsCreated() { assertFalse(state.isCandidate()); assertTrue(state.candidateApplications().isEmpty()); }

@@ -212,8 +212,8 @@ final class CompositionEligibleContextGainScreeningTest {
     }
 
     @Test
-    void repairScreeningLeavesProductionNeutral() {
-        assertThat(SimulationOptions.productionDefaults().teamCompositionGameplayMode()).isEqualTo(TeamCompositionGameplayMode.OFF);
+    void historicalScreeningPolicyRemainsNeutralWhileFrozenV2IsProduction() {
+        assertThat(SimulationOptions.productionDefaults().teamCompositionGameplayMode()).isEqualTo(TeamCompositionGameplayMode.PRODUCTION_V2);
         assertThat(SimulationOptions.productionDefaults().championMatchupMode().name()).isEqualTo("GEOMETRIC_V2");
         assertThat(FrozenCompositionInteractionRuntimePolicy.current().gain()).isEqualTo("NONE");
     }

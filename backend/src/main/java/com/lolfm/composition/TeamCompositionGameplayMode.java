@@ -4,5 +4,7 @@ package com.lolfm.composition;
 public enum TeamCompositionGameplayMode {
     OFF,
     SHADOW,
-    CANDIDATE
+    CANDIDATE,
+    /** Exact, identity-verified Phase 13D V2 production execution. */
+    PRODUCTION_V2
 }

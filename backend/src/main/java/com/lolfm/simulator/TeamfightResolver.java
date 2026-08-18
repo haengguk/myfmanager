@@ -407,6 +407,7 @@ public class TeamfightResolver {
         CompositionWinnerDecisionAdjustment auditAdjustment = state.getCompositionRuntimeState().auditWinnerAdjustment(
                 TeamSide.BLUE, compositionContext, action, domain, baselineScoreWithoutNoise, blueRole);
         double scoreWithoutNoise = state.getCompositionRuntimeState().isAuditSemantics()
+                || state.getCompositionRuntimeState().isProductionV2()
                 ? auditAdjustment.winnerDecisionGap() : historicalScoreWithoutNoise;
         double sample = random.nextDouble();
         long sampleOrdinal = randomDrawOrdinal(random);
