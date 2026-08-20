@@ -6,11 +6,13 @@ import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.domain.Position;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 public final class RoleAssignmentSolver {
     private final ChampionCatalog catalog;
@@ -46,6 +48,22 @@ public final class RoleAssignmentSolver {
 
     public boolean isFeasible(List<ChampionId> champions) { return !feasibleAssignments(champions).isEmpty(); }
 
+    /** Roles the candidate can still occupy in at least one legal assignment of the current partial draft. */
+    public Set<Position> feasibleCandidatePositions(List<ChampionId> picks, ChampionId candidate) {
+        ArrayList<ChampionId> next = new ArrayList<>(picks);
+        next.add(candidate);
+        EnumSet<Position> result = EnumSet.noneOf(Position.class);
+        feasibleAssignments(next).forEach(value -> result.add(value.positionOf(candidate)));
+        return Set.copyOf(result);
+    }
+
+    public Set<Position> feasiblePickedPositions(List<ChampionId> picks, ChampionId champion) {
+        if (!picks.contains(champion)) return Set.of();
+        EnumSet<Position> result = EnumSet.noneOf(Position.class);
+        feasibleAssignments(picks).forEach(value -> result.add(value.positionOf(champion)));
+        return Set.copyOf(result);
+    }
+
     public RoleAssignment bestAssignment(List<ChampionId> champions, DraftTeamContext team) {
         return feasibleAssignments(champions).stream()
                 .max(Comparator.comparingDouble((RoleAssignment value) -> proficiencyScore(value, team))
@@ -61,10 +79,13 @@ public final class RoleAssignmentSolver {
 
     public double practicalFlexValue(List<ChampionId> picks, ChampionId candidate, DraftTeamContext team) {
         ArrayList<ChampionId> next = new ArrayList<>(picks); next.add(candidate);
-        List<RoleAssignment> assignments = feasibleAssignments(next);
-        if (assignments.isEmpty()) return Double.NEGATIVE_INFINITY;
-        double best = assignments.stream().mapToDouble(value -> proficiencyScore(value, team)).max().orElse(0.0);
-        long strong = assignments.stream().filter(value -> proficiencyScore(value, team) >= best - 2.0).count();
+        List<RoleAssignment> feasible = feasibleAssignments(next);
+        if (feasible.isEmpty()) return Double.NEGATIVE_INFINITY;
+        EnumMap<Position, Double> roleBest = new EnumMap<>(Position.class);
+        feasible.forEach(value -> roleBest.merge(value.positionOf(candidate),
+                proficiencyScore(value, team), Math::max));
+        double best = roleBest.values().stream().mapToDouble(Double::doubleValue).max().orElse(0.0);
+        long strong = roleBest.values().stream().filter(value -> value >= best - 2.0).count();
         return Math.min(20.0, best * 0.72 + Math.min(6, strong) * 1.3);
     }
 

@@ -59,6 +59,10 @@ public final class DraftAvailability {
 
     public double rolePoolCompression(DraftState state, TeamSide targetSide, ChampionId banned) {
         double before = poolHealth(state, targetSide, null);
+        return rolePoolCompression(state, targetSide, banned, before);
+    }
+
+    double rolePoolCompression(DraftState state, TeamSide targetSide, ChampionId banned, double before) {
         DraftState after = syntheticUnavailable(state, banned);
         double afterHealth = poolHealth(after, targetSide, null);
         if (before <= 0.0) return 0.0;

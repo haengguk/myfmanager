@@ -28,7 +28,8 @@ class DraftSearchPolicyTest {
         DraftAvailability availability = new DraftAvailability(resources.champions().catalog(), roles);
         DraftCandidateGenerator generator = new DraftCandidateGenerator(resources.champions().catalog(), resources.meta(),
                 roles, composition, availability, policy);
-        PreDraftPlanner planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(), resources.champions().composition());
+        PreDraftPlanner planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(),
+                resources.champions().composition(), roles);
         SeriesDraftHistory history = new SeriesDraftHistory();
         DraftState state = DraftState.fresh(DraftRuleSet.professional(), history);
         DraftPlanPortfolio portfolio = planner.plan(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL,

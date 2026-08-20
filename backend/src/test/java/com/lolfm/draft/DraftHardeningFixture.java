@@ -11,7 +11,7 @@ final class DraftHardeningFixture {
     final DraftMatchupEvaluator matchup = new DraftMatchupEvaluator(roles, resources.champions().matchup());
     final DraftScoringPolicy policy = DraftScoringPolicy.standard();
     final PreDraftPlanner planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(),
-            resources.champions().composition());
+            resources.champions().composition(), roles);
     final PickEvaluator picks = new PickEvaluator(resources.champions().catalog(), resources.meta(), matchup,
             roles, composition, availability, policy);
     final BanEvaluator bans = new BanEvaluator(resources.champions().catalog(), resources.meta(),

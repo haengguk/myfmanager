@@ -51,6 +51,11 @@ public final class DraftMatchupEvaluator {
     public static double normalize(double edge) {
         return Math.max(0.0, Math.min(20.0, 10.0 + edge / DRAFT_FULL_SCALE_EDGE * 10.0));
     }
+
+    public static double positiveThreatScore(double edge) {
+        if (edge <= 0.0) return 0.0;
+        return Math.max(0.0, Math.min(20.0, edge / DRAFT_FULL_SCALE_EDGE * 20.0));
+    }
     private static ChampionId championAt(RoleAssignmentSolver.RoleAssignment assignment, Position position) {
         return assignment.positions().entrySet().stream().filter(entry -> entry.getValue() == position)
                 .map(java.util.Map.Entry::getKey).findFirst().orElse(null);

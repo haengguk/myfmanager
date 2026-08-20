@@ -12,7 +12,7 @@ class DraftProductionSearchHardeningTest {
     private final DraftHardeningFixture f = new DraftHardeningFixture();
 
     @Test
-    void productionChoosePathEscapesAtLeastOneImmediateScoreGreedyTrap() {
+    void productionOpponentResponseGreedyTrapIsEscaped() {
         DraftState state = DraftState.fresh(DraftRuleSet.professional(), new SeriesDraftHistory());
         boolean escapedGreedyTrap = false;
         while (!state.complete() && !escapedGreedyTrap) {
@@ -25,7 +25,11 @@ class DraftProductionSearchHardeningTest {
             DraftSearchCandidateScore finalBest = choice.rootCandidateScores().getFirst();
             assertThat(finalBest.championId()).isEqualTo(choice.championId());
             assertThat(choice.finalSearchScore()).isEqualTo(choice.immediateScore() + choice.continuationScore());
-            escapedGreedyTrap = !immediateBest.championId().equals(choice.championId())
+            boolean nextTurnIsOpponent = state.nextTurnIndex() + 1 < state.ruleSet().turns().size()
+                    && state.ruleSet().turns().get(state.nextTurnIndex() + 1).side()
+                    == state.currentTurn().side().opposite();
+            escapedGreedyTrap = nextTurnIsOpponent
+                    && !immediateBest.championId().equals(choice.championId())
                     && choice.finalSearchScore() > immediateBest.finalSearchScore();
             DraftTurn turn = state.currentTurn();
             state = state.apply(new DraftAction(turn.number(), turn.side(), turn.actionType(), choice.championId()));
@@ -50,8 +54,9 @@ class DraftProductionSearchHardeningTest {
     }
 
     @Test
-    void protectionValueIsNotThePlanThreatLinearCombination() {
-        DraftState state = DraftState.fresh(DraftRuleSet.professional(), new SeriesDraftHistory());
+    void protectionValueRemainsSeparateFromPlanStructuralThreat() {
+        DraftState state = new DraftState(DraftRuleSet.professional(), 13,
+                List.of(f.id("caitlyn")), List.of(), List.of(), List.of(), java.util.Set.of());
         DraftPlanPortfolio own = f.planner.plan(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL,
                 TeamSide.BLUE, SetSupport.none());
         DraftPlanPortfolio enemy = f.planner.plan(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL,
@@ -61,15 +66,11 @@ class DraftProductionSearchHardeningTest {
                 "jarvan-iv", "wukong", "ahri", "syndra").stream().map(f::id).toList();
         List<BanEvaluation> values = candidates.stream().map(candidate -> f.bans.evaluate(state, TeamSide.BLUE,
                 candidate, DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, own, enemy)).toList();
-        boolean separated = false;
-        for (BanEvaluation a : values) for (BanEvaluation b : values) {
-            double threatGap = Math.abs(a.components().get(BanScoreComponent.THREAT_TO_OUR_PLAN_PORTFOLIO)
-                    - b.components().get(BanScoreComponent.THREAT_TO_OUR_PLAN_PORTFOLIO));
-            double protectionGap = Math.abs(a.components().get(BanScoreComponent.PROTECTION_VALUE)
-                    - b.components().get(BanScoreComponent.PROTECTION_VALUE));
-            if (threatGap < 0.75 && protectionGap > 0.25) separated = true;
-        }
-        assertThat(separated).isTrue();
+        assertThat(values).anyMatch(value ->
+                value.components().get(BanScoreComponent.THREAT_TO_OUR_PLAN_PORTFOLIO) > 0.0
+                        && value.components().get(BanScoreComponent.PROTECTION_VALUE) == 0.0);
+        assertThat(values).anyMatch(value ->
+                value.components().get(BanScoreComponent.PROTECTION_VALUE) > 0.0);
     }
 
     private DraftPlanPortfolio portfolio(DraftPlanArchetype type, List<ChampionId> core, double viability) {

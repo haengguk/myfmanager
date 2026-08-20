@@ -32,7 +32,8 @@ public final class DraftEngine {
                 resources.champions().composition(), assignments);
         DraftAvailability availability = new DraftAvailability(resources.champions().catalog(), assignments);
         DraftMatchupEvaluator matchup = new DraftMatchupEvaluator(assignments, resources.champions().matchup());
-        planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(), resources.champions().composition());
+        planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(),
+                resources.champions().composition(), assignments);
         pickEvaluator = new PickEvaluator(resources.champions().catalog(), resources.meta(), matchup,
                 assignments, composition, availability, policy);
         banEvaluator = new BanEvaluator(resources.champions().catalog(), resources.meta(), resources.champions().composition(),

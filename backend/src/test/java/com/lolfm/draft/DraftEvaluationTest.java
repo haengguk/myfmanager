@@ -14,7 +14,7 @@ class DraftEvaluationTest {
     private final DraftCompositionEvaluator composition = new DraftCompositionEvaluator(resources.champions().catalog(),
             resources.champions().composition(), roles);
     private final PreDraftPlanner planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(),
-            resources.champions().composition());
+            resources.champions().composition(), roles);
 
     @Test
     void portfolioExistsBeforeFirstBanAndContainsPrimarySecondaryFallbackDirections() {
@@ -27,13 +27,20 @@ class DraftEvaluationTest {
     }
 
     @Test
-    void enemyTakingCorePoolLowersPrimaryViabilityAndEnablesPortfolioPivot() {
+    void currentBansRemovingCorePoolLowerViabilityAndEnablePortfolioPivot() {
         DraftPlanPortfolio initial = planner.plan(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL,
                 TeamSide.BLUE, java.util.Set.of());
         DraftPlan original = initial.preferred();
-        List<ChampionId> stolen = original.coreCandidates().subList(0, 5);
-        DraftPlanPortfolio replanned = planner.replan(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL,
-                TeamSide.BLUE, java.util.Set.of(), List.of(), stolen);
+        DraftState state = DraftState.fresh(
+                DraftRuleSet.professional(), new SeriesDraftHistory());
+        for (ChampionId banned : original.coreCandidates().subList(0, 6)) {
+            DraftTurn turn = state.currentTurn();
+            state = state.apply(new DraftAction(
+                    turn.number(), turn.side(), turn.actionType(), banned));
+        }
+        DraftPlanPortfolio replanned = planner.replan(
+                DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL,
+                TeamSide.BLUE, state);
         double newOriginalViability = replanned.plans().stream().filter(plan -> plan.archetype() == original.archetype())
                 .mapToDouble(DraftPlan::viability).findFirst().orElse(Double.NEGATIVE_INFINITY);
         assertThat(newOriginalViability).isLessThan(original.viability());

@@ -70,7 +70,30 @@ class DraftEngineIntegrationTest {
         MatchTimeline replay = simulator.simulate(teams.createBlueTeam(), teams.createRedTeam(), 73L, result.matchChampionAssignments());
         assertThat(first.getWinner()).isEqualTo(replay.getWinner());
         assertThat(first.getDurationSeconds()).isEqualTo(replay.getDurationSeconds());
-        assertThat(first.getEvents()).isNotEmpty();
-        assertThat(first.getSnapshots()).isNotEmpty();
+        assertThat(first.getEvents()).isNotEmpty()
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactlyElementsOf(replay.getEvents());
+        assertThat(first.getSnapshots()).isNotEmpty()
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsExactlyElementsOf(replay.getSnapshots());
+    }
+
+    @Test
+    void fullDraftLatencyMeasurementDoesNotMutateSeriesBehavior() {
+        SeriesDraftHistory history = new SeriesDraftHistory();
+        long gameOneStart = System.nanoTime();
+        FinalDraftResult gameOne = engine.draft(
+                DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, history);
+        long gameOneMillis = (System.nanoTime() - gameOneStart) / 1_000_000;
+        assertThat(history.committedGameCount()).isZero();
+        history.commitCompleted(gameOne);
+        long laterStart = System.nanoTime();
+        FinalDraftResult later = engine.draft(
+                DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, history);
+        long laterMillis = (System.nanoTime() - laterStart) / 1_000_000;
+        assertThat(history.committedGameCount()).isOne();
+        assertThat(later.hardFearlessExclusions()).containsExactlyInAnyOrderElementsOf(history.consumedPicks());
+        System.out.printf("PHASE13F_LATENCY_GAME1_MS=%d%n", gameOneMillis);
+        System.out.printf("PHASE13F_LATENCY_LATER_HARD_FEARLESS_MS=%d%n", laterMillis);
     }
 }

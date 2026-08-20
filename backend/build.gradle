@@ -388,3 +388,10 @@ tasks.register("runPhase13DFinalization", JavaExec) {
     mainClass = "com.lolfm.simulator.Phase13DFinalization"
     args "finalize"
 }
+
+tasks.register("runPhase13GAStructuralIntegratedAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13G-A structural integrated audit over frozen synthetic contexts."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.draft.Phase13GAStructuralIntegratedAudit"
+}

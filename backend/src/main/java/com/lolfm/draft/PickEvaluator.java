@@ -7,6 +7,7 @@ import com.lolfm.simulator.TeamSide;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
+import java.util.Set;
 
 public final class PickEvaluator {
     private final ChampionCatalog champions;
@@ -33,7 +34,9 @@ public final class PickEvaluator {
         ArrayList<ChampionId> next = new ArrayList<>(state.picks(side)); next.add(candidate);
         List<RoleAssignmentSolver.RoleAssignment> feasible = assignments.feasibleAssignments(next);
         if (feasible.isEmpty() || !availability.canComplete(state, side, candidate)) return illegal(candidate);
-        double metaPriority = bestRoleValue(candidate, key -> meta.priority(key));
+        Set<com.lolfm.domain.Position> feasiblePositions = assignments.feasibleCandidatePositions(
+                state.picks(side), candidate);
+        double metaPriority = bestRoleValue(candidate, feasiblePositions, key -> meta.priority(key));
         double playerFit = feasible.stream().mapToDouble(value -> assignments.proficiencyScore(value, own)).max().orElse(0.0);
         double matchupValue = matchup.robustScore(next, state.picks(side.opposite()));
         double compFit = composition.compositionFit(state.picks(side), candidate, own, ownPortfolio);
@@ -56,8 +59,10 @@ public final class PickEvaluator {
 
     private double opponentValue(DraftState state, TeamSide side, ChampionId candidate,
                                  DraftTeamContext opponent, DraftPlanPortfolio enemyPortfolio) {
-        if (!assignments.isFeasible(append(state.picks(side.opposite()), candidate))) return 0.0;
-        double roleValue = champions.get(candidate).supportedPositions().stream()
+        if (!availability.canComplete(state, side.opposite(), candidate)) return 0.0;
+        Set<com.lolfm.domain.Position> feasiblePositions = assignments.feasibleCandidatePositions(
+                state.picks(side.opposite()), candidate);
+        double roleValue = feasiblePositions.stream()
                 .map(position -> new ChampionRoleKey(candidate, position))
                 .mapToDouble(key -> meta.priority(key) * 0.50 + opponent.proficiency(key) * 0.28).max().orElse(0.0);
         double flex = assignments.practicalFlexValue(state.picks(side.opposite()), candidate, opponent);
@@ -68,11 +73,10 @@ public final class PickEvaluator {
     private double planRelevance(ChampionId candidate, DraftPlanPortfolio portfolio) {
         return portfolio.plans().stream().filter(plan -> plan.coreCandidates().contains(candidate)).mapToDouble(DraftPlan::viability).max().orElse(0.0);
     }
-    private static List<ChampionId> append(List<ChampionId> values, ChampionId value) {
-        ArrayList<ChampionId> result = new ArrayList<>(values); result.add(value); return result;
-    }
-    private double bestRoleValue(ChampionId candidate, java.util.function.ToDoubleFunction<ChampionRoleKey> value) {
-        return champions.get(candidate).supportedPositions().stream().map(position -> new ChampionRoleKey(candidate, position)).mapToDouble(value).max().orElse(0.0);
+    private double bestRoleValue(ChampionId candidate, Set<com.lolfm.domain.Position> positions,
+                                 java.util.function.ToDoubleFunction<ChampionRoleKey> value) {
+        return positions.stream().map(position -> new ChampionRoleKey(candidate, position))
+                .mapToDouble(value).max().orElse(0.0);
     }
     private static PickEvaluation illegal(ChampionId id) { return new PickEvaluation(id, Double.NEGATIVE_INFINITY, java.util.Map.of(), false); }
 }

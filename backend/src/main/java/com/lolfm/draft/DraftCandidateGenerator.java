@@ -6,8 +6,10 @@ import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.simulator.TeamSide;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 public final class DraftCandidateGenerator {
     private final ChampionCatalog champions;
@@ -32,13 +34,31 @@ public final class DraftCandidateGenerator {
                 .filter(id -> !state.unavailableChampions().contains(id))
                 .filter(id -> state.currentTurn().actionType() == DraftActionType.BAN || feasiblePick(state, side, id))
                 .toList();
-        Comparator<ChampionId> coarse = Comparator.comparingDouble((ChampionId id) ->
-                        state.currentTurn().actionType() == DraftActionType.PICK
-                                ? pickCoarseValue(id, own, ownPortfolio)
-                                : banCoarseValue(state, side, id, own, enemy, ownPortfolio, enemyPortfolio))
+        double beforeEnemyHealth = state.currentTurn().actionType() == DraftActionType.BAN
+                ? availability.poolHealth(state, side.opposite(), null) : 0.0;
+        Map<ChampionId, Double> coarseValues = new HashMap<>();
+        Map<ChampionId, Double> repairValues = new HashMap<>();
+        Map<ChampionId, Double> searchPriorities = new HashMap<>();
+        for (ChampionId id : legal) {
+            double coarseValue = state.currentTurn().actionType() == DraftActionType.PICK
+                    ? pickCoarseValue(state, side, id, own, ownPortfolio)
+                    : banCoarseValue(state, side, id, own, enemy, ownPortfolio, enemyPortfolio,
+                            beforeEnemyHealth);
+            coarseValues.put(id, coarseValue);
+            if (state.currentTurn().actionType() == DraftActionType.PICK) {
+                double repairValue = composition.repairValue(
+                        state.picks(side), state.picks(side.opposite()), id, own, enemy);
+                repairValues.put(id, repairValue);
+                searchPriorities.put(id, coarseValue + repairValue * 0.24
+                        + assignments.feasibleCandidatePositions(state.picks(side), id).size() * 0.12);
+            } else {
+                searchPriorities.put(id, coarseValue);
+            }
+        }
+        Comparator<ChampionId> coarse = Comparator.comparingDouble((ChampionId id) -> coarseValues.get(id))
                 .reversed().thenComparing(ChampionId::value);
-        Comparator<ChampionId> repair = Comparator.comparingDouble((ChampionId id) -> composition.repairValue(
-                state.picks(side), state.picks(side.opposite()), id, own, enemy)).reversed().thenComparing(ChampionId::value);
+        Comparator<ChampionId> repair = Comparator.comparingDouble((ChampionId id) -> repairValues.get(id))
+                .reversed().thenComparing(ChampionId::value);
         LinkedHashSet<ChampionId> reserved = new LinkedHashSet<>();
         if (state.currentTurn().actionType() == DraftActionType.PICK) {
             legal.stream().sorted(repair).limit(policy.structuralRepairSlots()).forEach(reserved::add);
@@ -46,15 +66,19 @@ public final class DraftCandidateGenerator {
         LinkedHashSet<ChampionId> selected = new LinkedHashSet<>(reserved);
         legal.stream().sorted(coarse).filter(id -> !selected.contains(id))
                 .limit(policy.candidateLimit() - selected.size()).forEach(selected::add);
-        return List.copyOf(selected);
+        Comparator<ChampionId> searchOrder = Comparator.comparingDouble((ChampionId id) -> searchPriorities.get(id))
+                .reversed().thenComparing(ChampionId::value);
+        return selected.stream().sorted(searchOrder).toList();
     }
 
     private boolean feasiblePick(DraftState state, TeamSide side, ChampionId candidate) {
         ArrayList<ChampionId> values = new ArrayList<>(state.picks(side)); values.add(candidate);
         return assignments.isFeasible(values) && availability.canComplete(state, side, candidate);
     }
-    private double pickCoarseValue(ChampionId id, DraftTeamContext team, DraftPlanPortfolio portfolio) {
-        double best = champions.get(id).supportedPositions().stream().map(position -> new ChampionRoleKey(id, position))
+    private double pickCoarseValue(DraftState state, TeamSide side, ChampionId id,
+                                   DraftTeamContext team, DraftPlanPortfolio portfolio) {
+        double best = assignments.feasibleCandidatePositions(state.picks(side), id).stream()
+                .map(position -> new ChampionRoleKey(id, position))
                 .mapToDouble(key -> meta.priority(key) * 0.62 + team.proficiency(key) * 0.38).max().orElse(0.0);
         double relevance = portfolio.plans().stream().filter(plan -> plan.coreCandidates().contains(id))
                 .mapToDouble(DraftPlan::viability).max().orElse(0.0);
@@ -64,19 +88,49 @@ public final class DraftCandidateGenerator {
     private double banCoarseValue(DraftState state, TeamSide side, ChampionId id,
                                   DraftTeamContext own, DraftTeamContext enemy,
                                   DraftPlanPortfolio ownPortfolio, DraftPlanPortfolio enemyPortfolio) {
-        double enemyValue = champions.get(id).supportedPositions().stream()
+        return banCoarseValue(state, side, id, own, enemy, ownPortfolio, enemyPortfolio,
+                availability.poolHealth(state, side.opposite(), null));
+    }
+
+    private double banCoarseValue(DraftState state, TeamSide side, ChampionId id,
+                                  DraftTeamContext own, DraftTeamContext enemy,
+                                  DraftPlanPortfolio ownPortfolio, DraftPlanPortfolio enemyPortfolio,
+                                  double beforeEnemyHealth) {
+        if (!availability.canComplete(state, side.opposite(), id)) return 0.0;
+        java.util.Set<com.lolfm.domain.Position> enemyPositions =
+                assignments.feasibleCandidatePositions(state.picks(side.opposite()), id);
+        double enemyValue = enemyPositions.stream()
                 .map(position -> new ChampionRoleKey(id, position))
                 .mapToDouble(key -> meta.priority(key) * 0.48 + enemy.proficiency(key) * 0.34).max().orElse(0.0);
         double flex = assignments.practicalFlexValue(state.picks(side.opposite()), id, enemy);
         if (!Double.isFinite(flex)) flex = 0.0;
         double enemyPlan = enemyPortfolio.plans().stream().filter(plan -> plan.coreCandidates().contains(id))
                 .mapToDouble(DraftPlan::viability).max().orElse(0.0);
-        double threat = ownPortfolio.plans().stream().mapToDouble(plan -> champions.get(id).supportedPositions().stream()
+        double threat = ownPortfolio.plans().stream().mapToDouble(plan -> enemyPositions.stream()
                 .map(position -> new ChampionRoleKey(id, position))
                 .mapToDouble(key -> plan.structuralVulnerabilities().stream()
                         .mapToInt(capability -> composition.profile(key).capability(capability)).average().orElse(0.0))
                 .max().orElse(0.0)).max().orElse(0.0);
-        double compression = availability.rolePoolCompression(state, side.opposite(), id);
+        double compression = availability.rolePoolCompression(
+                state, side.opposite(), id, beforeEnemyHealth);
         return enemyValue + flex * 0.16 + enemyPlan * 0.16 + threat * 0.22 + compression * 0.35;
+    }
+
+    double coarseValue(DraftState state, TeamSide side, ChampionId id,
+                       DraftTeamContext own, DraftTeamContext enemy,
+                       DraftPlanPortfolio ownPortfolio, DraftPlanPortfolio enemyPortfolio) {
+        return state.currentTurn().actionType() == DraftActionType.PICK
+                ? pickCoarseValue(state, side, id, own, ownPortfolio)
+                : banCoarseValue(state, side, id, own, enemy, ownPortfolio, enemyPortfolio);
+    }
+
+    double searchPriority(DraftState state, TeamSide side, ChampionId id,
+                          DraftTeamContext own, DraftTeamContext enemy,
+                          DraftPlanPortfolio ownPortfolio, DraftPlanPortfolio enemyPortfolio) {
+        double coarse = coarseValue(state, side, id, own, enemy, ownPortfolio, enemyPortfolio);
+        if (state.currentTurn().actionType() == DraftActionType.BAN) return coarse;
+        double repair = composition.repairValue(state.picks(side), state.picks(side.opposite()), id, own, enemy);
+        double currentRoleOptions = assignments.feasibleCandidatePositions(state.picks(side), id).size();
+        return coarse + repair * 0.24 + currentRoleOptions * 0.12;
     }
 }

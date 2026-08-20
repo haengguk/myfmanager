@@ -5,8 +5,10 @@ import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.composition.ChampionCompositionProfileCatalog;
 import com.lolfm.composition.CompositionCapability;
+import com.lolfm.domain.Position;
 import com.lolfm.simulator.TeamSide;
 import java.util.EnumMap;
+import java.util.Set;
 
 public final class BanEvaluator {
     private final ChampionCatalog champions;
@@ -31,14 +33,25 @@ public final class BanEvaluator {
     public BanEvaluation evaluate(DraftState state, TeamSide side, ChampionId candidate,
                                   DraftTeamContext own, DraftTeamContext enemy,
                                   DraftPlanPortfolio ownPortfolio, DraftPlanPortfolio enemyPortfolio) {
-        double enemyExpected = opponentExpectedValue(state, side, candidate, enemy, enemyPortfolio);
-        double threat = structuralThreat(candidate, ownPortfolio);
-        double metaValue = best(candidate, key -> meta.priority(key));
-        double flex = assignments.practicalFlexValue(state.picks(side.opposite()), candidate, enemy);
+        boolean opponentCanComplete = availability.canComplete(state, side.opposite(), candidate);
+        Set<Position> enemyPositions = assignments.feasibleCandidatePositions(
+                state.picks(side.opposite()), candidate);
+        double enemyExpected = opponentCanComplete
+                ? opponentExpectedValue(state, side, candidate, enemy, enemyPortfolio) : 0.0;
+        double threat = opponentCanComplete ? structuralThreat(candidate, ownPortfolio, enemyPositions) : 0.0;
+        double metaValue = opponentCanComplete
+                ? best(candidate, enemyPositions, key -> meta.priority(key)) : 0.0;
+        double flex = opponentCanComplete
+                ? assignments.practicalFlexValue(state.picks(side.opposite()), candidate, enemy) : 0.0;
         if (!Double.isFinite(flex)) flex = 0.0;
-        double compression = availability.rolePoolCompression(state, side.opposite(), candidate);
-        double protection = protectionValue(candidate, ownPortfolio);
-        double lost = best(candidate, key -> meta.priority(key) * 0.55 + own.proficiency(key) * 0.45);
+        double compression = opponentCanComplete
+                ? availability.rolePoolCompression(state, side.opposite(), candidate) : 0.0;
+        double protection = opponentCanComplete
+                ? protectionValue(state, side, candidate, ownPortfolio, enemyPositions) : 0.0;
+        Set<Position> ownPositions = assignments.feasibleCandidatePositions(state.picks(side), candidate);
+        double lost = availability.canComplete(state, side, candidate)
+                ? best(candidate, ownPositions, key -> meta.priority(key) * 0.55 + own.proficiency(key) * 0.45)
+                : 0.0;
         if (side == TeamSide.RED || state.nextTurnIndex() >= 6) lost *= 0.82;
         EnumMap<BanScoreComponent, Double> components = new EnumMap<>(BanScoreComponent.class);
         components.put(BanScoreComponent.OPPONENT_EXPECTED_PICK_VALUE, enemyExpected);
@@ -54,10 +67,10 @@ public final class BanEvaluator {
 
     private double opponentExpectedValue(DraftState state, TeamSide side, ChampionId candidate,
                                          DraftTeamContext enemy, DraftPlanPortfolio enemyPortfolio) {
-        java.util.ArrayList<ChampionId> next = new java.util.ArrayList<>(state.picks(side.opposite()));
-        next.add(candidate);
-        if (!assignments.isFeasible(next)) return 0.0;
-        double base = best(candidate, key -> meta.priority(key) * 0.48 + enemy.proficiency(key) * 0.30);
+        Set<Position> feasiblePositions = assignments.feasibleCandidatePositions(
+                state.picks(side.opposite()), candidate);
+        double base = best(candidate, feasiblePositions,
+                key -> meta.priority(key) * 0.48 + enemy.proficiency(key) * 0.30);
         double plan = enemyPortfolio.plans().stream().filter(value -> value.coreCandidates().contains(candidate))
                 .mapToDouble(DraftPlan::viability).max().orElse(0.0);
         double flex = assignments.practicalFlexValue(state.picks(side.opposite()), candidate, enemy);
@@ -65,21 +78,33 @@ public final class BanEvaluator {
         return base + plan * 0.10 + Math.max(0.0, flex) * 0.10 + Math.max(0.0, fit) * 0.10;
     }
 
-    private double protectionValue(ChampionId threat, DraftPlanPortfolio ownPortfolio) {
-        return ownPortfolio.plans().stream().flatMap(plan -> plan.coreCandidates().stream().limit(5))
-                .mapToDouble(core -> directCoreThreat(threat, core)).max().orElse(0.0);
+    private double protectionValue(DraftState state, TeamSide side, ChampionId threat,
+                                   DraftPlanPortfolio ownPortfolio, Set<Position> threatPositions) {
+        double pickedProtection = state.picks(side).stream().mapToDouble(core -> directCoreThreat(
+                threat, core, threatPositions,
+                assignments.feasiblePickedPositions(state.picks(side), core))).max().orElse(0.0);
+        double futureProtection = ownPortfolio.plans().stream()
+                .flatMap(plan -> plan.coreCandidates().stream().limit(5))
+                .filter(core -> !state.unavailableChampions().contains(core))
+                .filter(core -> availability.canComplete(state, side, core))
+                .mapToDouble(core -> directCoreThreat(threat, core, threatPositions,
+                        assignments.feasibleCandidatePositions(state.picks(side), core)))
+                .max().orElse(0.0);
+        return Math.max(pickedProtection, futureProtection);
     }
 
-    private double directCoreThreat(ChampionId threat, ChampionId core) {
-        return champions.get(threat).supportedPositions().stream()
-                .filter(champions.get(core).supportedPositions()::contains)
-                .mapToDouble(position -> DraftMatchupEvaluator.normalize(matchup.roleEdge(
+    private double directCoreThreat(ChampionId threat, ChampionId core, Set<Position> threatPositions,
+                                    Set<Position> protectedPositions) {
+        return threatPositions.stream()
+                .filter(protectedPositions::contains)
+                .mapToDouble(position -> DraftMatchupEvaluator.positiveThreatScore(matchup.roleEdge(
                         new ChampionRoleKey(threat, position), new ChampionRoleKey(core, position))))
-                .max().orElse(10.0);
+                .max().orElse(0.0);
     }
 
-    private double structuralThreat(ChampionId candidate, DraftPlanPortfolio portfolio) {
-        return portfolio.plans().stream().mapToDouble(plan -> champions.get(candidate).supportedPositions().stream()
+    private double structuralThreat(ChampionId candidate, DraftPlanPortfolio portfolio,
+                                    Set<Position> threatPositions) {
+        return portfolio.plans().stream().mapToDouble(plan -> threatPositions.stream()
                 .map(position -> composition.profiles().get(new ChampionRoleKey(candidate, position)))
                 .mapToDouble(profile -> plan.structuralVulnerabilities().stream().mapToInt(profile::capability).average().orElse(0.0))
                 .max().orElse(0.0) * viabilityWeight(plan, portfolio)).max().orElse(0.0);
@@ -88,7 +113,9 @@ public final class BanEvaluator {
         double preferred = Math.max(1.0, portfolio.preferred().viability());
         return Math.max(0.45, Math.min(1.2, plan.viability() / preferred));
     }
-    private double best(ChampionId candidate, java.util.function.ToDoubleFunction<ChampionRoleKey> function) {
-        return champions.get(candidate).supportedPositions().stream().map(position -> new ChampionRoleKey(candidate, position)).mapToDouble(function).max().orElse(0.0);
+    private double best(ChampionId candidate, Set<Position> positions,
+                        java.util.function.ToDoubleFunction<ChampionRoleKey> function) {
+        return positions.stream().map(position -> new ChampionRoleKey(candidate, position))
+                .mapToDouble(function).max().orElse(0.0);
     }
 }

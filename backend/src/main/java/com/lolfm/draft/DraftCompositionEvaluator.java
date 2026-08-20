@@ -106,10 +106,7 @@ public final class DraftCompositionEvaluator {
     }
 
     public java.util.Set<Position> feasibleCandidatePositions(List<ChampionId> ownPicks, ChampionId candidate) {
-        List<ChampionId> next = append(ownPicks, candidate);
-        java.util.EnumSet<Position> result = java.util.EnumSet.noneOf(Position.class);
-        assignments.feasibleAssignments(next).forEach(value -> result.add(value.positionOf(candidate)));
-        return java.util.Set.copyOf(result);
+        return assignments.feasibleCandidatePositions(ownPicks, candidate);
     }
 
     public double assignmentQuality(RoleAssignmentSolver.RoleAssignment assignment) {
