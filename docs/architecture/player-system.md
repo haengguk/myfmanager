@@ -105,6 +105,19 @@ PlayerId + PlayerRatingKey + PlayerRatings + ChampionProficiencies
   → PlayerState(PlayerKey, PlayerId, display name)
 ```
 
+현재 backend application flow는 이 경계를 다음처럼 직접 연결한다.
+
+```text
+explicit teamCode
+  → LckTeamAssembler Team
+  → DraftTeamContext(Position → PlayerId/proficiency)
+  → FinalDraftResult final roles
+  → MatchChampionAssignments(PlayerKey → champion/Position)
+  → MatchSimulator with the same Team objects
+```
+
+Preflight는 team display name이 아니라 explicit team code와 `PlayerRatingKey`를 사용한다. 각 roster position의 `PlayerId`, rating profile, Draft context identity/proficiency, final `ChampionRoleKey`, match assignment를 비교하며 양 팀 duplicate stable ID는 Random 전에 거부한다.
+
 - match state lookup은 `PlayerKey`/position index를 사용한다.
 - person-level proficiency는 `PlayerId`를 사용한다.
 - `TeamfightResolver`는 display name으로 `PlayerState`를 찾지 않는다.
@@ -134,6 +147,6 @@ GEN 대 T1 real-team smoke는 explicit legal assignments와 seed 73 하나로 si
 
 ## HTTP 경계
 
-현재 `MatchController`는 계속 `DummyDataFactory` legacy/demo team을 사용한다. Fixed-seed HTTP contract test는 실제 KILL event에서 기존 display participant fields와 additive `player-fixture-*` stable ID fields가 함께 직렬화됨을 고정한다. `LckTeamAssembler`와 real proficiency catalog는 production-capable backend 경계까지 구현됐지만 HTTP default path, Draft API, frontend flow는 바꾸지 않았다.
+현재 `MatchController`는 계속 `DummyDataFactory` legacy/demo team을 사용한다. Fixed-seed HTTP contract test는 실제 KILL event에서 기존 display participant fields와 additive `player-fixture-*` stable ID fields가 함께 직렬화됨을 고정한다. `RealDraftMatchOrchestrator`가 real LCK Draft→Match backend flow를 제공하지만 HTTP default path, Draft API, frontend flow는 바꾸지 않았다.
 
-다음 integration은 `REAL_DRAFT_TO_MATCH_BACKEND_ORCHESTRATION`이다. 세부 field와 rejection contract는 [Player Data Schema](../reference/player-data-schema.md)를 참고한다.
+다음 runtime 작업은 `EXPLICIT_SIMULATION_CANDIDATE_CONFIGURATION`이다. 세부 identity field와 rejection contract는 [Player Data Schema](../reference/player-data-schema.md)를 참고한다.

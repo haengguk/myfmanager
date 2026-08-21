@@ -1,6 +1,6 @@
 # Project Status
 
-이 문서는 2026-08-21 working tree의 production source, active resources, 최종 backend regression과 이번 milestone에서 직접 생성한 structured diagnostic을 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-08-22 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured diagnostic을 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
 ## Current Production Snapshot
 
@@ -87,9 +87,29 @@ Generated report:
 
 Report SHA-256: summary `4f3a13ca19cb00abc8da463173578b222fa55e389bb34d1a96abe6f2b10bfde3`, key CSV `936346bc52dfbfab430634d1fcb44781bb765c82f3558f60565e1c36541b1f61`.
 
+### Real Draft→Match backend application flow
+
+`RealDraftMatchOrchestrator`는 Spring application component로서 다음 deterministic 경계를 연결한다.
+
+```text
+explicit LCK team codes
+  → LckTeamAssembler real Teams
+  → DraftTeamContext
+  → DraftEngine / FinalDraftResult
+  → FinalDraftResult.matchChampionAssignments()
+  → same real Teams + seeded MatchSimulator
+  → MatchTimeline
+```
+
+`FinalDraftResult`의 final role assignment가 match champion assignment의 유일한 source다. Application preflight는 explicit team code 기반 current `PlayerRatingKey`/`PlayerId`, 정확한 five-position roster, Draft context identity/proficiency, legal `ChampionRoleKey`, final-role/assignment equality, match-wide duplicate stable ID, caller-owned Hard Fearless exclusions를 검증한다. Team/player display name과 array index는 identity로 사용하지 않는다.
+
+Series overload는 호출자가 소유한 `SeriesDraftHistory`만 변경한다. Draft와 Match가 모두 성공한 뒤 양 팀 completed picks를 commit하고, 다음 game은 그 exact set을 exclusion으로 받는다. Static/global series state와 BO3/BO5 scheduling은 추가하지 않았다.
+
+GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history replay를 실행해 flex final role mapping, 실제 LCK `PlayerId`의 KILL/assist participant 보존, complete timeline replay를 검증했다. 이 backend component는 아직 REST/frontend에 노출되지 않는다.
+
 ### HTTP match runtime
 
-Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDataFactory` legacy/demo team이다. Fixed-seed HTTP test는 실제 KILL event가 기존 display fields와 additive `player-fixture-*` ID fields를 함께 직렬화함을 검증한다. Match preflight는 양 팀 전체의 duplicate stable `PlayerId`를 gameplay Random 전에 거부한다. `LckTeamAssembler`를 통한 real team은 production-capable backend 경계와 focused simulator smoke까지 도달했지만 HTTP default path로 전환하지 않았다.
+Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDataFactory` legacy/demo team이다. Fixed-seed HTTP test는 실제 KILL event가 기존 display fields와 additive `player-fixture-*` ID fields를 함께 직렬화함을 검증한다. Match preflight는 양 팀 전체의 duplicate stable `PlayerId`를 gameplay Random 전에 거부한다. 별도 `RealDraftMatchOrchestrator`가 real backend flow를 제공하지만 HTTP default path로 전환하지 않았다.
 
 현재 autowired simulator path는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`와 `TeamCompositionGameplayMode.OFF`를 사용한다. `SimulationOptions.productionDefaults()`가 제공하는 Matchup `GEOMETRIC_V2`와 Composition `PRODUCTION_V2`와 구분해야 한다.
 
@@ -104,6 +124,8 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - 10개 실제 LCK 팀의 deterministic assembly 및 GEN 대 T1 same-seed simulator smoke
 - ChampionId presence와 target-role completion을 분리한 537-key reachability diagnostic와 JSON/CSV/SHA report
 - coherent default player catalog graph, exact resource semantic envelope, match-wide stable PlayerId invariant
+- real LCK Team→DraftEngine→final role→MatchChampionAssignments→seeded MatchSimulator application orchestration
+- explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
 - Dragon/Baron/Elder, objective decision/contest/trade, structure/Nexus end game
@@ -113,19 +135,18 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Partial / Disabled
 
-- Real LCK team/proficiency path는 backend에서 준비됐지만 `MatchController`와 Draft API/frontend orchestration에는 아직 연결되지 않았다.
+- Real LCK Draft→Match flow는 backend component로 연결됐지만 `MatchController`, Draft API와 frontend에는 아직 노출되지 않았다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
 - Jungle Clear는 51-role foundation과 evaluator가 있으나 모든 profile이 `gameplayEnabled: false`이고 simulator economy/pathing에 연결되지 않았다.
-- DraftEngine은 real `DraftTeamContext`와 match assignments를 만들 수 있지만 Spring bean/API/frontend orchestration이 없다.
+- `DraftEngine`은 application component 내부의 pure domain dependency이며 독립 Spring bean/API로 공개되지 않는다.
 - 첫 game은 exclusion이 없어 단판처럼 동작하지만 별도 Standard ruleset 선택 기능은 없다.
 
 ## Pending
 
-1. `REAL_DRAFT_TO_MATCH_BACKEND_ORCHESTRATION`: real roster 선택, Draft 결과, match start를 backend service/config 경계에서 연결한다.
-2. `PHASE_13G_B_REAL_DATA_INTEGRATED_AUDIT_AND_CALIBRATION`: 이번 reachability review signal을 입력으로 별도 진단·calibration을 수행한다.
-3. HTTP simulator가 의도한 production Matchup/Composition mode와 일치하는지 explicit configuration audit 후 결정한다.
-4. Jungle Clear는 calibration, eligibility, Random-consumption 검증 뒤에만 gameplay에 연결한다.
-5. 별도 Standard draft mode가 필요하면 Hard Fearless identity/availability와 분리한 additive ruleset으로 추가한다.
+1. `EXPLICIT_SIMULATION_CANDIDATE_CONFIGURATION`: Matchup/Composition 등 candidate runtime configuration을 명시적 application input으로 고정한다.
+2. `PHASE_13G_B_REAL_DATA_INTEGRATED_AUDIT_AND_CALIBRATION`: reachability review signal과 explicit simulation configuration을 입력으로 별도 진단·calibration을 수행한다.
+3. Jungle Clear는 calibration, eligibility, Random-consumption 검증 뒤에만 gameplay에 연결한다.
+4. 별도 Standard draft mode가 필요하면 Hard Fearless identity/availability와 분리한 additive ruleset으로 추가한다.
 
 ## Test Snapshot
 
@@ -137,19 +158,19 @@ Final command:
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 148 |
-| Tests | 1,944 |
+| JUnit suites | 149 |
+| Tests | 1,955 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 957.868 seconds |
-| Gradle wall duration | 16m 9s |
+| Aggregate JUnit XML time | 1,120.738 seconds |
+| Gradle wall duration | 18m 53s |
 | Build | `BUILD SUCCESSFUL` |
 
-이번 hardening의 full regression은 최종 production/Gradle tree에서 1회 실행해 clean pass했다. Default XML에는 diagnostic-tagged 537-key audit suite가 없고, full run 전후 full-population report timestamp도 동일해 기본 `test`가 report를 다시 생성하지 않았음을 확인했다. Role-specific flex cases, Gate binding, catalog graph/prerequisites, resource envelope, match-wide identity, HTTP serialization, representative real keys, small report writer focused tests도 각각 통과했다.
+이번 orchestration milestone의 full regression은 최종 production tree에서 1회 실행해 clean pass했다. Default XML에는 diagnostic-tagged 537-key audit suite가 없고, full run 뒤에도 full-population report timestamp가 동일해 기본 `test`가 report를 다시 생성하지 않았음을 확인했다. 직접 영향 범위 focused 묶음은 7 suites / 40 tests가 통과했으며, 그중 real orchestration suite는 GEN–T1 game 1/game 2/replay, flex mapping, identity, rejection, series history, legacy controller isolation 11 tests를 포함한다.
 
 테스트/diagnostic 실행 경계는 [Testing](development/testing.md), player contract는 [Player System](architecture/player-system.md)과 [Player Data Schema](reference/player-data-schema.md)를 참고한다.
 
 ## Last Updated
 
-2026-08-21 (Asia/Seoul)
+2026-08-22 (Asia/Seoul)

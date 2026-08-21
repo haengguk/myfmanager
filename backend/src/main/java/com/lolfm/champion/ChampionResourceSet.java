@@ -29,8 +29,23 @@ public record ChampionResourceSet(
         return load(mapper, manifest);
     }
 
+    /** Loads the authored companion catalogs around an already-owned champion catalog instance. */
+    public static ChampionResourceSet loadDefault(ObjectMapper mapper, ChampionCatalog catalog) {
+        Objects.requireNonNull(mapper, "mapper");
+        Objects.requireNonNull(catalog, "catalog");
+        return load(mapper, ChampionResourceManifest.loadDefault(mapper), catalog);
+    }
+
     public static ChampionResourceSet load(ObjectMapper mapper, ChampionResourceManifest manifest) {
         ChampionCatalog catalog = new ChampionCatalog(mapper, required(manifest.catalog(), "catalog"));
+        return load(mapper, manifest, catalog);
+    }
+
+    public static ChampionResourceSet load(ObjectMapper mapper, ChampionResourceManifest manifest,
+                                           ChampionCatalog catalog) {
+        Objects.requireNonNull(mapper, "mapper");
+        Objects.requireNonNull(manifest, "manifest");
+        Objects.requireNonNull(catalog, "catalog");
         ChampionPowerProfileCatalog power = new ChampionPowerProfileCatalog(
                 mapper, catalog, required(manifest.power(), "power"));
         ChampionRoleMatchupProfileCatalog matchup = ChampionMatchupProfileResourceLoader.load(

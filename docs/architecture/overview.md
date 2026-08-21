@@ -8,8 +8,9 @@
 flowchart LR
     I[Player Identity + Rating + Proficiency Catalogs] --> R[LckTeamAssembler]
     R --> X[Real LCK Team]
-    X --> D[DraftEngine]
-    X --> S[MatchSimulator]
+    X --> O[RealDraftMatchOrchestrator]
+    O --> D[DraftEngine]
+    O --> S[MatchSimulator]
     D --> F[FinalDraftResult]
     F --> A[MatchChampionAssignments]
     C[Champion selection API] --> A
@@ -21,8 +22,8 @@ flowchart LR
 두 진입 경로는 현재 동일하게 공개되어 있지 않다.
 
 - `GET /api/champions`와 `POST /api/matches/simulate`는 Spring API에 연결되어 있다.
-- `LckTeamAssembler`는 identity/rating/proficiency catalog를 결합한 실제 10개 LCK 팀을 만들 수 있고 simulator 연계 smoke가 있지만, 현재 `MatchController` 기본 roster와 frontend flow는 여전히 dummy path다.
-- `DraftEngine`은 real-team `DraftTeamContext`, `FinalDraftResult`, `MatchChampionAssignments`를 만들 수 있지만, Draft Controller와 frontend orchestration은 없다.
+- `RealDraftMatchOrchestrator`는 Spring application component로서 실제 LCK team assembly, real `DraftTeamContext`, `DraftEngine`, final assignment preflight와 `MatchSimulator`를 하나의 deterministic backend 호출로 연결한다.
+- 이 orchestration은 아직 Controller나 frontend에 노출되지 않았다. `MatchController` 기본 roster와 현재 frontend flow는 계속 dummy path다.
 
 ## Major Subsystems
 
@@ -31,6 +32,7 @@ flowchart LR
 | Champion | champion identity, legal role, power/matchup/composition/jungle resource 로딩과 검증 | `com.lolfm.champion.*`, `com.lolfm.composition.*` |
 | Player | stable person identity, 현재 roster mapping, 일반 능력치, champion proficiency, 실제 팀 조립, match-scoped performance | `com.lolfm.player.*`, `com.lolfm.domain.PlayerRatings`, `ChampionProficiencies` |
 | Draft | legal candidate 생성, pick/ban 평가, search, flex role 최종 배정, series exclusions | `com.lolfm.draft.*` |
+| Application orchestration | real team assembly, Draft-owned assignment 검증·전달, caller-owned series commit | `com.lolfm.application.*` |
 | Match Simulation | tick 순서, resolver priority, mutable match state, event/snapshot, 종료 | `com.lolfm.simulator.MatchSimulator` |
 | Progression | XP, level, gold, item stage와 그에 따른 실제 경기 전투 기여 | `PlayerProgressionState`, `ProgressionEconomyResolver`, `CombatProgressionEvaluator` |
 | Matchup | 같은 `Position`의 두 champion 사이 구조적 상호작용 | `ChampionMatchupEvaluator`, `ChampionMatchupResolver` |
@@ -62,16 +64,19 @@ flowchart LR
 
 1. Active manifest가 coherent champion resource set을 선택하고 cross-catalog coverage를 검증한다.
 2. 실제 roster path는 identity, rating, sparse proficiency resource의 version/hash/subject equality를 검증하고 `LckTeamAssembler`가 explicit `PlayerId`를 가진 팀을 만든다.
-3. champion selection 또는 real-team `DraftEngine` 결과가 10개의 구조화된 `ChampionAssignment`로 materialize된다.
-4. `MatchSimulator`가 fresh `GameState`, 두 `TeamState`, 열 `PlayerState(PlayerKey, PlayerId, displayName)`를 생성한다.
-5. 고정 resolver 순서로 tick을 진행하며 seed 기반 `Random`을 소비한다.
-6. actual action만 gameplay state와 summary event를 만들고, kill은 공통 reward/death path를 통과한다.
-7. 매 tick 뒤 `MatchSnapshot`이 추가되고, Nexus 파괴 또는 safety timeout으로 `MatchTimeline`이 완성된다.
-8. frontend는 event text를 gameplay identity로 역해석하지 않고 structured fields와 snapshots를 표시한다.
+3. legacy HTTP는 champion selection을 materialize하고, real backend path는 `RealDraftMatchOrchestrator`가 동일 Team으로 Draft를 실행한 뒤 `FinalDraftResult.matchChampionAssignments()`를 재해석 없이 선택한다.
+4. real path의 stateless preflight가 explicit team code, current `PlayerRatingKey`, roster `PlayerId`, Draft context, final role legality, assignment equality, series exclusions를 검증한다.
+5. `MatchSimulator`가 fresh `GameState`, 두 `TeamState`, 열 `PlayerState(PlayerKey, PlayerId, displayName)`를 생성한다.
+6. 고정 resolver 순서로 tick을 진행하며 seed 기반 `Random`을 소비한다.
+7. actual action만 gameplay state와 summary event를 만들고, kill은 공통 reward/death path를 통과한다.
+8. 매 tick 뒤 `MatchSnapshot`이 추가되고, Nexus 파괴 또는 safety timeout으로 `MatchTimeline`이 완성된다.
+9. frontend는 event text를 gameplay identity로 역해석하지 않고 structured fields와 snapshots를 표시한다.
 
 ## 실제 Spring Wiring
 
-`MatchController`가 주입받는 `MatchSimulator`의 `@Autowired` constructor는 legacy four-flag overload를 거쳐 eight-boolean `SimulationOptions` convenience constructor를 사용한다. 이 경로는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`와 `TeamCompositionGameplayMode.OFF`를 사용한다. 반면 `SimulationOptions.productionDefaults()`는 `GEOMETRIC_V2`와 `PRODUCTION_V2`를 정의하며 명시적으로 simulator를 구성하는 테스트/도구에서 사용된다. 또한 `LckTeamAssembler`는 production-capable backend component지만 현재 `MatchController`는 `DummyDataFactory`를 계속 사용한다. 따라서 구현된 real-team 경계와 HTTP endpoint에서 실제 활성화된 경로를 구분해야 한다.
+`MatchController`가 주입받는 `MatchSimulator`의 `@Autowired` constructor는 legacy four-flag overload를 거쳐 eight-boolean `SimulationOptions` convenience constructor를 사용한다. 이 경로는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`와 `TeamCompositionGameplayMode.OFF`를 사용한다. 반면 `SimulationOptions.productionDefaults()`는 `GEOMETRIC_V2`와 `PRODUCTION_V2`를 정의하며 명시적으로 simulator를 구성하는 테스트/도구에서 사용된다.
+
+`RealDraftMatchOrchestrator`도 현재 주입된 동일 `MatchSimulator`를 사용하므로 gameplay mode나 Random 순서를 바꾸지 않는다. Draft resource wiring은 Spring의 `ChampionCatalog` instance를 재사용해 active power/matchup/composition resource를 검증하고 `DraftEngine`을 구성한다. `MatchController`는 이 component를 주입받지 않고 `DummyDataFactory`를 계속 사용하므로 backend real path와 HTTP demo path를 구분해야 한다.
 
 ## Global Invariants
 

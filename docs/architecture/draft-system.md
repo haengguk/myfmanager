@@ -4,7 +4,7 @@
 
 `com.lolfm.draft.DraftEngine`이 production draft domain의 진입점이다. `DraftResourceSet.loadDefault()`는 active `ChampionResourceSet`과 고정 Draft Meta resource를 조립한다.
 
-현재 DraftEngine은 Spring component/controller가 아니며 frontend에도 draft 화면이 없다. Java 호출자는 `DraftTeamContext` 두 개와 series-scoped `SeriesDraftHistory`를 전달해야 한다. 결과의 `MatchChampionAssignments`는 `MatchSimulator`에 직접 전달할 수 있고 이 연계는 integration test로 검증된다.
+`DraftEngine` 자체는 pure domain component이며 controller가 아니다. 직접 Java 호출자는 `DraftTeamContext` 두 개와 series-scoped `SeriesDraftHistory`를 전달할 수 있다. Spring backend에서는 `RealDraftMatchOrchestrator`가 실제 Team으로 두 context를 만들고 DraftEngine을 호출한다. 결과의 `FinalDraftResult.matchChampionAssignments()`가 유일한 match assignment source이며 재계산 없이 `MatchSimulator`에 전달된다. Draft REST API와 frontend draft 화면은 아직 없다.
 
 ## Draft Flow
 
@@ -119,6 +119,7 @@ production draft package에는 `Random`이나 system-time 입력이 없다. 동�
 - bans는 다음 game exclusion에 포함하지 않는다.
 - 같은 completed draft를 두 번 commit해도 `draftIdentity()`로 idempotent하게 한 번만 반영한다.
 - 새 `SeriesDraftHistory`는 이전 series 상태를 공유하지 않는다.
+- `RealDraftMatchOrchestrator`의 series overload는 호출자가 소유한 history를 사용하며, Draft preflight와 Match가 모두 성공한 뒤 completed picks를 commit한다. 실패한 orchestration은 다음 game의 exclusion을 선반영하지 않는다.
 
 따라서 현재 구현 범위는 “exclusion 없는 첫 game + completed picks를 누적하는 Hard Fearless series”다. 독립적으로 선택 가능한 Standard/Fearless API나 tournament orchestration은 없다.
 
@@ -132,6 +133,6 @@ Draft Meta는 `draft-meta-full-173-216-role-2026-08-18-v3`이며 active champion
 - series scheduling, side selection, roster/substitute management
 - 별도의 Standard ruleset 선택
 - production Player Ratings를 draft score에 직접 반영하는 경로
-- Draft가 자동으로 match endpoint를 호출하는 orchestration
+- BO3/BO5 scheduling이나 match endpoint를 통한 orchestration
 
 현재 snapshot은 [Project Status](../project-status.md), player 경계는 [Player System](player-system.md)을 참고한다.
