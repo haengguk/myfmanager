@@ -72,7 +72,10 @@ public final class LaneCombatResolver {
         rewards.award(time, winners, killer, losers, victim, assistants, respawnDelaySeconds(time), false, null, events);
         for (int i = eventStart; i < events.size(); i++) events.get(i).setCombatSource(CombatSource.LANE_COMBAT);
         MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Lane combat kill",
-                killer.getPlayerName(), victim.getPlayerName(), assistants.stream().map(PlayerState::getPlayerName).toList());
+                killer.getPlayerName(), victim.getPlayerName(),
+                assistants.stream().map(PlayerState::getPlayerName).toList());
+        kill.setParticipantPlayerIds(killer.getStructuredPlayerId(), victim.getStructuredPlayerId(),
+                assistants.stream().map(PlayerState::getStructuredPlayerId).toList());
         kill.setCombatSource(CombatSource.LANE_COMBAT);
         events.add(kill);
         state.getCombatExecutionStats().recordLaneCombatKill();
@@ -166,13 +169,18 @@ public final class LaneCombatResolver {
     private MatchEvent laneEvent(int time, Lane lane, TeamSide initiator, LaneCombatOutcome outcome,
                                  TeamSide winningSide, PlayerState killer, PlayerState victim,
                                  List<PlayerState> assistants, double before, double after) {
-        List<String> assistantIds = assistants.stream().map(PlayerState::getPlayerName).toList();
+        List<String> assistantNames = assistants.stream().map(PlayerState::getPlayerName).toList();
+        List<String> assistantIds = assistants.stream().map(PlayerState::getStructuredPlayerId).toList();
         MatchEvent event = new MatchEvent(time, MatchEventType.LANE_COMBAT, "Lane combat",
-                killer == null ? null : killer.getPlayerName(), victim == null ? null : victim.getPlayerName(), assistantIds);
+                killer == null ? null : killer.getPlayerName(),
+                victim == null ? null : victim.getPlayerName(), assistantNames);
+        event.setParticipantPlayerIds(
+                killer == null ? null : killer.getStructuredPlayerId(),
+                victim == null ? null : victim.getStructuredPlayerId(), assistantIds);
         event.setCombatSource(CombatSource.LANE_COMBAT);
         event.setLaneCombat(new LaneCombatData(lane, initiator, outcome, winningSide,
-                killer == null ? null : killer.getPlayerName(), victim == null ? null : victim.getPlayerName(),
-                assistantIds, before, after));
+                killer == null ? null : killer.getStructuredPlayerId(),
+                victim == null ? null : victim.getStructuredPlayerId(), assistantIds, before, after));
         return event;
     }
 

@@ -27,15 +27,28 @@ public final class PlayerRatingCatalog {
     private final int activeAttributesPerPlayer;
     private final List<PlayerRatingResource> players;
     private final Map<PlayerRatingKey, PlayerRatingResource> byKey;
+    private final PlayerIdentityCatalog identities;
 
     @org.springframework.beans.factory.annotation.Autowired
+    public PlayerRatingCatalog(ObjectMapper mapper, PlayerIdentityCatalog identities) {
+        this(PlayerRatingResourceLoader.load(mapper,
+                PlayerRatingResourceLoader.class.getResourceAsStream(PlayerRatingResourceLoader.RESOURCE)), identities);
+    }
+
     public PlayerRatingCatalog(ObjectMapper mapper) {
         this(PlayerRatingResourceLoader.load(mapper,
-                PlayerRatingResourceLoader.class.getResourceAsStream(PlayerRatingResourceLoader.RESOURCE)));
+                PlayerRatingResourceLoader.class.getResourceAsStream(PlayerRatingResourceLoader.RESOURCE)),
+                PlayerIdentityCatalog.loadDefault());
     }
 
     public PlayerRatingCatalog(PlayerRatingResourceLoader.LoadedResource loaded) {
+        this(loaded, PlayerIdentityCatalog.loadDefault());
+    }
+
+    public PlayerRatingCatalog(PlayerRatingResourceLoader.LoadedResource loaded,
+                               PlayerIdentityCatalog identities) {
         Objects.requireNonNull(loaded, "loaded");
+        this.identities = Objects.requireNonNull(identities, "identities");
         version = loaded.version();
         resourceSha256 = loaded.resourceSha256();
         teamCount = loaded.teamCount();
@@ -48,6 +61,7 @@ public final class PlayerRatingCatalog {
         players = List.copyOf(loaded.players());
         byKey = players.stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
                 PlayerRatingResource::playerKey, value -> value));
+        validateIdentityBindings();
     }
 
     public static PlayerRatingCatalog loadDefault() {
@@ -66,7 +80,8 @@ public final class PlayerRatingCatalog {
     public List<PlayerRatingResource> all() { return players; }
     public Set<String> teamCodes() {
         return java.util.Collections.unmodifiableSet(new TreeSet<>(
-                players.stream().map(PlayerRatingResource::teamCode).collect(java.util.stream.Collectors.toSet())));
+                players.stream().map(PlayerRatingResource::teamCode)
+                        .collect(java.util.stream.Collectors.toSet())));
     }
 
     public List<PlayerRatingResource> forTeam(String teamCode) {
@@ -78,16 +93,56 @@ public final class PlayerRatingCatalog {
         return Optional.ofNullable(byKey.get(Objects.requireNonNull(key, "key")));
     }
 
+    public Optional<PlayerRatingResource> find(PlayerId playerId) {
+        Objects.requireNonNull(playerId, "playerId");
+        return find(identities.currentRatingKey(playerId));
+    }
+
     public PlayerRatingResource get(PlayerRatingKey key) {
-        return find(key).orElseThrow(() -> new IllegalArgumentException("Unknown player rating key: " + key.stableId()));
+        return find(key).orElseThrow(() -> new IllegalArgumentException(
+                "Unknown player rating key: " + key.stableId()));
+    }
+
+    public PlayerRatingResource get(PlayerId playerId) {
+        return find(playerId).orElseThrow(() -> new IllegalArgumentException(
+                "Unknown PlayerId: " + playerId));
     }
 
     public PlayerRatings ratings(PlayerRatingKey key) { return get(key).ratings(); }
+    public PlayerRatings ratings(PlayerId playerId) { return get(playerId).ratings(); }
+    public PlayerId playerId(PlayerRatingKey key) { return identities.findByRatingKey(key); }
+    public PlayerRatingKey currentRatingKey(PlayerId playerId) { return identities.currentRatingKey(playerId); }
+    public PlayerIdentityCatalog identities() { return identities; }
 
     /** Creates a domain Player only with an explicit, independently-authored proficiency profile. */
     public Player createPlayer(PlayerRatingKey key, ChampionProficiencies championProficiencies) {
         Objects.requireNonNull(championProficiencies, "championProficiencies");
         PlayerRatingResource resource = get(key);
-        return new Player(resource.nickname(), resource.position(), resource.ratings(), championProficiencies);
+        return new Player(playerId(key), resource.nickname(), resource.position(), resource.ratings(),
+                championProficiencies);
+    }
+
+    public Player createPlayer(PlayerId playerId, ChampionProficiencies championProficiencies) {
+        Objects.requireNonNull(championProficiencies, "championProficiencies");
+        PlayerRatingResource resource = get(playerId);
+        PlayerIdentity identity = identities.get(playerId);
+        return new Player(playerId, identity.nickname(), resource.position(), resource.ratings(),
+                championProficiencies);
+    }
+
+    private void validateIdentityBindings() {
+        if (!version.equals(identities.requiredPlayerRatingResourceVersion())) {
+            throw new IllegalStateException("Player identity/rating version mismatch");
+        }
+        if (byKey.size() != identities.all().size()) {
+            throw new IllegalStateException("Player identity/rating subject count mismatch");
+        }
+        for (PlayerIdentity identity : identities.all()) {
+            PlayerRatingResource rating = byKey.get(identity.ratingKey());
+            if (rating == null || !rating.nickname().equals(identity.nickname())) {
+                throw new IllegalStateException("Player identity/rating binding mismatch: "
+                        + identity.ratingKey().stableId());
+            }
+        }
     }
 }

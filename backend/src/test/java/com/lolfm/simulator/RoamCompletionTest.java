@@ -257,8 +257,8 @@ class RoamCompletionTest {
     }
 
     @Test void commonKillRewardPays300And150AndShutdownOnlyToKiller() {
-        TeamState blue = team("B", attrs(14));
-        TeamState red = team("R", attrs(14));
+        TeamState blue = team("BLUE", attrs(14));
+        TeamState red = team("RED", attrs(14));
         PlayerState killer = blue.playerAt(Position.MID), assist = blue.playerAt(Position.TOP), victim = red.playerAt(Position.TOP);
         victim.addImmediateBountyProgress(1_000);
         new KillRewardResolver().award(240, blue, killer, red, victim, List.of(assist), 10, false, null, new ArrayList<>());
@@ -418,8 +418,8 @@ class RoamCompletionTest {
     private GameState stateWithMidAttributes(PlayerAttributes blueMid, PlayerAttributes redMid) {
         List<PlayerState> blue = new ArrayList<>(), red = new ArrayList<>();
         for (Position position : Position.values()) {
-            blue.add(new PlayerState("BLUE-" + position, position, position == Position.MID ? blueMid : attrs(14), 500));
-            red.add(new PlayerState("RED-" + position, position, position == Position.MID ? redMid : attrs(14), 500));
+            blue.add(PlayerStateTestFixture.player("BLUE", position, position == Position.MID ? blueMid : attrs(14), 500));
+            red.add(PlayerStateTestFixture.player("RED", position, position == Position.MID ? redMid : attrs(14), 500));
         }
         return new GameState(new TeamState("BLUE", blue), new TeamState("RED", red));
     }
@@ -427,7 +427,7 @@ class RoamCompletionTest {
     private PlayerAttributes attrs(int value) { return new PlayerAttributes(value, value, value, value); }
     private TeamState team(String side, PlayerAttributes attributes) {
         List<PlayerState> players = new ArrayList<>();
-        for (Position position : Position.values()) players.add(new PlayerState(side + "-" + position, position, attributes, 500));
+        for (Position position : Position.values()) players.add(PlayerStateTestFixture.player(side, position, attributes, 500));
         return new TeamState(side, players);
     }
 

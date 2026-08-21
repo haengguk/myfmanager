@@ -6,10 +6,14 @@
 
 ```mermaid
 flowchart LR
-    D[DraftEngine] --> F[FinalDraftResult]
+    I[Player Identity + Rating + Proficiency Catalogs] --> R[LckTeamAssembler]
+    R --> X[Real LCK Team]
+    X --> D[DraftEngine]
+    X --> S[MatchSimulator]
+    D --> F[FinalDraftResult]
     F --> A[MatchChampionAssignments]
     C[Champion selection API] --> A
-    A --> S[MatchSimulator]
+    A --> S
     S --> T[MatchTimeline: events + snapshots]
     T --> U[React timeline UI]
 ```
@@ -17,14 +21,15 @@ flowchart LR
 두 진입 경로는 현재 동일하게 공개되어 있지 않다.
 
 - `GET /api/champions`와 `POST /api/matches/simulate`는 Spring API에 연결되어 있다.
-- `DraftEngine`은 `FinalDraftResult`와 `MatchChampionAssignments`를 만들 수 있고 simulator 연계 테스트가 있지만, Draft Controller와 frontend flow는 없다.
+- `LckTeamAssembler`는 identity/rating/proficiency catalog를 결합한 실제 10개 LCK 팀을 만들 수 있고 simulator 연계 smoke가 있지만, 현재 `MatchController` 기본 roster와 frontend flow는 여전히 dummy path다.
+- `DraftEngine`은 real-team `DraftTeamContext`, `FinalDraftResult`, `MatchChampionAssignments`를 만들 수 있지만, Draft Controller와 frontend orchestration은 없다.
 
 ## Major Subsystems
 
 | Subsystem | 책임 | 주요 코드 |
 | --- | --- | --- |
 | Champion | champion identity, legal role, power/matchup/composition/jungle resource 로딩과 검증 | `com.lolfm.champion.*`, `com.lolfm.composition.*` |
-| Player | 일반 능력치, role별 능력치, champion proficiency, match-scoped performance | `com.lolfm.player.*`, `com.lolfm.domain.PlayerRatings`, `ChampionProficiencies` |
+| Player | stable person identity, 현재 roster mapping, 일반 능력치, champion proficiency, 실제 팀 조립, match-scoped performance | `com.lolfm.player.*`, `com.lolfm.domain.PlayerRatings`, `ChampionProficiencies` |
 | Draft | legal candidate 생성, pick/ban 평가, search, flex role 최종 배정, series exclusions | `com.lolfm.draft.*` |
 | Match Simulation | tick 순서, resolver priority, mutable match state, event/snapshot, 종료 | `com.lolfm.simulator.MatchSimulator` |
 | Progression | XP, level, gold, item stage와 그에 따른 실제 경기 전투 기여 | `PlayerProgressionState`, `ProgressionEconomyResolver`, `CombatProgressionEvaluator` |
@@ -39,8 +44,9 @@ flowchart LR
 | Champion Power | champion 자체의 level/item progression curve와 combat context baseline | 상대 champion, 선수의 일반 실력, 현재 gold/level 자체 |
 | Champion Matchup | `ChampionRoleKey` 대 `ChampionRoleKey`의 구조적 capability/exposure 상호작용 | 현재 승률, team-wide composition, 선수 숙련도 |
 | Champion Composition | 5인 lineup이 제공하는 engage, peel, damage channel 등의 기능과 결핍 | 특정 lane opponent와의 1:1 우열, champion 개인 성장 curve |
+| Player Identity | `PlayerId` 사람 identity, `PlayerRatingKey` current roster slot, `PlayerKey` match slot | nickname 기반 identity 추론, display text lookup |
 | Player Ratings | 선수의 일반적·role-specific 능력 | 특정 champion 숙련도, 경기 중 획득 자원 |
-| Champion Proficiency | 특정 player position이 특정 `ChampionRoleKey`를 수행하는 숙련도 | 일반적인 decision/farming 능력, champion의 고유 power curve |
+| Champion Proficiency | 특정 `PlayerId`가 자신의 position에서 특정 `ChampionRoleKey`를 수행하는 숙련도 | 일반적인 decision/farming 능력, champion의 고유 power curve |
 | Progression | 그 경기에서 획득한 XP, level, gold, item stage와 death/respawn 상태 | authored baseline rating이나 champion kit 정의 |
 
 이 경계를 유지해야 같은 신호를 여러 계층에서 중복 계산하지 않는다. 예를 들어 현재 `CombatProgressionEvaluator`는 progression edge에 Champion Power와 role Matchup을 순서대로 더하지만, 각 evaluator의 입력과 breakdown은 분리한다. Composition은 별도의 team context를 만들고 decision channel에 적용하므로 개인 power나 pair matchup으로 재해석하지 않는다.
@@ -55,20 +61,21 @@ flowchart LR
 ## High-Level Runtime Flow
 
 1. Active manifest가 coherent champion resource set을 선택하고 cross-catalog coverage를 검증한다.
-2. champion selection 또는 `DraftEngine` 결과가 10개의 구조화된 `ChampionAssignment`로 materialize된다.
-3. `MatchSimulator`가 fresh `GameState`, 두 `TeamState`, 열 `PlayerState`를 생성한다.
-4. 고정 resolver 순서로 tick을 진행하며 seed 기반 `Random`을 소비한다.
-5. actual action만 gameplay state와 summary event를 만들고, kill은 공통 reward/death path를 통과한다.
-6. 매 tick 뒤 `MatchSnapshot`이 추가되고, Nexus 파괴 또는 safety timeout으로 `MatchTimeline`이 완성된다.
-7. frontend는 event text를 gameplay identity로 역해석하지 않고 structured fields와 snapshots를 표시한다.
+2. 실제 roster path는 identity, rating, sparse proficiency resource의 version/hash/subject equality를 검증하고 `LckTeamAssembler`가 explicit `PlayerId`를 가진 팀을 만든다.
+3. champion selection 또는 real-team `DraftEngine` 결과가 10개의 구조화된 `ChampionAssignment`로 materialize된다.
+4. `MatchSimulator`가 fresh `GameState`, 두 `TeamState`, 열 `PlayerState(PlayerKey, PlayerId, displayName)`를 생성한다.
+5. 고정 resolver 순서로 tick을 진행하며 seed 기반 `Random`을 소비한다.
+6. actual action만 gameplay state와 summary event를 만들고, kill은 공통 reward/death path를 통과한다.
+7. 매 tick 뒤 `MatchSnapshot`이 추가되고, Nexus 파괴 또는 safety timeout으로 `MatchTimeline`이 완성된다.
+8. frontend는 event text를 gameplay identity로 역해석하지 않고 structured fields와 snapshots를 표시한다.
 
 ## 실제 Spring Wiring
 
-`MatchController`가 주입받는 `MatchSimulator`의 `@Autowired` constructor는 legacy four-flag overload를 거쳐 eight-boolean `SimulationOptions` convenience constructor를 사용한다. 이 경로는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`와 `TeamCompositionGameplayMode.OFF`를 사용한다. 반면 `SimulationOptions.productionDefaults()`는 `GEOMETRIC_V2`와 `PRODUCTION_V2`를 정의하며 명시적으로 simulator를 구성하는 테스트/도구에서 사용된다. 따라서 구현된 mode와 HTTP endpoint에서 활성화된 mode를 구분해야 한다.
+`MatchController`가 주입받는 `MatchSimulator`의 `@Autowired` constructor는 legacy four-flag overload를 거쳐 eight-boolean `SimulationOptions` convenience constructor를 사용한다. 이 경로는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`와 `TeamCompositionGameplayMode.OFF`를 사용한다. 반면 `SimulationOptions.productionDefaults()`는 `GEOMETRIC_V2`와 `PRODUCTION_V2`를 정의하며 명시적으로 simulator를 구성하는 테스트/도구에서 사용된다. 또한 `LckTeamAssembler`는 production-capable backend component지만 현재 `MatchController`는 `DummyDataFactory`를 계속 사용한다. 따라서 구현된 real-team 경계와 HTTP endpoint에서 실제 활성화된 경로를 구분해야 한다.
 
 ## Global Invariants
 
-- Gameplay identity는 `TeamSide`, `Position`, `Lane`, `ChampionId`, `ChampionRoleKey`, `PlayerKey` 같은 구조화된 값으로 표현한다. display name과 event message는 identity가 아니다.
+- Gameplay identity는 `TeamSide`, `Position`, `Lane`, `ChampionId`, `ChampionRoleKey`, `PlayerId`, `PlayerRatingKey`, `PlayerKey` 같은 구조화된 값으로 표현한다. `PlayerId`는 사람, `PlayerRatingKey`는 current roster slot, `PlayerKey`는 match slot을 뜻하며 display name과 event message는 identity가 아니다.
 - Mutable gameplay state는 현재 match의 `GameState`, `TeamState`, `PlayerState` 또는 match-owned state에 둔다. resolver는 match 간 상태를 보유하지 않는다.
 - Resolver evaluation, trigger success, actual attempt, combat outcome, actual kill은 서로 다른 단계다. 평가 또는 trigger 실패만으로 major-combat slot, FARM 제한, cooldown, gameplay summary event를 소비하지 않는다.
 - 높은 priority resolver가 actual attempt를 만들지 못하면 낮은 priority resolver로 fall through한다. actual attempt가 시작되면 `NO_KILL`이어도 해당 규칙에 따라 slot과 opportunity cost를 소비할 수 있다.

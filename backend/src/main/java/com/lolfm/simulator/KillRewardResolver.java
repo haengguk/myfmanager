@@ -41,11 +41,14 @@ public final class KillRewardResolver {
             goldAwards.awardGold(attackingTeam, killer, shutdownGold, GoldSource.SHUTDOWN, false, timeSeconds);
             killer.addShutdownGoldEarned(shutdownGold);
             victim.addShutdownGoldGiven(shutdownGold);
-            events.add(new MatchEvent(
+            MatchEvent shutdownEvent = new MatchEvent(
                     timeSeconds, MatchEventType.SHUTDOWN,
                     killer.getPlayerName() + " shut down " + victim.getPlayerName() + " for +" + shutdownGold + "G.",
                     killer.getPlayerName(), victim.getPlayerName(), List.of(), shutdownGold, victimRawBounty
-            ));
+            );
+            shutdownEvent.setParticipantPlayerIds(killer.getStructuredPlayerId(),
+                    victim.getStructuredPlayerId(), List.of());
+            events.add(shutdownEvent);
         }
 
         victim.markDead(timeSeconds, respawnDelaySeconds);

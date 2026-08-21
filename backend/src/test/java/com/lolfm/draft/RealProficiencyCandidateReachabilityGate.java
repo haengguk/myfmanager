@@ -4,6 +4,7 @@ import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.domain.Position;
+import com.lolfm.player.PlayerId;
 import com.lolfm.player.PlayerRatingKey;
 import com.lolfm.simulator.TeamSide;
 import java.util.List;
@@ -42,6 +43,11 @@ final class RealProficiencyCandidateReachabilityGate {
 
     Result evaluate(PlayerRatingKey playerKey, ChampionRoleKey championRole,
                     List<Scenario> scenarios) {
+        return evaluate(null, playerKey, championRole, scenarios);
+    }
+
+    Result evaluate(PlayerId playerId, PlayerRatingKey playerKey, ChampionRoleKey championRole,
+                    List<Scenario> scenarios) {
         Objects.requireNonNull(playerKey, "playerKey");
         Objects.requireNonNull(championRole, "championRole");
         scenarios = List.copyOf(Objects.requireNonNull(scenarios, "scenarios"));
@@ -53,6 +59,7 @@ final class RealProficiencyCandidateReachabilityGate {
         if (!champions.supports(championRole)) {
             throw new IllegalArgumentException("Champion role is not legal: " + championRole.stableId());
         }
+        if (playerId != null) validatePlayerIdentity(playerId, championRole, scenarios);
         int proficiency = boundProficiency(scenarios, championRole);
 
         int legalScenarioCount = 0;
@@ -81,7 +88,7 @@ final class RealProficiencyCandidateReachabilityGate {
                         : candidateAppearanceCount == 0
                                 ? "CANDIDATE_ABSENT_FROM_ALL_LEGAL_SHORTLISTS"
                                 : "CANDIDATE_APPEARS_IN_LEGAL_SHORTLIST";
-        return new Result(playerKey, championRole.championId(), championRole.position(), proficiency,
+        return new Result(playerKey, playerId, championRole.championId(), championRole.position(), proficiency,
                 scenarios.size(), legalScenarioCount, candidateAppearanceCount, candidateAppearanceCount > 0,
                 reachable, reason, true, true, scenarioResults);
     }
@@ -89,6 +96,21 @@ final class RealProficiencyCandidateReachabilityGate {
     static boolean subjectRoleMatches(PlayerRatingKey playerKey, ChampionRoleKey championRole) {
         return playerKey != null && championRole != null
                 && playerKey.position() == championRole.position();
+    }
+
+    private static void validatePlayerIdentity(PlayerId playerId, ChampionRoleKey championRole,
+                                               List<Scenario> scenarios) {
+        if (scenarios.isEmpty()) throw new IllegalArgumentException("At least one scenario is required");
+        for (Scenario scenario : scenarios) {
+            PlayerId bound = scenario.own().playerId(championRole.position())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "PROFICIENCY_BINDING_MISMATCH: real context has no PlayerId for "
+                                    + championRole.position()));
+            if (!playerId.equals(bound)) {
+                throw new IllegalArgumentException("PROFICIENCY_BINDING_MISMATCH: subject="
+                        + playerId + ", context=" + bound);
+            }
+        }
     }
 
     private static int boundProficiency(List<Scenario> scenarios, ChampionRoleKey championRole) {
@@ -148,6 +170,7 @@ final class RealProficiencyCandidateReachabilityGate {
 
     record Result(
             PlayerRatingKey playerKey,
+            PlayerId playerId,
             ChampionId championId,
             Position position,
             int proficiency,

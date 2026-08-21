@@ -1,12 +1,13 @@
 package com.lolfm.simulator;
 
+import com.lolfm.domain.Position;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import com.lolfm.domain.Position;
 
 public class TeamState {
 
@@ -20,6 +21,7 @@ public class TeamState {
     private int baronBuffExpiresAtSeconds = -1;
     private final List<PlayerState> players;
     private final EnumMap<Position, PlayerState> playersByPosition = new EnumMap<>(Position.class);
+    private final Map<PlayerKey, PlayerState> playersByKey = new HashMap<>();
     private int lastEconomyResolvedAtSeconds = -1;
     private int duplicateEconomyResolutionCount;
 
@@ -27,40 +29,24 @@ public class TeamState {
         this.teamName = teamName;
         this.players = new ArrayList<>(players);
         this.gold = calculateStartingGold(players);
-        for (PlayerState player : this.players) playersByPosition.putIfAbsent(player.getPosition(), player);
+        for (PlayerState player : this.players) {
+            playersByPosition.putIfAbsent(player.getPosition(), player);
+            if (player.getPlayerKey() != null
+                    && playersByKey.putIfAbsent(player.getPlayerKey(), player) != null) {
+                throw new IllegalArgumentException("Duplicate PlayerKey: "
+                        + player.getPlayerKey().stableId());
+            }
+        }
     }
 
-    public String getTeamName() {
-        return teamName;
-    }
-
-    public int getKills() {
-        return kills;
-    }
-
-    public int getGold() {
-        return gold;
-    }
-
-    public int getDragons() {
-        return dragons;
-    }
-
-    public int getTowersDestroyed() {
-        return towersDestroyed;
-    }
-
-    public boolean hasDragonSoul() {
-        return hasDragonSoul;
-    }
-
-    public boolean hasBaronBuff() {
-        return hasBaronBuff;
-    }
-
-    public int getBaronBuffExpiresAtSeconds() {
-        return baronBuffExpiresAtSeconds;
-    }
+    public String getTeamName() { return teamName; }
+    public int getKills() { return kills; }
+    public int getGold() { return gold; }
+    public int getDragons() { return dragons; }
+    public int getTowersDestroyed() { return towersDestroyed; }
+    public boolean hasDragonSoul() { return hasDragonSoul; }
+    public boolean hasBaronBuff() { return hasBaronBuff; }
+    public int getBaronBuffExpiresAtSeconds() { return baronBuffExpiresAtSeconds; }
 
     public void grantBaronBuff(int currentTimeSeconds, int durationSeconds) {
         hasBaronBuff = true;
@@ -79,13 +65,19 @@ public class TeamState {
     }
 
     public List<PlayerState> getPlayers() { return players; }
-
     public Optional<PlayerState> findPlayerAt(Position position) {
         return Optional.ofNullable(playersByPosition.get(position));
     }
-
     public PlayerState playerAt(Position position) {
-        return findPlayerAt(position).orElseThrow(() -> new IllegalArgumentException("Missing position: " + position));
+        return findPlayerAt(position).orElseThrow(() ->
+                new IllegalArgumentException("Missing position: " + position));
+    }
+    public Optional<PlayerState> findPlayer(PlayerKey playerKey) {
+        return Optional.ofNullable(playersByKey.get(playerKey));
+    }
+    public PlayerState player(PlayerKey playerKey) {
+        return findPlayer(playerKey).orElseThrow(() ->
+                new IllegalArgumentException("Unknown PlayerKey: " + playerKey.stableId()));
     }
 
     /** Game-local economy clock; it is discarded with this TeamState at game end. */
@@ -113,62 +105,44 @@ public class TeamState {
 
     /** Validates the five-player invariant at match start, rather than for partial unit-test teams. */
     public void validateCompleteLineup() {
-        if (players.size() != Position.values().length) throw new IllegalStateException("Expected complete five-player lineup");
+        if (players.size() != Position.values().length) {
+            throw new IllegalStateException("Expected complete five-player lineup");
+        }
         Map<PlayerState, Boolean> uniquePlayers = new IdentityHashMap<>();
         for (PlayerState player : players) {
-            if (uniquePlayers.put(player, Boolean.TRUE) != null) throw new IllegalStateException("The same PlayerState appears more than once");
+            if (uniquePlayers.put(player, Boolean.TRUE) != null) {
+                throw new IllegalStateException("The same PlayerState appears more than once");
+            }
         }
         for (Position position : Position.values()) {
             long count = players.stream().filter(player -> player.getPosition() == position).count();
-            if (count != 1) throw new IllegalStateException("Expected exactly one " + position + ", found " + count);
+            if (count != 1) {
+                throw new IllegalStateException("Expected exactly one " + position + ", found " + count);
+            }
+        }
+        if (!playersByKey.isEmpty() && playersByKey.size() != Position.values().length) {
+            throw new IllegalStateException("Complete lineup has incomplete PlayerKey identity");
         }
     }
 
-    public void addKill() {
-        kills++;
-    }
-
-    public void addGold(int amount) {
-        gold += amount;
-    }
-
+    public void addKill() { kills++; }
+    public void addGold(int amount) { gold += amount; }
     public void addDragon() {
         if (dragons >= 4) {
             throw new IllegalStateException("A team cannot capture more than four elemental dragons.");
         }
         dragons++;
     }
-
-    public void setHasDragonSoul(boolean hasDragonSoul) {
-        this.hasDragonSoul = hasDragonSoul;
-    }
-
-    public void addTowerDestroyed() {
-        towersDestroyed++;
-    }
-
+    public void setHasDragonSoul(boolean hasDragonSoul) { this.hasDragonSoul = hasDragonSoul; }
+    public void addTowerDestroyed() { towersDestroyed++; }
     public void setHasBaronBuff(boolean hasBaronBuff) {
         this.hasBaronBuff = hasBaronBuff;
-        if (!hasBaronBuff) {
-            baronBuffExpiresAtSeconds = -1;
-        }
-    }
-
-    public PlayerState getPlayerState(String playerName) {
-        for (PlayerState playerState : players) {
-            if (playerState.getPlayerName().equals(playerName)) {
-                return playerState;
-            }
-        }
-
-        throw new IllegalArgumentException("Unknown player state: " + playerName);
+        if (!hasBaronBuff) baronBuffExpiresAtSeconds = -1;
     }
 
     private int calculateStartingGold(List<PlayerState> playerStates) {
         int total = 0;
-        for (PlayerState playerState : playerStates) {
-            total += playerState.getGold();
-        }
+        for (PlayerState playerState : playerStates) total += playerState.getGold();
         return total;
     }
 }

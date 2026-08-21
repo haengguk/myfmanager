@@ -1,115 +1,176 @@
 # Player Data Schema
 
-## PlayerRatingKey
+## Identity Types
 
-`PlayerRatingKey(teamCode, Position)`이 authored roster의 stable identity다.
+### PlayerId
 
-- `teamCode`는 trim 후 uppercase로 정규화하며 공백일 수 없다.
+`PlayerId`는 선수 개인의 immutable identity다.
+
+- JSON form: canonical string, 예: `"player-chovy"`
+- accepted format: `player-[a-z0-9]+(?:-[a-z0-9]+)*`
+- blank, uppercase, underscore, malformed slug는 거부한다.
+- runtime nickname/team/position derivation과 random UUID 생성은 없다.
+- team/position/nickname이 바뀌어도 authored ID 자체는 유지하는 계약이다.
+
+### PlayerRatingKey
+
+`PlayerRatingKey(teamCode, Position)`은 current authored roster snapshot의 slot identity다.
+
+- `teamCode`는 trim 후 uppercase로 정규화한다.
 - `position`은 TOP/JUNGLE/MID/ADC/SUPPORT 중 하나다.
 - `stableId()`는 `TEAM:POSITION`이다.
-- nickname은 표시 metadata이며 identity에 포함되지 않는다.
+- nickname은 display consistency metadata이며 lookup key가 아니다.
 
-## Player Ratings Resource
+### PlayerKey
 
-현재 production resource는 `backend/src/main/resources/players/lck-player-ratings-2026-08-19-v1.json` 하나다.
+`PlayerKey(TeamSide, Position)`은 한 match 안의 slot identity다. `MatchChampionAssignments`와 `TeamState` lookup에서 사용하며 `PlayerId`나 `PlayerRatingKey`를 대체하지 않는다.
 
-### Envelope
+## Player Identity Resource
 
-| Field | 필수 | 현재 loader contract |
-| --- | --- | --- |
-| `version` | 예 | `lck-player-ratings-2026-08-19-v1`과 exact match |
-| `snapshotAt` | resource에 존재 | metadata; 현재 loader validation/return value에는 포함되지 않음 |
-| `dataCutoff` | resource에 존재 | metadata; 현재 loader validation/return value에는 포함되지 않음 |
-| `scale.min/max` | 예 | 정확히 1/20 |
-| `scope.league` | 예 | `LCK` |
-| `scope.teams` | 예 | 10 |
-| `scope.startersPerTeam` | 예 | 5 |
-| `scope.players` | 예 | 50 |
-| `scope.substitutesIncluded` | 예 | false |
-| `semantics` | 예 | common 6, role-specific 6, active 12, proficiency separate, Display CA runtime 제외 |
-| `players` | 예 | 정확히 50 records |
+Production resource:
 
-Loader는 raw resource bytes의 SHA-256도 pinned constant와 비교한다. 값이나 formatting까지 바뀌면 explicit version/hash update 없이 startup이 실패한다.
+- path: `backend/src/main/resources/players/lck-player-identities-2026-08-21-v1.json`
+- version: `lck-player-identities-2026-08-21-v1`
+- required rating version: `lck-player-ratings-2026-08-19-v1`
+- SHA-256: `badbbaa3ae7fbe5eaaf83ee8e97a93134476493a45167ec3d1637c7243909018`
 
-### Player record
-
-| Field | 필수 | 의미 / validation |
-| --- | --- | --- |
-| `team` | 예 | `PlayerRatingKey.teamCode` |
-| `nickname` | 예 | 공백이 아닌 표시명 |
-| `position` | 예 | structured role identity |
-| `ratings` | 예 | 해당 position에 적용되는 key 12개와 정확히 일치, 값 1..20 |
-
-공통 JSON keys는 `mechanics`, `decisionMaking`, `mapAwareness`, `positioning`, `combatExecution`, `consistency`다.
-
-| Role group | Role-specific JSON keys |
-| --- | --- |
-| TOP/MID/ADC | `csAcquisition`, `trading`, `waveManagement`, `lanePressure`, `initiativeConversion`, `sideLaneManagement` |
-| JUNGLE | `pathing`, `jungleResourceManagement`, `enemyJungleTracking`, `laneIntervention`, `objectiveDecision`, `objectiveSecuring` |
-| SUPPORT | `visionControl`, `laneSupport`, `roamCoordination`, `engage`, `allyProtection`, `zoneSetup` |
-
-작은 player record 예시:
+Record schema:
 
 ```json
 {
-  "team": "EXM",
-  "nickname": "Example",
+  "playerId": "player-chovy",
+  "team": "GEN",
   "position": "MID",
-  "ratings": {
-    "mechanics": 16,
-    "decisionMaking": 15,
-    "mapAwareness": 15,
-    "positioning": 16,
-    "combatExecution": 16,
-    "consistency": 15,
-    "csAcquisition": 17,
-    "trading": 16,
-    "waveManagement": 15,
-    "lanePressure": 16,
-    "initiativeConversion": 15,
-    "sideLaneManagement": 14
-  }
+  "nickname": "Chovy"
 }
 ```
 
-같은 team-position이 두 번 나오거나 한 team에 five-position starter set이 완성되지 않으면 실패한다. 같은 nickname 자체는 identity validation 기준이 아니다.
+Loader invariants:
+
+- records 50, unique `PlayerId` 50, unique `PlayerRatingKey` 50
+- teams 10, team별 five positions exact
+- rating subject set exact equality
+- rating nickname exact display consistency
+- duplicate/missing/unknown/malformed identity fail-fast
+- raw SHA 검증 후 semantic parse
+
+`PlayerIdentityCatalog`은 한 record list에서 `PlayerId`와 `PlayerRatingKey` read-only index를 파생한다.
+
+## Player Ratings Resource
+
+Production resource:
+
+- path: `backend/src/main/resources/players/lck-player-ratings-2026-08-19-v1.json`
+- version: `lck-player-ratings-2026-08-19-v1`
+- SHA-256: `2312a8bc7d222fd63b57d1255210fb25104432a90a954d854b2090cc2acb28e0`
+- scope: LCK 10 teams × 5 starters, substitutes false
+- authored values: 50 × 12 = 600
+
+Player record는 `team`, `nickname`, `position`, position별 exact 12-key `ratings`를 가진다. 공통 key 6개와 role-specific key 6개, 값 1..20을 검증한다.
+
+`PlayerRatingCatalog` lookup:
+
+- 기존 `find/get/ratings(PlayerRatingKey)` 유지
+- `find/get/ratings(PlayerId)` additive 제공
+- `playerId(PlayerRatingKey)`와 `currentRatingKey(PlayerId)` 제공
+- unknown subject는 empty `Optional` 또는 명시적 exception이며 silent neutral rating fallback은 없다.
 
 ## Champion Proficiency Resource
 
-현재 production Champion Proficiency JSON resource와 loader는 없다. authored count는 0이다.
+Production resource:
 
-구현된 domain contract는 `ChampionProficiencies`의 immutable `Map<ChampionRoleKey, Integer>`다.
+- path: `backend/src/main/resources/players/lck-champion-proficiency-2026-08-21-v1.json`
+- version: `lck-champion-proficiency-2026-08-21-v1`
+- research as of: `2026-08-21`
+- SHA-256: `2c36b8a109aba9dfe84c1da319fe02708a72a1341d334dc6d5e3f605b0023aad`
+- required rating version: `lck-player-ratings-2026-08-19-v1`
+- required champion pool: `full-173-2026-08-v1`
+- required legal role count: 216
 
-- key: `ChampionId + Position`
-- value: 1..20
-- missing key: neutral 14
-- `PlayerRatingCatalog.createPlayer` 호출 시 proficiency object를 명시적으로 전달해야 함
+Source player record:
 
-외부 resource의 version, roster key 연결 방식, completeness 정책은 아직 정의되지 않았으므로 이 문서는 존재하지 않는 JSON schema를 가정하지 않는다.
+```json
+{
+  "team": "GEN",
+  "nickname": "Chovy",
+  "position": "MID",
+  "proficiencies": [
+    { "championId": "azir", "position": "MID", "value": 20 }
+  ]
+}
+```
 
-## Lookup Contract
+Source ownership은 `PlayerRatingKey × ChampionRoleKey`다. Loader가 `PlayerIdentityCatalog`를 통해 runtime canonical ownership `PlayerId × ChampionRoleKey`로 변환한다. 원본 JSON에는 playerId를 추가하거나 재직렬화하지 않는다.
 
-### Player Ratings
+Measured v1 snapshot:
 
-- `PlayerRatingCatalog.find(key)`: unknown key면 empty `Optional`
-- `PlayerRatingCatalog.get(key)` / `ratings(key)`: unknown key면 `IllegalArgumentException`
-- loader 단계에서는 exact 50-player roster가 아니면 전체 resource load 실패
-- silent neutral Player Rating fallback은 catalog lookup에 없다
+| Metric | Value |
+| --- | ---: |
+| Teams / players | 10 / 50 |
+| Legal role keys | 216 |
+| Potential player-role keys | 2,160 |
+| Authored overrides | 732 |
+| Neutral fallback keys | 1,428 |
+| 15 / 16 / 17 / 18 / 19 / 20 | 35 / 160 / 228 / 210 / 81 / 18 |
+| 17+ / 19+ / 20 | 537 / 99 / 18 |
 
-### Champion Proficiency
+Semantic rejection:
 
-- `ChampionProficiencies.get(ChampionRoleKey)`: missing이면 14
-- 이 fallback은 “authored data가 있다”는 뜻이 아니라 pending data에 대한 명시적 neutral behavior다.
-- MatchSimulator는 selected assignment의 role key로 proficiency를 조회한다.
-- DraftTeamContext도 position별 proficiency map을 사용하며 missing position/map entry를 neutral로 채운다.
+- wrong version/research/prerequisite/legal-role count
+- rating/identity/proficiency subject set mismatch
+- duplicate `PlayerRatingKey` 또는 duplicate subject-role key
+- unknown/illegal `ChampionRoleKey`
+- subject position과 role position 불일치
+- 값 1..20 밖, 또는 v1 authored band 15..20 밖
+- declared summary와 measured entry counts/distribution 불일치
 
-## Separation Contract
+## Sparse Lookup Contract
 
-- Player Rating은 `PlayerRatingKey`로 찾고 player의 일반 능력을 나타낸다.
-- Champion Proficiency는 `ChampionRoleKey`별 player-specific 값이다.
-- proficiency를 rating resource의 `mechanics`, `decisionMaking`, `FARMING`에 미리 합산하지 않는다.
-- runtime에서 proficiency는 champion-tool execution read를 통해서만 보정한다.
-- Draft의 `PLAYER_FIT`은 현재 proficiency이며 Player Ratings가 아니다.
-- Champion Power/Matchup/Composition resource에 player data를 넣지 않는다.
+`ChampionProficiencyCatalog.value(playerId, roleKey)`는 순서를 지켜 검증한다.
 
-Runtime 사용 위치와 현재 wiring은 [Player System](../architecture/player-system.md)을 참고한다.
+1. known `PlayerId`
+2. current roster position과 `ChampionRoleKey.position` 일치
+3. active Champion Catalog가 role key를 지원
+4. authored override가 있으면 15..20 값 반환
+5. 위 조건을 모두 만족한 omitted legal key만 `ChampionProficiencies.NEUTRAL` 14 반환
+
+따라서 unknown player, illegal role, cross-position role은 14가 아니라 exception이다. Profile은 authored entry만 저장하며 dense 2,160-key materialization을 하지 않는다.
+
+## Production Binding Contract
+
+`LckTeamAssembler.assemblePlayer(runtimePlayerId, ratingKey, proficiencyOwnerId)`는 실제 catalog object를 통해 다음을 검사한다.
+
+- `ratingKey → PlayerId`가 runtime `PlayerId`와 같지 않으면 `PLAYER_ID_RATING_KEY_MISMATCH`
+- runtime `PlayerId`와 proficiency owner가 다르면 `PROFICIENCY_BINDING_MISMATCH`
+- subject position과 requested role position이 다르면 `INVALID_SUBJECT_ROLE_BINDING`
+
+Matching binding 뒤 `Player`는 stable ID, display name, 12 ratings, sparse proficiency profile을 가진다.
+
+## Runtime/Event Schema
+
+`PlayerState`는 다음을 분리해 보유한다.
+
+- `PlayerKey`: match slot
+- `PlayerId`: stable person
+- `playerName`: display
+- `Position`, realized performance, mutable match stats
+
+`TeamState.player(PlayerKey)`와 `playerAt(Position)`이 gameplay lookup이다. production main source에는 `getPlayerState(String)` name lookup이 없다.
+
+`MatchEvent`는 기존 display fields를 유지하면서 다음 additive fields를 제공한다.
+
+- `killerPlayerId`
+- `victimPlayerId`
+- `assistPlayerIds`
+
+Lane/gank/counter-gank/roam structured data의 `*PlayerId`도 동일한 stable ID를 사용한다. Legacy isolated test state만 explicit stable ID와 `PlayerKey`가 모두 없을 때 이름이 아닌 `LEGACY:POSITION` diagnostic identity를 사용한다. 실제 LCK와 HTTP dummy match path는 explicit ID를 가진다.
+
+## Layer Separation
+
+- Player Ratings를 proficiency로 계산하지 않는다.
+- proficiency로 Player Ratings, `FARMING`, `DECISION_MAKING`을 덮어쓰지 않는다.
+- proficiency는 champion-tool execution read에만 적용한다.
+- Champion Power/Matchup/Composition/Draft Meta에 player data를 넣지 않는다.
+- reachability report는 diagnostics이며 Draft weight나 data를 변경하지 않는다.
+
+Runtime wiring은 [Player System](../architecture/player-system.md)을 참고한다.

@@ -157,9 +157,9 @@ class CounterGankTest {
     @Test void soloCounterHasOneKillerOneVictimAndExactlyOneAlliedAssistant() {
         Result result = direct(Lane.TOP, new SequenceRandom(0, 0, 0, 0, 0));
         assertEquals(1, result.data.assistantPlayerIds().size());
-        assertTrue(result.data.killerPlayerId().startsWith("BLUE"));
-        assertTrue(result.data.victimPlayerId().startsWith("RED"));
-        assertTrue(result.data.assistantPlayerIds().getFirst().startsWith("BLUE"));
+        assertTrue(result.data.killerPlayerId().startsWith("player-fixture-blue-"));
+        assertTrue(result.data.victimPlayerId().startsWith("player-fixture-red-"));
+        assertTrue(result.data.assistantPlayerIds().getFirst().startsWith("player-fixture-blue-"));
         assertEquals(1, result.state.getRedTeamState().getPlayers().stream().mapToInt(PlayerState::getDeaths).sum());
     }
 
@@ -167,9 +167,9 @@ class CounterGankTest {
         Result result = direct(Lane.BOT, new SequenceRandom(0, 0, 0, .9, .9));
         assertEquals(2, result.data.assistantPlayerIds().size());
         assertEquals(2, result.data.assistantPlayerIds().stream().distinct().count());
-        assertTrue(result.data.assistantPlayerIds().stream().allMatch(id -> id.startsWith("BLUE")));
-        assertTrue(result.data.killerPlayerId().endsWith("SUPPORT"));
-        assertTrue(result.data.victimPlayerId().endsWith("SUPPORT"));
+        assertTrue(result.data.assistantPlayerIds().stream().allMatch(id -> id.startsWith("player-fixture-blue-")));
+        assertTrue(result.data.killerPlayerId().endsWith("-support"));
+        assertTrue(result.data.victimPlayerId().endsWith("-support"));
     }
 
     @Test void noKillHasNoDeathRewardOrPressureShock() {
@@ -196,8 +196,8 @@ class CounterGankTest {
         assertAll(
                 () -> assertEquals(TeamSide.BLUE, data.attackingSide()),
                 () -> assertEquals(TeamSide.RED, data.defendingSide()),
-                () -> assertEquals("BLUE-JUNGLE", data.attackingJunglerPlayerId()),
-                () -> assertEquals("RED-JUNGLE", data.defendingJunglerPlayerId()),
+                () -> assertEquals("player-fixture-blue-jungle", data.attackingJunglerPlayerId()),
+                () -> assertEquals("player-fixture-red-jungle", data.defendingJunglerPlayerId()),
                 () -> assertEquals(Lane.BOT, data.targetLane()),
                 () -> assertNotNull(data.outcome()),
                 () -> assertNotNull(data.killerPlayerId()),
@@ -345,7 +345,7 @@ class CounterGankTest {
 
     private TeamState team(String side, int jungleMechanics, int jungleAggression) {
         List<PlayerState> players = new ArrayList<>();
-        for (Position position : Position.values()) players.add(new PlayerState(side + "-" + position, position,
+        for (Position position : Position.values()) players.add(PlayerStateTestFixture.player(side, position,
                 new PlayerAttributes(position == Position.JUNGLE ? jungleMechanics : 14,
                         position == Position.JUNGLE ? jungleAggression : 14, 14,
                         position == Position.JUNGLE ? jungleMechanics : 14), 500));

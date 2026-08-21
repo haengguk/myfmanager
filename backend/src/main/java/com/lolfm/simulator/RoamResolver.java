@@ -88,17 +88,26 @@ public final class RoamResolver {
             rewards.award(time, state.getTeamState(winning), killer, state.getTeamState(winning.opposite()), victim,
                     assistants, respawnDelay(time), false, null, events);
             for (int i = start; i < events.size(); i++) events.get(i).setCombatSource(CombatSource.ROAM);
-            MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Roam kill", killer.getPlayerName(), victim.getPlayerName(), ids(assistants));
+            MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Roam kill",
+                    killer.getPlayerName(), victim.getPlayerName(), names(assistants));
+            kill.setParticipantPlayerIds(killer.getStructuredPlayerId(), victim.getStructuredPlayerId(),
+                    ids(assistants));
             kill.setCombatSource(CombatSource.ROAM); events.add(kill);
             double shock = target == Lane.BOT ? RoamRuleConfig.BOT_TARGET_PRESSURE_SHOCK : RoamRuleConfig.SOLO_TARGET_PRESSURE_SHOCK;
             targetAfter = clamp(targetBefore + (winning == TeamSide.BLUE ? shock : -shock), -100, 100);
             state.laneState(target).setPressure(targetAfter);
             new ObjectivePriorityResolver().applyRoamKill(state, time, target, winning);
         }
-        MatchEvent event = new MatchEvent(time, MatchEventType.ROAM, "Roam", killer == null ? null : killer.getPlayerName(), victim == null ? null : victim.getPlayerName(), ids(assistants));
+        MatchEvent event = new MatchEvent(time, MatchEventType.ROAM, "Roam",
+                killer == null ? null : killer.getPlayerName(),
+                victim == null ? null : victim.getPlayerName(), names(assistants));
+        event.setParticipantPlayerIds(
+                killer == null ? null : killer.getStructuredPlayerId(),
+                victim == null ? null : victim.getStructuredPlayerId(), ids(assistants));
         event.setCombatSource(CombatSource.ROAM);
-        event.setRoam(new RoamData(selected.side(), roamer.getPlayerName(), selected.position(), origin(selected.position()), target,
-                outcome, winning, killer == null ? null : killer.getPlayerName(), victim == null ? null : victim.getPlayerName(), ids(assistants),
+        event.setRoam(new RoamData(selected.side(), roamer.getStructuredPlayerId(), selected.position(), origin(selected.position()), target,
+                outcome, winning, killer == null ? null : killer.getStructuredPlayerId(),
+                victim == null ? null : victim.getStructuredPlayerId(), ids(assistants),
                 originBefore, originAfter, targetBefore, targetAfter, originPriority(state, selected), overextension,
                 roamer.getActivityState().getActivityUntilSeconds(), roamer.getRoamActionState().getRoamFarmBlockedUntilSeconds(),
                 selected.attemptChance(), targetWeight, edge, decisive, successChance(edge), repeatTarget, repeatTarget,
@@ -204,7 +213,8 @@ public final class RoamResolver {
     private double originCost(Position p){return p==Position.MID?RoamRuleConfig.MID_ORIGIN_PRESSURE_COST:RoamRuleConfig.SUPPORT_ORIGIN_PRESSURE_COST;}
     private double roamPlanning(PlayerState p){return !p.hasMatchPerformance()?p.getAggression():p.getPosition()==Position.SUPPORT?playerSkills.rotationPlanning(p):playerSkills.priorityConversion(p);}
     private List<PlayerState> lanePlayers(TeamState t,Lane l){return switch(l){case TOP->List.of(t.playerAt(Position.TOP));case MID->List.of(t.playerAt(Position.MID));case BOT->List.of(t.playerAt(Position.ADC),t.playerAt(Position.SUPPORT));};}
-    private List<String> ids(List<PlayerState> ps){return ps.stream().map(PlayerState::getPlayerName).toList();}
+    private List<String> ids(List<PlayerState> ps){return ps.stream().map(PlayerState::getStructuredPlayerId).toList();}
+    private List<String> names(List<PlayerState> ps){return ps.stream().map(PlayerState::getPlayerName).toList();}
     private int respawnDelay(int time){return time<600?RespawnRuleConfig.BEFORE_10_MINUTES_SECONDS:RespawnRuleConfig.FROM_10_TO_20_MINUTES_SECONDS;}
     private double clamp(double v,double min,double max){return Math.max(min,Math.min(max,v));}
     record Candidate(TeamSide side,Position position,double attemptChance){Candidate withAttemptChance(double chance){return new Candidate(side,position,chance);}}

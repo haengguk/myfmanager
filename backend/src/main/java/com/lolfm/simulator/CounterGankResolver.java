@@ -66,7 +66,9 @@ public final class CounterGankResolver {
                     victim, assistants, respawnDelaySeconds(time), false, null, events);
             for (int i = eventStart; i < events.size(); i++) events.get(i).setCombatSource(CombatSource.COUNTER_GANK);
             MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Counter-gank kill",
-                    killer.getPlayerName(), victim.getPlayerName(), ids(assistants));
+                    killer.getPlayerName(), victim.getPlayerName(), names(assistants));
+            kill.setParticipantPlayerIds(killer.getStructuredPlayerId(), victim.getStructuredPlayerId(),
+                    ids(assistants));
             kill.setCombatSource(CombatSource.COUNTER_GANK);
             events.add(kill);
             double shock = lane == Lane.BOT ? CounterGankRuleConfig.BOT_COUNTER_GANK_PRESSURE_SHOCK
@@ -77,16 +79,19 @@ public final class CounterGankResolver {
         }
 
         MatchEvent event = new MatchEvent(time, MatchEventType.COUNTER_GANK, "Counter gank",
-                killer == null ? null : killer.getPlayerName(), victim == null ? null : victim.getPlayerName(),
-                ids(assistants));
+                killer == null ? null : killer.getPlayerName(),
+                victim == null ? null : victim.getPlayerName(), names(assistants));
+        event.setParticipantPlayerIds(
+                killer == null ? null : killer.getStructuredPlayerId(),
+                victim == null ? null : victim.getStructuredPlayerId(), ids(assistants));
         event.setCombatSource(CombatSource.COUNTER_GANK);
         event.setCounterGank(new CounterGankData(
                 attackingSide, defendingSide,
-                state.getTeamState(attackingSide).playerAt(Position.JUNGLE).getPlayerName(),
-                state.getTeamState(defendingSide).playerAt(Position.JUNGLE).getPlayerName(),
+                state.getTeamState(attackingSide).playerAt(Position.JUNGLE).getStructuredPlayerId(),
+                state.getTeamState(defendingSide).playerAt(Position.JUNGLE).getStructuredPlayerId(),
                 lane, defenderInitiallyTriggered, responseChance, outcome, winningSide,
-                killer == null ? null : killer.getPlayerName(),
-                victim == null ? null : victim.getPlayerName(), ids(assistants),
+                killer == null ? null : killer.getStructuredPlayerId(),
+                victim == null ? null : victim.getStructuredPlayerId(), ids(assistants),
                 before, after, overextension,
                 attackingAction.getJungleFarmBlockedUntilSeconds(),
                 defendingAction.getJungleFarmBlockedUntilSeconds(),
@@ -272,6 +277,11 @@ public final class CounterGankResolver {
     }
 
     private List<String> ids(List<PlayerState> players) {
+        return players == null ? List.of()
+                : players.stream().map(PlayerState::getStructuredPlayerId).toList();
+    }
+
+    private List<String> names(List<PlayerState> players) {
         return players == null ? List.of() : players.stream().map(PlayerState::getPlayerName).toList();
     }
 

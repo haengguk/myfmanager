@@ -121,8 +121,8 @@ public class TeamfightResolver {
                 countAlivePlayers(sides.losingTeamState(), currentTime)
         );
         int counterKillTarget = determineCounterKillCount(plannedGrade, winningKillTarget, random);
-        Set<String> deadPlayers = new HashSet<>();
-        Map<String, Integer> frozenShutdownGold = freezeShutdownGold(gameState, currentTime);
+        Set<PlayerState> deadPlayers = new HashSet<>();
+        Map<PlayerState, Integer> frozenShutdownGold = freezeShutdownGold(gameState, currentTime);
 
         events.add(new MatchEvent(
                 currentTime,
@@ -229,7 +229,7 @@ public class TeamfightResolver {
                 winningKillsCreated,
                 losingKillsCreated,
                 nextEventTime,
-                new ArrayList<>(deadPlayers)
+                deadPlayers.stream().map(PlayerState::getPlayerName).toList()
         ));
     }
 
@@ -272,7 +272,7 @@ public class TeamfightResolver {
             TeamState defendingTeamState,
             List<MatchEvent> events,
             boolean teamfight,
-            Set<String> deadPlayers
+            Set<PlayerState> deadPlayers
     ) {
         return resolveKill(timeSeconds, random, attackingTeam, attackingTeamState, defendingTeam,
                 defendingTeamState, events, teamfight, deadPlayers, null);
@@ -287,8 +287,8 @@ public class TeamfightResolver {
             TeamState defendingTeamState,
             List<MatchEvent> events,
             boolean teamfight,
-            Set<String> deadPlayers,
-            Map<String, Integer> frozenShutdownGold
+            Set<PlayerState> deadPlayers,
+            Map<PlayerState, Integer> frozenShutdownGold
     ) {
         List<Player> killerCandidates = filterEligiblePlayers(
                 attackingTeam.getPlayers(), attackingTeamState, timeSeconds, deadPlayers
@@ -301,7 +301,7 @@ public class TeamfightResolver {
         }
 
         Player killer = pickWeightedPlayer(killerCandidates, random, player -> {
-            PlayerState candidate = attackingTeamState.getPlayerState(player.getName());
+            PlayerState candidate = attackingTeamState.playerAt(player.getPosition());
             double weight = candidate.hasMatchPerformance()
                     ? playerSkills.combatExecution(candidate)
                     * (PlayerImpactRuleConfig.KILLER_MECHANICS_WEIGHT
@@ -316,7 +316,7 @@ public class TeamfightResolver {
             return weight;
         });
         Player victim = pickWeightedPlayer(victimCandidates, random, player -> {
-            PlayerState candidate = defendingTeamState.getPlayerState(player.getName());
+            PlayerState candidate = defendingTeamState.playerAt(player.getPosition());
             double positionRisk = switch (player.getPosition()) {
                 case ADC -> 1.45;
                 case MID -> 1.25;
@@ -335,20 +335,22 @@ public class TeamfightResolver {
                     * PlayerImpactRuleConfig.VICTIM_MECHANICS_PROTECTION_WEIGHT
                     + candidate.getDeaths() * 0.08);
         });
-        List<String> assists = pickAssistNames(
+        List<Player> assistantPlayers = pickAssistPlayers(
                 attackingTeam, attackingTeamState, killer, timeSeconds, random, teamfight, deadPlayers
         );
 
-        PlayerState killerState = attackingTeamState.getPlayerState(killer.getName());
-        PlayerState victimState = defendingTeamState.getPlayerState(victim.getName());
-        List<PlayerState> assistantStates = new ArrayList<>();
-        for (String assistName : assists) assistantStates.add(attackingTeamState.getPlayerState(assistName));
+        PlayerState killerState = attackingTeamState.playerAt(killer.getPosition());
+        PlayerState victimState = defendingTeamState.playerAt(victim.getPosition());
+        List<PlayerState> assistantStates = assistantPlayers.stream()
+                .map(player -> attackingTeamState.playerAt(player.getPosition()))
+                .toList();
+        List<String> assists = assistantPlayers.stream().map(Player::getName).toList();
         killRewards.award(
                 timeSeconds, attackingTeamState, killerState, defendingTeamState, victimState, assistantStates,
                 calculateRespawnDelaySeconds(timeSeconds), teamfight,
-                frozenShutdownGold == null ? null : frozenShutdownGold.get(victim.getName()), events
+                frozenShutdownGold == null ? null : frozenShutdownGold.get(victimState), events
         );
-        deadPlayers.add(victim.getName());
+        deadPlayers.add(victimState);
 
         MatchEvent killEvent = new MatchEvent(
                 timeSeconds,
@@ -358,6 +360,9 @@ public class TeamfightResolver {
                 victim.getName(),
                 assists
         );
+        killEvent.setParticipantPlayerIds(killerState.getStructuredPlayerId(),
+                victimState.getStructuredPlayerId(),
+                assistantStates.stream().map(PlayerState::getStructuredPlayerId).toList());
         killEvent.setCombatSource(teamfight
                 ? com.lolfm.domain.CombatSource.TEAMFIGHT
                 : com.lolfm.domain.CombatSource.SKIRMISH);
@@ -369,18 +374,18 @@ public class TeamfightResolver {
         return true;
     }
 
-    private Map<String, Integer> freezeShutdownGold(GameState gameState, int timeSeconds) {
-        Map<String, Integer> values = new HashMap<>();
+    private Map<PlayerState, Integer> freezeShutdownGold(GameState gameState, int timeSeconds) {
+        Map<PlayerState, Integer> values = new HashMap<>();
         snapshotTeamShutdownGold(gameState.getBlueTeamState(), gameState.getRedTeamState(), timeSeconds, values);
         snapshotTeamShutdownGold(gameState.getRedTeamState(), gameState.getBlueTeamState(), timeSeconds, values);
         return values;
     }
 
-    private void snapshotTeamShutdownGold(TeamState own, TeamState enemy, int time, Map<String, Integer> values) {
+    private void snapshotTeamShutdownGold(TeamState own, TeamState enemy, int time, Map<PlayerState, Integer> values) {
         for (PlayerState player : own.getPlayers()) {
             int displayed = BountyService.displayedShutdownGold(player, own, enemy, time);
             player.setLastVisibleShutdownGold(displayed);
-            values.put(player.getPlayerName(), displayed);
+            values.put(player, displayed);
         }
     }
 
@@ -750,31 +755,37 @@ public class TeamfightResolver {
         return random.nextDouble() < chance ? 1 : 0;
     }
 
-    private List<Player> filterEligiblePlayers(List<Player> players, TeamState state, int time, Set<String> blocked) {
+    private List<Player> filterEligiblePlayers(
+            List<Player> players, TeamState state, int time, Set<PlayerState> blocked
+    ) {
         List<Player> candidates = new ArrayList<>();
         for (Player player : players) {
-            if (!blocked.contains(player.getName()) && state.getPlayerState(player.getName()).canParticipateInMajorCombatAt(time)) {
+            PlayerState playerState = state.playerAt(player.getPosition());
+            if (!blocked.contains(playerState) && playerState.canParticipateInMajorCombatAt(time)) {
                 candidates.add(player);
             }
         }
         return candidates;
     }
 
-    private List<String> pickAssistNames(
-            Team team, TeamState state, Player killer, int time, Random random, boolean teamfight, Set<String> deadPlayers
+    private List<Player> pickAssistPlayers(
+            Team team, TeamState state, Player killer, int time, Random random, boolean teamfight,
+            Set<PlayerState> deadPlayers
     ) {
         List<Player> candidates = new ArrayList<>();
+        PlayerState killerState = state.playerAt(killer.getPosition());
         for (Player player : team.getPlayers()) {
-            if (!player.getName().equals(killer.getName())
-                    && !deadPlayers.contains(player.getName())
-                    && state.getPlayerState(player.getName()).canParticipateInMajorCombatAt(time)) {
+            PlayerState playerState = state.playerAt(player.getPosition());
+            if (playerState != killerState
+                    && !deadPlayers.contains(playerState)
+                    && playerState.canParticipateInMajorCombatAt(time)) {
                 candidates.add(player);
             }
         }
         int assistCount = random.nextInt((teamfight ? 3 : 2) + 1);
-        List<String> assists = new ArrayList<>();
+        List<Player> assists = new ArrayList<>();
         for (int index = 0; index < assistCount && !candidates.isEmpty(); index++) {
-            assists.add(candidates.remove(random.nextInt(candidates.size())).getName());
+            assists.add(candidates.remove(random.nextInt(candidates.size())));
         }
         return assists;
     }

@@ -75,7 +75,7 @@ public final class JungleGankResolver {
                 : JungleGankOutcome.DEFENDER_REVERSE_KILL;
         double pressureBefore = state.laneState(lane).getPressure();
         if (outcome == JungleGankOutcome.NO_KILL) {
-            events.add(gankEvent(time, side, state.getTeamState(side).playerAt(Position.JUNGLE).getPlayerName(), lane, outcome, null, null, null, List.of(),
+            events.add(gankEvent(time, side, state.getTeamState(side).playerAt(Position.JUNGLE).getStructuredPlayerId(), lane, outcome, null, null, null, List.of(),
                     pressureBefore, pressureBefore, overextension, action.getJungleFarmBlockedUntilSeconds(),
                     attemptChance, selectedWeight, edge, decisive, success,
                     triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED), counterDecision));
@@ -91,7 +91,9 @@ public final class JungleGankResolver {
         for (int i = eventStart; i < events.size(); i++) events.get(i).setCombatSource(CombatSource.JUNGLE_GANK);
         MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Jungle gank kill",
                 participants.killer().getPlayerName(), participants.victim().getPlayerName(),
-                ids(participants.assistants()));
+                names(participants.assistants()));
+        kill.setParticipantPlayerIds(participants.killer().getStructuredPlayerId(),
+                participants.victim().getStructuredPlayerId(), ids(participants.assistants()));
         kill.setCombatSource(CombatSource.JUNGLE_GANK);
         events.add(kill);
 
@@ -101,7 +103,7 @@ public final class JungleGankResolver {
         double pressureAfter = clamp(pressureBefore + (winningSide == TeamSide.BLUE ? shock : -shock), -100, 100);
         state.laneState(lane).setPressure(pressureAfter);
         new ObjectivePriorityResolver().applyJungleGankKill(state, time, lane, winningSide);
-        events.add(gankEvent(time, side, state.getTeamState(side).playerAt(Position.JUNGLE).getPlayerName(), lane, outcome, winningSide, participants.killer(), participants.victim(),
+        events.add(gankEvent(time, side, state.getTeamState(side).playerAt(Position.JUNGLE).getStructuredPlayerId(), lane, outcome, winningSide, participants.killer(), participants.victim(),
                 participants.assistants(), pressureBefore, pressureAfter, overextension,
                 action.getJungleFarmBlockedUntilSeconds(), attemptChance, selectedWeight, edge, decisive, success,
                 triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED), counterDecision));
@@ -286,11 +288,16 @@ public final class JungleGankResolver {
                                  boolean blueTriggered, boolean redTriggered,
                                  CounterGankResolver.ResponseDecision counterDecision) {
         MatchEvent event = new MatchEvent(time, MatchEventType.JUNGLE_GANK, "Jungle gank",
-                killer == null ? null : killer.getPlayerName(), victim == null ? null : victim.getPlayerName(), ids(assists));
+                killer == null ? null : killer.getPlayerName(),
+                victim == null ? null : victim.getPlayerName(), names(assists));
+        event.setParticipantPlayerIds(
+                killer == null ? null : killer.getStructuredPlayerId(),
+                victim == null ? null : victim.getStructuredPlayerId(), ids(assists));
         event.setCombatSource(CombatSource.JUNGLE_GANK);
         event.setJungleGank(new JungleGankData(side,
                 junglerPlayerId, lane, outcome, winning,
-                killer == null ? null : killer.getPlayerName(), victim == null ? null : victim.getPlayerName(), ids(assists),
+                killer == null ? null : killer.getStructuredPlayerId(),
+                victim == null ? null : victim.getStructuredPlayerId(), ids(assists),
                 before, after, overextension, blockedUntil, attemptChance, targetWeight, edge, decisive, success,
                 blueTriggered, redTriggered,
                 counterDecision.eligible(), counterDecision.ineligibility(),
@@ -351,7 +358,8 @@ public final class JungleGankResolver {
         return players.stream().mapToInt(PlayerState::getGold).average().orElse(0.0);
     }
 
-    private List<String> ids(List<PlayerState> players) { return players.stream().map(PlayerState::getPlayerName).toList(); }
+    private List<String> ids(List<PlayerState> players) { return players.stream().map(PlayerState::getStructuredPlayerId).toList(); }
+    private List<String> names(List<PlayerState> players) { return players.stream().map(PlayerState::getPlayerName).toList(); }
     private int respawnDelaySeconds(int time) { return time < 600 ? RespawnRuleConfig.BEFORE_10_MINUTES_SECONDS : RespawnRuleConfig.FROM_10_TO_20_MINUTES_SECONDS; }
     private double clamp(double value, double min, double max) { return Math.max(min, Math.min(max, value)); }
     private record CombatParticipants(TeamState winners, TeamState losers, PlayerState killer,

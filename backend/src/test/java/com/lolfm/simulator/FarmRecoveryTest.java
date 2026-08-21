@@ -222,7 +222,9 @@ class FarmRecoveryTest {
         assertTrue(new TeamfightResolver().resolveKill(180, new FixedRandom(0), blue, blueState, red, redState,
                 events, teamfight, new HashSet<>()));
         MatchEvent kill = events.stream().filter(event -> event.getType() == MatchEventType.KILL).findFirst().orElseThrow();
-        PlayerState victim = redState.getPlayerState(kill.getVictim());
+        PlayerState victim = redState.getPlayers().stream()
+                .filter(player -> player.getStructuredPlayerId().equals(kill.getVictimPlayerId()))
+                .findFirst().orElseThrow();
         int expectedDelay = FarmRecoveryRuleConfig.returnDelaySeconds(victim.getPosition(), 180);
         assertEquals(victim.getRespawnAtSeconds() + expectedDelay, victim.getFarmResumeAtSeconds());
     }

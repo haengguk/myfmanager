@@ -143,7 +143,7 @@ class MatchSimulatorSmokeTest {
 
         markAllButAlive(blueState, blueTarget.getName(), 1_200, 9_999);
         markAllButAlive(redState, returningPlayer.getName(), 1_200, 9_999);
-        PlayerState returningState = redState.getPlayerState(returningPlayer.getName());
+        PlayerState returningState = redState.playerAt(returningPlayer.getPosition());
         returningState.markDead(1_200, 35);
 
         assertFalse(resolver.resolveKill(

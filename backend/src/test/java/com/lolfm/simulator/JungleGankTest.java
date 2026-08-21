@@ -152,16 +152,16 @@ class JungleGankTest {
         Result result = resolveBlue(new SequenceRandom(0, .99, 0, 0, 0, 0));
         assertEquals(JungleGankOutcome.GANK_SUCCESS, result.data.outcome());
         assertEquals(1, result.data.assistantPlayerIds().size());
-        assertTrue(result.data.killerPlayerId().startsWith("BLUE"));
-        assertTrue(result.data.victimPlayerId().startsWith("RED"));
+        assertTrue(result.data.killerPlayerId().startsWith("player-fixture-blue-"));
+        assertTrue(result.data.victimPlayerId().startsWith("player-fixture-red-"));
     }
 
     @Test void soloReverseHasDefenderKillerNoAssistAndAttackerVictim() {
         Result result = resolveBlue(new SequenceRandom(0, .99, 0, 0, .99, 0));
         assertEquals(JungleGankOutcome.DEFENDER_REVERSE_KILL, result.data.outcome());
-        assertTrue(result.data.killerPlayerId().startsWith("RED"));
+        assertTrue(result.data.killerPlayerId().startsWith("player-fixture-red-"));
         assertTrue(result.data.assistantPlayerIds().isEmpty());
-        assertTrue(result.data.victimPlayerId().startsWith("BLUE"));
+        assertTrue(result.data.victimPlayerId().startsWith("player-fixture-blue-"));
     }
 
     @Test void botSuccessStoresTwoDistinctAlliedAssistantsAndEnemyAdcOrSupportVictim() {
@@ -169,8 +169,8 @@ class JungleGankTest {
         assertEquals(Lane.BOT, result.data.targetLane());
         assertEquals(2, result.data.assistantPlayerIds().size());
         assertEquals(2, result.data.assistantPlayerIds().stream().distinct().count());
-        assertTrue(result.data.assistantPlayerIds().stream().allMatch(id -> id.startsWith("BLUE")));
-        assertTrue(result.data.victimPlayerId().endsWith("ADC") || result.data.victimPlayerId().endsWith("SUPPORT"));
+        assertTrue(result.data.assistantPlayerIds().stream().allMatch(id -> id.startsWith("player-fixture-blue-")));
+        assertTrue(result.data.victimPlayerId().endsWith("-adc") || result.data.victimPlayerId().endsWith("-support"));
     }
 
     @Test void botReverseStoresDefenderAssistAndOneAttackingVictim() {
@@ -178,9 +178,9 @@ class JungleGankTest {
         assertEquals(Lane.BOT, result.data.targetLane());
         assertEquals(JungleGankOutcome.DEFENDER_REVERSE_KILL, result.data.outcome());
         assertEquals(1, result.data.assistantPlayerIds().size());
-        assertTrue(result.data.killerPlayerId().startsWith("RED"));
-        assertTrue(result.data.assistantPlayerIds().getFirst().startsWith("RED"));
-        assertTrue(result.data.victimPlayerId().startsWith("BLUE"));
+        assertTrue(result.data.killerPlayerId().startsWith("player-fixture-red-"));
+        assertTrue(result.data.assistantPlayerIds().getFirst().startsWith("player-fixture-red-"));
+        assertTrue(result.data.victimPlayerId().startsWith("player-fixture-blue-"));
     }
 
     @Test void killRewardResolverPaysKillAssistShutdownAndRejectsDuplicateDeath() {
@@ -274,7 +274,7 @@ class JungleGankTest {
     }
     private TeamState team(String side, int jungleMechanics, int jungleAggression) {
         List<PlayerState> players = new ArrayList<>();
-        for (Position position : Position.values()) players.add(new PlayerState(side + "-" + position, position,
+        for (Position position : Position.values()) players.add(PlayerStateTestFixture.player(side, position,
                 new PlayerAttributes(position == Position.JUNGLE ? jungleMechanics : 14,
                         position == Position.JUNGLE ? jungleAggression : 14, 14, 14), 500));
         return new TeamState(side, players);

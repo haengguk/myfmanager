@@ -104,14 +104,14 @@ class LaneCombatTest {
         GameState adcKill = at180(state(14,14,14,14)); List<MatchEvent> events = new ArrayList<>();
         resolver.resolve(adcKill, sequence(1,1,0,.5,0,0,0,0,0), events);
         LaneCombatData data = events.getLast().getLaneCombat();
-        assertEquals("BLUE-ADC", data.killerPlayerId()); assertEquals(List.of("BLUE-SUPPORT"), data.assistantPlayerIds());
-        assertEquals("RED-ADC", data.victimPlayerId()); assertEquals(1, adcKill.getRedTeamState().getPlayers().stream().filter(p -> !p.isAlive(180)).count());
+        assertEquals("player-fixture-blue-adc", data.killerPlayerId()); assertEquals(List.of("player-fixture-blue-support"), data.assistantPlayerIds());
+        assertEquals("player-fixture-red-adc", data.victimPlayerId()); assertEquals(1, adcKill.getRedTeamState().getPlayers().stream().filter(p -> !p.isAlive(180)).count());
 
         GameState supportKill = at180(state(14,14,14,14)); events = new ArrayList<>();
         resolver.resolve(supportKill, sequence(1,1,0,.5,0,0,0,.99,.99), events);
         data = events.getLast().getLaneCombat();
-        assertEquals("BLUE-SUPPORT", data.killerPlayerId()); assertEquals(List.of("BLUE-ADC"), data.assistantPlayerIds());
-        assertEquals("RED-SUPPORT", data.victimPlayerId());
+        assertEquals("player-fixture-blue-support", data.killerPlayerId()); assertEquals(List.of("player-fixture-blue-adc"), data.assistantPlayerIds());
+        assertEquals("player-fixture-red-support", data.victimPlayerId());
     }
 
     @Test
@@ -227,7 +227,7 @@ class LaneCombatTest {
     private List<String> signatures(MatchTimeline t){return t.getEvents().stream().filter(e->e.getType()==MatchEventType.LANE_COMBAT).map(e->e.getTimeSeconds()+":"+e.getLaneCombat()).toList();}
     private GameState state(int blueMechanics,int redMechanics,int blueAggression,int redAggression){return new GameState(teamState("BLUE",blueMechanics,blueAggression),teamState("RED",redMechanics,redAggression));}
     private TeamState teamState(String side,int mechanics,int aggression){return new TeamState(side,List.of(ps(side,"TOP",Position.TOP,mechanics,aggression),ps(side,"JUNGLE",Position.JUNGLE,14,14),ps(side,"MID",Position.MID,mechanics,aggression),ps(side,"ADC",Position.ADC,mechanics,aggression),ps(side,"SUPPORT",Position.SUPPORT,mechanics,aggression)));}
-    private PlayerState ps(String side,String name,Position p,int m,int a){return new PlayerState(side+"-"+name,p,new PlayerAttributes(m,a,14,14),500);}
+    private PlayerState ps(String side,String name,Position p,int m,int a){return PlayerStateTestFixture.player(side, p, new PlayerAttributes(m, a, 14, 14), 500);}
     private Team domainTeam(String side,int m,int a){return new Team(side,List.of(dp(side,"TOP",Position.TOP,m,a),dp(side,"JUNGLE",Position.JUNGLE,14,14),dp(side,"MID",Position.MID,m,a),dp(side,"ADC",Position.ADC,m,a),dp(side,"SUPPORT",Position.SUPPORT,m,a)));}
     private Player dp(String side,String n,Position p,int m,int a){return new Player(side+"-"+n,p,new PlayerAttributes(m,a,14,14));}
     private GameState at180(GameState state){setTime(state,180);return state;} private void setTime(GameState state,int target){state.advanceTimeSeconds(target-state.getCurrentTimeSeconds());}

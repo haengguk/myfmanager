@@ -107,11 +107,11 @@ class ChampionFullIntegratedValidationTest {
         PlayerState highMechanics = player(base.with(PlayerSkill.MECHANICS, 20), 14);
         assertThat(skills.combatExecution(highMechanics)).isGreaterThan(skills.combatExecution(lowMechanics));
 
-        PlayerState lowProficiency = player(base, 5);
+        PlayerState neutralProficiency = player(base, com.lolfm.domain.ChampionProficiencies.NEUTRAL);
         PlayerState highProficiency = player(base, 20);
-        assertThat(skills.combatExecution(highProficiency)).isGreaterThan(skills.combatExecution(lowProficiency));
-        assertThat(skills.farming(highProficiency)).isEqualTo(skills.farming(lowProficiency));
-        assertThat(skills.decisionQuality(highProficiency)).isEqualTo(skills.decisionQuality(lowProficiency));
+        assertThat(skills.combatExecution(highProficiency)).isGreaterThan(skills.combatExecution(neutralProficiency));
+        assertThat(skills.farming(highProficiency)).isEqualTo(skills.farming(neutralProficiency));
+        assertThat(skills.decisionQuality(highProficiency)).isEqualTo(skills.decisionQuality(neutralProficiency));
 
         PlayerState lowDecision = player(base.with(PlayerSkill.DECISION_MAKING, 5), 14);
         PlayerState highDecision = player(base.with(PlayerSkill.DECISION_MAKING, 20), 14);

@@ -671,8 +671,9 @@ public class MatchSimulator {
         for (Player player : team.getPlayers()) {
             PlayerKey playerKey = new PlayerKey(side, player.getPosition());
             if (player.isLegacyProfile()) {
-                states.add(new PlayerState(player.getName(), player.getPosition(), player.getAttributes(),
-                        STARTING_GOLD, farmRecoveryEnabled));
+                states.add(new PlayerState(playerKey, player.getPlayerId(), player.getName(),
+                        player.getPosition(), player.getAttributes(), null, STARTING_GOLD,
+                        farmRecoveryEnabled));
                 continue;
             }
             com.lolfm.champion.ChampionRoleKey championRoleKey =
@@ -681,8 +682,9 @@ public class MatchSimulator {
             int proficiency = player.getChampionProficiencies().get(championRoleKey);
             PlayerMatchPerformance performance = PlayerMatchPerformance.realize(
                     player.getRatings(), proficiency, seed, side);
-            states.add(new PlayerState(player.getName(), player.getPosition(), player.getAttributes(),
-                    performance, STARTING_GOLD, farmRecoveryEnabled));
+            states.add(new PlayerState(playerKey, player.getPlayerId(), player.getName(),
+                    player.getPosition(), player.getAttributes(), performance, STARTING_GOLD,
+                    farmRecoveryEnabled));
         }
         return new TeamState(team.getName(), states);
     }

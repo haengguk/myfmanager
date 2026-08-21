@@ -35,7 +35,7 @@ public final class ObjectiveFightResolver {
         markParticipants(state, state.getRedTeamState(), participants);
         events.add(new MatchEvent(state.getCurrentTimeSeconds(), MatchEventType.TEAMFIGHT,
                 "오브젝트 지역에서 양 팀이 교전을 시작합니다.", null, null, List.of()));
-        Set<String> dead = new HashSet<>();
+        Set<PlayerState> dead = new HashSet<>();
         int before = events.size();
         boolean killed = teamfights.resolveKill(state.getCurrentTimeSeconds(), random, winningTeam, winningState,
                 losingTeam, losingState, events, true, dead);
@@ -60,7 +60,7 @@ public final class ObjectiveFightResolver {
         for (PlayerState player : team.getPlayers()) {
             if (player.canParticipateInMajorCombatAt(time)) {
                 state.markMajorCombatParticipant(player);
-                participants.add(player.getPlayerName());
+                participants.add(player.getStructuredPlayerId());
             }
         }
     }

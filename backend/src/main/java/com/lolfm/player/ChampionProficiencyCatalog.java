@@ -1,0 +1,116 @@
+package com.lolfm.player;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.champion.ChampionCatalog;
+import com.lolfm.champion.ChampionRoleKey;
+import com.lolfm.domain.ChampionProficiencies;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import org.springframework.stereotype.Component;
+
+/** Immutable stable-person ownership boundary for the sparse proficiency population. */
+@Component
+public final class ChampionProficiencyCatalog {
+    private final ChampionProficiencyResourceLoader.LoadedResource loaded;
+    private final PlayerRatingCatalog ratings;
+    private final ChampionCatalog champions;
+    private final Map<PlayerId, ChampionProficiencies> byPlayerId;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public ChampionProficiencyCatalog(ObjectMapper mapper, PlayerRatingCatalog ratings,
+                                      ChampionCatalog champions) {
+        this(ChampionProficiencyResourceLoader.load(mapper,
+                ChampionProficiencyResourceLoader.class.getResourceAsStream(
+                        ChampionProficiencyResourceLoader.RESOURCE), ratings, champions), ratings, champions);
+    }
+
+    public ChampionProficiencyCatalog(ChampionProficiencyResourceLoader.LoadedResource loaded,
+                                      PlayerRatingCatalog ratings, ChampionCatalog champions) {
+        this.loaded = Objects.requireNonNull(loaded, "loaded");
+        this.ratings = Objects.requireNonNull(ratings, "ratings");
+        this.champions = Objects.requireNonNull(champions, "champions");
+        byPlayerId = Map.copyOf(loaded.proficiencies());
+    }
+
+    public static ChampionProficiencyCatalog loadDefault() {
+        ObjectMapper mapper = new ObjectMapper();
+        PlayerRatingCatalog ratings = PlayerRatingCatalog.loadDefault();
+        ChampionCatalog champions = new ChampionCatalog(mapper);
+        return new ChampionProficiencyCatalog(
+                ChampionProficiencyResourceLoader.load(mapper,
+                        ChampionProficiencyResourceLoader.class.getResourceAsStream(
+                                ChampionProficiencyResourceLoader.RESOURCE), ratings, champions),
+                ratings, champions);
+    }
+
+    public String version() { return loaded.version(); }
+    public String researchAsOf() { return loaded.researchAsOf(); }
+    public String resourceSha256() { return loaded.resourceSha256(); }
+    public String requiredPlayerRatingResourceVersion() {
+        return loaded.requiredPlayerRatingResourceVersion();
+    }
+    public String requiredChampionPoolVersion() { return loaded.requiredChampionPoolVersion(); }
+    public int requiredLegalRoleKeyCount() { return loaded.requiredLegalRoleKeyCount(); }
+    public int highProficiencyThreshold() { return loaded.highProficiencyThreshold(); }
+    public ChampionProficiencyPopulationMetrics metrics() { return loaded.metrics(); }
+    public List<ChampionProficiencyEntry> authoredEntries() { return loaded.authoredEntries(); }
+    public Map<PlayerId, ChampionProficiencies> all() { return byPlayerId; }
+
+    public Optional<ChampionProficiencies> find(PlayerId playerId) {
+        return Optional.ofNullable(byPlayerId.get(Objects.requireNonNull(playerId, "playerId")));
+    }
+
+    public ChampionProficiencies get(PlayerId playerId) {
+        return find(playerId).orElseThrow(() -> new IllegalArgumentException("Unknown PlayerId: " + playerId));
+    }
+
+    public ChampionProficiencies get(PlayerRatingKey ratingKey) {
+        return get(ratings.playerId(Objects.requireNonNull(ratingKey, "ratingKey")));
+    }
+
+    public int value(PlayerId playerId, ChampionRoleKey roleKey) {
+        validateSubjectRole(playerId, roleKey);
+        return get(playerId).get(roleKey);
+    }
+
+    public int value(PlayerRatingKey ratingKey, ChampionRoleKey roleKey) {
+        Objects.requireNonNull(ratingKey, "ratingKey");
+        if (ratingKey.position() != roleKey.position()) {
+            throw new IllegalArgumentException("INVALID_SUBJECT_ROLE_BINDING: " + ratingKey.stableId()
+                    + "/" + roleKey.stableId());
+        }
+        return value(ratings.playerId(ratingKey), roleKey);
+    }
+
+    /** Production preflight path that keeps rating subject, person, and profile provider explicit. */
+    public ChampionProficiencies bind(PlayerId playerId, PlayerRatingKey ratingKey,
+                                      PlayerId proficiencyOwnerId) {
+        Objects.requireNonNull(playerId, "playerId");
+        Objects.requireNonNull(ratingKey, "ratingKey");
+        Objects.requireNonNull(proficiencyOwnerId, "proficiencyOwnerId");
+        PlayerId expected = ratings.playerId(ratingKey);
+        if (!expected.equals(playerId)) {
+            throw new IllegalArgumentException("PLAYER_ID_RATING_KEY_MISMATCH: " + playerId
+                    + "/" + ratingKey.stableId());
+        }
+        if (!playerId.equals(proficiencyOwnerId)) {
+            throw new IllegalArgumentException("PROFICIENCY_BINDING_MISMATCH: subject=" + playerId
+                    + " provider=" + proficiencyOwnerId);
+        }
+        return get(proficiencyOwnerId);
+    }
+
+    private void validateSubjectRole(PlayerId playerId, ChampionRoleKey roleKey) {
+        Objects.requireNonNull(roleKey, "roleKey");
+        PlayerRatingKey ratingKey = ratings.currentRatingKey(playerId);
+        if (ratingKey.position() != roleKey.position()) {
+            throw new IllegalArgumentException("INVALID_SUBJECT_ROLE_BINDING: " + ratingKey.stableId()
+                    + "/" + roleKey.stableId());
+        }
+        if (!champions.supports(roleKey)) {
+            throw new IllegalArgumentException("Illegal ChampionRoleKey: " + roleKey.stableId());
+        }
+    }
+}

@@ -23,4 +23,14 @@ public final class ChampionProficiencies {
     public static ChampionProficiencies neutral() { return new ChampionProficiencies(Map.of()); }
     public int get(ChampionRoleKey key) { return values.getOrDefault(key, NEUTRAL); }
     public Map<ChampionRoleKey, Integer> asMap() { return values; }
+
+
+    @Override
+    public boolean equals(Object other) {
+        return this == other || other instanceof ChampionProficiencies that && values.equals(that.values);
+    }
+
+
+    @Override
+    public int hashCode() { return values.hashCode(); }
 }
