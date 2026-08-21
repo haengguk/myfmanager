@@ -420,3 +420,10 @@ tasks.register("runPhase13GPlayerRatingsAudit", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.draft.Phase13GPlayerRatingsAudit"
 }
+
+tasks.register("runPhase13GPreProficiencyHardeningAudit", JavaExec) {
+    group = "verification"
+    description = "Writes the pre-real-Champion-Proficiency gate hardening artifacts."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.draft.Phase13GPreProficiencyHardeningAudit"
+}

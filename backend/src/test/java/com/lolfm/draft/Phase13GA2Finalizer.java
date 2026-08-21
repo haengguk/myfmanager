@@ -30,6 +30,10 @@ public final class Phase13GA2Finalizer {
     public record RegressionCounts(long tests, long failures, long errors, long skipped,
                                    int xmlFileCount) { }
 
+    public static boolean regressionPresent(RegressionCounts counts) {
+        return counts != null && counts.xmlFileCount() > 0 && counts.tests() > 0;
+    }
+
     public static void main(String[] args) throws Exception {
         Path output = Path.of(System.getProperty("phase13g.outputDir", DEFAULT_OUTPUT.toString()));
         Path testResults = Path.of(System.getProperty("phase13g.testResultsDir", DEFAULT_TEST_RESULTS.toString()));
@@ -80,6 +84,9 @@ public final class Phase13GA2Finalizer {
         Path summaryPath = output.resolve("phase13g-a-v2-structural-integrated-audit-summary.json");
         Map<String, Object> summary = mapper.readValue(summaryPath.toFile(), new TypeReference<>() { });
         List<String> blockers = strings(summary.get("blockerCodes"));
+        if (!regressionPresent(counts)) {
+            blockers.add("BLOCKED_BY_MISSING_BACKEND_REGRESSION");
+        }
         if (counts.failures() > 0 || counts.errors() > 0) {
             blockers.add("BLOCKED_BY_PHASE_13G_A_V2_BACKEND_REGRESSION");
         }

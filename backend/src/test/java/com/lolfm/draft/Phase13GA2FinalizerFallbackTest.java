@@ -30,4 +30,16 @@ class Phase13GA2FinalizerFallbackTest {
             Files.deleteIfExists(directory);
         }
     }
+
+    @Test
+    void regressionPresenceRequiresXmlAndNonZeroTests() {
+        assertThat(Phase13GA2Finalizer.regressionPresent(
+                new Phase13GA2Finalizer.RegressionCounts(0, 0, 0, 0, 0))).isFalse();
+        assertThat(Phase13GA2Finalizer.regressionPresent(
+                new Phase13GA2Finalizer.RegressionCounts(0, 0, 0, 0, 2))).isFalse();
+        assertThat(Phase13GA2Finalizer.regressionPresent(
+                new Phase13GA2Finalizer.RegressionCounts(2, 0, 0, 0, 0))).isFalse();
+        assertThat(Phase13GA2Finalizer.regressionPresent(
+                new Phase13GA2Finalizer.RegressionCounts(2, 0, 0, 0, 1))).isTrue();
+    }
 }

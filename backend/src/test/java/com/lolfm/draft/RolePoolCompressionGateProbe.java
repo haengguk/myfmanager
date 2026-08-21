@@ -14,6 +14,7 @@ import java.util.Set;
 /** Deterministic test-side probe that evaluates ROLE_POOL_COMPRESSION through production BanEvaluator. */
 public final class RolePoolCompressionGateProbe {
     private static final int DEPLETED_ADC_COUNT = 28;
+    private static final Position DEPLETED_ROLE = Position.ADC;
 
     private final DraftResourceSet resources;
     private final ChampionCatalog champions;
@@ -50,6 +51,7 @@ public final class RolePoolCompressionGateProbe {
         DraftPlanPortfolio bluePortfolio = planner.replan(neutral, neutral, TeamSide.BLUE, state);
         DraftPlanPortfolio redPortfolio = planner.replan(neutral, neutral, TeamSide.RED, state);
         List<CandidateEvaluation> positive = new ArrayList<>();
+        List<CandidateEvaluation> allCandidates = new ArrayList<>();
         int legalCandidateCount = 0;
         for (var definition : champions.all().stream()
                 .sorted(Comparator.comparing(value -> value.id().value())).toList()) {
@@ -59,8 +61,23 @@ public final class RolePoolCompressionGateProbe {
             BanEvaluation evaluation = evaluator.evaluate(state, TeamSide.BLUE, candidate,
                     neutral, neutral, bluePortfolio, redPortfolio);
             double component = evaluation.components().get(BanScoreComponent.ROLE_POOL_COMPRESSION);
-            if (component > 0.0) positive.add(new CandidateEvaluation(candidate, component, evaluation));
+            CandidateEvaluation candidateEvaluation = new CandidateEvaluation(candidate, component, evaluation);
+            allCandidates.add(candidateEvaluation);
+            if (component > 0.0) positive.add(candidateEvaluation);
         }
+        Comparator<CandidateEvaluation> byCompression = Comparator
+                .comparingDouble(CandidateEvaluation::componentValue)
+                .thenComparing(value -> value.championId().value());
+        CandidateEvaluation direct = allCandidates.stream()
+                .filter(value -> champions.get(value.championId()).supportedPositions().contains(DEPLETED_ROLE))
+                .max(byCompression)
+                .orElse(null);
+        CandidateEvaluation unrelated = allCandidates.stream()
+                .filter(value -> !champions.get(value.championId()).supportedPositions().contains(DEPLETED_ROLE))
+                .max(byCompression)
+                .orElse(null);
+        boolean directional = direct != null && unrelated != null
+                && direct.componentValue() > unrelated.componentValue();
         boolean stateLegal = state.currentTurn().actionType() == DraftActionType.BAN
                 && state.bluePicks().isEmpty() && state.redPicks().isEmpty()
                 && roles.isFeasible(state.bluePicks()) && roles.isFeasible(state.redPicks());
@@ -68,7 +85,8 @@ public final class RolePoolCompressionGateProbe {
                 && canCompleteAfterAnyPick(state, TeamSide.BLUE)
                 && canCompleteAfterAnyPick(state, TeamSide.RED);
         return new Result(state, DEPLETED_ADC_COUNT, stateLegal, stateCompletable,
-                availability.poolHealth(state, TeamSide.RED, null), positive, BanEvaluator.class.getName());
+                availability.poolHealth(state, TeamSide.RED, null), positive, direct, unrelated, directional,
+                BanEvaluator.class.getName());
     }
 
     private boolean canCompleteAfterAnyPick(DraftState state, TeamSide side) {
@@ -87,10 +105,17 @@ public final class RolePoolCompressionGateProbe {
             boolean stateCompletable,
             double rolePoolHealthBeforeCandidate,
             List<CandidateEvaluation> positiveCandidates,
+            CandidateEvaluation directRolePressureCandidate,
+            CandidateEvaluation unrelatedHealthyRoleCandidate,
+            boolean directional,
             String evaluatorClass
     ) {
         public Result {
             positiveCandidates = List.copyOf(positiveCandidates);
+        }
+
+        public boolean reachable() {
+            return stateLegal && stateCompletable && !positiveCandidates.isEmpty();
         }
     }
 }

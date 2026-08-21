@@ -92,6 +92,9 @@ public final class Phase13GPlayerRatingsAudit {
             blockers.add("BLOCKED_BY_ROLE_POOL_COMPRESSION_COMPONENT_INERT");
         }
         if (!realHarnessReady) blockers.add("BLOCKED_BY_REAL_PROFICIENCY_GATE_HARNESS");
+        if (!Phase13GA2Finalizer.regressionPresent(regression)) {
+            blockers.add("BLOCKED_BY_MISSING_BACKEND_REGRESSION");
+        }
         if (regression.failures() > 0 || regression.errors() > 0) {
             blockers.add("BLOCKED_BY_PHASE_13G_BACKEND_REGRESSION");
         }
@@ -135,6 +138,8 @@ public final class Phase13GPlayerRatingsAudit {
         result.put("backendFailures", regression.failures());
         result.put("backendErrors", regression.errors());
         result.put("backendSkipped", regression.skipped());
+        result.put("backendXmlFileCount", regression.xmlFileCount());
+        result.put("backendRegressionPresent", Phase13GA2Finalizer.regressionPresent(regression));
         result.put("blockerCodes", blockers);
         result.put("reviewCodes", List.of("REVIEW_REAL_PROFICIENCY_GATE_PENDING"));
         result.put("infoCodes", List.of(

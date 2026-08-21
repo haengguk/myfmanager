@@ -8,6 +8,7 @@ import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.domain.ChampionProficiencies;
 import com.lolfm.domain.Position;
+import com.lolfm.player.PlayerRatingKey;
 import com.lolfm.simulator.TeamSide;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -71,25 +72,25 @@ class Pre13GBoundaryGateTest {
     void realProficiencyReachabilityGateAcceptsStructuredPlayerAndChampionRoleIdentity() {
         RealProficiencyCandidateReachabilityGate gate = new RealProficiencyCandidateReachabilityGate(resources);
         RealProficiencyCandidateReachabilityGate.Result result = gate.evaluate(
-                new RealProficiencyCandidateReachabilityGate.ProficiencySubjectKey("GEN", Position.MID),
+                new PlayerRatingKey("GEN", Position.MID),
                 new ChampionRoleKey(new ChampionId("azir"), Position.MID),
-                18,
                 reachabilityScenarios());
 
-        assertThat(result.playerKey()).isEqualTo("GEN:MID");
+        assertThat(result.playerKey()).isEqualTo(new PlayerRatingKey("GEN", Position.MID));
         assertThat(result.championId()).isEqualTo(new ChampionId("azir"));
         assertThat(result.position()).isEqualTo(Position.MID);
         assertThat(result.proficiency()).isEqualTo(18);
         assertThat(result.scenarioCount()).isEqualTo(3);
+        assertThat(result.bindingValidated()).isTrue();
+        assertThat(result.subjectRoleMatched()).isTrue();
     }
 
     @Test
     void reachabilityGateRejectsIllegalChampionRoleScenario() {
         RealProficiencyCandidateReachabilityGate gate = new RealProficiencyCandidateReachabilityGate(resources);
         assertThatThrownBy(() -> gate.evaluate(
-                new RealProficiencyCandidateReachabilityGate.ProficiencySubjectKey("GEN", Position.MID),
+                new PlayerRatingKey("GEN", Position.SUPPORT),
                 new ChampionRoleKey(new ChampionId("azir"), Position.SUPPORT),
-                18,
                 reachabilityScenarios()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Champion role is not legal");
@@ -101,11 +102,70 @@ class Pre13GBoundaryGateTest {
         assertThat(gate.productionCandidateGenerator()).isNotNull();
         assertThat(gate.productionCandidateGenerator().getClass()).isEqualTo(DraftCandidateGenerator.class);
         RealProficiencyCandidateReachabilityGate.Result result = gate.evaluate(
-                new RealProficiencyCandidateReachabilityGate.ProficiencySubjectKey("GEN", Position.MID),
+                new PlayerRatingKey("GEN", Position.MID),
                 new ChampionRoleKey(new ChampionId("azir"), Position.MID),
-                18,
                 reachabilityScenarios());
         assertThat(result.scenarios()).hasSize(3);
+    }
+
+    @Test
+    void reachabilityGateCanonicalizesTeamCodeThroughPlayerRatingKey() {
+        RealProficiencyCandidateReachabilityGate.Result result = new RealProficiencyCandidateReachabilityGate(resources)
+                .evaluate(new PlayerRatingKey("gen", Position.MID),
+                        new ChampionRoleKey(new ChampionId("azir"), Position.MID), reachabilityScenarios());
+
+        assertThat(result.playerKey()).isEqualTo(new PlayerRatingKey("GEN", Position.MID));
+        assertThat(result.playerKey().stableId()).isEqualTo("GEN:MID");
+    }
+
+    @Test
+    void reachabilityGateRejectsSubjectPositionDifferentFromChampionRolePosition() {
+        assertThatThrownBy(() -> new RealProficiencyCandidateReachabilityGate(resources).evaluate(
+                new PlayerRatingKey("GEN", Position.TOP),
+                new ChampionRoleKey(new ChampionId("azir"), Position.MID), reachabilityScenarios()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("INVALID_SUBJECT_ROLE_BINDING");
+    }
+
+    @Test
+    void reachabilityGateUsesOneCanonicalSubjectIdentityType() {
+        assertThat(RealProficiencyCandidateReachabilityGate.class.getDeclaredClasses())
+                .noneMatch(value -> value.getSimpleName().equals("ProficiencySubjectKey"));
+        assertThat(RealProficiencyCandidateReachabilityGate.Result.class.getRecordComponents())
+                .filteredOn(component -> component.getName().equals("playerKey"))
+                .extracting(java.lang.reflect.RecordComponent::getType)
+                .containsExactly(PlayerRatingKey.class);
+    }
+
+    @Test
+    void reachabilityGateFailsFastWhenScenarioContextsDisagreeOnProficiency() {
+        List<RealProficiencyCandidateReachabilityGate.Scenario> scenarios = reachabilityScenarios();
+        RealProficiencyCandidateReachabilityGate.Scenario first = scenarios.getFirst();
+        DraftTeamContext mismatched = contextWith(new ChampionId("azir"), Position.MID, 12);
+        List<RealProficiencyCandidateReachabilityGate.Scenario> mismatchedScenarios = new ArrayList<>();
+        mismatchedScenarios.add(new RealProficiencyCandidateReachabilityGate.Scenario(first.id(), first.side(),
+                first.state(), mismatched, first.enemy(), first.ownPortfolio(), first.enemyPortfolio()));
+        mismatchedScenarios.addAll(scenarios.subList(1, scenarios.size()));
+
+        assertThatThrownBy(() -> new RealProficiencyCandidateReachabilityGate(resources).evaluate(
+                new PlayerRatingKey("GEN", Position.MID),
+                new ChampionRoleKey(new ChampionId("azir"), Position.MID), mismatchedScenarios))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("PROFICIENCY_BINDING_MISMATCH");
+    }
+
+    @Test
+    void reachabilityGateReportsTheDraftContextProficiencyItUses() {
+        RealProficiencyCandidateReachabilityGate.Result high = reachabilityResult();
+        RealProficiencyCandidateReachabilityGate.Result low = new RealProficiencyCandidateReachabilityGate(resources)
+                .evaluate(new PlayerRatingKey("GEN", Position.MID),
+                        new ChampionRoleKey(new ChampionId("azir"), Position.MID),
+                        lowReachabilityScenarios());
+
+        assertThat(high.proficiency()).isEqualTo(18);
+        assertThat(low.proficiency()).isEqualTo(1);
+        assertThat(low.reachable()).isFalse();
+        assertThat(low.reason()).isEqualTo("BELOW_HIGH_PROFICIENCY_THRESHOLD");
     }
 
     @Test
@@ -128,7 +188,7 @@ class Pre13GBoundaryGateTest {
         assertThat(java.util.Arrays.stream(RealProficiencyCandidateReachabilityGate.class.getDeclaredFields())
                 .map(java.lang.reflect.Field::getType)
                 .map(Class::getName))
-                .noneMatch(value -> value.contains("PlayerRating") || value.contains("PlayerSkill"));
+                .noneMatch(value -> value.contains("PlayerSkill"));
         assertThat(reachabilityResult().proficiency()).isEqualTo(18);
     }
 
@@ -146,16 +206,13 @@ class Pre13GBoundaryGateTest {
 
     private RealProficiencyCandidateReachabilityGate.Result reachabilityResult() {
         return new RealProficiencyCandidateReachabilityGate(resources).evaluate(
-                new RealProficiencyCandidateReachabilityGate.ProficiencySubjectKey("GEN", Position.MID),
+                new PlayerRatingKey("GEN", Position.MID),
                 new ChampionRoleKey(new ChampionId("azir"), Position.MID),
-                18,
                 reachabilityScenarios());
     }
 
     private List<RealProficiencyCandidateReachabilityGate.Scenario> reachabilityScenarios() {
         ChampionId candidate = new ChampionId("azir");
-        RealProficiencyCandidateReachabilityGate.ProficiencySubjectKey player =
-                new RealProficiencyCandidateReachabilityGate.ProficiencySubjectKey("GEN", Position.MID);
         DraftTeamContext high = contextWith(candidate, Position.MID, 18);
         DraftTeamContext neutral = new DraftTeamContext(Map.of());
         PreDraftPlanner planner = new PreDraftPlanner(champions, resources.meta(),
@@ -170,6 +227,16 @@ class Pre13GBoundaryGateTest {
                 scenario("empty-early-legal-state", early, high, neutral, planner),
                 scenario("partial-team-state", partial, high, neutral, planner),
                 scenario("response-state", response, high, neutral, planner));
+    }
+
+    private List<RealProficiencyCandidateReachabilityGate.Scenario> lowReachabilityScenarios() {
+        ChampionId candidate = new ChampionId("azir");
+        DraftTeamContext low = contextWith(candidate, Position.MID, 1);
+        DraftTeamContext neutral = new DraftTeamContext(Map.of());
+        PreDraftPlanner planner = new PreDraftPlanner(champions, resources.meta(),
+                resources.champions().composition(), new RoleAssignmentSolver(champions));
+        DraftState state = stateAfter(List.of("aatrox", "akali", "akshan", "annie", "amumu", "brand"));
+        return List.of(scenario("low-proficiency-state", state, low, neutral, planner));
     }
 
     private RealProficiencyCandidateReachabilityGate.Scenario scenario(
