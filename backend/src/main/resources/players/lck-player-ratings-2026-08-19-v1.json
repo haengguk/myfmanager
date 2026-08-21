@@ -1,0 +1,975 @@
+{
+  "version": "lck-player-ratings-2026-08-19-v1",
+  "snapshotAt": "2026-08-19T02:57:00+09:00",
+  "dataCutoff": "2026-08-16",
+  "scale": {
+    "min": 1,
+    "max": 20
+  },
+  "scope": {
+    "league": "LCK",
+    "teams": 10,
+    "startersPerTeam": 5,
+    "players": 50,
+    "substitutesIncluded": false
+  },
+  "semantics": {
+    "commonAttributeCount": 6,
+    "roleSpecificAttributeCount": 6,
+    "activeAttributesPerPlayer": 12,
+    "championProficiencySeparate": true,
+    "displayCaIncludedInRuntime": false
+  },
+  "players": [
+    {
+      "team": "GEN",
+      "nickname": "Kiin",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 19,
+        "mapAwareness": 18,
+        "positioning": 19,
+        "combatExecution": 19,
+        "consistency": 19,
+        "csAcquisition": 18,
+        "trading": 19,
+        "waveManagement": 19,
+        "lanePressure": 19,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 19
+      }
+    },
+    {
+      "team": "GEN",
+      "nickname": "Canyon",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 19,
+        "mapAwareness": 19,
+        "positioning": 19,
+        "combatExecution": 18,
+        "consistency": 19,
+        "pathing": 20,
+        "jungleResourceManagement": 19,
+        "enemyJungleTracking": 19,
+        "laneIntervention": 18,
+        "objectiveDecision": 19,
+        "objectiveSecuring": 19
+      }
+    },
+    {
+      "team": "GEN",
+      "nickname": "Chovy",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 20,
+        "decisionMaking": 19,
+        "mapAwareness": 19,
+        "positioning": 19,
+        "combatExecution": 19,
+        "consistency": 19,
+        "csAcquisition": 20,
+        "trading": 20,
+        "waveManagement": 19,
+        "lanePressure": 20,
+        "initiativeConversion": 19,
+        "sideLaneManagement": 19
+      }
+    },
+    {
+      "team": "GEN",
+      "nickname": "Ruler",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 19,
+        "mapAwareness": 19,
+        "positioning": 20,
+        "combatExecution": 19,
+        "consistency": 20,
+        "csAcquisition": 20,
+        "trading": 19,
+        "waveManagement": 19,
+        "lanePressure": 19,
+        "initiativeConversion": 19,
+        "sideLaneManagement": 19
+      }
+    },
+    {
+      "team": "GEN",
+      "nickname": "Duro",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 18,
+        "mapAwareness": 19,
+        "positioning": 19,
+        "combatExecution": 18,
+        "consistency": 19,
+        "visionControl": 19,
+        "laneSupport": 17,
+        "roamCoordination": 18,
+        "engage": 18,
+        "allyProtection": 19,
+        "zoneSetup": 19
+      }
+    },
+    {
+      "team": "T1",
+      "nickname": "Doran",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 18,
+        "consistency": 16,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 17,
+        "lanePressure": 16,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "T1",
+      "nickname": "Oner",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 18,
+        "mapAwareness": 18,
+        "positioning": 18,
+        "combatExecution": 19,
+        "consistency": 18,
+        "pathing": 18,
+        "jungleResourceManagement": 18,
+        "enemyJungleTracking": 18,
+        "laneIntervention": 19,
+        "objectiveDecision": 18,
+        "objectiveSecuring": 19
+      }
+    },
+    {
+      "team": "T1",
+      "nickname": "Faker",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 19,
+        "mapAwareness": 19,
+        "positioning": 18,
+        "combatExecution": 19,
+        "consistency": 18,
+        "csAcquisition": 16,
+        "trading": 16,
+        "waveManagement": 17,
+        "lanePressure": 16,
+        "initiativeConversion": 19,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "T1",
+      "nickname": "Peyz",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 20,
+        "decisionMaking": 18,
+        "mapAwareness": 18,
+        "positioning": 19,
+        "combatExecution": 20,
+        "consistency": 19,
+        "csAcquisition": 20,
+        "trading": 20,
+        "waveManagement": 20,
+        "lanePressure": 20,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "T1",
+      "nickname": "Keria",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 19,
+        "mapAwareness": 19,
+        "positioning": 19,
+        "combatExecution": 19,
+        "consistency": 19,
+        "visionControl": 19,
+        "laneSupport": 19,
+        "roamCoordination": 20,
+        "engage": 19,
+        "allyProtection": 19,
+        "zoneSetup": 20
+      }
+    },
+    {
+      "team": "HLE",
+      "nickname": "Zeus",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 18,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 19,
+        "consistency": 16,
+        "csAcquisition": 17,
+        "trading": 19,
+        "waveManagement": 18,
+        "lanePressure": 19,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 19
+      }
+    },
+    {
+      "team": "HLE",
+      "nickname": "Kanavi",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 17,
+        "mapAwareness": 18,
+        "positioning": 16,
+        "combatExecution": 19,
+        "consistency": 15,
+        "pathing": 19,
+        "jungleResourceManagement": 19,
+        "enemyJungleTracking": 17,
+        "laneIntervention": 18,
+        "objectiveDecision": 17,
+        "objectiveSecuring": 18
+      }
+    },
+    {
+      "team": "HLE",
+      "nickname": "Zeka",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 19,
+        "mapAwareness": 18,
+        "positioning": 19,
+        "combatExecution": 19,
+        "consistency": 19,
+        "csAcquisition": 18,
+        "trading": 18,
+        "waveManagement": 18,
+        "lanePressure": 18,
+        "initiativeConversion": 19,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "HLE",
+      "nickname": "Gumayusi",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 18,
+        "mapAwareness": 18,
+        "positioning": 19,
+        "combatExecution": 19,
+        "consistency": 18,
+        "csAcquisition": 19,
+        "trading": 19,
+        "waveManagement": 18,
+        "lanePressure": 19,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "HLE",
+      "nickname": "Delight",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 19,
+        "mapAwareness": 19,
+        "positioning": 18,
+        "combatExecution": 19,
+        "consistency": 18,
+        "visionControl": 19,
+        "laneSupport": 19,
+        "roamCoordination": 19,
+        "engage": 19,
+        "allyProtection": 18,
+        "zoneSetup": 19
+      }
+    },
+    {
+      "team": "KT",
+      "nickname": "PerfecT",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 16,
+        "positioning": 17,
+        "combatExecution": 18,
+        "consistency": 17,
+        "csAcquisition": 18,
+        "trading": 18,
+        "waveManagement": 17,
+        "lanePressure": 18,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 19
+      }
+    },
+    {
+      "team": "KT",
+      "nickname": "Cuzz",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 18,
+        "mapAwareness": 18,
+        "positioning": 17,
+        "combatExecution": 17,
+        "consistency": 18,
+        "pathing": 18,
+        "jungleResourceManagement": 17,
+        "enemyJungleTracking": 18,
+        "laneIntervention": 19,
+        "objectiveDecision": 18,
+        "objectiveSecuring": 18
+      }
+    },
+    {
+      "team": "KT",
+      "nickname": "Bdd",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 18,
+        "mapAwareness": 18,
+        "positioning": 18,
+        "combatExecution": 18,
+        "consistency": 17,
+        "csAcquisition": 18,
+        "trading": 18,
+        "waveManagement": 18,
+        "lanePressure": 18,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "KT",
+      "nickname": "FenRir",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 15,
+        "decisionMaking": 14,
+        "mapAwareness": 14,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 14,
+        "csAcquisition": 15,
+        "trading": 12,
+        "waveManagement": 13,
+        "lanePressure": 12,
+        "initiativeConversion": 14,
+        "sideLaneManagement": 15
+      }
+    },
+    {
+      "team": "KT",
+      "nickname": "Effort",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 17,
+        "mapAwareness": 18,
+        "positioning": 17,
+        "combatExecution": 17,
+        "consistency": 17,
+        "visionControl": 19,
+        "laneSupport": 17,
+        "roamCoordination": 17,
+        "engage": 17,
+        "allyProtection": 17,
+        "zoneSetup": 18
+      }
+    },
+    {
+      "team": "DK",
+      "nickname": "Siwoo",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 16,
+        "mapAwareness": 15,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "csAcquisition": 19,
+        "trading": 18,
+        "waveManagement": 18,
+        "lanePressure": 18,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "DK",
+      "nickname": "Lucid",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 17,
+        "consistency": 17,
+        "pathing": 18,
+        "jungleResourceManagement": 18,
+        "enemyJungleTracking": 17,
+        "laneIntervention": 17,
+        "objectiveDecision": 17,
+        "objectiveSecuring": 17
+      }
+    },
+    {
+      "team": "DK",
+      "nickname": "ShowMaker",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 18,
+        "mapAwareness": 18,
+        "positioning": 18,
+        "combatExecution": 18,
+        "consistency": 18,
+        "csAcquisition": 18,
+        "trading": 17,
+        "waveManagement": 18,
+        "lanePressure": 17,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "DK",
+      "nickname": "Smash",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 17,
+        "mapAwareness": 16,
+        "positioning": 18,
+        "combatExecution": 18,
+        "consistency": 17,
+        "csAcquisition": 20,
+        "trading": 19,
+        "waveManagement": 18,
+        "lanePressure": 19,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "DK",
+      "nickname": "Career",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 18,
+        "mapAwareness": 18,
+        "positioning": 19,
+        "combatExecution": 18,
+        "consistency": 19,
+        "visionControl": 18,
+        "laneSupport": 18,
+        "roamCoordination": 18,
+        "engage": 18,
+        "allyProtection": 18,
+        "zoneSetup": 18
+      }
+    },
+    {
+      "team": "NS",
+      "nickname": "Kingen",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 18,
+        "consistency": 15,
+        "csAcquisition": 16,
+        "trading": 15,
+        "waveManagement": 15,
+        "lanePressure": 15,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "NS",
+      "nickname": "Sponge",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 15,
+        "mapAwareness": 16,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 15,
+        "pathing": 15,
+        "jungleResourceManagement": 15,
+        "enemyJungleTracking": 16,
+        "laneIntervention": 16,
+        "objectiveDecision": 15,
+        "objectiveSecuring": 16
+      }
+    },
+    {
+      "team": "NS",
+      "nickname": "Scout",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 18,
+        "mapAwareness": 18,
+        "positioning": 18,
+        "combatExecution": 18,
+        "consistency": 17,
+        "csAcquisition": 18,
+        "trading": 18,
+        "waveManagement": 18,
+        "lanePressure": 18,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "NS",
+      "nickname": "Diable",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 17,
+        "combatExecution": 18,
+        "consistency": 16,
+        "csAcquisition": 18,
+        "trading": 16,
+        "waveManagement": 17,
+        "lanePressure": 16,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "NS",
+      "nickname": "Lehends",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 17,
+        "mapAwareness": 18,
+        "positioning": 13,
+        "combatExecution": 18,
+        "consistency": 14,
+        "visionControl": 18,
+        "laneSupport": 16,
+        "roamCoordination": 18,
+        "engage": 19,
+        "allyProtection": 16,
+        "zoneSetup": 18
+      }
+    },
+    {
+      "team": "BFX",
+      "nickname": "Clear",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 15,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 15,
+        "csAcquisition": 17,
+        "trading": 17,
+        "waveManagement": 16,
+        "lanePressure": 17,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "BFX",
+      "nickname": "Raptor",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 15,
+        "combatExecution": 18,
+        "consistency": 15,
+        "pathing": 16,
+        "jungleResourceManagement": 16,
+        "enemyJungleTracking": 15,
+        "laneIntervention": 18,
+        "objectiveDecision": 16,
+        "objectiveSecuring": 16
+      }
+    },
+    {
+      "team": "BFX",
+      "nickname": "VicLa",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 18,
+        "consistency": 16,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 16,
+        "lanePressure": 16,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "BFX",
+      "nickname": "Taeyoon",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 18,
+        "combatExecution": 19,
+        "consistency": 17,
+        "csAcquisition": 19,
+        "trading": 18,
+        "waveManagement": 18,
+        "lanePressure": 18,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "BFX",
+      "nickname": "Kellin",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 17,
+        "mapAwareness": 18,
+        "positioning": 18,
+        "combatExecution": 17,
+        "consistency": 17,
+        "visionControl": 18,
+        "laneSupport": 17,
+        "roamCoordination": 17,
+        "engage": 17,
+        "allyProtection": 18,
+        "zoneSetup": 18
+      }
+    },
+    {
+      "team": "DNS",
+      "nickname": "DuDu",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 15,
+        "combatExecution": 17,
+        "consistency": 15,
+        "csAcquisition": 17,
+        "trading": 17,
+        "waveManagement": 16,
+        "lanePressure": 16,
+        "initiativeConversion": 14,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "DNS",
+      "nickname": "Sharvel",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 14,
+        "pathing": 16,
+        "jungleResourceManagement": 16,
+        "enemyJungleTracking": 16,
+        "laneIntervention": 17,
+        "objectiveDecision": 16,
+        "objectiveSecuring": 15
+      }
+    },
+    {
+      "team": "DNS",
+      "nickname": "Clozer",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 15,
+        "combatExecution": 17,
+        "consistency": 15,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 16,
+        "lanePressure": 16,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "DNS",
+      "nickname": "deokdam",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 15,
+        "decisionMaking": 14,
+        "mapAwareness": 14,
+        "positioning": 14,
+        "combatExecution": 15,
+        "consistency": 14,
+        "csAcquisition": 16,
+        "trading": 11,
+        "waveManagement": 12,
+        "lanePressure": 11,
+        "initiativeConversion": 14,
+        "sideLaneManagement": 15
+      }
+    },
+    {
+      "team": "DNS",
+      "nickname": "Peter",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 15,
+        "decisionMaking": 15,
+        "mapAwareness": 16,
+        "positioning": 15,
+        "combatExecution": 15,
+        "consistency": 15,
+        "visionControl": 17,
+        "laneSupport": 15,
+        "roamCoordination": 16,
+        "engage": 15,
+        "allyProtection": 16,
+        "zoneSetup": 16
+      }
+    },
+    {
+      "team": "KRX",
+      "nickname": "Frog",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 14,
+        "decisionMaking": 14,
+        "mapAwareness": 14,
+        "positioning": 15,
+        "combatExecution": 15,
+        "consistency": 14,
+        "csAcquisition": 14,
+        "trading": 13,
+        "waveManagement": 13,
+        "lanePressure": 13,
+        "initiativeConversion": 13,
+        "sideLaneManagement": 14
+      }
+    },
+    {
+      "team": "KRX",
+      "nickname": "Willer",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 15,
+        "pathing": 16,
+        "jungleResourceManagement": 16,
+        "enemyJungleTracking": 16,
+        "laneIntervention": 16,
+        "objectiveDecision": 16,
+        "objectiveSecuring": 16
+      }
+    },
+    {
+      "team": "KRX",
+      "nickname": "Ucal",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 18,
+        "combatExecution": 18,
+        "consistency": 17,
+        "csAcquisition": 18,
+        "trading": 17,
+        "waveManagement": 17,
+        "lanePressure": 17,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "KRX",
+      "nickname": "Aiming",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 18,
+        "mapAwareness": 17,
+        "positioning": 19,
+        "combatExecution": 19,
+        "consistency": 18,
+        "csAcquisition": 20,
+        "trading": 18,
+        "waveManagement": 19,
+        "lanePressure": 18,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 19
+      }
+    },
+    {
+      "team": "KRX",
+      "nickname": "Andil",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 14,
+        "decisionMaking": 14,
+        "mapAwareness": 15,
+        "positioning": 13,
+        "combatExecution": 15,
+        "consistency": 14,
+        "visionControl": 15,
+        "laneSupport": 14,
+        "roamCoordination": 15,
+        "engage": 15,
+        "allyProtection": 14,
+        "zoneSetup": 15
+      }
+    },
+    {
+      "team": "BRO",
+      "nickname": "Casting",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 15,
+        "positioning": 16,
+        "combatExecution": 16,
+        "consistency": 16,
+        "csAcquisition": 17,
+        "trading": 17,
+        "waveManagement": 17,
+        "lanePressure": 17,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "BRO",
+      "nickname": "GIDEON",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 17,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 17,
+        "pathing": 17,
+        "jungleResourceManagement": 17,
+        "enemyJungleTracking": 16,
+        "laneIntervention": 17,
+        "objectiveDecision": 16,
+        "objectiveSecuring": 16
+      }
+    },
+    {
+      "team": "BRO",
+      "nickname": "Roamer",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 15,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 15,
+        "csAcquisition": 15,
+        "trading": 14,
+        "waveManagement": 14,
+        "lanePressure": 14,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 15
+      }
+    },
+    {
+      "team": "BRO",
+      "nickname": "Teddy",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 18,
+        "mapAwareness": 17,
+        "positioning": 19,
+        "combatExecution": 18,
+        "consistency": 18,
+        "csAcquisition": 20,
+        "trading": 17,
+        "waveManagement": 19,
+        "lanePressure": 17,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "BRO",
+      "nickname": "Namgung",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 15,
+        "decisionMaking": 16,
+        "mapAwareness": 17,
+        "positioning": 16,
+        "combatExecution": 16,
+        "consistency": 16,
+        "visionControl": 18,
+        "laneSupport": 16,
+        "roamCoordination": 16,
+        "engage": 16,
+        "allyProtection": 16,
+        "zoneSetup": 17
+      }
+    }
+  ]
+}

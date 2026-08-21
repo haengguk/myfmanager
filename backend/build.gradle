@@ -395,3 +395,28 @@ tasks.register("runPhase13GAStructuralIntegratedAudit", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.draft.Phase13GAStructuralIntegratedAudit"
 }
+
+tasks.register("runPhase13GA2StructuralAudit", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13G-A2 corrected synthetic structural baseline audit."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.draft.Phase13GA2StructuralIntegratedAudit"
+}
+tasks.named("test") {
+    mustRunAfter("runPhase13GA2StructuralAudit")
+}
+
+tasks.register("runPhase13GA2Finalization", JavaExec) {
+    group = "verification"
+    description = "Runs the Phase 13G-A2 audit, final backend regression aggregation, and SHA verification."
+    dependsOn("runPhase13GA2StructuralAudit", "test")
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.draft.Phase13GA2Finalizer"
+}
+
+tasks.register("runPhase13GPlayerRatingsAudit", JavaExec) {
+    group = "verification"
+    description = "Writes the Phase 13G player-rating population and pre-13G-B gate artifacts."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.draft.Phase13GPlayerRatingsAudit"
+}

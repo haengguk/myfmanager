@@ -125,7 +125,14 @@ public final class Phase13GA2Finalizer {
     private static long attributeOrTestcaseCount(Element root, String attribute) {
         String value = root.getAttribute(attribute);
         if (value != null && !value.isBlank()) return Long.parseLong(value);
-        return root.getElementsByTagName("testcase").getLength();
+        if ("tests".equals(attribute)) return root.getElementsByTagName("testcase").getLength();
+        String elementName = switch (attribute) {
+            case "failures" -> "failure";
+            case "errors" -> "error";
+            case "skipped" -> "skipped";
+            default -> throw new IllegalArgumentException("Unsupported JUnit XML count: " + attribute);
+        };
+        return root.getElementsByTagName(elementName).getLength();
     }
 
     private static List<String> strings(Object value) {
