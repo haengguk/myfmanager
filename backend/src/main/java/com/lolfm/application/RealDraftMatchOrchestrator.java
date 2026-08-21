@@ -8,11 +8,20 @@ import com.lolfm.domain.Position;
 import com.lolfm.domain.Team;
 import com.lolfm.draft.DraftEngine;
 import com.lolfm.draft.DraftResourceSet;
+import com.lolfm.draft.DraftRuleSet;
+import com.lolfm.draft.DraftScoringPolicy;
 import com.lolfm.draft.DraftTeamContext;
 import com.lolfm.draft.FinalDraftResult;
 import com.lolfm.draft.SeriesDraftHistory;
+import com.lolfm.player.ChampionProficiencyCatalog;
 import com.lolfm.player.LckTeamAssembler;
-import com.lolfm.simulator.MatchSimulator;
+import com.lolfm.player.PlayerIdentityCatalog;
+import com.lolfm.player.PlayerRatingCatalog;
+import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
+import com.lolfm.simulator.ResolvedSimulationRuntimeProfile;
+import com.lolfm.simulator.SimulationInstrumentation;
+import com.lolfm.simulator.SimulationRuntimeProfileId;
+import com.lolfm.simulator.SimulationRuntimeProfiles;
 import com.lolfm.simulator.TeamSide;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -26,33 +35,83 @@ import org.springframework.stereotype.Component;
 public final class RealDraftMatchOrchestrator {
     private final LckTeamAssembler teams;
     private final DraftEngine drafts;
-    private final MatchSimulator matches;
+    private final ConfiguredMatchSimulatorFactory matches;
     private final RealDraftMatchPreflightValidator preflight;
+    private final SimulationProvenanceService provenance;
 
     @Autowired
     public RealDraftMatchOrchestrator(ObjectMapper mapper, ChampionCatalog champions,
-                                      LckTeamAssembler teams, MatchSimulator matches,
-                                      RealDraftMatchPreflightValidator preflight) {
-        this(teams, new DraftEngine(DraftResourceSet.loadDefault(mapper, champions)), matches, preflight);
-    }
-
-    RealDraftMatchOrchestrator(LckTeamAssembler teams, DraftEngine drafts, MatchSimulator matches,
-                               RealDraftMatchPreflightValidator preflight) {
+                                      LckTeamAssembler teams,
+                                      ConfiguredMatchSimulatorFactory matches,
+                                      RealDraftMatchPreflightValidator preflight,
+                                      PlayerIdentityCatalog identities,
+                                      PlayerRatingCatalog ratings,
+                                      ChampionProficiencyCatalog proficiencies) {
+        DraftResourceSet resources = DraftResourceSet.loadDefault(mapper, champions);
+        DraftRuleSet rules = DraftRuleSet.professional();
+        DraftScoringPolicy policy = DraftScoringPolicy.standard();
         this.teams = Objects.requireNonNull(teams, "teams");
-        this.drafts = Objects.requireNonNull(drafts, "drafts");
+        this.drafts = new DraftEngine(resources, rules, policy);
         this.matches = Objects.requireNonNull(matches, "matches");
         this.preflight = Objects.requireNonNull(preflight, "preflight");
+        provenance = new SimulationProvenanceService(
+                mapper, resources, identities, ratings, proficiencies, rules, policy);
     }
 
     /** One isolated game with a fresh series scope. */
     public RealDraftMatchResult orchestrate(String blueTeamCode, String redTeamCode, long matchSeed) {
-        return orchestrate(blueTeamCode, redTeamCode, new SeriesDraftHistory(), matchSeed);
+        return orchestrate(blueTeamCode, redTeamCode, new SeriesDraftHistory(), matchSeed,
+                SimulationRuntimeProfileId.BASELINE_V1,
+                SimulationInstrumentation.enabled());
+    }
+
+    /** One isolated game with an explicit, closed-set runtime profile. */
+    public RealDraftMatchResult orchestrate(
+            String blueTeamCode,
+            String redTeamCode,
+            long matchSeed,
+            SimulationRuntimeProfileId profileId
+    ) {
+        return orchestrate(blueTeamCode, redTeamCode, new SeriesDraftHistory(), matchSeed,
+                profileId, SimulationInstrumentation.enabled());
     }
 
     /** One game in a caller-owned series; successful completion commits this game's picks. */
     public RealDraftMatchResult orchestrate(String blueTeamCode, String redTeamCode,
                                             SeriesDraftHistory seriesHistory, long matchSeed) {
+        return orchestrate(blueTeamCode, redTeamCode, seriesHistory, matchSeed,
+                SimulationRuntimeProfileId.BASELINE_V1,
+                SimulationInstrumentation.enabled());
+    }
+
+    /** One series game with an explicit, closed-set runtime profile. */
+    public RealDraftMatchResult orchestrate(
+            String blueTeamCode,
+            String redTeamCode,
+            SeriesDraftHistory seriesHistory,
+            long matchSeed,
+            SimulationRuntimeProfileId profileId
+    ) {
+        return orchestrate(blueTeamCode, redTeamCode, seriesHistory, matchSeed,
+                profileId, SimulationInstrumentation.enabled());
+    }
+
+    /**
+     * One series game with gameplay identity and observational instrumentation
+     * supplied through separate contracts.
+     */
+    public RealDraftMatchResult orchestrate(
+            String blueTeamCode,
+            String redTeamCode,
+            SeriesDraftHistory seriesHistory,
+            long matchSeed,
+            SimulationRuntimeProfileId profileId,
+            SimulationInstrumentation instrumentation
+    ) {
         Objects.requireNonNull(seriesHistory, "seriesHistory");
+        ResolvedSimulationRuntimeProfile profile = SimulationRuntimeProfiles.resolve(profileId);
+        var configuredMatchSimulator = matches.create(
+                profile, Objects.requireNonNull(instrumentation, "instrumentation"));
         String normalizedBlueTeamCode = normalizeTeamCode(blueTeamCode, "blueTeamCode");
         String normalizedRedTeamCode = normalizeTeamCode(redTeamCode, "redTeamCode");
         Team blueTeam = teams.assemble(normalizedBlueTeamCode);
@@ -67,15 +126,19 @@ public final class RealDraftMatchOrchestrator {
                 blueContext, redContext, draftResult, seriesHistory);
 
         // The Draft-owned object is passed through directly; no reinterpretation or reassignment occurs.
-        MatchTimeline timeline = matches.simulate(blueTeam, redTeam, matchSeed,
+        MatchTimeline timeline = configuredMatchSimulator.simulate(blueTeam, redTeam, matchSeed,
                 draftResult.matchChampionAssignments());
+        SimulationExecutionProvenance executionProvenance = provenance.create(
+                profile, instrumentation, normalizedBlueTeamCode, blueTeam,
+                normalizedRedTeamCode, redTeam, matchSeed, gameNumber,
+                exclusionsBeforeDraft, draftResult, timeline);
 
         seriesHistory.commitCompleted(draftResult);
         validateCommittedHistory(seriesHistory, draftResult, exclusionsBeforeDraft, gameNumber);
         return new RealDraftMatchResult(normalizedBlueTeamCode, normalizedRedTeamCode,
                 blueTeam, redTeam, blueContext, redContext, draftResult,
                 timeline, matchSeed, gameNumber, exclusionsBeforeDraft,
-                seriesHistory.consumedPicks());
+                seriesHistory.consumedPicks(), executionProvenance);
     }
 
     private static String normalizeTeamCode(String value, String field) {

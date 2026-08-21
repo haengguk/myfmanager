@@ -30,7 +30,8 @@ public record RealDraftMatchResult(
         long matchSeed,
         int seriesGameNumber,
         Set<ChampionId> hardFearlessExclusionsBeforeDraft,
-        Set<ChampionId> seriesConsumedPicksAfterGame
+        Set<ChampionId> seriesConsumedPicksAfterGame,
+        SimulationExecutionProvenance executionProvenance
 ) {
     public RealDraftMatchResult {
         blueTeamCode = requiredTeamCode(blueTeamCode, "blueTeamCode");
@@ -44,6 +45,26 @@ public record RealDraftMatchResult(
         if (seriesGameNumber < 1) throw new IllegalArgumentException("seriesGameNumber must be positive");
         hardFearlessExclusionsBeforeDraft = Set.copyOf(hardFearlessExclusionsBeforeDraft);
         seriesConsumedPicksAfterGame = Set.copyOf(seriesConsumedPicksAfterGame);
+    }
+
+    /** Compatibility constructor for callers that do not yet provide execution provenance. */
+    public RealDraftMatchResult(
+            String blueTeamCode,
+            String redTeamCode,
+            Team blueTeam,
+            Team redTeam,
+            DraftTeamContext blueDraftContext,
+            DraftTeamContext redDraftContext,
+            FinalDraftResult draftResult,
+            MatchTimeline timeline,
+            long matchSeed,
+            int seriesGameNumber,
+            Set<ChampionId> hardFearlessExclusionsBeforeDraft,
+            Set<ChampionId> seriesConsumedPicksAfterGame
+    ) {
+        this(blueTeamCode, redTeamCode, blueTeam, redTeam, blueDraftContext,
+                redDraftContext, draftResult, timeline, matchSeed, seriesGameNumber,
+                hardFearlessExclusionsBeforeDraft, seriesConsumedPicksAfterGame, null);
     }
 
     /** FinalDraftResult remains the one and only source of match champion assignments. */

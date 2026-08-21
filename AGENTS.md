@@ -462,7 +462,8 @@ New gameplay systems must include:
 - participant and reward integrity tests
 - same-seed reproducibility tests
 - structured diagnostic output
-- regression execution for existing systems
+- final full-regression verification for production/runtime-sensitive changes,
+  subject to the Full regression budget
 
 Diagnostics must distinguish:
 
@@ -528,5 +529,67 @@ Examples include:
 Large statistical diagnostics must not be added to normal unit or integration
 test execution unless explicitly requested.
 
+Full-population and statistical audits must be excluded from the default test
+task and run only through an explicit diagnostic task. Generated reports are
+diagnostic outputs, not correctness-test inputs or sources of truth.
+
 A balance observation should not be expressed as a brittle unit-test assertion
 unless it represents a true deterministic invariant.
+
+---
+
+### Full regression budget
+
+The complete backend Gradle `test` task is an expensive final verification
+step. A focused `--tests` invocation is not a full regression.
+
+During implementation:
+
+- use focused tests for changed behavior and directly affected invariants
+- do not run the full backend regression after every intermediate change
+- finish production source, resource, and runtime-wiring changes first
+- run the full backend regression once on the final production tree when the
+  change requires it
+
+If the first full regression finds a real product regression:
+
+1. identify the root cause
+2. fix it
+3. run the affected focused tests
+4. run one final full regression to confirm the fix
+
+A task should normally require at most two full backend regression runs.
+
+Do not weaken or skip a required final regression merely to stay within this
+budget.
+
+After a clean full regression has passed, do not run it again solely because
+of:
+
+- assertion-only test strengthening
+- isolated test-local fixture corrections
+- documentation-only changes
+- comments or formatting that do not change executable behavior
+- generated report or report-wording changes
+
+For those changes, run only the affected focused tests when applicable.
+
+A new full regression is required when a post-pass change affects:
+
+- executable production Java behavior
+- production resources or authored gameplay data
+- runtime wiring
+- shared test fixtures
+- Gradle or test configuration
+- global or static state
+- Random consumption, determinism, or suite-order behavior
+- API or runtime contracts
+
+If a third full regression appears necessary, first establish why focused
+tests are insufficient and record that reason in the verification report.
+
+If a full regression is aborted by an environment or tooling failure, do not
+immediately repeat the unchanged command. Diagnose or fix the external failure
+first, then resume verification.
+
+Documentation-only changes must never trigger a full backend regression.

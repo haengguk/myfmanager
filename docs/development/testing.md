@@ -83,6 +83,25 @@ cd backend
 
 Diagnostic 결과를 normal unit-test assertion으로 옮기려면 먼저 그것이 balance observation이 아니라 deterministic invariant인지 확인한다.
 
+## Pre-Jungle Runtime Baseline
+
+Runtime profile/provenance milestone의 baseline은 normal `test` task가 생성하지 않는다. 반드시 production source/resource/build wiring을 끝내고 focused tests, final full regression과 source guard 확인을 마친 뒤에만 실행한다.
+
+```bash
+cd backend
+./gradlew test --tests 'com.lolfm.simulator.SimulationRuntimeProfilesTest' \
+  --tests 'com.lolfm.simulator.ConfiguredMatchSimulatorParityTest' \
+  --tests 'com.lolfm.application.RealDraftMatchOrchestratorTest'
+./gradlew test
+./gradlew generatePreJungleRuntimeBaseline \
+  -PbaselineFullRegressionStatus=CLEAN_PASS \
+  -PbaselineSourceRevision=<git-revision>
+```
+
+Generator는 `CLEAN_PASS`와 source revision property가 없으면 fail-fast한다. 결과는 `backend/baseline/pre-jungle-runtime-v1/`과 동일 bytes의 `backend/build/reports/pre-jungle-runtime-baseline/`에 기록된다. Source baseline은 다음 Jungle 변경과 비교하기 위한 versioned reference이며 default correctness test input은 아니다.
+
+현재 focused 묶음은 3 suites / 21 tests, full regression은 151 suites / 1,965 tests가 clean pass했다. Baseline은 full pass 뒤에만 생성됐으며 생성 후 production/test source를 변경하거나 full regression을 반복하지 않았다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.

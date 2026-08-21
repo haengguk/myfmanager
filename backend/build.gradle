@@ -445,3 +445,26 @@ tasks.register("phase13gRealProficiencyAudit", Test) {
     reports.junitXml.outputLocation = layout.buildDirectory.dir(
             "test-results/phase13gRealProficiencyAudit")
 }
+
+tasks.register("generatePreJungleRuntimeBaseline", JavaExec) {
+    group = "verification"
+    description = "Generates the immutable Pre-Jungle runtime baseline after a confirmed clean full regression."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.application.PreJungleBaselineGenerator"
+    outputs.upToDateWhen { false }
+    doFirst {
+        String regressionStatus = providers.gradleProperty(
+                "baselineFullRegressionStatus").getOrElse("UNCONFIRMED")
+        String sourceRevision = providers.gradleProperty(
+                "baselineSourceRevision").getOrElse("")
+        if (regressionStatus != "CLEAN_PASS") {
+            throw new GradleException(
+                    "Use -PbaselineFullRegressionStatus=CLEAN_PASS only after the final full regression passes.")
+        }
+        if (sourceRevision.isBlank()) {
+            throw new GradleException("-PbaselineSourceRevision is required.")
+        }
+        systemProperty "lolfm.baseline.fullRegressionStatus", regressionStatus
+        systemProperty "lolfm.baseline.sourceRevision", sourceRevision
+    }
+}

@@ -1,0 +1,88 @@
+package com.lolfm.simulator;
+
+import com.lolfm.champion.ChampionMatchupMode;
+import com.lolfm.composition.TeamCompositionGameplayMode;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HexFormat;
+import java.util.Map;
+import java.util.Objects;
+
+/** Closed registry of versioned, application-selectable runtime profiles. */
+public final class SimulationRuntimeProfiles {
+    public static final String CONFIGURATION_HASH_ALGORITHM =
+            "SHA256_UTF8_EXPLICIT_ORDERED_FIELD_LINES_TRAILING_NEWLINE_V1";
+
+    private static final Map<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> PROFILES =
+            buildProfiles();
+
+    private SimulationRuntimeProfiles() {
+    }
+
+    public static ResolvedSimulationRuntimeProfile resolve(SimulationRuntimeProfileId profileId) {
+        ResolvedSimulationRuntimeProfile resolved = PROFILES.get(
+                Objects.requireNonNull(profileId, "profileId"));
+        if (resolved == null) throw new IllegalArgumentException("Unknown runtime profile " + profileId);
+        return resolved;
+    }
+
+    public static Map<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> all() {
+        return PROFILES;
+    }
+
+    public static String configurationHash(SimulationGameplayConfiguration configuration) {
+        Objects.requireNonNull(configuration, "configuration");
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(
+                    configuration.canonicalSerialization().getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException error) {
+            throw new IllegalStateException(error);
+        }
+    }
+
+    private static Map<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> buildProfiles() {
+        EnumMap<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> result =
+                new EnumMap<>(SimulationRuntimeProfileId.class);
+        register(result, SimulationRuntimeProfileId.BASELINE_V1,
+                exactConfiguration(ChampionMatchupMode.OFF, TeamCompositionGameplayMode.OFF),
+                "c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215");
+        register(result, SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1,
+                exactConfiguration(ChampionMatchupMode.GEOMETRIC_V2,
+                        TeamCompositionGameplayMode.OFF),
+                "58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec");
+        register(result, SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1,
+                exactConfiguration(ChampionMatchupMode.GEOMETRIC_V2,
+                        TeamCompositionGameplayMode.PRODUCTION_V2),
+                "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d");
+        return Collections.unmodifiableMap(result);
+    }
+
+    private static SimulationGameplayConfiguration exactConfiguration(
+            ChampionMatchupMode matchupMode,
+            TeamCompositionGameplayMode compositionMode
+    ) {
+        return new SimulationGameplayConfiguration(
+                true, true, true, true, true, true, true, true, true, true,
+                true, true, true, matchupMode, compositionMode,
+                JungleClearContribution.DISABLED_NOT_INTEGRATED);
+    }
+
+    private static void register(
+            Map<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> target,
+            SimulationRuntimeProfileId profileId,
+            SimulationGameplayConfiguration configuration,
+            String expectedHash
+    ) {
+        String actualHash = configurationHash(configuration);
+        if (!expectedHash.equals(actualHash)) {
+            throw new IllegalStateException(profileId
+                    + " semantics changed without a versioned profile ID: expected="
+                    + expectedHash + " actual=" + actualHash);
+        }
+        target.put(profileId,
+                new ResolvedSimulationRuntimeProfile(profileId, configuration, actualHash));
+    }
+}

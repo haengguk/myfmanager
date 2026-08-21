@@ -107,11 +107,44 @@ Series overload는 호출자가 소유한 `SeriesDraftHistory`만 변경한다. 
 
 GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history replay를 실행해 flex final role mapping, 실제 LCK `PlayerId`의 KILL/assist participant 보존, complete timeline replay를 검증했다. 이 backend component는 아직 REST/frontend에 노출되지 않는다.
 
+### Explicit simulation runtime profiles and provenance
+
+`RealDraftMatchOrchestrator`의 기존 overload는 이제 `BASELINE_V1`을 resolve하며, additive overload는 다음 closed-set profile ID를 받는다. 임의 gameplay boolean 또는 internal audit mode는 application input으로 노출하지 않는다.
+
+| Profile | 공통 gameplay | Matchup | Composition | Configuration hash |
+| --- | --- | --- | --- | --- |
+| `BASELINE_V1` | 전부 현재 Spring snapshot과 동일하게 ON | `OFF` | `OFF` | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
+| `MATCHUP_ONLY_CANDIDATE_V1` | 동일 | `GEOMETRIC_V2` | `OFF` | `58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec` |
+| `FULL_SYSTEM_CANDIDATE_V1` | 동일 | `GEOMETRIC_V2` | `PRODUCTION_V2` | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
+
+공통 ON snapshot은 Lane Combat/FARM Recovery/Jungle Gank/Counter Gank/Roam/Objective Priority/Lane Phase/Mid Game Macro/Objective Decision/Late Game Macro/Progression/Progression Power/Champion Power 전부다. Jungle Clear는 새 runtime switch가 아니라 모든 profile의 typed invariant `DISABLED_NOT_INTEGRATED`다.
+
+`configurationHash`는 이 field-complete gameplay configuration만 고정한다. Diagnostics ON/OFF는 별도 `SimulationInstrumentation`이며 configuration/replay hash에서 제외되고 complete timeline도 바꾸지 않는다. `replayProvenanceHash`는 engine rules, raw resource/version snapshot, side/team/roster, series history, Draft rules/scoring policy/final draft/final assignment, seed를 묶는다. `timelineHash`는 complete output을 별도로 고정한다. 기존 `draftIdentity()`와 Hard Fearless commit semantics는 변경하지 않았다.
+
+`BASELINE_V1`과 기존 autowired simulator의 same teams/assignments/seed complete timeline은 exact parity다. 기존 Spring `MatchController`는 계속 direct autowired simulator와 DummyDataFactory를 사용하고 HTTP profile 선택은 추가하지 않았다.
+
+### Pre-Jungle baseline
+
+Profiles/provenance production tree의 focused tests와 final full regression이 clean pass한 뒤에만 `generatePreJungleRuntimeBaseline`을 실행했다. 생성 전후 production guard는 동일했다.
+
+| 항목 | 값 |
+| --- | --- |
+| Baseline ID | `PRE_JUNGLE_RUNTIME_BASELINE_V1` |
+| Fixed schedule | 3 profiles × GEN–T1 G1/G2 + T1–GEN mirror G1 = 9 matches |
+| JSON | `backend/baseline/pre-jungle-runtime-v1/pre-jungle-runtime-baseline-v1.json` |
+| JSON SHA-256 | `2dcf67a3501200f0bce3de6239dcfbed3b27bafdc9287940f3f56171223a1d71` |
+| Resource provenance hash | `3affaf03ce588e0d1054e35ab1839f04e262d8ba3c512188374707ce3c1b8a4e` |
+| Production source tree | 453 files / `7373bd094d8c638853988e809447718ec65ee8630b9d6168a5f57b9c07564d76` |
+| Source revision | `68a5f38802256e37ded082c1333a78216948576d` + exact tree hash |
+| Jungle Clear invariant | contribution disabled, authored gameplay-enabled profile count 0 |
+
+Artifact와 build report mirror는 byte-identical하고 `SHA256SUMS.txt` 검증을 통과했다. 이 reference는 현재 normal test expected fixture가 아니며 다음 Jungle gameplay milestone의 before snapshot이다.
+
 ### HTTP match runtime
 
 Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDataFactory` legacy/demo team이다. Fixed-seed HTTP test는 실제 KILL event가 기존 display fields와 additive `player-fixture-*` ID fields를 함께 직렬화함을 검증한다. Match preflight는 양 팀 전체의 duplicate stable `PlayerId`를 gameplay Random 전에 거부한다. 별도 `RealDraftMatchOrchestrator`가 real backend flow를 제공하지만 HTTP default path로 전환하지 않았다.
 
-현재 autowired simulator path는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`와 `TeamCompositionGameplayMode.OFF`를 사용한다. `SimulationOptions.productionDefaults()`가 제공하는 Matchup `GEOMETRIC_V2`와 Composition `PRODUCTION_V2`와 구분해야 한다.
+현재 autowired simulator path는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`와 `TeamCompositionGameplayMode.OFF`를 사용한다. 이 exact snapshot은 `BASELINE_V1`이다. `SimulationOptions.productionDefaults()` 및 `FULL_SYSTEM_CANDIDATE_V1`의 Matchup `GEOMETRIC_V2`와 Composition `PRODUCTION_V2`와 구분해야 한다.
 
 ## Implemented
 
@@ -125,6 +158,9 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - ChampionId presence와 target-role completion을 분리한 537-key reachability diagnostic와 JSON/CSV/SHA report
 - coherent default player catalog graph, exact resource semantic envelope, match-wide stable PlayerId invariant
 - real LCK Team→DraftEngine→final role→MatchChampionAssignments→seeded MatchSimulator application orchestration
+- field-complete closed-set runtime profiles, instrumentation isolation, configuration/replay/timeline hashing
+- 10개 raw resource identity와 roster/series/Draft/final assignment를 포함한 structured execution provenance
+- clean full regression 뒤 생성한 9-match versioned Pre-Jungle baseline과 SHA/source-tree identity
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -137,16 +173,18 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 - Real LCK Draft→Match flow는 backend component로 연결됐지만 `MatchController`, Draft API와 frontend에는 아직 노출되지 않았다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
+- Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
 - Jungle Clear는 51-role foundation과 evaluator가 있으나 모든 profile이 `gameplayEnabled: false`이고 simulator economy/pathing에 연결되지 않았다.
 - `DraftEngine`은 application component 내부의 pure domain dependency이며 독립 Spring bean/API로 공개되지 않는다.
 - 첫 game은 exclusion이 없어 단판처럼 동작하지만 별도 Standard ruleset 선택 기능은 없다.
 
 ## Pending
 
-1. `EXPLICIT_SIMULATION_CANDIDATE_CONFIGURATION`: Matchup/Composition 등 candidate runtime configuration을 명시적 application input으로 고정한다.
-2. `PHASE_13G_B_REAL_DATA_INTEGRATED_AUDIT_AND_CALIBRATION`: reachability review signal과 explicit simulation configuration을 입력으로 별도 진단·calibration을 수행한다.
-3. Jungle Clear는 calibration, eligibility, Random-consumption 검증 뒤에만 gameplay에 연결한다.
-4. 별도 Standard draft mode가 필요하면 Hard Fearless identity/availability와 분리한 additive ruleset으로 추가한다.
+1. 다음 독립 Batch에서 Jungle Clear match-scoped state/economy/XP/readiness/tempo 계약을 먼저 설계하고 Pre-Jungle hash와 paired comparison 기준을 고정한다.
+2. 그 뒤 clear completion이 gank/objective eligibility에 미치는 경계를 central priority, Random non-consumption, FARM opportunity-cost 규칙과 함께 구현·검증한다.
+3. Jungle 통합 뒤 explicit profiles/provenance를 입력으로 `PHASE_13G_B_REAL_DATA_INTEGRATED_AUDIT_AND_CALIBRATION`을 별도 수행한다.
+4. match gameplay가 안정된 뒤 Career/season/tournament 상태와 HTTP/frontend 노출을 설계한다.
+5. 별도 Standard draft mode가 필요하면 Hard Fearless identity/availability와 분리한 additive ruleset으로 추가한다.
 
 ## Test Snapshot
 
@@ -158,16 +196,16 @@ Final command:
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 149 |
-| Tests | 1,955 |
+| JUnit suites | 151 |
+| Tests | 1,965 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 1,120.738 seconds |
-| Gradle wall duration | 18m 53s |
+| Aggregate JUnit XML time | 1,326.378 seconds |
+| Gradle wall duration | 22m 16s |
 | Build | `BUILD SUCCESSFUL` |
 
-이번 orchestration milestone의 full regression은 최종 production tree에서 1회 실행해 clean pass했다. Default XML에는 diagnostic-tagged 537-key audit suite가 없고, full run 뒤에도 full-population report timestamp가 동일해 기본 `test`가 report를 다시 생성하지 않았음을 확인했다. 직접 영향 범위 focused 묶음은 7 suites / 40 tests가 통과했으며, 그중 real orchestration suite는 GEN–T1 game 1/game 2/replay, flex mapping, identity, rejection, series history, legacy controller isolation 11 tests를 포함한다.
+이번 Batch A의 full regression은 baseline 생성 전 최종 production tree에서 정확히 1회 실행해 clean pass했다. Production source/resource/build guard hash는 run 전후 `27d90233fe39a85fa4d695cad79bc4383090817b013c3c228d4c6651e36e5d03`으로 동일했다. 직접 영향 focused 묶음은 3 suites / 21 tests, 4분 45초에 통과했다. 여기에는 3개 frozen profile semantics/hash, 기존 autowired `BASELINE_V1` complete timeline parity, diagnostics ON/OFF isolation, GEN–T1 game 1/game 2/replay provenance가 포함된다. Full pass 뒤 baseline을 생성하고 문서만 변경했으므로 full regression을 반복하지 않았다.
 
 테스트/diagnostic 실행 경계는 [Testing](development/testing.md), player contract는 [Player System](architecture/player-system.md)과 [Player Data Schema](reference/player-data-schema.md)를 참고한다.
 

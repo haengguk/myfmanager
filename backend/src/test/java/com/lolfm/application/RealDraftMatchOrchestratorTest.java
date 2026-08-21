@@ -21,6 +21,8 @@ import com.lolfm.draft.SeriesDraftHistory;
 import com.lolfm.factory.DummyDataFactory;
 import com.lolfm.player.PlayerId;
 import com.lolfm.simulator.PlayerKey;
+import com.lolfm.simulator.SimulationInstrumentation;
+import com.lolfm.simulator.SimulationRuntimeProfileId;
 import com.lolfm.simulator.TeamSide;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -51,6 +53,7 @@ class RealDraftMatchOrchestratorTest {
     private RealDraftMatchResult gameOne;
     private RealDraftMatchResult gameTwo;
     private RealDraftMatchResult replay;
+    private RealDraftMatchResult diagnosticsOffReplay;
 
     @BeforeAll
     void runRepresentativeRealGames() {
@@ -58,6 +61,10 @@ class RealDraftMatchOrchestratorTest {
         gameOne = orchestrator.orchestrate("GEN", "T1", seriesHistory, MATCH_SEED);
         gameTwo = orchestrator.orchestrate("GEN", "T1", seriesHistory, GAME_TWO_MATCH_SEED);
         replay = orchestrator.orchestrate("GEN", "T1", MATCH_SEED);
+        diagnosticsOffReplay = orchestrator.orchestrate(
+                "GEN", "T1", new SeriesDraftHistory(), MATCH_SEED,
+                SimulationRuntimeProfileId.BASELINE_V1,
+                SimulationInstrumentation.disabled());
     }
 
     @Test
@@ -236,6 +243,57 @@ class RealDraftMatchOrchestratorTest {
         assertThat(replay.timeline().getWinner()).isEqualTo(gameOne.timeline().getWinner());
         assertThat(replay.timeline().getDurationSeconds())
                 .isEqualTo(gameOne.timeline().getDurationSeconds());
+    }
+
+    @Test
+    void structuredProvenanceSeparatesGameplayConfigurationReplayInputsAndTimeline() {
+        SimulationExecutionProvenance value = gameOne.executionProvenance();
+
+        assertThat(value).isNotNull();
+        assertThat(value.runtimeProfileId()).isEqualTo(SimulationRuntimeProfileId.BASELINE_V1);
+        assertThat(value.configurationHash())
+                .isEqualTo("c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215");
+        assertThat(value.configurationHash()).isNotEqualTo(value.replayProvenanceHash());
+        assertThat(value.replayProvenanceHash()).isNotEqualTo(value.timelineHash());
+        assertThat(value.draftDecisionHash()).isEqualTo(gameOne.draftResult().draftIdentity());
+        assertThat(value.engineRulesVersion())
+                .isEqualTo(SimulationProvenanceService.ENGINE_RULES_VERSION);
+        assertThat(value.resourceProvenance().resources()).hasSize(10)
+                .extracting(VersionedResourceIdentity::role)
+                .containsExactly(
+                        "CHAMPION_MANIFEST", "CHAMPION_CATALOG", "CHAMPION_POWER",
+                        "CHAMPION_MATCHUP", "CHAMPION_COMPOSITION", "CHAMPION_JUNGLE_CLEAR",
+                        "PLAYER_IDENTITY", "PLAYER_RATINGS", "PLAYER_PROFICIENCY", "DRAFT_META");
+        assertThat(value.resourceProvenance().jungleClearGameplayEnabledProfileCount()).isZero();
+        assertThat(value.resourceProvenance().resources())
+                .allSatisfy(resource -> assertThat(resource.sha256())
+                        .matches("[0-9a-f]{64}"));
+    }
+
+    @Test
+    void sameReplayHasExactHashesAndInstrumentationDoesNotEnterGameplayOrReplayIdentity() {
+        SimulationExecutionProvenance enabled = gameOne.executionProvenance();
+        SimulationExecutionProvenance freshReplay = replay.executionProvenance();
+        SimulationExecutionProvenance disabled = diagnosticsOffReplay.executionProvenance();
+
+        assertThat(freshReplay).usingRecursiveComparison().isEqualTo(enabled);
+        assertThat(disabled.instrumentation().diagnosticsEnabled()).isFalse();
+        assertThat(enabled.instrumentation().diagnosticsEnabled()).isTrue();
+        assertThat(disabled.configurationHash()).isEqualTo(enabled.configurationHash());
+        assertThat(disabled.replayProvenanceHash()).isEqualTo(enabled.replayProvenanceHash());
+        assertThat(disabled.timelineHash()).isEqualTo(enabled.timelineHash());
+        assertThat(diagnosticsOffReplay.timeline()).usingRecursiveComparison()
+                .isEqualTo(gameOne.timeline());
+    }
+
+    @Test
+    void seedAndSeriesHistoryAreBoundIntoReplayProvenance() {
+        assertThat(gameTwo.executionProvenance().seriesHistoryBeforeHash())
+                .isNotEqualTo(gameOne.executionProvenance().seriesHistoryBeforeHash());
+        assertThat(gameTwo.executionProvenance().replayProvenanceHash())
+                .isNotEqualTo(gameOne.executionProvenance().replayProvenanceHash());
+        assertThat(gameTwo.executionProvenance().matchSeed()).isEqualTo(GAME_TWO_MATCH_SEED);
+        assertThat(gameTwo.executionProvenance().seriesGameNumber()).isEqualTo(2);
     }
 
     @Test

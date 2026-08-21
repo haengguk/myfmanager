@@ -14,6 +14,33 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 별도의 backend application entry point인 `RealDraftMatchOrchestrator`는 explicit LCK team code 두 개, caller-owned `SeriesDraftHistory`, match seed를 받는다. 이 path는 `LckTeamAssembler`가 만든 실제 Team으로 Draft를 실행하고 `FinalDraftResult.matchChampionAssignments()`를 그대로 같은 Team과 함께 simulator에 전달한다. Controller를 호출하거나 `DummyDataFactory`를 사용하지 않으며 아직 HTTP에 노출되지 않았다.
 
+기존 overload는 `BASELINE_V1`을 명시적으로 resolve한다. Additive overload는 임의 boolean 묶음이 아니라 `SimulationRuntimeProfileId`만 받으며 `ConfiguredMatchSimulatorFactory`가 resolved configuration과 별도 `SimulationInstrumentation`으로 match-scoped simulator를 만든다.
+
+## Explicit Runtime Profiles
+
+세 profile의 공통 gameplay flag는 Lane Combat, FARM Recovery, Jungle Gank, Counter Gank, Roam, Objective Priority, Lane Phase, Mid/Late Macro, Objective Decision, Progression/Progression Power, Champion Power 모두 ON이다. 차이는 다음 두 mode뿐이며 Jungle Clear contribution은 전부 `DISABLED_NOT_INTEGRATED`다.
+
+| Profile | Matchup | Composition | Configuration hash |
+| --- | --- | --- | --- |
+| `BASELINE_V1` | `OFF` | `OFF` | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
+| `MATCHUP_ONLY_CANDIDATE_V1` | `GEOMETRIC_V2` | `OFF` | `58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec` |
+| `FULL_SYSTEM_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
+
+`BASELINE_V1`은 이름만 OFF 묶음이 아니라 현재 Spring `@Autowired MatchSimulator`의 13 gameplay booleans와 두 mode를 모두 snapshot한 profile이다. Fixed-seed complete timeline parity test가 기존 constructor path와 exact equality를 검증한다. `ChampionMatchupMode.ON`, Composition `SHADOW`/`CANDIDATE` 같은 historical/internal audit path는 application profile로 선택할 수 없다.
+
+Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
+
+## Configuration and Replay Provenance
+
+`RealDraftMatchResult.executionProvenance`는 새 orchestration 결과에서 non-null이며 다음 identity를 분리한다. 기존 직접 constructor 호환 경로에서는 nullable이다.
+
+- `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
+- `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
+- `replayProvenanceHash`: configuration, engine rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다.
+- `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
+
+기존 `FinalDraftResult.draftIdentity()`는 series commit idempotency용 ordered decision identity로 유지한다. Provenance의 final draft/assignment hash가 그보다 넓은 replay 범위를 additive하게 담당한다.
+
 ## Match Initialization
 
 `MatchSimulator.runSimulation`은 매 호출마다 다음 상태를 새로 만든다.
@@ -35,6 +62,9 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 | --- | --- | --- | --- |
 | Spring `@Autowired MatchSimulator` (`MatchController`) | ON | `OFF` | `OFF` |
 | 명시적 `SimulationOptions.productionDefaults()` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` |
+| `RealDraftMatchOrchestrator` 기존 overload / `BASELINE_V1` | ON | `OFF` | `OFF` |
+| `MATCHUP_ONLY_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `OFF` |
+| `FULL_SYSTEM_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` |
 
 이 표는 “기능이 구현되어 있는가”와 “현재 HTTP simulation이 그 기능을 적용하는가”를 분리한다.
 
@@ -119,6 +149,7 @@ Frontend는 snapshot을 현재 playback time 이하에서 선택하고 event를 
 - ineligible action, duplicate evaluation, 실행되지 않는 branch, diagnostics는 불필요한 Random을 소비하면 안 된다.
 - request에 seed가 없으면 매 요청마다 wall-clock seed가 선택되므로 자동으로 같은 결과가 나오지 않는다. response seed를 다시 보내야 replay할 수 있다.
 - structured timeline 전체—participants, outcome, rewards, objectives, structures, winner—가 same-seed 회귀의 대상이다.
+- replay provenance는 동일 input snapshot을 식별하고 timeline hash는 그 input에서 나온 complete output을 별도로 식별한다.
 
 ## Important Invariants
 
