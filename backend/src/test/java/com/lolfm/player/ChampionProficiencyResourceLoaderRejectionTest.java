@@ -59,6 +59,18 @@ class ChampionProficiencyResourceLoaderRejectionTest {
         assertRejected(prerequisite, "pool prerequisite mismatch");
     }
 
+    @Test
+    void identitySemanticsMustMatchTheExactStructuredKeyContract() throws Exception {
+        ObjectNode missing = defaultTree();
+        ((ObjectNode) missing.path("semantics")).remove("identity");
+        assertRejected(missing, "Champion proficiency identity semantics mismatch");
+
+        ObjectNode changed = defaultTree();
+        ((ObjectNode) changed.path("semantics")).put(
+                "identity", "ChampionId presence only");
+        assertRejected(changed, "Champion proficiency identity semantics mismatch");
+    }
+
     private ObjectNode defaultTree() throws Exception {
         try (InputStream input = getClass().getResourceAsStream(
                 ChampionProficiencyResourceLoader.RESOURCE)) {

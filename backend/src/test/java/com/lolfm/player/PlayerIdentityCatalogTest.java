@@ -19,6 +19,7 @@ class PlayerIdentityCatalogTest {
     @Test
     void explicitIdentityResourceIsPinnedAndComplete() {
         assertThat(IDENTITIES.version()).isEqualTo("lck-player-identities-2026-08-21-v1");
+        assertThat(IDENTITIES.snapshotAt()).isEqualTo("2026-08-21");
         assertThat(IDENTITIES.resourceSha256())
                 .isEqualTo("badbbaa3ae7fbe5eaaf83ee8e97a93134476493a45167ec3d1637c7243909018");
         assertThat(IDENTITIES.all()).hasSize(50);
@@ -74,6 +75,22 @@ class PlayerIdentityCatalogTest {
         ObjectNode nickname = defaultTree(mapper);
         ((ObjectNode) nickname.withArray("players").get(0)).put("nickname", "WrongDisplayName");
         assertSemanticRejection(mapper, nickname, "nickname mismatch");
+    }
+
+    @Test
+    void loaderRejectsMissingBlankAndUnexpectedSnapshotDate() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode missing = defaultTree(mapper);
+        missing.remove("snapshotAt");
+        assertSemanticRejection(mapper, missing, "snapshotAt mismatch");
+
+        ObjectNode blank = defaultTree(mapper);
+        blank.put("snapshotAt", " ");
+        assertSemanticRejection(mapper, blank, "snapshotAt mismatch");
+
+        ObjectNode unexpected = defaultTree(mapper);
+        unexpected.put("snapshotAt", "2026-08-20");
+        assertSemanticRejection(mapper, unexpected, "snapshotAt mismatch");
     }
 
     private ObjectNode defaultTree(ObjectMapper mapper) throws Exception {

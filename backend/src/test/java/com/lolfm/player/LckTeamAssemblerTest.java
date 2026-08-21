@@ -38,6 +38,21 @@ class LckTeamAssemblerTest {
     }
 
     @Test
+    void defaultAssemblerUsesOneCoherentImmutableCatalogGraph() {
+        PlayerRatingCatalog ratings = ASSEMBLER.ratingsCatalog();
+        ChampionProficiencyCatalog proficiencies = ASSEMBLER.proficiencyCatalog();
+
+        assertThat(proficiencies.ratingsCatalog()).isSameAs(ratings);
+        assertThat(ratings.identities()).isSameAs(proficiencies.ratingsCatalog().identities());
+        assertThat(proficiencies.requiredPlayerRatingResourceVersion())
+                .isEqualTo(ratings.version());
+        assertThat(proficiencies.requiredChampionPoolVersion())
+                .isEqualTo(proficiencies.championCatalog().championPoolVersion());
+        assertThat(proficiencies.requiredLegalRoleKeyCount())
+                .isEqualTo(proficiencies.championCatalog().legalRoleKeys().size());
+    }
+
+    @Test
     void assembledGenAndT1ExposeKnownRealProficiencies() {
         Team gen = ASSEMBLER.assemble("GEN");
         Team t1 = ASSEMBLER.assemble("T1");

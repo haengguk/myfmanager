@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public final class PlayerIdentityCatalog {
     private final String version;
+    private final String snapshotAt;
     private final String resourceSha256;
     private final String requiredPlayerRatingResourceVersion;
     private final List<PlayerIdentity> identities;
@@ -28,6 +29,7 @@ public final class PlayerIdentityCatalog {
     public PlayerIdentityCatalog(PlayerIdentityResourceLoader.LoadedResource loaded) {
         Objects.requireNonNull(loaded, "loaded");
         version = loaded.version();
+        snapshotAt = loaded.snapshotAt();
         resourceSha256 = loaded.resourceSha256();
         requiredPlayerRatingResourceVersion = loaded.requiredPlayerRatingResourceVersion();
         identities = List.copyOf(loaded.players());
@@ -42,6 +44,7 @@ public final class PlayerIdentityCatalog {
     }
 
     public String version() { return version; }
+    public String snapshotAt() { return snapshotAt; }
     public String resourceSha256() { return resourceSha256; }
     public String requiredPlayerRatingResourceVersion() { return requiredPlayerRatingResourceVersion; }
     public List<PlayerIdentity> all() { return identities; }

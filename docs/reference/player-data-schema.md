@@ -31,6 +31,7 @@ Production resource:
 
 - path: `backend/src/main/resources/players/lck-player-identities-2026-08-21-v1.json`
 - version: `lck-player-identities-2026-08-21-v1`
+- snapshotAt: `2026-08-21` (non-blank exact v1 value, catalog에서 조회 가능)
 - required rating version: `lck-player-ratings-2026-08-19-v1`
 - SHA-256: `badbbaa3ae7fbe5eaaf83ee8e97a93134476493a45167ec3d1637c7243909018`
 
@@ -86,6 +87,7 @@ Production resource:
 - required rating version: `lck-player-ratings-2026-08-19-v1`
 - required champion pool: `full-173-2026-08-v1`
 - required legal role count: 216
+- exact identity semantics: `PlayerRatingKey(teamCode, Position) x ChampionRoleKey(championId, same Position)`
 
 Source player record:
 
@@ -116,13 +118,15 @@ Measured v1 snapshot:
 
 Semantic rejection:
 
-- wrong version/research/prerequisite/legal-role count
+- wrong version/research/prerequisite/legal-role count/identity semantics
 - rating/identity/proficiency subject set mismatch
 - duplicate `PlayerRatingKey` 또는 duplicate subject-role key
 - unknown/illegal `ChampionRoleKey`
 - subject position과 role position 불일치
 - 값 1..20 밖, 또는 v1 authored band 15..20 밖
 - declared summary와 measured entry counts/distribution 불일치
+
+두 2026-08-21 companion resource(identity/proficiency)는 현재 local runnable working tree에 의도적으로 존재하지만 Git에는 untracked다. 따라서 현재 clean commit만 checkout한 상태는 이 runtime data를 포함하지 않으며, 실제 LCK catalog/team assembly를 실행하려면 검증된 동일 바이트의 local companion files가 필요하다. 이 tracking 상태 자체를 resource 결함으로 해석하지 않는다.
 
 ## Sparse Lookup Contract
 
@@ -146,6 +150,8 @@ Semantic rejection:
 
 Matching binding 뒤 `Player`는 stable ID, display name, 12 ratings, sparse proficiency profile을 가진다.
 
+Default assembler는 하나의 `PlayerIdentityCatalog`을 같은 `PlayerRatingCatalog`에 주입하고, 그 ratings와 하나의 `ChampionCatalog`을 같은 `ChampionProficiencyCatalog`에 전달한다. Proficiency catalog 생성자는 rating version, champion pool version, legal-role count, exact PlayerId subject set을 다시 검증한다. Reachability Gate도 `PlayerId ↔ PlayerRatingKey` 불일치를 `PLAYER_ID_RATING_KEY_MISMATCH`로 독립적으로 거부한다.
+
 ## Runtime/Event Schema
 
 `PlayerState`는 다음을 분리해 보유한다.
@@ -164,6 +170,8 @@ Matching binding 뒤 `Player`는 stable ID, display name, 12 ratings, sparse pro
 - `assistPlayerIds`
 
 Lane/gank/counter-gank/roam structured data의 `*PlayerId`도 동일한 stable ID를 사용한다. Legacy isolated test state만 explicit stable ID와 `PlayerKey`가 모두 없을 때 이름이 아닌 `LEGACY:POSITION` diagnostic identity를 사용한다. 실제 LCK와 HTTP dummy match path는 explicit ID를 가진다.
+
+Match preflight는 양 팀 전체에서 non-null stable `PlayerId`가 중복되면 gameplay `Random` 생성/소비 전에 `DUPLICATE_MATCH_PLAYER_ID`로 거부한다. nickname은 collision key가 아니며, 기존 isolated legacy fixture의 null ID는 허용한다. HTTP match 응답은 실제 KILL event에서 기존 display fields와 additive stable-ID fields를 함께 직렬화한다.
 
 ## Layer Separation
 

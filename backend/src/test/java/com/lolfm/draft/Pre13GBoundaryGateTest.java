@@ -8,6 +8,7 @@ import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.domain.ChampionProficiencies;
 import com.lolfm.domain.Position;
+import com.lolfm.player.PlayerId;
 import com.lolfm.player.PlayerRatingKey;
 import com.lolfm.simulator.TeamSide;
 import java.util.ArrayList;
@@ -128,6 +129,27 @@ class Pre13GBoundaryGateTest {
     }
 
     @Test
+    void reachabilityGateIndependentlyRejectsPlayerIdRatingKeyMismatch() {
+        PlayerId faker = new PlayerId("player-faker");
+        ChampionId azir = new ChampionId("azir");
+        EnumMap<Position, ChampionProficiencies> values = new EnumMap<>(Position.class);
+        values.put(Position.MID, new ChampionProficiencies(Map.of(
+                new ChampionRoleKey(azir, Position.MID), 18)));
+        DraftTeamContext mismatched = new DraftTeamContext(values, Map.of(Position.MID, faker));
+        DraftTeamContext neutral = new DraftTeamContext(Map.of());
+        PreDraftPlanner planner = new PreDraftPlanner(champions, resources.meta(),
+                resources.champions().composition(), new RoleAssignmentSolver(champions));
+        DraftState state = stateAfter(List.of("aatrox", "akali", "akshan", "annie", "amumu", "brand"));
+
+        assertThatThrownBy(() -> new RealProficiencyCandidateReachabilityGate(resources).evaluate(
+                faker, new PlayerRatingKey("GEN", Position.MID),
+                new ChampionRoleKey(azir, Position.MID),
+                List.of(scenario("identity-mismatch", state, mismatched, neutral, planner))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("PLAYER_ID_RATING_KEY_MISMATCH");
+    }
+
+    @Test
     void reachabilityGateUsesOneCanonicalSubjectIdentityType() {
         assertThat(RealProficiencyCandidateReachabilityGate.class.getDeclaredClasses())
                 .noneMatch(value -> value.getSimpleName().equals("ProficiencySubjectKey"));
@@ -197,8 +219,8 @@ class Pre13GBoundaryGateTest {
         assertThat(RealProficiencyCandidateReachabilityGate.PENDING_REAL_CHAMPION_PROFICIENCY_RESOURCE)
                 .isEqualTo("PENDING_REAL_CHAMPION_PROFICIENCY_RESOURCE");
         assertThat(reachabilityResult().reason()).isIn(
-                "CANDIDATE_APPEARS_IN_LEGAL_SHORTLIST",
-                "CANDIDATE_ABSENT_FROM_ALL_LEGAL_SHORTLISTS");
+                "CHAMPION_ROLE_KEY_APPEARS_IN_LEGAL_SHORTLIST",
+                "CHAMPION_ABSENT_FROM_ALL_LEGAL_SHORTLISTS");
         assertThat(java.util.Arrays.stream(RealProficiencyCandidateReachabilityGate.class.getDeclaredFields())
                 .map(java.lang.reflect.Field::getName))
                 .noneMatch(value -> value.equalsIgnoreCase("realChampionProficiencyResource"));

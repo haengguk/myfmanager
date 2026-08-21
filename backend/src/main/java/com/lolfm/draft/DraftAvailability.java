@@ -29,6 +29,22 @@ public final class DraftAvailability {
                 .anyMatch(assignment -> matchRemaining(missingPositions(assignment), available(unavailable), 0, new HashSet<>()));
     }
 
+    /**
+     * Returns whether the partial roster can be completed while the candidate is fixed at the
+     * requested position. This is stricter than champion-level completion for flex champions.
+     */
+    public boolean canCompleteWithCandidateAtRole(DraftState state, TeamSide side,
+                                                   ChampionId candidate, Position targetPosition) {
+        List<ChampionId> picks = append(state.picks(side), candidate);
+        Set<ChampionId> unavailable = new HashSet<>(state.unavailableChampions());
+        unavailable.add(candidate);
+        List<ChampionId> pool = available(unavailable);
+        return assignments.feasibleAssignments(picks).stream()
+                .filter(assignment -> targetPosition == assignment.positionOf(candidate))
+                .anyMatch(assignment -> matchRemaining(
+                        missingPositions(assignment), pool, 0, new HashSet<>()));
+    }
+
     public double poolHealth(DraftState state, TeamSide side, ChampionId candidate) {
         List<ChampionId> picks = candidate == null ? state.picks(side) : append(state.picks(side), candidate);
         Set<ChampionId> unavailable = new HashSet<>(state.unavailableChampions());

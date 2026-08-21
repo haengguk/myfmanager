@@ -9,6 +9,7 @@ import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.domain.ChampionProficiencies;
 import com.lolfm.domain.Position;
+import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -96,6 +97,50 @@ class ChampionProficiencyCatalogTest {
         assertThat(replay.resourceSha256()).isEqualTo(CATALOG.resourceSha256());
         assertThat(replay.authoredEntries()).containsExactlyElementsOf(CATALOG.authoredEntries());
         assertThat(replay.all()).isEqualTo(CATALOG.all());
+    }
+
+    @Test
+    void injectedDefaultDependenciesRemainTheCatalogsActuallyUsed() {
+        ChampionProficiencyCatalog catalog = ChampionProficiencyCatalog.loadDefault(RATINGS, CHAMPIONS);
+        assertThat(catalog.ratingsCatalog()).isSameAs(RATINGS);
+        assertThat(catalog.championCatalog()).isSameAs(CHAMPIONS);
+    }
+
+    @Test
+    void constructorRevalidatesInjectedPrerequisitesAndExactPlayerIdSubjectSet() {
+        ChampionProficiencyResourceLoader.LoadedResource loaded =
+                ChampionProficiencyResourceLoader.loadDefault();
+
+        assertThatThrownBy(() -> new ChampionProficiencyCatalog(copy(loaded,
+                "wrong-rating-version", loaded.requiredChampionPoolVersion(),
+                loaded.requiredLegalRoleKeyCount(), loaded.proficiencies()), RATINGS, CHAMPIONS))
+                .hasMessageContaining("rating prerequisite mismatch");
+        assertThatThrownBy(() -> new ChampionProficiencyCatalog(copy(loaded,
+                loaded.requiredPlayerRatingResourceVersion(), "wrong-pool-version",
+                loaded.requiredLegalRoleKeyCount(), loaded.proficiencies()), RATINGS, CHAMPIONS))
+                .hasMessageContaining("pool prerequisite mismatch");
+        assertThatThrownBy(() -> new ChampionProficiencyCatalog(copy(loaded,
+                loaded.requiredPlayerRatingResourceVersion(), loaded.requiredChampionPoolVersion(),
+                loaded.requiredLegalRoleKeyCount() - 1, loaded.proficiencies()), RATINGS, CHAMPIONS))
+                .hasMessageContaining("legal-role prerequisite mismatch");
+
+        Map<PlayerId, ChampionProficiencies> missingSubject = new HashMap<>(loaded.proficiencies());
+        missingSubject.remove(missingSubject.keySet().stream().sorted().findFirst().orElseThrow());
+        assertThatThrownBy(() -> new ChampionProficiencyCatalog(copy(loaded,
+                loaded.requiredPlayerRatingResourceVersion(), loaded.requiredChampionPoolVersion(),
+                loaded.requiredLegalRoleKeyCount(), missingSubject), RATINGS, CHAMPIONS))
+                .hasMessageContaining("PlayerId subject mismatch");
+    }
+
+    private ChampionProficiencyResourceLoader.LoadedResource copy(
+            ChampionProficiencyResourceLoader.LoadedResource loaded,
+            String ratingVersion, String championPoolVersion, int legalRoleKeyCount,
+            Map<PlayerId, ChampionProficiencies> proficiencies) {
+        return new ChampionProficiencyResourceLoader.LoadedResource(
+                loaded.version(), loaded.researchAsOf(), loaded.resourceSha256(),
+                ratingVersion, championPoolVersion, legalRoleKeyCount,
+                loaded.highProficiencyThreshold(), loaded.metrics(), proficiencies,
+                loaded.authoredEntries());
     }
 
     private int value(String playerId, String championId, Position position) {

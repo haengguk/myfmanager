@@ -21,6 +21,7 @@ import java.util.Set;
 public final class PlayerIdentityResourceLoader {
     public static final String RESOURCE = "/players/lck-player-identities-2026-08-21-v1.json";
     public static final String VERSION = "lck-player-identities-2026-08-21-v1";
+    public static final String SNAPSHOT_AT = "2026-08-21";
     public static final String EXPECTED_SHA256 =
             "badbbaa3ae7fbe5eaaf83ee8e97a93134476493a45167ec3d1637c7243909018";
 
@@ -76,7 +77,8 @@ public final class PlayerIdentityResourceLoader {
         List<PlayerIdentity> ordered = new ArrayList<>(byId.values());
         ordered.sort(Comparator.comparing((PlayerIdentity value) -> value.ratingKey().teamCode())
                 .thenComparingInt(value -> value.ratingKey().position().ordinal()));
-        return new LoadedResource(raw.version(), sha256, raw.requiredPlayerRatingResourceVersion(),
+        return new LoadedResource(raw.version(), raw.snapshotAt(), sha256,
+                raw.requiredPlayerRatingResourceVersion(),
                 raw.scope().teams(), raw.scope().startersPerTeam(), raw.scope().players(),
                 raw.scope().substitutesIncluded(), List.copyOf(ordered));
     }
@@ -86,6 +88,10 @@ public final class PlayerIdentityResourceLoader {
         if (raw == null) throw new IllegalStateException("Player identity resource is empty");
         if (!VERSION.equals(raw.version())) {
             throw new IllegalStateException("Unsupported player identity version: " + raw.version());
+        }
+        if (raw.snapshotAt() == null || raw.snapshotAt().isBlank()
+                || !SNAPSHOT_AT.equals(raw.snapshotAt())) {
+            throw new IllegalStateException("Player identity snapshotAt mismatch: " + raw.snapshotAt());
         }
         if (!PlayerRatingResourceLoader.VERSION.equals(raw.requiredPlayerRatingResourceVersion())
                 || !ratings.version().equals(raw.requiredPlayerRatingResourceVersion())) {
@@ -161,6 +167,7 @@ public final class PlayerIdentityResourceLoader {
 
     public record LoadedResource(
             String version,
+            String snapshotAt,
             String resourceSha256,
             String requiredPlayerRatingResourceVersion,
             int teamCount,

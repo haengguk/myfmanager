@@ -39,6 +39,8 @@ DraftResourceSet + DraftRuleSet + DraftScoringPolicy
 - 현재 partial picks가 legal role assignment를 하나 이상 유지함
 - 남은 pick 수로 5 positions를 완성할 수 있음
 
+`canComplete`는 flex champion의 어느 legal role이든 허용하는 champion-level 완성 검사다. 진단용 `canCompleteWithCandidateAtRole`은 candidate를 특정 `Position`에 고정한 feasible assignment만 남긴 뒤, unavailable pool을 제외한 서로 다른 champion으로 나머지 positions까지 매칭할 수 있을 때만 true다. 이 additive helper는 production scoring이나 shortlist를 변경하지 않는다.
+
 ## Pre-Draft Planning
 
 `PreDraftPlanner`는 POKE_SIEGE, FRONT_TO_BACK, PICK_CONTROL, DIVE archetype을 비교해 상위 portfolio를 유지한다. 계획은 다음을 함께 본다.
@@ -60,6 +62,8 @@ pick 시 role을 즉시 확정하지 않는다.
 `RoleAssignmentSolver`는 현재 picks를 champion id 기준으로 안정 정렬하고, 각 champion의 `supportedPositions` 조합을 열거한다. 후보가 하나 이상의 legal assignment에 남아 있는 동안 여러 position 가능성을 유지한다. 이 feasible set이 candidate generation, proficiency, matchup, composition, flexibility, future-completion 평가에 사용된다.
 
 Draft가 끝나면 `FinalRoleAssignmentResolver`가 양 팀의 작은 legal permutation space를 비교한다. 각 candidate assignment의 proficiency, worst-case opponent Matchup, Composition quality를 결합하고 stable id로 deterministic tie-break하여 최종 role을 고른다. 자세한 결정 이유는 [ADR-004](../adr/ADR-004-flex-role-draft-resolution.md)에 있다.
+
+Real-proficiency reachability diagnostic은 shortlist의 `ChampionId` presence와 `ChampionRoleKey` reachability를 구분한다. 후자는 legal PICK turn, availability, target-role assignment, target role을 고정한 roster completion, champion shortlist presence가 모두 성립해야 한다. 따라서 다른 position으로만 배치 가능한 flex champion은 target role reachable로 세지 않는다. 이 결과는 bounded reachability이지 proficiency가 shortlist 진입의 원인이라는 causal 증명이 아니다.
 
 ## Pick Evaluation
 
@@ -128,7 +132,6 @@ Draft Meta는 `draft-meta-full-173-216-role-2026-08-18-v3`이며 active champion
 - series scheduling, side selection, roster/substitute management
 - 별도의 Standard ruleset 선택
 - production Player Ratings를 draft score에 직접 반영하는 경로
-- authored Champion Proficiency resource; 현재 missing proficiency는 neutral 14
 - Draft가 자동으로 match endpoint를 호출하는 orchestration
 
 현재 snapshot은 [Project Status](../project-status.md), player 경계는 [Player System](player-system.md)을 참고한다.

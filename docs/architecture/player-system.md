@@ -16,6 +16,7 @@ Player subsystem은 서로 대체할 수 없는 세 identity를 사용한다.
 
 - `backend/src/main/resources/players/lck-player-identities-2026-08-21-v1.json`
 - version `lck-player-identities-2026-08-21-v1`
+- snapshotAt `2026-08-21`
 - SHA-256 `badbbaa3ae7fbe5eaaf83ee8e97a93134476493a45167ec3d1637c7243909018`
 - 10 teams × five positions = 50 unique `PlayerId` / 50 unique `PlayerRatingKey`
 
@@ -51,7 +52,9 @@ Authoritative source는 다음 sparse resource다.
 - source identity: `PlayerRatingKey × ChampionRoleKey`
 - runtime identity: `PlayerId × ChampionRoleKey`
 
-`ChampionProficiencyResourceLoader`는 semantic parse 전에 raw bytes SHA를 확인한 뒤 rating version, champion pool version, 216 legal role keys, 50 subject equality, role legality와 subject position을 검증한다. `ChampionProficiencyCatalog`는 identity mapping을 거쳐 canonical `Map<PlayerId, ChampionProficiencies>`를 노출한다.
+Identity/proficiency JSON은 현재 runnable local working tree의 companion resources이며 의도적으로 untracked다. 따라서 기준 commit만으로는 real LCK catalog path를 실행할 수 없고, exact-SHA local files가 함께 있어야 한다. 자세한 tracking/runtime 계약은 [Player Data Schema](../reference/player-data-schema.md)에 기록한다.
+
+`ChampionProficiencyResourceLoader`는 semantic parse 전에 raw bytes SHA를 확인한 뒤 exact identity semantics, rating version, champion pool version, 216 legal role keys, 50 subject equality, role legality와 subject position을 검증한다. `ChampionProficiencyCatalog`는 identity mapping을 거쳐 canonical `Map<PlayerId, ChampionProficiencies>`를 노출하고 생성 시 전달된 catalog prerequisites와 exact PlayerId subject set을 다시 검증한다.
 
 현재 loaded 결과는 resource에서 측정한 값이다.
 
@@ -82,12 +85,13 @@ match runtime에서 proficiency는 `PlayerMatchPerformance.execution(...)` 경�
 
 ```text
 PlayerIdentityCatalog
-  + PlayerRatingCatalog
-  + ChampionProficiencyCatalog
+  → PlayerRatingCatalog (same identities)
+  + ChampionCatalog
+  → ChampionProficiencyCatalog (same ratings/champions)
   → current LCK Team (TOP/JUNGLE/MID/ADC/SUPPORT)
 ```
 
-10개 팀을 각각 5명으로 deterministic하게 조립하며 `DummyDataFactory`에 의존하지 않는다. 각 `Player`에는 stable `PlayerId`, 실제 12 ratings, 실제 sparse proficiency profile이 들어간다. production binding은 runtime PlayerId, current `PlayerRatingKey`, proficiency owner가 일치하지 않으면 fail-fast한다.
+10개 팀을 각각 5명으로 deterministic하게 조립하며 `DummyDataFactory`에 의존하지 않는다. Default convenience path도 위 immutable object graph를 한 번 조립해 같은 identities/ratings/champions instances를 공유한다. 각 `Player`에는 stable `PlayerId`, 실제 12 ratings, 실제 sparse proficiency profile이 들어간다. production binding은 runtime PlayerId, current `PlayerRatingKey`, proficiency owner가 일치하지 않으면 fail-fast한다.
 
 ## Runtime Integration
 
@@ -106,6 +110,7 @@ PlayerId + PlayerRatingKey + PlayerRatings + ChampionProficiencies
 - `TeamfightResolver`는 display name으로 `PlayerState`를 찾지 않는다.
 - `MatchEvent`의 기존 `killer`/`victim`/`assists`는 display 호환 필드로 유지하고, additive `killerPlayerId`/`victimPlayerId`/`assistPlayerIds`에는 stable ID를 기록한다.
 - `LaneCombatData`, `JungleGankData`, `CounterGankData`, `RoamData`의 `*PlayerId` 필드도 stable identity를 담는다.
+- match preflight는 양 팀 전체의 non-null stable `PlayerId` 중복을 gameplay Random 생성/소비 전에 거부한다. 같은 nickname/different ID는 허용하고, legacy null ID fixture도 유지한다.
 
 GEN 대 T1 real-team smoke는 explicit legal assignments와 seed 73 하나로 simulator 종료 및 exact replay를 검증한다.
 
@@ -113,19 +118,22 @@ GEN 대 T1 real-team smoke는 explicit legal assignments와 seed 73 하나로 si
 
 `DraftTeamContext.from(realTeam)`은 position별 proficiency와 stable `PlayerId`를 함께 보유한다. Draft scoring은 여전히 Player Ratings를 읽지 않고 proficiency를 `PLAYER_FIT`에 사용한다.
 
-기존 `RealProficiencyCandidateReachabilityGate`를 실제 537개 authored 17+ key에 실행한 결과:
+보정된 `RealProficiencyCandidateReachabilityGate`를 실제 537개 authored 17+ key에 전용 diagnostic task로 실행한 결과:
 
 - bounded scenarios: 1,611 (key당 3)
-- legal scenarios: 1,349
-- candidate appearances: 261
-- candidate-present high keys: 150 / 537 (0.2793296089)
-- no-legal-scenario keys: 0
-- candidate-unreachable high keys: 387
+- champion-level legal scenarios: 1,349
+- role-specific legal scenarios: 1,319
+- champion appearances / present high keys: 261 / 150
+- role-key reachable scenarios / keys: 260 / 150
+- champion present but target role infeasible: 1 scenario (`player-kiin/varus:TOP`)
+- champion present but role completion impossible: 0
+- no role-specific legal scenario keys: 0
+- role-key unreachable high keys: 387
 
-387건은 `REVIEW_REAL_PROFICIENCY_CANDIDATE_UNREACHABLE` review signal이다. 데이터, Draft weight, shortlist size, search bound는 자동 변경하지 않았다. 보고서는 `backend/build/reports/phase13g-real-proficiency-reachability/`에 생성된다.
+387건은 `REVIEW_REAL_PROFICIENCY_ROLE_KEY_UNREACHABLE` review signal이다. Candidate-present key count와 reachable-key count는 이 bounded schedule에서 우연히 모두 150이지만, scenario count는 261 대 260으로 다르며 두 의미를 합치지 않는다. 이 Gate는 target role completion을 증명할 뿐 proficiency가 shortlist inclusion을 일으켰다는 causal audit가 아니다. 데이터, Draft weight, shortlist size, search bound는 자동 변경하지 않았다. 전체 보고서는 `phase13gRealProficiencyAudit` task만 `backend/build/reports/phase13g-real-proficiency-reachability/`에 생성한다.
 
 ## HTTP 경계
 
-현재 `MatchController`는 계속 `DummyDataFactory` legacy/demo team을 사용한다. `LckTeamAssembler`와 real proficiency catalog는 production-capable backend 경계까지 구현됐지만 HTTP default path, Draft API, frontend flow는 바꾸지 않았다.
+현재 `MatchController`는 계속 `DummyDataFactory` legacy/demo team을 사용한다. Fixed-seed HTTP contract test는 실제 KILL event에서 기존 display participant fields와 additive `player-fixture-*` stable ID fields가 함께 직렬화됨을 고정한다. `LckTeamAssembler`와 real proficiency catalog는 production-capable backend 경계까지 구현됐지만 HTTP default path, Draft API, frontend flow는 바꾸지 않았다.
 
 다음 integration은 `REAL_DRAFT_TO_MATCH_BACKEND_ORCHESTRATION`이다. 세부 field와 rejection contract는 [Player Data Schema](../reference/player-data-schema.md)를 참고한다.

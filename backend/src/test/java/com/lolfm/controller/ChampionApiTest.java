@@ -1,7 +1,10 @@
 package com.lolfm.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -13,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class ChampionApiTest {
     @Autowired MockMvc mvc;
+    @Autowired ObjectMapper mapper;
 
     @Test void catalogEndpointReturnsPinnedOrderedFullChampionContract() throws Exception {
         mvc.perform(get("/api/champions"))
@@ -56,6 +60,38 @@ class ChampionApiTest {
         mvc.perform(post("/api/matches/simulate").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"seed\":7,\"championSelection\":{\"blue\":null,\"red\":null}}"))
                 .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("CHAMPION_SELECTION_MISSING"));
+    }
+
+    @Test
+    void actualKillEventSerializesDisplayAndStableParticipantIdentitiesAdditively() throws Exception {
+        String body = mvc.perform(post("/api/matches/simulate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"seed\":7}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        JsonNode kill = null;
+        for (JsonNode event : mapper.readTree(body).path("timeline").path("events")) {
+            if ("KILL".equals(event.path("type").asText())) {
+                kill = event;
+                break;
+            }
+        }
+
+        assertThat(kill).as("fixed seed must produce an actual KILL event").isNotNull();
+        assertThat(kill.has("killer")).isTrue();
+        assertThat(kill.has("victim")).isTrue();
+        assertThat(kill.has("assists")).isTrue();
+        assertThat(kill.has("killerPlayerId")).isTrue();
+        assertThat(kill.has("victimPlayerId")).isTrue();
+        assertThat(kill.has("assistPlayerIds")).isTrue();
+        assertThat(kill.path("killer").isTextual()).isTrue();
+        assertThat(kill.path("victim").isTextual()).isTrue();
+        assertThat(kill.path("assists").isArray()).isTrue();
+        assertThat(kill.path("assistPlayerIds").isArray()).isTrue();
+        assertThat(kill.path("killerPlayerId").asText()).startsWith("player-fixture-");
+        assertThat(kill.path("victimPlayerId").asText()).startsWith("player-fixture-");
+        assertThat(kill.path("killer").asText()).isNotEqualTo(kill.path("killerPlayerId").asText());
+        assertThat(kill.path("victim").asText()).isNotEqualTo(kill.path("victimPlayerId").asText());
     }
 
     private String validRequest() { return "{\"seed\":7,\"championSelection\":{\"blue\":{\"top\":\"renekton\",\"jgl\":\"sejuani\",\"mid\":\"azir\",\"adc\":\"jinx\",\"sup\":\"nautilus\"},\"red\":{\"top\":\"jax\",\"jgl\":\"lee-sin\",\"mid\":\"ahri\",\"adc\":\"kaisa\",\"sup\":\"rakan\"}}}"; }

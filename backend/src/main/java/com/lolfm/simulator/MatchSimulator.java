@@ -345,14 +345,16 @@ public class MatchSimulator {
             MatchChampionAssignments assignments,
             SideOrientationRandomTraceObserver random
     ) {
-        return runSimulation(blueTeam, redTeam, assignments, random, random.seed());
+        MatchLineupIdentityValidator.validate(blueTeam, redTeam);
+        return runValidatedSimulation(blueTeam, redTeam, assignments, random, random.seed());
     }
 
     private SimulationResult runSimulation(Team blueTeam, Team redTeam, long seed, MatchChampionAssignments assignments) {
-        return runSimulation(blueTeam, redTeam, assignments, new Random(seed), seed);
+        MatchLineupIdentityValidator.validate(blueTeam, redTeam);
+        return runValidatedSimulation(blueTeam, redTeam, assignments, new Random(seed), seed);
     }
 
-    private SimulationResult runSimulation(
+    private SimulationResult runValidatedSimulation(
             Team blueTeam,
             Team redTeam,
             MatchChampionAssignments assignments,

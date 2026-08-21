@@ -65,7 +65,28 @@ public final class PlayerRatingCatalog {
     }
 
     public static PlayerRatingCatalog loadDefault() {
-        return new PlayerRatingCatalog(PlayerRatingResourceLoader.loadDefault());
+        ObjectMapper mapper = new ObjectMapper();
+        PlayerRatingResourceLoader.LoadedResource loaded = PlayerRatingResourceLoader.load(
+                mapper, PlayerRatingResourceLoader.class.getResourceAsStream(
+                        PlayerRatingResourceLoader.RESOURCE));
+        PlayerIdentityCatalog identities = new PlayerIdentityCatalog(
+                PlayerIdentityResourceLoader.load(mapper,
+                        PlayerIdentityResourceLoader.class.getResourceAsStream(
+                                PlayerIdentityResourceLoader.RESOURCE),
+                        PlayerIdentityResourceLoader.EXPECTED_SHA256, loaded));
+        return new PlayerRatingCatalog(loaded, identities);
+    }
+
+    public static PlayerRatingCatalog loadDefault(PlayerIdentityCatalog identities) {
+        return loadDefault(new ObjectMapper(), identities);
+    }
+
+    static PlayerRatingCatalog loadDefault(ObjectMapper mapper, PlayerIdentityCatalog identities) {
+        Objects.requireNonNull(mapper, "mapper");
+        Objects.requireNonNull(identities, "identities");
+        return new PlayerRatingCatalog(PlayerRatingResourceLoader.load(
+                mapper, PlayerRatingResourceLoader.class.getResourceAsStream(
+                        PlayerRatingResourceLoader.RESOURCE)), identities);
     }
 
     public String version() { return version; }

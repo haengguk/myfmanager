@@ -24,6 +24,8 @@ public final class ChampionProficiencyResourceLoader {
     public static final String RESOURCE = "/players/lck-champion-proficiency-2026-08-21-v1.json";
     public static final String VERSION = "lck-champion-proficiency-2026-08-21-v1";
     public static final String RESEARCH_AS_OF = "2026-08-21";
+    public static final String IDENTITY_SEMANTICS =
+            "PlayerRatingKey(teamCode, Position) x ChampionRoleKey(championId, same Position)";
     public static final String REQUIRED_CHAMPION_POOL_VERSION = "full-173-2026-08-v1";
     public static final int REQUIRED_LEGAL_ROLE_KEY_COUNT = 216;
     public static final String EXPECTED_SHA256 =
@@ -151,7 +153,10 @@ public final class ChampionProficiencyResourceLoader {
             throw new IllegalStateException("Champion proficiency scale/neutral fallback mismatch");
         }
         RawSemantics semantics = raw.semantics();
-        if (semantics == null || !semantics.sparseOverridesOnly()
+        if (semantics == null || !IDENTITY_SEMANTICS.equals(semantics.identity())) {
+            throw new IllegalStateException("Champion proficiency identity semantics mismatch");
+        }
+        if (!semantics.sparseOverridesOnly()
                 || !"ChampionProficiencies.NEUTRAL_14".equals(semantics.omittedLegalRoleBehavior())
                 || semantics.highProficiencyThreshold() != 17
                 || !semantics.playerRatingsSeparate() || !semantics.draftMetaSeparate()

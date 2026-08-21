@@ -130,6 +130,18 @@ class PlayerRatingCatalogTest {
     }
 
     @Test
+    void defaultOverloadUsesTheSuppliedIdentityCatalogInstance() {
+        PlayerIdentityCatalog identities = PlayerIdentityCatalog.loadDefault();
+        PlayerRatingCatalog catalog = PlayerRatingCatalog.loadDefault(identities);
+
+        assertThat(catalog.identities()).isSameAs(identities);
+        assertThat(snapshot(catalog)).isEqualTo(snapshot(CATALOG));
+        assertThat(catalog.all().stream().map(value -> value.playerKey().stableId()).toList())
+                .containsExactlyElementsOf(CATALOG.all().stream()
+                        .map(value -> value.playerKey().stableId()).toList());
+    }
+
+    @Test
     void allSixHundredAuthoredRatingValuesLoadExactly() throws IOException {
         JsonNode authored;
         try (InputStream input = PlayerRatingCatalogTest.class.getResourceAsStream(PlayerRatingResourceLoader.RESOURCE)) {

@@ -28,6 +28,7 @@ Champion Power resource에는 8 level curves와 8 item curves가 있다. Cross-c
 | 항목 | 현재 값 |
 | --- | --- |
 | Player Identity version | `lck-player-identities-2026-08-21-v1` |
+| Player Identity snapshotAt | `2026-08-21` |
 | Player Identity SHA-256 | `badbbaa3ae7fbe5eaaf83ee8e97a93134476493a45167ec3d1637c7243909018` |
 | Stable identities | 50 unique `PlayerId`, 50 unique `PlayerRatingKey` |
 | Player Ratings version | `lck-player-ratings-2026-08-19-v1` |
@@ -43,7 +44,9 @@ Champion Power resource에는 8 level curves와 8 item curves가 있다. Cross-c
 
 `PlayerId`는 사람, `PlayerRatingKey(teamCode, Position)`는 current roster snapshot, `PlayerKey(TeamSide, Position)`는 match slot identity다. nickname은 display metadata이며 gameplay lookup key가 아니다.
 
-`LckTeamAssembler`는 immutable identity/rating/proficiency catalog를 결합해 10개 팀 × 정확히 5명의 real LCK roster를 deterministic하게 조립한다. 각 player는 explicit stable ID, 실제 12 ratings, 실제 sparse proficiency profile을 가진다. 작성되지 않은 legal same-position key만 neutral 14이며 unknown/illegal/cross-position subject는 fail-fast한다.
+`LckTeamAssembler`는 같은 identity instance를 사용하는 ratings와, 같은 ratings/champion instances를 사용하는 proficiency catalog를 하나의 immutable graph로 결합해 10개 팀 × 정확히 5명의 real LCK roster를 deterministic하게 조립한다. 각 player는 explicit stable ID, 실제 12 ratings, 실제 sparse proficiency profile을 가진다. 작성되지 않은 legal same-position key만 neutral 14이며 unknown/illegal/cross-position subject는 fail-fast한다.
+
+Identity/proficiency companion JSON은 exact SHA의 local runnable working tree에는 존재하지만 의도적으로 untracked다. 기준 commit만으로는 이 runtime data가 포함되지 않으며, 이 상태를 authored resource 결함으로 분류하지 않는다.
 
 ### Draft and reachability
 
@@ -56,19 +59,25 @@ Champion Power resource에는 8 level curves와 8 item curves가 있다. Cross-c
 | Determinism | Random/time input 없음; stable lexical tie-break |
 | API/frontend exposure | 없음 |
 
-`RealProficiencyCandidateReachabilityGate`를 real `DraftTeamContext`와 실제 17+ proficiency 537개에 key당 3개의 bounded scenario로 실행했다.
+보정된 `RealProficiencyCandidateReachabilityGate`를 real `DraftTeamContext`와 실제 17+ proficiency 537개에 key당 3개의 bounded scenario로 실행했다. ChampionId presence와 target-position-fixed `ChampionRoleKey` completion을 별도 metric으로 기록한다.
 
 | Reachability metric | 값 |
 | --- | ---: |
 | Bounded scenarios | 1,611 |
-| Legal scenarios | 1,349 |
-| Candidate appearances | 261 |
-| Candidate-present high keys | 150 / 537 |
-| Presence ratio | 0.2793296089 |
-| Unreachable high keys | 387 |
-| No-legal-scenario keys | 0 |
+| Champion-level legal scenarios | 1,349 |
+| Role-specific legal scenarios | 1,319 |
+| Champion appearances | 261 |
+| Champion-present high keys | 150 / 537 (0.2793296089) |
+| Role-key reachable scenarios | 260 |
+| Role-key reachable high keys | 150 / 537 (0.2793296089) |
+| Champion present / target role infeasible | 1 (`player-kiin/varus:TOP`) |
+| Champion present / role completion impossible | 0 |
+| Role-key unreachable high keys | 387 |
+| No role-specific legal-scenario keys | 0 |
 
-387건은 blocker가 아니라 `REVIEW_REAL_PROFICIENCY_CANDIDATE_UNREACHABLE` review signal이다. Draft weight, candidate generator, shortlist size, search bound, Draft Meta와 proficiency 값은 변경하지 않았다. Phase 13G-A2 artifact는 발견했지만 synthetic champion-id granularity이고 current HEAD baseline으로 증명되지 않아 numeric delta를 계산하지 않았다.
+387건은 blocker가 아니라 `REVIEW_REAL_PROFICIENCY_ROLE_KEY_UNREACHABLE` review signal이다. Key count는 이 schedule에서 양쪽 모두 150이지만 scenario-level champion presence 261 중 1건은 target role이 불가능해 role-key reachability가 260이다. 이 Gate는 bounded feasibility를 증명할 뿐 proficiency가 shortlist inclusion의 원인임을 증명하지 않는다. Draft weight, candidate generator, shortlist size, search bound, Draft Meta와 proficiency 값은 변경하지 않았다.
+
+전체 population은 기본 `test`에서 제외되며 `phase13gRealProficiencyAudit` 전용 task에서만 실행한다. 이번 명시적 실행은 1 suite / 1 test, failures/errors/skipped 0, JUnit 7.444초, Gradle 약 11초였다.
 
 Generated report:
 
@@ -76,9 +85,11 @@ Generated report:
 - `backend/build/reports/phase13g-real-proficiency-reachability/phase13g-real-proficiency-reachability-keys.csv`
 - `backend/build/reports/phase13g-real-proficiency-reachability/phase13g-real-proficiency-reachability-SHA256SUMS.txt`
 
+Report SHA-256: summary `4f3a13ca19cb00abc8da463173578b222fa55e389bb34d1a96abe6f2b10bfde3`, key CSV `936346bc52dfbfab430634d1fcb44781bb765c82f3558f60565e1c36541b1f61`.
+
 ### HTTP match runtime
 
-Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDataFactory` legacy/demo team이다. `LckTeamAssembler`를 통한 real team은 production-capable backend 경계와 focused simulator smoke까지 도달했지만 HTTP default path로 전환하지 않았다.
+Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDataFactory` legacy/demo team이다. Fixed-seed HTTP test는 실제 KILL event가 기존 display fields와 additive `player-fixture-*` ID fields를 함께 직렬화함을 검증한다. Match preflight는 양 팀 전체의 duplicate stable `PlayerId`를 gameplay Random 전에 거부한다. `LckTeamAssembler`를 통한 real team은 production-capable backend 경계와 focused simulator smoke까지 도달했지만 HTTP default path로 전환하지 않았다.
 
 현재 autowired simulator path는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`와 `TeamCompositionGameplayMode.OFF`를 사용한다. `SimulationOptions.productionDefaults()`가 제공하는 Matchup `GEOMETRIC_V2`와 Composition `PRODUCTION_V2`와 구분해야 한다.
 
@@ -91,7 +102,8 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - stable `PlayerId`를 보유한 `Player`/`PlayerState`, match-scoped `PlayerKey`, structured `TeamState` lookup
 - KILL/action event의 stable participant IDs와 기존 display fields의 additive 분리
 - 10개 실제 LCK 팀의 deterministic assembly 및 GEN 대 T1 same-seed simulator smoke
-- real proficiency 537-key candidate reachability gate와 JSON/CSV/SHA report
+- ChampionId presence와 target-role completion을 분리한 537-key reachability diagnostic와 JSON/CSV/SHA report
+- coherent default player catalog graph, exact resource semantic envelope, match-wide stable PlayerId invariant
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
 - Dragon/Baron/Elder, objective decision/contest/trade, structure/Nexus end game
@@ -125,16 +137,16 @@ Final command:
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 145 |
-| Tests | 1,926 |
+| JUnit suites | 148 |
+| Tests | 1,944 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 1,019.127 seconds |
-| Gradle wall duration | 17m 11s |
+| Aggregate JUnit XML time | 957.868 seconds |
+| Gradle wall duration | 16m 9s |
 | Build | `BUILD SUCCESSFUL` |
 
-Focused identity/catalog/resource rejection, team assembly/binding, real-team match, resolver structured identity, existing reachability/pre-13G boundary suites도 통과했다. 최초 full run에서 발견된 11개 legacy fixture assertion은 explicit `player-fixture-*` identity로 migration한 뒤 관련 111개 resolver test를 통과시켰고, 위 최종 full run으로 재검증했다.
+이번 hardening의 full regression은 최종 production/Gradle tree에서 1회 실행해 clean pass했다. Default XML에는 diagnostic-tagged 537-key audit suite가 없고, full run 전후 full-population report timestamp도 동일해 기본 `test`가 report를 다시 생성하지 않았음을 확인했다. Role-specific flex cases, Gate binding, catalog graph/prerequisites, resource envelope, match-wide identity, HTTP serialization, representative real keys, small report writer focused tests도 각각 통과했다.
 
 테스트/diagnostic 실행 경계는 [Testing](development/testing.md), player contract는 [Player System](architecture/player-system.md)과 [Player Data Schema](reference/player-data-schema.md)를 참고한다.
 

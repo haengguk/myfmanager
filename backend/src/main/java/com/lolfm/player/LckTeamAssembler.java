@@ -1,5 +1,7 @@
 package com.lolfm.player;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.domain.Player;
 import com.lolfm.domain.Position;
 import com.lolfm.domain.Team;
@@ -25,8 +27,19 @@ public final class LckTeamAssembler {
     }
 
     public static LckTeamAssembler loadDefault() {
-        PlayerRatingCatalog ratings = PlayerRatingCatalog.loadDefault();
-        ChampionProficiencyCatalog proficiencies = ChampionProficiencyCatalog.loadDefault();
+        ObjectMapper mapper = new ObjectMapper();
+        PlayerRatingResourceLoader.LoadedResource loadedRatings = PlayerRatingResourceLoader.load(
+                mapper, PlayerRatingResourceLoader.class.getResourceAsStream(
+                        PlayerRatingResourceLoader.RESOURCE));
+        PlayerIdentityCatalog identities = new PlayerIdentityCatalog(
+                PlayerIdentityResourceLoader.load(mapper,
+                        PlayerIdentityResourceLoader.class.getResourceAsStream(
+                                PlayerIdentityResourceLoader.RESOURCE),
+                        PlayerIdentityResourceLoader.EXPECTED_SHA256, loadedRatings));
+        PlayerRatingCatalog ratings = new PlayerRatingCatalog(loadedRatings, identities);
+        ChampionCatalog champions = new ChampionCatalog(mapper);
+        ChampionProficiencyCatalog proficiencies = ChampionProficiencyCatalog.loadDefault(
+                mapper, ratings, champions);
         return new LckTeamAssembler(ratings, proficiencies);
     }
 
@@ -77,4 +90,6 @@ public final class LckTeamAssembler {
     }
 
     public Set<String> teamCodes() { return ratings.teamCodes(); }
+    PlayerRatingCatalog ratingsCatalog() { return ratings; }
+    ChampionProficiencyCatalog proficiencyCatalog() { return proficiencies; }
 }

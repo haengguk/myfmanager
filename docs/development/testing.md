@@ -36,7 +36,7 @@ cd frontend
 npm run build
 ```
 
-이 문서화 baseline을 만들면서 full regression이나 frontend build를 재실행하지 않았다. 현재 상태 표기는 [Project Status](../project-status.md)를 따른다.
+Production source, resource, runtime wiring, shared fixture 또는 Gradle/test configuration 변경을 마친 뒤 complete backend `test`를 final verification으로 한 번 실행한다. 실제 product regression을 발견해 고친 경우에만 affected focused tests 뒤 최종 full regression을 한 번 더 실행하며, 정상적으로는 최대 2회다. Clean full pass 이후 docs/report wording/assertion-only/isolated test-local fixture만 바뀌면 full regression을 반복하지 않는다. 현재 실행 수치는 [Project Status](../project-status.md)를 따른다.
 
 ## Determinism
 
@@ -69,13 +69,23 @@ Historical hash를 active full dataset 전체 hash로 해석하지 않는다. sc
 
 ## Diagnostic Tasks
 
-`backend/build.gradle`에는 `run*Diagnostics`, audit/finalization용 `JavaExec` task가 다수 있다. 이들은 test runtime classpath를 사용하지만 일반 `test` task의 필수 dependency가 아니다. 수천 match 분포, holdout, calibration, artifact 생성은 요청된 경우에만 해당 전용 task로 실행한다.
+`backend/build.gradle`에는 `run*Diagnostics`, audit/finalization용 `JavaExec` task가 다수 있다. 이들은 test runtime classpath를 사용하지만 일반 `test` task의 필수 dependency가 아니다. 수천 match 분포, holdout, calibration, full-population artifact 생성은 요청된 경우에만 해당 전용 task로 실행한다.
+
+Real proficiency reachability는 다음처럼 분리한다.
+
+```bash
+cd backend
+./gradlew test                         # fast deterministic correctness; diagnostic tag 제외
+./gradlew phase13gRealProficiencyAudit # 537 keys / 1,611 scenarios / JSON+CSV+SHA
+```
+
+기본 `test`에는 role-fixed completion helper, flex false-positive cases, identity/catalog/resource/API contract, 소수 representative real keys, `@TempDir` report writer만 남는다. 전체 audit JUnit class는 `diagnostic` tag이며 default task가 제외한다. 따라서 기본 test는 shared full-population report를 만들거나 입력으로 읽지 않는다.
 
 Diagnostic 결과를 normal unit-test assertion으로 옮기려면 먼저 그것이 balance observation이 아니라 deterministic invariant인지 확인한다.
 
 ## Generated Reports
 
-다음은 검증 결과 또는 일시 artifact이며 source of truth가 아니다.
+다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.
 
 - `backend/build/`, `backend/bin/`
 - `backend/*.log`, `backend/*.csv`, generated JSON

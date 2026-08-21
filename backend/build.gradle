@@ -25,7 +25,9 @@ dependencies {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'diagnostic'
+    }
     maxHeapSize = '2g'
 }
 
@@ -426,4 +428,20 @@ tasks.register("runPhase13GPreProficiencyHardeningAudit", JavaExec) {
     description = "Writes the pre-real-Champion-Proficiency gate hardening artifacts."
     classpath = sourceSets.test.runtimeClasspath
     mainClass = "com.lolfm.draft.Phase13GPreProficiencyHardeningAudit"
+}
+
+tasks.register("phase13gRealProficiencyAudit", Test) {
+    group = "verification"
+    description = "Runs the full 537-key role-specific real proficiency reachability diagnostic."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "diagnostic"
+    }
+    maxHeapSize = "2g"
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/phase13gRealProficiencyAudit")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/phase13gRealProficiencyAudit")
 }

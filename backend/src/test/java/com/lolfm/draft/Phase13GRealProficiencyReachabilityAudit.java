@@ -1,18 +1,15 @@
 package com.lolfm.draft;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.lolfm.champion.ChampionId;
+import com.lolfm.domain.Position;
 import com.lolfm.player.ChampionProficiencyCatalog;
 import com.lolfm.player.ChampionProficiencyEntry;
 import com.lolfm.player.ChampionProficiencyPopulationMetrics;
 import com.lolfm.player.LckTeamAssembler;
-import com.lolfm.player.PlayerId;
 import com.lolfm.player.PlayerRatingCatalog;
-import com.lolfm.player.PlayerRatingKey;
 import com.lolfm.simulator.TeamSide;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,8 +23,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
-/** Bounded real-population execution of the existing candidate reachability gate. */
+/** Bounded diagnostic over the complete real high-proficiency population. */
 public final class Phase13GRealProficiencyReachabilityAudit {
     public static final String OUTPUT_DIRECTORY =
             "build/reports/phase13g-real-proficiency-reachability";
@@ -53,23 +51,28 @@ public final class Phase13GRealProficiencyReachabilityAudit {
         Path output = Path.of(System.getProperty("phase13g.realProficiency.outputDir", OUTPUT_DIRECTORY));
         AuditResult result = run(output);
         System.out.println("REAL_PROFICIENCY_HIGH_KEYS=" + result.highProficiencyAuthoredCount());
-        System.out.println("REAL_PROFICIENCY_LEGAL_SCENARIOS=" + result.legalScenarioCount());
-        System.out.println("REAL_PROFICIENCY_CANDIDATE_APPEARANCES=" + result.candidateAppearanceCount());
-        System.out.println("REAL_PROFICIENCY_UNREACHABLE_KEYS=" + result.unreachableHighProficiencyKeyCount());
-        System.out.println("REAL_PROFICIENCY_NO_LEGAL_SCENARIO_KEYS=" + result.noLegalScenarioKeyCount());
+        System.out.println("REAL_PROFICIENCY_CHAMPION_LEVEL_LEGAL_SCENARIOS="
+                + result.championLevelLegalScenarioCount());
+        System.out.println("REAL_PROFICIENCY_ROLE_SPECIFIC_LEGAL_SCENARIOS="
+                + result.roleSpecificLegalScenarioCount());
+        System.out.println("REAL_PROFICIENCY_CHAMPION_CANDIDATE_PRESENT_KEYS="
+                + result.championCandidatePresentKeyCount());
+        System.out.println("REAL_PROFICIENCY_ROLE_KEY_REACHABLE_KEYS="
+                + result.roleKeyReachableKeyCount());
+        System.out.println("REAL_PROFICIENCY_ROLE_KEY_UNREACHABLE_KEYS="
+                + result.roleSpecificUnreachableHighKeyCount());
         System.out.println("REAL_PROFICIENCY_GATE_VERDICT=" + result.verdict());
     }
 
     public static AuditResult run(Path output) throws Exception {
         Objects.requireNonNull(output, "output");
-        Files.createDirectories(output);
-
         DraftResourceSet resources = DraftResourceSet.loadDefault();
         PlayerRatingCatalog ratings = PlayerRatingCatalog.loadDefault();
-        ChampionProficiencyCatalog proficiencies = ChampionProficiencyCatalog.loadDefault();
-        LckTeamAssembler teams = LckTeamAssembler.loadDefault();
+        ChampionProficiencyCatalog proficiencies = ChampionProficiencyCatalog.loadDefault(
+                ratings, resources.champions().catalog());
+        LckTeamAssembler teams = new LckTeamAssembler(ratings, proficiencies);
         RealProficiencyCandidateReachabilityGate gate =
-                new RealProficiencyCandidateReachabilityGate(resources);
+                new RealProficiencyCandidateReachabilityGate(resources, ratings);
         PreDraftPlanner planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(),
                 resources.champions().composition(),
                 new RoleAssignmentSolver(resources.champions().catalog()));
@@ -95,21 +98,26 @@ public final class Phase13GRealProficiencyReachabilityAudit {
                     key -> scenarios(key.teamCode(), key.variant(), contexts, planner));
             RealProficiencyCandidateReachabilityGate.Result result = gate.evaluate(
                     entry.playerId(), entry.sourceRatingKey(), entry.championRoleKey(), scenarios);
+            boolean flexChampion = resources.champions().catalog().get(
+                    entry.championRoleKey().championId()).supportedPositions().size() > 1;
             keyResults.add(new KeyResult(
                     entry.playerId().value(), entry.sourceRatingKey().stableId(),
                     ratings.get(entry.sourceRatingKey()).nickname(),
                     entry.sourceRatingKey().teamCode(), entry.sourceRatingKey().position().name(),
                     entry.championRoleKey().stableId(), entry.championRoleKey().championId().value(),
-                    entry.value(), result.scenarioCount(), result.legalScenarioCount(),
-                    result.candidateAppearanceCount(), result.candidateScenarioPresence(),
-                    result.reachable(), result.reason()));
+                    flexChampion, entry.value(), result.scenarioCount(),
+                    result.championLevelLegalScenarioCount(), result.roleSpecificLegalScenarioCount(),
+                    result.championCandidateAppearanceCount(), result.roleKeyReachableScenarioCount(),
+                    result.championPresentButTargetRoleInfeasibleCount(),
+                    result.championPresentButRoleCompletionImpossibleCount(),
+                    result.championCandidateScenarioPresence(), result.roleKeyScenarioPresence(),
+                    result.roleKeyReachable(), result.reason()));
         }
 
         Map<String, MutableConcentration> players = new HashMap<>();
         Map<String, MutableConcentration> champions = new HashMap<>();
-        EnumMap<com.lolfm.domain.Position, MutableConcentration> positions =
-                new EnumMap<>(com.lolfm.domain.Position.class);
-        for (com.lolfm.domain.Position position : com.lolfm.domain.Position.values()) {
+        EnumMap<Position, MutableConcentration> positions = new EnumMap<>(Position.class);
+        for (Position position : Position.values()) {
             positions.put(position, new MutableConcentration(position.name()));
         }
         for (ChampionProficiencyEntry entry : authored) {
@@ -119,88 +127,147 @@ public final class Phase13GRealProficiencyReachabilityAudit {
             positions.get(entry.championRoleKey().position()).authored++;
         }
         for (KeyResult result : keyResults) {
-            MutableConcentration player = players.get(result.playerId());
-            MutableConcentration champion = champions.get(result.championId());
-            MutableConcentration position = positions.get(
-                    com.lolfm.domain.Position.valueOf(result.position()));
-            player.high++;
-            champion.high++;
-            position.high++;
-            if (result.reachable()) {
-                player.reachable++;
-                champion.reachable++;
-                position.reachable++;
-            }
+            addKeyResult(players.get(result.playerId()), result);
+            addKeyResult(champions.get(result.championId()), result);
+            addKeyResult(positions.get(Position.valueOf(result.position())), result);
         }
 
         List<Concentration> perPlayer = concentrations(players);
         List<Concentration> perChampion = concentrations(champions);
         List<Concentration> perPosition = positions.values().stream()
                 .map(MutableConcentration::snapshot).toList();
-        int legalScenarioCount = keyResults.stream().mapToInt(KeyResult::legalScenarioCount).sum();
-        int candidateAppearanceCount = keyResults.stream()
-                .mapToInt(KeyResult::candidateAppearanceCount).sum();
-        int presenceCount = (int) keyResults.stream().filter(KeyResult::candidateScenarioPresence).count();
-        List<String> unreachable = keyResults.stream()
-                .filter(result -> result.legalScenarioCount() > 0 && !result.candidateScenarioPresence())
+        Set<String> flexChampionIds = resources.champions().catalog().all().stream()
+                .filter(value -> value.supportedPositions().size() > 1)
+                .map(value -> value.id().value())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        List<Concentration> flexFalsePositiveConcentration = perChampion.stream()
+                .filter(value -> flexChampionIds.contains(value.key()))
+                .filter(value -> value.championPresentButTargetRoleInfeasible() > 0
+                        || value.championPresentButRoleCompletionImpossible() > 0)
+                .toList();
+
+        int boundedScenarioCount = sum(keyResults, KeyResult::scenarioCount);
+        int championLevelLegalScenarioCount = sum(
+                keyResults, KeyResult::championLevelLegalScenarioCount);
+        int roleSpecificLegalScenarioCount = sum(
+                keyResults, KeyResult::roleSpecificLegalScenarioCount);
+        int championCandidateAppearanceCount = sum(
+                keyResults, KeyResult::championCandidateAppearanceCount);
+        int roleKeyReachableScenarioCount = sum(
+                keyResults, KeyResult::roleKeyReachableScenarioCount);
+        int championPresentButTargetRoleInfeasibleCount = sum(
+                keyResults, KeyResult::championPresentButTargetRoleInfeasibleCount);
+        int championPresentButRoleCompletionImpossibleCount = sum(
+                keyResults, KeyResult::championPresentButRoleCompletionImpossibleCount);
+        int championCandidatePresentKeyCount = count(
+                keyResults, KeyResult::championCandidateScenarioPresence);
+        int roleKeyReachableKeyCount = count(keyResults, KeyResult::roleKeyReachable);
+        int roleSpecificUnreachableHighKeyCount = highEntries.size() - roleKeyReachableKeyCount;
+        int noRoleSpecificLegalScenarioKeyCount = count(keyResults,
+                value -> value.roleSpecificLegalScenarioCount() == 0);
+        int flexFalsePositiveScenarioCount = keyResults.stream().filter(KeyResult::flexChampion)
+                .mapToInt(value -> value.championPresentButTargetRoleInfeasibleCount()
+                        + value.championPresentButRoleCompletionImpossibleCount()).sum();
+        int flexFalsePositiveKeyCount = count(keyResults, value -> value.flexChampion()
+                && (value.championPresentButTargetRoleInfeasibleCount() > 0
+                || value.championPresentButRoleCompletionImpossibleCount() > 0));
+        List<String> roleKeyUnreachableKeys = keyResults.stream()
+                .filter(value -> !value.roleKeyReachable()).map(KeyResult::stableKey).toList();
+        List<String> noRoleSpecificLegalKeys = keyResults.stream()
+                .filter(value -> value.roleSpecificLegalScenarioCount() == 0)
                 .map(KeyResult::stableKey).toList();
-        List<String> noLegal = keyResults.stream().filter(result -> result.legalScenarioCount() == 0)
+        List<String> reviewableUnreachableKeys = keyResults.stream()
+                .filter(value -> value.roleSpecificLegalScenarioCount() > 0
+                        && !value.roleKeyReachable())
                 .map(KeyResult::stableKey).toList();
-        List<String> reviews = unreachable.isEmpty()
-                ? List.of() : List.of("REVIEW_REAL_PROFICIENCY_CANDIDATE_UNREACHABLE");
+        List<String> reviewCodes = reviewableUnreachableKeys.isEmpty()
+                ? List.of() : List.of("REVIEW_REAL_PROFICIENCY_ROLE_KEY_UNREACHABLE");
 
         ChampionProficiencyPopulationMetrics metrics = proficiencies.metrics();
         Map<String, Object> summary = new LinkedHashMap<>();
-        summary.put("phase", "PHASE_13G_REAL_CHAMPION_PROFICIENCY_POPULATION");
+        summary.put("phase", "POST_PROFICIENCY_ROLE_SPECIFIC_REACHABILITY_HARDENING");
         summary.put("playerIdentityResourceVersion", ratings.identities().version());
+        summary.put("playerIdentitySnapshotAt", ratings.identities().snapshotAt());
         summary.put("playerRatingResourceVersion", ratings.version());
         summary.put("proficiencyResourceVersion", proficiencies.version());
         summary.put("proficiencyResourceSha256", proficiencies.resourceSha256());
         summary.put("championPoolVersion", resources.champions().catalog().championPoolVersion());
-        summary.put("legalRoleKeyCount", resources.champions().catalog().legalRoleKeys().size());
         summary.put("authoredOverrideCount", metrics.authoredOverrideCount());
         summary.put("highProficiencyThreshold", proficiencies.highProficiencyThreshold());
         summary.put("highProficiencyAuthoredCount", highEntries.size());
+        summary.put("playerCount", metrics.playerCount());
+        summary.put("legalRoleKeyCount", resources.champions().catalog().legalRoleKeys().size());
         summary.put("scenarioCountPerKey", SCENARIO_ACTION_COUNTS.size());
-        summary.put("boundedScenarioCount", keyResults.stream().mapToInt(KeyResult::scenarioCount).sum());
-        summary.put("legalScenarioCount", legalScenarioCount);
-        summary.put("candidateAppearanceCount", candidateAppearanceCount);
-        summary.put("candidateScenarioPresenceCount", presenceCount);
-        summary.put("candidateScenarioPresenceRatio",
-                highEntries.isEmpty() ? 0.0 : (double) presenceCount / highEntries.size());
-        summary.put("unreachableHighProficiencyKeyCount", unreachable.size());
-        summary.put("unreachableHighProficiencyKeys", unreachable);
-        summary.put("noLegalScenarioKeyCount", noLegal.size());
-        summary.put("noLegalScenarioKeys", noLegal);
+        summary.put("boundedScenarioCount", boundedScenarioCount);
+
+        summary.put("championLevelLegalScenarioCount", championLevelLegalScenarioCount);
+        summary.put("championCandidatePresentKeyCount", championCandidatePresentKeyCount);
+        summary.put("championCandidateAppearanceCount", championCandidateAppearanceCount);
+        summary.put("championCandidatePresenceRatio", ratio(
+                championCandidatePresentKeyCount, highEntries.size()));
+
+        summary.put("roleSpecificLegalScenarioCount", roleSpecificLegalScenarioCount);
+        summary.put("roleKeyReachableScenarioCount", roleKeyReachableScenarioCount);
+        summary.put("roleKeyReachableKeyCount", roleKeyReachableKeyCount);
+        summary.put("roleKeyReachabilityRatio", ratio(roleKeyReachableKeyCount, highEntries.size()));
+        summary.put("championPresentButTargetRoleInfeasibleCount",
+                championPresentButTargetRoleInfeasibleCount);
+        summary.put("championPresentButRoleCompletionImpossibleCount",
+                championPresentButRoleCompletionImpossibleCount);
+        summary.put("roleSpecificUnreachableHighKeyCount", roleSpecificUnreachableHighKeyCount);
+        summary.put("roleSpecificUnreachableHighKeys", roleKeyUnreachableKeys);
+        summary.put("noRoleSpecificLegalScenarioKeyCount", noRoleSpecificLegalScenarioKeyCount);
+        summary.put("noRoleSpecificLegalScenarioKeys", noRoleSpecificLegalKeys);
+        summary.put("reviewableRoleKeyUnreachableCount", reviewableUnreachableKeys.size());
+        summary.put("reviewableRoleKeyUnreachableKeys", reviewableUnreachableKeys);
+        summary.put("flexChampionFalsePositiveScenarioCount", flexFalsePositiveScenarioCount);
+        summary.put("flexChampionFalsePositiveKeyCount", flexFalsePositiveKeyCount);
+
         summary.put("perPlayerConcentration", perPlayer);
         summary.put("perChampionConcentration", perChampion);
         summary.put("perPositionConcentration", perPosition);
+        summary.put("flexChampionFalsePositiveConcentration", flexFalsePositiveConcentration);
         summary.put("topConcentratedPlayers", top(perPlayer, 10));
         summary.put("topConcentratedChampions", top(perChampion, 15));
-        summary.put("phase13GA2CandidateStarvationComparison", phase13GA2Comparison());
         summary.put("scopeInexpressibleEvidenceCount", metrics.scopeInexpressibleEvidenceCount());
         summary.put("scopeGapPromotedToLegalRole", false);
         summary.put("productionWeightsChanged", false);
         summary.put("candidateGeneratorChanged", false);
         summary.put("shortlistSizeChanged", false);
         summary.put("searchBoundsChanged", false);
+        summary.put("draftMetaChanged", false);
         summary.put("proficiencyValuesChanged", false);
+        summary.put("causalInfluenceProven", false);
+        summary.put("interpretation",
+                "A role key is reachable only when its champion is shortlisted and can complete the roster while fixed at the target position; this does not prove proficiency caused shortlist inclusion.");
         summary.put("blockerCodes", List.of());
-        summary.put("reviewCodes", reviews);
-        String verdict = reviews.isEmpty()
-                ? "REAL_PROFICIENCY_CANDIDATE_REACHABILITY_GATE_EXECUTED"
-                : "REAL_PROFICIENCY_CANDIDATE_REACHABILITY_GATE_EXECUTED_WITH_REVIEWS";
+        summary.put("reviewCodes", reviewCodes);
+        String verdict = reviewCodes.isEmpty()
+                ? "REAL_PROFICIENCY_ROLE_KEY_REACHABILITY_GATE_EXECUTED"
+                : "REAL_PROFICIENCY_ROLE_KEY_REACHABILITY_GATE_EXECUTED_WITH_REVIEWS";
         summary.put("verdict", verdict);
 
+        ReportPaths paths = writeReportArtifacts(output, summary, keyResults);
+        return new AuditResult(metrics.authoredOverrideCount(), highEntries.size(), boundedScenarioCount,
+                championLevelLegalScenarioCount, roleSpecificLegalScenarioCount,
+                championCandidateAppearanceCount, championCandidatePresentKeyCount,
+                roleKeyReachableScenarioCount, roleKeyReachableKeyCount,
+                roleSpecificUnreachableHighKeyCount, noRoleSpecificLegalScenarioKeyCount,
+                flexFalsePositiveScenarioCount, reviewCodes, verdict, keyResults,
+                paths.summaryPath(), paths.keyResultsPath(), paths.shaPath());
+    }
+
+    static ReportPaths writeReportArtifacts(Path output, Map<String, Object> summary,
+                                             List<KeyResult> keyResults) throws Exception {
+        Files.createDirectories(Objects.requireNonNull(output, "output"));
         ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
         Path summaryPath = output.resolve(SUMMARY_FILE);
-        mapper.writeValue(summaryPath.toFile(), summary);
+        mapper.writeValue(summaryPath.toFile(), new LinkedHashMap<>(summary));
         Path keysPath = output.resolve(KEY_RESULTS_FILE);
-        Files.writeString(keysPath, keyCsv(keyResults), StandardCharsets.UTF_8);
-        writeSha(output, List.of(summaryPath, keysPath));
-        return new AuditResult(highEntries.size(), legalScenarioCount, candidateAppearanceCount,
-                presenceCount, unreachable.size(), noLegal.size(), verdict, keyResults,
-                summaryPath, keysPath);
+        Files.writeString(keysPath, keyCsv(List.copyOf(keyResults)), StandardCharsets.UTF_8);
+        Path shaPath = output.resolve(SHA_FILE);
+        writeSha(shaPath, List.of(summaryPath, keysPath));
+        return new ReportPaths(summaryPath, keysPath, shaPath);
     }
 
     private static List<RealProficiencyCandidateReachabilityGate.Scenario> scenarios(
@@ -246,11 +313,19 @@ public final class Phase13GRealProficiencyReachabilityAudit {
             if (variant.stream().distinct().count() != variant.size()) {
                 throw new IllegalStateException("Reachability scenario action variant contains duplicates");
             }
-            for (String id : variant) {
-                resources.champions().catalog().get(new ChampionId(id));
-            }
+            for (String id : variant) resources.champions().catalog().get(new ChampionId(id));
             stateAfter(variant);
         }
+    }
+
+    private static void addKeyResult(MutableConcentration concentration, KeyResult result) {
+        concentration.high++;
+        if (result.championCandidateScenarioPresence()) concentration.championCandidatePresent++;
+        if (result.roleKeyReachable()) concentration.roleKeyReachable++;
+        concentration.championPresentButTargetRoleInfeasible +=
+                result.championPresentButTargetRoleInfeasibleCount();
+        concentration.championPresentButRoleCompletionImpossible +=
+                result.championPresentButRoleCompletionImpossibleCount();
     }
 
     private static List<Concentration> concentrations(Map<String, MutableConcentration> values) {
@@ -264,43 +339,44 @@ public final class Phase13GRealProficiencyReachabilityAudit {
                 .limit(limit).toList();
     }
 
-    private static Map<String, Object> phase13GA2Comparison() {
-        Path path = Path.of("build/reports/phase13g-a-v2/phase13g-a-v2-structural-integrated-audit-summary.json");
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("artifactPath", path.toString().replace('\\', '/'));
-        result.put("artifactFound", Files.isRegularFile(path));
-        result.put("baselineGranularity", "SYNTHETIC_CHAMPION_ID");
-        result.put("currentGranularity", "REAL_PLAYER_ID_X_CHAMPION_ROLE_KEY");
-        result.put("directlyComparable", false);
-        result.put("numericDelta", null);
-        if (!Files.isRegularFile(path)) {
-            result.put("status", "A2_ARTIFACT_NOT_FOUND_NO_GUESS");
-            return result;
-        }
-        try {
-            JsonNode root = new ObjectMapper().readTree(path.toFile());
-            JsonNode starved = root.path("candidateStarvedHighProficiencyChampions");
-            result.put("baselineStarvedChampionCount", starved.isArray() ? starved.size() : null);
-            result.put("status", "FOUND_SYNTHETIC_ARTIFACT_NOT_CURRENT_HEAD_PROVEN_NO_DIRECT_DELTA");
-        } catch (IOException error) {
-            result.put("status", "A2_ARTIFACT_UNREADABLE_NO_GUESS");
-        }
-        return result;
+    private static int sum(List<KeyResult> values,
+                           java.util.function.ToIntFunction<KeyResult> mapper) {
+        return values.stream().mapToInt(mapper).sum();
+    }
+
+    private static int count(List<KeyResult> values,
+                             java.util.function.Predicate<KeyResult> predicate) {
+        return (int) values.stream().filter(predicate).count();
+    }
+
+    private static double ratio(int numerator, int denominator) {
+        return denominator == 0 ? 0.0 : (double) numerator / denominator;
     }
 
     private static String keyCsv(List<KeyResult> results) {
         StringBuilder out = new StringBuilder();
         out.append("playerId,playerRatingKey,nickname,team,position,championRoleKey,championId,")
-                .append("proficiency,scenarioCount,legalScenarioCount,candidateAppearanceCount,")
-                .append("candidateScenarioPresence,reachable,reason\n");
+                .append("flexChampion,proficiency,scenarioCount,championLevelLegalScenarioCount,")
+                .append("roleSpecificLegalScenarioCount,championCandidateAppearanceCount,")
+                .append("roleKeyReachableScenarioCount,championPresentButTargetRoleInfeasibleCount,")
+                .append("championPresentButRoleCompletionImpossibleCount,")
+                .append("championCandidateScenarioPresence,roleKeyScenarioPresence,")
+                .append("roleKeyReachable,reason\n");
         for (KeyResult result : results) {
             out.append(csv(result.playerId())).append(',').append(csv(result.playerRatingKey())).append(',')
                     .append(csv(result.nickname())).append(',').append(csv(result.team())).append(',')
                     .append(csv(result.position())).append(',').append(csv(result.championRoleKey())).append(',')
-                    .append(csv(result.championId())).append(',').append(result.proficiency()).append(',')
-                    .append(result.scenarioCount()).append(',').append(result.legalScenarioCount()).append(',')
-                    .append(result.candidateAppearanceCount()).append(',')
-                    .append(result.candidateScenarioPresence()).append(',').append(result.reachable()).append(',')
+                    .append(csv(result.championId())).append(',').append(result.flexChampion()).append(',')
+                    .append(result.proficiency()).append(',').append(result.scenarioCount()).append(',')
+                    .append(result.championLevelLegalScenarioCount()).append(',')
+                    .append(result.roleSpecificLegalScenarioCount()).append(',')
+                    .append(result.championCandidateAppearanceCount()).append(',')
+                    .append(result.roleKeyReachableScenarioCount()).append(',')
+                    .append(result.championPresentButTargetRoleInfeasibleCount()).append(',')
+                    .append(result.championPresentButRoleCompletionImpossibleCount()).append(',')
+                    .append(result.championCandidateScenarioPresence()).append(',')
+                    .append(result.roleKeyScenarioPresence()).append(',')
+                    .append(result.roleKeyReachable()).append(',')
                     .append(csv(result.reason())).append('\n');
         }
         return out.toString();
@@ -312,7 +388,7 @@ public final class Phase13GRealProficiencyReachabilityAudit {
         return '"' + value.replace("\"", "\"\"") + '"';
     }
 
-    private static void writeSha(Path output, List<Path> files) throws Exception {
+    private static void writeSha(Path shaPath, List<Path> files) throws Exception {
         StringBuilder manifest = new StringBuilder();
         for (Path file : files) {
             byte[] bytes = Files.readAllBytes(file);
@@ -320,7 +396,7 @@ public final class Phase13GRealProficiencyReachabilityAudit {
                     MessageDigest.getInstance("SHA-256").digest(bytes));
             manifest.append(sha).append("  ").append(file.getFileName()).append('\n');
         }
-        Files.writeString(output.resolve(SHA_FILE), manifest, StandardCharsets.UTF_8);
+        Files.writeString(shaPath, manifest, StandardCharsets.UTF_8);
     }
 
     private record ScenarioCacheKey(String teamCode, int variant) { }
@@ -333,41 +409,75 @@ public final class Phase13GRealProficiencyReachabilityAudit {
             String position,
             String championRoleKey,
             String championId,
+            boolean flexChampion,
             int proficiency,
             int scenarioCount,
-            int legalScenarioCount,
-            int candidateAppearanceCount,
-            boolean candidateScenarioPresence,
-            boolean reachable,
+            int championLevelLegalScenarioCount,
+            int roleSpecificLegalScenarioCount,
+            int championCandidateAppearanceCount,
+            int roleKeyReachableScenarioCount,
+            int championPresentButTargetRoleInfeasibleCount,
+            int championPresentButRoleCompletionImpossibleCount,
+            boolean championCandidateScenarioPresence,
+            boolean roleKeyScenarioPresence,
+            boolean roleKeyReachable,
             String reason
     ) {
         String stableKey() { return playerId + "/" + championRoleKey; }
     }
 
-    public record Concentration(String key, int authored, int high, int reachable) { }
+    public record Concentration(
+            String key,
+            int authored,
+            int high,
+            int championCandidatePresent,
+            int roleKeyReachable,
+            int championPresentButTargetRoleInfeasible,
+            int championPresentButRoleCompletionImpossible
+    ) { }
 
     private static final class MutableConcentration {
         private final String key;
         private int authored;
         private int high;
-        private int reachable;
+        private int championCandidatePresent;
+        private int roleKeyReachable;
+        private int championPresentButTargetRoleInfeasible;
+        private int championPresentButRoleCompletionImpossible;
 
         private MutableConcentration(String key) { this.key = key; }
-        private Concentration snapshot() { return new Concentration(key, authored, high, reachable); }
+        private Concentration snapshot() {
+            return new Concentration(key, authored, high, championCandidatePresent, roleKeyReachable,
+                    championPresentButTargetRoleInfeasible,
+                    championPresentButRoleCompletionImpossible);
+        }
     }
 
+    record ReportPaths(Path summaryPath, Path keyResultsPath, Path shaPath) { }
+
     public record AuditResult(
+            int authoredOverrideCount,
             int highProficiencyAuthoredCount,
-            int legalScenarioCount,
-            int candidateAppearanceCount,
-            int candidateScenarioPresenceCount,
-            int unreachableHighProficiencyKeyCount,
-            int noLegalScenarioKeyCount,
+            int boundedScenarioCount,
+            int championLevelLegalScenarioCount,
+            int roleSpecificLegalScenarioCount,
+            int championCandidateAppearanceCount,
+            int championCandidatePresentKeyCount,
+            int roleKeyReachableScenarioCount,
+            int roleKeyReachableKeyCount,
+            int roleSpecificUnreachableHighKeyCount,
+            int noRoleSpecificLegalScenarioKeyCount,
+            int flexChampionFalsePositiveScenarioCount,
+            List<String> reviewCodes,
             String verdict,
             List<KeyResult> keyResults,
             Path summaryPath,
-            Path keyResultsPath
+            Path keyResultsPath,
+            Path shaPath
     ) {
-        public AuditResult { keyResults = List.copyOf(keyResults); }
+        public AuditResult {
+            reviewCodes = List.copyOf(reviewCodes);
+            keyResults = List.copyOf(keyResults);
+        }
     }
 }
