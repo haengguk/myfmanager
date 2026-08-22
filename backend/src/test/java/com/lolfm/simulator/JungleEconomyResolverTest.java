@@ -159,6 +159,36 @@ class JungleEconomyResolverTest {
     }
 
     @Test
+    void tempoCandidateCreditsOnlyAnActualEligibleEconomyOutcome() {
+        GameState state = state(
+                assignments("belveth"),
+                JungleClearContribution.ECONOMY_AND_GANK_TEMPO_V1);
+        state.advanceTimeSeconds(10);
+        CountingRandom random = new CountingRandom(0.99);
+        JungleEconomyResolver resolver = resolver();
+
+        JungleEconomyOutcome outcome = resolver.resolve(
+                state, TeamSide.BLUE, 10, 10, random).orElseThrow();
+        JungleTempoStateSnapshot credited = state.jungleTempoState(TeamSide.BLUE).snapshot();
+        Optional<JungleEconomyOutcome> duplicate = resolver.resolve(
+                state, TeamSide.BLUE, 10, 10, random);
+
+        assertThat(credited.creditSeconds()).isEqualTo(outcome.combinedEfficiency() * 10.0);
+        assertThat(credited.lastEconomyOutcomeAtSeconds()).isEqualTo(10);
+        assertThat(duplicate).isEmpty();
+        assertThat(state.jungleTempoState(TeamSide.BLUE).snapshot()).isEqualTo(credited);
+        assertThat(random.calls).isEqualTo(1);
+
+        state.jungleActionState(TeamSide.BLUE).recordGankAttempt(10, Lane.TOP);
+        state.advanceTimeSeconds(20);
+        assertThat(resolver.resolve(state, TeamSide.BLUE, 20, 10, random)).isEmpty();
+        assertThat(state.jungleTempoState(TeamSide.BLUE).snapshot()).isEqualTo(credited);
+        assertThat(random.calls).isEqualTo(1);
+        assertThat(state.getJungleTempoExecutionStats().snapshot(
+                state.getJungleTempoStates()).economyUpdates()).isEqualTo(1);
+    }
+
+    @Test
     void deadAndGankBlockedTicksAwardNothingAndConsumeNoRandom() {
         GameState dead = enabledState("belveth");
         dead.advanceTimeSeconds(300);

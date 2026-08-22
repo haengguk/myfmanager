@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.lolfm.draft.SeriesDraftHistory;
 import com.lolfm.simulator.JungleClearContribution;
+import com.lolfm.simulator.ResolvedSimulationRuntimeProfile;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
 import com.lolfm.simulator.SimulationRuntimeProfiles;
 import java.nio.file.Files;
@@ -22,41 +23,51 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-/** Exact OFF oracle: executable/resource provenance may change, gameplay output may not. */
+/** Exact four-profile oracle captured before Jungle Tempo production code existed. */
 @SpringBootTest
 @Tag("diagnostic")
-@Tag("jungle-economy-off-parity")
-class JungleEconomyOffParityAuditTest {
+@Tag("jungle-tempo-pre-profile-parity")
+class PreJungleTempoParityAuditTest {
     private static final Path BASELINE = Path.of(
-            "baseline", "pre-jungle-runtime-v2", "pre-jungle-runtime-baseline-v2.json");
+            "baseline", "pre-jungle-tempo-runtime-v1",
+            "pre-jungle-tempo-runtime-baseline-v1.json");
     private static final String BASELINE_SHA256 =
-            "0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e";
+            "17f703a48949b63bf4ca25f4b32be2bc22fac87a439cdd8cb7c18aadc7f82074";
     private static final List<SimulationRuntimeProfileId> PROFILES = List.of(
             SimulationRuntimeProfileId.BASELINE_V1,
             SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1,
-            SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1);
+            SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1,
+            SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1);
 
     @Autowired RealDraftMatchOrchestrator orchestrator;
     @Autowired ObjectMapper objectMapper;
 
     @Test
-    void allNineFrozenMatchesRetainExactTimelineAndRandomConsumption() throws Exception {
+    void allTwelvePreTempoMatchesRetainExactGameplayAndRandomConsumption() throws Exception {
         byte[] baselineBytes = Files.readAllBytes(BASELINE);
         assertThat(sha256(baselineBytes)).isEqualTo(BASELINE_SHA256);
         JsonNode document = objectMapper.readTree(baselineBytes);
         assertThat(document.path("baselineId").asText())
-                .isEqualTo("PRE_JUNGLE_RUNTIME_BASELINE_V2");
+                .isEqualTo("PRE_JUNGLE_TEMPO_RUNTIME_BASELINE_V1");
+        assertThat(document.path("engineImplementationVersion").asText())
+                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V2");
+        assertThat(document.path("fullRegressionStatus").asText()).isEqualTo("CLEAN_PASS");
+        assertThat(document.path("profiles")).hasSize(4);
 
         Map<String, JsonNode> expectedByCase = new LinkedHashMap<>();
         document.path("matches").forEach(match -> expectedByCase.put(key(
                 match.path("runtimeProfileId").asText(), match.path("caseId").asText()), match));
-        assertThat(expectedByCase).hasSize(9);
+        assertThat(expectedByCase).hasSize(12);
 
         ArrayList<ParityRow> rows = new ArrayList<>();
         for (SimulationRuntimeProfileId profileId : PROFILES) {
-            var profile = SimulationRuntimeProfiles.resolve(profileId);
+            ResolvedSimulationRuntimeProfile profile = SimulationRuntimeProfiles.resolve(profileId);
+            JungleClearContribution expectedContribution = profileId
+                    == SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1
+                    ? JungleClearContribution.ECONOMY_V1
+                    : JungleClearContribution.DISABLED_NOT_INTEGRATED;
             assertThat(profile.gameplayConfiguration().jungleClearContribution())
-                    .isEqualTo(JungleClearContribution.DISABLED_NOT_INTEGRATED);
+                    .isEqualTo(expectedContribution);
 
             SeriesDraftHistory history = new SeriesDraftHistory();
             List<RealDraftMatchResult> actualResults = List.of(
@@ -74,14 +85,15 @@ class JungleEconomyOffParityAuditTest {
                 RealDraftMatchResult actual = actualResults.get(index);
                 SimulationExecutionProvenance provenance = actual.executionProvenance();
                 JsonNode expected = expectedByCase.get(key(profileId.name(), caseIds[index]));
-                assertThat(expected).as("baseline case %s/%s", profileId, caseIds[index])
+                assertThat(expected).as("pre-tempo case %s/%s", profileId, caseIds[index])
                         .isNotNull();
 
                 assertThat(provenance.runtimeProfileId()).isEqualTo(profileId);
                 assertThat(provenance.configurationHash())
-                        .isEqualTo(expected.path("configurationHash").asText());
+                        .isEqualTo(expected.path("configurationHash").asText())
+                        .isEqualTo(profile.configurationHash());
                 assertThat(provenance.activeGameplayRulesVersion())
-                        .isEqualTo(SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
+                        .isEqualTo(profile.activeGameplayRulesVersion());
                 assertThat(provenance.draftDecisionHash())
                         .isEqualTo(expected.path("draftDecisionHash").asText());
                 assertThat(provenance.finalDraftHash())
@@ -113,13 +125,10 @@ class JungleEconomyOffParityAuditTest {
                 assertThat(actual.timeline().getSnapshots())
                         .hasSize(expected.path("snapshotCount").asInt());
 
-                assertThat(provenance.resourceProvenance()
-                        .jungleClearGameplayEnabledProfileCount()).isEqualTo(51);
                 assertThat(provenance.engineImplementationVersion())
                         .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V3");
                 assertThat(provenance.replayProvenanceHash())
                         .isNotEqualTo(expected.path("replayProvenanceHash").asText());
-
                 rows.add(new ParityRow(
                         profileId, caseIds[index], provenance.configurationHash(),
                         provenance.timelineHash(), provenance.randomFingerprint().randomDrawCount(),
@@ -129,23 +138,23 @@ class JungleEconomyOffParityAuditTest {
             }
         }
 
-        assertThat(rows).hasSize(9);
+        assertThat(rows).hasSize(12);
         writeReport(rows);
     }
 
     private void writeReport(List<ParityRow> rows) throws Exception {
-        Path output = Path.of("build", "reports", "jungle-economy-v1-a");
+        Path output = Path.of("build", "reports", "jungle-tempo-v1-b");
         Files.createDirectories(output);
-        OffParityReport report = new OffParityReport(
-                "JUNGLE_ECONOMY_OFF_PARITY_REPORT_V1", BASELINE_SHA256,
+        PreTempoParityReport report = new PreTempoParityReport(
+                "JUNGLE_TEMPO_PRE_PROFILE_PARITY_REPORT_V1", BASELINE_SHA256,
+                "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V2",
                 "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V3",
-                SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION,
-                51, "replayProvenanceHash intentionally excluded from equality because engine "
-                        + "implementation and active resource snapshot changed",
+                "configuration, draft, final assignment, complete timeline hash, Random draw "
+                        + "count/hash, winner, duration, event count, and snapshot count are exact; "
+                        + "replay provenance changes only because the engine implementation changed",
                 List.copyOf(rows), "CLEAN_PASS");
-        ObjectMapper mapper = objectMapper.copy()
-                .enable(SerializationFeature.INDENT_OUTPUT);
-        mapper.writeValue(output.resolve("off-parity-report.json").toFile(), report);
+        objectMapper.copy().enable(SerializationFeature.INDENT_OUTPUT)
+                .writeValue(output.resolve("pre-tempo-parity-report.json").toFile(), report);
     }
 
     private static String key(String profileId, String caseId) {
@@ -169,13 +178,12 @@ class JungleEconomyOffParityAuditTest {
     ) {
     }
 
-    private record OffParityReport(
+    private record PreTempoParityReport(
             String schemaVersion,
             String baselineArtifactSha256,
+            String baselineEngineImplementationVersion,
             String currentEngineImplementationVersion,
-            String activeGameplayRulesVersion,
-            int activeJungleClearProfileCount,
-            String replayProvenanceComparisonPolicy,
+            String comparisonPolicy,
             List<ParityRow> matches,
             String status
     ) {

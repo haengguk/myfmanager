@@ -17,6 +17,8 @@ public final class SimulationRuntimeProfiles {
             "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2";
     public static final String JUNGLE_ECONOMY_ACTIVE_GAMEPLAY_RULES_VERSION =
             "MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2";
+    public static final String JUNGLE_TEMPO_ACTIVE_GAMEPLAY_RULES_VERSION =
+            "MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1";
     public static final String CONFIGURATION_HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_FIELD_LINES_TRAILING_NEWLINE_V1";
 
@@ -85,6 +87,13 @@ public final class SimulationRuntimeProfiles {
                         JungleClearContribution.ECONOMY_V1),
                 "e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b",
                 JUNGLE_ECONOMY_ACTIVE_GAMEPLAY_RULES_VERSION);
+        register(result,
+                SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1,
+                exactConfiguration(ChampionMatchupMode.GEOMETRIC_V2,
+                        TeamCompositionGameplayMode.PRODUCTION_V2,
+                        JungleClearContribution.ECONOMY_AND_GANK_TEMPO_V1),
+                "c835280cbaa1244f4fecb099b19f71111c6d77aa1aeb1b7110a6e86e6381451c",
+                JUNGLE_TEMPO_ACTIVE_GAMEPLAY_RULES_VERSION);
         return Collections.unmodifiableMap(result);
     }
 

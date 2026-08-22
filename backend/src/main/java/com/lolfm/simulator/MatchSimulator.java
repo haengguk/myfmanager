@@ -555,6 +555,8 @@ public class MatchSimulator {
                 gameState.getStructureActionExecutionStats().snapshot(),
                 gameState.getProgressionExecutionStats().snapshot(),
                 gameState.getJungleEconomyExecutionStats().snapshot(),
+                gameState.getJungleTempoExecutionStats().snapshot(
+                        gameState.getJungleTempoStates()),
                 gameState.getChampionPowerExecutionStats().snapshot(),
                 gameState.getChampionMatchupExecutionStats().snapshot(),
                 gameState.getCombatOutcomeExecutionStats().snapshot(),
@@ -595,6 +597,7 @@ public class MatchSimulator {
             StructureActionExecutionStatsSnapshot structureActionExecutionStats,
             ProgressionExecutionStatsSnapshot progressionExecutionStats,
             JungleEconomyExecutionStatsSnapshot jungleEconomyExecutionStats,
+            JungleTempoExecutionStatsSnapshot jungleTempoExecutionStats,
             com.lolfm.champion.ChampionPowerExecutionStatsSnapshot championPowerExecutionStats,
             ChampionMatchupExecutionStatsSnapshot championMatchupExecutionStats,
             CombatOutcomeExecutionStatsSnapshot combatOutcomeExecutionStats,

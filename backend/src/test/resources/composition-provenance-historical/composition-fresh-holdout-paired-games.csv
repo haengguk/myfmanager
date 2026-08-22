@@ -1,0 +1,2 @@
+caseIndex,seed,blueLineupId,redLineupId,offWinner,candidateWinner,offDuration,candidateDuration,publicDivergence,objectiveChanged,structureChanged,preDivergenceRandomMismatch
+12,7315067648019872710,jax:TOP+viego:JUNGLE+azir:MID+varus:ADC+renata-glasc:SUPPORT,kennen:TOP+maokai:JUNGLE+viktor:MID+jinx:ADC+lulu:SUPPORT,BLUE,RED,2030,1825,true,true,true,0

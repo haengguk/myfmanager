@@ -1,5 +1,7 @@
 # Pre-Jungle Runtime Baseline V1
 
+> **Superseded oracle:** JSON과 SHA는 당시 실행의 immutable 기록으로 보존한다. 이후 cross-JVM 재생성에서 PlayerSkill과 Champion Power tag의 unordered set iteration이 발견되어 replay/timeline 비교 기준은 [V2](../pre-jungle-runtime-v2/README.md)를 사용한다. V1 artifact 자체를 수정하거나 재생성하지 않는다.
+
 이 디렉터리는 explicit simulation runtime profile/provenance 구현을 마친 뒤, Jungle Clear gameplay를 simulator에 연결하기 전에 생성한 reference artifact다.
 
 ## Generation gate

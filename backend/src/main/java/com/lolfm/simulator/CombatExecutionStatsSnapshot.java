@@ -3,6 +3,11 @@ package com.lolfm.simulator;
 public record CombatExecutionStatsSnapshot(
         int jungleGankEvaluations,
         int jungleGankAllTriggersFailed,
+        int jungleGankNoEligibleSides,
+        int jungleGankTriggerRolls,
+        int jungleGankTriggerSuccesses,
+        int jungleGankUnselectedTriggerSuccesses,
+        int jungleGankFallthroughs,
         int jungleGankAttempts,
         int counterGankAttempts,
         int laneCombatResolverCalls,

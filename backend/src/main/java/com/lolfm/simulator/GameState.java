@@ -41,6 +41,10 @@ public class GameState {
             new EnumMap<>(TeamSide.class);
     private final JungleEconomyExecutionStats jungleEconomyExecutionStats =
             new JungleEconomyExecutionStats();
+    private final EnumMap<TeamSide, JungleTempoState> jungleTempoStates =
+            new EnumMap<>(TeamSide.class);
+    private final JungleTempoExecutionStats jungleTempoExecutionStats =
+            new JungleTempoExecutionStats();
 
     private int currentTimeSeconds;
     private final TeamState blueTeamState;
@@ -147,6 +151,7 @@ public class GameState {
         for (TeamSide side : TeamSide.values()) {
             jungleActionStates.put(side, new JungleActionState());
             jungleEconomyStates.put(side, new JungleEconomyState());
+            jungleTempoStates.put(side, new JungleTempoState());
         }
         this.lastBigWinTimeSeconds = -1;
         this.lastAceTimeSeconds = -1;
@@ -193,6 +198,9 @@ public class GameState {
     }
     public JungleClearContribution getJungleClearContribution() { return jungleClearContribution; }
     public boolean isJungleEconomyEnabled() { return jungleClearContribution.economyEnabled(); }
+    public boolean isJungleGankTempoEnabled() {
+        return jungleClearContribution.gankTempoEnabled();
+    }
     public JungleEconomyState jungleEconomyState(TeamSide side) {
         return jungleEconomyStates.get(java.util.Objects.requireNonNull(side, "side"));
     }
@@ -201,6 +209,15 @@ public class GameState {
     }
     public JungleEconomyExecutionStats getJungleEconomyExecutionStats() {
         return jungleEconomyExecutionStats;
+    }
+    public JungleTempoState jungleTempoState(TeamSide side) {
+        return jungleTempoStates.get(java.util.Objects.requireNonNull(side, "side"));
+    }
+    public Map<TeamSide, JungleTempoState> getJungleTempoStates() {
+        return java.util.Collections.unmodifiableMap(new EnumMap<>(jungleTempoStates));
+    }
+    public JungleTempoExecutionStats getJungleTempoExecutionStats() {
+        return jungleTempoExecutionStats;
     }
     public void configureChampionPower(ChampionPowerProfileCatalog catalog,boolean enabled){championPowerProfileCatalog=java.util.Objects.requireNonNull(catalog);championPowerEnabled=enabled;}
     public java.util.Optional<ChampionPowerProfileCatalog> getChampionPowerProfileCatalog(){return java.util.Optional.ofNullable(championPowerProfileCatalog);}

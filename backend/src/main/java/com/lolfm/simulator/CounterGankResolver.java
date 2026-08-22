@@ -29,6 +29,11 @@ public final class CounterGankResolver {
         }
 
         TeamSide defendingSide = attackingSide.opposite();
+        if (state.isJungleGankTempoEnabled()) {
+            state.jungleTempoState(defendingSide).consumeActualActionAt(time);
+            state.getJungleTempoExecutionStats().recordActualConsumption(
+                    JungleTempoActionType.COUNTER_GANK);
+        }
         state.getCombatExecutionStats().recordCounterGankAttempt();
         JungleActionState attackingAction = state.jungleActionState(attackingSide);
         JungleActionState defendingAction = state.jungleActionState(defendingSide);
@@ -118,6 +123,15 @@ public final class CounterGankResolver {
         for (TeamSide side : TeamSide.values()) {
             for (PlayerState player : lanePlayers(state.getTeamState(side), lane)) {
                 if (!player.canParticipateInMajorCombatAt(time)) return CounterGankIneligibility.LANE_PARTICIPANT_DEAD;
+            }
+        }
+        if (state.isJungleGankTempoEnabled()) {
+            JungleTempoState.Readiness readiness =
+                    state.jungleTempoState(defendingSide).readinessAt(time);
+            state.getJungleTempoExecutionStats().recordCounterGankReadiness(
+                    defendingSide, readiness);
+            if (!readiness.ready()) {
+                return CounterGankIneligibility.DEFENDING_JUNGLER_NOT_TEMPO_READY;
             }
         }
         return CounterGankIneligibility.NONE;

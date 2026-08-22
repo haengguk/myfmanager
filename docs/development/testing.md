@@ -132,7 +132,23 @@ Exact 비교 대상은 configuration hash, Draft/final assignment identity, comp
 
 Jungle Economy candidate correctness는 별도 focused tests에서 pure JRM/PATHING orthogonality, 모든 skip reason의 reward·Random 불변식, progression OFF의 CS/gold-only 결과, enum-map canonical order, real GEN–T1 same-seed replay와 Jungle-OFF FULL 대비 runtime reachability를 검증한다. 기존 세 OFF profile은 계속 위 oracle diagnostic이 담당한다.
 
-현재 serial final full regression은 159 suites / 1,922 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 451.010초, Gradle wall 7분 41초로 clean pass했다. Pure-JRM Jungle V1-A production guard는 464 files / `9557a63a4b285232239cf206cb2e95ca3b738f38ea1826926fb930951d7c4b6d`다. `verifyJungleEconomyOffParity`는 공식 V2 raw SHA `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`를 확인하고 9/9 exact gameplay parity로 통과했다.
+### Pre-Jungle Tempo oracle and V1-B diagnostics
+
+Jungle Tempo production 수정 직전에 기존 네 profile을 3개 real-match case로 실행한 immutable oracle을 만들었다. Artifact는 `baseline/pre-jungle-tempo-runtime-v1/pre-jungle-tempo-runtime-baseline-v1.json`, raw SHA-256은 `17f703a48949b63bf4ca25f4b32be2bc22fac87a439cdd8cb7c18aadc7f82074`다. 생성기는 당시 464-file canonical production guard를 고정하므로 V1-B production tree에서 재생성할 수 없고 existing bytes도 overwrite하지 않는다.
+
+V1-B 이후 기존 네 profile exact parity와 bounded candidate 관찰은 각각 분리된 diagnostic task다.
+
+```bash
+cd backend
+./gradlew verifyPreJungleTempoParity
+./gradlew runJungleTempoCandidateDiagnostic
+```
+
+첫 task는 12 matches의 configuration/Draft/final assignment/complete timeline/Random fingerprint/result exact equality를 검증하고 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`을 쓴다. Replay provenance hash는 engine V2→V3 변경 때문에 equality에서 제외한다. 두 번째 task는 12 fixed same-seed Economy-only/Tempo pair의 readiness와 actual consumption을 기록한다. 이 작은 sample은 구조 확인용이며 calibration이나 production-activation gate가 아니다.
+
+V1-B focused correctness는 `JungleTempoStateTest`, `JungleTempoGankIntegrationTest`, economy/runtime integration과 real GEN–T1 smoke가 담당한다. Ineligible/duplicate/failed trigger는 tempo state와 Random을 소비하지 않고, 실제 no-kill gank와 successful counter response는 각각 자기 side의 credit만 한 번 소비하며, non-attempt는 lane combat으로 fall through해야 한다.
+
+현재 serial final full regression은 163 suites / 1,940 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 500.926초, Gradle wall 8분 32초로 clean pass했다. V1-B final canonical production guard는 471 files / `143112d499c9731e25de80edf2883621c7bb9c3c948907f4a0c8d0146093a260`이다. `verifyPreJungleTempoParity`는 12/12 exact gameplay parity로 통과했다.
 
 ## Generated Reports
 

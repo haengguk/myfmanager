@@ -527,3 +527,35 @@ tasks.register("verifyJungleEconomyOffParity", Test) {
     reports.junitXml.outputLocation = layout.buildDirectory.dir(
             "test-results/jungleEconomyOffParity")
 }
+
+tasks.register("verifyPreJungleTempoParity", Test) {
+    group = "verification"
+    description = "Verifies all four pre-tempo profiles against the immutable twelve-match oracle."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "jungle-tempo-pre-profile-parity"
+    }
+    maxHeapSize = "2g"
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/preJungleTempoParity")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/preJungleTempoParity")
+}
+
+tasks.register("runJungleTempoCandidateDiagnostic", Test) {
+    group = "verification"
+    description = "Runs the bounded V1-B economy-only versus gank-tempo candidate observation."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "jungle-tempo-candidate"
+    }
+    maxHeapSize = "2g"
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/jungleTempoCandidateDiagnostic")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/jungleTempoCandidateDiagnostic")
+}

@@ -34,18 +34,34 @@ public final class JungleGankResolver {
         state.getCombatExecutionStats().recordJungleGankEvaluation();
 
         EnumMap<TeamSide, Double> triggered = new EnumMap<>(TeamSide.class);
+        int triggerRolls = 0;
         for (TeamSide side : List.of(TeamSide.BLUE, TeamSide.RED)) {
             if (!junglerEligible(state, side, time)) continue;
             double chance = attemptChance(state, side);
-            if (random.nextDouble() < chance) triggered.put(side, chance);
+            triggerRolls++;
+            state.getCombatExecutionStats().recordJungleGankTriggerRoll();
+            if (random.nextDouble() < chance) {
+                triggered.put(side, chance);
+                state.getCombatExecutionStats().recordJungleGankTriggerSuccess();
+            }
         }
         if (triggered.isEmpty()) {
-            state.getCombatExecutionStats().recordJungleGankAllTriggersFailed();
+            if (triggerRolls == 0) {
+                state.getCombatExecutionStats().recordJungleGankNoEligibleSides();
+            } else {
+                state.getCombatExecutionStats().recordJungleGankAllTriggersFailed();
+            }
+            state.getCombatExecutionStats().recordJungleGankFallthrough();
             return false;
         }
         state.getCombatExecutionStats().recordJungleGankAttempt();
+        if (triggered.size() > 1) {
+            state.getCombatExecutionStats().recordJungleGankUnselectedTriggerSuccesses(
+                    triggered.size() - 1);
+        }
         TeamSide side = triggered.size() == 1 ? triggered.keySet().iterator().next()
                 : weightedSide(triggered, random);
+        consumeTempoForActualAction(state, side, time, JungleTempoActionType.GANK);
         Lane lane = chooseTargetLane(state, side, time, random);
         state.getCompositionRuntimeState().recordActualAttempt(
                 CompositionActionType.JUNGLE_GANK, side, side, side.opposite(), FightScale.SMALL,
@@ -115,7 +131,25 @@ public final class JungleGankResolver {
         if (!jungler.canParticipateInMajorCombatAt(time)) return false;
         int last = state.jungleActionState(side).getLastJungleActionAtSeconds();
         if (last >= 0 && time - last < JungleGankRuleConfig.JUNGLER_GANK_COOLDOWN_SECONDS) return false;
-        return Lane.values().length > 0 && java.util.Arrays.stream(Lane.values()).anyMatch(lane -> laneEligible(state, lane, time));
+        boolean laneAvailable = Lane.values().length > 0
+                && java.util.Arrays.stream(Lane.values())
+                .anyMatch(lane -> laneEligible(state, lane, time));
+        if (!laneAvailable) return false;
+        if (!state.isJungleGankTempoEnabled()) return true;
+        JungleTempoState.Readiness readiness = state.jungleTempoState(side).readinessAt(time);
+        state.getJungleTempoExecutionStats().recordGankReadiness(side, readiness);
+        return readiness.ready();
+    }
+
+    private void consumeTempoForActualAction(
+            GameState state,
+            TeamSide side,
+            int time,
+            JungleTempoActionType actionType
+    ) {
+        if (!state.isJungleGankTempoEnabled()) return;
+        state.jungleTempoState(side).consumeActualActionAt(time);
+        state.getJungleTempoExecutionStats().recordActualConsumption(actionType);
     }
 
     boolean laneEligible(GameState state, Lane lane, int time) {

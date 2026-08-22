@@ -35,6 +35,28 @@ class JungleEconomyRuntimeIntegrationTest {
     }
 
     @Test
+    void tempoCandidateIsSameSeedDeterministicAndDiagnosticsAreObservational() {
+        DummyDataFactory teams = new DummyDataFactory();
+        var assignments = new ChampionSelectionValidator(RESOURCES.catalog()).resolve(null);
+        MatchSimulator diagnosticsOn = simulator(
+                SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1,
+                SimulationInstrumentation.enabled());
+        MatchSimulator diagnosticsOff = simulator(
+                SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1,
+                SimulationInstrumentation.disabled());
+
+        ObservedMatchSimulation first = diagnosticsOn.simulateObserved(
+                teams.createBlueTeam(), teams.createRedTeam(), SEED, assignments);
+        ObservedMatchSimulation replay = diagnosticsOn.simulateObserved(
+                teams.createBlueTeam(), teams.createRedTeam(), SEED, assignments);
+        ObservedMatchSimulation withoutDiagnostics = diagnosticsOff.simulateObserved(
+                teams.createBlueTeam(), teams.createRedTeam(), SEED, assignments);
+
+        assertCompleteObservedMatchEquals(replay, first);
+        assertCompleteObservedMatchEquals(withoutDiagnostics, first);
+    }
+
+    @Test
     void candidateExecutesUnifiedEconomyWhileFrozenFullProfileDoesNot() {
         DummyDataFactory teams = new DummyDataFactory();
         var assignments = new ChampionSelectionValidator(RESOURCES.catalog()).resolve(null);
@@ -58,6 +80,34 @@ class JungleEconomyRuntimeIntegrationTest {
         assertThat(candidate.jungleEconomyExecutionStats().duplicateCalls()).isZero();
         assertThat(frozen.jungleEconomyExecutionStats().evaluations()).isZero();
         assertThat(frozen.jungleEconomyExecutionStats().eligibleOutcomes()).isZero();
+    }
+
+    @Test
+    void tempoCandidateBuildsCreditAndConsumesItOnlyForActualJungleActions() {
+        DummyDataFactory teams = new DummyDataFactory();
+        var assignments = new ChampionSelectionValidator(RESOURCES.catalog()).resolve(null);
+
+        MatchSimulator.SimulationResult tempo = simulator(
+                SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1,
+                SimulationInstrumentation.enabled()).simulateWithDiagnostics(
+                        teams.createBlueTeam(), teams.createRedTeam(), SEED, assignments);
+        MatchSimulator.SimulationResult economyOnly = simulator(
+                SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1,
+                SimulationInstrumentation.enabled()).simulateWithDiagnostics(
+                        teams.createBlueTeam(), teams.createRedTeam(), SEED, assignments);
+
+        assertThat(tempo.jungleTempoExecutionStats().economyUpdates()).isPositive();
+        assertThat(tempo.jungleTempoExecutionStats().actualConsumptions().values())
+                .anyMatch(count -> count > 0);
+        assertThat(tempo.jungleTempoExecutionStats().actualConsumptions()
+                .get(JungleTempoActionType.GANK))
+                .isEqualTo(tempo.combatExecutionStats().jungleGankAttempts());
+        assertThat(tempo.jungleTempoExecutionStats().actualConsumptions()
+                .get(JungleTempoActionType.COUNTER_GANK))
+                .isEqualTo(tempo.combatExecutionStats().counterGankAttempts());
+        assertThat(economyOnly.jungleTempoExecutionStats().economyUpdates()).isZero();
+        assertThat(economyOnly.jungleTempoExecutionStats().actualConsumptions().values())
+                .containsOnly(0);
     }
 
     private MatchSimulator simulator(

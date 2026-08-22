@@ -94,6 +94,11 @@ public final class JungleEconomyResolver {
         }
         economyState.markResolvedAt(timeSeconds, outcome);
         stats.recordOutcome(outcome);
+        if (gameState.isJungleGankTempoEnabled()) {
+            JungleTempoState.CreditUpdate update = gameState.jungleTempoState(side)
+                    .recordEconomyOutcome(outcome);
+            gameState.getJungleTempoExecutionStats().recordEconomyUpdate(update);
+        }
         return Optional.of(outcome);
     }
 

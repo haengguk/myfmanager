@@ -1,0 +1,452 @@
+{
+  "baselineId" : "PRE_JUNGLE_TEMPO_RUNTIME_BASELINE_V1",
+  "engineImplementationVersion" : "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V2",
+  "fullRegressionStatus" : "CLEAN_PASS",
+  "instrumentation" : {
+    "diagnosticsEnabled" : true
+  },
+  "matches" : [ {
+    "blueTeamCode" : "GEN",
+    "caseId" : "GEN_T1_SERIES_GAME_1",
+    "configurationHash" : "c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215",
+    "draftDecisionHash" : "870982aef1782413db0c7294d8d076f9f7098a5b219529115e4eca0660dd2c50",
+    "durationSeconds" : 2078,
+    "eventCount" : 296,
+    "finalAssignmentHash" : "d6a339b748d18684780baa8434a5c51c624cfda247e7a5217e97a0f017f15034",
+    "finalDraftHash" : "62a988c7e166b99248a0940223fb425bd638c78f058362c2635fcb2b698f3928",
+    "matchSeed" : 73,
+    "randomFingerprint" : {
+      "randomDrawCount" : 4770,
+      "randomTraceHash" : "e436e6a17fe4909c30a09f8d3402630c1f17a799f19dedfb7af3b1b202f5e7d1",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "T1",
+    "replayProvenanceHash" : "395b9023d42f94eed34d0edddaace9ea26c2fca9928be8d92e9e5b284ca348d9",
+    "runtimeProfileId" : "BASELINE_V1",
+    "seriesGameNumber" : 1,
+    "seriesHistoryBeforeHash" : "292e2222744d4b31a7842c5e9ccf3635d848cf86731198ce2806a8a7f1353c88",
+    "snapshotCount" : 201,
+    "timelineHash" : "047f3514a63a3bae15c03d40eefe9ddbe33abfa6865b9c3490d6efc308c3f4c8",
+    "winner" : "T1"
+  }, {
+    "blueTeamCode" : "GEN",
+    "caseId" : "GEN_T1_SERIES_GAME_2",
+    "configurationHash" : "c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215",
+    "draftDecisionHash" : "3b8e3b2603c346ef6b6806dd3dcf435ddec8700dac56123725ad7f37c3ee8824",
+    "durationSeconds" : 1854,
+    "eventCount" : 263,
+    "finalAssignmentHash" : "1538797f076ca194ff03595842e974c5f6666cfd5c64d9f7c0a9ce24118e3746",
+    "finalDraftHash" : "3d0bb0695d03ed3fbf7256a6093072b42b175c6a871cdf6eac833a92c3fcdd48",
+    "matchSeed" : 74,
+    "randomFingerprint" : {
+      "randomDrawCount" : 4337,
+      "randomTraceHash" : "093af8a3e1c5ac3b7a82b20c14550c757294d54411fd479503ac36123c3a01c6",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "T1",
+    "replayProvenanceHash" : "084e5edb92e84aa04646f778a7cbd9d823ca46e267440332921a69ec82f21f97",
+    "runtimeProfileId" : "BASELINE_V1",
+    "seriesGameNumber" : 2,
+    "seriesHistoryBeforeHash" : "ecbf334452e3292bcaa4be0d77e657a3d1ccf59f1d5beac2561782ce42abd8b4",
+    "snapshotCount" : 182,
+    "timelineHash" : "b74ad3e2729346929be17f22a35418844313eeeca2721188b626ab977558819d",
+    "winner" : "GEN"
+  }, {
+    "blueTeamCode" : "T1",
+    "caseId" : "T1_GEN_MIRROR_GAME_1",
+    "configurationHash" : "c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215",
+    "draftDecisionHash" : "759f56a4e0b20d853587c4abb8dc7a2cd5bdec36a05604d493f6941079b3b855",
+    "durationSeconds" : 1404,
+    "eventCount" : 206,
+    "finalAssignmentHash" : "5b4b404fb3b998f5cb2d032a63f1755f9b033f6528b68ee7af9ee9224c401445",
+    "finalDraftHash" : "882b552aa4524dee5cca709e0f60caa3a045c312f19ef3fa1248ac1196d071d4",
+    "matchSeed" : 73,
+    "randomFingerprint" : {
+      "randomDrawCount" : 3250,
+      "randomTraceHash" : "50d11e98e572303b7b6532f9169a65f3f9362ffa375f738d5544309b9f6dcce6",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "GEN",
+    "replayProvenanceHash" : "12a1b116210bbfe5e4b742253a73200821045268c9db470e692017d086267085",
+    "runtimeProfileId" : "BASELINE_V1",
+    "seriesGameNumber" : 1,
+    "seriesHistoryBeforeHash" : "292e2222744d4b31a7842c5e9ccf3635d848cf86731198ce2806a8a7f1353c88",
+    "snapshotCount" : 138,
+    "timelineHash" : "862cdf9c57523e6beba9371045a67b0d31124893abbaec9a0453cee20154fafd",
+    "winner" : "T1"
+  }, {
+    "blueTeamCode" : "GEN",
+    "caseId" : "GEN_T1_SERIES_GAME_1",
+    "configurationHash" : "58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec",
+    "draftDecisionHash" : "870982aef1782413db0c7294d8d076f9f7098a5b219529115e4eca0660dd2c50",
+    "durationSeconds" : 1661,
+    "eventCount" : 248,
+    "finalAssignmentHash" : "d6a339b748d18684780baa8434a5c51c624cfda247e7a5217e97a0f017f15034",
+    "finalDraftHash" : "62a988c7e166b99248a0940223fb425bd638c78f058362c2635fcb2b698f3928",
+    "matchSeed" : 73,
+    "randomFingerprint" : {
+      "randomDrawCount" : 3975,
+      "randomTraceHash" : "1c119c464e66104fdba05d6830f16bf9cb0b367ad24c07b1e14e9508107a9f9a",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "T1",
+    "replayProvenanceHash" : "0fdea2cc45eeada5fe0cb3c4bfaa809f2b3639d465cf4fba53911ff77670e77d",
+    "runtimeProfileId" : "MATCHUP_ONLY_CANDIDATE_V1",
+    "seriesGameNumber" : 1,
+    "seriesHistoryBeforeHash" : "292e2222744d4b31a7842c5e9ccf3635d848cf86731198ce2806a8a7f1353c88",
+    "snapshotCount" : 165,
+    "timelineHash" : "1bc249e9fca1d1b01f308f03f823ab986eb916b97111e9cba151ddb7480ed08f",
+    "winner" : "GEN"
+  }, {
+    "blueTeamCode" : "GEN",
+    "caseId" : "GEN_T1_SERIES_GAME_2",
+    "configurationHash" : "58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec",
+    "draftDecisionHash" : "3b8e3b2603c346ef6b6806dd3dcf435ddec8700dac56123725ad7f37c3ee8824",
+    "durationSeconds" : 1854,
+    "eventCount" : 263,
+    "finalAssignmentHash" : "1538797f076ca194ff03595842e974c5f6666cfd5c64d9f7c0a9ce24118e3746",
+    "finalDraftHash" : "3d0bb0695d03ed3fbf7256a6093072b42b175c6a871cdf6eac833a92c3fcdd48",
+    "matchSeed" : 74,
+    "randomFingerprint" : {
+      "randomDrawCount" : 4337,
+      "randomTraceHash" : "093af8a3e1c5ac3b7a82b20c14550c757294d54411fd479503ac36123c3a01c6",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "T1",
+    "replayProvenanceHash" : "f66222d5a4c53a77f714954b769a792eec2f8e231fde65fc0cff8c4cbd0ff5b7",
+    "runtimeProfileId" : "MATCHUP_ONLY_CANDIDATE_V1",
+    "seriesGameNumber" : 2,
+    "seriesHistoryBeforeHash" : "ecbf334452e3292bcaa4be0d77e657a3d1ccf59f1d5beac2561782ce42abd8b4",
+    "snapshotCount" : 182,
+    "timelineHash" : "8b4603d3dc10d33a0061df3449993e719bc04696b842000ac7d06c4b8edd1b09",
+    "winner" : "GEN"
+  }, {
+    "blueTeamCode" : "T1",
+    "caseId" : "T1_GEN_MIRROR_GAME_1",
+    "configurationHash" : "58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec",
+    "draftDecisionHash" : "759f56a4e0b20d853587c4abb8dc7a2cd5bdec36a05604d493f6941079b3b855",
+    "durationSeconds" : 1404,
+    "eventCount" : 206,
+    "finalAssignmentHash" : "5b4b404fb3b998f5cb2d032a63f1755f9b033f6528b68ee7af9ee9224c401445",
+    "finalDraftHash" : "882b552aa4524dee5cca709e0f60caa3a045c312f19ef3fa1248ac1196d071d4",
+    "matchSeed" : 73,
+    "randomFingerprint" : {
+      "randomDrawCount" : 3250,
+      "randomTraceHash" : "50d11e98e572303b7b6532f9169a65f3f9362ffa375f738d5544309b9f6dcce6",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "GEN",
+    "replayProvenanceHash" : "e14476d0d9faa4934638bc8d159ecc5fab995815ab7edd1d6fc78a1198446816",
+    "runtimeProfileId" : "MATCHUP_ONLY_CANDIDATE_V1",
+    "seriesGameNumber" : 1,
+    "seriesHistoryBeforeHash" : "292e2222744d4b31a7842c5e9ccf3635d848cf86731198ce2806a8a7f1353c88",
+    "snapshotCount" : 138,
+    "timelineHash" : "cd3216b1a4e558dff8c414aabf65e7d14d41d1441318888c8645da7767f4e8eb",
+    "winner" : "T1"
+  }, {
+    "blueTeamCode" : "GEN",
+    "caseId" : "GEN_T1_SERIES_GAME_1",
+    "configurationHash" : "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d",
+    "draftDecisionHash" : "870982aef1782413db0c7294d8d076f9f7098a5b219529115e4eca0660dd2c50",
+    "durationSeconds" : 1661,
+    "eventCount" : 248,
+    "finalAssignmentHash" : "d6a339b748d18684780baa8434a5c51c624cfda247e7a5217e97a0f017f15034",
+    "finalDraftHash" : "62a988c7e166b99248a0940223fb425bd638c78f058362c2635fcb2b698f3928",
+    "matchSeed" : 73,
+    "randomFingerprint" : {
+      "randomDrawCount" : 3975,
+      "randomTraceHash" : "1c119c464e66104fdba05d6830f16bf9cb0b367ad24c07b1e14e9508107a9f9a",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "T1",
+    "replayProvenanceHash" : "7f508fb9b4ec7ca5c57848c9f558abcd8bc9421326418e57f1ca5f73fc3f642e",
+    "runtimeProfileId" : "FULL_SYSTEM_CANDIDATE_V1",
+    "seriesGameNumber" : 1,
+    "seriesHistoryBeforeHash" : "292e2222744d4b31a7842c5e9ccf3635d848cf86731198ce2806a8a7f1353c88",
+    "snapshotCount" : 165,
+    "timelineHash" : "1bc249e9fca1d1b01f308f03f823ab986eb916b97111e9cba151ddb7480ed08f",
+    "winner" : "GEN"
+  }, {
+    "blueTeamCode" : "GEN",
+    "caseId" : "GEN_T1_SERIES_GAME_2",
+    "configurationHash" : "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d",
+    "draftDecisionHash" : "3b8e3b2603c346ef6b6806dd3dcf435ddec8700dac56123725ad7f37c3ee8824",
+    "durationSeconds" : 1585,
+    "eventCount" : 242,
+    "finalAssignmentHash" : "1538797f076ca194ff03595842e974c5f6666cfd5c64d9f7c0a9ce24118e3746",
+    "finalDraftHash" : "3d0bb0695d03ed3fbf7256a6093072b42b175c6a871cdf6eac833a92c3fcdd48",
+    "matchSeed" : 74,
+    "randomFingerprint" : {
+      "randomDrawCount" : 3671,
+      "randomTraceHash" : "76d06e71a7e5d931cafa2724e40a82f6935e158c65b224db185c7a8538cc9690",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "T1",
+    "replayProvenanceHash" : "9c08525f31eebf1b6aafeed79517685fc230496b59b4ce139fb13ffe6b2cbc36",
+    "runtimeProfileId" : "FULL_SYSTEM_CANDIDATE_V1",
+    "seriesGameNumber" : 2,
+    "seriesHistoryBeforeHash" : "ecbf334452e3292bcaa4be0d77e657a3d1ccf59f1d5beac2561782ce42abd8b4",
+    "snapshotCount" : 153,
+    "timelineHash" : "8e1b8dc389d22abe26985020f390c83345ba99576fb392e570ec1bf7692db88b",
+    "winner" : "T1"
+  }, {
+    "blueTeamCode" : "T1",
+    "caseId" : "T1_GEN_MIRROR_GAME_1",
+    "configurationHash" : "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d",
+    "draftDecisionHash" : "759f56a4e0b20d853587c4abb8dc7a2cd5bdec36a05604d493f6941079b3b855",
+    "durationSeconds" : 1404,
+    "eventCount" : 206,
+    "finalAssignmentHash" : "5b4b404fb3b998f5cb2d032a63f1755f9b033f6528b68ee7af9ee9224c401445",
+    "finalDraftHash" : "882b552aa4524dee5cca709e0f60caa3a045c312f19ef3fa1248ac1196d071d4",
+    "matchSeed" : 73,
+    "randomFingerprint" : {
+      "randomDrawCount" : 3250,
+      "randomTraceHash" : "50d11e98e572303b7b6532f9169a65f3f9362ffa375f738d5544309b9f6dcce6",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "GEN",
+    "replayProvenanceHash" : "46f8c1faaac1366ec3fed89648e0b87c9b9620ba70ecb894b4755275d1b883a2",
+    "runtimeProfileId" : "FULL_SYSTEM_CANDIDATE_V1",
+    "seriesGameNumber" : 1,
+    "seriesHistoryBeforeHash" : "292e2222744d4b31a7842c5e9ccf3635d848cf86731198ce2806a8a7f1353c88",
+    "snapshotCount" : 138,
+    "timelineHash" : "cd3216b1a4e558dff8c414aabf65e7d14d41d1441318888c8645da7767f4e8eb",
+    "winner" : "T1"
+  }, {
+    "blueTeamCode" : "GEN",
+    "caseId" : "GEN_T1_SERIES_GAME_1",
+    "configurationHash" : "e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b",
+    "draftDecisionHash" : "870982aef1782413db0c7294d8d076f9f7098a5b219529115e4eca0660dd2c50",
+    "durationSeconds" : 1661,
+    "eventCount" : 249,
+    "finalAssignmentHash" : "d6a339b748d18684780baa8434a5c51c624cfda247e7a5217e97a0f017f15034",
+    "finalDraftHash" : "62a988c7e166b99248a0940223fb425bd638c78f058362c2635fcb2b698f3928",
+    "matchSeed" : 73,
+    "randomFingerprint" : {
+      "randomDrawCount" : 3975,
+      "randomTraceHash" : "1ef4f320338959fb384f810631029a7987c7bc15f3fe0e41081ff2fee0224019",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "T1",
+    "replayProvenanceHash" : "30c654a544402808a56158fa989c901c1db79298ea4bebc802186e5b541efc35",
+    "runtimeProfileId" : "FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1",
+    "seriesGameNumber" : 1,
+    "seriesHistoryBeforeHash" : "292e2222744d4b31a7842c5e9ccf3635d848cf86731198ce2806a8a7f1353c88",
+    "snapshotCount" : 165,
+    "timelineHash" : "6c481e7084e3b92ad4125ec65ce1a58eaf98d2116cccad14dd15cf1d1b9b1f9a",
+    "winner" : "GEN"
+  }, {
+    "blueTeamCode" : "GEN",
+    "caseId" : "GEN_T1_SERIES_GAME_2",
+    "configurationHash" : "e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b",
+    "draftDecisionHash" : "3b8e3b2603c346ef6b6806dd3dcf435ddec8700dac56123725ad7f37c3ee8824",
+    "durationSeconds" : 1585,
+    "eventCount" : 243,
+    "finalAssignmentHash" : "1538797f076ca194ff03595842e974c5f6666cfd5c64d9f7c0a9ce24118e3746",
+    "finalDraftHash" : "3d0bb0695d03ed3fbf7256a6093072b42b175c6a871cdf6eac833a92c3fcdd48",
+    "matchSeed" : 74,
+    "randomFingerprint" : {
+      "randomDrawCount" : 3671,
+      "randomTraceHash" : "e991d92ff99796349c892fc9c528c247937ab186b4b791422e0cb828e44b1d4c",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "T1",
+    "replayProvenanceHash" : "ace9acd98411c663c8543cc5684347cbb06234c85170c1afd008ed1c1dc02d3b",
+    "runtimeProfileId" : "FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1",
+    "seriesGameNumber" : 2,
+    "seriesHistoryBeforeHash" : "ecbf334452e3292bcaa4be0d77e657a3d1ccf59f1d5beac2561782ce42abd8b4",
+    "snapshotCount" : 153,
+    "timelineHash" : "7ddabdb1c66859760ee43af2d52ea87608571377ec28f993f4e54c495a6748a8",
+    "winner" : "T1"
+  }, {
+    "blueTeamCode" : "T1",
+    "caseId" : "T1_GEN_MIRROR_GAME_1",
+    "configurationHash" : "e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b",
+    "draftDecisionHash" : "759f56a4e0b20d853587c4abb8dc7a2cd5bdec36a05604d493f6941079b3b855",
+    "durationSeconds" : 1404,
+    "eventCount" : 206,
+    "finalAssignmentHash" : "5b4b404fb3b998f5cb2d032a63f1755f9b033f6528b68ee7af9ee9224c401445",
+    "finalDraftHash" : "882b552aa4524dee5cca709e0f60caa3a045c312f19ef3fa1248ac1196d071d4",
+    "matchSeed" : 73,
+    "randomFingerprint" : {
+      "randomDrawCount" : 3250,
+      "randomTraceHash" : "463b2b427282b873b150b81c967a8dfa8ad4a1fc3a30facc99d3d87e30c5f83e",
+      "randomTraceHashAlgorithm" : "SHA256_UTF8_ORDERED_NEXT_BITS_CONTEXT_LINES_TRAILING_NEWLINE_V1",
+      "schemaVersion" : "SIMULATION_RANDOM_FINGERPRINT_V1"
+    },
+    "redTeamCode" : "GEN",
+    "replayProvenanceHash" : "390e4d25c621e65fc3181f726d4a89b26cd259641e7e6646211c116e368d38ae",
+    "runtimeProfileId" : "FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1",
+    "seriesGameNumber" : 1,
+    "seriesHistoryBeforeHash" : "292e2222744d4b31a7842c5e9ccf3635d848cf86731198ce2806a8a7f1353c88",
+    "snapshotCount" : 138,
+    "timelineHash" : "ad6310dc12ef7af054ac2f37b138aee4a747824104dc11b827928f3bbdd54b05",
+    "winner" : "T1"
+  } ],
+  "predecessorArtifactSha256" : "0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e",
+  "predecessorBaselineId" : "PRE_JUNGLE_RUNTIME_BASELINE_V2",
+  "productionSourceFileCount" : 464,
+  "productionSourceTreeHash" : "674b3148d782e98753bfd9e79f8b5f78b12cc3ecea8a85bc34ff8fbcaa2def0d",
+  "productionSourceTreeHashAlgorithm" : "SHA256_UTF8_SORTED_RELATIVE_PATH_PIPE_RAW_FILE_SHA256_LINES_V1",
+  "profiles" : [ {
+    "activeGameplayRulesVersion" : "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2",
+    "configurationHash" : "c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215",
+    "profileId" : "BASELINE_V1",
+    "resolvedGameplayConfiguration" : {
+      "championMatchupMode" : "OFF",
+      "championPowerEnabled" : true,
+      "counterGankEnabled" : true,
+      "farmRecoveryEnabled" : true,
+      "jungleClearContribution" : "DISABLED_NOT_INTEGRATED",
+      "jungleGankEnabled" : true,
+      "laneCombatEnabled" : true,
+      "lanePhaseEnabled" : true,
+      "lateGameMacroEnabled" : true,
+      "midGameMacroEnabled" : true,
+      "objectiveDecisionEnabled" : true,
+      "objectivePriorityEnabled" : true,
+      "progressionEnabled" : true,
+      "progressionPowerEnabled" : true,
+      "roamEnabled" : true,
+      "teamCompositionGameplayMode" : "OFF"
+    }
+  }, {
+    "activeGameplayRulesVersion" : "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2",
+    "configurationHash" : "58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec",
+    "profileId" : "MATCHUP_ONLY_CANDIDATE_V1",
+    "resolvedGameplayConfiguration" : {
+      "championMatchupMode" : "GEOMETRIC_V2",
+      "championPowerEnabled" : true,
+      "counterGankEnabled" : true,
+      "farmRecoveryEnabled" : true,
+      "jungleClearContribution" : "DISABLED_NOT_INTEGRATED",
+      "jungleGankEnabled" : true,
+      "laneCombatEnabled" : true,
+      "lanePhaseEnabled" : true,
+      "lateGameMacroEnabled" : true,
+      "midGameMacroEnabled" : true,
+      "objectiveDecisionEnabled" : true,
+      "objectivePriorityEnabled" : true,
+      "progressionEnabled" : true,
+      "progressionPowerEnabled" : true,
+      "roamEnabled" : true,
+      "teamCompositionGameplayMode" : "OFF"
+    }
+  }, {
+    "activeGameplayRulesVersion" : "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2",
+    "configurationHash" : "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d",
+    "profileId" : "FULL_SYSTEM_CANDIDATE_V1",
+    "resolvedGameplayConfiguration" : {
+      "championMatchupMode" : "GEOMETRIC_V2",
+      "championPowerEnabled" : true,
+      "counterGankEnabled" : true,
+      "farmRecoveryEnabled" : true,
+      "jungleClearContribution" : "DISABLED_NOT_INTEGRATED",
+      "jungleGankEnabled" : true,
+      "laneCombatEnabled" : true,
+      "lanePhaseEnabled" : true,
+      "lateGameMacroEnabled" : true,
+      "midGameMacroEnabled" : true,
+      "objectiveDecisionEnabled" : true,
+      "objectivePriorityEnabled" : true,
+      "progressionEnabled" : true,
+      "progressionPowerEnabled" : true,
+      "roamEnabled" : true,
+      "teamCompositionGameplayMode" : "PRODUCTION_V2"
+    }
+  }, {
+    "activeGameplayRulesVersion" : "MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2",
+    "configurationHash" : "e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b",
+    "profileId" : "FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1",
+    "resolvedGameplayConfiguration" : {
+      "championMatchupMode" : "GEOMETRIC_V2",
+      "championPowerEnabled" : true,
+      "counterGankEnabled" : true,
+      "farmRecoveryEnabled" : true,
+      "jungleClearContribution" : "ECONOMY_V1",
+      "jungleGankEnabled" : true,
+      "laneCombatEnabled" : true,
+      "lanePhaseEnabled" : true,
+      "lateGameMacroEnabled" : true,
+      "midGameMacroEnabled" : true,
+      "objectiveDecisionEnabled" : true,
+      "objectivePriorityEnabled" : true,
+      "progressionEnabled" : true,
+      "progressionPowerEnabled" : true,
+      "roamEnabled" : true,
+      "teamCompositionGameplayMode" : "PRODUCTION_V2"
+    }
+  } ],
+  "resourceProvenance" : {
+    "compositionProfileHash" : "23d616cab6abea69d5ad783f405b0b4518a14608b0be4eac3d53f669acab6877",
+    "draftLegalRoleKeyHash" : "18036bba3ec815a732d251e82cdc72d7d6dbed0f9fc3b373b2840da936b72b8e",
+    "jungleClearGameplayEnabledProfileCount" : 51,
+    "resourceProvenanceHash" : "64ab1be3fdfe8d6660648ac634b52a86a5693d264bfbe707153dac9c17d39b4f",
+    "resources" : [ {
+      "classpathResource" : "/champions/champion-resource-manifest.json",
+      "role" : "CHAMPION_MANIFEST",
+      "sha256" : "7c2ba352e4fd5cb2e849504ebf644479aa1b367e250b46ceac5f089922169721",
+      "version" : "full-173-resource-set-2026-08-v2"
+    }, {
+      "classpathResource" : "/champions/champion-pool-full-173-2026-08-v1.json",
+      "role" : "CHAMPION_CATALOG",
+      "sha256" : "76d2739c2bd1cd59b122d27a32b3cb92a304f7d3f7ff404468c04c9ab6b6078a",
+      "version" : "pool=full-173-2026-08-v1;balance=full-173-power-2026-08-v1;riot=16.15.1"
+    }, {
+      "classpathResource" : "/champions/champion-power-full-173-2026-08-v1.json",
+      "role" : "CHAMPION_POWER",
+      "sha256" : "83b079884af4b0ebdc3a5dfe48e7fe240c6025e3a37cde4def6d4b85670ff80b",
+      "version" : "full-173-power-2026-08-v1"
+    }, {
+      "classpathResource" : "/champions/champion-matchup-role-profiles-full-173-v1.json",
+      "role" : "CHAMPION_MATCHUP",
+      "sha256" : "d0fdc6aec9ee8f875a546cb3d69da0879b843e97cd2639e0e012feb1a23356f2",
+      "version" : "full-173-role-matchup-profile-2026-08-v2"
+    }, {
+      "classpathResource" : "/champions/champion-composition-role-profiles-full-173-v1.json",
+      "role" : "CHAMPION_COMPOSITION",
+      "sha256" : "e7260d72635b10e44909cdd5353185415ff3133eff23918de0d072c824a6a05d",
+      "version" : "full-173-composition-profile-2026-08-v2"
+    }, {
+      "classpathResource" : "/champions/champion-jungle-clear-full-173-economy-v1.json",
+      "role" : "CHAMPION_JUNGLE_CLEAR",
+      "sha256" : "daf3757c6598056c9d01c3fcb3899e2b6dd970ffbda94f7b755f9d40cd2e967b",
+      "version" : "full-173-jungle-clear-economy-2026-08-v1"
+    }, {
+      "classpathResource" : "/players/lck-player-identities-2026-08-21-v1.json",
+      "role" : "PLAYER_IDENTITY",
+      "sha256" : "badbbaa3ae7fbe5eaaf83ee8e97a93134476493a45167ec3d1637c7243909018",
+      "version" : "lck-player-identities-2026-08-21-v1"
+    }, {
+      "classpathResource" : "/players/lck-player-ratings-2026-08-19-v1.json",
+      "role" : "PLAYER_RATINGS",
+      "sha256" : "2312a8bc7d222fd63b57d1255210fb25104432a90a954d854b2090cc2acb28e0",
+      "version" : "lck-player-ratings-2026-08-19-v1"
+    }, {
+      "classpathResource" : "/players/lck-champion-proficiency-2026-08-21-v1.json",
+      "role" : "PLAYER_PROFICIENCY",
+      "sha256" : "2c36b8a109aba9dfe84c1da319fe02708a72a1341d334dc6d5e3f605b0023aad",
+      "version" : "lck-champion-proficiency-2026-08-21-v1"
+    }, {
+      "classpathResource" : "/draft/draft-meta-full-173-216-role-2026-08-18-v3.json",
+      "role" : "DRAFT_META",
+      "sha256" : "dd1173aadfad92d4ec231f097653ac840809c60812a4920d32b3d9606fa7fe99",
+      "version" : "draft-meta-full-173-216-role-2026-08-18-v3"
+    } ],
+    "schemaVersion" : "SIMULATION_RESOURCE_PROVENANCE_V1"
+  },
+  "schemaVersion" : "PRE_JUNGLE_TEMPO_RUNTIME_BASELINE_DOCUMENT_V1",
+  "sourceRevision" : "2cd7af4+canonical-production-guard-674b3148d782e98753bfd9e79f8b5f78b12cc3ecea8a85bc34ff8fbcaa2def0d",
+  "verificationSequence" : "REUSED_CLEAN_V1_A_FULL_REGRESSION_THEN_PRE_TEMPO_BASELINE"
+}
