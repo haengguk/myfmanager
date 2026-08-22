@@ -12,11 +12,17 @@ import com.lolfm.player.PlayerIdentityCatalog;
 import com.lolfm.player.PlayerRatingCatalog;
 import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
 import com.lolfm.simulator.JungleTempoActionType;
+import com.lolfm.simulator.JungleTempoReadinessStatus;
+import com.lolfm.simulator.Phase13GB1SimulationExecutor;
+import com.lolfm.simulator.Phase13GB1SimulationExecutor.StructuredDiagnostics;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.RecordComponent;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
@@ -55,6 +61,10 @@ class Phase13GB1RealMatchHarnessDiagnosticTest {
     @Test
     void writesOneFixedRealDraftFiveProfileDryRunAndDeterminismEvidence() throws Exception {
         Phase13GB1AuditSchedule.Schedule schedule = Phase13GB1AuditSchedule.create();
+        assertThat(Phase13GB1AuditSchedule.requireFrozen(schedule)).isSameAs(schedule);
+        assertThat(Phase13GB1RealMatchHarness.PreparedFixture.class.getDeclaredConstructors())
+                .allSatisfy(constructor -> assertThat(Modifier.isPrivate(
+                        constructor.getModifiers())).isTrue());
         assertThat(schedule.teamCodes()).containsExactlyElementsOf(
                 teams.teamCodes().stream().sorted().toList());
         Phase13GB1AuditSchedule.Fixture fixture = schedule.primaryFixtures().stream()
@@ -94,6 +104,12 @@ class Phase13GB1RealMatchHarnessDiagnosticTest {
         assertPairedFixtureAndProvenance(prepared, runs, replay);
         assertProfileSpecificExecution(runs);
         assertThat(runs).allSatisfy(run -> assertThat(run.integrityDiagnostics().clean()).isTrue());
+        assertIntegrityMutationIsBlocked(runs.getFirst(), "championPower", "missingAssignment");
+        assertIntegrityMutationIsBlocked(runs.get(1), "championMatchup", "staleStateErrors");
+        assertIntegrityMutationIsBlocked(runs.get(2), "composition", "unmappedActualAttemptCount");
+        assertIntegrityMutationIsBlocked(runs.getFirst(), "combatOutcome", "participantMismatchErrors");
+        assertIntegrityMutationIsBlocked(runs.getFirst(), "objectivePriority", "wrongSideSign");
+        assertIntegrityMutationIsBlocked(runs.getFirst(), "structure", "sameSideMultipleMutationError");
         assertThat(harness.resourceProvenance().jungleClearGameplayEnabledProfileCount())
                 .isEqualTo(51);
 
@@ -157,11 +173,10 @@ class Phase13GB1RealMatchHarnessDiagnosticTest {
                 .isEqualTo(runs.getFirst().replayProvenanceHash());
         assertThat(replay.timelineHash()).isEqualTo(runs.getFirst().timelineHash());
         assertThat(replay.randomFingerprint()).isEqualTo(runs.getFirst().randomFingerprint());
-        assertThat(replay.combatDiagnostics()).isEqualTo(runs.getFirst().combatDiagnostics());
-        assertThat(replay.jungleEconomyDiagnostics())
-                .isEqualTo(runs.getFirst().jungleEconomyDiagnostics());
-        assertThat(replay.jungleTempoDiagnostics())
-                .isEqualTo(runs.getFirst().jungleTempoDiagnostics());
+        assertThat(replay.structuredDiagnosticsHash())
+                .isEqualTo(runs.getFirst().structuredDiagnosticsHash());
+        assertThat(replay.structuredDiagnostics())
+                .isEqualTo(runs.getFirst().structuredDiagnostics());
         assertThat(runs).allSatisfy(run -> {
             assertThat(run.blueJungle().playerId()).isNotBlank();
             assertThat(run.redJungle().playerId()).isNotBlank();
@@ -197,12 +212,85 @@ class Phase13GB1RealMatchHarnessDiagnosticTest {
         assertThat(tempo.jungleTempoDiagnostics().actualConsumptions()
                 .get(JungleTempoActionType.COUNTER_GANK))
                 .isEqualTo(tempo.combatDiagnostics().counterGankAttempts());
+        int actualConsumptions = tempo.jungleTempoDiagnostics().actualConsumptions()
+                .values().stream().mapToInt(Integer::intValue).sum();
+        int readyObservations = tempo.jungleTempoDiagnostics().gankReadinessByStatus()
+                .getOrDefault(JungleTempoReadinessStatus.READY, 0)
+                + tempo.jungleTempoDiagnostics().counterGankReadinessByStatus()
+                .getOrDefault(JungleTempoReadinessStatus.READY, 0);
+        int stateActualActions = tempo.jungleTempoDiagnostics().stateBySide().values()
+                .stream().mapToInt(value -> value.actualActionCount()).sum();
+        assertThat(actualConsumptions).isPositive();
+        assertThat(readyObservations).isPositive();
+        assertThat(stateActualActions).isEqualTo(actualConsumptions);
+    }
+
+    private void assertIntegrityMutationIsBlocked(
+            Phase13GB1RealMatchHarness.AuditMatchRun source,
+            String diagnosticGroup,
+            String errorField
+    ) throws Exception {
+        RecordComponent groupComponent = Arrays.stream(
+                        StructuredDiagnostics.class.getRecordComponents())
+                .filter(component -> component.getName().equals(diagnosticGroup))
+                .findFirst().orElseThrow();
+        Object diagnostic = groupComponent.getAccessor().invoke(source.structuredDiagnostics());
+        Object mutatedDiagnostic = copyRecordWithOne(diagnostic, errorField);
+        StructuredDiagnostics mutated = copyRecordWithOne(
+                source.structuredDiagnostics(), diagnosticGroup, mutatedDiagnostic);
+        var integrity = Phase13GB1RealMatchHarness.IntegrityDiagnostics.from(
+                source.resolvedGameplayConfiguration(), mutated);
+        assertThat(integrity.clean())
+                .as("%s.%s must block structural integrity", diagnosticGroup, errorField)
+                .isFalse();
+        assertThat(integrity.errorCount()).isPositive();
+        assertThat(Phase13GB1SimulationExecutor.structuredDiagnosticsHash(mutated))
+                .isNotEqualTo(source.structuredDiagnosticsHash());
+    }
+
+    private static <T> T copyRecordWithOne(T source, String componentName)
+            throws ReflectiveOperationException {
+        RecordComponent component = Arrays.stream(source.getClass().getRecordComponents())
+                .filter(value -> value.getName().equals(componentName))
+                .findFirst().orElseThrow();
+        Object replacement;
+        if (component.getType() == long.class) {
+            replacement = Long.valueOf(1L);
+        } else {
+            replacement = Integer.valueOf(1);
+        }
+        return copyRecordWithOne(source, componentName, replacement);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T copyRecordWithOne(
+            T source,
+            String componentName,
+            Object replacement
+    ) throws ReflectiveOperationException {
+        RecordComponent[] components = source.getClass().getRecordComponents();
+        Class<?>[] parameterTypes = new Class<?>[components.length];
+        Object[] arguments = new Object[components.length];
+        boolean replaced = false;
+        for (int index = 0; index < components.length; index++) {
+            RecordComponent component = components[index];
+            parameterTypes[index] = component.getType();
+            arguments[index] = component.getAccessor().invoke(source);
+            if (component.getName().equals(componentName)) {
+                arguments[index] = replacement;
+                replaced = true;
+            }
+        }
+        if (!replaced) throw new IllegalArgumentException(
+                "Unknown record component " + componentName);
+        var constructor = source.getClass().getDeclaredConstructor(parameterTypes);
+        return (T) constructor.newInstance(arguments);
     }
 
     private void assertScopeBoundary(Path summaryFile) throws Exception {
         JsonNode summary = mapper.readTree(summaryFile.toFile());
         assertThat(summary.path("status").asText())
-                .isEqualTo("HARNESS_READY_FOR_CALIBRATION");
+                .isEqualTo("HARNESS_HARDENED_READY_FOR_CALIBRATION");
         assertThat(summary.path("calibrationExecuted").asBoolean()).isFalse();
         assertThat(summary.path("calibrationMatchExecutionCount").asInt()).isZero();
         assertThat(summary.path("holdoutExecuted").asBoolean()).isFalse();
@@ -213,12 +301,25 @@ class Phase13GB1RealMatchHarnessDiagnosticTest {
         assertThat(summary.path("pairedDryRunMatchExecutionCount").asInt()).isEqualTo(5);
         assertThat(summary.path("determinismReplayExecutionCount").asInt()).isOne();
         assertThat(summary.path("sameSeedReplayExact").asBoolean()).isTrue();
+        assertThat(summary.path("fullStructuredDiagnosticsReplayExact").asBoolean()).isTrue();
+        assertThat(summary.path("structuredDiagnosticsReplayScope").asText())
+                .isEqualTo("ALL_SIMULATION_RESULT_DIAGNOSTIC_SNAPSHOTS_AND_HISTORIES_"
+                        + "WITH_RANDOM_TRACE_COVERED_BY_FINGERPRINT");
+        assertThat(summary.path("structuredDiagnosticsHashAlgorithm").asText())
+                .isEqualTo(Phase13GB1SimulationExecutor
+                        .STRUCTURED_DIAGNOSTICS_HASH_ALGORITHM);
         assertThat(summary.path("engineImplementationVersion").asText())
                 .isEqualTo(SimulationProvenanceService.ENGINE_IMPLEMENTATION_VERSION);
         assertThat(summary.path("hashContracts").path("configurationHashScope").asText())
                 .isEqualTo("GAMEPLAY_CONFIGURATION_ONLY_INSTRUMENTATION_EXCLUDED");
         assertThat(summary.path("hashContracts").path("randomTraceHashScope").asText())
                 .isEqualTo("OBSERVATIONAL_OUTPUT_NOT_REPLAY_INPUT");
+        assertThat(summary.path("hashContracts")
+                .path("structuredDiagnosticsHashScope").asText())
+                .isEqualTo("ALL_SIMULATION_RESULT_DIAGNOSTIC_SNAPSHOTS_AND_HISTORIES");
+        assertThat(summary.path("hashContracts")
+                .path("structuredDiagnosticsEqualityScope").asText())
+                .isEqualTo("ALL_SIMULATION_RESULT_DIAGNOSTICS_EXACT_EQUALITY");
     }
 
     private static void assertShaManifest(Path directory) throws Exception {

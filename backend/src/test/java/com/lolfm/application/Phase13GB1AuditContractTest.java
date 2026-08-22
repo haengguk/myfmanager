@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lolfm.simulator.JungleClearContribution;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
 import com.lolfm.simulator.SimulationRuntimeProfiles;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -70,6 +71,14 @@ class Phase13GB1AuditContractTest {
         assertThat(contribution(SimulationRuntimeProfileId
                 .FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1))
                 .isEqualTo(JungleClearContribution.ECONOMY_AND_GANK_TEMPO_V1);
+    }
+
+    @Test
+    void preparedFixtureHasNoCallerAccessibleConstructionPath() {
+        assertThat(Phase13GB1RealMatchHarness.PreparedFixture.class.getDeclaredConstructors())
+                .isNotEmpty()
+                .allSatisfy(constructor -> assertThat(
+                        Modifier.isPrivate(constructor.getModifiers())).isTrue());
     }
 
     private static String rules(SimulationRuntimeProfileId profileId) {

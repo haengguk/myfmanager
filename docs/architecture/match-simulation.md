@@ -171,9 +171,9 @@ B1 audit harness는 production match engine 바깥의 test-side consumer다. Pro
   → profile별 provenance / timeline / Random / structured diagnostics
 ```
 
-Schedule identity는 10-team G1 양방향 전수 90 fixtures, all-team Hard Fearless G2 양방향 10 fixtures, calibration/holdout seed split 전체를 SHA-256으로 고정한다. Dry-run/calibration/holdout lane은 seed derivation domain부터 분리한다. Report writer에는 실행 시각이나 wall duration을 넣지 않고 canonical JSON, stable CSV ordering과 SHA manifest만 기록한다. Generated report는 관찰 증거이며 gameplay input이나 baseline이 아니다.
+Schedule identity는 10-team G1 양방향 전수 90 fixtures, all-team Hard Fearless G2 양방향 10 fixtures, calibration/holdout seed split 전체를 SHA-256으로 고정한다. Dry-run/calibration/holdout lane은 seed derivation domain부터 분리한다. Writer는 전달된 schedule content로 hash를 재계산하고 canonical frozen instance와 exact equality를 확인하므로 기존 hash 문자열을 붙인 변경 fixture를 거부한다. Prepared fixture도 public constructor가 없고 production orchestration을 완료한 harness만 생성할 수 있다. Report writer에는 실행 시각이나 wall duration을 넣지 않고 canonical JSON, stable CSV ordering과 SHA manifest만 기록한다. Generated report는 관찰 증거이며 gameplay input이나 baseline이 아니다.
 
-Test-side bridge는 package-private simulator diagnostic result를 읽어 combat/Jungle Economy/Tempo/integrity 값을 평탄화하지만 production visibility를 넓히지 않는다. 진단은 gameplay state와 Random의 입력이 아니며 profile configuration hash에도 포함되지 않는다. B1은 runtime/API/frontend와 tuning을 변경하지 않고, calibration·holdout·`PRODUCTION_V1` 판단도 수행하지 않는다.
+Test-side bridge는 package-private simulator result의 combat/roam/objective/lane/macro/structure/progression/Jungle/Champion Power/Matchup/Composition/Combat Outcome diagnostic snapshot과 history를 모두 보존하지만 production visibility를 넓히지 않는다. Same-seed replay는 이 전체 record의 exact equality를 확인한다. Artifact에는 structured map key까지 명시적으로 정렬하는 canonical SHA-256과 domain별 명시적 오류 카운터를 기록하고, Random raw trace는 별도 fingerprint가 담당한다. 정상적인 rejection/ineligible 관찰은 structural error로 세지 않는다. 진단은 gameplay state와 Random의 입력이 아니며 profile configuration hash에도 포함되지 않는다. B1은 runtime/API/frontend와 tuning을 변경하지 않고, calibration·holdout·`PRODUCTION_V1` 판단도 수행하지 않는다.
 
 ## Combat Strength Inputs
 

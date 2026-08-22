@@ -133,11 +133,11 @@ GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history 
 
 `PHASE_13G_B1_AUDIT_CONTRACT_AND_REAL_MATCH_HARNESS`는 gameplay를 바꾸지 않는 test-side 감사 기반이다. 실제 10개 LCK 팀의 모든 unordered pair 45개를 양 진영으로 뒤집은 G1 90 fixtures를 주 감사 축으로 고정하고, SHA 기반 deterministic pairing으로 모든 팀을 한 번씩 포함한 Hard Fearless G2 5 pairs × 양 진영 10 fixtures를 보조 민감도 축으로 고정했다. 각 fixture의 calibration 24 seeds와 holdout 8 seeds는 서로 분리해 미리 예약했고 schedule hash `3bb5e81241a3be2a1509e67528e577ae8f48fca94dec5fc15f93ec8ac78052ef`로 전체 계약을 고정한다.
 
-한 fixture는 production `RealDraftMatchOrchestrator`로 series target game까지 한 번 준비한 뒤 그 `FinalDraftResult`, 실제 양 팀 roster와 final assignment를 profile loop 밖에서 고정한다. Match 실행만 다섯 closed profile로 바꾸므로 paired comparison 사이에 re-Draft나 champion assignment drift가 없다. 각 결과에는 configuration/rules, resource/roster/series/Draft/final assignment/replay provenance, complete timeline hash, Random fingerprint, 최종 팀·정글러 checkpoint와 structured combat/Jungle Economy/Tempo/integrity diagnostics가 기록된다. 이 bridge는 test source에만 존재하며 production simulator API, Spring runtime, REST와 frontend는 변경하지 않았다.
+한 fixture는 production `RealDraftMatchOrchestrator`로 series target game까지 한 번 준비한 뒤 그 `FinalDraftResult`, 실제 양 팀 roster와 final assignment를 profile loop 밖에서 고정한다. `PreparedFixture`는 이 controlled 경로만 생성할 수 있고, writer는 schedule content hash를 재계산한 뒤 canonical frozen schedule과 exact equality를 확인한다. Match 실행만 다섯 closed profile로 바꾸므로 paired comparison 사이에 re-Draft나 champion assignment drift가 없다. 각 결과에는 configuration/rules, resource/roster/series/Draft/final assignment/replay provenance, complete timeline hash, Random fingerprint, 최종 팀·정글러 checkpoint, selected diagnostics, 전체 structured diagnostics hash와 domain별 integrity가 기록된다. 이 bridge는 test source에만 존재하며 production simulator API, Spring runtime, REST와 frontend는 변경하지 않았다.
 
-B1 bounded dry-run은 `GEN` Blue–`T1` Red G1 fixture와 calibration/holdout에 속하지 않는 별도 seed 하나로 다섯 profile을 한 번씩 실행하고 `BASELINE_V1`을 한 번 재실행했다. 다섯 실행의 Draft/final assignment/resource/roster identity가 exact equality였고 BASELINE same-seed replay의 replay provenance, timeline, Random fingerprint와 diagnostics도 exact equality였다. 세 pre-Jungle profile은 Jungle Economy/Tempo 실행 0, Economy candidate는 CS/gold/XP 경로 reachability, Tempo candidate는 Economy와 readiness/actual-consumption reachability를 각각 보였으며 모든 integrity counter가 clean이었다. 이 단일 fixture 관찰의 winner, 경기 시간이나 profile 차이는 balance 근거가 아니다.
+B1 bounded dry-run은 `GEN` Blue–`T1` Red G1 fixture와 calibration/holdout에 속하지 않는 별도 seed 하나로 다섯 profile을 한 번씩 실행하고 `BASELINE_V1`을 한 번 재실행했다. 다섯 실행의 Draft/final assignment/resource/roster identity가 exact equality였고 BASELINE same-seed replay의 replay provenance, timeline, Random fingerprint와 simulator의 전체 diagnostic snapshot/history가 exact equality였다. Champion Power/Matchup, Composition, Combat Outcome, Objective Priority, Structure, Lane Phase, Mid Game Macro, Progression과 Jungle Economy의 명시적 구조 오류는 모두 0이다. 세 pre-Jungle profile은 Jungle Economy/Tempo 실행 0, Economy candidate는 CS/gold/XP 경로 reachability, Tempo candidate는 READY 관찰 23회와 Gank actual consumption 1회를 보였다. 이 단일 fixture 관찰의 winner, 경기 시간이나 profile 차이는 balance 근거가 아니다.
 
-Generated artifact는 `backend/build/reports/phase13g-b1/`의 contract/profile/schedule JSON, 3,200-row reserved schedule CSV, 5-row dry-run JSON/CSV와 `SHA256SUMS.txt`다. Summary SHA-256은 `8c23c268c2b566b61eea32f4875b5e8812082cbc1a068ce17a8a4c931af5713e`, manifest SHA-256은 `9f15ab7dd80e39b425ec03ffd8df76da60a3a890c9e2222a786c4366edbb829c`이다. Report status는 `HARNESS_READY_FOR_CALIBRATION`이며 `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`를 명시한다. Build report는 증거이지 baseline 또는 correctness input이 아니다.
+Generated artifact는 `backend/build/reports/phase13g-b1/`의 contract/profile/schedule JSON, 3,200-row reserved schedule CSV, 5-row dry-run JSON/CSV와 `SHA256SUMS.txt`다. Summary SHA-256은 `32265a1863859caaf32be369dad380960e02a250539ab5644b804235c81baad8`, manifest SHA-256은 `09d7534d176b53e223c8fdfb9b9f06b53f96496da4640f401c16ac6b78bcc845`다. Report status는 `HARNESS_HARDENED_READY_FOR_CALIBRATION`이며 `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`를 명시한다. Canonical production guard는 472 files / `692cc941664ccecfd551a7b08c63f724d055fbfcdbfa721f7aca9ea8cbfd8458`, hardened audit harness guard는 9 files / `679ce37d608f83a4ffe7a8f708dbab882d8f20044817c98eeeed09716f03b130`이다. Build report는 증거이지 baseline 또는 correctness input이 아니다.
 
 ### Pre-Jungle baseline
 
@@ -200,7 +200,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - Jungle Gank의 unavailable/cooldown/no-lane/not-ready와 Counter Gank의 death/cooldown/activity/not-ready를 reason별·side별 immutable match diagnostic으로 노출하는 structured eligibility
 - action/death/recovery/macro FARM block의 CS/FARM gold/XP/passive/Random 경계, priority/fallthrough/one-major-combat, reward/event integrity, fresh state와 same-seed replay를 묶고 same-kind duplicate attempt까지 검출하는 `JUNGLE_V1_FOCUSED_HARDENING` gate
 - 다섯 번째 closed profile `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1`, rules V1, 고정 configuration hash와 engine provenance V5
-- 실제 10개 LCK 팀의 90 G1 + 10 Hard Fearless G2 fixture, calibration/holdout seed split, fixed-Draft 5-profile paired runner와 JSON/CSV/SHA 출력을 고정한 Final 13G-B1 test-side audit harness
+- 실제 10개 LCK 팀의 90 G1 + 10 Hard Fearless G2 fixture, calibration/holdout seed split, frozen input rejection, full diagnostics integrity/hash와 fixed-Draft 5-profile JSON/CSV/SHA 출력을 고정한 hardened Final 13G-B1 test-side audit harness
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -237,13 +237,13 @@ Final command:
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 166 |
-| Tests | 1,953 |
+| JUnit suites | 168 |
+| Tests | 1,960 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 513.886 seconds |
-| Gradle wall duration | 8m 49s |
+| Aggregate JUnit XML time | 540.965 seconds |
+| Gradle wall duration | 9m 15s |
 | Build | `BUILD SUCCESSFUL` |
 
 Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
@@ -256,7 +256,7 @@ Batch C의 `verifyPreJungleTempoParity`는 기존 네 profile 12/12 exact pass�
 
 Batch C V4 final full 전후 canonical production source/resource/build guard는 모두 472 files / `54b53ea30453e39791dd8aa0197e95ed190697ce1b83c010baff1df540c833d9`로 동일했다. V5 follow-up은 2개 경계 테스트와 activity reason 분리를 반영한 뒤 final full을 첫 실행에서 166 suites / 1,953 tests clean pass했다. Full 뒤에는 production/shared fixture를 바꾸지 않고 one-major-combat marker 분류만 assertion-only로 좁혔고 affected 5 tests가 clean pass했으므로 full 결과를 재사용했다. 직전 V1-B guard는 471 files / `143112d499c9731e25de80edf2883621c7bb9c3c948907f4a0c8d0146093a260`이었다. Baseline byte-integrity correction과 V5 follow-up 모두 immutable baseline을 재생성하지 않았고 세 baseline raw SHA는 기존 `SHA256SUMS.txt`와 exact equality다.
 
-Final 13G-B1의 schedule/profile focused verification은 2 suites / 5 tests, failures/errors/skipped 0으로 5초에 통과했다. `runPhase13GB1DryRun`은 1 suite / 1 test, failures/errors/skipped 0, JUnit suite 16.063초, Gradle 20초에 통과했고 generated SHA manifest 6/6을 검증했다. 마지막 production full은 위 V5 1,953-test 결과이며 B1에서는 production Java/resource/runtime wiring을 바꾸지 않고 test-side harness와 전용 Gradle task만 추가했으므로 이 phase에서 full regression을 반복하지 않았다. B1의 Gradle/test-harness 변경까지 포함한 complete backend full은 Final 13G-B의 필수 gate로 남는다. Canonical main source/resource/build guard는 Gradle verification task 추가를 포함해 472 files / `692cc941664ccecfd551a7b08c63f724d055fbfcdbfa721f7aca9ea8cbfd8458`, audit harness guard는 9 files / `e87447deeb870e977b2762922a5370bf58ba71ac68e58386560487baa945fb4a`다.
+Final 13G-B1 hardening의 schedule/profile focused verification은 2 suites / 7 tests, failures/errors/skipped 0으로 통과했다. `runPhase13GB1DryRun`은 1 suite / 1 test, failures/errors/skipped 0, JUnit suite 18.445초, Gradle wall 33초에 통과했고 generated SHA manifest 6/6을 검증했다. Schedule hash 위조와 임의 prepared fixture 생성 경로를 닫고, 누락됐던 전체 simulator diagnostics replay equality와 domain별 structural integrity, Tempo positive reachability를 고정했다. 이어 B1의 Gradle/test-harness 변경까지 포함한 complete backend full을 첫 실행에서 168 suites / 1,960 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 540.965초, Gradle wall 9분 15초로 clean pass했다. Canonical main source/resource/build guard는 472 files / `692cc941664ccecfd551a7b08c63f724d055fbfcdbfa721f7aca9ea8cbfd8458`로 B1 전과 같고, hardened audit harness guard는 9 files / `679ce37d608f83a4ffe7a8f708dbab882d8f20044817c98eeeed09716f03b130`이다.
 
 Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 

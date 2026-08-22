@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.lolfm.application.Phase13GB1RealMatchHarness.AuditMatchRun;
 import com.lolfm.application.Phase13GB1RealMatchHarness.PreparedFixture;
 import com.lolfm.simulator.ResolvedSimulationRuntimeProfile;
+import com.lolfm.simulator.Phase13GB1SimulationExecutor;
 import com.lolfm.simulator.SimulationRandomFingerprint;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
 import com.lolfm.simulator.SimulationRuntimeProfiles;
@@ -26,7 +27,7 @@ import java.util.Set;
 
 /** Writes deterministic B1 contract and bounded dry-run evidence; generated files are not baselines. */
 public final class Phase13GB1AuditArtifactWriter {
-    public static final String REPORT_SCHEMA = "PHASE_13G_B1_AUDIT_CONTRACT_REPORT_V1";
+    public static final String REPORT_SCHEMA = "PHASE_13G_B1_AUDIT_CONTRACT_REPORT_V2";
     public static final String SOURCE_TREE_HASH_ALGORITHM =
             "SHA256_UTF8_SORTED_RELATIVE_PATH_PIPE_RAW_FILE_SHA256_LINES_V1";
     public static final String SUMMARY_FILE = "phase13g-b1-audit-contract.json";
@@ -57,7 +58,7 @@ public final class Phase13GB1AuditArtifactWriter {
             AuditMatchRun deterministicReplay,
             SimulationResourceProvenance resources
     ) throws IOException {
-        Objects.requireNonNull(schedule, "schedule");
+        schedule = Phase13GB1AuditSchedule.requireFrozen(schedule);
         Objects.requireNonNull(prepared, "prepared");
         runs = List.copyOf(runs);
         validateDryRun(prepared, runs, deterministicReplay, resources);
@@ -98,7 +99,7 @@ public final class Phase13GB1AuditArtifactWriter {
         Files.writeString(output.resolve(SCHEDULE_CSV_FILE), scheduleCsv(schedule),
                 StandardCharsets.UTF_8);
         writeJson(mapper, output.resolve(DRY_RUN_JSON_FILE), new DryRunDocument(
-                "PHASE_13G_B1_DRY_RUN_EVIDENCE_V1",
+                "PHASE_13G_B1_DRY_RUN_EVIDENCE_V2",
                 prepared.fixture(),
                 Phase13GB1AuditSchedule.dryRunSeed(prepared.fixture()),
                 prepared.productionOrchestrationCount(),
@@ -185,7 +186,7 @@ public final class Phase13GB1AuditArtifactWriter {
         LinkedHashMap<String, Object> result = new LinkedHashMap<>();
         result.put("schemaVersion", REPORT_SCHEMA);
         result.put("phase", "PHASE_13G_B1_AUDIT_CONTRACT_AND_REAL_MATCH_HARNESS");
-        result.put("status", "HARNESS_READY_FOR_CALIBRATION");
+        result.put("status", "HARNESS_HARDENED_READY_FOR_CALIBRATION");
         result.put("scheduleVersion", schedule.scheduleVersion());
         result.put("scheduleHash", schedule.scheduleHash());
         result.put("scheduleHashAlgorithm", schedule.scheduleHashAlgorithm());
@@ -209,6 +210,12 @@ public final class Phase13GB1AuditArtifactWriter {
         result.put("pairedDryRunMatchExecutionCount", runs.size());
         result.put("determinismReplayExecutionCount", 1);
         result.put("sameSeedReplayExact", replayExact);
+        result.put("fullStructuredDiagnosticsReplayExact", replayExact);
+        result.put("structuredDiagnosticsReplayScope",
+                "ALL_SIMULATION_RESULT_DIAGNOSTIC_SNAPSHOTS_AND_HISTORIES_"
+                        + "WITH_RANDOM_TRACE_COVERED_BY_FINGERPRINT");
+        result.put("structuredDiagnosticsHashAlgorithm",
+                Phase13GB1SimulationExecutor.STRUCTURED_DIAGNOSTICS_HASH_ALGORITHM);
         result.put("engineImplementationVersion", runs.getFirst().engineImplementationVersion());
         result.put("hashContracts", new HashContracts(
                 SimulationRuntimeProfiles.CONFIGURATION_HASH_ALGORITHM,
@@ -218,7 +225,10 @@ public final class Phase13GB1AuditArtifactWriter {
                 SimulationProvenanceService.TIMELINE_HASH_ALGORITHM,
                 "COMPLETE_TIMELINE_OUTPUT",
                 SimulationRandomFingerprint.TRACE_HASH_ALGORITHM,
-                "OBSERVATIONAL_OUTPUT_NOT_REPLAY_INPUT"));
+                "OBSERVATIONAL_OUTPUT_NOT_REPLAY_INPUT",
+                Phase13GB1SimulationExecutor.STRUCTURED_DIAGNOSTICS_HASH_ALGORITHM,
+                "ALL_SIMULATION_RESULT_DIAGNOSTIC_SNAPSHOTS_AND_HISTORIES",
+                "ALL_SIMULATION_RESULT_DIAGNOSTICS_EXACT_EQUALITY"));
         result.put("fixedDraftDecisionHash", runs.getFirst().draftDecisionHash());
         result.put("fixedFinalDraftHash", runs.getFirst().finalDraftHash());
         result.put("fixedFinalAssignmentHash", runs.getFirst().finalAssignmentHash());
@@ -232,8 +242,7 @@ public final class Phase13GB1AuditArtifactWriter {
                 "NO_HOLDOUT_EXECUTION",
                 "NO_BALANCE_TUNING",
                 "NO_PRODUCTION_V1_DECISION",
-                "NO_GAMEPLAY_OR_API_OR_FRONTEND_CHANGE",
-                "NO_FULL_BACKEND_REGRESSION_IN_B1"));
+                "NO_GAMEPLAY_OR_API_OR_FRONTEND_CHANGE"));
         result.put("nextStep", "PHASE_13G_B2_CALIBRATION_ON_RESERVED_CALIBRATION_LANE");
         return result;
     }
@@ -255,12 +264,12 @@ public final class Phase13GB1AuditArtifactWriter {
                 && first.replayProvenanceHash().equals(replay.replayProvenanceHash())
                 && first.timelineHash().equals(replay.timelineHash())
                 && first.randomFingerprint().equals(replay.randomFingerprint())
+                && first.structuredDiagnosticsHash().equals(
+                        replay.structuredDiagnosticsHash())
                 && first.winnerSide() == replay.winnerSide()
                 && first.endReason() == replay.endReason()
                 && first.durationSeconds() == replay.durationSeconds()
-                && first.combatDiagnostics().equals(replay.combatDiagnostics())
-                && first.jungleEconomyDiagnostics().equals(replay.jungleEconomyDiagnostics())
-                && first.jungleTempoDiagnostics().equals(replay.jungleTempoDiagnostics())
+                && first.structuredDiagnostics().equals(replay.structuredDiagnostics())
                 && first.integrityDiagnostics().equals(replay.integrityDiagnostics());
     }
 
@@ -300,7 +309,7 @@ public final class Phase13GB1AuditArtifactWriter {
 
     private static String dryRunCsv(List<AuditMatchRun> runs) {
         StringBuilder result = new StringBuilder(
-                "fixtureId,sampleLane,blueTeamCode,redTeamCode,seriesGameNumber,seed,profileId,configurationHash,activeGameplayRulesVersion,replayProvenanceHash,timelineHash,randomDrawCount,randomTraceHash,winnerSide,endReason,durationSeconds,blueKills,redKills,blueGold,redGold,blueDragons,redDragons,blueTowers,redTowers,blueJunglePlayerId,blueJungleChampionId,blueJungleCs,blueJungleGold,blueJungleXp,blueJungleLevel,redJunglePlayerId,redJungleChampionId,redJungleCs,redJungleGold,redJungleXp,redJungleLevel,jungleGankEvaluations,jungleGankTriggerSuccesses,jungleGankAttempts,counterGankAttempts,laneCombatAttempts,jungleEconomyEvaluations,jungleEconomyEligibleOutcomes,jungleEconomyAwardedCs,jungleEconomyAwardedGold,jungleEconomyAwardedXp,tempoEconomyUpdates,tempoCreditAddedSeconds,tempoGankConsumptions,tempoCounterGankConsumptions,integrityClean\n");
+                "fixtureId,sampleLane,blueTeamCode,redTeamCode,seriesGameNumber,seed,profileId,configurationHash,activeGameplayRulesVersion,replayProvenanceHash,timelineHash,structuredDiagnosticsHash,randomDrawCount,randomTraceHash,winnerSide,endReason,durationSeconds,blueKills,redKills,blueGold,redGold,blueDragons,redDragons,blueTowers,redTowers,blueJunglePlayerId,blueJungleChampionId,blueJungleCs,blueJungleGold,blueJungleXp,blueJungleLevel,redJunglePlayerId,redJungleChampionId,redJungleCs,redJungleGold,redJungleXp,redJungleLevel,jungleGankEvaluations,jungleGankTriggerSuccesses,jungleGankAttempts,counterGankAttempts,laneCombatAttempts,jungleEconomyEvaluations,jungleEconomyEligibleOutcomes,jungleEconomyAwardedCs,jungleEconomyAwardedGold,jungleEconomyAwardedXp,tempoEconomyUpdates,tempoCreditAddedSeconds,tempoGankConsumptions,tempoCounterGankConsumptions,integrityErrorCount,integrityClean\n");
         for (AuditMatchRun run : runs) {
             result.append(csv(run.fixtureId())).append(',')
                     .append(run.sampleLane()).append(',')
@@ -313,6 +322,7 @@ public final class Phase13GB1AuditArtifactWriter {
                     .append(run.activeGameplayRulesVersion()).append(',')
                     .append(run.replayProvenanceHash()).append(',')
                     .append(run.timelineHash()).append(',')
+                    .append(run.structuredDiagnosticsHash()).append(',')
                     .append(run.randomFingerprint().randomDrawCount()).append(',')
                     .append(run.randomFingerprint().randomTraceHash()).append(',')
                     .append(run.winnerSide()).append(',')
@@ -355,6 +365,7 @@ public final class Phase13GB1AuditArtifactWriter {
                             com.lolfm.simulator.JungleTempoActionType.GANK, 0)).append(',')
                     .append(run.jungleTempoDiagnostics().actualConsumptions().getOrDefault(
                             com.lolfm.simulator.JungleTempoActionType.COUNTER_GANK, 0)).append(',')
+                    .append(run.integrityDiagnostics().errorCount()).append(',')
                     .append(run.integrityDiagnostics().clean()).append('\n');
         }
         return result.toString();
@@ -476,7 +487,10 @@ public final class Phase13GB1AuditArtifactWriter {
             String timelineHashAlgorithm,
             String timelineHashScope,
             String randomTraceHashAlgorithm,
-            String randomTraceHashScope
+            String randomTraceHashScope,
+            String structuredDiagnosticsHashAlgorithm,
+            String structuredDiagnosticsHashScope,
+            String structuredDiagnosticsEqualityScope
     ) {
     }
 

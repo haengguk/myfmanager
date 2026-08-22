@@ -1,15 +1,20 @@
 package com.lolfm.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.application.Phase13GB1AuditSchedule.Fixture;
 import com.lolfm.application.Phase13GB1AuditSchedule.FixtureLane;
+import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class Phase13GB1AuditScheduleTest {
     @Test
@@ -88,6 +93,36 @@ class Phase13GB1AuditScheduleTest {
             assertThat(fixture.calibrationSeeds()).doesNotContain(dryRun);
             assertThat(fixture.holdoutSeeds()).doesNotContain(dryRun);
         });
+    }
+
+    @Test
+    void artifactBoundaryRejectsModifiedFixturesWithTheFrozenHash(@TempDir Path output) {
+        var frozen = Phase13GB1AuditSchedule.create();
+        var fabricated = new Phase13GB1AuditSchedule.Schedule(
+                frozen.schemaVersion(),
+                frozen.scheduleVersion(),
+                frozen.scheduleHashAlgorithm(),
+                frozen.teamCodes(),
+                frozen.calibrationSeedsPerFixture(),
+                frozen.holdoutSeedsPerFixture(),
+                frozen.primaryFixtures().subList(0, frozen.primaryFixtures().size() - 1),
+                frozen.secondaryHardFearlessFixtures(),
+                frozen.scheduleHash());
+
+        assertThatThrownBy(() -> Phase13GB1AuditSchedule.requireFrozen(fabricated))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("does not match its declared hash");
+        assertThatThrownBy(() -> Phase13GB1AuditArtifactWriter.write(
+                new ObjectMapper(),
+                Path.of("."),
+                output,
+                fabricated,
+                null,
+                List.of(),
+                null,
+                null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("does not match its declared hash");
     }
 
     private static void assertSeedContract(Fixture fixture) {

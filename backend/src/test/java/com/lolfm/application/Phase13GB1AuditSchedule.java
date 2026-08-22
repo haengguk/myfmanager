@@ -33,10 +33,39 @@ public final class Phase13GB1AuditSchedule {
         return FROZEN_SCHEDULE;
     }
 
+    /** Rejects self-consistent but non-canonical schedules at every audit boundary. */
+    public static Schedule requireFrozen(Schedule candidate) {
+        Objects.requireNonNull(candidate, "schedule");
+        String recalculated = sha256(canonicalSchedule(
+                candidate.schemaVersion(),
+                candidate.scheduleVersion(),
+                candidate.teamCodes(),
+                candidate.calibrationSeedsPerFixture(),
+                candidate.holdoutSeedsPerFixture(),
+                candidate.primaryFixtures(),
+                candidate.secondaryHardFearlessFixtures()));
+        if (!recalculated.equals(candidate.scheduleHash())) {
+            throw new IllegalArgumentException(
+                    "13G-B schedule content does not match its declared hash");
+        }
+        if (!FROZEN_SCHEDULE.equals(candidate)) {
+            throw new IllegalArgumentException(
+                    "Schedule differs from the frozen 13G-B contract");
+        }
+        return candidate;
+    }
+
     private static Schedule buildSchedule() {
         List<Fixture> primary = primaryFixtures();
         List<Fixture> fearless = hardFearlessGameTwoFixtures();
-        String hash = sha256(canonicalSchedule(primary, fearless));
+        String hash = sha256(canonicalSchedule(
+                SCHEMA,
+                SCHEDULE_VERSION,
+                TEAM_CODES,
+                CALIBRATION_SEEDS_PER_FIXTURE,
+                HOLDOUT_SEEDS_PER_FIXTURE,
+                primary,
+                fearless));
         if (!EXPECTED_SCHEDULE_HASH.equals(hash)) {
             throw new IllegalStateException(
                     "13G-B schedule changed without a versioned contract: expected="
@@ -172,15 +201,23 @@ public final class Phase13GB1AuditSchedule {
         return ByteBuffer.wrap(digest(canonical.getBytes(StandardCharsets.UTF_8))).getLong();
     }
 
-    private static String canonicalSchedule(List<Fixture> primary, List<Fixture> fearless) {
+    private static String canonicalSchedule(
+            String schema,
+            String version,
+            List<String> teamCodes,
+            int calibrationSeedsPerFixture,
+            int holdoutSeedsPerFixture,
+            List<Fixture> primary,
+            List<Fixture> fearless
+    ) {
         StringBuilder canonical = new StringBuilder("scheduleSchema=")
-                .append(SCHEMA).append('\n')
-                .append("scheduleVersion=").append(SCHEDULE_VERSION).append('\n')
+                .append(schema).append('\n')
+                .append("scheduleVersion=").append(version).append('\n')
                 .append("calibrationSeedsPerFixture=")
-                .append(CALIBRATION_SEEDS_PER_FIXTURE).append('\n')
+                .append(calibrationSeedsPerFixture).append('\n')
                 .append("holdoutSeedsPerFixture=")
-                .append(HOLDOUT_SEEDS_PER_FIXTURE).append('\n');
-        TEAM_CODES.forEach(team -> canonical.append("team=").append(team).append('\n'));
+                .append(holdoutSeedsPerFixture).append('\n');
+        teamCodes.forEach(team -> canonical.append("team=").append(team).append('\n'));
         for (Fixture fixture : concat(primary, fearless)) {
             canonical.append("fixture=").append(fixture.fixtureId()).append('|')
                     .append(fixture.fixtureLane()).append('|')
@@ -296,9 +333,14 @@ public final class Phase13GB1AuditSchedule {
             String scheduleHash
     ) {
         public Schedule {
+            schemaVersion = Objects.requireNonNull(schemaVersion, "schemaVersion");
+            scheduleVersion = Objects.requireNonNull(scheduleVersion, "scheduleVersion");
+            scheduleHashAlgorithm = Objects.requireNonNull(
+                    scheduleHashAlgorithm, "scheduleHashAlgorithm");
             teamCodes = List.copyOf(teamCodes);
             primaryFixtures = List.copyOf(primaryFixtures);
             secondaryHardFearlessFixtures = List.copyOf(secondaryHardFearlessFixtures);
+            scheduleHash = Objects.requireNonNull(scheduleHash, "scheduleHash");
         }
 
         public List<Fixture> allFixtures() {

@@ -181,17 +181,19 @@ cd backend
 ./gradlew runPhase13GB1DryRun
 ```
 
-첫 command는 fixture cardinality/orientation, all-team G2 pairing, seed split, schedule hash와 다섯 profile의 exact configuration/rules identity를 검증한다. 두 번째 command는 실제 `GEN`–`T1` Draft fixture 하나를 profile loop 밖에서 준비하고 BASELINE / MATCHUP ONLY / FULL / FULL+JUNGLE ECONOMY / FULL+JUNGLE TEMPO를 같은 seed로 실행한다. 이어 BASELINE을 한 번 재실행해 replay provenance, complete timeline, Random fingerprint와 structured diagnostics의 exact equality를 확인한다.
+첫 command는 fixture cardinality/orientation, all-team G2 pairing, seed split, schedule hash와 다섯 profile의 exact configuration/rules identity를 검증한다. Writer는 전달받은 schedule의 content hash를 재계산하고 canonical frozen schedule과 exact equality인지 다시 확인한다. `PreparedFixture`는 harness의 production orchestration 경로만 생성할 수 있다. 두 번째 command는 실제 `GEN`–`T1` Draft fixture 하나를 profile loop 밖에서 준비하고 BASELINE / MATCHUP ONLY / FULL / FULL+JUNGLE ECONOMY / FULL+JUNGLE TEMPO를 같은 seed로 실행한다. 이어 BASELINE을 한 번 재실행해 replay provenance, complete timeline, Random fingerprint와 simulator가 반환한 전체 structured diagnostic snapshot/history의 exact equality를 확인한다.
 
 Report는 `build/reports/phase13g-b1/`에 생성한다.
 
 - `phase13g-b1-audit-contract.json`: 범위, source identity, 실행/미실행 lane과 다음 단계
 - `phase13g-b1-profile-contract.json`: 다섯 resolved gameplay configuration/hash/rules
 - `phase13g-b1-schedule.json`, `phase13g-b1-schedule.csv`: 100 fixtures와 3,200 reserved seed rows
-- `phase13g-b1-dry-run-provenance.json`, `phase13g-b1-dry-run-matches.csv`: 고정 Draft 5-profile 결과와 structured diagnostics
+- `phase13g-b1-dry-run-provenance.json`, `phase13g-b1-dry-run-matches.csv`: 고정 Draft 5-profile 결과, selected diagnostics, 전체 diagnostics canonical hash와 domain별 structural integrity
 - `SHA256SUMS.txt`: 위 6개 파일의 raw-byte SHA-256
 
-B1 task는 `diagnostic` tag라 기본 `test`에서 제외된다. 실행 결과는 5 focused tests와 1 dry-run test가 모두 clean pass했고 manifest 6/6이 일치했다. `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`가 summary contract다. 단일 dry-run의 승패·경기 시간·profile 차이로 balance 결론을 내리거나 expected value를 바꾸면 안 된다. 다음 B2는 calibration seed만 소비하며, holdout seed는 B3 전까지 실행하지 않는다. B1에서는 full regression을 실행하지 않으며 B1의 Gradle/test-harness 변경을 포함한 complete backend full은 Final 13G-B 결정 전에 반드시 실행한다.
+B1 hardening은 Champion Power/Matchup, Composition, Combat Outcome, Objective Priority, Structure, Lane Phase, Mid Game Macro, Progression과 Jungle Economy의 명시적 오류 카운터를 domain별 integrity로 집계한다. 정상 rejection/ineligible count는 오류로 오인하지 않는다. Full diagnostic equality는 메모리 record equality와 `SHA256_UTF8_RECORD_COMPONENT_MAP_KEY_CANONICAL_V1` hash로 이중 확인하며 Random raw trace는 기존 fingerprint가 담당한다. Tempo dry-run은 attempt-consumption equality뿐 아니라 READY 관찰과 GANK+COUNTER_GANK actual consumption 합계가 양수인지 고정한다.
+
+B1 task는 `diagnostic` tag라 기본 `test`에서 제외된다. Hardened 실행 결과는 2 focused suites / 7 tests와 1 dry-run test가 모두 clean pass했고 manifest 6/6이 일치했다. Dry-run JUnit suite는 18.445초, Gradle wall은 33초였다. 이어 B1에서 추가했던 Gradle/test configuration까지 포함해 backend full regression을 첫 실행에서 168 suites / 1,960 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 540.965초, Gradle wall 9분 15초로 clean pass했다. `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`가 summary contract다. 단일 dry-run의 승패·경기 시간·profile 차이로 balance 결론을 내리거나 expected value를 바꾸면 안 된다. 다음 B2는 calibration seed만 소비하며, holdout seed는 B3 전까지 실행하지 않는다.
 
 ## Generated Reports
 

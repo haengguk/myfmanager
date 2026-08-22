@@ -1,5 +1,7 @@
 package com.lolfm.application;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.domain.MatchSnapshot;
@@ -27,13 +29,14 @@ import com.lolfm.simulator.SimulationRuntimeProfileId;
 import com.lolfm.simulator.SimulationRuntimeProfiles;
 import com.lolfm.simulator.TeamSide;
 import com.lolfm.simulator.Phase13GB1SimulationExecutor;
+import com.lolfm.simulator.Phase13GB1SimulationExecutor.StructuredDiagnostics;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /** Reuses one production real-Draft fixture across the five closed runtime profiles. */
 public final class Phase13GB1RealMatchHarness {
-    public static final String SCHEMA = "PHASE_13G_B_REAL_MATCH_HARNESS_V1";
+    public static final String SCHEMA = "PHASE_13G_B_REAL_MATCH_HARNESS_V2";
     public static final List<SimulationRuntimeProfileId> AUDIT_PROFILES = List.of(
             SimulationRuntimeProfileId.BASELINE_V1,
             SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1,
@@ -136,6 +139,7 @@ public final class Phase13GB1RealMatchHarness {
                 seed,
                 fixture.blueTeamCode(),
                 fixture.redTeamCode());
+        StructuredDiagnostics diagnostics = execution.structuredDiagnostics();
         SimulationExecutionProvenance executionProvenance = provenance.create(
                 profile,
                 SimulationInstrumentation.enabled(),
@@ -187,10 +191,9 @@ public final class Phase13GB1RealMatchHarness {
                 finalSnapshot.getRedTowersDestroyed(),
                 jungleCheckpoint(fixture, finalSnapshot, TeamSide.BLUE),
                 jungleCheckpoint(fixture, finalSnapshot, TeamSide.RED),
-                execution.combat(),
-                execution.jungleEconomy(),
-                execution.jungleTempo(),
-                integrity(execution.duplicateEconomyResolutions(), execution.progression()));
+                Phase13GB1SimulationExecutor.structuredDiagnosticsHash(diagnostics),
+                diagnostics,
+                IntegrityDiagnostics.from(profile.gameplayConfiguration(), diagnostics));
     }
 
     public SimulationResourceProvenance resourceProvenance() {
@@ -267,51 +270,53 @@ public final class Phase13GB1RealMatchHarness {
                 player.getItemStage().name());
     }
 
-    private static IntegrityDiagnostics integrity(
-            int duplicateEconomyResolutions,
-            ProgressionExecutionStatsSnapshot progression
-    ) {
-        return new IntegrityDiagnostics(
-                duplicateEconomyResolutions,
-                progression.duplicateXpReward(),
-                progression.invalidPlayer(),
-                progression.featureOffMutation(),
-                progression.duplicateLevelEvent(),
-                progression.duplicateItemEvent(),
-                progression.levelRollback(),
-                progression.itemRollback(),
-                progression.levelOver18(),
-                progression.powerOffContributionError(),
-                progression.championMultiplierError(),
-                progression.championSpikeError(),
-                progression.positionMultiplierError(),
-                progression.levelSpikeBonusError());
-    }
-
     private static long preparationSeed(Phase13GB1AuditSchedule.Fixture fixture, int game) {
         return Phase13GB1AuditSchedule.dryRunSeed(fixture)
                 ^ Long.rotateLeft(0x9e3779b97f4a7c15L, game * 7);
     }
 
-    public record PreparedFixture(
-            Phase13GB1AuditSchedule.Fixture fixture,
-            RealDraftMatchResult realDraftFixture,
-            int productionOrchestrationCount,
-            String reusePolicy
-    ) {
-        public PreparedFixture {
-            Objects.requireNonNull(fixture, "fixture");
-            Objects.requireNonNull(realDraftFixture, "realDraftFixture");
+    public static final class PreparedFixture {
+        private final Phase13GB1AuditSchedule.Fixture fixture;
+        private final RealDraftMatchResult realDraftFixture;
+        private final int productionOrchestrationCount;
+        private final String reusePolicy;
+
+        private PreparedFixture(
+                Phase13GB1AuditSchedule.Fixture fixture,
+                RealDraftMatchResult realDraftFixture,
+                int productionOrchestrationCount,
+                String reusePolicy
+        ) {
+            this.fixture = Objects.requireNonNull(fixture, "fixture");
+            this.realDraftFixture = Objects.requireNonNull(
+                    realDraftFixture, "realDraftFixture");
             if (productionOrchestrationCount != fixture.seriesGameNumber()) {
                 throw new IllegalArgumentException("Preparation count must equal target series game");
             }
-            reusePolicy = Objects.requireNonNull(reusePolicy, "reusePolicy");
+            this.productionOrchestrationCount = productionOrchestrationCount;
+            this.reusePolicy = Objects.requireNonNull(reusePolicy, "reusePolicy");
             if (!realDraftFixture.blueTeamCode().equals(fixture.blueTeamCode())
                     || !realDraftFixture.redTeamCode().equals(fixture.redTeamCode())
                     || realDraftFixture.seriesGameNumber() != fixture.seriesGameNumber()) {
                 throw new IllegalArgumentException(
                         "Prepared result differs from the scheduled fixture identity");
             }
+        }
+
+        public Phase13GB1AuditSchedule.Fixture fixture() {
+            return fixture;
+        }
+
+        public RealDraftMatchResult realDraftFixture() {
+            return realDraftFixture;
+        }
+
+        public int productionOrchestrationCount() {
+            return productionOrchestrationCount;
+        }
+
+        public String reusePolicy() {
+            return reusePolicy;
         }
     }
 
@@ -331,7 +336,183 @@ public final class Phase13GB1RealMatchHarness {
     }
 
     public record IntegrityDiagnostics(
+            EconomyIntegrity economy,
+            ProgressionIntegrity progression,
+            ChampionPowerIntegrity championPower,
+            ChampionMatchupIntegrity championMatchup,
+            CompositionIntegrity composition,
+            CombatOutcomeIntegrity combatOutcome,
+            ObjectivePriorityIntegrity objectivePriority,
+            StructureIntegrity structure,
+            LanePhaseIntegrity lanePhase,
+            MidGameMacroIntegrity midGameMacro
+    ) {
+        public IntegrityDiagnostics {
+            Objects.requireNonNull(economy, "economy");
+            Objects.requireNonNull(progression, "progression");
+            Objects.requireNonNull(championPower, "championPower");
+            Objects.requireNonNull(championMatchup, "championMatchup");
+            Objects.requireNonNull(composition, "composition");
+            Objects.requireNonNull(combatOutcome, "combatOutcome");
+            Objects.requireNonNull(objectivePriority, "objectivePriority");
+            Objects.requireNonNull(structure, "structure");
+            Objects.requireNonNull(lanePhase, "lanePhase");
+            Objects.requireNonNull(midGameMacro, "midGameMacro");
+        }
+
+        public static IntegrityDiagnostics from(
+                SimulationGameplayConfiguration configuration,
+                StructuredDiagnostics diagnostics
+        ) {
+            Objects.requireNonNull(configuration, "configuration");
+            Objects.requireNonNull(diagnostics, "diagnostics");
+            var progression = diagnostics.progression();
+            var power = diagnostics.championPower();
+            var matchup = diagnostics.championMatchup();
+            var composition = diagnostics.composition();
+            var outcome = diagnostics.combatOutcome();
+            var objective = diagnostics.objectivePriority();
+            var structure = diagnostics.structure();
+            var lanePhase = diagnostics.lanePhase();
+            var macro = diagnostics.midGameMacro();
+            boolean compositionActive = configuration.teamCompositionGameplayMode()
+                    != com.lolfm.composition.TeamCompositionGameplayMode.OFF;
+            int compositionOffModeMutation = !compositionActive && (
+                    composition.initialized()
+                            || composition.lineupBuildCount() != 0
+                            || composition.teamCompositionAnalysisCount() != 0
+                            || composition.interactionAnalysisCount() != 0
+                            || composition.contextEdgeCount() != 0
+                            || composition.runtimeInteractionRecalculationCount() != 0
+                            || composition.resolverEvaluationCount() != 0
+                            || composition.triggerSuccessCount() != 0
+                            || composition.actualAttemptCount() != 0
+                            || composition.mappedActualAttemptCount() != 0
+                            || composition.unmappedActualAttemptCount() != 0
+                            || composition.shadowObservationCount() != 0
+                            || composition.evaluationOnlyObservationCount() != 0
+                            || composition.duplicateObservationCount() != 0
+                            || composition.multiContextAttemptCount() != 0
+                            || composition.conflictingPerspectiveCount() != 0
+                            || composition.duplicateApplicationPointCount() != 0
+                            || composition.gameplayApplicationCount() != 0
+                            || composition.nonZeroModifierCount() != 0
+                            || composition.directRandomCallCount() != 0
+                            || composition.compositionRandomDrawCount() != 0
+                            || !composition.observations().isEmpty()
+                            || !composition.routings().isEmpty()) ? 1 : 0;
+            return new IntegrityDiagnostics(
+                    new EconomyIntegrity(
+                            diagnostics.duplicateEconomyResolutions(),
+                            diagnostics.jungleEconomy().duplicateCalls()),
+                    new ProgressionIntegrity(
+                            progression.duplicateXpReward(),
+                            progression.invalidPlayer(),
+                            progression.featureOffMutation(),
+                            progression.duplicateLevelEvent(),
+                            progression.duplicateItemEvent(),
+                            progression.levelRollback(),
+                            progression.itemRollback(),
+                            progression.levelOver18(),
+                            progression.powerOffContributionError(),
+                            progression.championMultiplierError(),
+                            progression.championSpikeError(),
+                            progression.positionMultiplierError(),
+                            progression.levelSpikeBonusError()),
+                    new ChampionPowerIntegrity(
+                            power.missingAssignment(),
+                            power.deadParticipantIncludedError(),
+                            power.nonparticipantIncludedError(),
+                            power.duplicateParticipantError(),
+                            power.randomCallCount()),
+                    new ChampionMatchupIntegrity(
+                            matchup.missingAssignmentErrors(),
+                            matchup.deadParticipantErrors(),
+                            matchup.nonParticipantErrors(),
+                            matchup.sameTeamPairErrors(),
+                            matchup.crossPositionErrors(),
+                            matchup.duplicateApplicationErrors(),
+                            matchup.staleStateErrors(),
+                            matchup.directRandomCalls(),
+                            matchup.featureOffMismatch(),
+                            matchup.mirrorMismatch()),
+                    new CompositionIntegrity(
+                            composition.mode() == configuration.teamCompositionGameplayMode() ? 0 : 1,
+                            compositionActive == composition.initialized() ? 0 : 1,
+                            compositionActive && composition.lineupBuildCount() != 2 ? 1 : 0,
+                            compositionActive && composition.teamCompositionAnalysisCount() != 2 ? 1 : 0,
+                            compositionActive && composition.interactionAnalysisCount() != 1 ? 1 : 0,
+                            compositionOffModeMutation,
+                            composition.actualAttemptCount()
+                                    == composition.mappedActualAttemptCount()
+                                    + composition.unmappedActualAttemptCount() ? 0 : 1,
+                            composition.shadowObservationCount()
+                                    == composition.mappedActualAttemptCount() ? 0 : 1,
+                            composition.unmappedActualAttemptCount(),
+                            composition.evaluationOnlyObservationCount(),
+                            composition.duplicateObservationCount(),
+                            composition.multiContextAttemptCount(),
+                            composition.conflictingPerspectiveCount(),
+                            composition.duplicateApplicationPointCount(),
+                            composition.directRandomCallCount(),
+                            composition.compositionRandomDrawCount(),
+                            composition.auditSemanticsEnabled() ? 1 : 0,
+                            composition.keySpecificCandidateAuditEnabled() ? 1 : 0),
+                    new CombatOutcomeIntegrity(
+                            outcome.duplicateOutcomeRecordErrors(),
+                            outcome.outcomeWithoutAttemptErrors(),
+                            outcome.outcomeWithoutWinnerErrors(),
+                            outcome.participantMismatchErrors()),
+                    new ObjectivePriorityIntegrity(
+                            objective.priorityAppliedToPostFightError(),
+                            objective.priorityAppliedToElderError(),
+                            objective.sameTickGeneralPostFightDuplicate(),
+                            objective.disabledBonusApplication(),
+                            objective.disabledMultiplierApplication(),
+                            objective.wrongSideSign(),
+                            objective.wrongLaneMultiplier(),
+                            objective.summaryKillDoubleImpact()),
+                    new StructureIntegrity(
+                            structure.sameSideMultipleAttemptError(),
+                            structure.sameSideMultipleMutationError(),
+                            structure.postFightInternalBlockError()),
+                    new LanePhaseIntegrity(
+                            lanePhase.duplicateLaneTransitions(),
+                            lanePhase.duplicateMatchTransitions()),
+                    new MidGameMacroIntegrity(
+                            macro.duplicateStructure(),
+                            macro.deadAssignmentErrors(),
+                            macro.combatParticipantAssignmentErrors()));
+        }
+
+        public long errorCount() {
+            return economy.errorCount()
+                    + progression.errorCount()
+                    + championPower.errorCount()
+                    + championMatchup.errorCount()
+                    + composition.errorCount()
+                    + combatOutcome.errorCount()
+                    + objectivePriority.errorCount()
+                    + structure.errorCount()
+                    + lanePhase.errorCount()
+                    + midGameMacro.errorCount();
+        }
+
+        public boolean clean() {
+            return errorCount() == 0;
+        }
+    }
+
+    public record EconomyIntegrity(
             int duplicateEconomyResolutions,
+            int jungleEconomyDuplicateCalls
+    ) {
+        long errorCount() {
+            return (long) duplicateEconomyResolutions + jungleEconomyDuplicateCalls;
+        }
+    }
+
+    public record ProgressionIntegrity(
             int duplicateXpReward,
             int invalidPlayer,
             int featureOffMutation,
@@ -346,21 +527,135 @@ public final class Phase13GB1RealMatchHarness {
             int positionMultiplierError,
             int levelSpikeBonusError
     ) {
-        public boolean clean() {
-            return duplicateEconomyResolutions == 0
-                    && duplicateXpReward == 0
-                    && invalidPlayer == 0
-                    && featureOffMutation == 0
-                    && duplicateLevelEvent == 0
-                    && duplicateItemEvent == 0
-                    && levelRollback == 0
-                    && itemRollback == 0
-                    && levelOver18 == 0
-                    && powerOffContributionError == 0
-                    && championMultiplierError == 0
-                    && championSpikeError == 0
-                    && positionMultiplierError == 0
-                    && levelSpikeBonusError == 0;
+        long errorCount() {
+            return (long) duplicateXpReward + invalidPlayer + featureOffMutation
+                    + duplicateLevelEvent + duplicateItemEvent + levelRollback + itemRollback
+                    + levelOver18 + powerOffContributionError + championMultiplierError
+                    + championSpikeError + positionMultiplierError + levelSpikeBonusError;
+        }
+    }
+
+    public record ChampionPowerIntegrity(
+            int missingAssignment,
+            int deadParticipantIncludedError,
+            int nonparticipantIncludedError,
+            int duplicateParticipantError,
+            int directRandomCalls
+    ) {
+        long errorCount() {
+            return (long) missingAssignment + deadParticipantIncludedError
+                    + nonparticipantIncludedError + duplicateParticipantError + directRandomCalls;
+        }
+    }
+
+    public record ChampionMatchupIntegrity(
+            int missingAssignmentErrors,
+            int deadParticipantErrors,
+            int nonParticipantErrors,
+            int sameTeamPairErrors,
+            int crossPositionErrors,
+            int duplicateApplicationErrors,
+            int staleStateErrors,
+            int directRandomCalls,
+            int featureOffMismatch,
+            int mirrorMismatch
+    ) {
+        long errorCount() {
+            return (long) missingAssignmentErrors + deadParticipantErrors + nonParticipantErrors
+                    + sameTeamPairErrors + crossPositionErrors + duplicateApplicationErrors
+                    + staleStateErrors + directRandomCalls + featureOffMismatch + mirrorMismatch;
+        }
+    }
+
+    public record CompositionIntegrity(
+            int modeMismatch,
+            int initializationMismatch,
+            int lineupBuildMismatch,
+            int teamAnalysisMismatch,
+            int interactionAnalysisMismatch,
+            int offModeMutation,
+            int attemptAccountingMismatch,
+            int observationAccountingMismatch,
+            int unmappedActualAttempts,
+            int evaluationOnlyObservations,
+            int duplicateObservations,
+            int multiContextAttempts,
+            int conflictingPerspectives,
+            int duplicateApplicationPoints,
+            int directRandomCalls,
+            int compositionRandomDraws,
+            int auditSemanticsLeak,
+            int keySpecificAuditLeak
+    ) {
+        long errorCount() {
+            return (long) modeMismatch + initializationMismatch + lineupBuildMismatch
+                    + teamAnalysisMismatch + interactionAnalysisMismatch + offModeMutation
+                    + attemptAccountingMismatch + observationAccountingMismatch
+                    + unmappedActualAttempts + evaluationOnlyObservations + duplicateObservations
+                    + multiContextAttempts + conflictingPerspectives + duplicateApplicationPoints
+                    + directRandomCalls + compositionRandomDraws + auditSemanticsLeak
+                    + keySpecificAuditLeak;
+        }
+    }
+
+    public record CombatOutcomeIntegrity(
+            int duplicateOutcomeRecordErrors,
+            int outcomeWithoutAttemptErrors,
+            int outcomeWithoutWinnerErrors,
+            int participantMismatchErrors
+    ) {
+        long errorCount() {
+            return (long) duplicateOutcomeRecordErrors + outcomeWithoutAttemptErrors
+                    + outcomeWithoutWinnerErrors + participantMismatchErrors;
+        }
+    }
+
+    public record ObjectivePriorityIntegrity(
+            long priorityAppliedToPostFightError,
+            long priorityAppliedToElderError,
+            long sameTickGeneralPostFightDuplicate,
+            long disabledBonusApplication,
+            long disabledMultiplierApplication,
+            long wrongSideSign,
+            long wrongLaneMultiplier,
+            long summaryKillDoubleImpact
+    ) {
+        long errorCount() {
+            return priorityAppliedToPostFightError + priorityAppliedToElderError
+                    + sameTickGeneralPostFightDuplicate + disabledBonusApplication
+                    + disabledMultiplierApplication + wrongSideSign + wrongLaneMultiplier
+                    + summaryKillDoubleImpact;
+        }
+    }
+
+    public record StructureIntegrity(
+            int sameSideMultipleAttemptError,
+            int sameSideMultipleMutationError,
+            int postFightInternalBlockError
+    ) {
+        long errorCount() {
+            return (long) sameSideMultipleAttemptError + sameSideMultipleMutationError
+                    + postFightInternalBlockError;
+        }
+    }
+
+    public record LanePhaseIntegrity(
+            int duplicateLaneTransitions,
+            int duplicateMatchTransitions
+    ) {
+        long errorCount() {
+            return (long) duplicateLaneTransitions + duplicateMatchTransitions;
+        }
+    }
+
+    public record MidGameMacroIntegrity(
+            int duplicateStructure,
+            int deadAssignmentErrors,
+            int combatParticipantAssignmentErrors
+    ) {
+        long errorCount() {
+            return (long) duplicateStructure + deadAssignmentErrors
+                    + combatParticipantAssignmentErrors;
         }
     }
 
@@ -401,9 +696,8 @@ public final class Phase13GB1RealMatchHarness {
             int redTowers,
             JungleCheckpoint blueJungle,
             JungleCheckpoint redJungle,
-            CombatExecutionStatsSnapshot combatDiagnostics,
-            JungleEconomyExecutionStatsSnapshot jungleEconomyDiagnostics,
-            JungleTempoExecutionStatsSnapshot jungleTempoDiagnostics,
+            String structuredDiagnosticsHash,
+            @JsonIgnore StructuredDiagnostics structuredDiagnostics,
             IntegrityDiagnostics integrityDiagnostics
     ) {
         public AuditMatchRun {
@@ -415,10 +709,45 @@ public final class Phase13GB1RealMatchHarness {
             Objects.requireNonNull(randomFingerprint, "randomFingerprint");
             Objects.requireNonNull(blueJungle, "blueJungle");
             Objects.requireNonNull(redJungle, "redJungle");
-            Objects.requireNonNull(combatDiagnostics, "combatDiagnostics");
-            Objects.requireNonNull(jungleEconomyDiagnostics, "jungleEconomyDiagnostics");
-            Objects.requireNonNull(jungleTempoDiagnostics, "jungleTempoDiagnostics");
+            Objects.requireNonNull(structuredDiagnosticsHash, "structuredDiagnosticsHash");
+            Objects.requireNonNull(structuredDiagnostics, "structuredDiagnostics");
             Objects.requireNonNull(integrityDiagnostics, "integrityDiagnostics");
+            if (structuredDiagnostics.composition().matchSeed() != seed) {
+                throw new IllegalArgumentException(
+                        "Composition diagnostics differ from the match seed");
+            }
+            IntegrityDiagnostics expectedIntegrity = IntegrityDiagnostics.from(
+                    resolvedGameplayConfiguration, structuredDiagnostics);
+            if (!expectedIntegrity.equals(integrityDiagnostics)) {
+                throw new IllegalArgumentException(
+                        "Integrity diagnostics must be derived from the full structured result");
+            }
+            String expectedDiagnosticsHash =
+                    Phase13GB1SimulationExecutor.structuredDiagnosticsHash(
+                            structuredDiagnostics);
+            if (!expectedDiagnosticsHash.equals(structuredDiagnosticsHash)) {
+                throw new IllegalArgumentException(
+                        "Structured diagnostics hash differs from the complete result");
+            }
+        }
+
+        @JsonProperty
+        public CombatExecutionStatsSnapshot combatDiagnostics() {
+            return structuredDiagnostics.combat();
+        }
+
+        public ProgressionExecutionStatsSnapshot progressionDiagnostics() {
+            return structuredDiagnostics.progression();
+        }
+
+        @JsonProperty
+        public JungleEconomyExecutionStatsSnapshot jungleEconomyDiagnostics() {
+            return structuredDiagnostics.jungleEconomy();
+        }
+
+        @JsonProperty
+        public JungleTempoExecutionStatsSnapshot jungleTempoDiagnostics() {
+            return structuredDiagnostics.jungleTempo();
         }
     }
 }
