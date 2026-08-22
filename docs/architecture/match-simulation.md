@@ -40,7 +40,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 
 - `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
-- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V4`다. Batch C는 gameplay tuning이나 rules contract를 바꾸지 않고 structured eligibility diagnostics와 그 invariant gate를 추가했으므로 profile별 active rules version은 그대로다.
+- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V5`다. Batch C V4는 structured eligibility diagnostics와 invariant gate를 추가했고, V5 follow-up은 Counter Gank의 death/activity reason을 분리하고 같은 종류의 중복 major-combat attempt도 검출하도록 gate를 강화했다. Gameplay tuning과 profile별 active rules version은 그대로다.
 - `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`이다.
 - `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
@@ -142,7 +142,7 @@ Tempo는 objective attempt eligibility, probability 또는 reward에 직접 연�
 
 ### Jungle V1 focused hardening
 
-Batch C는 새 정글 행동이나 밸런스 수치를 추가하지 않는다. 기존 gank side 평가는 `NONE`, jungler unavailable, shared jungle-action cooldown, eligible lane 부재, Tempo not-ready로 구조화하고, 기존 counter-gank ineligibility도 실제 defender response 평가마다 함께 기록한다. Match-scoped diagnostics는 reason별 canonical enum map과 side별 latest decision을 immutable snapshot으로 노출한다. Gameplay resolver는 이 통계를 읽지 않으며 reason 기록 전후의 eligibility 순서와 Random 호출 순서는 같다.
+Batch C는 새 정글 행동이나 밸런스 수치를 추가하지 않는다. 기존 gank side 평가는 `NONE`, jungler unavailable, shared jungle-action cooldown, eligible lane 부재, Tempo not-ready로 구조화하고, 기존 counter-gank ineligibility도 실제 defender response 평가마다 함께 기록한다. V5에서는 `isAlive`와 non-default `PlayerActivityType`을 별도로 확인해 살아 있는 roaming participant를 `DEAD`로 집계하지 않는다. Match-scoped diagnostics는 reason별 canonical enum map과 side별 latest decision을 immutable snapshot으로 노출한다. Gameplay resolver는 이 통계를 읽지 않으며 reason 기록 전후의 eligibility 순서와 Random 호출 순서는 같다.
 
 Focused gate는 다음 교차 계약을 한 묶음으로 검증한다.
 
@@ -150,9 +150,9 @@ Focused gate는 다음 교차 계약을 한 묶음으로 검증한다.
 - 실제 gank마다 counter-gank eligibility가 한 번 평가되며 actual gank/counter-gank 수와 Tempo consumption 수가 각각 같다.
 - 180초 FARM 뒤 시작한 actual gank는 이미 받은 그 tick의 CS/gold/XP를 취소하지 않고 190/200초의 future FARM만 놓친다. Passive gold는 계속 지급되고 210초 경계에서 catch-up 없이 재개한다.
 - death/FARM recovery와 action block이 겹치면 가장 늦은 boundary까지 유지한다. Macro FARM block도 CS/FARM gold/XP/Tempo credit/Jungle Economy Random을 모두 막되 passive gold는 유지한다.
-- duplicate/ineligible path, priority fallthrough, 한 tick 한 major combat, common reward/death path, structured summary/KILL 연결, fresh-match state와 same-seed replay를 함께 검증한다.
+- duplicate/ineligible path, priority fallthrough, 한 tick 한 major combat, common reward/death path, structured summary/KILL 연결, fresh-match state와 same-seed replay를 함께 검증한다. Major-combat gate는 종류 집합이 아니라 actual summary marker의 multiplicity를 유지하므로 같은 tick의 같은 종류 중복도 실패하며, 연결된 `KILL`은 별도 attempt로 세지 않는다.
 
-다섯 profile의 configuration hash와 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`은 바뀌지 않았다. Engine implementation만 V3에서 V4로 올라가 replay provenance hash는 의도적으로 달라지지만, 기존 네 profile 12경기의 complete timeline과 Random fingerprint는 Pre-Tempo oracle과 exact parity다. Tempo candidate의 12 fixed-seed report도 Batch C 전후 byte-identical하다. 이 gate는 correctness hardening이며 calibration이나 `PRODUCTION_V1` 채택 결정이 아니다.
+다섯 profile의 configuration hash와 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`은 바뀌지 않았다. Engine implementation은 Batch C V4 뒤 follow-up V5로 올라가 replay provenance hash는 의도적으로 달라지지만, 기존 네 profile 12경기의 complete timeline과 Random fingerprint는 Pre-Tempo oracle과 exact parity다. Tempo candidate의 12 fixed-seed report도 Batch C 전후와 V5에서 byte-identical하다. 이 gate는 correctness hardening이며 calibration이나 `PRODUCTION_V1` 채택 결정이 아니다.
 
 ## Combat Strength Inputs
 

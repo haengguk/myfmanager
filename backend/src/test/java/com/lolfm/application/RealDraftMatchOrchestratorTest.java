@@ -265,7 +265,7 @@ class RealDraftMatchOrchestratorTest {
                 .isEqualTo(SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
         assertThat(value.activeGameplayRulesVersion()).isEqualTo(value.engineRulesVersion());
         assertThat(value.engineImplementationVersion())
-                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V4");
+                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V5");
         assertThat(value.randomFingerprint().randomDrawCount()).isPositive();
         assertThat(value.randomFingerprint().randomTraceHash()).matches("[0-9a-f]{64}");
         assertThat(value.resourceProvenance().resources()).hasSize(10)

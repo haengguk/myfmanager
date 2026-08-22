@@ -88,8 +88,8 @@ Draft resource wiring은 Spring의 `ChampionCatalog` instance를 재사용해 ac
 - Mutable gameplay state는 현재 match의 `GameState`, `TeamState`, `PlayerState` 또는 match-owned state에 둔다. resolver는 match 간 상태를 보유하지 않는다.
 - Resolver evaluation, trigger success, actual attempt, combat outcome, actual kill은 서로 다른 단계다. 평가 또는 trigger 실패만으로 major-combat slot, FARM 제한, cooldown, gameplay summary event를 소비하지 않는다.
 - 높은 priority resolver가 actual attempt를 만들지 못하면 낮은 priority resolver로 fall through한다. actual attempt가 시작되면 `NO_KILL`이어도 해당 규칙에 따라 slot과 opportunity cost를 소비할 수 있다.
-- 한 tick의 major combat은 central priority flow와 match-owned participant registry로 제한한다.
-- Jungle gank/counter-gank의 base/Tempo eligibility는 structured reason과 side identity로 match diagnostics에 남는다. 이 관찰값은 gameplay 판정이나 Random 소비의 입력이 아니다.
+- 한 tick의 major combat은 central priority flow와 match-owned participant registry로 제한한다. Timeline gate는 actual summary marker 수를 보존해 같은 종류의 중복 attempt도 검출하고 연결된 `KILL`은 별도 attempt로 세지 않는다.
+- Jungle gank/counter-gank의 base/Tempo eligibility는 structured reason과 side identity로 match diagnostics에 남는다. Death와 살아 있는 non-default activity는 별도 reason이며, 이 관찰값은 gameplay 판정이나 Random 소비의 입력이 아니다.
 - kill, assist, shutdown, death, respawn은 공통 reward/death path를 사용한다. summary action event와 연결된 `KILL` event는 하나의 combat을 설명한다.
 - FARM opportunity cost는 이미 획득한 CS를 빼지 않고 blocked tick으로 표현한다. passive gold는 별도 규칙이 없는 한 계속 지급한다.
 - 같은 seed, team, assignment, options에서는 resolver 실행 순서와 Random 소비 순서가 같아야 한다. diagnostics는 이를 관찰할 뿐 변경하지 않는다.

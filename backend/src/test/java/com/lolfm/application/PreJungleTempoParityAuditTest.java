@@ -126,7 +126,7 @@ class PreJungleTempoParityAuditTest {
                         .hasSize(expected.path("snapshotCount").asInt());
 
                 assertThat(provenance.engineImplementationVersion())
-                        .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V4");
+                        .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V5");
                 assertThat(provenance.replayProvenanceHash())
                         .isNotEqualTo(expected.path("replayProvenanceHash").asText());
                 rows.add(new ParityRow(
@@ -148,7 +148,7 @@ class PreJungleTempoParityAuditTest {
         PreTempoParityReport report = new PreTempoParityReport(
                 "JUNGLE_TEMPO_PRE_PROFILE_PARITY_REPORT_V1", BASELINE_SHA256,
                 "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V2",
-                "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V4",
+                "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V5",
                 "configuration, draft, final assignment, complete timeline hash, Random draw "
                         + "count/hash, winner, duration, event count, and snapshot count are exact; "
                         + "replay provenance changes only because the engine implementation changed",

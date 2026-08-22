@@ -115,8 +115,14 @@ public final class CounterGankResolver {
             return CounterGankIneligibility.OUTSIDE_WINDOW;
         }
         TeamSide defendingSide = attackingSide.opposite();
-        if (!state.getTeamState(defendingSide).playerAt(Position.JUNGLE).canParticipateInMajorCombatAt(time)) {
+        PlayerState defendingJungler = state.getTeamState(defendingSide)
+                .playerAt(Position.JUNGLE);
+        if (!defendingJungler.isAlive(time)) {
             return CounterGankIneligibility.DEFENDING_JUNGLER_DEAD;
+        }
+        if (defendingJungler.getActivityState().getActivityType()
+                != PlayerActivityType.DEFAULT_ROLE) {
+            return CounterGankIneligibility.DEFENDING_JUNGLER_ACTIVITY_UNAVAILABLE;
         }
         int last = state.jungleActionState(defendingSide).getLastJungleActionAtSeconds();
         if (last >= 0 && time - last < CounterGankRuleConfig.COUNTER_GANK_ACTION_COOLDOWN_SECONDS) {
@@ -124,7 +130,13 @@ public final class CounterGankResolver {
         }
         for (TeamSide side : TeamSide.values()) {
             for (PlayerState player : lanePlayers(state.getTeamState(side), lane)) {
-                if (!player.canParticipateInMajorCombatAt(time)) return CounterGankIneligibility.LANE_PARTICIPANT_DEAD;
+                if (!player.isAlive(time)) {
+                    return CounterGankIneligibility.LANE_PARTICIPANT_DEAD;
+                }
+                if (player.getActivityState().getActivityType()
+                        != PlayerActivityType.DEFAULT_ROLE) {
+                    return CounterGankIneligibility.LANE_PARTICIPANT_ACTIVITY_UNAVAILABLE;
+                }
             }
         }
         if (state.isJungleGankTempoEnabled()) {

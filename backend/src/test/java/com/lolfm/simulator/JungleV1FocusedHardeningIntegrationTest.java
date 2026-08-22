@@ -2,6 +2,7 @@ package com.lolfm.simulator;
 
 import static com.lolfm.testing.CompleteTimelineAssertions.assertCompleteTimelineEquals;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lolfm.champion.ChampionAssignment;
 import com.lolfm.champion.ChampionId;
@@ -17,7 +18,6 @@ import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.Position;
 import com.lolfm.factory.DummyDataFactory;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +59,23 @@ class JungleV1FocusedHardeningIntegrationTest {
         assertStructuredJungleRewards(counter.timeline().getEvents());
         assertThat(first.combatExecutionStats().jungleGankAttempts()).isPositive();
         assertThat(counter.combatExecutionStats().counterGankAttempts()).isPositive();
+    }
+
+    @Test
+    void oneMajorCombatGateRejectsTwoSameKindAttemptsAtTheSameTick() {
+        MatchEvent summary = new MatchEvent(
+                180, MatchEventType.JUNGLE_GANK, "first", null, null, List.of());
+        MatchEvent associatedKill = new MatchEvent(
+                180, MatchEventType.KILL, "kill", null, null, List.of());
+        associatedKill.setCombatSource(CombatSource.JUNGLE_GANK);
+        assertOneMajorCombatPerTick(List.of(summary, associatedKill));
+
+        MatchEvent duplicateSummary = new MatchEvent(
+                180, MatchEventType.JUNGLE_GANK, "second", null, null, List.of());
+        assertThatThrownBy(() -> assertOneMajorCombatPerTick(
+                List.of(summary, associatedKill, duplicateSummary)))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("actual major combat attempts at 180");
     }
 
     @Test
@@ -210,67 +227,57 @@ class JungleV1FocusedHardeningIntegrationTest {
 
     private void assertOneMajorCombatPerTick(List<MatchEvent> events) {
         Set<Integer> objectiveFightTimes = events.stream()
-                .filter(event -> event.getCombatSource() == CombatSource.OBJECTIVE_FIGHT
-                        || event.getObjectiveDecision() != null
+                .filter(event -> event.getObjectiveDecision() != null
                         && event.getObjectiveDecision().majorCombatConsumed())
                 .map(MatchEvent::getTimeSeconds)
                 .collect(java.util.stream.Collectors.toSet());
         Set<Integer> lateGameFightTimes = events.stream()
-                .filter(event -> event.getCombatSource() == CombatSource.LATE_GAME_SIEGE
-                        || event.getCombatSource() == CombatSource.BASE_DEFENSE
-                        || event.getLateGameDecision() != null
+                .filter(event -> event.getLateGameDecision() != null
                         && event.getLateGameDecision().majorCombatConsumed())
                 .map(MatchEvent::getTimeSeconds)
                 .collect(java.util.stream.Collectors.toSet());
-        Map<Integer, Set<MajorCombatKind>> byTime = new HashMap<>();
+        Map<Integer, List<MajorCombatKind>> byTime = new HashMap<>();
         for (MatchEvent event : events) {
-            MajorCombatKind kind = majorCombatKind(
+            MajorCombatKind kind = majorCombatAttemptMarker(
                     event, objectiveFightTimes, lateGameFightTimes);
             if (kind != null) {
                 byTime.computeIfAbsent(event.getTimeSeconds(), ignored ->
-                        EnumSet.noneOf(MajorCombatKind.class)).add(kind);
+                        new ArrayList<>()).add(kind);
             }
         }
         assertThat(byTime).allSatisfy((time, attempts) ->
                 assertThat(attempts)
-                        .as("major combat kinds at %s", time)
+                        .as("actual major combat attempts at %s: %s", time, attempts)
                         .hasSizeLessThanOrEqualTo(1));
     }
 
-    private MajorCombatKind majorCombatKind(
+    private MajorCombatKind majorCombatAttemptMarker(
             MatchEvent event,
             Set<Integer> objectiveFightTimes,
             Set<Integer> lateGameFightTimes
     ) {
-        if (event.getType() == MatchEventType.JUNGLE_GANK
-                || event.getType() == MatchEventType.COUNTER_GANK
-                || event.getCombatSource() == CombatSource.JUNGLE_GANK
-                || event.getCombatSource() == CombatSource.COUNTER_GANK) {
-            return MajorCombatKind.JUNGLE;
-        }
-        if (event.getType() == MatchEventType.ROAM
-                || event.getCombatSource() == CombatSource.ROAM) return MajorCombatKind.ROAM;
-        if (event.getType() == MatchEventType.LANE_COMBAT
-                || event.getCombatSource() == CombatSource.LANE_COMBAT) return MajorCombatKind.LANE;
-        if (event.getCombatSource() == CombatSource.SKIRMISH) return MajorCombatKind.SKIRMISH;
-        if (objectiveFightTimes.contains(event.getTimeSeconds())
-                && (event.getType() == MatchEventType.TEAMFIGHT
-                || event.getType() == MatchEventType.TEAMFIGHT_RESULT
-                || event.getCombatSource() == CombatSource.OBJECTIVE_FIGHT)) {
+        if (event.getObjectiveDecision() != null
+                && event.getObjectiveDecision().majorCombatConsumed()) {
             return MajorCombatKind.OBJECTIVE;
         }
-        if (lateGameFightTimes.contains(event.getTimeSeconds())
-                && (event.getType() == MatchEventType.TEAMFIGHT
-                || event.getType() == MatchEventType.TEAMFIGHT_RESULT
-                || event.getCombatSource() == CombatSource.LATE_GAME_SIEGE
-                || event.getCombatSource() == CombatSource.BASE_DEFENSE)) {
+        if (event.getLateGameDecision() != null
+                && event.getLateGameDecision().majorCombatConsumed()) {
             return MajorCombatKind.LATE_GAME;
         }
+        if (event.getType() == MatchEventType.JUNGLE_GANK
+                || event.getType() == MatchEventType.COUNTER_GANK) {
+            return MajorCombatKind.JUNGLE;
+        }
+        if (event.getType() == MatchEventType.ROAM) return MajorCombatKind.ROAM;
+        if (event.getType() == MatchEventType.LANE_COMBAT) return MajorCombatKind.LANE;
+        if (event.getType() == MatchEventType.KILL
+                && event.getCombatSource() == CombatSource.SKIRMISH) {
+            return MajorCombatKind.SKIRMISH;
+        }
         if (event.getType() == MatchEventType.TEAMFIGHT
-                || event.getType() == MatchEventType.TEAMFIGHT_RESULT
-                || event.getCombatSource() == CombatSource.TEAMFIGHT) return MajorCombatKind.TEAMFIGHT;
-        if (event.getCombatSource() == CombatSource.OBJECTIVE_FIGHT) {
-            return MajorCombatKind.OBJECTIVE;
+                && !objectiveFightTimes.contains(event.getTimeSeconds())
+                && !lateGameFightTimes.contains(event.getTimeSeconds())) {
+            return MajorCombatKind.TEAMFIGHT;
         }
         return null;
     }

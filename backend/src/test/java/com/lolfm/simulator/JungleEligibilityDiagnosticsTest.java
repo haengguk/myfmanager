@@ -85,6 +85,26 @@ class JungleEligibilityDiagnosticsTest {
     }
 
     @Test
+    void liveRoamingCounterGankParticipantsAreNotReportedAsDead() {
+        GameState defenderActivity = standardState();
+        PlayerState defendingJungler = defenderActivity.getRedTeamState()
+                .playerAt(Position.JUNGLE);
+        defendingJungler.beginRoamActivity(Lane.MID, Lane.TOP, 170);
+        assertThat(defendingJungler.isAlive(180)).isTrue();
+        assertCounterIneligibility(
+                defenderActivity,
+                CounterGankIneligibility.DEFENDING_JUNGLER_ACTIVITY_UNAVAILABLE);
+
+        GameState laneActivity = standardState();
+        PlayerState redTop = laneActivity.getRedTeamState().playerAt(Position.TOP);
+        redTop.beginRoamActivity(Lane.TOP, Lane.MID, 170);
+        assertThat(redTop.isAlive(180)).isTrue();
+        assertCounterIneligibility(
+                laneActivity,
+                CounterGankIneligibility.LANE_PARTICIPANT_ACTIVITY_UNAVAILABLE);
+    }
+
+    @Test
     void eligibleCounterGankRecordsTheDefendingSideBeforeOneResponseRoll() {
         GameState state = at(standardState(), 180);
         CountingRandom random = new CountingRandom(0.99);
