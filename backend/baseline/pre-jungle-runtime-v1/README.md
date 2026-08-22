@@ -21,7 +21,7 @@
 - `SHA256SUMS.txt`: JSON raw-byte SHA-256
 - build report mirror: `backend/build/reports/pre-jungle-runtime-baseline/`
 
-JSON SHA-256은 `2dcf67a3501200f0bce3de6239dcfbed3b27bafdc9287940f3f56171223a1d71`이다. Production source tree identity는 453 files, `7373bd094d8c638853988e809447718ec65ee8630b9d6168a5f57b9c07564d76`이며 source revision은 `68a5f38802256e37ded082c1333a78216948576d`다. Revision은 uncommitted Batch A 변경 전체를 표현하지 않으므로 production tree hash가 exact local source identity를 보완한다.
+JSON은 Git line-ending 변환을 금지한 canonical CRLF raw bytes이며 SHA-256은 `2dcf67a3501200f0bce3de6239dcfbed3b27bafdc9287940f3f56171223a1d71`이다. Production source tree identity는 453 files, `7373bd094d8c638853988e809447718ec65ee8630b9d6168a5f57b9c07564d76`이며 source revision은 `68a5f38802256e37ded082c1333a78216948576d`다. Revision은 uncommitted Batch A 변경 전체를 표현하지 않으므로 production tree hash가 exact local source identity를 보완한다.
 
 ## Fixed schedule
 

@@ -1,3 +1,6 @@
 /gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
+
+# Immutable baseline JSON is pinned by raw-byte SHA-256. Preserve canonical CRLF.
+backend/baseline/**/*.json -text whitespace=cr-at-eol

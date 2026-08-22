@@ -140,7 +140,7 @@ public final class PreJungleTempoBaselineV1Generator {
                     regressionStatus, SimulationProvenanceService.ENGINE_IMPLEMENTATION_VERSION,
                     SimulationInstrumentation.enabled(), profiles, commonResources,
                     List.copyOf(matches));
-            byte[] bytes = mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(document);
+            byte[] bytes = BaselineArtifactJson.write(mapper, document);
             writeOutputs(bytes, SOURCE_OUTPUT, REPORT_OUTPUT);
         }
     }

@@ -9,7 +9,7 @@ This local immutable oracle was generated before any Jungle Tempo production cod
 - Canonical production guard: 464 files / `674b3148d782e98753bfd9e79f8b5f78b12cc3ecea8a85bc34ff8fbcaa2def0d`
 - Full regression status reused from the clean Jungle V1-A final tree: `CLEAN_PASS`
 
-`SHA256SUMS.txt` pins the source JSON bytes. The source-guarded generator refuses a different production tree and refuses to overwrite an existing artifact with different bytes.
+`SHA256SUMS.txt` pins the canonical CRLF source JSON bytes. Git line-ending conversion is disabled for baseline JSON, and the source-guarded generator emits CRLF independent of the host OS, refuses a different production tree, and refuses to overwrite an existing artifact with different bytes.
 
 After Jungle Tempo V1-B, run:
 

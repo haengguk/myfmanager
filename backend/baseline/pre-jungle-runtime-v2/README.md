@@ -29,7 +29,7 @@ Final full regression은 156 suites / 1,978 tests / failures 0 / errors 0 / skip
 - `SHA256SUMS.txt`: JSON raw-byte SHA-256
 - build report mirror: `backend/build/reports/pre-jungle-runtime-baseline-v2/`
 
-JSON SHA-256은 `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`다. Production source identity는 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`이다. Source revision은 `8a55664955fad82d037ca9286be6bdb050b029fe`에 이 exact working-tree hash를 결합해 기록했다.
+JSON은 Git line-ending 변환을 금지한 canonical CRLF raw bytes이며 SHA-256은 `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`다. Production source identity는 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`이다. Source revision은 `8a55664955fad82d037ca9286be6bdb050b029fe`에 이 exact working-tree hash를 결합해 기록했다.
 
 ## Fixed schedule and contract
 

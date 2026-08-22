@@ -115,7 +115,7 @@ cd backend
   -PbaselineSourceRevision=<git-revision-or-working-tree-identity>
 ```
 
-Generator는 `CLEAN_PASS`와 source revision property가 없으면 fail-fast한다. Profile schedule은 `BASELINE_V1`, `MATCHUP_ONLY_CANDIDATE_V1`, `FULL_SYSTEM_CANDIDATE_V1` 세 개로 고정되고 각 profile의 Jungle contribution이 `DISABLED_NOT_INTEGRATED`인지 확인한다. 결과는 `backend/baseline/pre-jungle-runtime-v2/`과 동일 bytes의 `backend/build/reports/pre-jungle-runtime-baseline-v2/`에 기록된다. Existing source와 candidate bytes가 다르면 report candidate만 남기고 source overwrite를 거부한다.
+Generator는 `CLEAN_PASS`와 source revision property가 없으면 fail-fast한다. Profile schedule은 `BASELINE_V1`, `MATCHUP_ONLY_CANDIDATE_V1`, `FULL_SYSTEM_CANDIDATE_V1` 세 개로 고정되고 각 profile의 Jungle contribution이 `DISABLED_NOT_INTEGRATED`인지 확인한다. 결과는 `backend/baseline/pre-jungle-runtime-v2/`과 동일 bytes의 `backend/build/reports/pre-jungle-runtime-baseline-v2/`에 기록된다. Existing source와 candidate bytes가 다르면 report candidate만 남기고 source overwrite를 거부한다. Immutable baseline JSON은 생성 OS와 무관하게 canonical CRLF bytes로 직렬화하고 `.gitattributes`의 `-text` 규칙으로 Git line-ending 변환을 금지한다. `BaselineArtifactByteIntegrityTest`가 tracked raw bytes와 `SHA256SUMS.txt`의 일치를 기본 focused lane에서 확인한다.
 
 V1 task `generatePreJungleRuntimeBaseline`은 immutable predecessor 재생성을 항상 거부한다. Official V2 생성 뒤에는 같은 명령을 새 JVM에서 다시 실행해 source bytes가 exact equality로 승인되는지 확인한다.
 
@@ -134,7 +134,7 @@ Jungle Economy candidate correctness는 별도 focused tests에서 pure JRM/PATH
 
 ### Pre-Jungle Tempo oracle and V1-B diagnostics
 
-Jungle Tempo production 수정 직전에 기존 네 profile을 3개 real-match case로 실행한 immutable oracle을 만들었다. Artifact는 `baseline/pre-jungle-tempo-runtime-v1/pre-jungle-tempo-runtime-baseline-v1.json`, raw SHA-256은 `17f703a48949b63bf4ca25f4b32be2bc22fac87a439cdd8cb7c18aadc7f82074`다. 생성기는 당시 464-file canonical production guard를 고정하므로 V1-B production tree에서 재생성할 수 없고 existing bytes도 overwrite하지 않는다.
+Jungle Tempo production 수정 직전에 기존 네 profile을 3개 real-match case로 실행한 immutable oracle을 만들었다. Artifact는 `baseline/pre-jungle-tempo-runtime-v1/pre-jungle-tempo-runtime-baseline-v1.json`, canonical CRLF raw SHA-256은 `17f703a48949b63bf4ca25f4b32be2bc22fac87a439cdd8cb7c18aadc7f82074`다. 생성기는 당시 464-file canonical production guard를 고정하므로 V1-B production tree에서 재생성할 수 없고 existing bytes도 overwrite하지 않는다.
 
 V1-B 이후 기존 네 profile exact parity와 bounded candidate 관찰은 각각 분리된 diagnostic task다.
 
@@ -146,7 +146,7 @@ cd backend
 
 첫 task는 12 matches의 configuration/Draft/final assignment/complete timeline/Random fingerprint/result exact equality를 검증하고 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`을 쓴다. Replay provenance hash는 engine V2→V3 변경 때문에 equality에서 제외한다. 두 번째 task는 12 fixed same-seed Economy-only/Tempo pair의 readiness와 actual consumption을 기록한다. 이 작은 sample은 구조 확인용이며 calibration이나 production-activation gate가 아니다.
 
-V1-B focused correctness는 `JungleTempoStateTest`, `JungleTempoGankIntegrationTest`, economy/runtime integration과 real GEN–T1 smoke가 담당한다. Ineligible/duplicate/failed trigger는 tempo state와 Random을 소비하지 않고, 실제 no-kill gank와 successful counter response는 각각 자기 side의 credit만 한 번 소비하며, non-attempt는 lane combat으로 fall through해야 한다.
+V1-B focused correctness는 `JungleTempoStateTest`, `JungleTempoGankIntegrationTest`, economy/runtime integration과 real GEN–T1 smoke가 담당한다. Tempo-not-ready/ineligible/duplicate path는 tempo state와 trigger Random을 소비하지 않는다. Tempo-ready 뒤 failed trigger는 eligible trigger Random만 소비하고 tempo credit, action state와 downstream action Random은 보존한다. 실제 no-kill gank와 successful counter response는 각각 자기 side의 credit만 한 번 소비하며, non-attempt는 lane combat으로 fall through해야 한다.
 
 현재 serial final full regression은 163 suites / 1,940 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 500.926초, Gradle wall 8분 32초로 clean pass했다. V1-B final canonical production guard는 471 files / `143112d499c9731e25de80edf2883621c7bb9c3c948907f4a0c8d0146093a260`이다. `verifyPreJungleTempoParity`는 12/12 exact gameplay parity로 통과했다.
 

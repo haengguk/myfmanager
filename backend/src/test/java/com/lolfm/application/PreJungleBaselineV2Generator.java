@@ -124,7 +124,7 @@ public final class PreJungleBaselineV2Generator {
                     SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION,
                     SimulationInstrumentation.enabled(), profiles, commonResources,
                     List.copyOf(matches));
-            byte[] bytes = mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(document);
+            byte[] bytes = BaselineArtifactJson.write(mapper, document);
             writeOutputs(bytes, SOURCE_OUTPUT, REPORT_OUTPUT);
         }
     }
