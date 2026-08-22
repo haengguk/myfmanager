@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 class MatchSimulatorSmokeTest {
 
@@ -92,6 +93,8 @@ class MatchSimulatorSmokeTest {
     }
 
     @Test
+    @Tag("diagnostic")
+    @Tag("simulation-distribution")
     void sampledMatchesCanFinishBeforeFortyMinutesWithoutEndingTooEarly() {
         boolean foundEarlyFinish = false;
 
@@ -196,6 +199,8 @@ class MatchSimulatorSmokeTest {
 
 
     @Test
+    @Tag("diagnostic")
+    @Tag("simulation-distribution")
     void nexusEndStatisticsAcrossOneThousandSeeds() {
         int nexusEnds = 0;
         int timeouts = 0;
@@ -652,6 +657,8 @@ class MatchSimulatorSmokeTest {
     }
 
     @Test
+    @Tag("diagnostic")
+    @Tag("simulation-distribution")
     void objectiveAttemptStatisticsAcrossTwoHundredSeeds() {
         int matchesWithDragon = 0;
         int matchesWithBaron = 0;
@@ -943,6 +950,8 @@ class MatchSimulatorSmokeTest {
     }
 
     @Test
+    @Tag("diagnostic")
+    @Tag("simulation-distribution")
     void dragonSoulStatisticsAcrossOneThousandSeeds() {
         int matchesWithSoul = 0, blueSouls = 0, redSouls = 0, soulWinnerMatches = 0, matchesWithoutSoul = 0;
         int before25 = 0, from25To30 = 0, from30To35 = 0, from35To40 = 0, after40 = 0;
@@ -1004,6 +1013,8 @@ class MatchSimulatorSmokeTest {
 
 
     @Test
+    @Tag("diagnostic")
+    @Tag("simulation-distribution")
     void playerAttributesProduceBalancedMirrorsAndClearStrongTeamAdvantage() {
         ScenarioMetrics equal = runAttributeScenario(14, 14, 500);
         ScenarioMetrics strongVsWeak = runAttributeScenario(18, 10, 500);

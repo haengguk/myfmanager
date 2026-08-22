@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag("diagnostic")
+@Tag("phase13g-real-proficiency")
 class Phase13GRealProficiencyReachabilityAuditTest {
     @Test
     void executesRoleSpecificGateForEveryRealHighProficiencyKey() throws Exception {

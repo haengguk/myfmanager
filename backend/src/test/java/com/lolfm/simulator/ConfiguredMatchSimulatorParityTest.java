@@ -1,5 +1,7 @@
 package com.lolfm.simulator;
 
+import static com.lolfm.testing.CompleteTimelineAssertions.assertCompleteObservedMatchEquals;
+import static com.lolfm.testing.CompleteTimelineAssertions.assertCompleteTimelineEquals;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lolfm.champion.ChampionCatalog;
@@ -31,7 +33,7 @@ class ConfiguredMatchSimulatorParityTest {
                         SimulationInstrumentation.enabled())
                 .simulateObserved(blue, red, SEED, assignments);
 
-        assertThat(explicit.timeline()).usingRecursiveComparison().isEqualTo(existing);
+        assertCompleteTimelineEquals(explicit.timeline(), existing);
         assertThat(explicit.randomFingerprint().randomDrawCount()).isPositive();
         assertThat(explicit.randomFingerprint().randomTraceHash()).matches("[0-9a-f]{64}");
     }
@@ -51,6 +53,6 @@ class ConfiguredMatchSimulatorParityTest {
                         SimulationInstrumentation.disabled())
                 .simulateObserved(blue, red, SEED, assignments);
 
-        assertThat(disabled).usingRecursiveComparison().isEqualTo(enabled);
+        assertCompleteObservedMatchEquals(disabled, enabled);
     }
 }

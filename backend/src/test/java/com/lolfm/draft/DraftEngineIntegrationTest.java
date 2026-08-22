@@ -1,5 +1,6 @@
 package com.lolfm.draft;
 
+import static com.lolfm.testing.CompleteTimelineAssertions.assertCompleteTimelineEquals;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lolfm.domain.MatchTimeline;
@@ -70,12 +71,9 @@ class DraftEngineIntegrationTest {
         MatchTimeline replay = simulator.simulate(teams.createBlueTeam(), teams.createRedTeam(), 73L, result.matchChampionAssignments());
         assertThat(first.getWinner()).isEqualTo(replay.getWinner());
         assertThat(first.getDurationSeconds()).isEqualTo(replay.getDurationSeconds());
-        assertThat(first.getEvents()).isNotEmpty()
-                .usingRecursiveFieldByFieldElementComparator()
-                .containsExactlyElementsOf(replay.getEvents());
-        assertThat(first.getSnapshots()).isNotEmpty()
-                .usingRecursiveFieldByFieldElementComparator()
-                .containsExactlyElementsOf(replay.getSnapshots());
+        assertThat(first.getEvents()).isNotEmpty();
+        assertThat(first.getSnapshots()).isNotEmpty();
+        assertCompleteTimelineEquals(first, replay);
     }
 
     @Test

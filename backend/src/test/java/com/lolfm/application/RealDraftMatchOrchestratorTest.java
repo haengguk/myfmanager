@@ -1,8 +1,11 @@
 package com.lolfm.application;
 
+import static com.lolfm.testing.CompleteTimelineAssertions.assertCompleteTimelineEquals;
+import static com.lolfm.testing.CompleteTimelineAssertions.canonicalHash;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.ChampionAssignment;
 import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionId;
@@ -49,6 +52,7 @@ class RealDraftMatchOrchestratorTest {
     @Autowired RealDraftMatchOrchestrator orchestrator;
     @Autowired RealDraftMatchPreflightValidator preflight;
     @Autowired ChampionCatalog champions;
+    @Autowired ObjectMapper objectMapper;
 
     private SeriesDraftHistory seriesHistory;
     private RealDraftMatchResult gameOne;
@@ -230,8 +234,7 @@ class RealDraftMatchOrchestratorTest {
 
     @Test
     void sameRealInputsAndSeedReplayDraftAssignmentsAndCompleteTimelineExactly() {
-        assertThat(replay.draftResult()).usingRecursiveComparison()
-                .isEqualTo(gameOne.draftResult());
+        assertCompleteDraftResultEquals(gameOne.draftResult(), replay.draftResult());
         assertThat(replay.draftResult().decisions())
                 .containsExactlyElementsOf(gameOne.draftResult().decisions());
         assertThat(replay.draftResult().blueFinalRoleAssignments())
@@ -240,7 +243,7 @@ class RealDraftMatchOrchestratorTest {
                 .isEqualTo(gameOne.draftResult().redFinalRoleAssignments());
         assertThat(replay.matchChampionAssignments().asMap())
                 .isEqualTo(gameOne.matchChampionAssignments().asMap());
-        assertThat(replay.timeline()).usingRecursiveComparison().isEqualTo(gameOne.timeline());
+        assertCompleteTimelineEquals(gameOne.timeline(), replay.timeline());
         assertThat(replay.timeline().getWinner()).isEqualTo(gameOne.timeline().getWinner());
         assertThat(replay.timeline().getDurationSeconds())
                 .isEqualTo(gameOne.timeline().getDurationSeconds());
@@ -256,6 +259,7 @@ class RealDraftMatchOrchestratorTest {
                 .isEqualTo("c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215");
         assertThat(value.configurationHash()).isNotEqualTo(value.replayProvenanceHash());
         assertThat(value.replayProvenanceHash()).isNotEqualTo(value.timelineHash());
+        assertThat(value.timelineHash()).isEqualTo(canonicalHash(objectMapper, gameOne.timeline()));
         assertThat(value.draftDecisionHash()).isEqualTo(gameOne.draftResult().draftIdentity());
         assertThat(value.engineRulesVersion())
                 .isEqualTo(SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
@@ -282,15 +286,14 @@ class RealDraftMatchOrchestratorTest {
         SimulationExecutionProvenance freshReplay = replay.executionProvenance();
         SimulationExecutionProvenance disabled = diagnosticsOffReplay.executionProvenance();
 
-        assertThat(freshReplay).usingRecursiveComparison().isEqualTo(enabled);
+        assertThat(freshReplay).isEqualTo(enabled);
         assertThat(disabled.instrumentation().diagnosticsEnabled()).isFalse();
         assertThat(enabled.instrumentation().diagnosticsEnabled()).isTrue();
         assertThat(disabled.configurationHash()).isEqualTo(enabled.configurationHash());
         assertThat(disabled.replayProvenanceHash()).isEqualTo(enabled.replayProvenanceHash());
         assertThat(disabled.timelineHash()).isEqualTo(enabled.timelineHash());
         assertThat(disabled.randomFingerprint()).isEqualTo(enabled.randomFingerprint());
-        assertThat(diagnosticsOffReplay.timeline()).usingRecursiveComparison()
-                .isEqualTo(gameOne.timeline());
+        assertCompleteTimelineEquals(gameOne.timeline(), diagnosticsOffReplay.timeline());
     }
 
     @Test
@@ -341,6 +344,36 @@ class RealDraftMatchOrchestratorTest {
                 assertThat(assignment.selectedPosition()).isEqualTo(entry.getValue());
             }
         }
+    }
+
+    private void assertCompleteDraftResultEquals(FinalDraftResult expected,
+                                                 FinalDraftResult actual) {
+        assertThat(actual.ruleSet()).isEqualTo(expected.ruleSet());
+        assertThat(actual.blueBans()).containsExactlyElementsOf(expected.blueBans());
+        assertThat(actual.redBans()).containsExactlyElementsOf(expected.redBans());
+        assertThat(actual.bluePicks()).containsExactlyElementsOf(expected.bluePicks());
+        assertThat(actual.redPicks()).containsExactlyElementsOf(expected.redPicks());
+        assertThat(actual.decisions()).containsExactlyElementsOf(expected.decisions());
+        assertThat(actual.blueFinalRoleAssignments())
+                .containsExactlyInAnyOrderEntriesOf(expected.blueFinalRoleAssignments());
+        assertThat(actual.redFinalRoleAssignments())
+                .containsExactlyInAnyOrderEntriesOf(expected.redFinalRoleAssignments());
+        assertThat(actual.matchChampionAssignments().selectionMode())
+                .isEqualTo(expected.matchChampionAssignments().selectionMode());
+        assertThat(actual.matchChampionAssignments().asMap())
+                .containsExactlyInAnyOrderEntriesOf(expected.matchChampionAssignments().asMap());
+        assertThat(actual.blueInitialPortfolio()).isEqualTo(expected.blueInitialPortfolio());
+        assertThat(actual.redInitialPortfolio()).isEqualTo(expected.redInitialPortfolio());
+        assertThat(actual.blueFinalPortfolio()).isEqualTo(expected.blueFinalPortfolio());
+        assertThat(actual.redFinalPortfolio()).isEqualTo(expected.redFinalPortfolio());
+        assertThat(actual.hardFearlessExclusions())
+                .containsExactlyInAnyOrderElementsOf(expected.hardFearlessExclusions());
+        assertThat(actual.draftMetaVersion()).isEqualTo(expected.draftMetaVersion());
+        assertThat(actual.requiredLegalRoleKeyHash())
+                .isEqualTo(expected.requiredLegalRoleKeyHash());
+        assertThat(actual.actualLegalRoleKeyHash())
+                .isEqualTo(expected.actualLegalRoleKeyHash());
+        assertThat(actual.draftIdentity()).isEqualTo(expected.draftIdentity());
     }
 
     private Team replacePlayerId(Team source, Position position, PlayerId replacementId) {

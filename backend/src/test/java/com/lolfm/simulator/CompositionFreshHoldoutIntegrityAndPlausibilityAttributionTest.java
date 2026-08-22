@@ -3,9 +3,12 @@ package com.lolfm.simulator;
 import com.lolfm.composition.*;
 import java.nio.file.*;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("diagnostic")
+@Tag("composition-holdout")
 class CompositionFreshHoldoutIntegrityAndPlausibilityAttributionTest {
     static CompositionFreshHoldoutIntegrityAndPlausibilityAttribution.Result result;
     static String source;

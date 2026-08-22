@@ -206,13 +206,15 @@ Final command:
 | 항목 | 결과 |
 | --- | ---: |
 | JUnit suites | 156 |
-| Tests | 1,978 |
+| Tests | 1,905 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 1,329.129 seconds |
-| Gradle wall duration | 22m 19s |
+| Aggregate JUnit XML time | 448.679 seconds |
+| Gradle wall duration | 7m 41s |
 | Build | `BUILD SUCCESSFUL` |
+
+Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했으며 각각 73 tests와 5 tests가 별도 clean pass했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
 
 최종 hardening focused 묶음은 12 suites / 52 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit 360.778초, Gradle 6분 9초로 통과했다. Closed registry/factory, 3개 frozen semantics/hash, diagnostics ON/OFF timeline+Random parity, Random observer delegation, real GEN–T1 orchestration, immutable V2 writer, canonical PlayerSkill/tag/snapshot ordering을 포함한다.
 

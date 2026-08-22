@@ -436,7 +436,7 @@ tasks.register("phase13gRealProficiencyAudit", Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     useJUnitPlatform {
-        includeTags "diagnostic"
+        includeTags "phase13g-real-proficiency"
     }
     maxHeapSize = "2g"
     outputs.upToDateWhen { false }
@@ -444,6 +444,38 @@ tasks.register("phase13gRealProficiencyAudit", Test) {
             "reports/tests/phase13gRealProficiencyAudit")
     reports.junitXml.outputLocation = layout.buildDirectory.dir(
             "test-results/phase13gRealProficiencyAudit")
+}
+
+tasks.register("compositionHoldoutAudit", Test) {
+    group = "verification"
+    description = "Runs full-population and artifact-backed composition holdout diagnostics."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "composition-holdout"
+    }
+    maxHeapSize = "2g"
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/compositionHoldoutAudit")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/compositionHoldoutAudit")
+}
+
+tasks.register("simulationDistributionAudit", Test) {
+    group = "verification"
+    description = "Runs large-seed simulation distribution and balance diagnostics."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "simulation-distribution"
+    }
+    maxHeapSize = "2g"
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/simulationDistributionAudit")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/simulationDistributionAudit")
 }
 
 tasks.register("generatePreJungleRuntimeBaseline", JavaExec) {

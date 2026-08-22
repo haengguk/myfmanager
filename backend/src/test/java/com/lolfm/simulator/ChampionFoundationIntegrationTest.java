@@ -1,5 +1,7 @@
 package com.lolfm.simulator;
 
+import static com.lolfm.testing.CompleteTimelineAssertions.assertCompleteTimelineEquals;
+import static com.lolfm.testing.CompleteTimelineAssertions.assertTimelineEqualsIgnoringPlayerChampionMetadata;
 import static org.assertj.core.api.Assertions.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.*;
@@ -29,8 +31,7 @@ class ChampionFoundationIntegrationTest {
     @Test void differentValidLineupsChangeOnlyChampionMetadata() {
         var a = runOff(77, lineupC());
         var b = runOff(77, lineupD());
-        assertThat(a).usingRecursiveComparison().ignoringFieldsMatchingRegexes(
-                ".*playerSnapshots.*champion", ".*champion.*").isEqualTo(b);
+        assertTimelineEqualsIgnoringPlayerChampionMetadata(a, b);
         assertThat(a.getSnapshots().getFirst().getPlayerSnapshots()).extracting(p -> p.getChampionId())
                 .isNotEqualTo(b.getSnapshots().getFirst().getPlayerSnapshots().stream().map(p -> p.getChampionId()).toList());
     }
@@ -38,7 +39,7 @@ class ChampionFoundationIntegrationTest {
     @Test void sameSeedAndLineupIsFullyReproducibleAndMatchesAreIsolated() {
         var first = run(101, lineupC());
         var second = run(101, lineupC());
-        assertThat(first).usingRecursiveComparison().isEqualTo(second);
+        assertCompleteTimelineEquals(first, second);
         var different = run(101, lineupD());
         assertThat(first.getSnapshots().getFirst().getPlayerSnapshots().stream()
                 .filter(p -> p.getTeamSide() == TeamSide.BLUE && p.getPosition() == Position.TOP)

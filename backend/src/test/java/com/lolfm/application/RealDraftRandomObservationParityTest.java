@@ -1,5 +1,6 @@
 package com.lolfm.application;
 
+import static com.lolfm.testing.CompleteTimelineAssertions.assertCompleteTimelineEquals;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
@@ -24,7 +25,7 @@ class RealDraftRandomObservationParityTest {
                 .simulate(observed.blueTeam(), observed.redTeam(), observed.matchSeed(),
                         observed.matchChampionAssignments());
 
-        assertThat(observed.timeline()).usingRecursiveComparison().isEqualTo(plain);
+        assertCompleteTimelineEquals(observed.timeline(), plain);
         assertThat(observed.executionProvenance().randomFingerprint().randomDrawCount())
                 .isPositive();
     }

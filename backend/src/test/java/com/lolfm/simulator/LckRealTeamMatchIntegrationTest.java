@@ -1,5 +1,6 @@
 package com.lolfm.simulator;
 
+import static com.lolfm.testing.CompleteTimelineAssertions.assertCompleteTimelineEquals;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lolfm.champion.ChampionAssignment;
@@ -40,12 +41,9 @@ class LckRealTeamMatchIntegrationTest {
         assertThat(first.getDurationSeconds()).isPositive()
                 .isLessThanOrEqualTo(MatchSimulator.SIMULATION_SAFETY_TIMEOUT_SECONDS);
         assertThat(first.getWinner()).isIn("GEN", "T1");
-        assertThat(first.getEvents()).isNotEmpty()
-                .usingRecursiveFieldByFieldElementComparator()
-                .containsExactlyElementsOf(replay.getEvents());
-        assertThat(first.getSnapshots()).isNotEmpty()
-                .usingRecursiveFieldByFieldElementComparator()
-                .containsExactlyElementsOf(replay.getSnapshots());
+        assertThat(first.getEvents()).isNotEmpty();
+        assertThat(first.getSnapshots()).isNotEmpty();
+        assertCompleteTimelineEquals(first, replay);
 
         Set<String> playerIds = new HashSet<>();
         Set<String> displayNames = new HashSet<>();

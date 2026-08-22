@@ -132,10 +132,32 @@ public final class CompositionFreshHoldoutCandidateGameplayAudit {
     }
 
     static List<Lineup> selectHoldout(List<Lineup> canonical, Set<String> excluded) {
+        return selectHoldoutWithLimits(canonical, excluded, HOLDOUT_COUNT, 20);
+    }
+
+    static List<Lineup> selectHoldoutForContract(
+            List<Lineup> canonical,
+            Set<String> excluded,
+            int selectionCount,
+            int minimumPatternCoverage
+    ) {
+        if (selectionCount < 0 || minimumPatternCoverage < 0) {
+            throw new IllegalArgumentException("selection limits must be non-negative");
+        }
+        return selectHoldoutWithLimits(
+                canonical, excluded, selectionCount, minimumPatternCoverage);
+    }
+
+    private static List<Lineup> selectHoldoutWithLimits(
+            List<Lineup> canonical,
+            Set<String> excluded,
+            int selectionCount,
+            int minimumPatternCoverage
+    ) {
         List<Lineup> available = canonical.stream().filter(x -> !excluded.contains(x.id)).toList();
         List<Lineup> selected = new ArrayList<>(); Map<String,Integer> champions = new HashMap<>(), positionChampions = new HashMap<>(); Map<String,Integer> patterns = new HashMap<>();
-        while (selected.size() < HOLDOUT_COUNT && !available.isEmpty()) {
-            Lineup best = available.stream().filter(x -> !selected.contains(x)).max((a,b) -> compareCandidate(a,b,champions,positionChampions,patterns,selected)).orElseThrow();
+        while (selected.size() < selectionCount && !available.isEmpty()) {
+            Lineup best = available.stream().filter(x -> !selected.contains(x)).max((a,b) -> compareCandidate(a,b,champions,positionChampions,patterns,selected,minimumPatternCoverage)).orElseThrow();
             selected.add(best); for (ChampionId id : best.champions.values()) champions.merge(id.value(),1,Integer::sum);
             for (Position p : POSITIONS) positionChampions.merge(best.champions.get(p).value()+":"+p.name(),1,Integer::sum);
             for (String p : PATTERNS) if (best.metric(p) >= .70) patterns.merge(p,1,Integer::sum);
@@ -143,15 +165,15 @@ public final class CompositionFreshHoldoutCandidateGameplayAudit {
         return List.copyOf(selected);
     }
 
-    private static int compareCandidate(Lineup a, Lineup b, Map<String,Integer> championUse, Map<String,Integer> roleUse, Map<String,Integer> patternUse, List<Lineup> selected) {
-        int ap = patternScore(a,patternUse), bp = patternScore(b,patternUse); if (ap != bp) return Integer.compare(ap,bp);
+    private static int compareCandidate(Lineup a, Lineup b, Map<String,Integer> championUse, Map<String,Integer> roleUse, Map<String,Integer> patternUse, List<Lineup> selected, int minimumPatternCoverage) {
+        int ap = patternScore(a,patternUse,minimumPatternCoverage), bp = patternScore(b,patternUse,minimumPatternCoverage); if (ap != bp) return Integer.compare(ap,bp);
         int am = projectedMax(a,championUse), bm = projectedMax(b,championUse); if (am != bm) return Integer.compare(bm,am);
         int as = projectedSquares(a,championUse), bs = projectedSquares(b,championUse); if (as != bs) return Integer.compare(bs,as);
         int ar = projectedRoleMax(a,roleUse), br = projectedRoleMax(b,roleUse); if (ar != br) return Integer.compare(br,ar);
         int ad = diversity(a,selected), bd = diversity(b,selected); if (ad != bd) return Integer.compare(ad,bd);
         return b.id.compareTo(a.id); // max() chooses canonical ID on a final tie
     }
-    private static int patternScore(Lineup x, Map<String,Integer> counts) { int v=0; for(String p:PATTERNS) if(counts.getOrDefault(p,0)<20 && x.metric(p)>=.70) v++; return v; }
+    private static int patternScore(Lineup x, Map<String,Integer> counts, int minimumPatternCoverage) { int v=0; for(String p:PATTERNS) if(counts.getOrDefault(p,0)<minimumPatternCoverage && x.metric(p)>=.70) v++; return v; }
     private static int projectedMax(Lineup x, Map<String,Integer> use) { int max=0; for(ChampionId id:x.champions.values()) max=Math.max(max,use.getOrDefault(id.value(),0)+1); return max; }
     private static int projectedRoleMax(Lineup x, Map<String,Integer> use) { int max=0; for(Position p:POSITIONS) max=Math.max(max,use.getOrDefault(x.champions.get(p).value()+":"+p.name(),0)+1); return max; }
     private static int projectedSquares(Lineup x, Map<String,Integer> use) { Map<String,Integer> q=new HashMap<>(use); for(ChampionId id:x.champions.values())q.merge(id.value(),1,Integer::sum); return q.values().stream().mapToInt(v->v*v).sum(); }

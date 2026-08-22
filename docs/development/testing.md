@@ -50,6 +50,8 @@ Same-seed regression은 winner 하나만 비교하지 않는다. 같은 teams, c
 - events와 snapshots
 - final winner와 duration
 
+Complete timeline equality는 reflection 기반 deep traversal 대신 sorted-property/map-key canonical JSON SHA-256을 사용한다. 성공 경로는 hash로 비교하고 불일치 시 canonical JSON structural diff로 내려가며, winner, duration, event 수, snapshot 수와 테스트 고유 의미는 명시 assertion으로 남긴다. 별도 mutation contract가 duration/winner, event 순서와 structured participant/combat source, snapshot/player economy, objective, structure 변경을 각각 탐지하는지 검증한다.
+
 같은 JVM 안의 equality만으로 cross-process 결정성을 증명할 수는 없다. Seeded draw를 enum/set iteration에 배정하거나 timeline hash에 collection serialization이 들어가는 변경은 별도 JVM 두 번의 artifact/canonical timeline SHA도 비교한다.
 
 Draft는 Random을 사용하지 않는다. 동일 resource, `DraftTeamContext`, `SeriesDraftHistory`에서 decisions, final role assignments, `draftIdentity()`가 같아야 한다.
@@ -81,7 +83,17 @@ cd backend
 ./gradlew phase13gRealProficiencyAudit # 537 keys / 1,611 scenarios / JSON+CSV+SHA
 ```
 
-기본 `test`에는 role-fixed completion helper, flex false-positive cases, identity/catalog/resource/API contract, 소수 representative real keys, `@TempDir` report writer만 남는다. 전체 audit JUnit class는 `diagnostic` tag이며 default task가 제외한다. 따라서 기본 test는 shared full-population report를 만들거나 입력으로 읽지 않는다.
+Composition full-population/holdout 및 simulation distribution은 다음 전용 lane을 사용한다.
+
+```bash
+cd backend
+./gradlew compositionHoldoutAudit      # 7,776 lineups, 240 holdout, 1,000 pairs, artifact inventory
+./gradlew simulationDistributionAudit  # large-seed duration/objective/soul/player-impact statistics
+```
+
+Diagnostic JUnit은 공통 `diagnostic` tag와 task별 tag를 함께 가진다. 각 custom task는 `composition-holdout`, `simulation-distribution`, `phase13g-real-proficiency`처럼 자기 domain tag만 include하므로 다른 diagnostic을 우연히 함께 실행하지 않는다. 기본 lane에는 bounded in-memory holdout selection/schedule 계약과 composition runtime identity/authorization/gain/sign/Random-isolation 계약이 남는다. 다중 seed라도 participant legality, duplicate prevention, respawn, one-action-per-tick처럼 deterministic invariant를 검증하는 테스트는 diagnostic으로 이동하지 않는다.
+
+기본 `test`에는 role-fixed completion helper, flex false-positive cases, identity/catalog/resource/API contract, 소수 representative real keys, `@TempDir` report writer만 남는다. 전체 audit JUnit class는 `diagnostic` tag이며 default task가 제외한다. 따라서 기본 test는 shared full-population report를 만들거나 입력으로 읽지 않는다. Artifact inventory diagnostic은 CSV를 line streaming으로 읽어 같은 header/row semantics를 유지하면서 전체 report tree를 한꺼번에 heap에 올리지 않는다.
 
 Diagnostic 결과를 normal unit-test assertion으로 옮기려면 먼저 그것이 balance observation이 아니라 deterministic invariant인지 확인한다.
 
@@ -107,7 +119,7 @@ Generator는 `CLEAN_PASS`와 source revision property가 없으면 fail-fast한�
 
 V1 task `generatePreJungleRuntimeBaseline`은 immutable predecessor 재생성을 항상 거부한다. Official V2 생성 뒤에는 같은 명령을 새 JVM에서 다시 실행해 source bytes가 exact equality로 승인되는지 확인한다.
 
-현재 hardening focused 묶음은 12 suites / 52 tests, final full regression은 156 suites / 1,978 tests가 clean pass했다. Production guard는 full 전후 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`으로 동일했다. V2 baseline은 full pass 뒤 생성했고 새 JVM에서 같은 raw SHA `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`로 재검증했다.
+현재 serial final full regression은 156 suites / 1,905 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 448.679초, Gradle wall 7분 41초로 clean pass했다. Full-population composition diagnostic 73 tests와 large-seed simulation distribution diagnostic 5 tests도 각각 전용 task에서 별도로 clean pass했다. Production guard는 이전 runtime baseline hardening full 전후 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`으로 동일했다. V2 baseline은 그 full pass 뒤 생성했고 새 JVM에서 같은 raw SHA `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`로 재검증했다.
 
 ## Generated Reports
 

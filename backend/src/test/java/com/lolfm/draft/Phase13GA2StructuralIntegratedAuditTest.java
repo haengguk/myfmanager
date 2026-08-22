@@ -1,5 +1,6 @@
 package com.lolfm.draft;
 
+import static com.lolfm.testing.CompleteTimelineAssertions.assertCompleteTimelineEquals;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
@@ -234,7 +235,7 @@ class Phase13GA2StructuralIntegratedAuditTest {
     @Test
     void hardFearlessBanDoesNotConsumeChampion() {
         SeriesDraftHistory history = new SeriesDraftHistory();
-        FinalDraftResult gameOne = engine.draft(context("synthetic-neutral"), context("synthetic-neutral"), history);
+        FinalDraftResult gameOne = neutralDraft;
         history.commitCompleted(gameOne);
         assertThat(history.consumedPicks()).doesNotContainAnyElementsOf(gameOne.blueBans());
         assertThat(history.consumedPicks()).doesNotContainAnyElementsOf(gameOne.redBans());
@@ -351,8 +352,7 @@ class Phase13GA2StructuralIntegratedAuditTest {
                 neutralDraft.matchChampionAssignments());
         assertThat(first.getWinner()).isEqualTo(second.getWinner());
         assertThat(first.getDurationSeconds()).isEqualTo(second.getDurationSeconds());
-        assertThat(first.getEvents()).usingRecursiveFieldByFieldElementComparator().containsExactlyElementsOf(second.getEvents());
-        assertThat(first.getSnapshots()).usingRecursiveFieldByFieldElementComparator().containsExactlyElementsOf(second.getSnapshots());
+        assertCompleteTimelineEquals(first, second);
     }
 
     @Test

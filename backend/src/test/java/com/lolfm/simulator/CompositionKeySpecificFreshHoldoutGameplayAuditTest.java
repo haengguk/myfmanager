@@ -1,5 +1,8 @@
 package com.lolfm.simulator;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.champion.ChampionCatalog;
+import com.lolfm.champion.ChampionSelectionValidator;
 import com.lolfm.composition.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,38 +12,26 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CompositionKeySpecificFreshHoldoutGameplayAuditTest {
-    static CompositionKeySpecificFreshHoldoutGameplayAudit.Prepared prepared;
+    private static final int CONTRACT_CASE_INDEX = 0;
     static CompositionRuntimeState runtime;
     static String auditSource;
 
     @BeforeAll static void setup() throws Exception {
-        prepared = CompositionKeySpecificFreshHoldoutGameplayAudit.prepare();
-        var first = prepared.schedule().getFirst();
-        var byId = new HashMap<String,CompositionFreshHoldoutCandidateGameplayAudit.Lineup>();
-        prepared.pool().forEach(x -> byId.put(x.id(), x));
-        runtime = new CompositionRuntimeState(TeamCompositionGameplayMode.SHADOW, first.seed(),
+        runtime = new CompositionRuntimeState(TeamCompositionGameplayMode.SHADOW, 13_047_001L,
                 CompositionCandidateExecutionAuthorization.none(),
-                CompositionSemanticsAuditExecutionAuthorization.frozenDiagnosticCase(first.caseIndex()),
-                CompositionKeySpecificCandidateAuditAuthorization.frozenFreshHoldoutCase(first.caseIndex()));
-        runtime.initialize(CompositionAuditOnlySemanticsRuntime.assignments(byId.get(first.blueLineupId()), byId.get(first.redLineupId())));
+                CompositionSemanticsAuditExecutionAuthorization.frozenDiagnosticCase(CONTRACT_CASE_INDEX),
+                CompositionKeySpecificCandidateAuditAuthorization.frozenFreshHoldoutCase(CONTRACT_CASE_INDEX));
+        runtime.initialize(new ChampionSelectionValidator(new ChampionCatalog(new ObjectMapper()))
+                .resolve(null));
         auditSource = Files.readString(Path.of("src/test/java/com/lolfm/simulator/CompositionKeySpecificFreshHoldoutGameplayAudit.java"));
     }
 
     @Test void runtimeCandidateMatchesFrozenCandidateHash(){assertEquals(FrozenCompositionKeySpecificChannelCandidate.HASH,FrozenCompositionKeySpecificChannelCandidate.canonicalHash());}
     @Test void candidateConfigurationCannotDrift(){assertDoesNotThrow(()->FrozenCompositionKeySpecificChannelCandidate.verifyIdentity(FrozenCompositionKeySpecificChannelCandidate.VERSION,FrozenCompositionKeySpecificChannelCandidate.HASH));}
     @Test void wrongCandidateAuthorizationFailsFast(){var a=new CompositionKeySpecificCandidateAuditAuthorization(FrozenCompositionKeySpecificChannelCandidate.VERSION,"bad",0,true);var e=assertThrows(CompositionGameplayConfigurationException.class,a::verifyExact);assertEquals("COMPOSITION_KEY_SPECIFIC_CANDIDATE_IDENTITY_MISMATCH",e.code());}
-    @Test void candidateAuthorizationIsMatchScoped(){assertEquals(prepared.schedule().getFirst().caseIndex(),runtime.keySpecificCandidateAuthorization().holdoutCaseIndex());}
+    @Test void candidateAuthorizationIsMatchScoped(){assertEquals(CONTRACT_CASE_INDEX,runtime.keySpecificCandidateAuthorization().holdoutCaseIndex());}
     @Test void publicApiCannotEnableFreshHoldoutCandidate(){assertFalse(CompositionKeySpecificCandidateAuditAuthorization.none().enabled());}
     @Test void productionUsesFrozenV2(){assertEquals(TeamCompositionGameplayMode.PRODUCTION_V2,SimulationOptions.productionDefaults().teamCompositionGameplayMode());}
-
-    @Test void freshHoldoutUsesNoPriorOrderedPairs(){assertEquals(0,prepared.priorOrderedOverlap());}
-    @Test void freshHoldoutUsesNoPriorUnorderedPairs(){assertEquals(0,prepared.priorUnorderedOverlap());}
-    @Test void freshHoldoutUsesNoPriorSeeds(){assertEquals(0,prepared.priorSeedOverlap());}
-    @Test void freshHoldoutUsesNoPriorLineupsWhenFeasible(){assertEquals(0,prepared.priorLineupOverlap());}
-    @Test void scheduleIsFrozenBeforeGameplayExecution(){assertTrue(auditSource.indexOf("writeFrozenSchedule(prepared)")<auditSource.indexOf("for (CompositionAuditOnlySemanticsRuntime.ScheduleCase row"));}
-    @Test void scheduleSelectionDoesNotUseGameplayOutcome(){assertFalse(auditSource.substring(auditSource.indexOf("static Prepared prepare"),auditSource.indexOf("static MatchSimulator candidateSimulator")).contains("winnerSide"));}
-    @Test void everyUnorderedPairHasBothOrientations(){assertEquals(0,CompositionAuditOnlySemanticsRuntime.missingReverse(prepared.schedule()));}
-    @Test void crossTeamChampionOverlapIsZero(){assertTrue(prepared.edges().stream().noneMatch(x->CompositionKeySpecificFreshHoldoutGameplayAudit.championOverlap(x.left(),x.right())));}
 
     @Test void teamfightUsesFrozenWinnerGain(){assertGain(TeamCompositionContext.TEAMFIGHT,CompositionActionType.TEAMFIGHT,CompositionBaselineScoreDomain.TEAMFIGHT_COMBAT_SCORE,CompositionCombatRole.SYMMETRIC,FrozenCompositionKeySpecificChannelCandidate.TEAMFIGHT_WINNER_GAIN);}
     @Test void siegeUsesFrozenWinnerGain(){assertGain(TeamCompositionContext.SIEGE,CompositionActionType.SIEGE_COMBAT,CompositionBaselineScoreDomain.SIEGE_PUSH_SCORE,CompositionCombatRole.ATTACKER,FrozenCompositionKeySpecificChannelCandidate.SIEGE_WINNER_GAIN);}

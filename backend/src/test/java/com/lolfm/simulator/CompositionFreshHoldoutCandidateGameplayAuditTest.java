@@ -3,6 +3,7 @@ package com.lolfm.simulator;
 import com.lolfm.champion.ChampionId;
 import com.lolfm.domain.Position;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
@@ -13,6 +14,8 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Tag("diagnostic")
+@Tag("composition-holdout")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CompositionFreshHoldoutCandidateGameplayAuditTest {
     private List<CompositionFreshHoldoutCandidateGameplayAudit.Lineup> canonical;

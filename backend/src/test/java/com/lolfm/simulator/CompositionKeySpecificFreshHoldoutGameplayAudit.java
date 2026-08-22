@@ -4,6 +4,7 @@ import com.lolfm.champion.MatchChampionAssignments;
 import com.lolfm.champion.ChampionRoleMatchupProfileCatalog;
 import com.lolfm.composition.*;
 import com.lolfm.domain.Position;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -173,14 +174,17 @@ public final class CompositionKeySpecificFreshHoldoutGameplayAudit {
         Path reports=Path.of("build/reports"); if(!Files.exists(reports)) return new Prior(Set.of(),Set.of(),Set.of(),Set.of(),List.of());
         try(var stream=Files.walk(reports)){for(Path p:stream.filter(Files::isRegularFile).filter(x->x.toString().endsWith(".csv")).toList()){
             if(p.startsWith(OUT)||p.equals(CompositionFreshHoldoutCandidateGameplayAudit.CANONICAL))continue;
-            List<String> lines=Files.readAllLines(p,StandardCharsets.UTF_8);if(lines.isEmpty())continue;
-            List<String> header=CompositionAuditOnlySemanticsRuntime.csv(lines.getFirst());Map<String,Integer> h=index(header);
-            Integer li=h.get("lineupId"),bi=h.get("blueLineupId"),ri=h.get("redLineupId"),si=h.get("seed");
-            if(li==null&&bi==null&&si==null)continue;sources.add(p);
-            for(String line:lines.subList(1,lines.size()))if(!line.isBlank()){List<String> c=CompositionAuditOnlySemanticsRuntime.csv(line);
-                if(li!=null&&li<c.size())lineups.add(c.get(li));
-                if(bi!=null&&ri!=null&&bi<c.size()&&ri<c.size()){String a=c.get(bi),b=c.get(ri);lineups.add(a);lineups.add(b);unordered.add(norm(a,b));ordered.add(a+"|"+b);}
-                if(si!=null&&si<c.size())try{seeds.add(Long.parseLong(c.get(si)));}catch(NumberFormatException ignored){}
+            try(BufferedReader reader=Files.newBufferedReader(p,StandardCharsets.UTF_8)){
+                String firstLine=reader.readLine();if(firstLine==null)continue;
+                List<String> header=CompositionAuditOnlySemanticsRuntime.csv(firstLine);Map<String,Integer> h=index(header);
+                Integer li=h.get("lineupId"),bi=h.get("blueLineupId"),ri=h.get("redLineupId"),si=h.get("seed");
+                if(li==null&&bi==null&&si==null)continue;sources.add(p);
+                String line;
+                while((line=reader.readLine())!=null)if(!line.isBlank()){List<String> c=CompositionAuditOnlySemanticsRuntime.csv(line);
+                    if(li!=null&&li<c.size())lineups.add(c.get(li));
+                    if(bi!=null&&ri!=null&&bi<c.size()&&ri<c.size()){String a=c.get(bi),b=c.get(ri);lineups.add(a);lineups.add(b);unordered.add(norm(a,b));ordered.add(a+"|"+b);}
+                    if(si!=null&&si<c.size())try{seeds.add(Long.parseLong(c.get(si)));}catch(NumberFormatException ignored){}
+                }
             }
         }}
         return new Prior(Set.copyOf(lineups),Set.copyOf(unordered),Set.copyOf(ordered),Set.copyOf(seeds),List.copyOf(sources));
