@@ -169,6 +169,30 @@ Expanded focused regression은 위 두 class와 Jungle Economy/Tempo/Gank/Counte
 
 Batch C V4 final full regression은 166 suites / 1,951 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 519.521초, Gradle wall 8분 51초로 clean pass했고 당시 production guard는 472 files / `54b53ea30453e39791dd8aa0197e95ed190697ce1b83c010baff1df540c833d9`였다. V5 follow-up final full regression은 166 suites / 1,953 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 513.886초, Gradle wall 8분 49초로 첫 실행에서 clean pass했다. Full 뒤에는 production/shared fixture를 바꾸지 않고 one-major-combat test의 marker 분류만 assertion-only로 좁혔으며 affected 5 tests가 clean pass했다. Full regression budget의 재사용 조건에 따라 full은 반복하지 않았고 immutable baseline도 재생성하지 않았다.
 
+### Final 13G-B1 audit contract and bounded dry-run
+
+B1은 통계 보정 task가 아니라 real-data 감사 입력과 실행 형식을 고정하는 단계다. Schedule은 10개 LCK 팀의 G1 90 fixtures와 all-team Hard Fearless G2 10 fixtures, fixture별 calibration 24 seeds와 holdout 8 seeds를 포함한다. 전체 hash는 `3bb5e81241a3be2a1509e67528e577ae8f48fca94dec5fc15f93ec8ac78052ef`다. Dry-run은 두 reserved lane과 분리된 seed를 사용하므로 calibration 또는 holdout 표본으로 세지 않는다.
+
+```bash
+cd backend
+./gradlew test \
+  --tests 'com.lolfm.application.Phase13GB1AuditScheduleTest' \
+  --tests 'com.lolfm.application.Phase13GB1AuditContractTest'
+./gradlew runPhase13GB1DryRun
+```
+
+첫 command는 fixture cardinality/orientation, all-team G2 pairing, seed split, schedule hash와 다섯 profile의 exact configuration/rules identity를 검증한다. 두 번째 command는 실제 `GEN`–`T1` Draft fixture 하나를 profile loop 밖에서 준비하고 BASELINE / MATCHUP ONLY / FULL / FULL+JUNGLE ECONOMY / FULL+JUNGLE TEMPO를 같은 seed로 실행한다. 이어 BASELINE을 한 번 재실행해 replay provenance, complete timeline, Random fingerprint와 structured diagnostics의 exact equality를 확인한다.
+
+Report는 `build/reports/phase13g-b1/`에 생성한다.
+
+- `phase13g-b1-audit-contract.json`: 범위, source identity, 실행/미실행 lane과 다음 단계
+- `phase13g-b1-profile-contract.json`: 다섯 resolved gameplay configuration/hash/rules
+- `phase13g-b1-schedule.json`, `phase13g-b1-schedule.csv`: 100 fixtures와 3,200 reserved seed rows
+- `phase13g-b1-dry-run-provenance.json`, `phase13g-b1-dry-run-matches.csv`: 고정 Draft 5-profile 결과와 structured diagnostics
+- `SHA256SUMS.txt`: 위 6개 파일의 raw-byte SHA-256
+
+B1 task는 `diagnostic` tag라 기본 `test`에서 제외된다. 실행 결과는 5 focused tests와 1 dry-run test가 모두 clean pass했고 manifest 6/6이 일치했다. `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`가 summary contract다. 단일 dry-run의 승패·경기 시간·profile 차이로 balance 결론을 내리거나 expected value를 바꾸면 안 된다. 다음 B2는 calibration seed만 소비하며, holdout seed는 B3 전까지 실행하지 않는다. B1에서는 full regression을 실행하지 않으며 B1의 Gradle/test-harness 변경을 포함한 complete backend full은 Final 13G-B 결정 전에 반드시 실행한다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.

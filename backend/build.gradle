@@ -559,3 +559,19 @@ tasks.register("runJungleTempoCandidateDiagnostic", Test) {
     reports.junitXml.outputLocation = layout.buildDirectory.dir(
             "test-results/jungleTempoCandidateDiagnostic")
 }
+
+tasks.register("runPhase13GB1DryRun", Test) {
+    group = "verification"
+    description = "Runs the bounded five-profile real-LCK Phase 13G-B1 harness dry-run."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "phase13g-b1-dry-run"
+    }
+    maxHeapSize = "2g"
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/phase13GB1DryRun")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/phase13GB1DryRun")
+}

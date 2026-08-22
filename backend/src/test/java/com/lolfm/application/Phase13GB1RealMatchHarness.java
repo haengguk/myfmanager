@@ -1,0 +1,424 @@
+package com.lolfm.application;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.champion.ChampionCatalog;
+import com.lolfm.domain.MatchSnapshot;
+import com.lolfm.domain.PlayerSnapshot;
+import com.lolfm.domain.Position;
+import com.lolfm.draft.DraftResourceSet;
+import com.lolfm.draft.DraftRuleSet;
+import com.lolfm.draft.DraftScoringPolicy;
+import com.lolfm.draft.SeriesDraftHistory;
+import com.lolfm.player.ChampionProficiencyCatalog;
+import com.lolfm.player.PlayerIdentityCatalog;
+import com.lolfm.player.PlayerRatingCatalog;
+import com.lolfm.simulator.CombatExecutionStatsSnapshot;
+import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
+import com.lolfm.simulator.GameEndReason;
+import com.lolfm.simulator.JungleEconomyExecutionStatsSnapshot;
+import com.lolfm.simulator.JungleTempoExecutionStatsSnapshot;
+import com.lolfm.simulator.PlayerKey;
+import com.lolfm.simulator.ProgressionExecutionStatsSnapshot;
+import com.lolfm.simulator.ResolvedSimulationRuntimeProfile;
+import com.lolfm.simulator.SimulationGameplayConfiguration;
+import com.lolfm.simulator.SimulationInstrumentation;
+import com.lolfm.simulator.SimulationRandomFingerprint;
+import com.lolfm.simulator.SimulationRuntimeProfileId;
+import com.lolfm.simulator.SimulationRuntimeProfiles;
+import com.lolfm.simulator.TeamSide;
+import com.lolfm.simulator.Phase13GB1SimulationExecutor;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+/** Reuses one production real-Draft fixture across the five closed runtime profiles. */
+public final class Phase13GB1RealMatchHarness {
+    public static final String SCHEMA = "PHASE_13G_B_REAL_MATCH_HARNESS_V1";
+    public static final List<SimulationRuntimeProfileId> AUDIT_PROFILES = List.of(
+            SimulationRuntimeProfileId.BASELINE_V1,
+            SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1,
+            SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1,
+            SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1,
+            SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1);
+
+    private final RealDraftMatchOrchestrator orchestrator;
+    private final ConfiguredMatchSimulatorFactory simulators;
+    private final SimulationProvenanceService provenance;
+
+    public Phase13GB1RealMatchHarness(
+            RealDraftMatchOrchestrator orchestrator,
+            ConfiguredMatchSimulatorFactory simulators,
+            ObjectMapper mapper,
+            ChampionCatalog champions,
+            PlayerIdentityCatalog identities,
+            PlayerRatingCatalog ratings,
+            ChampionProficiencyCatalog proficiencies
+    ) {
+        this.orchestrator = Objects.requireNonNull(orchestrator, "orchestrator");
+        this.simulators = Objects.requireNonNull(simulators, "simulators");
+        DraftResourceSet resources = DraftResourceSet.loadDefault(
+                Objects.requireNonNull(mapper, "mapper"),
+                Objects.requireNonNull(champions, "champions"));
+        provenance = new SimulationProvenanceService(
+                mapper,
+                resources,
+                Objects.requireNonNull(identities, "identities"),
+                Objects.requireNonNull(ratings, "ratings"),
+                Objects.requireNonNull(proficiencies, "proficiencies"),
+                DraftRuleSet.professional(),
+                DraftScoringPolicy.standard());
+    }
+
+    public PreparedFixture prepareFixture(Phase13GB1AuditSchedule.Fixture fixture) {
+        requireRegisteredFixture(fixture);
+        SeriesDraftHistory history = new SeriesDraftHistory();
+        RealDraftMatchResult prepared = null;
+        for (int game = 1; game <= fixture.seriesGameNumber(); game++) {
+            long preparationSeed = preparationSeed(fixture, game);
+            prepared = orchestrator.orchestrate(
+                    fixture.blueTeamCode(),
+                    fixture.redTeamCode(),
+                    history,
+                    preparationSeed,
+                    SimulationRuntimeProfileId.BASELINE_V1,
+                    SimulationInstrumentation.enabled());
+        }
+        if (prepared == null || prepared.seriesGameNumber() != fixture.seriesGameNumber()) {
+            throw new IllegalStateException("Real Draft fixture preparation did not reach target game");
+        }
+        if (!prepared.blueTeamCode().equals(fixture.blueTeamCode())
+                || !prepared.redTeamCode().equals(fixture.redTeamCode())) {
+            throw new IllegalStateException("Prepared real Draft side identity mismatch");
+        }
+        return new PreparedFixture(
+                fixture,
+                prepared,
+                fixture.seriesGameNumber(),
+                "PRODUCTION_REAL_DRAFT_ORCHESTRATOR_ONCE_PER_SERIES_GAME_THEN_FIXED_REUSE");
+    }
+
+    public List<AuditMatchRun> executeAllProfiles(
+            PreparedFixture prepared,
+            Phase13GB1AuditSchedule.SampleLane sampleLane,
+            long seed
+    ) {
+        Objects.requireNonNull(prepared, "prepared");
+        requireRegisteredFixture(prepared.fixture());
+        requireScheduledSeed(prepared.fixture(), sampleLane, seed);
+        ArrayList<AuditMatchRun> result = new ArrayList<>(AUDIT_PROFILES.size());
+        for (SimulationRuntimeProfileId profileId : AUDIT_PROFILES) {
+            result.add(execute(prepared, sampleLane, seed, profileId));
+        }
+        assertFixedDraftReuse(result);
+        return List.copyOf(result);
+    }
+
+    public AuditMatchRun execute(
+            PreparedFixture prepared,
+            Phase13GB1AuditSchedule.SampleLane sampleLane,
+            long seed,
+            SimulationRuntimeProfileId profileId
+    ) {
+        Objects.requireNonNull(prepared, "prepared");
+        requireRegisteredFixture(prepared.fixture());
+        requireScheduledSeed(prepared.fixture(), sampleLane, seed);
+        if (!AUDIT_PROFILES.contains(profileId)) {
+            throw new IllegalArgumentException("Profile is outside the frozen 13G-B audit set");
+        }
+        RealDraftMatchResult fixture = prepared.realDraftFixture();
+        ResolvedSimulationRuntimeProfile profile = SimulationRuntimeProfiles.resolve(profileId);
+        var execution = Phase13GB1SimulationExecutor.execute(
+                simulators,
+                fixture.blueTeam(),
+                fixture.redTeam(),
+                fixture.matchChampionAssignments(),
+                profileId,
+                seed,
+                fixture.blueTeamCode(),
+                fixture.redTeamCode());
+        SimulationExecutionProvenance executionProvenance = provenance.create(
+                profile,
+                SimulationInstrumentation.enabled(),
+                fixture.blueTeamCode(),
+                fixture.blueTeam(),
+                fixture.redTeamCode(),
+                fixture.redTeam(),
+                seed,
+                fixture.seriesGameNumber(),
+                fixture.hardFearlessExclusionsBeforeDraft(),
+                fixture.draftResult(),
+                execution.timeline(),
+                execution.randomFingerprint());
+        MatchSnapshot finalSnapshot = execution.timeline().getSnapshots().getLast();
+        return new AuditMatchRun(
+                SCHEMA,
+                prepared.fixture().fixtureId(),
+                prepared.fixture().fixtureLane(),
+                sampleLane,
+                fixture.blueTeamCode(),
+                fixture.redTeamCode(),
+                fixture.seriesGameNumber(),
+                seed,
+                profileId,
+                profile.gameplayConfiguration(),
+                profile.configurationHash(),
+                profile.activeGameplayRulesVersion(),
+                executionProvenance.engineImplementationVersion(),
+                executionProvenance.resourceProvenance().resourceProvenanceHash(),
+                executionProvenance.rosterIdentityHash(),
+                executionProvenance.seriesHistoryBeforeHash(),
+                executionProvenance.draftDecisionHash(),
+                executionProvenance.finalDraftHash(),
+                executionProvenance.finalAssignmentHash(),
+                executionProvenance.replayProvenanceHash(),
+                executionProvenance.timelineHash(),
+                execution.randomFingerprint(),
+                execution.timeline().getWinner(),
+                execution.winnerSide(),
+                execution.endReason(),
+                execution.timeline().getDurationSeconds(),
+                finalSnapshot.getBlueKills(),
+                finalSnapshot.getRedKills(),
+                finalSnapshot.getBlueGold(),
+                finalSnapshot.getRedGold(),
+                finalSnapshot.getBlueDragons(),
+                finalSnapshot.getRedDragons(),
+                finalSnapshot.getBlueTowersDestroyed(),
+                finalSnapshot.getRedTowersDestroyed(),
+                jungleCheckpoint(fixture, finalSnapshot, TeamSide.BLUE),
+                jungleCheckpoint(fixture, finalSnapshot, TeamSide.RED),
+                execution.combat(),
+                execution.jungleEconomy(),
+                execution.jungleTempo(),
+                integrity(execution.duplicateEconomyResolutions(), execution.progression()));
+    }
+
+    public SimulationResourceProvenance resourceProvenance() {
+        return provenance.resourceProvenance();
+    }
+
+    private static void requireScheduledSeed(
+            Phase13GB1AuditSchedule.Fixture fixture,
+            Phase13GB1AuditSchedule.SampleLane sampleLane,
+            long seed
+    ) {
+        Objects.requireNonNull(sampleLane, "sampleLane");
+        boolean valid = switch (sampleLane) {
+            case DRY_RUN -> seed == Phase13GB1AuditSchedule.dryRunSeed(fixture);
+            case CALIBRATION -> fixture.calibrationSeeds().contains(seed);
+            case HOLDOUT -> fixture.holdoutSeeds().contains(seed);
+        };
+        if (!valid) {
+            throw new IllegalArgumentException(
+                    "Seed is not registered in " + sampleLane + " for " + fixture.fixtureId());
+        }
+    }
+
+    private static void requireRegisteredFixture(Phase13GB1AuditSchedule.Fixture fixture) {
+        Objects.requireNonNull(fixture, "fixture");
+        Phase13GB1AuditSchedule.Fixture registered = Phase13GB1AuditSchedule.create()
+                .allFixtures().stream()
+                .filter(value -> value.fixtureId().equals(fixture.fixtureId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Fixture is outside the frozen 13G-B schedule: " + fixture.fixtureId()));
+        if (!registered.equals(fixture)) {
+            throw new IllegalArgumentException(
+                    "Fixture differs from the frozen 13G-B schedule: " + fixture.fixtureId());
+        }
+    }
+
+    private static void assertFixedDraftReuse(List<AuditMatchRun> runs) {
+        if (runs.size() != AUDIT_PROFILES.size()
+                || runs.stream().map(AuditMatchRun::profileId).distinct().count()
+                != AUDIT_PROFILES.size()
+                || runs.stream().map(AuditMatchRun::draftDecisionHash).distinct().count() != 1
+                || runs.stream().map(AuditMatchRun::finalDraftHash).distinct().count() != 1
+                || runs.stream().map(AuditMatchRun::finalAssignmentHash).distinct().count() != 1
+                || runs.stream().map(AuditMatchRun::resourceProvenanceHash).distinct().count() != 1
+                || runs.stream().map(AuditMatchRun::rosterIdentityHash).distinct().count() != 1) {
+            throw new IllegalStateException("Five-profile paired run did not reuse one fixed fixture");
+        }
+    }
+
+    private static JungleCheckpoint jungleCheckpoint(
+            RealDraftMatchResult fixture,
+            MatchSnapshot snapshot,
+            TeamSide side
+    ) {
+        PlayerSnapshot player = snapshot.getPlayerSnapshots().stream()
+                .filter(value -> value.getTeamSide() == side
+                        && value.getPosition() == Position.JUNGLE)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Missing final jungle snapshot for " + side));
+        var playerId = fixture.playerIdsByMatchSlot().get(new PlayerKey(side, Position.JUNGLE));
+        if (playerId == null) throw new IllegalStateException("Missing jungle PlayerId for " + side);
+        return new JungleCheckpoint(
+                side,
+                playerId.value(),
+                player.getChampionId(),
+                player.getKills(),
+                player.getDeaths(),
+                player.getAssists(),
+                player.getCs(),
+                player.getGold(),
+                player.getTotalExperience(),
+                player.getLevel(),
+                player.getItemStage().name());
+    }
+
+    private static IntegrityDiagnostics integrity(
+            int duplicateEconomyResolutions,
+            ProgressionExecutionStatsSnapshot progression
+    ) {
+        return new IntegrityDiagnostics(
+                duplicateEconomyResolutions,
+                progression.duplicateXpReward(),
+                progression.invalidPlayer(),
+                progression.featureOffMutation(),
+                progression.duplicateLevelEvent(),
+                progression.duplicateItemEvent(),
+                progression.levelRollback(),
+                progression.itemRollback(),
+                progression.levelOver18(),
+                progression.powerOffContributionError(),
+                progression.championMultiplierError(),
+                progression.championSpikeError(),
+                progression.positionMultiplierError(),
+                progression.levelSpikeBonusError());
+    }
+
+    private static long preparationSeed(Phase13GB1AuditSchedule.Fixture fixture, int game) {
+        return Phase13GB1AuditSchedule.dryRunSeed(fixture)
+                ^ Long.rotateLeft(0x9e3779b97f4a7c15L, game * 7);
+    }
+
+    public record PreparedFixture(
+            Phase13GB1AuditSchedule.Fixture fixture,
+            RealDraftMatchResult realDraftFixture,
+            int productionOrchestrationCount,
+            String reusePolicy
+    ) {
+        public PreparedFixture {
+            Objects.requireNonNull(fixture, "fixture");
+            Objects.requireNonNull(realDraftFixture, "realDraftFixture");
+            if (productionOrchestrationCount != fixture.seriesGameNumber()) {
+                throw new IllegalArgumentException("Preparation count must equal target series game");
+            }
+            reusePolicy = Objects.requireNonNull(reusePolicy, "reusePolicy");
+            if (!realDraftFixture.blueTeamCode().equals(fixture.blueTeamCode())
+                    || !realDraftFixture.redTeamCode().equals(fixture.redTeamCode())
+                    || realDraftFixture.seriesGameNumber() != fixture.seriesGameNumber()) {
+                throw new IllegalArgumentException(
+                        "Prepared result differs from the scheduled fixture identity");
+            }
+        }
+    }
+
+    public record JungleCheckpoint(
+            TeamSide side,
+            String playerId,
+            String championId,
+            int kills,
+            int deaths,
+            int assists,
+            int cs,
+            int gold,
+            int totalExperience,
+            int level,
+            String itemStage
+    ) {
+    }
+
+    public record IntegrityDiagnostics(
+            int duplicateEconomyResolutions,
+            int duplicateXpReward,
+            int invalidPlayer,
+            int featureOffMutation,
+            int duplicateLevelEvent,
+            int duplicateItemEvent,
+            int levelRollback,
+            int itemRollback,
+            int levelOver18,
+            int powerOffContributionError,
+            int championMultiplierError,
+            int championSpikeError,
+            int positionMultiplierError,
+            int levelSpikeBonusError
+    ) {
+        public boolean clean() {
+            return duplicateEconomyResolutions == 0
+                    && duplicateXpReward == 0
+                    && invalidPlayer == 0
+                    && featureOffMutation == 0
+                    && duplicateLevelEvent == 0
+                    && duplicateItemEvent == 0
+                    && levelRollback == 0
+                    && itemRollback == 0
+                    && levelOver18 == 0
+                    && powerOffContributionError == 0
+                    && championMultiplierError == 0
+                    && championSpikeError == 0
+                    && positionMultiplierError == 0
+                    && levelSpikeBonusError == 0;
+        }
+    }
+
+    public record AuditMatchRun(
+            String schemaVersion,
+            String fixtureId,
+            Phase13GB1AuditSchedule.FixtureLane fixtureLane,
+            Phase13GB1AuditSchedule.SampleLane sampleLane,
+            String blueTeamCode,
+            String redTeamCode,
+            int seriesGameNumber,
+            long seed,
+            SimulationRuntimeProfileId profileId,
+            SimulationGameplayConfiguration resolvedGameplayConfiguration,
+            String configurationHash,
+            String activeGameplayRulesVersion,
+            String engineImplementationVersion,
+            String resourceProvenanceHash,
+            String rosterIdentityHash,
+            String seriesHistoryBeforeHash,
+            String draftDecisionHash,
+            String finalDraftHash,
+            String finalAssignmentHash,
+            String replayProvenanceHash,
+            String timelineHash,
+            SimulationRandomFingerprint randomFingerprint,
+            String winnerTeamCode,
+            TeamSide winnerSide,
+            GameEndReason endReason,
+            int durationSeconds,
+            int blueKills,
+            int redKills,
+            int blueGold,
+            int redGold,
+            int blueDragons,
+            int redDragons,
+            int blueTowers,
+            int redTowers,
+            JungleCheckpoint blueJungle,
+            JungleCheckpoint redJungle,
+            CombatExecutionStatsSnapshot combatDiagnostics,
+            JungleEconomyExecutionStatsSnapshot jungleEconomyDiagnostics,
+            JungleTempoExecutionStatsSnapshot jungleTempoDiagnostics,
+            IntegrityDiagnostics integrityDiagnostics
+    ) {
+        public AuditMatchRun {
+            if (!SCHEMA.equals(schemaVersion)) {
+                throw new IllegalArgumentException("Unsupported B1 harness schema");
+            }
+            Objects.requireNonNull(profileId, "profileId");
+            Objects.requireNonNull(resolvedGameplayConfiguration, "resolvedGameplayConfiguration");
+            Objects.requireNonNull(randomFingerprint, "randomFingerprint");
+            Objects.requireNonNull(blueJungle, "blueJungle");
+            Objects.requireNonNull(redJungle, "redJungle");
+            Objects.requireNonNull(combatDiagnostics, "combatDiagnostics");
+            Objects.requireNonNull(jungleEconomyDiagnostics, "jungleEconomyDiagnostics");
+            Objects.requireNonNull(jungleTempoDiagnostics, "jungleTempoDiagnostics");
+            Objects.requireNonNull(integrityDiagnostics, "integrityDiagnostics");
+        }
+    }
+}

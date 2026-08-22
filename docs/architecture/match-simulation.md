@@ -154,6 +154,27 @@ Focused gate는 다음 교차 계약을 한 묶음으로 검증한다.
 
 다섯 profile의 configuration hash와 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`은 바뀌지 않았다. Engine implementation은 Batch C V4 뒤 follow-up V5로 올라가 replay provenance hash는 의도적으로 달라지지만, 기존 네 profile 12경기의 complete timeline과 Random fingerprint는 Pre-Tempo oracle과 exact parity다. Tempo candidate의 12 fixed-seed report도 Batch C 전후와 V5에서 byte-identical하다. 이 gate는 correctness hardening이며 calibration이나 `PRODUCTION_V1` 채택 결정이 아니다.
 
+### Final 13G-B real-data audit boundary
+
+B1 audit harness는 production match engine 바깥의 test-side consumer다. Production `RealDraftMatchOrchestrator`가 실제 LCK roster, Draft rules/policy, Hard Fearless history와 `FinalDraftResult`를 준비하면 harness가 그 결과를 fixture로 고정한다. 이후 profile별 match는 같은 `Team`, `MatchChampionAssignments`, series history identity와 seed를 사용한다. 따라서 비교 단위는 “profile마다 다시 뽑은 Draft”가 아니라 “같은 Draft를 서로 다른 gameplay configuration으로 실행한 결과”다.
+
+```text
+실제 team codes + series game
+  → production orchestration으로 series target까지 준비(G1=1회, G2=2회)
+  → 고정 roster / final Draft / final assignment
+  → 같은 fixture + 같은 seed
+      ├─ BASELINE
+      ├─ MATCHUP ONLY
+      ├─ FULL
+      ├─ FULL + JUNGLE ECONOMY
+      └─ FULL + JUNGLE TEMPO
+  → profile별 provenance / timeline / Random / structured diagnostics
+```
+
+Schedule identity는 10-team G1 양방향 전수 90 fixtures, all-team Hard Fearless G2 양방향 10 fixtures, calibration/holdout seed split 전체를 SHA-256으로 고정한다. Dry-run/calibration/holdout lane은 seed derivation domain부터 분리한다. Report writer에는 실행 시각이나 wall duration을 넣지 않고 canonical JSON, stable CSV ordering과 SHA manifest만 기록한다. Generated report는 관찰 증거이며 gameplay input이나 baseline이 아니다.
+
+Test-side bridge는 package-private simulator diagnostic result를 읽어 combat/Jungle Economy/Tempo/integrity 값을 평탄화하지만 production visibility를 넓히지 않는다. 진단은 gameplay state와 Random의 입력이 아니며 profile configuration hash에도 포함되지 않는다. B1은 runtime/API/frontend와 tuning을 변경하지 않고, calibration·holdout·`PRODUCTION_V1` 판단도 수행하지 않는다.
+
 ## Combat Strength Inputs
 
 전투 점수는 한 거대한 profile로 합쳐 저장하지 않는다.
