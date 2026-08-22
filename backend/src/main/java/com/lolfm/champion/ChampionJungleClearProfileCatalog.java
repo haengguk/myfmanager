@@ -13,9 +13,14 @@ import java.util.Set;
 
 /** JUNGLE-only clear profiles, separate from power, ganking, pathing and player ratings. */
 public final class ChampionJungleClearProfileCatalog {
+    private final String profileVersion;
     private final Map<ChampionRoleKey, ChampionJungleClearProfile> profiles;
 
-    private ChampionJungleClearProfileCatalog(Map<ChampionRoleKey, ChampionJungleClearProfile> profiles) {
+    private ChampionJungleClearProfileCatalog(
+            String profileVersion,
+            Map<ChampionRoleKey, ChampionJungleClearProfile> profiles
+    ) {
+        this.profileVersion = required(rawValue(profileVersion), "profileVersion");
         this.profiles = Collections.unmodifiableMap(new LinkedHashMap<>(profiles));
     }
 
@@ -55,9 +60,10 @@ public final class ChampionJungleClearProfileCatalog {
         if (!materialized.keySet().equals(expected)) {
             throw new IllegalStateException("Jungle clear coverage must match legal JUNGLE roles");
         }
-        return new ChampionJungleClearProfileCatalog(materialized);
+        return new ChampionJungleClearProfileCatalog(raw.profileVersion, materialized);
     }
 
+    public String profileVersion() { return profileVersion; }
     public Map<ChampionRoleKey, ChampionJungleClearProfile> profiles() { return profiles; }
 
     public ChampionJungleClearProfile get(ChampionRoleKey key) {
@@ -79,6 +85,15 @@ public final class ChampionJungleClearProfileCatalog {
         InputStream input = ChampionResourceManifest.open(path);
         if (input == null) throw new IllegalStateException("Missing " + role + " resource: " + path);
         return input;
+    }
+
+    private static String rawValue(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static String required(String value, String field) {
+        if (value.isBlank()) throw new IllegalStateException("Missing jungle clear " + field);
+        return value;
     }
 
     public static final class RawCatalog {

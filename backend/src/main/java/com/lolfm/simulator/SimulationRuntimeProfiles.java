@@ -15,6 +15,8 @@ import java.util.Objects;
 public final class SimulationRuntimeProfiles {
     public static final String PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION =
             "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2";
+    public static final String JUNGLE_ECONOMY_ACTIVE_GAMEPLAY_RULES_VERSION =
+            "MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V1";
     public static final String CONFIGURATION_HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_FIELD_LINES_TRAILING_NEWLINE_V1";
 
@@ -64,15 +66,25 @@ public final class SimulationRuntimeProfiles {
                 new EnumMap<>(SimulationRuntimeProfileId.class);
         register(result, SimulationRuntimeProfileId.BASELINE_V1,
                 exactConfiguration(ChampionMatchupMode.OFF, TeamCompositionGameplayMode.OFF),
-                "c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215");
+                "c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215",
+                PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
         register(result, SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1,
                 exactConfiguration(ChampionMatchupMode.GEOMETRIC_V2,
                         TeamCompositionGameplayMode.OFF),
-                "58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec");
+                "58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec",
+                PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
         register(result, SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1,
                 exactConfiguration(ChampionMatchupMode.GEOMETRIC_V2,
                         TeamCompositionGameplayMode.PRODUCTION_V2),
-                "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d");
+                "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d",
+                PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
+        register(result,
+                SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1,
+                exactConfiguration(ChampionMatchupMode.GEOMETRIC_V2,
+                        TeamCompositionGameplayMode.PRODUCTION_V2,
+                        JungleClearContribution.ECONOMY_V1),
+                "e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b",
+                JUNGLE_ECONOMY_ACTIVE_GAMEPLAY_RULES_VERSION);
         return Collections.unmodifiableMap(result);
     }
 
@@ -80,17 +92,27 @@ public final class SimulationRuntimeProfiles {
             ChampionMatchupMode matchupMode,
             TeamCompositionGameplayMode compositionMode
     ) {
+        return exactConfiguration(matchupMode, compositionMode,
+                JungleClearContribution.DISABLED_NOT_INTEGRATED);
+    }
+
+    private static SimulationGameplayConfiguration exactConfiguration(
+            ChampionMatchupMode matchupMode,
+            TeamCompositionGameplayMode compositionMode,
+            JungleClearContribution jungleClearContribution
+    ) {
         return new SimulationGameplayConfiguration(
                 true, true, true, true, true, true, true, true, true, true,
                 true, true, true, matchupMode, compositionMode,
-                JungleClearContribution.DISABLED_NOT_INTEGRATED);
+                jungleClearContribution);
     }
 
     private static void register(
             Map<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> target,
             SimulationRuntimeProfileId profileId,
             SimulationGameplayConfiguration configuration,
-            String expectedHash
+            String expectedHash,
+            String activeGameplayRulesVersion
     ) {
         String actualHash = configurationHash(configuration);
         if (!expectedHash.equals(actualHash)) {
@@ -101,6 +123,6 @@ public final class SimulationRuntimeProfiles {
         target.put(profileId,
                 new ResolvedSimulationRuntimeProfile(
                         profileId, configuration, actualHash,
-                        PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION));
+                        activeGameplayRulesVersion));
     }
 }

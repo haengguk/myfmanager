@@ -18,19 +18,20 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 ## Explicit Runtime Profiles
 
-세 profile의 공통 gameplay flag는 Lane Combat, FARM Recovery, Jungle Gank, Counter Gank, Roam, Objective Priority, Lane Phase, Mid/Late Macro, Objective Decision, Progression/Progression Power, Champion Power 모두 ON이다. 차이는 다음 두 mode뿐이며 Jungle Clear contribution은 전부 `DISABLED_NOT_INTEGRATED`다.
+네 profile의 공통 gameplay flag는 Lane Combat, FARM Recovery, Jungle Gank, Counter Gank, Roam, Objective Priority, Lane Phase, Mid/Late Macro, Objective Decision, Progression/Progression Power, Champion Power 모두 ON이다. 기존 세 profile은 Jungle Clear contribution이 `DISABLED_NOT_INTEGRATED`이고, 네 번째 candidate만 `ECONOMY_V1`이다.
 
-| Profile | Matchup | Composition | Configuration hash |
-| --- | --- | --- | --- |
-| `BASELINE_V1` | `OFF` | `OFF` | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
-| `MATCHUP_ONLY_CANDIDATE_V1` | `GEOMETRIC_V2` | `OFF` | `58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec` |
-| `FULL_SYSTEM_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
+| Profile | Matchup | Composition | Jungle Clear | Configuration hash |
+| --- | --- | --- | --- | --- |
+| `BASELINE_V1` | `OFF` | `OFF` | `DISABLED_NOT_INTEGRATED` | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
+| `MATCHUP_ONLY_CANDIDATE_V1` | `GEOMETRIC_V2` | `OFF` | `DISABLED_NOT_INTEGRATED` | `58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec` |
+| `FULL_SYSTEM_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `DISABLED_NOT_INTEGRATED` | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
+| `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_V1` | `e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b` |
 
 `BASELINE_V1`은 이름만 OFF 묶음이 아니라 현재 Spring `@Autowired MatchSimulator`의 13 gameplay booleans와 두 mode를 모두 snapshot한 profile이다. Fixed-seed complete timeline parity test가 기존 constructor path와 exact equality를 검증한다. `ChampionMatchupMode.ON`, Composition `SHADOW`/`CANDIDATE` 같은 historical/internal audit path는 application profile로 선택할 수 없다.
 
 Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
 
-세 profile은 현재 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 공유한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
+기존 세 profile은 계속 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 공유한다. Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V1`을 사용한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
 
 ## Configuration and Replay Provenance
 
@@ -38,8 +39,8 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 
 - `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
-- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V1`이다.
-- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 현재 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`다.
+- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V2`다.
+- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V1`이다.
 - `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
 - `randomFingerprint`: match의 seeded `Random.next(bits)` draw count와 resolver context/value의 ordered SHA-256을 기록한다. Gameplay input이 아닌 observational output이므로 configuration/replay hash에는 넣지 않는다.
@@ -53,7 +54,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 `MatchSimulator.runSimulation`은 매 호출마다 다음 상태를 새로 만든다.
 
 - `MatchChampionAssignments`: `PlayerKey(TeamSide, Position)`별 champion과 selected position
-- `GameState`: 시간, objective/map/lane/macro state, per-tick registries, diagnostics counters
+- `GameState`: 시간, objective/map/lane/macro state, per-side Jungle Economy state, per-tick registries, diagnostics counters
 - `TeamState`: team gold/kills/objective/buff state와 5개의 `PlayerState`
 - `PlayerState`: KDA, gold/CS, death/respawn, FARM/activity restrictions, progression
 - `CompositionRuntimeState`: 해당 match의 lineup analysis, attempt identity, observations
@@ -61,17 +62,18 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 
 `Player`가 explicit ratings profile이면 `PlayerMatchPerformance.realize`가 match seed, side, position에서 파생된 deterministic seed로 일관성 변동과 proficiency를 materialize한다. Skill별 seeded draw 배정은 `PlayerSkill` enum declaration order로 고정하며 unordered `Set` iteration에 의존하지 않는다. legacy profile이면 기존 네 가지 `PlayerAttributes` 경로를 유지한다.
 
-초기화 시 두 lineup이 TOP/JUNGLE/MID/ADC/SUPPORT를 모두 갖는지 확인하고, Champion Power와 Matchup catalog를 `GameState`에 연결한다. Composition mode가 `OFF`가 아니면 assignment로 두 5인 lineup을 만들고 active Composition profile을 한 번 분석한다.
+초기화 시 두 lineup이 TOP/JUNGLE/MID/ADC/SUPPORT를 모두 갖는지 확인하고, Champion Power, Matchup, Jungle Clear catalog를 `GameState`에 연결한다. `ECONOMY_V1`이면 양 팀의 selected JUNGLE assignment가 gameplay-enabled clear profile인지 fail-fast한다. Composition mode가 `OFF`가 아니면 assignment로 두 5인 lineup을 만들고 active Composition profile을 한 번 분석한다.
 
 ### 현재 mode wiring
 
-| 구성 경로 | Champion Power | Matchup | Composition |
-| --- | --- | --- | --- |
-| Spring `@Autowired MatchSimulator` (`MatchController`) | ON | `OFF` | `OFF` |
-| 명시적 `SimulationOptions.productionDefaults()` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` |
-| `RealDraftMatchOrchestrator` 기존 overload / `BASELINE_V1` | ON | `OFF` | `OFF` |
-| `MATCHUP_ONLY_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `OFF` |
-| `FULL_SYSTEM_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` |
+| 구성 경로 | Champion Power | Matchup | Composition | Jungle Clear |
+| --- | --- | --- | --- | --- |
+| Spring `@Autowired MatchSimulator` (`MatchController`) | ON | `OFF` | `OFF` | OFF |
+| 명시적 `SimulationOptions.productionDefaults()` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | OFF |
+| `RealDraftMatchOrchestrator` 기존 overload / `BASELINE_V1` | ON | `OFF` | `OFF` | OFF |
+| `MATCHUP_ONLY_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `OFF` | OFF |
+| `FULL_SYSTEM_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | OFF |
+| `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_V1` |
 
 이 표는 “기능이 구현되어 있는가”와 “현재 HTTP simulation이 그 기능을 적용하는가”를 분리한다.
 
@@ -83,7 +85,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 2. major-combat participant와 structure-action per-tick registry를 비우고 recent objective control을 감쇠한다.
 3. 양 팀 passive gold를 지급한다.
 4. lane pressure를 갱신한다.
-5. BLUE, RED 순서로 position economy/FARM을 처리하고 progression economy event를 배출한다.
+5. BLUE, RED 순서로 position economy/FARM을 처리하고 progression economy event를 배출한다. Jungle Economy ON에서는 기존 player iteration 위치에서 JUNGLE만 unified resolver가 CS/gold/XP를 함께 처리한다.
 6. 첫 combat priority를 실행한다: Jungle Gank → Roam → Lane Combat.
 7. objective spawn state를 갱신한다.
 8. 앞선 actual attempt가 없으면 generic Skirmish를, 그마저 없으면 scheduled Teamfight를 평가하고 teamfight 승자의 objective control을 갱신한다.
@@ -116,6 +118,7 @@ actual attempt는 `NO_KILL` 결과여도 action state, FARM block, pressure cost
 | Jungle Gank / Counter-gank | jungler eligibility, target lane, actual gank, defender response, common kill path |
 | Roam | MID/SUPPORT 이동, origin opportunity cost, target combat, activity/FARM restriction |
 | Position Economy | passive gold와 분리된 CS/FARM 처리; blocked player는 FARM Random도 소비하지 않음 |
+| Jungle Economy V1-A | `Champion Clear × Jungle Resource Management`로 JUNGLE CS expected value와 XP를 만들고 actual CS에서 FARM gold를 지급; readiness/tempo/gank/objective eligibility에는 미연결 |
 | Progression | FARM/kill XP, level, gold-derived item stage와 combat contribution |
 | Objective | Dragon/Baron/Elder spawn, priority, initiator/responder decision, contest/trade/capture |
 | Structure | lane siege, post-fight push, macro push, tower/inhibitor/base/Nexus mutation |
@@ -159,7 +162,7 @@ Frontend는 snapshot을 현재 playback time 이하에서 선택하고 event를 
 - structured timeline 전체—participants, outcome, rewards, objectives, structures, winner—가 same-seed 회귀의 대상이다.
 - replay provenance는 동일 input snapshot을 식별하고 timeline hash와 Random fingerprint는 그 input에서 나온 complete output/consumption을 별도로 식별한다.
 
-공식 Pre-Jungle cross-process oracle은 `backend/baseline/pre-jungle-runtime-v2/`다. 세 profile × 세 case의 문서와 canonical timeline이 별도 JVM 재생성에서 byte-identical해야 한다.
+공식 Pre-Jungle cross-process oracle은 `backend/baseline/pre-jungle-runtime-v2/`다. `verifyJungleEconomyOffParity`는 기존 세 OFF profile × 세 case에서 configuration, complete timeline hash, Random draw count/trace hash가 이 artifact와 exact equality인지 검사한다. Engine/resource snapshot 변경으로 달라지는 replay provenance hash는 gameplay equality와 분리한다.
 
 ## Important Invariants
 

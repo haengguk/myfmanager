@@ -2,7 +2,7 @@ package com.lolfm.champion;
 
 import java.util.Objects;
 
-/** No-Random evaluator for the disabled phase-based jungle-clear foundation. */
+/** No-Random evaluator for the phase-based jungle-clear contribution. */
 public final class ChampionJungleClearEvaluator {
     public double evaluate(ChampionJungleClearProfile profile, int timeSeconds) {
         Objects.requireNonNull(profile, "profile");

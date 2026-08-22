@@ -4,6 +4,8 @@ import com.lolfm.champion.MatchChampionAssignments;
 import com.lolfm.champion.ChampionMatchupCatalog;
 import com.lolfm.champion.ChampionMatchupExecutionStats;
 import com.lolfm.champion.ChampionMatchupMode;
+import com.lolfm.champion.ChampionJungleClearProfileCatalog;
+import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.champion.ChampionRoleMatchupProfileCatalog;
 import com.lolfm.champion.ChampionPowerExecutionStats;
 import com.lolfm.champion.ChampionPowerProfileCatalog;
@@ -32,6 +34,13 @@ public class GameState {
     private final ChampionMatchupExecutionStats championMatchupExecutionStats =
             new ChampionMatchupExecutionStats();
     private CompositionRuntimeState compositionRuntimeState = CompositionRuntimeState.off(0L);
+    private ChampionJungleClearProfileCatalog jungleClearProfileCatalog;
+    private JungleClearContribution jungleClearContribution =
+            JungleClearContribution.DISABLED_NOT_INTEGRATED;
+    private final EnumMap<TeamSide, JungleEconomyState> jungleEconomyStates =
+            new EnumMap<>(TeamSide.class);
+    private final JungleEconomyExecutionStats jungleEconomyExecutionStats =
+            new JungleEconomyExecutionStats();
 
     private int currentTimeSeconds;
     private final TeamState blueTeamState;
@@ -135,7 +144,10 @@ public class GameState {
             duplicateStructureAttemptPendingBySide.put(side, false);
         }
         for (Lane lane : Lane.values()) laneStates.put(lane, new LaneState(lane));
-        for (TeamSide side : TeamSide.values()) jungleActionStates.put(side, new JungleActionState());
+        for (TeamSide side : TeamSide.values()) {
+            jungleActionStates.put(side, new JungleActionState());
+            jungleEconomyStates.put(side, new JungleEconomyState());
+        }
         this.lastBigWinTimeSeconds = -1;
         this.lastAceTimeSeconds = -1;
         configureProgression(true, true);
@@ -157,6 +169,39 @@ public class GameState {
         compositionRuntimeState = java.util.Objects.requireNonNull(runtimeState, "runtimeState");
     }
     public CompositionRuntimeState getCompositionRuntimeState() { return compositionRuntimeState; }
+    public void configureJungleEconomy(
+            ChampionJungleClearProfileCatalog catalog,
+            JungleClearContribution contribution
+    ) {
+        jungleClearProfileCatalog = java.util.Objects.requireNonNull(catalog, "catalog");
+        jungleClearContribution = java.util.Objects.requireNonNull(contribution, "contribution");
+        if (!contribution.economyEnabled()) return;
+        MatchChampionAssignments assignments = getChampionAssignments().orElseThrow(() ->
+                new IllegalStateException("Jungle economy requires champion assignments"));
+        for (TeamSide side : TeamSide.values()) {
+            PlayerKey playerKey = new PlayerKey(side, com.lolfm.domain.Position.JUNGLE);
+            ChampionRoleKey roleKey = new ChampionRoleKey(
+                    assignments.get(playerKey).championId(), com.lolfm.domain.Position.JUNGLE);
+            if (!catalog.get(roleKey).gameplayEnabled()) {
+                throw new IllegalStateException(
+                        "Jungle economy requires a gameplay-enabled clear profile: " + roleKey);
+            }
+        }
+    }
+    public java.util.Optional<ChampionJungleClearProfileCatalog> getJungleClearProfileCatalog() {
+        return java.util.Optional.ofNullable(jungleClearProfileCatalog);
+    }
+    public JungleClearContribution getJungleClearContribution() { return jungleClearContribution; }
+    public boolean isJungleEconomyEnabled() { return jungleClearContribution.economyEnabled(); }
+    public JungleEconomyState jungleEconomyState(TeamSide side) {
+        return jungleEconomyStates.get(java.util.Objects.requireNonNull(side, "side"));
+    }
+    public Map<TeamSide, JungleEconomyState> getJungleEconomyStates() {
+        return Map.copyOf(jungleEconomyStates);
+    }
+    public JungleEconomyExecutionStats getJungleEconomyExecutionStats() {
+        return jungleEconomyExecutionStats;
+    }
     public void configureChampionPower(ChampionPowerProfileCatalog catalog,boolean enabled){championPowerProfileCatalog=java.util.Objects.requireNonNull(catalog);championPowerEnabled=enabled;}
     public java.util.Optional<ChampionPowerProfileCatalog> getChampionPowerProfileCatalog(){return java.util.Optional.ofNullable(championPowerProfileCatalog);}
     public boolean isChampionPowerEnabled(){return championPowerEnabled;}

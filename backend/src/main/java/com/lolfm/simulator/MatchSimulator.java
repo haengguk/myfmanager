@@ -4,6 +4,7 @@ import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionMatchupCatalog;
 import com.lolfm.champion.ChampionMatchupExecutionStatsSnapshot;
 import com.lolfm.champion.ChampionMatchupMode;
+import com.lolfm.champion.ChampionJungleClearProfileCatalog;
 import com.lolfm.champion.ChampionRoleMatchupProfileCatalog;
 import com.lolfm.champion.ChampionResourceSet;
 import com.lolfm.champion.ChampionSelectionValidator;
@@ -50,6 +51,8 @@ public class MatchSimulator {
             ChampionMatchupCatalog.neutral(DEFAULT_CHAMPION_CATALOG);
     private static final ChampionRoleMatchupProfileCatalog DEFAULT_CHAMPION_MATCHUP_PROFILES =
             DEFAULT_CHAMPION_RESOURCES.matchup();
+    private static final ChampionJungleClearProfileCatalog DEFAULT_JUNGLE_CLEAR_PROFILES =
+            DEFAULT_CHAMPION_RESOURCES.jungleClear();
 
     private static final Logger logger = LoggerFactory.getLogger(MatchSimulator.class);
     public static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = 5_400;
@@ -92,6 +95,7 @@ public class MatchSimulator {
     private final ChampionMatchupCatalog championMatchupCatalog;
     private final ChampionRoleMatchupProfileCatalog championMatchupProfiles;
     private final TeamCompositionGameplayMode teamCompositionGameplayMode;
+    private final JungleClearContribution jungleClearContribution;
     private final CompositionCandidateExecutionAuthorization candidateExecutionAuthorization;
     private final CompositionSemanticsAuditExecutionAuthorization semanticsAuditAuthorization;
     private final CompositionKeySpecificCandidateAuditAuthorization keySpecificCandidateAuthorization;
@@ -210,6 +214,7 @@ public class MatchSimulator {
                 championMatchupCatalog, "championMatchupCatalog");
         this.championMatchupProfiles = null;
         this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
+        this.jungleClearContribution = options.jungleClearContribution();
         this.candidateExecutionAuthorization = CompositionCandidateExecutionAuthorization.none();
         this.semanticsAuditAuthorization = CompositionSemanticsAuditExecutionAuthorization.none();
         this.keySpecificCandidateAuthorization = CompositionKeySpecificCandidateAuditAuthorization.none();
@@ -273,6 +278,7 @@ public class MatchSimulator {
         this.championMatchupProfiles = java.util.Objects.requireNonNull(championMatchupProfiles, "championMatchupProfiles");
         this.championMatchupCatalog = null;
         this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
+        this.jungleClearContribution = options.jungleClearContribution();
         this.candidateExecutionAuthorization = java.util.Objects.requireNonNull(candidateExecutionAuthorization, "candidateExecutionAuthorization");
         this.semanticsAuditAuthorization = java.util.Objects.requireNonNull(semanticsAuditAuthorization, "semanticsAuditAuthorization");
         this.jungleGankResolver = new JungleGankResolver(counterGankEnabled);
@@ -314,6 +320,7 @@ public class MatchSimulator {
         this.championMatchupProfiles = java.util.Objects.requireNonNull(championMatchupProfiles, "championMatchupProfiles");
         this.championMatchupCatalog = null;
         this.teamCompositionGameplayMode = options.teamCompositionGameplayMode();
+        this.jungleClearContribution = options.jungleClearContribution();
         this.candidateExecutionAuthorization = java.util.Objects.requireNonNull(candidateExecutionAuthorization, "candidateExecutionAuthorization");
         this.semanticsAuditAuthorization = java.util.Objects.requireNonNull(semanticsAuditAuthorization, "semanticsAuditAuthorization");
         this.keySpecificCandidateAuthorization = java.util.Objects.requireNonNull(keySpecificCandidateAuthorization, "keySpecificCandidateAuthorization");
@@ -547,6 +554,7 @@ public class MatchSimulator {
                 gameState.getObjectiveDecisionState().getHistory(),
                 gameState.getStructureActionExecutionStats().snapshot(),
                 gameState.getProgressionExecutionStats().snapshot(),
+                gameState.getJungleEconomyExecutionStats().snapshot(),
                 gameState.getChampionPowerExecutionStats().snapshot(),
                 gameState.getChampionMatchupExecutionStats().snapshot(),
                 gameState.getCombatOutcomeExecutionStats().snapshot(),
@@ -586,6 +594,7 @@ public class MatchSimulator {
             List<ObjectiveDecisionData> objectiveDecisionHistory,
             StructureActionExecutionStatsSnapshot structureActionExecutionStats,
             ProgressionExecutionStatsSnapshot progressionExecutionStats,
+            JungleEconomyExecutionStatsSnapshot jungleEconomyExecutionStats,
             com.lolfm.champion.ChampionPowerExecutionStatsSnapshot championPowerExecutionStats,
             ChampionMatchupExecutionStatsSnapshot championMatchupExecutionStats,
             CombatOutcomeExecutionStatsSnapshot combatOutcomeExecutionStats,
@@ -677,6 +686,7 @@ public class MatchSimulator {
                 objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled,
                 lateGameMacroEnabled, assignments);
         state.configureChampionPower(DEFAULT_CHAMPION_POWER_CATALOG, championPowerEnabled);
+        state.configureJungleEconomy(DEFAULT_JUNGLE_CLEAR_PROFILES, jungleClearContribution);
         if (championMatchupMode == ChampionMatchupMode.GEOMETRIC_V2) {
             ChampionRoleMatchupProfileCatalog profiles = championMatchupProfiles == null
                     ? DEFAULT_CHAMPION_MATCHUP_PROFILES : championMatchupProfiles;

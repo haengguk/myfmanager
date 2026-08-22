@@ -44,9 +44,6 @@ public record SimulationGameplayConfiguration(
                     "Runtime profiles do not authorize composition mode "
                             + teamCompositionGameplayMode);
         }
-        if (jungleClearContribution != JungleClearContribution.DISABLED_NOT_INTEGRATED) {
-            throw new IllegalArgumentException("Jungle Clear gameplay is not integrated");
-        }
     }
 
     /** Stable, field-complete serialization used only for gameplay configuration identity. */
@@ -78,6 +75,6 @@ public record SimulationGameplayConfiguration(
                 objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled,
                 objectiveDecisionEnabled, lateGameMacroEnabled, progressionEnabled,
                 progressionPowerEnabled, championPowerEnabled, championMatchupMode,
-                teamCompositionGameplayMode);
+                teamCompositionGameplayMode, jungleClearContribution);
     }
 }

@@ -511,3 +511,19 @@ tasks.register("generatePreJungleRuntimeBaselineV2", JavaExec) {
         systemProperty "lolfm.baseline.sourceRevision", sourceRevision
     }
 }
+
+tasks.register("verifyJungleEconomyOffParity", Test) {
+    group = "verification"
+    description = "Verifies the three Jungle-OFF profiles against the immutable nine-match Pre-Jungle V2 oracle."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "jungle-economy-off-parity"
+    }
+    maxHeapSize = "2g"
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/jungleEconomyOffParity")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/jungleEconomyOffParity")
+}

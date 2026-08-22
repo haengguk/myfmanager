@@ -2,7 +2,7 @@ package com.lolfm.champion;
 
 import java.util.Objects;
 
-/** Deterministic phase foundation; production profiles remain disabled until calibrated. */
+/** Deterministic, phase-specific clear multiplier for one legal JUNGLE champion role. */
 public record ChampionJungleClearProfile(
         ChampionRoleKey roleKey,
         double early,

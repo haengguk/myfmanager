@@ -35,7 +35,7 @@ class ChampionFullPopulationIntegrationTest {
         ChampionResourceSet resources = ChampionResourceSet.loadDefault();
 
         assertThat(resources.manifest().manifestVersion())
-                .isEqualTo("full-173-resource-set-2026-08-v1");
+                .isEqualTo("full-173-resource-set-2026-08-v2");
         assertThat(resources.catalog().championPoolVersion()).isEqualTo(FULL_POOL_VERSION);
         assertThat(resources.catalog().championBalanceVersion())
                 .isEqualTo("full-173-power-2026-08-v1");
@@ -60,8 +60,10 @@ class ChampionFullPopulationIntegrationTest {
         assertThat(resources.composition().profileHash())
                 .isEqualTo("23d616cab6abea69d5ad783f405b0b4518a14608b0be4eac3d53f669acab6877");
         assertThat(resources.jungleClear().profiles()).hasSize(51);
+        assertThat(resources.jungleClear().profileVersion())
+                .isEqualTo("full-173-jungle-clear-economy-2026-08-v1");
         assertThat(resources.jungleClear().profiles().values())
-                .allMatch(profile -> !profile.gameplayEnabled());
+                .allMatch(ChampionJungleClearProfile::gameplayEnabled);
     }
 
     @Test
@@ -96,8 +98,15 @@ class ChampionFullPopulationIntegrationTest {
                 assertThat(active.matchup().profiles().get(key).traits()).isEqualTo(expected.traits()));
         historical.composition().profiles().forEach((key, expected) ->
                 assertThat(active.composition().profiles()).containsEntry(key, expected));
-        historical.jungleClear().profiles().forEach((key, expected) ->
-                assertThat(active.jungleClear().profiles()).containsEntry(key, expected));
+        historical.jungleClear().profiles().forEach((key, expected) -> {
+            ChampionJungleClearProfile actual = active.jungleClear().get(key);
+            assertThat(actual.roleKey()).isEqualTo(expected.roleKey());
+            assertThat(actual.early()).isEqualTo(expected.early());
+            assertThat(actual.mid()).isEqualTo(expected.mid());
+            assertThat(actual.late()).isEqualTo(expected.late());
+            assertThat(expected.gameplayEnabled()).isFalse();
+            assertThat(actual.gameplayEnabled()).isTrue();
+        });
 
         assertThat(historical.matchup().version())
                 .isEqualTo("initial-30-role-matchup-profile-candidate-v1");

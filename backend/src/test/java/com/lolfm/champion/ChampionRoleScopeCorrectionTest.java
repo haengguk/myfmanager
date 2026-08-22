@@ -45,7 +45,7 @@ class ChampionRoleScopeCorrectionTest {
     }
 
     @Test
-    void allRoleCatalogsHaveExactLegalCoverageAndJungleClearStaysDormant() {
+    void allRoleCatalogsHaveExactLegalCoverageAndJungleClearIsEconomyEnabled() {
         Set<ChampionRoleKey> legal = RESOURCES.catalog().legalRoleKeys();
         assertThat(RESOURCES.power().all()).hasSize(173);
         assertThat(RESOURCES.power().all().stream().map(ChampionPowerProfile::championId).toList())
@@ -53,7 +53,8 @@ class ChampionRoleScopeCorrectionTest {
         assertThat(RESOURCES.matchup().profiles().keySet()).containsExactlyInAnyOrderElementsOf(legal);
         assertThat(RESOURCES.composition().profiles().keySet()).containsExactlyInAnyOrderElementsOf(legal);
         assertThat(RESOURCES.jungleClear().profiles()).hasSize(51);
-        assertThat(RESOURCES.jungleClear().profiles().values()).allMatch(profile -> !profile.gameplayEnabled());
+        assertThat(RESOURCES.jungleClear().profiles().values())
+                .allMatch(ChampionJungleClearProfile::gameplayEnabled);
         assertThat(RESOURCES.jungleClear().profiles().keySet())
                 .allMatch(key -> key.position() == Position.JUNGLE);
         assertThat(RESOURCES.matchup().profiles().values())

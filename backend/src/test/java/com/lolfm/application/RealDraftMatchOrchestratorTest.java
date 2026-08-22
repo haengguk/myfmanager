@@ -265,7 +265,7 @@ class RealDraftMatchOrchestratorTest {
                 .isEqualTo(SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
         assertThat(value.activeGameplayRulesVersion()).isEqualTo(value.engineRulesVersion());
         assertThat(value.engineImplementationVersion())
-                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V1");
+                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V2");
         assertThat(value.randomFingerprint().randomDrawCount()).isPositive();
         assertThat(value.randomFingerprint().randomTraceHash()).matches("[0-9a-f]{64}");
         assertThat(value.resourceProvenance().resources()).hasSize(10)
@@ -274,7 +274,8 @@ class RealDraftMatchOrchestratorTest {
                         "CHAMPION_MANIFEST", "CHAMPION_CATALOG", "CHAMPION_POWER",
                         "CHAMPION_MATCHUP", "CHAMPION_COMPOSITION", "CHAMPION_JUNGLE_CLEAR",
                         "PLAYER_IDENTITY", "PLAYER_RATINGS", "PLAYER_PROFICIENCY", "DRAFT_META");
-        assertThat(value.resourceProvenance().jungleClearGameplayEnabledProfileCount()).isZero();
+        assertThat(value.resourceProvenance().jungleClearGameplayEnabledProfileCount())
+                .isEqualTo(51);
         assertThat(value.resourceProvenance().resources())
                 .allSatisfy(resource -> assertThat(resource.sha256())
                         .matches("[0-9a-f]{64}"));

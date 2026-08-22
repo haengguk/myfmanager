@@ -250,17 +250,18 @@ class ChampionFullIntegratedValidationTest {
     }
 
     @Test
-    void jungleClearCandidateRemainsDormantAndConsumesNoRuntimeInput() {
+    void jungleClearEconomyProfilesExposeDeterministicPhaseValues() {
         assertThat(RESOURCES.jungleClear().profiles()).hasSize(51);
         assertThat(RESOURCES.jungleClear().profiles().values())
-                .allMatch(profile -> !profile.gameplayEnabled());
+                .allMatch(com.lolfm.champion.ChampionJungleClearProfile::gameplayEnabled);
         assertThat(RESOURCES.jungleClear().profiles().values().stream()
                 .map(profile -> profile.early()).distinct().count()).isGreaterThan(1);
         ChampionJungleClearEvaluator evaluator = new ChampionJungleClearEvaluator();
-        RESOURCES.jungleClear().profiles().values().stream().limit(8).forEach(profile -> {
-            assertThat(evaluator.evaluate(profile, 600)).isEqualTo(1.0);
-            assertThat(evaluator.evaluate(profile, 1_200)).isEqualTo(1.0);
-            assertThat(evaluator.evaluate(profile, 2_100)).isEqualTo(1.0);
+        RESOURCES.jungleClear().profiles().values().forEach(profile -> {
+            assertThat(evaluator.evaluate(profile, 899)).isEqualTo(profile.early());
+            assertThat(evaluator.evaluate(profile, 900)).isEqualTo(profile.mid());
+            assertThat(evaluator.evaluate(profile, 1_799)).isEqualTo(profile.mid());
+            assertThat(evaluator.evaluate(profile, 1_800)).isEqualTo(profile.late());
         });
     }
 

@@ -55,7 +55,9 @@ Composition은 5인 lineup 기능이다. lane Matchup의 range/duel 우열이나
 
 - `position: JUNGLE`
 - `early`, `mid`, `late`: finite 0..2
-- 충분한 calibration과 gameplay integration validation 전에는 `gameplayEnabled: false`
+- active resource의 activation policy와 일치하는 `gameplayEnabled`; 현재 economy-v1 resource에서는 `true`
+
+`true`로 추가할 때는 phase 경계, selected-assignment validation, OFF parity, ineligible Random 0회와 CS/gold/XP integrity focused test를 함께 갱신한다. 새 champion 수치의 balance calibration은 별도 diagnostic에서 수행한다.
 
 JUNGLE을 지원하지 않으면 profile을 추가하지 않는다. extra Jungle Clear profile도 completeness failure다.
 

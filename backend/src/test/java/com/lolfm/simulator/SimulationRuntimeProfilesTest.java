@@ -12,12 +12,14 @@ import org.junit.jupiter.api.Test;
 
 class SimulationRuntimeProfilesTest {
     @Test
-    void resolvesExactlyThreeFrozenProfilesWithFieldCompleteSemantics() {
+    void resolvesThreeFrozenPreJungleProfilesAndOneEconomyCandidate() {
         Map<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> profiles =
                 SimulationRuntimeProfiles.all();
 
-        assertThat(profiles).hasSize(3).containsOnlyKeys(SimulationRuntimeProfileId.values());
-        assertThat(profiles.values())
+        assertThat(profiles).hasSize(4).containsOnlyKeys(SimulationRuntimeProfileId.values());
+        assertThat(profiles.values().stream()
+                .filter(profile -> profile.profileId()
+                        != SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1))
                 .extracting(ResolvedSimulationRuntimeProfile::activeGameplayRulesVersion)
                 .containsOnly("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2");
         assertExactCommonGameplay(profiles.get(SimulationRuntimeProfileId.BASELINE_V1));
@@ -25,6 +27,13 @@ class SimulationRuntimeProfilesTest {
                 profiles.get(SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1));
         assertExactCommonGameplay(
                 profiles.get(SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1));
+        ResolvedSimulationRuntimeProfile jungleEconomy = profiles.get(
+                SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1);
+        assertExactCommonGameplayExceptJungle(jungleEconomy);
+        assertThat(jungleEconomy.activeGameplayRulesVersion())
+                .isEqualTo("MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V1");
+        assertThat(jungleEconomy.gameplayConfiguration().jungleClearContribution())
+                .isEqualTo(JungleClearContribution.ECONOMY_V1);
 
         assertThat(profiles.get(SimulationRuntimeProfileId.BASELINE_V1)
                 .gameplayConfiguration().championMatchupMode())
@@ -44,6 +53,10 @@ class SimulationRuntimeProfilesTest {
         assertThat(profiles.get(SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1)
                 .gameplayConfiguration().teamCompositionGameplayMode())
                 .isEqualTo(TeamCompositionGameplayMode.PRODUCTION_V2);
+        assertThat(jungleEconomy.gameplayConfiguration().championMatchupMode())
+                .isEqualTo(ChampionMatchupMode.GEOMETRIC_V2);
+        assertThat(jungleEconomy.gameplayConfiguration().teamCompositionGameplayMode())
+                .isEqualTo(TeamCompositionGameplayMode.PRODUCTION_V2);
     }
 
     @Test
@@ -57,6 +70,10 @@ class SimulationRuntimeProfilesTest {
         assertThat(SimulationRuntimeProfiles.resolve(
                 SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1).configurationHash())
                 .isEqualTo("caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d");
+        assertThat(SimulationRuntimeProfiles.resolve(
+                SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1)
+                .configurationHash())
+                .isEqualTo("e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b");
     }
 
     @Test
@@ -141,6 +158,14 @@ class SimulationRuntimeProfilesTest {
     }
 
     private static void assertExactCommonGameplay(ResolvedSimulationRuntimeProfile profile) {
+        assertExactCommonGameplayExceptJungle(profile);
+        assertThat(profile.gameplayConfiguration().jungleClearContribution())
+                .isEqualTo(JungleClearContribution.DISABLED_NOT_INTEGRATED);
+    }
+
+    private static void assertExactCommonGameplayExceptJungle(
+            ResolvedSimulationRuntimeProfile profile
+    ) {
         SimulationGameplayConfiguration configuration = profile.gameplayConfiguration();
         assertThat(configuration.laneCombatEnabled()).isTrue();
         assertThat(configuration.farmRecoveryEnabled()).isTrue();
@@ -155,7 +180,5 @@ class SimulationRuntimeProfilesTest {
         assertThat(configuration.progressionEnabled()).isTrue();
         assertThat(configuration.progressionPowerEnabled()).isTrue();
         assertThat(configuration.championPowerEnabled()).isTrue();
-        assertThat(configuration.jungleClearContribution())
-                .isEqualTo(JungleClearContribution.DISABLED_NOT_INTEGRATED);
     }
 }

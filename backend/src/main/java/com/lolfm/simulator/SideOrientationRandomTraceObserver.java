@@ -125,6 +125,7 @@ public final class SideOrientationRandomTraceObserver extends Random {
     public enum Source {
         NONE,
         ECONOMY,
+        JUNGLE_ECONOMY,
         LANE_PRESSURE,
         JUNGLE_GANK,
         ROAM,

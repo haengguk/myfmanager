@@ -7,6 +7,11 @@ import java.util.Random;
 public final class PositionEconomyResolver {
     private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
     private final GoldAwardService awards = new GoldAwardService();
+    private final JungleEconomyResolver jungleEconomyResolver;
+
+    public PositionEconomyResolver() {
+        jungleEconomyResolver = new JungleEconomyResolver(this);
+    }
 
     public void resolve(TeamState team, int currentTimeSeconds, int elapsedSeconds, Random random) {
         resolve(null, team, null, currentTimeSeconds, elapsedSeconds, random);
@@ -15,6 +20,24 @@ public final class PositionEconomyResolver {
     public void resolve(GameState gameState, TeamState team, TeamSide side,
                         int currentTimeSeconds, int elapsedSeconds, Random random) {
         for (PlayerState player : team.getPlayers()) {
+            if (player.getPosition() == Position.JUNGLE
+                    && gameState != null && gameState.isJungleEconomyEnabled()) {
+                if (side == null) {
+                    throw new IllegalArgumentException(
+                            "Jungle economy requires structured TeamSide identity");
+                }
+                if (random instanceof SideOrientationRandomTraceObserver observer) {
+                    observer.context(SideOrientationRandomTraceObserver.Source.JUNGLE_ECONOMY,
+                            side, currentTimeSeconds);
+                }
+                jungleEconomyResolver.resolve(
+                        gameState, side, currentTimeSeconds, elapsedSeconds, random);
+                if (random instanceof SideOrientationRandomTraceObserver observer) {
+                    observer.context(SideOrientationRandomTraceObserver.Source.ECONOMY,
+                            side, currentTimeSeconds);
+                }
+                continue;
+            }
             if (!player.canFarmAt(currentTimeSeconds)) {
                 if (gameState != null && side != null && player.isAlive(currentTimeSeconds)
                         && gameState.getMidGameMacroState().isFarmBlockedByMacro(

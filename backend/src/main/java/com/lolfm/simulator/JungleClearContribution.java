@@ -1,11 +1,20 @@
 package com.lolfm.simulator;
 
-/**
- * Runtime-profile invariant for the pre-Jungle baseline.
- *
- * <p>This is deliberately not a gameplay switch. No Jungle Clear value is
- * consumed by the simulator while this is the only supported state.</p>
- */
+/** Explicit runtime-profile contribution of Champion Jungle Clear data. */
 public enum JungleClearContribution {
-    DISABLED_NOT_INTEGRATED
+    /** Frozen pre-Jungle semantics; the simulator must not read clear data or consume Random. */
+    DISABLED_NOT_INTEGRATED(false),
+
+    /** Champion clear and player jungle-resource efficiency affect only CS, gold and XP. */
+    ECONOMY_V1(true);
+
+    private final boolean economyEnabled;
+
+    JungleClearContribution(boolean economyEnabled) {
+        this.economyEnabled = economyEnabled;
+    }
+
+    public boolean economyEnabled() {
+        return economyEnabled;
+    }
 }

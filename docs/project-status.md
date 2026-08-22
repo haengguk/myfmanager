@@ -8,7 +8,8 @@
 
 | 항목 | 현재 값 |
 | --- | --- |
-| Active manifest | `full-173-resource-set-2026-08-v1` |
+| Active manifest | `full-173-resource-set-2026-08-v2` |
+| Active manifest raw SHA-256 | `7c2ba352e4fd5cb2e849504ebf644479aa1b367e250b46ceac5f089922169721` |
 | Champion pool | `full-173-2026-08-v1` |
 | Champions | 173 |
 | Legal `ChampionRoleKey` | 216 |
@@ -18,10 +19,11 @@
 | Matchup | 216 materialized roles, `full-173-role-matchup-profile-2026-08-v2` |
 | Composition | 216 materialized roles, `full-173-composition-profile-2026-08-v2` |
 | Composition full-profile hash | `23d616cab6abea69d5ad783f405b0b4518a14608b0be4eac3d53f669acab6877` |
-| Jungle Clear | 51 JUNGLE profiles, `full-173-jungle-clear-candidate-2026-08-v1` |
-| Jungle Clear gameplay enabled | 0 |
+| Jungle Clear | 51 JUNGLE profiles, `full-173-jungle-clear-economy-2026-08-v1` |
+| Jungle Clear gameplay enabled | 51 in active resource; runtime contribution is profile-controlled |
+| Jungle Clear raw SHA-256 | `daf3757c6598056c9d01c3fcb3899e2b6dd970ffbda94f7b755f9d40cd2e967b` |
 
-Champion Power resource에는 8 level curves와 8 item curves가 있다. Cross-catalog completeness는 `ChampionResourceSet` 생성 시 exact set equality로 검증된다. 이 player-data milestone은 Champion resource, supported position, Power, Matchup, Composition, Jungle Clear를 변경하지 않았다.
+Champion Power resource에는 8 level curves와 8 item curves가 있다. Cross-catalog completeness는 `ChampionResourceSet` 생성 시 exact set equality로 검증된다. Jungle V1-A는 historical disabled clear file을 변경하지 않고 새 versioned economy resource와 manifest V2를 추가했다.
 
 ### Player identity, ratings, and proficiency
 
@@ -111,17 +113,18 @@ GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history 
 
 `RealDraftMatchOrchestrator`의 기존 overload는 이제 `BASELINE_V1`을 resolve하며, additive overload는 다음 closed-set profile ID를 받는다. `ConfiguredMatchSimulatorFactory`의 유일한 public `create` 경계도 profile ID와 instrumentation만 받아 registry를 다시 resolve한다. Caller가 직접 만든 `ResolvedSimulationRuntimeProfile`은 provenance 경계에서 exact registry membership을 재검증하므로 임의 gameplay boolean 또는 internal audit mode를 application runtime에 주입할 수 없다.
 
-| Profile | 공통 gameplay | Matchup | Composition | Configuration hash |
-| --- | --- | --- | --- | --- |
-| `BASELINE_V1` | 전부 현재 Spring snapshot과 동일하게 ON | `OFF` | `OFF` | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
-| `MATCHUP_ONLY_CANDIDATE_V1` | 동일 | `GEOMETRIC_V2` | `OFF` | `58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec` |
-| `FULL_SYSTEM_CANDIDATE_V1` | 동일 | `GEOMETRIC_V2` | `PRODUCTION_V2` | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
+| Profile | 공통 gameplay | Matchup | Composition | Jungle Clear | Configuration hash |
+| --- | --- | --- | --- | --- | --- |
+| `BASELINE_V1` | 전부 현재 Spring snapshot과 동일하게 ON | `OFF` | `OFF` | `DISABLED_NOT_INTEGRATED` | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
+| `MATCHUP_ONLY_CANDIDATE_V1` | 동일 | `GEOMETRIC_V2` | `OFF` | `DISABLED_NOT_INTEGRATED` | `58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec` |
+| `FULL_SYSTEM_CANDIDATE_V1` | 동일 | `GEOMETRIC_V2` | `PRODUCTION_V2` | `DISABLED_NOT_INTEGRATED` | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
+| `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1` | 동일 | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_V1` | `e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b` |
 
-공통 ON snapshot은 Lane Combat/FARM Recovery/Jungle Gank/Counter Gank/Roam/Objective Priority/Lane Phase/Mid Game Macro/Objective Decision/Late Game Macro/Progression/Progression Power/Champion Power 전부다. Jungle Clear는 새 runtime switch가 아니라 모든 profile의 typed invariant `DISABLED_NOT_INTEGRATED`다.
+공통 ON snapshot은 Lane Combat/FARM Recovery/Jungle Gank/Counter Gank/Roam/Objective Priority/Lane Phase/Mid Game Macro/Objective Decision/Late Game Macro/Progression/Progression Power/Champion Power 전부다. Jungle Clear contribution도 canonical configuration field이며, 새 candidate만 `ECONOMY_V1`이다.
 
 `configurationHash`는 이 field-complete gameplay configuration만 고정한다. Diagnostics ON/OFF는 별도 `SimulationInstrumentation`이며 configuration/replay hash에서 제외되고 complete timeline과 Random fingerprint도 바꾸지 않는다.
 
-실행 이력 V2는 `engineImplementationVersion=MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V1`과 profile별 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 분리한다. `replayProvenanceHash`는 두 version, configuration, raw resource/version snapshot, side/team/roster, series history, Draft rules/scoring policy/final draft/final assignment, seed를 묶는다. `timelineHash`는 complete output을 별도로 고정한다. `randomFingerprint`는 실제 seeded `Random.next(bits)` 소비의 draw count와 ordered trace SHA-256을 기록하는 observational output이며 replay input hash에는 들어가지 않는다. 기존 `engineRulesVersion` field는 active rules의 additive compatibility alias다. 기존 `draftIdentity()`와 Hard Fearless commit semantics는 변경하지 않았다.
+실행 이력 V2는 `engineImplementationVersion=MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V2`와 profile별 active rules를 분리한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V1`이다. `replayProvenanceHash`는 두 version, configuration, raw resource/version snapshot, side/team/roster, series history, Draft rules/scoring policy/final draft/final assignment, seed를 묶는다. `timelineHash`는 complete output을 별도로 고정한다. `randomFingerprint`는 실제 seeded `Random.next(bits)` 소비의 draw count와 ordered trace SHA-256을 기록하는 observational output이며 replay input hash에는 들어가지 않는다. 기존 `engineRulesVersion` field는 active rules의 additive compatibility alias다. 기존 `draftIdentity()`와 Hard Fearless commit semantics는 변경하지 않았다.
 
 `BASELINE_V1`과 기존 autowired simulator의 same teams/assignments/seed complete timeline은 exact parity다. 기존 Spring `MatchController`는 계속 direct autowired simulator와 DummyDataFactory를 사용하고 HTTP profile 선택은 추가하지 않았다.
 
@@ -140,9 +143,11 @@ GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history 
 | Source revision | `8a55664955fad82d037ca9286be6bdb050b029fe` + exact working-tree hash |
 | Rules / engine | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2` / `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V1` |
 | Random identity | per-match draw count + ordered `next(bits)` trace SHA-256 |
-| Jungle Clear invariant | contribution disabled, authored gameplay-enabled profile count 0 |
+| Jungle Clear invariant | artifact 당시 contribution disabled, authored gameplay-enabled profile count 0 |
 
 Artifact와 build report mirror는 byte-identical하고 `SHA256SUMS.txt` 검증을 통과했다. Generator는 V2 profile 목록을 세 개로 고정하고 future enum 값을 자동 포함하지 않으며 existing source bytes가 다르면 overwrite를 거부한다. V1 task도 재생성을 거부한다.
+
+현재 active resource와 engine identity는 artifact 생성 시점과 달라졌으므로 replay provenance hash는 의도적으로 달라진다. `verifyJungleEconomyOffParity`는 이 차이를 제외하고 기존 세 OFF profile의 9개 configuration hash, Draft/final assignment identity, complete timeline hash, Random draw count/trace hash, winner/duration/event/snapshot count가 공식 V2와 exact equality인지 검증하며 9/9 clean pass했다.
 
 V1 JSON의 raw SHA `2dcf67a3501200f0bce3de6239dcfbed3b27bafdc9287940f3f56171223a1d71`은 그대로 유효하다. 다만 V1 생성 뒤 별도 JVM 재생성에서 `Set.copyOf(EnumSet)` iteration이 player skill별 seeded draw 배정을 바꾸고 Champion Power tag order가 snapshot summary를 바꾸는 두 cross-process 비결정성을 발견했다. 따라서 V1은 당시 실행의 immutable 기록으로 보존하되 공식 replay/timeline oracle로 사용하지 않고 V2가 이를 대체한다. V2는 canonical enum order를 production contract로 고정하고 두 별도 JVM에서 문서와 9개 timeline이 모두 동일함을 확인했다.
 
@@ -170,6 +175,8 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - gameplay와 격리된 per-match Random draw count/trace hash와 observed/plain exact timeline parity
 - canonical PlayerSkill realization 순서와 enum-set timeline serialization
 - clean full regression 뒤 생성하고 별도 JVM에서 재검증한 9-match Pre-Jungle V2 baseline
+- match-scoped `JungleEconomyState`, unified `JungleEconomyOutcome`, structured execution stats와 `Champion Clear × Jungle Resource Management` CS/gold/XP V1-A candidate
+- historical OFF branch의 player iteration/Random 순서를 보존하고 공식 Pre-Jungle V2 9경기와 exact parity를 검증하는 전용 diagnostic
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -183,17 +190,17 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - Real LCK Draft→Match flow는 backend component로 연결됐지만 `MatchController`, Draft API와 frontend에는 아직 노출되지 않았다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
 - Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
-- Jungle Clear는 51-role foundation과 evaluator가 있으나 모든 profile이 `gameplayEnabled: false`이고 simulator economy/pathing에 연결되지 않았다.
+- Jungle Economy V1-A는 새 explicit candidate profile에서 CS/gold/XP에만 연결됐다. readiness/tempo, pathing, gank/objective eligibility는 아직 연결하지 않았다.
 - `DraftEngine`은 application component 내부의 pure domain dependency이며 독립 Spring bean/API로 공개되지 않는다.
 - 첫 game은 exclusion이 없어 단판처럼 동작하지만 별도 Standard ruleset 선택 기능은 없다.
 
 ## Pending
 
-1. 다음 독립 Batch에서 Jungle Clear match-scoped state/economy/XP/readiness/tempo 계약을 먼저 설계하고 공식 V2 configuration/replay/timeline/Random fingerprint paired comparison 기준을 고정한다.
-2. 그 뒤 clear completion이 gank/objective eligibility에 미치는 경계를 central priority, Random non-consumption, FARM opportunity-cost 규칙과 함께 구현·검증한다.
-3. Jungle 통합 뒤 explicit profiles/provenance를 입력으로 `PHASE_13G_B_REAL_DATA_INTEGRATED_AUDIT_AND_CALIBRATION`을 별도 수행한다.
-4. match gameplay가 안정된 뒤 Career/season/tournament 상태와 HTTP/frontend 노출을 설계한다.
-5. 별도 Standard draft mode가 필요하면 Hard Fearless identity/availability와 분리한 additive ruleset으로 추가한다.
+1. `JUNGLE_CLEAR_V1-B_CANDIDATE`에서 bounded readiness/tempo를 우선 gank eligibility에 연결한다. Objective 직접 연결은 V1-A/B 진단 뒤 결정한다.
+2. `JUNGLE_V1_FOCUSED_HARDENING`으로 eligibility, FARM/XP/gold integrity, Random non-consumption, priority/fallthrough, same-seed determinism을 묶어 검증한다.
+3. 그 뒤 다섯 profile lane(BASELINE / MATCHUP ONLY / FULL / FULL+JUNGLE ECONOMY / FULL+JUNGLE TEMPO)으로 `PHASE_13G_B_REAL_DATA_INTEGRATED_AUDIT_AND_CALIBRATION`을 수행한다.
+4. 결과에 따라 `PRODUCTION_V1` 범위를 결정하고 Match Engine V1 input/output/profile/provenance를 freeze한다.
+5. 이후 Real Match API/frontend/BO3·BO5, Career/Save/Season 순으로 진행한다.
 
 ## Test Snapshot
 
@@ -205,18 +212,18 @@ Final command:
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 156 |
-| Tests | 1,905 |
+| JUnit suites | 158 |
+| Tests | 1,915 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 448.679 seconds |
-| Gradle wall duration | 7m 41s |
+| Aggregate JUnit XML time | 416.328 seconds |
+| Gradle wall duration | 7m 6s |
 | Build | `BUILD SUCCESSFUL` |
 
-Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했으며 각각 73 tests와 5 tests가 별도 clean pass했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
+Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
 
-최종 hardening focused 묶음은 12 suites / 52 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit 360.778초, Gradle 6분 9초로 통과했다. Closed registry/factory, 3개 frozen semantics/hash, diagnostics ON/OFF timeline+Random parity, Random observer delegation, real GEN–T1 orchestration, immutable V2 writer, canonical PlayerSkill/tag/snapshot ordering을 포함한다.
+Jungle V1-A focused 검증은 phase 경계, 비중립 player-resource 곱, CS/gold/XP 합계, duplicate/backward time, dead/gank-block Random 0회, OFF legacy order, same-seed/diagnostics parity, profile/resource/provenance 회귀를 통과했다. Clean full 뒤 assertion-only로 보강한 disabled-profile fail-fast와 blocked-FARM passive-gold invariant를 포함한 resolver 10 tests도 5초에 통과했으며 executable production source는 바뀌지 않았다. 전용 `verifyJungleEconomyOffParity`는 1분 24초에 공식 9경기 9/9 exact pass했고 `build/reports/jungle-economy-v1-a/off-parity-report.json`을 생성했다. Final production guard는 464 files / `5f092f8d4a5e10441d62f3817c76ec1f13b0faf47ade3193705e20527514f756`다.
 
 이번 hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 위 final full을 실행했다. 그 뒤 executable production/test source는 변경하지 않았다.
 

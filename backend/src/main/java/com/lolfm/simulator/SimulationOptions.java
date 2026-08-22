@@ -21,12 +21,32 @@ public record SimulationOptions(
         boolean progressionPowerEnabled,
         boolean championPowerEnabled,
         ChampionMatchupMode championMatchupMode,
-        TeamCompositionGameplayMode teamCompositionGameplayMode
+        TeamCompositionGameplayMode teamCompositionGameplayMode,
+        JungleClearContribution jungleClearContribution
 ) {
     public SimulationOptions {
         Objects.requireNonNull(championMatchupMode, "championMatchupMode");
         Objects.requireNonNull(teamCompositionGameplayMode, "teamCompositionGameplayMode");
+        Objects.requireNonNull(jungleClearContribution, "jungleClearContribution");
         if (!progressionEnabled) progressionPowerEnabled = false;
+    }
+
+    /** Source-compatible pre-Jungle constructor; contribution remains explicitly disabled. */
+    public SimulationOptions(
+            boolean laneCombatEnabled, boolean farmRecoveryEnabled, boolean jungleGankEnabled,
+            boolean counterGankEnabled, boolean roamEnabled, boolean diagnosticsEnabled,
+            boolean objectivePriorityEnabled, boolean lanePhaseEnabled, boolean midGameMacroEnabled,
+            boolean objectiveDecisionEnabled, boolean lateGameMacroEnabled, boolean progressionEnabled,
+            boolean progressionPowerEnabled, boolean championPowerEnabled,
+            ChampionMatchupMode championMatchupMode,
+            TeamCompositionGameplayMode teamCompositionGameplayMode
+    ) {
+        this(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled, counterGankEnabled,
+                roamEnabled, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled,
+                midGameMacroEnabled, objectiveDecisionEnabled, lateGameMacroEnabled,
+                progressionEnabled, progressionPowerEnabled, championPowerEnabled,
+                championMatchupMode, teamCompositionGameplayMode,
+                JungleClearContribution.DISABLED_NOT_INTEGRATED);
     }
 
     public SimulationOptions(
@@ -61,14 +81,16 @@ public record SimulationOptions(
             Boolean macro, Boolean decision, Boolean late, Boolean progression,
             Boolean power, Boolean champion, ChampionMatchupMode matchup
     ) {
-        return copy(roam, diagnostics, priority, lane, macro, decision, late, progression, power, champion, matchup, null);
+        return copy(roam, diagnostics, priority, lane, macro, decision, late, progression,
+                power, champion, matchup, null, null);
     }
 
     private SimulationOptions copy(
             Boolean roam, Boolean diagnostics, Boolean priority, Boolean lane,
             Boolean macro, Boolean decision, Boolean late, Boolean progression,
             Boolean power, Boolean champion, ChampionMatchupMode matchup,
-            TeamCompositionGameplayMode composition
+            TeamCompositionGameplayMode composition,
+            JungleClearContribution jungleClear
     ) {
         return new SimulationOptions(
                 laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled, counterGankEnabled,
@@ -83,7 +105,8 @@ public record SimulationOptions(
                 power == null ? progressionPowerEnabled : power,
                 champion == null ? championPowerEnabled : champion,
                 matchup == null ? championMatchupMode : matchup,
-                composition == null ? teamCompositionGameplayMode : composition);
+                composition == null ? teamCompositionGameplayMode : composition,
+                jungleClear == null ? jungleClearContribution : jungleClear);
     }
 
     public SimulationOptions withRoamEnabled(boolean value) {
@@ -121,9 +144,14 @@ public record SimulationOptions(
         return copy(null, null, null, null, null, null, null, null, null, null, value);
     }
     public SimulationOptions withTeamCompositionGameplayMode(TeamCompositionGameplayMode value) {
-        return copy(null, null, null, null, null, null, null, null, null, null, null, value);
+        return copy(null, null, null, null, null, null, null, null, null, null, null,
+                value, null);
     }
     public SimulationOptions withCompositionGameplayMode(TeamCompositionGameplayMode value) {
         return withTeamCompositionGameplayMode(value);
+    }
+    public SimulationOptions withJungleClearContribution(JungleClearContribution value) {
+        return copy(null, null, null, null, null, null, null, null, null, null, null,
+                null, value);
     }
 }

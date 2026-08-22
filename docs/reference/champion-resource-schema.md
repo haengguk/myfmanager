@@ -247,13 +247,13 @@ Matchup은 pairwise matrix나 win-rate table을 요구하지 않는다. `GEOMETR
 
 | Field | 필수 | 의미 / validation |
 | --- | --- | --- |
-| `profileVersion` | resource에 존재 | 현재 loader가 deserialization은 하지만 catalog field로 보존/검증하지는 않음 |
+| `profileVersion` | 예 | non-blank catalog identity로 보존 |
 | `requiredChampionPoolVersion` | 예 | Catalog pool version과 일치 |
 | `profiles` | 예 | legal JUNGLE `ChampionRoleKey`와 정확히 일치 |
 | `championId` | 예 | JUNGLE을 support하는 known champion |
 | `position` | 예 | 반드시 `JUNGLE` |
 | `early`, `mid`, `late` | 예 | finite 0..2 |
-| `gameplayEnabled` | 예 | false이면 evaluator result는 authored 값과 무관하게 1.0 |
+| `gameplayEnabled` | 예 | false이면 evaluator result는 authored 값과 무관하게 1.0; `ECONOMY_V1` selected profile은 true여야 함 |
 
 ```json
 {
@@ -266,7 +266,7 @@ Matchup은 pairwise matrix나 win-rate table을 요구하지 않는다. `GEOMETR
       "early": 1.04,
       "mid": 1.06,
       "late": 1.02,
-      "gameplayEnabled": false
+      "gameplayEnabled": true
     }
   ]
 }
@@ -293,3 +293,5 @@ Matchup은 pairwise matrix나 win-rate table을 요구하지 않는다. `GEOMETR
 - JUNGLE을 지원하지 않는 Jungle Clear profile: 실패
 
 silent neutral fallback은 Jungle Clear의 명시적 `gameplayEnabled: false` 평가 결과에만 존재한다. resource 누락을 neutral로 대체하지 않는다.
+
+현재 active economy resource는 51개 JUNGLE profile을 모두 enable한다. 이것만으로 모든 runtime이 clear 값을 읽는 것은 아니며, `SimulationGameplayConfiguration.jungleClearContribution=ECONOMY_V1`인 explicit profile만 unified CS/gold/XP path를 실행한다.

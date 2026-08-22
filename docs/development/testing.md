@@ -119,7 +119,18 @@ Generator는 `CLEAN_PASS`와 source revision property가 없으면 fail-fast한�
 
 V1 task `generatePreJungleRuntimeBaseline`은 immutable predecessor 재생성을 항상 거부한다. Official V2 생성 뒤에는 같은 명령을 새 JVM에서 다시 실행해 source bytes가 exact equality로 승인되는지 확인한다.
 
-현재 serial final full regression은 156 suites / 1,905 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 448.679초, Gradle wall 7분 41초로 clean pass했다. Full-population composition diagnostic 73 tests와 large-seed simulation distribution diagnostic 5 tests도 각각 전용 task에서 별도로 clean pass했다. Production guard는 이전 runtime baseline hardening full 전후 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`으로 동일했다. V2 baseline은 그 full pass 뒤 생성했고 새 JVM에서 같은 raw SHA `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`로 재검증했다.
+### Jungle Economy OFF parity
+
+Jungle Economy V1-A 뒤에는 immutable baseline을 재생성하지 않는다. 기존 세 OFF profile만 같은 9경기 schedule로 실행하고 gameplay output을 V2 oracle과 비교한다.
+
+```bash
+cd backend
+./gradlew verifyJungleEconomyOffParity
+```
+
+Exact 비교 대상은 configuration hash, Draft/final assignment identity, complete timeline hash, Random draw count/trace hash, winner/duration/event/snapshot count다. Engine implementation과 active resource snapshot이 바뀌었으므로 replay provenance hash는 달라져야 하며 equality 대상에서 제외한다. 결과는 `build/reports/jungle-economy-v1-a/off-parity-report.json`에 기록한다. 이 task는 `diagnostic` + `jungle-economy-off-parity` tag만 실행하고 기본 `test`에는 포함되지 않는다.
+
+현재 serial final full regression은 158 suites / 1,915 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 416.328초, Gradle wall 7분 6초로 clean pass했다. Jungle V1-A production guard는 464 files / `5f092f8d4a5e10441d62f3817c76ec1f13b0faf47ade3193705e20527514f756`다. `verifyJungleEconomyOffParity`는 공식 V2 raw SHA `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`를 확인하고 9/9 exact gameplay parity로 통과했다.
 
 ## Generated Reports
 
