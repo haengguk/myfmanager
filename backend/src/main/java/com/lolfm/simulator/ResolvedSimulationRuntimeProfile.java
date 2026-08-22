@@ -6,7 +6,8 @@ import java.util.Objects;
 public record ResolvedSimulationRuntimeProfile(
         SimulationRuntimeProfileId profileId,
         SimulationGameplayConfiguration gameplayConfiguration,
-        String configurationHash
+        String configurationHash,
+        String activeGameplayRulesVersion
 ) {
     public ResolvedSimulationRuntimeProfile {
         Objects.requireNonNull(profileId, "profileId");
@@ -14,6 +15,11 @@ public record ResolvedSimulationRuntimeProfile(
         configurationHash = Objects.requireNonNull(configurationHash, "configurationHash");
         if (!configurationHash.matches("[0-9a-f]{64}")) {
             throw new IllegalArgumentException("configurationHash must be lowercase SHA-256");
+        }
+        activeGameplayRulesVersion = Objects.requireNonNull(
+                activeGameplayRulesVersion, "activeGameplayRulesVersion").trim();
+        if (activeGameplayRulesVersion.isEmpty()) {
+            throw new IllegalArgumentException("activeGameplayRulesVersion is required");
         }
     }
 }

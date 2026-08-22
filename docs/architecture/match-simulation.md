@@ -14,7 +14,7 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 별도의 backend application entry point인 `RealDraftMatchOrchestrator`는 explicit LCK team code 두 개, caller-owned `SeriesDraftHistory`, match seed를 받는다. 이 path는 `LckTeamAssembler`가 만든 실제 Team으로 Draft를 실행하고 `FinalDraftResult.matchChampionAssignments()`를 그대로 같은 Team과 함께 simulator에 전달한다. Controller를 호출하거나 `DummyDataFactory`를 사용하지 않으며 아직 HTTP에 노출되지 않았다.
 
-기존 overload는 `BASELINE_V1`을 명시적으로 resolve한다. Additive overload는 임의 boolean 묶음이 아니라 `SimulationRuntimeProfileId`만 받으며 `ConfiguredMatchSimulatorFactory`가 resolved configuration과 별도 `SimulationInstrumentation`으로 match-scoped simulator를 만든다.
+기존 overload는 `BASELINE_V1`을 명시적으로 resolve한다. Additive overload는 임의 boolean 묶음이 아니라 `SimulationRuntimeProfileId`만 받는다. `ConfiguredMatchSimulatorFactory`의 public boundary도 profile ID와 별도 `SimulationInstrumentation`만 받아 closed registry를 내부에서 resolve한다. Caller-fabricated `ResolvedSimulationRuntimeProfile`은 실행/provenance 경계에서 허용하지 않는다.
 
 ## Explicit Runtime Profiles
 
@@ -30,16 +30,23 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
 
+세 profile은 현재 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 공유한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
+
 ## Configuration and Replay Provenance
 
 `RealDraftMatchResult.executionProvenance`는 새 orchestration 결과에서 non-null이며 다음 identity를 분리한다. 기존 직접 constructor 호환 경로에서는 nullable이다.
 
 - `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
-- `replayProvenanceHash`: configuration, engine rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다.
+- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V1`이다.
+- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 현재 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`다.
+- `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
+- `randomFingerprint`: match의 seeded `Random.next(bits)` draw count와 resolver context/value의 ordered SHA-256을 기록한다. Gameplay input이 아닌 observational output이므로 configuration/replay hash에는 넣지 않는다.
 
 기존 `FinalDraftResult.draftIdentity()`는 series commit idempotency용 ordered decision identity로 유지한다. Provenance의 final draft/assignment hash가 그보다 넓은 replay 범위를 additive하게 담당한다.
+
+`MatchSimulator.simulateObserved(...)`는 기존 simulator flow에 같은 seeded `Random`을 위임하는 observer를 전달하고 timeline과 Random fingerprint를 함께 반환한다. Observer는 스스로 draw를 요청하지 않고 trace capture 여부도 gameplay sequence를 바꾸지 않는다. Plain `simulate(...)`와 observed path의 complete timeline parity, diagnostics ON/OFF의 timeline+fingerprint equality를 테스트한다.
 
 ## Match Initialization
 
@@ -52,7 +59,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 - `CompositionRuntimeState`: 해당 match의 lineup analysis, attempt identity, observations
 - `Random(seed)`: resolver gameplay의 주 Random stream
 
-`Player`가 explicit ratings profile이면 `PlayerMatchPerformance.realize`가 match seed, side, position에서 파생된 deterministic seed로 일관성 변동과 proficiency를 materialize한다. legacy profile이면 기존 네 가지 `PlayerAttributes` 경로를 유지한다.
+`Player`가 explicit ratings profile이면 `PlayerMatchPerformance.realize`가 match seed, side, position에서 파생된 deterministic seed로 일관성 변동과 proficiency를 materialize한다. Skill별 seeded draw 배정은 `PlayerSkill` enum declaration order로 고정하며 unordered `Set` iteration에 의존하지 않는다. legacy profile이면 기존 네 가지 `PlayerAttributes` 경로를 유지한다.
 
 초기화 시 두 lineup이 TOP/JUNGLE/MID/ADC/SUPPORT를 모두 갖는지 확인하고, Champion Power와 Matchup catalog를 `GameState`에 연결한다. Composition mode가 `OFF`가 아니면 assignment로 두 5인 lineup을 만들고 active Composition profile을 한 번 분석한다.
 
@@ -144,12 +151,15 @@ Frontend는 snapshot을 현재 playback time 이하에서 선택하고 event를 
 
 - 명시적 seed는 같은 team, assignment, options에서 replay key다.
 - main gameplay `Random`은 한 번 생성되고 `MatchSimulator`의 고정 resolver 순서로 전달된다.
-- explicit player rating의 match realization은 match seed에서 구조적으로 파생되어 재현된다.
+- explicit player rating의 match realization은 match seed에서 구조적으로 파생되고 skill enum declaration order로 draw를 배정한다.
 - real orchestration replay는 동일 team codes, fresh/equivalent series history, authored resources, match seed에서 Draft decisions, final roles, assignment, events, snapshots, winner와 duration이 모두 같다.
 - ineligible action, duplicate evaluation, 실행되지 않는 branch, diagnostics는 불필요한 Random을 소비하면 안 된다.
+- API/timeline에 노출되는 enum set은 immutable `EnumSet` declaration order로 canonicalize한다. Hash/summary/serialization은 `Set.copyOf`의 JVM별 iteration order에 의존하지 않는다.
 - request에 seed가 없으면 매 요청마다 wall-clock seed가 선택되므로 자동으로 같은 결과가 나오지 않는다. response seed를 다시 보내야 replay할 수 있다.
 - structured timeline 전체—participants, outcome, rewards, objectives, structures, winner—가 same-seed 회귀의 대상이다.
-- replay provenance는 동일 input snapshot을 식별하고 timeline hash는 그 input에서 나온 complete output을 별도로 식별한다.
+- replay provenance는 동일 input snapshot을 식별하고 timeline hash와 Random fingerprint는 그 input에서 나온 complete output/consumption을 별도로 식별한다.
+
+공식 Pre-Jungle cross-process oracle은 `backend/baseline/pre-jungle-runtime-v2/`다. 세 profile × 세 case의 문서와 canonical timeline이 별도 JVM 재생성에서 byte-identical해야 한다.
 
 ## Important Invariants
 

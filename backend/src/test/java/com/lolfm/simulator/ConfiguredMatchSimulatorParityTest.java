@@ -24,16 +24,16 @@ class ConfiguredMatchSimulatorParityTest {
         var blue = teams.createBlueTeam();
         var red = teams.createRedTeam();
         var assignments = new ChampionSelectionValidator(champions).resolve(null);
-        ResolvedSimulationRuntimeProfile baseline = SimulationRuntimeProfiles.resolve(
-                SimulationRuntimeProfileId.BASELINE_V1);
-
         MatchTimeline existing = existingAutowiredSimulator.simulate(
                 blue, red, SEED, assignments);
-        MatchTimeline explicit = configuredFactory.create(
-                        baseline, SimulationInstrumentation.enabled())
-                .simulate(blue, red, SEED, assignments);
+        ObservedMatchSimulation explicit = configuredFactory.create(
+                        SimulationRuntimeProfileId.BASELINE_V1,
+                        SimulationInstrumentation.enabled())
+                .simulateObserved(blue, red, SEED, assignments);
 
-        assertThat(explicit).usingRecursiveComparison().isEqualTo(existing);
+        assertThat(explicit.timeline()).usingRecursiveComparison().isEqualTo(existing);
+        assertThat(explicit.randomFingerprint().randomDrawCount()).isPositive();
+        assertThat(explicit.randomFingerprint().randomTraceHash()).matches("[0-9a-f]{64}");
     }
 
     @Test
@@ -42,15 +42,14 @@ class ConfiguredMatchSimulatorParityTest {
         var blue = teams.createBlueTeam();
         var red = teams.createRedTeam();
         var assignments = new ChampionSelectionValidator(champions).resolve(null);
-        ResolvedSimulationRuntimeProfile baseline = SimulationRuntimeProfiles.resolve(
-                SimulationRuntimeProfileId.BASELINE_V1);
-
-        MatchTimeline enabled = configuredFactory.create(
-                        baseline, SimulationInstrumentation.enabled())
-                .simulate(blue, red, SEED, assignments);
-        MatchTimeline disabled = configuredFactory.create(
-                        baseline, SimulationInstrumentation.disabled())
-                .simulate(blue, red, SEED, assignments);
+        ObservedMatchSimulation enabled = configuredFactory.create(
+                        SimulationRuntimeProfileId.BASELINE_V1,
+                        SimulationInstrumentation.enabled())
+                .simulateObserved(blue, red, SEED, assignments);
+        ObservedMatchSimulation disabled = configuredFactory.create(
+                        SimulationRuntimeProfileId.BASELINE_V1,
+                        SimulationInstrumentation.disabled())
+                .simulateObserved(blue, red, SEED, assignments);
 
         assertThat(disabled).usingRecursiveComparison().isEqualTo(enabled);
     }

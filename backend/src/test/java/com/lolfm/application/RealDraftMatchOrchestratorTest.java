@@ -23,6 +23,7 @@ import com.lolfm.player.PlayerId;
 import com.lolfm.simulator.PlayerKey;
 import com.lolfm.simulator.SimulationInstrumentation;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
+import com.lolfm.simulator.SimulationRuntimeProfiles;
 import com.lolfm.simulator.TeamSide;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -257,7 +258,12 @@ class RealDraftMatchOrchestratorTest {
         assertThat(value.replayProvenanceHash()).isNotEqualTo(value.timelineHash());
         assertThat(value.draftDecisionHash()).isEqualTo(gameOne.draftResult().draftIdentity());
         assertThat(value.engineRulesVersion())
-                .isEqualTo(SimulationProvenanceService.ENGINE_RULES_VERSION);
+                .isEqualTo(SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
+        assertThat(value.activeGameplayRulesVersion()).isEqualTo(value.engineRulesVersion());
+        assertThat(value.engineImplementationVersion())
+                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V1");
+        assertThat(value.randomFingerprint().randomDrawCount()).isPositive();
+        assertThat(value.randomFingerprint().randomTraceHash()).matches("[0-9a-f]{64}");
         assertThat(value.resourceProvenance().resources()).hasSize(10)
                 .extracting(VersionedResourceIdentity::role)
                 .containsExactly(
@@ -282,6 +288,7 @@ class RealDraftMatchOrchestratorTest {
         assertThat(disabled.configurationHash()).isEqualTo(enabled.configurationHash());
         assertThat(disabled.replayProvenanceHash()).isEqualTo(enabled.replayProvenanceHash());
         assertThat(disabled.timelineHash()).isEqualTo(enabled.timelineHash());
+        assertThat(disabled.randomFingerprint()).isEqualTo(enabled.randomFingerprint());
         assertThat(diagnosticsOffReplay.timeline()).usingRecursiveComparison()
                 .isEqualTo(gameOne.timeline());
     }

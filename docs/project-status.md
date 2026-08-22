@@ -109,7 +109,7 @@ GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history 
 
 ### Explicit simulation runtime profiles and provenance
 
-`RealDraftMatchOrchestrator`의 기존 overload는 이제 `BASELINE_V1`을 resolve하며, additive overload는 다음 closed-set profile ID를 받는다. 임의 gameplay boolean 또는 internal audit mode는 application input으로 노출하지 않는다.
+`RealDraftMatchOrchestrator`의 기존 overload는 이제 `BASELINE_V1`을 resolve하며, additive overload는 다음 closed-set profile ID를 받는다. `ConfiguredMatchSimulatorFactory`의 유일한 public `create` 경계도 profile ID와 instrumentation만 받아 registry를 다시 resolve한다. Caller가 직접 만든 `ResolvedSimulationRuntimeProfile`은 provenance 경계에서 exact registry membership을 재검증하므로 임의 gameplay boolean 또는 internal audit mode를 application runtime에 주입할 수 없다.
 
 | Profile | 공통 gameplay | Matchup | Composition | Configuration hash |
 | --- | --- | --- | --- | --- |
@@ -119,26 +119,32 @@ GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history 
 
 공통 ON snapshot은 Lane Combat/FARM Recovery/Jungle Gank/Counter Gank/Roam/Objective Priority/Lane Phase/Mid Game Macro/Objective Decision/Late Game Macro/Progression/Progression Power/Champion Power 전부다. Jungle Clear는 새 runtime switch가 아니라 모든 profile의 typed invariant `DISABLED_NOT_INTEGRATED`다.
 
-`configurationHash`는 이 field-complete gameplay configuration만 고정한다. Diagnostics ON/OFF는 별도 `SimulationInstrumentation`이며 configuration/replay hash에서 제외되고 complete timeline도 바꾸지 않는다. `replayProvenanceHash`는 engine rules, raw resource/version snapshot, side/team/roster, series history, Draft rules/scoring policy/final draft/final assignment, seed를 묶는다. `timelineHash`는 complete output을 별도로 고정한다. 기존 `draftIdentity()`와 Hard Fearless commit semantics는 변경하지 않았다.
+`configurationHash`는 이 field-complete gameplay configuration만 고정한다. Diagnostics ON/OFF는 별도 `SimulationInstrumentation`이며 configuration/replay hash에서 제외되고 complete timeline과 Random fingerprint도 바꾸지 않는다.
+
+실행 이력 V2는 `engineImplementationVersion=MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V1`과 profile별 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 분리한다. `replayProvenanceHash`는 두 version, configuration, raw resource/version snapshot, side/team/roster, series history, Draft rules/scoring policy/final draft/final assignment, seed를 묶는다. `timelineHash`는 complete output을 별도로 고정한다. `randomFingerprint`는 실제 seeded `Random.next(bits)` 소비의 draw count와 ordered trace SHA-256을 기록하는 observational output이며 replay input hash에는 들어가지 않는다. 기존 `engineRulesVersion` field는 active rules의 additive compatibility alias다. 기존 `draftIdentity()`와 Hard Fearless commit semantics는 변경하지 않았다.
 
 `BASELINE_V1`과 기존 autowired simulator의 same teams/assignments/seed complete timeline은 exact parity다. 기존 Spring `MatchController`는 계속 direct autowired simulator와 DummyDataFactory를 사용하고 HTTP profile 선택은 추가하지 않았다.
 
 ### Pre-Jungle baseline
 
-Profiles/provenance production tree의 focused tests와 final full regression이 clean pass한 뒤에만 `generatePreJungleRuntimeBaseline`을 실행했다. 생성 전후 production guard는 동일했다.
+공식 oracle은 `PRE_JUNGLE_RUNTIME_BASELINE_V2`다. Focused tests와 final full regression이 clean pass하고 production source guard가 동일한 tree에서만 `generatePreJungleRuntimeBaselineV2`를 실행했다. 새 JVM 재생성도 source artifact와 byte-identical하게 성공했다.
 
 | 항목 | 값 |
 | --- | --- |
-| Baseline ID | `PRE_JUNGLE_RUNTIME_BASELINE_V1` |
+| Baseline ID | `PRE_JUNGLE_RUNTIME_BASELINE_V2` |
 | Fixed schedule | 3 profiles × GEN–T1 G1/G2 + T1–GEN mirror G1 = 9 matches |
-| JSON | `backend/baseline/pre-jungle-runtime-v1/pre-jungle-runtime-baseline-v1.json` |
-| JSON SHA-256 | `2dcf67a3501200f0bce3de6239dcfbed3b27bafdc9287940f3f56171223a1d71` |
+| JSON | `backend/baseline/pre-jungle-runtime-v2/pre-jungle-runtime-baseline-v2.json` |
+| JSON SHA-256 | `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e` |
 | Resource provenance hash | `3affaf03ce588e0d1054e35ab1839f04e262d8ba3c512188374707ce3c1b8a4e` |
-| Production source tree | 453 files / `7373bd094d8c638853988e809447718ec65ee8630b9d6168a5f57b9c07564d76` |
-| Source revision | `68a5f38802256e37ded082c1333a78216948576d` + exact tree hash |
+| Production source tree | 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350` |
+| Source revision | `8a55664955fad82d037ca9286be6bdb050b029fe` + exact working-tree hash |
+| Rules / engine | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2` / `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V1` |
+| Random identity | per-match draw count + ordered `next(bits)` trace SHA-256 |
 | Jungle Clear invariant | contribution disabled, authored gameplay-enabled profile count 0 |
 
-Artifact와 build report mirror는 byte-identical하고 `SHA256SUMS.txt` 검증을 통과했다. 이 reference는 현재 normal test expected fixture가 아니며 다음 Jungle gameplay milestone의 before snapshot이다.
+Artifact와 build report mirror는 byte-identical하고 `SHA256SUMS.txt` 검증을 통과했다. Generator는 V2 profile 목록을 세 개로 고정하고 future enum 값을 자동 포함하지 않으며 existing source bytes가 다르면 overwrite를 거부한다. V1 task도 재생성을 거부한다.
+
+V1 JSON의 raw SHA `2dcf67a3501200f0bce3de6239dcfbed3b27bafdc9287940f3f56171223a1d71`은 그대로 유효하다. 다만 V1 생성 뒤 별도 JVM 재생성에서 `Set.copyOf(EnumSet)` iteration이 player skill별 seeded draw 배정을 바꾸고 Champion Power tag order가 snapshot summary를 바꾸는 두 cross-process 비결정성을 발견했다. 따라서 V1은 당시 실행의 immutable 기록으로 보존하되 공식 replay/timeline oracle로 사용하지 않고 V2가 이를 대체한다. V2는 canonical enum order를 production contract로 고정하고 두 별도 JVM에서 문서와 9개 timeline이 모두 동일함을 확인했다.
 
 ### HTTP match runtime
 
@@ -159,8 +165,11 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - coherent default player catalog graph, exact resource semantic envelope, match-wide stable PlayerId invariant
 - real LCK Team→DraftEngine→final role→MatchChampionAssignments→seeded MatchSimulator application orchestration
 - field-complete closed-set runtime profiles, instrumentation isolation, configuration/replay/timeline hashing
-- 10개 raw resource identity와 roster/series/Draft/final assignment를 포함한 structured execution provenance
-- clean full regression 뒤 생성한 9-match versioned Pre-Jungle baseline과 SHA/source-tree identity
+- ID-only factory boundary와 exact registry-membership 재검증으로 막은 fabricated resolved-profile 우회
+- 10개 raw resource identity와 roster/series/Draft/final assignment, engine/rules version을 포함한 structured execution provenance V2
+- gameplay와 격리된 per-match Random draw count/trace hash와 observed/plain exact timeline parity
+- canonical PlayerSkill realization 순서와 enum-set timeline serialization
+- clean full regression 뒤 생성하고 별도 JVM에서 재검증한 9-match Pre-Jungle V2 baseline
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -180,7 +189,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Pending
 
-1. 다음 독립 Batch에서 Jungle Clear match-scoped state/economy/XP/readiness/tempo 계약을 먼저 설계하고 Pre-Jungle hash와 paired comparison 기준을 고정한다.
+1. 다음 독립 Batch에서 Jungle Clear match-scoped state/economy/XP/readiness/tempo 계약을 먼저 설계하고 공식 V2 configuration/replay/timeline/Random fingerprint paired comparison 기준을 고정한다.
 2. 그 뒤 clear completion이 gank/objective eligibility에 미치는 경계를 central priority, Random non-consumption, FARM opportunity-cost 규칙과 함께 구현·검증한다.
 3. Jungle 통합 뒤 explicit profiles/provenance를 입력으로 `PHASE_13G_B_REAL_DATA_INTEGRATED_AUDIT_AND_CALIBRATION`을 별도 수행한다.
 4. match gameplay가 안정된 뒤 Career/season/tournament 상태와 HTTP/frontend 노출을 설계한다.
@@ -196,16 +205,20 @@ Final command:
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 151 |
-| Tests | 1,965 |
+| JUnit suites | 156 |
+| Tests | 1,978 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 1,326.378 seconds |
-| Gradle wall duration | 22m 16s |
+| Aggregate JUnit XML time | 1,329.129 seconds |
+| Gradle wall duration | 22m 19s |
 | Build | `BUILD SUCCESSFUL` |
 
-이번 Batch A의 full regression은 baseline 생성 전 최종 production tree에서 정확히 1회 실행해 clean pass했다. Production source/resource/build guard hash는 run 전후 `27d90233fe39a85fa4d695cad79bc4383090817b013c3c228d4c6651e36e5d03`으로 동일했다. 직접 영향 focused 묶음은 3 suites / 21 tests, 4분 45초에 통과했다. 여기에는 3개 frozen profile semantics/hash, 기존 autowired `BASELINE_V1` complete timeline parity, diagnostics ON/OFF isolation, GEN–T1 game 1/game 2/replay provenance가 포함된다. Full pass 뒤 baseline을 생성하고 문서만 변경했으므로 full regression을 반복하지 않았다.
+최종 hardening focused 묶음은 12 suites / 52 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit 360.778초, Gradle 6분 9초로 통과했다. Closed registry/factory, 3개 frozen semantics/hash, diagnostics ON/OFF timeline+Random parity, Random observer delegation, real GEN–T1 orchestration, immutable V2 writer, canonical PlayerSkill/tag/snapshot ordering을 포함한다.
+
+이번 hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 위 final full을 실행했다. 그 뒤 executable production/test source는 변경하지 않았다.
+
+Production source/resource/build guard는 final full 전후 모두 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`으로 동일했다. Full pass 뒤 공식 V2를 생성하고 새 JVM에서 같은 SHA로 재생성했으며 이후 변경은 docs/README뿐이므로 full regression을 반복하지 않는다.
 
 테스트/diagnostic 실행 경계는 [Testing](development/testing.md), player contract는 [Player System](architecture/player-system.md)과 [Player Data Schema](reference/player-data-schema.md)를 참고한다.
 

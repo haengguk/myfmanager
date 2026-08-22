@@ -329,6 +329,24 @@ public class MatchSimulator {
         return runSimulation(blueTeam, redTeam, seed, assignments).timeline();
     }
 
+    /**
+     * Runs the same seeded gameplay while exposing observational Random consumption identity.
+     * The observer delegates every draw to {@link Random} and does not request draws itself.
+     */
+    public ObservedMatchSimulation simulateObserved(
+            Team blueTeam,
+            Team redTeam,
+            long seed,
+            MatchChampionAssignments assignments
+    ) {
+        MatchLineupIdentityValidator.validate(blueTeam, redTeam);
+        SideOrientationRandomTraceObserver random = new SideOrientationRandomTraceObserver(
+                seed, "RUNTIME", blueTeam.getName(), redTeam.getName(), false);
+        SimulationResult result = runValidatedSimulation(
+                blueTeam, redTeam, assignments, random, seed);
+        return new ObservedMatchSimulation(result.timeline(), random.fingerprint());
+    }
+
     SimulationResult simulateWithDiagnostics(Team blueTeam, Team redTeam, long seed) {
         return runSimulation(blueTeam, redTeam, seed,
                 new ChampionSelectionValidator(DEFAULT_CHAMPION_CATALOG).resolve(null));
@@ -533,6 +551,8 @@ public class MatchSimulator {
                 gameState.getChampionMatchupExecutionStats().snapshot(),
                 gameState.getCombatOutcomeExecutionStats().snapshot(),
                 random instanceof SideOrientationRandomTraceObserver observer ? observer.drawCount() : 0L,
+                random instanceof SideOrientationRandomTraceObserver observer
+                        ? observer.traceHash() : null,
                 random instanceof SideOrientationRandomTraceObserver observer ? observer.trace() : List.of(),
                 gameState.getCompositionRuntimeState().snapshot()
         );
@@ -570,6 +590,7 @@ public class MatchSimulator {
             ChampionMatchupExecutionStatsSnapshot championMatchupExecutionStats,
             CombatOutcomeExecutionStatsSnapshot combatOutcomeExecutionStats,
             long randomDrawCount,
+            String randomTraceHash,
             List<SideOrientationRandomTraceObserver.Draw> randomTrace,
             CompositionRuntimeDiagnostics compositionRuntimeDiagnostics
     ) {

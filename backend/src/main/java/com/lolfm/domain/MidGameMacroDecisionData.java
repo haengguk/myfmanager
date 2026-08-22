@@ -23,6 +23,7 @@ public record MidGameMacroDecisionData(
 ) {
     public MidGameMacroDecisionData {
         candidates = candidates == null ? List.of() : List.copyOf(candidates);
-        assignedPositions = assignedPositions == null ? Set.of() : Set.copyOf(assignedPositions);
+        assignedPositions = DeterministicEnumSet.copyOfNullable(
+                Position.class, assignedPositions);
     }
 }

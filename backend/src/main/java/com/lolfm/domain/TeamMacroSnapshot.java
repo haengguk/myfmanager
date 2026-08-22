@@ -31,7 +31,8 @@ public record TeamMacroSnapshot(
         int lastSelectionRandomConsumptionCount
 ) {
     public TeamMacroSnapshot {
-        assignedPositions = assignedPositions == null ? Set.of() : Set.copyOf(assignedPositions);
+        assignedPositions = DeterministicEnumSet.copyOfNullable(
+                Position.class, assignedPositions);
     }
 
     public TeamMacroSnapshot(

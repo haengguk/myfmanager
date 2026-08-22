@@ -1,5 +1,6 @@
 package com.lolfm.champion;
 
+import com.lolfm.domain.DeterministicEnumSet;
 import com.lolfm.simulator.ItemProgressStage;
 import com.lolfm.simulator.ProgressionCombatContext;
 import java.util.Map;
@@ -9,7 +10,9 @@ public record ChampionPowerProfile(ChampionId championId, String levelCurveId, S
         LevelPowerCurve levelCurve, Map<ItemProgressStage, Double> itemModifiers,
         Map<ProgressionCombatContext, Double> contextModifiers, Set<ChampionTag> tags, String profileVersion) {
     public ChampionPowerProfile {
-        itemModifiers = Map.copyOf(itemModifiers); contextModifiers = Map.copyOf(contextModifiers); tags = Set.copyOf(tags);
+        itemModifiers = Map.copyOf(itemModifiers);
+        contextModifiers = Map.copyOf(contextModifiers);
+        tags = DeterministicEnumSet.copyOf(ChampionTag.class, tags);
         if (itemModifiers.size() != ItemProgressStage.values().length) throw new IllegalArgumentException("Incomplete item curve: " + championId);
         if (contextModifiers.size() != ProgressionCombatContext.values().length) throw new IllegalArgumentException("Incomplete contexts: " + championId);
         itemModifiers.values().forEach(ChampionPowerProfile::validateValue);

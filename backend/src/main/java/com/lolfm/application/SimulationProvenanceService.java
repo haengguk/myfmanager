@@ -25,6 +25,7 @@ import com.lolfm.player.PlayerRatingResourceLoader;
 import com.lolfm.simulator.PlayerKey;
 import com.lolfm.simulator.ResolvedSimulationRuntimeProfile;
 import com.lolfm.simulator.SimulationInstrumentation;
+import com.lolfm.simulator.SimulationRandomFingerprint;
 import com.lolfm.simulator.SimulationRuntimeProfiles;
 import com.lolfm.simulator.TeamSide;
 import java.io.IOException;
@@ -42,7 +43,11 @@ import java.util.Set;
 
 /** Pure observer that hashes explicit match inputs and the complete timeline. */
 public final class SimulationProvenanceService {
-    public static final String ENGINE_RULES_VERSION = "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V1";
+    /** Compatibility alias retained for the V1 baseline document. */
+    public static final String ENGINE_RULES_VERSION =
+            SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION;
+    public static final String ENGINE_IMPLEMENTATION_VERSION =
+            "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V1";
     public static final String ORDERED_LINES_HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_FIELD_LINES_TRAILING_NEWLINE_V1";
     public static final String TIMELINE_HASH_ALGORITHM =
@@ -96,12 +101,14 @@ public final class SimulationProvenanceService {
             int seriesGameNumber,
             Set<ChampionId> seriesExclusionsBeforeDraft,
             FinalDraftResult draftResult,
-            MatchTimeline timeline
+            MatchTimeline timeline,
+            SimulationRandomFingerprint randomFingerprint
     ) {
-        Objects.requireNonNull(profile, "profile");
+        profile = SimulationRuntimeProfiles.requireRegistered(profile);
         Objects.requireNonNull(instrumentation, "instrumentation");
         Objects.requireNonNull(draftResult, "draftResult");
         Objects.requireNonNull(timeline, "timeline");
+        Objects.requireNonNull(randomFingerprint, "randomFingerprint");
         if (!draftRules.equals(draftResult.ruleSet())) {
             throw new IllegalArgumentException("Draft result rule set differs from runtime identity");
         }
@@ -113,6 +120,7 @@ public final class SimulationProvenanceService {
         String finalAssignmentHash = finalAssignmentHash(draftResult);
         String finalDraftHash = finalDraftHash(draftResult, finalAssignmentHash);
         String replayHash = replayProvenanceHash(
+                ENGINE_IMPLEMENTATION_VERSION, profile.activeGameplayRulesVersion(),
                 profile.configurationHash(), resourceProvenance.resourceProvenanceHash(),
                 blueTeamCode, redTeamCode, rosterIdentityHash, matchSeed, seriesGameNumber,
                 historyBeforeHash, draftResult.ruleSet().identity(), draftRuleSetHash,
@@ -123,12 +131,14 @@ public final class SimulationProvenanceService {
                 SimulationExecutionProvenance.SCHEMA,
                 profile.profileId(), profile.gameplayConfiguration(), profile.configurationHash(),
                 SimulationRuntimeProfiles.CONFIGURATION_HASH_ALGORITHM,
-                instrumentation, ENGINE_RULES_VERSION, resourceProvenance,
+                instrumentation, profile.activeGameplayRulesVersion(),
+                ENGINE_IMPLEMENTATION_VERSION, profile.activeGameplayRulesVersion(),
+                resourceProvenance,
                 blueTeamCode, redTeamCode, rosterIdentityHash, matchSeed, seriesGameNumber,
                 historyBeforeHash, draftResult.ruleSet().identity(), draftRuleSetHash,
                 draftScoringPolicyHash, draftResult.draftIdentity(), finalDraftHash,
                 finalAssignmentHash, replayHash, ORDERED_LINES_HASH_ALGORITHM,
-                timelineHash(timeline), TIMELINE_HASH_ALGORITHM);
+                timelineHash(timeline), TIMELINE_HASH_ALGORITHM, randomFingerprint);
     }
 
     public String timelineHash(MatchTimeline timeline) {
@@ -369,6 +379,8 @@ public final class SimulationProvenanceService {
     }
 
     private static String replayProvenanceHash(
+            String engineImplementationVersion,
+            String activeGameplayRulesVersion,
             String configurationHash,
             String resourceProvenanceHash,
             String blueTeamCode,
@@ -384,8 +396,9 @@ public final class SimulationProvenanceService {
             String finalDraftHash,
             String finalAssignmentHash
     ) {
-        String canonical = "replayProvenanceSchema=REPLAY_PROVENANCE_V1\n"
-                + "engineRulesVersion=" + ENGINE_RULES_VERSION + '\n'
+        String canonical = "replayProvenanceSchema=REPLAY_PROVENANCE_V2\n"
+                + "engineImplementationVersion=" + engineImplementationVersion + '\n'
+                + "activeGameplayRulesVersion=" + activeGameplayRulesVersion + '\n'
                 + "configurationHash=" + configurationHash + '\n'
                 + "resourceProvenanceHash=" + resourceProvenanceHash + '\n'
                 + "blueTeamCode=" + blueTeamCode + '\n'

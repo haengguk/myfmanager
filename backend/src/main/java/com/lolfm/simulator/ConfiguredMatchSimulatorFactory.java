@@ -4,7 +4,7 @@ import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/** Builds a simulator only from a resolved closed-set profile plus instrumentation. */
+/** Builds an application simulator only from a closed-set profile ID plus instrumentation. */
 @Component
 public final class ConfiguredMatchSimulatorFactory {
     private final TeamfightResolver teamfightResolver;
@@ -39,10 +39,10 @@ public final class ConfiguredMatchSimulatorFactory {
     }
 
     public MatchSimulator create(
-            ResolvedSimulationRuntimeProfile profile,
+            SimulationRuntimeProfileId profileId,
             SimulationInstrumentation instrumentation
     ) {
-        Objects.requireNonNull(profile, "profile");
+        ResolvedSimulationRuntimeProfile profile = SimulationRuntimeProfiles.resolve(profileId);
         Objects.requireNonNull(instrumentation, "instrumentation");
         return new MatchSimulator(
                 teamfightResolver, endGameEvaluator, snapshotFactory, objectiveResolver,

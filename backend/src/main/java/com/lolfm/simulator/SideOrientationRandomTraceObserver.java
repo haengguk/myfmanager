@@ -1,6 +1,10 @@
 package com.lolfm.simulator;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Random;
 
@@ -19,6 +23,8 @@ public final class SideOrientationRandomTraceObserver extends Random {
     private final String blueLogicalTeam;
     private final String redLogicalTeam;
     private final boolean captureTrace;
+    private final MessageDigest traceDigest;
+    private String finalizedTraceHash;
 
     public SideOrientationRandomTraceObserver(
             long seed,
@@ -33,6 +39,9 @@ public final class SideOrientationRandomTraceObserver extends Random {
         this.blueLogicalTeam = blueLogicalTeam;
         this.redLogicalTeam = redLogicalTeam;
         this.captureTrace = captureTrace;
+        traceDigest = sha256Digest();
+        traceDigest.update(("simulationRandomFingerprintSchema="
+                + SimulationRandomFingerprint.SCHEMA + '\n').getBytes(StandardCharsets.UTF_8));
     }
 
     public void context(Source source, TeamSide side, int tickSeconds) {
@@ -43,8 +52,20 @@ public final class SideOrientationRandomTraceObserver extends Random {
 
     @Override
     protected int next(int bits) {
+        if (finalizedTraceHash != null) {
+            throw new IllegalStateException("Random trace was already finalized");
+        }
         int value = super.next(bits);
         long index = ++drawIndex;
+        String logicalTeam = logicalTeam(side);
+        String canonical = "draw=" + index + '|'
+                + source.name() + '|'
+                + (side == null ? "NONE" : side.name()) + '|'
+                + tickSeconds + '|'
+                + "NEXT_BITS" + '|'
+                + bits + '|'
+                + value + '\n';
+        traceDigest.update(canonical.getBytes(StandardCharsets.UTF_8));
         if (captureTrace) {
             trace.add(new Draw(
                     index,
@@ -55,7 +76,7 @@ public final class SideOrientationRandomTraceObserver extends Random {
                     bits,
                     value,
                     orientation,
-                    logicalTeam(side)
+                    logicalTeam
             ));
         }
         return value;
@@ -73,9 +94,32 @@ public final class SideOrientationRandomTraceObserver extends Random {
         return List.copyOf(trace);
     }
 
+    public String traceHash() {
+        if (finalizedTraceHash == null) {
+            finalizedTraceHash = HexFormat.of().formatHex(traceDigest.digest());
+        }
+        return finalizedTraceHash;
+    }
+
+    public SimulationRandomFingerprint fingerprint() {
+        return new SimulationRandomFingerprint(
+                SimulationRandomFingerprint.SCHEMA,
+                drawIndex,
+                traceHash(),
+                SimulationRandomFingerprint.TRACE_HASH_ALGORITHM);
+    }
+
     private String logicalTeam(TeamSide value) {
         if (value == null) return "NONE";
         return value == TeamSide.BLUE ? blueLogicalTeam : redLogicalTeam;
+    }
+
+    private static MessageDigest sha256Digest() {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException error) {
+            throw new IllegalStateException(error);
+        }
     }
 
     public enum Source {

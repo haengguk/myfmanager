@@ -26,7 +26,8 @@ public final class PlayerMatchPerformance {
                 : (PlayerRatings.MAX - consistency)
                         * PlayerRatingRuleConfig.REALIZATION_SPREAD_PER_MISSING_CONSISTENCY;
         Random realizationRandom = new Random(realizationSeed(matchSeed, side, base.position()));
-        for (PlayerSkill skill : PlayerSkill.forPosition(base.position())) {
+        // Random consumption is bound to enum declaration order, never Set iteration order.
+        for (PlayerSkill skill : PlayerSkill.orderedForPosition(base.position())) {
             double value = base.get(skill);
             if (skill != PlayerSkill.CONSISTENCY && spread > 0.0) {
                 double triangular = realizationRandom.nextDouble() + realizationRandom.nextDouble() - 1.0;

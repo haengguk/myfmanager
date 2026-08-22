@@ -33,6 +33,6 @@ public record MidGameMacroActionData(
         int farmBlockSeconds
 ) {
     public MidGameMacroActionData {
-        participants = participants == null ? Set.of() : Set.copyOf(participants);
+        participants = DeterministicEnumSet.copyOfNullable(Position.class, participants);
     }
 }

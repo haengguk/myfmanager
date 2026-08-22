@@ -18,6 +18,7 @@ import com.lolfm.player.LckTeamAssembler;
 import com.lolfm.player.PlayerIdentityCatalog;
 import com.lolfm.player.PlayerRatingCatalog;
 import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
+import com.lolfm.simulator.ObservedMatchSimulation;
 import com.lolfm.simulator.ResolvedSimulationRuntimeProfile;
 import com.lolfm.simulator.SimulationInstrumentation;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
@@ -111,7 +112,7 @@ public final class RealDraftMatchOrchestrator {
         Objects.requireNonNull(seriesHistory, "seriesHistory");
         ResolvedSimulationRuntimeProfile profile = SimulationRuntimeProfiles.resolve(profileId);
         var configuredMatchSimulator = matches.create(
-                profile, Objects.requireNonNull(instrumentation, "instrumentation"));
+                profileId, Objects.requireNonNull(instrumentation, "instrumentation"));
         String normalizedBlueTeamCode = normalizeTeamCode(blueTeamCode, "blueTeamCode");
         String normalizedRedTeamCode = normalizeTeamCode(redTeamCode, "redTeamCode");
         Team blueTeam = teams.assemble(normalizedBlueTeamCode);
@@ -126,12 +127,13 @@ public final class RealDraftMatchOrchestrator {
                 blueContext, redContext, draftResult, seriesHistory);
 
         // The Draft-owned object is passed through directly; no reinterpretation or reassignment occurs.
-        MatchTimeline timeline = configuredMatchSimulator.simulate(blueTeam, redTeam, matchSeed,
-                draftResult.matchChampionAssignments());
+        ObservedMatchSimulation observed = configuredMatchSimulator.simulateObserved(
+                blueTeam, redTeam, matchSeed, draftResult.matchChampionAssignments());
+        MatchTimeline timeline = observed.timeline();
         SimulationExecutionProvenance executionProvenance = provenance.create(
                 profile, instrumentation, normalizedBlueTeamCode, blueTeam,
                 normalizedRedTeamCode, redTeam, matchSeed, gameNumber,
-                exclusionsBeforeDraft, draftResult, timeline);
+                exclusionsBeforeDraft, draftResult, timeline, observed.randomFingerprint());
 
         seriesHistory.commitCompleted(draftResult);
         validateCommittedHistory(seriesHistory, draftResult, exclusionsBeforeDraft, gameNumber);

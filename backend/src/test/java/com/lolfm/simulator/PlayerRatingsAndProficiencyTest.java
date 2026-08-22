@@ -15,6 +15,8 @@ import com.lolfm.domain.Position;
 import com.lolfm.domain.Team;
 import com.lolfm.factory.DummyDataFactory;
 import java.util.Map;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.function.ToDoubleFunction;
 import org.junit.jupiter.api.Test;
@@ -81,6 +83,18 @@ class PlayerRatingsAndProficiencyTest {
         assertEquals(lowA.asMap(), lowB.asMap());
         assertTrue(deviation(lowA) > deviation(highA));
         assertEquals(20.0, highA.rating(PlayerSkill.CONSISTENCY));
+    }
+
+    @Test
+    void seededSkillRealizationUsesCanonicalEnumDeclarationOrder() {
+        for (Position position : Position.values()) {
+            List<PlayerSkill> expected = Arrays.stream(PlayerSkill.values())
+                    .filter(skill -> skill.appliesTo(position))
+                    .toList();
+
+            assertEquals(expected, PlayerSkill.orderedForPosition(position));
+            assertEquals(expected, List.copyOf(PlayerSkill.forPosition(position)));
+        }
     }
 
     @Test

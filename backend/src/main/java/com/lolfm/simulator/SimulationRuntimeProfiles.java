@@ -13,6 +13,8 @@ import java.util.Objects;
 
 /** Closed registry of versioned, application-selectable runtime profiles. */
 public final class SimulationRuntimeProfiles {
+    public static final String PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION =
+            "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2";
     public static final String CONFIGURATION_HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_FIELD_LINES_TRAILING_NEWLINE_V1";
 
@@ -31,6 +33,20 @@ public final class SimulationRuntimeProfiles {
 
     public static Map<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> all() {
         return PROFILES;
+    }
+
+    /** Rejects caller-fabricated resolved values at production execution boundaries. */
+    public static ResolvedSimulationRuntimeProfile requireRegistered(
+            ResolvedSimulationRuntimeProfile candidate
+    ) {
+        Objects.requireNonNull(candidate, "candidate");
+        ResolvedSimulationRuntimeProfile registered = resolve(candidate.profileId());
+        if (!registered.equals(candidate)) {
+            throw new IllegalArgumentException(
+                    "Runtime profile must be the exact closed-registry resolution for "
+                            + candidate.profileId());
+        }
+        return registered;
     }
 
     public static String configurationHash(SimulationGameplayConfiguration configuration) {
@@ -83,6 +99,8 @@ public final class SimulationRuntimeProfiles {
                     + expectedHash + " actual=" + actualHash);
         }
         target.put(profileId,
-                new ResolvedSimulationRuntimeProfile(profileId, configuration, actualHash));
+                new ResolvedSimulationRuntimeProfile(
+                        profileId, configuration, actualHash,
+                        PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION));
     }
 }

@@ -2,6 +2,7 @@ package com.lolfm.application;
 
 import com.lolfm.simulator.SimulationGameplayConfiguration;
 import com.lolfm.simulator.SimulationInstrumentation;
+import com.lolfm.simulator.SimulationRandomFingerprint;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
 import java.util.Objects;
 
@@ -14,6 +15,8 @@ public record SimulationExecutionProvenance(
         String configurationHashAlgorithm,
         SimulationInstrumentation instrumentation,
         String engineRulesVersion,
+        String engineImplementationVersion,
+        String activeGameplayRulesVersion,
         SimulationResourceProvenance resourceProvenance,
         String blueTeamCode,
         String redTeamCode,
@@ -30,9 +33,10 @@ public record SimulationExecutionProvenance(
         String replayProvenanceHash,
         String replayProvenanceHashAlgorithm,
         String timelineHash,
-        String timelineHashAlgorithm
+        String timelineHashAlgorithm,
+        SimulationRandomFingerprint randomFingerprint
 ) {
-    public static final String SCHEMA = "SIMULATION_EXECUTION_PROVENANCE_V1";
+    public static final String SCHEMA = "SIMULATION_EXECUTION_PROVENANCE_V2";
 
     public SimulationExecutionProvenance {
         schemaVersion = required(schemaVersion, "schemaVersion");
@@ -46,6 +50,14 @@ public record SimulationExecutionProvenance(
                 configurationHashAlgorithm, "configurationHashAlgorithm");
         Objects.requireNonNull(instrumentation, "instrumentation");
         engineRulesVersion = required(engineRulesVersion, "engineRulesVersion");
+        engineImplementationVersion = required(
+                engineImplementationVersion, "engineImplementationVersion");
+        activeGameplayRulesVersion = required(
+                activeGameplayRulesVersion, "activeGameplayRulesVersion");
+        if (!engineRulesVersion.equals(activeGameplayRulesVersion)) {
+            throw new IllegalArgumentException(
+                    "engineRulesVersion compatibility alias must equal activeGameplayRulesVersion");
+        }
         Objects.requireNonNull(resourceProvenance, "resourceProvenance");
         blueTeamCode = required(blueTeamCode, "blueTeamCode");
         redTeamCode = required(redTeamCode, "redTeamCode");
@@ -68,6 +80,7 @@ public record SimulationExecutionProvenance(
                 replayProvenanceHashAlgorithm, "replayProvenanceHashAlgorithm");
         timelineHash = requiredHash(timelineHash, "timelineHash");
         timelineHashAlgorithm = required(timelineHashAlgorithm, "timelineHashAlgorithm");
+        Objects.requireNonNull(randomFingerprint, "randomFingerprint");
     }
 
     private static String required(String value, String field) {

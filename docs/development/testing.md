@@ -50,6 +50,8 @@ Same-seed regression은 winner 하나만 비교하지 않는다. 같은 teams, c
 - events와 snapshots
 - final winner와 duration
 
+같은 JVM 안의 equality만으로 cross-process 결정성을 증명할 수는 없다. Seeded draw를 enum/set iteration에 배정하거나 timeline hash에 collection serialization이 들어가는 변경은 별도 JVM 두 번의 artifact/canonical timeline SHA도 비교한다.
+
 Draft는 Random을 사용하지 않는다. 동일 resource, `DraftTeamContext`, `SeriesDraftHistory`에서 decisions, final role assignments, `draftIdentity()`가 같아야 한다.
 
 Diagnostics를 켠 실행과 끈 실행이 동일 gameplay configuration이라면 instrumentation 자체가 Random/state/timeline을 바꾸면 안 된다.
@@ -91,16 +93,21 @@ Runtime profile/provenance milestone의 baseline은 normal `test` task가 생성
 cd backend
 ./gradlew test --tests 'com.lolfm.simulator.SimulationRuntimeProfilesTest' \
   --tests 'com.lolfm.simulator.ConfiguredMatchSimulatorParityTest' \
-  --tests 'com.lolfm.application.RealDraftMatchOrchestratorTest'
-./gradlew test
-./gradlew generatePreJungleRuntimeBaseline \
+  --tests 'com.lolfm.simulator.SimulationRandomFingerprintTest' \
+  --tests 'com.lolfm.application.RealDraftMatchOrchestratorTest' \
+  --tests 'com.lolfm.application.RealDraftRandomObservationParityTest' \
+  --tests 'com.lolfm.application.PreJungleBaselineV2GeneratorTest'
+./gradlew test --console=plain --no-daemon
+./gradlew generatePreJungleRuntimeBaselineV2 \
   -PbaselineFullRegressionStatus=CLEAN_PASS \
-  -PbaselineSourceRevision=<git-revision>
+  -PbaselineSourceRevision=<git-revision-or-working-tree-identity>
 ```
 
-Generator는 `CLEAN_PASS`와 source revision property가 없으면 fail-fast한다. 결과는 `backend/baseline/pre-jungle-runtime-v1/`과 동일 bytes의 `backend/build/reports/pre-jungle-runtime-baseline/`에 기록된다. Source baseline은 다음 Jungle 변경과 비교하기 위한 versioned reference이며 default correctness test input은 아니다.
+Generator는 `CLEAN_PASS`와 source revision property가 없으면 fail-fast한다. Profile schedule은 `BASELINE_V1`, `MATCHUP_ONLY_CANDIDATE_V1`, `FULL_SYSTEM_CANDIDATE_V1` 세 개로 고정되고 각 profile의 Jungle contribution이 `DISABLED_NOT_INTEGRATED`인지 확인한다. 결과는 `backend/baseline/pre-jungle-runtime-v2/`과 동일 bytes의 `backend/build/reports/pre-jungle-runtime-baseline-v2/`에 기록된다. Existing source와 candidate bytes가 다르면 report candidate만 남기고 source overwrite를 거부한다.
 
-현재 focused 묶음은 3 suites / 21 tests, full regression은 151 suites / 1,965 tests가 clean pass했다. Baseline은 full pass 뒤에만 생성됐으며 생성 후 production/test source를 변경하거나 full regression을 반복하지 않았다.
+V1 task `generatePreJungleRuntimeBaseline`은 immutable predecessor 재생성을 항상 거부한다. Official V2 생성 뒤에는 같은 명령을 새 JVM에서 다시 실행해 source bytes가 exact equality로 승인되는지 확인한다.
+
+현재 hardening focused 묶음은 12 suites / 52 tests, final full regression은 156 suites / 1,978 tests가 clean pass했다. Production guard는 full 전후 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`으로 동일했다. V2 baseline은 full pass 뒤 생성했고 새 JVM에서 같은 raw SHA `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`로 재검증했다.
 
 ## Generated Reports
 

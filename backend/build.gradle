@@ -448,9 +448,20 @@ tasks.register("phase13gRealProficiencyAudit", Test) {
 
 tasks.register("generatePreJungleRuntimeBaseline", JavaExec) {
     group = "verification"
-    description = "Generates the immutable Pre-Jungle runtime baseline after a confirmed clean full regression."
+    description = "Refuses regeneration of the immutable Pre-Jungle V1 artifact."
     classpath = sourceSets.test.runtimeClasspath
-    mainClass = "com.lolfm.application.PreJungleBaselineGenerator"
+    mainClass = "com.lolfm.application.PreJungleBaselineV2Generator"
+    doFirst {
+        throw new GradleException(
+                "PRE_JUNGLE_RUNTIME_BASELINE_V1 is immutable; use generatePreJungleRuntimeBaselineV2.")
+    }
+}
+
+tasks.register("generatePreJungleRuntimeBaselineV2", JavaExec) {
+    group = "verification"
+    description = "Generates the immutable Random-aware Pre-Jungle V2 baseline after a clean full regression."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.application.PreJungleBaselineV2Generator"
     outputs.upToDateWhen { false }
     doFirst {
         String regressionStatus = providers.gradleProperty(

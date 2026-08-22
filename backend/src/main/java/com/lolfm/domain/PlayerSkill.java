@@ -1,6 +1,8 @@
 package com.lolfm.domain;
 
 import java.util.EnumSet;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 public enum PlayerSkill {
@@ -36,16 +38,26 @@ public enum PlayerSkill {
     }
 
     public static Set<PlayerSkill> forPosition(Position position) {
+        return Collections.unmodifiableSet(skillsForPosition(position));
+    }
+
+    /** Canonical enum-declaration order for any seeded per-skill processing. */
+    public static List<PlayerSkill> orderedForPosition(Position position) {
+        EnumSet<PlayerSkill> applicable = skillsForPosition(position);
+        return java.util.Arrays.stream(values()).filter(applicable::contains).toList();
+    }
+
+    public boolean appliesTo(Position position) {
+        return forPosition(position).contains(this);
+    }
+
+    private static EnumSet<PlayerSkill> skillsForPosition(Position position) {
         EnumSet<PlayerSkill> result = EnumSet.copyOf(COMMON);
         result.addAll(switch (position) {
             case TOP, MID, ADC -> LANER;
             case JUNGLE -> JUNGLE;
             case SUPPORT -> SUPPORT;
         });
-        return Set.copyOf(result);
-    }
-
-    public boolean appliesTo(Position position) {
-        return forPosition(position).contains(this);
+        return result;
     }
 }

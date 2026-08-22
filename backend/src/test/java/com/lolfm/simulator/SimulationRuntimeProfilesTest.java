@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lolfm.champion.ChampionMatchupMode;
 import com.lolfm.composition.TeamCompositionGameplayMode;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +17,9 @@ class SimulationRuntimeProfilesTest {
                 SimulationRuntimeProfiles.all();
 
         assertThat(profiles).hasSize(3).containsOnlyKeys(SimulationRuntimeProfileId.values());
+        assertThat(profiles.values())
+                .extracting(ResolvedSimulationRuntimeProfile::activeGameplayRulesVersion)
+                .containsOnly("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2");
         assertExactCommonGameplay(profiles.get(SimulationRuntimeProfileId.BASELINE_V1));
         assertExactCommonGameplay(
                 profiles.get(SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1));
@@ -102,6 +107,37 @@ class SimulationRuntimeProfilesTest {
                 .hasMessageContaining("do not authorize composition mode");
         assertThatThrownBy(() -> SimulationRuntimeProfiles.all().clear())
                 .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void callerFabricatedResolvedProfileIsRejectedByTheClosedRegistry() {
+        SimulationGameplayConfiguration custom = new SimulationGameplayConfiguration(
+                false, true, true, true, true, true, true, true, true, true,
+                true, true, true, ChampionMatchupMode.OFF,
+                TeamCompositionGameplayMode.OFF,
+                JungleClearContribution.DISABLED_NOT_INTEGRATED);
+        ResolvedSimulationRuntimeProfile fabricated = new ResolvedSimulationRuntimeProfile(
+                SimulationRuntimeProfileId.BASELINE_V1,
+                custom,
+                SimulationRuntimeProfiles.configurationHash(custom),
+                SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
+
+        assertThatThrownBy(() -> SimulationRuntimeProfiles.requireRegistered(fabricated))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("exact closed-registry resolution");
+    }
+
+    @Test
+    void applicationFactoryPublicCreateBoundaryAcceptsOnlyProfileIdAndInstrumentation() {
+        var publicCreateMethods = Arrays.stream(ConfiguredMatchSimulatorFactory.class
+                        .getDeclaredMethods())
+                .filter(method -> method.getName().equals("create"))
+                .filter(method -> Modifier.isPublic(method.getModifiers()))
+                .toList();
+
+        assertThat(publicCreateMethods).singleElement().satisfies(method ->
+                assertThat(method.getParameterTypes()).containsExactly(
+                        SimulationRuntimeProfileId.class, SimulationInstrumentation.class));
     }
 
     private static void assertExactCommonGameplay(ResolvedSimulationRuntimeProfile profile) {

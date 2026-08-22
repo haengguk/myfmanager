@@ -23,9 +23,9 @@ public record SimulationResourceProvenance(
         if (resources.isEmpty()) throw new IllegalArgumentException("resources must not be empty");
         compositionProfileHash = requiredHash(compositionProfileHash, "compositionProfileHash");
         draftLegalRoleKeyHash = requiredHash(draftLegalRoleKeyHash, "draftLegalRoleKeyHash");
-        if (jungleClearGameplayEnabledProfileCount != 0) {
+        if (jungleClearGameplayEnabledProfileCount < 0) {
             throw new IllegalArgumentException(
-                    "Pre-Jungle provenance requires zero gameplay-enabled Jungle Clear profiles");
+                    "jungleClearGameplayEnabledProfileCount must not be negative");
         }
         resourceProvenanceHash = requiredHash(
                 resourceProvenanceHash, "resourceProvenanceHash");
