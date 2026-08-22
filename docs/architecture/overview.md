@@ -10,7 +10,9 @@ flowchart LR
     R --> X[Real LCK Team]
     X --> O[RealDraftMatchOrchestrator]
     O --> D[DraftEngine]
-    O --> S[MatchSimulator]
+    O --> M[ConfiguredMatchSimulatorFactory]
+    P[Runtime Profile + Instrumentation] --> M
+    M --> S[MatchSimulator]
     D --> F[FinalDraftResult]
     F --> A[MatchChampionAssignments]
     C[Champion selection API] --> A
@@ -66,7 +68,7 @@ flowchart LR
 2. 실제 roster path는 identity, rating, sparse proficiency resource의 version/hash/subject equality를 검증하고 `LckTeamAssembler`가 explicit `PlayerId`를 가진 팀을 만든다.
 3. legacy HTTP는 champion selection을 materialize하고, real backend path는 `RealDraftMatchOrchestrator`가 동일 Team으로 Draft를 실행한 뒤 `FinalDraftResult.matchChampionAssignments()`를 재해석 없이 선택한다.
 4. real path의 stateless preflight가 explicit team code, current `PlayerRatingKey`, roster `PlayerId`, Draft context, final role legality, assignment equality, series exclusions를 검증한다.
-5. `MatchSimulator`가 fresh `GameState`, 두 `TeamState`, 열 `PlayerState(PlayerKey, PlayerId, displayName)`를 생성한다.
+5. real path는 closed runtime profile과 별도 instrumentation을 resolve해 configured simulator를 만들고, `MatchSimulator`가 fresh `GameState`, 두 `TeamState`, 열 `PlayerState(PlayerKey, PlayerId, displayName)`를 생성한다.
 6. 고정 resolver 순서로 tick을 진행하며 seed 기반 `Random`을 소비한다.
 7. actual action만 gameplay state와 summary event를 만들고, kill은 공통 reward/death path를 통과한다.
 8. 매 tick 뒤 `MatchSnapshot`이 추가되고, Nexus 파괴 또는 safety timeout으로 `MatchTimeline`이 완성된다.
@@ -74,9 +76,11 @@ flowchart LR
 
 ## 실제 Spring Wiring
 
-`MatchController`가 주입받는 `MatchSimulator`의 `@Autowired` constructor는 legacy four-flag overload를 거쳐 eight-boolean `SimulationOptions` convenience constructor를 사용한다. 이 경로는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`와 `TeamCompositionGameplayMode.OFF`를 사용한다. 반면 `SimulationOptions.productionDefaults()`는 `GEOMETRIC_V2`와 `PRODUCTION_V2`를 정의하며 명시적으로 simulator를 구성하는 테스트/도구에서 사용된다.
+`MatchController`가 직접 주입받는 `MatchSimulator`는 lane/gank/roam/objective/macro/progression/Champion Power를 활성화하지만 `ChampionMatchupMode.OFF`, `TeamCompositionGameplayMode.OFF`, Jungle Clear `DISABLED_NOT_INTEGRATED`를 사용한다. 이 exact gameplay snapshot은 `BASELINE_V1`과 같지만 HTTP path 자체는 아직 runtime profile selector를 노출하지 않는다.
 
-`RealDraftMatchOrchestrator`도 현재 주입된 동일 `MatchSimulator`를 사용하므로 gameplay mode나 Random 순서를 바꾸지 않는다. Draft resource wiring은 Spring의 `ChampionCatalog` instance를 재사용해 active power/matchup/composition resource를 검증하고 `DraftEngine`을 구성한다. `MatchController`는 이 component를 주입받지 않고 `DummyDataFactory`를 계속 사용하므로 backend real path와 HTTP demo path를 구분해야 한다.
+`RealDraftMatchOrchestrator`는 `ConfiguredMatchSimulatorFactory`를 주입받고 closed `SimulationRuntimeProfileId`를 registry에서 다시 resolve한다. 기존 overload는 `BASELINE_V1`, additive overload는 Matchup/Composition/Jungle Economy/Jungle Tempo candidate를 포함한 등록 profile을 선택하며 diagnostics는 별도 `SimulationInstrumentation`으로 전달한다. 임의 boolean 묶음이나 caller-fabricated resolved profile은 이 application 경계를 통과할 수 없다.
+
+Draft resource wiring은 Spring의 `ChampionCatalog` instance를 재사용해 active power/matchup/composition resource를 검증하고 `DraftEngine`을 구성한다. `MatchController`는 이 orchestration을 주입받지 않고 `DummyDataFactory`를 계속 사용하므로 backend real path와 HTTP demo path를 구분해야 한다.
 
 ## Global Invariants
 

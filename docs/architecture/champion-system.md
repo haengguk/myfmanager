@@ -111,9 +111,11 @@ Jungle Clear는 Power, gank/pathing, Player Ratings와 분리된 phase foundatio
 
 현재 versioned active resource의 51개 profile은 모두 `gameplayEnabled: true`다. `ChampionJungleClearProfileCatalog`는 `profileVersion`을 identity로 보존하고, `ChampionJungleClearEvaluator`는 900초/1,800초 경계에서 early/mid/late 값을 결정론적으로 선택한다. 과거 `champion-jungle-clear-full-173-v1.json`은 disabled historical resource로 보존했다.
 
-Resource activation과 runtime activation은 별개다. 기존 세 profile, Spring HTTP path, `SimulationOptions.productionDefaults()`는 `DISABLED_NOT_INTEGRATED`라서 clear data를 gameplay branch나 Random consumption에 사용하지 않는다. `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1`만 `ECONOMY_V1`을 선택하며, 기존 position-economy player 순서에서 JUNGLE draw를 unified resolver로 넘긴다.
+Resource activation과 runtime activation은 별개다. 기존 세 profile, Spring HTTP path, `SimulationOptions.productionDefaults()`는 `DISABLED_NOT_INTEGRATED`라서 clear data를 gameplay branch나 Random consumption에 사용하지 않는다. `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1`은 `ECONOMY_V1`, `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1`은 `ECONOMY_AND_GANK_TEMPO_V1`을 선택한다. 두 candidate 모두 기존 position-economy player 순서에서 JUNGLE draw를 unified resolver로 넘기며, Tempo candidate만 actual successful outcome을 bounded gank-tempo credit으로 추가 연결한다.
 
-V1-A 계산은 `Champion Clear × pure Jungle Resource Management`다. Candidate 전용 player multiplier는 `PATHING`을 읽지 않으며, 기존 Jungle-OFF position-economy의 `JRM 80% + PATHING 20%` realization은 parity를 위해 그대로 보존한다. 결과는 하나의 `JungleEconomyOutcome`으로 CS, actual-CS FARM gold, XP를 함께 소유한다. 사망, FARM recovery/macro block, non-default activity, gank/counter-gank FARM block은 outcome과 Random을 만들지 않는다. Clear는 아직 readiness/tempo, gank 또는 objective eligibility에 연결하지 않았다.
+V1-A 계산은 `Champion Clear × pure Jungle Resource Management`다. Candidate 전용 player multiplier는 `PATHING`을 읽지 않으며, 기존 Jungle-OFF position-economy의 `JRM 80% + PATHING 20%` realization은 parity를 위해 그대로 보존한다. 결과는 하나의 `JungleEconomyOutcome`으로 CS, actual-CS FARM gold, XP를 함께 소유한다. 사망, FARM recovery/macro block, non-default activity, gank/counter-gank FARM block은 outcome과 Random을 만들지 않는다. Economy-only profile은 이 outcome을 readiness에 연결하지 않는다.
+
+V1-B Tempo candidate는 같은 successful outcome의 combined efficiency를 bounded credit으로 바꾸고, 기존 base eligibility 뒤·trigger Random 전에 gank/counter-gank readiness를 적용한다. Actual `NO_KILL`을 포함한 action attempt만 해당 side의 credit을 한 번 소비한다. `PATHING`은 clear/economy/credit multiplier에 들어가지 않고 readiness를 통과한 뒤 기존 gank trigger chance에서만 사용된다. Objective eligibility/확률/reward에는 Tempo를 직접 연결하지 않았고, champion proficiency도 clear 또는 JRM multiplier를 보정하지 않는다. 세부 action-cost와 continuity 계약은 [Match Simulation](match-simulation.md#jungle-tempo-v1-b)에 있다.
 
 ## Historical Frozen Resources
 

@@ -18,7 +18,7 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 ## Explicit Runtime Profiles
 
-네 profile의 공통 gameplay flag는 Lane Combat, FARM Recovery, Jungle Gank, Counter Gank, Roam, Objective Priority, Lane Phase, Mid/Late Macro, Objective Decision, Progression/Progression Power, Champion Power 모두 ON이다. 기존 세 profile은 Jungle Clear contribution이 `DISABLED_NOT_INTEGRATED`이고, 네 번째 candidate만 `ECONOMY_V1`이다.
+다섯 profile의 공통 gameplay flag는 Lane Combat, FARM Recovery, Jungle Gank, Counter Gank, Roam, Objective Priority, Lane Phase, Mid/Late Macro, Objective Decision, Progression/Progression Power, Champion Power 모두 ON이다. 기존 세 profile은 Jungle Clear contribution이 `DISABLED_NOT_INTEGRATED`이고, 네 번째 candidate는 `ECONOMY_V1`, 다섯 번째 candidate는 `ECONOMY_AND_GANK_TEMPO_V1`이다.
 
 | Profile | Matchup | Composition | Jungle Clear | Configuration hash |
 | --- | --- | --- | --- | --- |
@@ -26,12 +26,13 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 | `MATCHUP_ONLY_CANDIDATE_V1` | `GEOMETRIC_V2` | `OFF` | `DISABLED_NOT_INTEGRATED` | `58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec` |
 | `FULL_SYSTEM_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `DISABLED_NOT_INTEGRATED` | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
 | `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_V1` | `e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b` |
+| `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_AND_GANK_TEMPO_V1` | `c835280cbaa1244f4fecb099b19f71111c6d77aa1aeb1b7110a6e86e6381451c` |
 
 `BASELINE_V1`은 이름만 OFF 묶음이 아니라 현재 Spring `@Autowired MatchSimulator`의 13 gameplay booleans와 두 mode를 모두 snapshot한 profile이다. Fixed-seed complete timeline parity test가 기존 constructor path와 exact equality를 검증한다. `ChampionMatchupMode.ON`, Composition `SHADOW`/`CANDIDATE` 같은 historical/internal audit path는 application profile로 선택할 수 없다.
 
 Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
 
-기존 세 profile은 계속 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`를 사용한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
+기존 세 profile은 계속 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`을 사용한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
 
 ## Configuration and Replay Provenance
 
@@ -39,8 +40,8 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 
 - `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
-- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V2`다.
-- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`다.
+- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V3`다.
+- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`이다.
 - `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
 - `randomFingerprint`: match의 seeded `Random.next(bits)` draw count와 resolver context/value의 ordered SHA-256을 기록한다. Gameplay input이 아닌 observational output이므로 configuration/replay hash에는 넣지 않는다.
@@ -54,7 +55,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 `MatchSimulator.runSimulation`은 매 호출마다 다음 상태를 새로 만든다.
 
 - `MatchChampionAssignments`: `PlayerKey(TeamSide, Position)`별 champion과 selected position
-- `GameState`: 시간, objective/map/lane/macro state, per-side Jungle Economy state, per-tick registries, diagnostics counters
+- `GameState`: 시간, objective/map/lane/macro state, per-side Jungle Economy/Tempo state, per-tick registries, diagnostics counters
 - `TeamState`: team gold/kills/objective/buff state와 5개의 `PlayerState`
 - `PlayerState`: KDA, gold/CS, death/respawn, FARM/activity restrictions, progression
 - `CompositionRuntimeState`: 해당 match의 lineup analysis, attempt identity, observations
@@ -62,7 +63,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 
 `Player`가 explicit ratings profile이면 `PlayerMatchPerformance.realize`가 match seed, side, position에서 파생된 deterministic seed로 일관성 변동과 proficiency를 materialize한다. Skill별 seeded draw 배정은 `PlayerSkill` enum declaration order로 고정하며 unordered `Set` iteration에 의존하지 않는다. legacy profile이면 기존 네 가지 `PlayerAttributes` 경로를 유지한다.
 
-초기화 시 두 lineup이 TOP/JUNGLE/MID/ADC/SUPPORT를 모두 갖는지 확인하고, Champion Power, Matchup, Jungle Clear catalog를 `GameState`에 연결한다. `ECONOMY_V1`이면 양 팀의 selected JUNGLE assignment가 gameplay-enabled clear profile인지 fail-fast한다. Composition mode가 `OFF`가 아니면 assignment로 두 5인 lineup을 만들고 active Composition profile을 한 번 분석한다.
+초기화 시 두 lineup이 TOP/JUNGLE/MID/ADC/SUPPORT를 모두 갖는지 확인하고, Champion Power, Matchup, Jungle Clear catalog를 `GameState`에 연결한다. Jungle Economy가 활성화된 `ECONOMY_V1`과 `ECONOMY_AND_GANK_TEMPO_V1`에서는 양 팀의 selected JUNGLE assignment가 gameplay-enabled clear profile인지 fail-fast한다. Composition mode가 `OFF`가 아니면 assignment로 두 5인 lineup을 만들고 active Composition profile을 한 번 분석한다.
 
 ### 현재 mode wiring
 
@@ -74,6 +75,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 | `MATCHUP_ONLY_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `OFF` | OFF |
 | `FULL_SYSTEM_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | OFF |
 | `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_V1` |
+| `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_AND_GANK_TEMPO_V1` |
 
 이 표는 “기능이 구현되어 있는가”와 “현재 HTTP simulation이 그 기능을 적용하는가”를 분리한다.
 
@@ -85,7 +87,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 2. major-combat participant와 structure-action per-tick registry를 비우고 recent objective control을 감쇠한다.
 3. 양 팀 passive gold를 지급한다.
 4. lane pressure를 갱신한다.
-5. BLUE, RED 순서로 position economy/FARM을 처리하고 progression economy event를 배출한다. Jungle Economy ON에서는 기존 player iteration 위치에서 JUNGLE만 unified resolver가 CS/gold/XP를 함께 처리한다.
+5. BLUE, RED 순서로 position economy/FARM을 처리하고 progression economy event를 배출한다. Jungle Economy ON에서는 기존 player iteration 위치에서 JUNGLE만 unified resolver가 CS/gold/XP를 함께 처리한다. Jungle Tempo candidate에서는 이 단계의 actual successful outcome만 같은 side의 tempo credit을 갱신한다.
 6. 첫 combat priority를 실행한다: Jungle Gank → Roam → Lane Combat.
 7. objective spawn state를 갱신한다.
 8. 앞선 actual attempt가 없으면 generic Skirmish를, 그마저 없으면 scheduled Teamfight를 평가하고 teamfight 승자의 objective control을 갱신한다.
@@ -118,7 +120,8 @@ actual attempt는 `NO_KILL` 결과여도 action state, FARM block, pressure cost
 | Jungle Gank / Counter-gank | jungler eligibility, target lane, actual gank, defender response, common kill path |
 | Roam | MID/SUPPORT 이동, origin opportunity cost, target combat, activity/FARM restriction |
 | Position Economy | passive gold와 분리된 CS/FARM 처리; blocked player는 FARM Random도 소비하지 않음 |
-| Jungle Economy V1-A | `Champion Clear × pure Jungle Resource Management`로 JUNGLE CS expected value와 XP를 만들고 actual CS에서 FARM gold를 지급; 기존 OFF 80/20 blend는 보존하고 readiness/tempo/gank/objective eligibility에는 미연결 |
+| Jungle Economy V1-A | `Champion Clear × pure Jungle Resource Management`로 JUNGLE CS expected value와 XP를 만들고 actual CS에서 FARM gold를 지급; 기존 OFF 80/20 blend를 보존하며 economy-only profile에서는 행동 readiness와 미연결 |
+| Jungle Tempo V1-B | actual successful Jungle Economy outcome으로 bounded credit을 쌓고 gank/counter-gank readiness를 trigger Random 전에 확인; actual attempt만 credit을 소비하며 objective eligibility에는 직접 연결하지 않음 |
 | Progression | FARM/kill XP, level, gold-derived item stage와 combat contribution |
 | Objective | Dragon/Baron/Elder spawn, priority, initiator/responder decision, contest/trade/capture |
 | Structure | lane siege, post-fight push, macro push, tower/inhibitor/base/Nexus mutation |
@@ -126,6 +129,16 @@ actual attempt는 `NO_KILL` 결과여도 action state, FARM block, pressure cost
 | End Game | Nexus destruction 또는 simulation safety timeout |
 
 Counter-gank는 독립적인 parallel combat이 아니라 selected Jungle Gank attempt 안에서 resolver response로 실행된다. Objective fight와 late-game siege도 기존 teamfight/common kill path를 재사용한다.
+
+### Jungle Tempo V1-B
+
+Tempo candidate는 Jungle Economy V1-A의 `combinedEfficiency`를 별도 재계산하지 않고 actual successful outcome에서만 받는다. 사망, FARM recovery/macro block, non-default activity, gank/counter-gank FARM block으로 economy outcome이 없으면 credit과 Jungle Economy Random도 발생하지 않는다.
+
+현재 V1 rules는 efficiency를 `0.85..1.15`로 clamp한 뒤 `elapsedSeconds × boundedEfficiency`를 credit으로 더한다. 첫 actual action readiness는 180초, 반복 readiness와 actual action cost는 150초, bank cap은 240초다. 마지막 successful economy outcome과 다음 outcome의 간격이 30초를 초과하면 기존 bank를 reset하고 현재 tick의 credit부터 다시 쌓는다. Readiness는 평가 시각과 같은 tick의 economy outcome도 요구한다.
+
+Gank와 counter-gank는 기존 alive/cooldown/lane participant eligibility를 먼저 통과한 뒤 readiness를 확인하고, ready side만 trigger/response Random을 소비한다. Failed trigger, failed counter response, duplicate call과 ineligible path는 credit/action state를 소비하지 않는다. 실제 `NO_KILL`을 포함한 gank는 공격 side credit을 한 번 소비하고, successful counter response가 actual attempt를 시작하면 수비 side credit도 한 번 소비한다. Not-ready gank가 actual attempt를 만들지 않으면 Roam과 Lane Combat priority fallthrough는 유지된다.
+
+Tempo는 objective attempt eligibility, probability 또는 reward에 직접 연결되지 않는다. 다만 actual gank/counter-gank kill이 기존 objective-priority state를 변경하는 간접 경로는 그대로 존재한다. `PATHING`은 credit 계산에 들어가지 않고 readiness 이후의 기존 gank trigger chance에만 사용되며, champion proficiency도 clear/JRM economy multiplier를 보정하지 않는다.
 
 ## Combat Strength Inputs
 
@@ -164,6 +177,8 @@ Frontend는 snapshot을 현재 playback time 이하에서 선택하고 event를 
 
 공식 Pre-Jungle cross-process oracle은 `backend/baseline/pre-jungle-runtime-v2/`다. `verifyJungleEconomyOffParity`는 기존 세 OFF profile × 세 case에서 configuration, complete timeline hash, Random draw count/trace hash가 이 artifact와 exact equality인지 검사한다. Engine/resource snapshot 변경으로 달라지는 replay provenance hash는 gameplay equality와 분리한다.
 
+Jungle Tempo production code 직전의 별도 oracle은 `backend/baseline/pre-jungle-tempo-runtime-v1/`이다. 당시 네 profile × 세 real-match case의 12경기를 고정했고, V1-B 이후 `verifyPreJungleTempoParity`가 configuration/Draft/final assignment/complete timeline/Random fingerprint/result의 12/12 exact equality를 확인했다. 새 Tempo profile의 소수 fixed-seed diagnostic은 readiness와 actual consumption 구조 확인용이며 calibration 또는 production activation gate가 아니다.
+
 ## Important Invariants
 
 - resolver에는 match 간 mutable state를 두지 않는다.
@@ -172,6 +187,8 @@ Frontend는 snapshot을 현재 playback time 이하에서 선택하고 event를 
 - duplicate identity와 tick registry는 display text가 아니라 simulation time/action/side/lane/player 같은 구조화된 값으로 구성한다.
 - actual kill은 `KillRewardResolver`를 통과해 kill/assist gold, bounty, death, respawn, XP를 한 번만 처리한다.
 - overlapping FARM restriction은 가장 늦은 expiry까지 유지하고 과거 CS/gold를 직접 차감하거나 복구하지 않는다.
+- Jungle Tempo는 actual successful economy outcome만 credit으로 바꾸고 actual gank/counter-gank attempt만 side별 credit을 한 번 소비한다.
+- Not-ready/ineligible/duplicate Jungle path는 credit, action state와 Random을 소비하지 않는다. Trigger evaluation은 documented Random을 소비할 수 있지만 실패하면 credit/action state를 소비하지 않으며, gank actual attempt가 시작되지 않은 경우 lower-priority action fallthrough를 막지 않는다.
 - diagnostics mode가 같은 gameplay configuration의 decision이나 Random consumption을 바꾸면 안 된다.
 
 Champion별 입력은 [Champion System](champion-system.md), player 입력은 [Player System](player-system.md)을 참고한다.
