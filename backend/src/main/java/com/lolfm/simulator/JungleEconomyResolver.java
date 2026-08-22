@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 
-/** Stateless unified resolver for Jungle Clear x resource-management economy only. */
+/** Stateless unified resolver for Champion Clear x pure player JRM economy only. */
 public final class JungleEconomyResolver {
     private final PositionEconomyResolver playerEconomy;
     private final ChampionJungleClearEvaluator championClear = new ChampionJungleClearEvaluator();
@@ -65,7 +65,8 @@ public final class JungleEconomyResolver {
         }
 
         double clearMultiplier = championClear.evaluate(profile, timeSeconds);
-        double resourceMultiplier = playerEconomy.farmingMultiplier(jungler, timeSeconds);
+        double resourceMultiplier = playerEconomy.jungleResourceManagementMultiplier(
+                jungler, timeSeconds);
         double combinedEfficiency = clearMultiplier * resourceMultiplier;
         double expectedCs = JungleEconomyRuleConfig.BASE_CS_PER_MINUTE
                 * combinedEfficiency * elapsedSeconds / 60.0;

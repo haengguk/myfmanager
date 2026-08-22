@@ -31,7 +31,7 @@ class SimulationRuntimeProfilesTest {
                 SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1);
         assertExactCommonGameplayExceptJungle(jungleEconomy);
         assertThat(jungleEconomy.activeGameplayRulesVersion())
-                .isEqualTo("MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V1");
+                .isEqualTo("MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2");
         assertThat(jungleEconomy.gameplayConfiguration().jungleClearContribution())
                 .isEqualTo(JungleClearContribution.ECONOMY_V1);
 

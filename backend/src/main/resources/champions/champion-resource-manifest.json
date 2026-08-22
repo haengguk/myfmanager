@@ -1,8 +1,8 @@
 {
-  "manifestVersion": "full-173-resource-set-2026-08-v1",
+  "manifestVersion": "full-173-resource-set-2026-08-v2",
   "catalog": "/champions/champion-pool-full-173-2026-08-v1.json",
   "power": "/champions/champion-power-full-173-2026-08-v1.json",
   "matchup": "/champions/champion-matchup-role-profiles-full-173-v1.json",
   "composition": "/champions/champion-composition-role-profiles-full-173-v1.json",
-  "jungleClear": "/champions/champion-jungle-clear-full-173-v1.json"
+  "jungleClear": "/champions/champion-jungle-clear-full-173-economy-v1.json"
 }

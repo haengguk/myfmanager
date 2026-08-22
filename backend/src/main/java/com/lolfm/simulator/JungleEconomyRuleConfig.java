@@ -1,6 +1,6 @@
 package com.lolfm.simulator;
 
-/** Version-one jungle economy rules; shared economy values remain single-owned aliases. */
+/** Jungle Economy V1-A tuning; shared economy values remain single-owned aliases. */
 public final class JungleEconomyRuleConfig {
     public static final int STANDARD_TICK_SECONDS = 10;
     public static final double BASE_CS_PER_MINUTE =

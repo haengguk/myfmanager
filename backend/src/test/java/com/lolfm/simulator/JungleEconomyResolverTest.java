@@ -75,16 +75,13 @@ class JungleEconomyResolverTest {
     }
 
     @Test
-    void realizedJungleResourceManagementMultipliesChampionClear() {
+    void realizedPureJungleResourceManagementMultipliesChampionClear() {
         PlayerRatings ratings = PlayerRatings.neutral(Position.JUNGLE)
                 .with(PlayerSkill.JUNGLE_RESOURCE_MANAGEMENT, 20)
-                .with(PlayerSkill.PATHING, 20)
+                .with(PlayerSkill.PATHING, 5)
                 .with(PlayerSkill.CONSISTENCY, 20);
-        PlayerMatchPerformance performance = PlayerMatchPerformance.realize(
-                ratings, 14, 73L, TeamSide.BLUE);
-        PlayerState eliteResourceJungler = new PlayerState(
-                "ELITE-JUNGLE", Position.JUNGLE,
-                new PlayerAttributes(14, 14, 14, 14), performance, 500, true);
+        PlayerState eliteResourceJungler = realizedJungler(
+                "ELITE-JUNGLE", ratings, 73L);
         GameState state = enabledState("belveth", eliteResourceJungler);
         state.advanceTimeSeconds(900);
 
@@ -95,6 +92,40 @@ class JungleEconomyResolverTest {
         assertThat(outcome.resourceManagementMultiplier()).isEqualTo(1.12);
         assertThat(outcome.combinedEfficiency()).isCloseTo(1.2096, within(1.0e-12));
         assertThat(outcome.awardedExperience()).isEqualTo(73);
+    }
+
+    @Test
+    void pathingChangesLegacyJungleFarmingBlendButNotCandidatePureJrm() {
+        PlayerRatings lowPathingRatings = PlayerRatings.neutral(Position.JUNGLE)
+                .with(PlayerSkill.JUNGLE_RESOURCE_MANAGEMENT, 17)
+                .with(PlayerSkill.PATHING, 5)
+                .with(PlayerSkill.CONSISTENCY, 20);
+        PlayerRatings highPathingRatings = lowPathingRatings.with(PlayerSkill.PATHING, 20);
+        PlayerState lowPathing = realizedJungler("LOW-PATHING", lowPathingRatings, 73L);
+        PlayerState highPathing = realizedJungler("HIGH-PATHING", highPathingRatings, 73L);
+        PositionEconomyResolver economy = new PositionEconomyResolver();
+
+        assertThat(economy.farmingMultiplier(lowPathing, 900))
+                .isLessThan(economy.farmingMultiplier(highPathing, 900));
+        assertThat(economy.jungleResourceManagementMultiplier(lowPathing, 900))
+                .isEqualTo(economy.jungleResourceManagementMultiplier(highPathing, 900))
+                .isEqualTo(1.06);
+
+        GameState lowState = enabledState("belveth", lowPathing);
+        GameState highState = enabledState("belveth", highPathing);
+        lowState.advanceTimeSeconds(900);
+        highState.advanceTimeSeconds(900);
+        JungleEconomyOutcome lowOutcome = resolver().resolve(
+                lowState, TeamSide.BLUE, 900, 10, new CountingRandom(0.99)).orElseThrow();
+        JungleEconomyOutcome highOutcome = resolver().resolve(
+                highState, TeamSide.BLUE, 900, 10, new CountingRandom(0.99)).orElseThrow();
+
+        assertThat(lowOutcome.resourceManagementMultiplier())
+                .isEqualTo(highOutcome.resourceManagementMultiplier());
+        assertThat(lowOutcome.combinedEfficiency()).isEqualTo(highOutcome.combinedEfficiency());
+        assertThat(lowOutcome.awardedCs()).isEqualTo(highOutcome.awardedCs());
+        assertThat(lowOutcome.awardedGold()).isEqualTo(highOutcome.awardedGold());
+        assertThat(lowOutcome.awardedExperience()).isEqualTo(highOutcome.awardedExperience());
     }
 
     @Test
@@ -139,6 +170,63 @@ class JungleEconomyResolverTest {
         gankBlocked.jungleActionState(TeamSide.BLUE).recordGankAttempt(300, Lane.TOP);
         assertIneligible(gankBlocked, 300,
                 JungleEconomySkipReason.JUNGLE_ACTION_FARM_BLOCK);
+    }
+
+    @Test
+    void remainingIneligibleStatesAwardNothingAndConsumeNoRandom() {
+        GameState recovery = enabledState("belveth");
+        recovery.advanceTimeSeconds(300);
+        recovery.getBlueTeamState().playerAt(Position.JUNGLE).blockFarmUntil(330);
+        assertIneligible(recovery, 300, JungleEconomySkipReason.FARM_RECOVERY);
+
+        GameState macro = enabledState("belveth");
+        macro.advanceTimeSeconds(300);
+        macro.getBlueTeamState().playerAt(Position.JUNGLE).blockFarmUntil(330);
+        macro.getMidGameMacroState().registerFarmBlock(
+                TeamSide.BLUE, Position.JUNGLE, 330);
+        assertIneligible(macro, 300, JungleEconomySkipReason.MACRO_FARM_BLOCK);
+
+        GameState activity = enabledState("belveth");
+        activity.advanceTimeSeconds(300);
+        activity.getBlueTeamState().playerAt(Position.JUNGLE)
+                .beginRoamActivity(Lane.TOP, Lane.MID, 300);
+        assertIneligible(activity, 300, JungleEconomySkipReason.NON_DEFAULT_ACTIVITY);
+
+        GameState counterGank = enabledState("belveth");
+        counterGank.advanceTimeSeconds(300);
+        counterGank.jungleActionState(TeamSide.BLUE)
+                .recordCounterGankAttempt(300, Lane.TOP);
+        assertIneligible(counterGank, 300,
+                JungleEconomySkipReason.JUNGLE_ACTION_FARM_BLOCK);
+
+        GameState finished = enabledState("belveth");
+        finished.advanceTimeSeconds(300);
+        finished.finish(TeamSide.BLUE, GameEndReason.NEXUS_DESTROYED);
+        assertIneligible(finished, 300, JungleEconomySkipReason.MATCH_FINISHED);
+    }
+
+    @Test
+    void progressionOffStillAwardsUnifiedCsAndGoldButNoExperience() {
+        GameState state = enabledState("belveth");
+        state.configureProgression(false, false);
+        state.advanceTimeSeconds(900);
+        PlayerState jungler = state.getBlueTeamState().playerAt(Position.JUNGLE);
+        int teamGoldBefore = state.getBlueTeamState().getGold();
+        CountingRandom random = new CountingRandom(0.99);
+
+        JungleEconomyOutcome outcome = resolver().resolve(
+                state, TeamSide.BLUE, 900, 10, random).orElseThrow();
+
+        assertThat(outcome.awardedCs()).isPositive();
+        assertThat(outcome.awardedGold())
+                .isEqualTo(outcome.awardedCs() * JungleEconomyRuleConfig.GOLD_PER_CS);
+        assertThat(outcome.awardedExperience()).isZero();
+        assertThat(jungler.getCs()).isEqualTo(outcome.awardedCs());
+        assertThat(jungler.getGold()).isEqualTo(500 + outcome.awardedGold());
+        assertThat(state.getBlueTeamState().getGold())
+                .isEqualTo(teamGoldBefore + outcome.awardedGold());
+        assertThat(jungler.getProgressionState().getTotalExperience()).isZero();
+        assertThat(random.calls).isEqualTo(1);
     }
 
     @Test
@@ -249,6 +337,31 @@ class JungleEconomyResolverTest {
                         SideOrientationRandomTraceObserver.Source.ECONOMY);
     }
 
+    @Test
+    void diagnosticMapsKeepCanonicalEnumOrderAndRemainImmutable() {
+        GameState state = enabledState("belveth");
+        state.advanceTimeSeconds(10);
+        JungleEconomyResolver resolver = resolver();
+
+        resolver.resolve(state, TeamSide.RED, 10, 10, new CountingRandom(0.99));
+        resolver.resolve(state, TeamSide.BLUE, 10, 10, new CountingRandom(0.99));
+        JungleEconomyExecutionStatsSnapshot snapshot =
+                state.getJungleEconomyExecutionStats().snapshot();
+
+        assertThat(snapshot.skippedByReason().keySet())
+                .containsExactly(JungleEconomySkipReason.values());
+        assertThat(snapshot.latestOutcomeBySide().keySet())
+                .containsExactly(TeamSide.BLUE, TeamSide.RED);
+        assertThat(state.getJungleEconomyStates().keySet())
+                .containsExactly(TeamSide.BLUE, TeamSide.RED);
+        assertThatThrownBy(() -> snapshot.skippedByReason().put(
+                JungleEconomySkipReason.DEAD, 99))
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> state.getJungleEconomyStates().put(
+                TeamSide.BLUE, new JungleEconomyState()))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
     private void assertPhase(int timeSeconds, double multiplier, int experience) {
         GameState state = enabledState("belveth");
         state.advanceTimeSeconds(timeSeconds);
@@ -283,6 +396,17 @@ class JungleEconomyResolverTest {
 
     private JungleEconomyResolver resolver() {
         return new JungleEconomyResolver(new PositionEconomyResolver());
+    }
+
+    private PlayerState realizedJungler(
+            String name,
+            PlayerRatings ratings,
+            long matchSeed
+    ) {
+        PlayerMatchPerformance performance = PlayerMatchPerformance.realize(
+                ratings, 14, matchSeed, TeamSide.BLUE);
+        return new PlayerState(name, Position.JUNGLE,
+                new PlayerAttributes(14, 14, 14, 14), performance, 500, true);
     }
 
     private MatchSimulator candidateSimulator() {

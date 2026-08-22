@@ -9,8 +9,12 @@ import com.lolfm.domain.PlayerSkill;
 public final class PlayerSkillEvaluator {
     public double farming(PlayerState p) {
         return p.getPosition() == com.lolfm.domain.Position.JUNGLE
-                ? p.rating(PlayerSkill.JUNGLE_RESOURCE_MANAGEMENT)
+                ? jungleResourceManagement(p)
                 : p.rating(PlayerSkill.FARMING);
+    }
+
+    public double jungleResourceManagement(PlayerState p) {
+        return p.rating(PlayerSkill.JUNGLE_RESOURCE_MANAGEMENT);
     }
 
     public double laneTrade(PlayerState p) {

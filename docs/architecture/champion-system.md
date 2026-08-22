@@ -113,7 +113,7 @@ Jungle Clear는 Power, gank/pathing, Player Ratings와 분리된 phase foundatio
 
 Resource activation과 runtime activation은 별개다. 기존 세 profile, Spring HTTP path, `SimulationOptions.productionDefaults()`는 `DISABLED_NOT_INTEGRATED`라서 clear data를 gameplay branch나 Random consumption에 사용하지 않는다. `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1`만 `ECONOMY_V1`을 선택하며, 기존 position-economy player 순서에서 JUNGLE draw를 unified resolver로 넘긴다.
 
-V1-A 계산은 `Champion Clear × Jungle Resource Management`다. 결과는 하나의 `JungleEconomyOutcome`으로 CS, actual-CS FARM gold, XP를 함께 소유한다. 사망, FARM recovery/macro block, non-default activity, gank/counter-gank FARM block은 outcome과 Random을 만들지 않는다. Clear는 아직 pathing, readiness/tempo, gank 또는 objective eligibility에 연결하지 않았다.
+V1-A 계산은 `Champion Clear × pure Jungle Resource Management`다. Candidate 전용 player multiplier는 `PATHING`을 읽지 않으며, 기존 Jungle-OFF position-economy의 `JRM 80% + PATHING 20%` realization은 parity를 위해 그대로 보존한다. 결과는 하나의 `JungleEconomyOutcome`으로 CS, actual-CS FARM gold, XP를 함께 소유한다. 사망, FARM recovery/macro block, non-default activity, gank/counter-gank FARM block은 outcome과 Random을 만들지 않는다. Clear는 아직 readiness/tempo, gank 또는 objective eligibility에 연결하지 않았다.
 
 ## Historical Frozen Resources
 

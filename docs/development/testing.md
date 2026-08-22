@@ -130,7 +130,9 @@ cd backend
 
 Exact 비교 대상은 configuration hash, Draft/final assignment identity, complete timeline hash, Random draw count/trace hash, winner/duration/event/snapshot count다. Engine implementation과 active resource snapshot이 바뀌었으므로 replay provenance hash는 달라져야 하며 equality 대상에서 제외한다. 결과는 `build/reports/jungle-economy-v1-a/off-parity-report.json`에 기록한다. 이 task는 `diagnostic` + `jungle-economy-off-parity` tag만 실행하고 기본 `test`에는 포함되지 않는다.
 
-현재 serial final full regression은 158 suites / 1,915 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 416.328초, Gradle wall 7분 6초로 clean pass했다. Jungle V1-A production guard는 464 files / `5f092f8d4a5e10441d62f3817c76ec1f13b0faf47ade3193705e20527514f756`다. `verifyJungleEconomyOffParity`는 공식 V2 raw SHA `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`를 확인하고 9/9 exact gameplay parity로 통과했다.
+Jungle Economy candidate correctness는 별도 focused tests에서 pure JRM/PATHING orthogonality, 모든 skip reason의 reward·Random 불변식, progression OFF의 CS/gold-only 결과, enum-map canonical order, real GEN–T1 same-seed replay와 Jungle-OFF FULL 대비 runtime reachability를 검증한다. 기존 세 OFF profile은 계속 위 oracle diagnostic이 담당한다.
+
+현재 serial final full regression은 159 suites / 1,922 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 451.010초, Gradle wall 7분 41초로 clean pass했다. Pure-JRM Jungle V1-A production guard는 464 files / `9557a63a4b285232239cf206cb2e95ca3b738f38ea1826926fb930951d7c4b6d`다. `verifyJungleEconomyOffParity`는 공식 V2 raw SHA `0bce126117683e47ace908c348dbe2448f21592dc5009bd9f4514bb566fadb8e`를 확인하고 9/9 exact gameplay parity로 통과했다.
 
 ## Generated Reports
 

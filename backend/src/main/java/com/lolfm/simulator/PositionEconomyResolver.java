@@ -68,6 +68,25 @@ public final class PositionEconomyResolver {
                 ? player.getFarming()
                 : player.getPosition() == Position.JUNGLE
                 ? playerSkills.jungleResources(player) : playerSkills.farming(player);
+        return realizedFarmingMultiplier(player, currentTimeSeconds, farmingScore);
+    }
+
+    /** Candidate-only pure JRM realization; the legacy Jungle farming blend remains unchanged. */
+    double jungleResourceManagementMultiplier(PlayerState player, int currentTimeSeconds) {
+        if (player.getPosition() != Position.JUNGLE) {
+            throw new IllegalArgumentException(
+                    "Jungle resource-management multiplier requires JUNGLE position");
+        }
+        double resourceManagementScore = !player.hasMatchPerformance()
+                ? player.getFarming() : playerSkills.jungleResourceManagement(player);
+        return realizedFarmingMultiplier(player, currentTimeSeconds, resourceManagementScore);
+    }
+
+    private double realizedFarmingMultiplier(
+            PlayerState player,
+            int currentTimeSeconds,
+            double farmingScore
+    ) {
         if (player.hasMatchPerformance()) {
             double timeFactor = clamp((currentTimeSeconds
                             - PositionEconomyRuleConfig.EXPLICIT_FARMING_REALIZATION_START_SECONDS)

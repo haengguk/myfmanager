@@ -31,7 +31,7 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
 
-기존 세 profile은 계속 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 공유한다. Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V1`을 사용한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
+기존 세 profile은 계속 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`를 사용한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
 
 ## Configuration and Replay Provenance
 
@@ -40,7 +40,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 - `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
 - `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V2`다.
-- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V1`이다.
+- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`다.
 - `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
 - `randomFingerprint`: match의 seeded `Random.next(bits)` draw count와 resolver context/value의 ordered SHA-256을 기록한다. Gameplay input이 아닌 observational output이므로 configuration/replay hash에는 넣지 않는다.
@@ -118,7 +118,7 @@ actual attempt는 `NO_KILL` 결과여도 action state, FARM block, pressure cost
 | Jungle Gank / Counter-gank | jungler eligibility, target lane, actual gank, defender response, common kill path |
 | Roam | MID/SUPPORT 이동, origin opportunity cost, target combat, activity/FARM restriction |
 | Position Economy | passive gold와 분리된 CS/FARM 처리; blocked player는 FARM Random도 소비하지 않음 |
-| Jungle Economy V1-A | `Champion Clear × Jungle Resource Management`로 JUNGLE CS expected value와 XP를 만들고 actual CS에서 FARM gold를 지급; readiness/tempo/gank/objective eligibility에는 미연결 |
+| Jungle Economy V1-A | `Champion Clear × pure Jungle Resource Management`로 JUNGLE CS expected value와 XP를 만들고 actual CS에서 FARM gold를 지급; 기존 OFF 80/20 blend는 보존하고 readiness/tempo/gank/objective eligibility에는 미연결 |
 | Progression | FARM/kill XP, level, gold-derived item stage와 combat contribution |
 | Objective | Dragon/Baron/Elder spawn, priority, initiator/responder decision, contest/trade/capture |
 | Structure | lane siege, post-fight push, macro push, tower/inhibitor/base/Nexus mutation |

@@ -197,7 +197,7 @@ public class GameState {
         return jungleEconomyStates.get(java.util.Objects.requireNonNull(side, "side"));
     }
     public Map<TeamSide, JungleEconomyState> getJungleEconomyStates() {
-        return Map.copyOf(jungleEconomyStates);
+        return java.util.Collections.unmodifiableMap(new EnumMap<>(jungleEconomyStates));
     }
     public JungleEconomyExecutionStats getJungleEconomyExecutionStats() {
         return jungleEconomyExecutionStats;
