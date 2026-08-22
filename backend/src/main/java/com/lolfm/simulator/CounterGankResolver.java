@@ -19,6 +19,8 @@ public final class CounterGankResolver {
                                        Random random, List<MatchEvent> events) {
         int time = state.getCurrentTimeSeconds();
         CounterGankIneligibility reason = ineligibility(state, attackingSide, lane, time);
+        state.getCombatExecutionStats().recordCounterGankEligibility(
+                attackingSide.opposite(), reason);
         if (reason != CounterGankIneligibility.NONE) {
             return new ResponseDecision(false, reason, defenderInitiallyTriggered, false, 0.0, false);
         }

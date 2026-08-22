@@ -144,11 +144,30 @@ cd backend
 ./gradlew runJungleTempoCandidateDiagnostic
 ```
 
-첫 task는 12 matches의 configuration/Draft/final assignment/complete timeline/Random fingerprint/result exact equality를 검증하고 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`을 쓴다. Replay provenance hash는 engine V2→V3 변경 때문에 equality에서 제외한다. 두 번째 task는 12 fixed same-seed Economy-only/Tempo pair의 readiness와 actual consumption을 기록한다. 이 작은 sample은 구조 확인용이며 calibration이나 production-activation gate가 아니다.
+첫 task는 12 matches의 configuration/Draft/final assignment/complete timeline/Random fingerprint/result exact equality를 검증하고 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`을 쓴다. Replay provenance hash는 baseline engine V2와 현재 engine V4가 다르므로 equality에서 제외한다. 두 번째 task는 12 fixed same-seed Economy-only/Tempo pair의 readiness와 actual consumption을 기록한다. 이 작은 sample은 구조 확인용이며 calibration이나 production-activation gate가 아니다.
 
 V1-B focused correctness는 `JungleTempoStateTest`, `JungleTempoGankIntegrationTest`, economy/runtime integration과 real GEN–T1 smoke가 담당한다. Tempo-not-ready/ineligible/duplicate path는 tempo state와 trigger Random을 소비하지 않는다. Tempo-ready 뒤 failed trigger는 eligible trigger Random만 소비하고 tempo credit, action state와 downstream action Random은 보존한다. 실제 no-kill gank와 successful counter response는 각각 자기 side의 credit만 한 번 소비하며, non-attempt는 lane combat으로 fall through해야 한다.
 
-현재 serial final full regression은 163 suites / 1,940 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 500.926초, Gradle wall 8분 32초로 clean pass했다. V1-B final canonical production guard는 471 files / `143112d499c9731e25de80edf2883621c7bb9c3c948907f4a0c8d0146093a260`이다. `verifyPreJungleTempoParity`는 12/12 exact gameplay parity로 통과했다.
+V1-B 당시 serial final full regression은 163 suites / 1,940 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 500.926초, Gradle wall 8분 32초로 clean pass했다. V1-B final canonical production guard는 471 files / `143112d499c9731e25de80edf2883621c7bb9c3c948907f4a0c8d0146093a260`이다.
+
+### Jungle V1 focused hardening
+
+Batch C는 balance sample을 늘리지 않고 structured eligibility와 cross-system deterministic invariant를 normal focused lane에 추가한다.
+
+```bash
+cd backend
+./gradlew test \
+  --tests 'com.lolfm.simulator.JungleEligibilityDiagnosticsTest' \
+  --tests 'com.lolfm.simulator.JungleV1FocusedHardeningIntegrationTest'
+./gradlew verifyPreJungleTempoParity
+./gradlew test --console=plain --no-daemon
+```
+
+Expanded focused regression은 위 두 class와 Jungle Economy/Tempo/Gank/Counter Gank/Lane Combat/FARM Recovery/Mid Game Macro/runtime profile/Random fingerprint/real Draft 경로 17개 class, 166 tests를 실행한다. 구조화된 reason count와 trigger roll algebra, actual action/Tempo consumption equality, action/death/recovery/macro FARM block의 CS/FARM gold/XP/passive/Random boundary, priority/fallthrough, common reward와 event linkage, match state isolation, same-seed complete timeline을 검증한다.
+
+`verifyPreJungleTempoParity`는 engine V4 tree에서도 기존 네 profile 12/12 exact gameplay parity로 통과했고 report SHA-256은 `6ba6d0c33332fa4a6eef343a9030fd3f031f6cef3a6d0363c6877db25fb5878f`다. Batch C 전후 `runJungleTempoCandidateDiagnostic` report SHA-256은 모두 `3f94b100464a48181fccf5a04a5e16f62dea3e17a05b1398215f65afddab1199`로 byte-identical하다. 이는 Economy-only 15/3과 Tempo 15/2 gank/counter-gank, Tempo consumption 15/2를 그대로 보존한다.
+
+현재 final full regression은 166 suites / 1,951 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 519.521초, Gradle wall 8분 51초로 첫 실행에서 clean pass했다. Full 전후 canonical production source/resource/build guard는 472 files / `54b53ea30453e39791dd8aa0197e95ed190697ce1b83c010baff1df540c833d9`로 동일하다. Batch C는 immutable baseline을 재생성하거나 source artifact를 수정하지 않는다.
 
 ## Generated Reports
 

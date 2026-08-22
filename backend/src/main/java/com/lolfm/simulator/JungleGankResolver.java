@@ -36,7 +36,11 @@ public final class JungleGankResolver {
         EnumMap<TeamSide, Double> triggered = new EnumMap<>(TeamSide.class);
         int triggerRolls = 0;
         for (TeamSide side : List.of(TeamSide.BLUE, TeamSide.RED)) {
-            if (!junglerEligible(state, side, time)) continue;
+            JungleGankIneligibility ineligibility = junglerIneligibility(
+                    state, side, time);
+            state.getCombatExecutionStats().recordJungleGankEligibility(
+                    side, ineligibility);
+            if (ineligibility != JungleGankIneligibility.NONE) continue;
             double chance = attemptChance(state, side);
             triggerRolls++;
             state.getCombatExecutionStats().recordJungleGankTriggerRoll();
@@ -127,18 +131,34 @@ public final class JungleGankResolver {
     }
 
     boolean junglerEligible(GameState state, TeamSide side, int time) {
+        return junglerIneligibility(state, side, time)
+                == JungleGankIneligibility.NONE;
+    }
+
+    JungleGankIneligibility junglerIneligibility(
+            GameState state,
+            TeamSide side,
+            int time
+    ) {
         PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
-        if (!jungler.canParticipateInMajorCombatAt(time)) return false;
+        if (!jungler.canParticipateInMajorCombatAt(time)) {
+            return JungleGankIneligibility.JUNGLER_UNAVAILABLE;
+        }
         int last = state.jungleActionState(side).getLastJungleActionAtSeconds();
-        if (last >= 0 && time - last < JungleGankRuleConfig.JUNGLER_GANK_COOLDOWN_SECONDS) return false;
+        if (last >= 0
+                && time - last < JungleGankRuleConfig.JUNGLER_GANK_COOLDOWN_SECONDS) {
+            return JungleGankIneligibility.JUNGLE_ACTION_COOLDOWN;
+        }
         boolean laneAvailable = Lane.values().length > 0
                 && java.util.Arrays.stream(Lane.values())
                 .anyMatch(lane -> laneEligible(state, lane, time));
-        if (!laneAvailable) return false;
-        if (!state.isJungleGankTempoEnabled()) return true;
+        if (!laneAvailable) return JungleGankIneligibility.NO_ELIGIBLE_LANE;
+        if (!state.isJungleGankTempoEnabled()) return JungleGankIneligibility.NONE;
         JungleTempoState.Readiness readiness = state.jungleTempoState(side).readinessAt(time);
         state.getJungleTempoExecutionStats().recordGankReadiness(side, readiness);
-        return readiness.ready();
+        return readiness.ready()
+                ? JungleGankIneligibility.NONE
+                : JungleGankIneligibility.JUNGLER_NOT_TEMPO_READY;
     }
 
     private void consumeTempoForActualAction(

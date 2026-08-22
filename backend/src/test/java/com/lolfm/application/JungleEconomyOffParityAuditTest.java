@@ -116,7 +116,7 @@ class JungleEconomyOffParityAuditTest {
                 assertThat(provenance.resourceProvenance()
                         .jungleClearGameplayEnabledProfileCount()).isEqualTo(51);
                 assertThat(provenance.engineImplementationVersion())
-                        .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V3");
+                        .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V4");
                 assertThat(provenance.replayProvenanceHash())
                         .isNotEqualTo(expected.path("replayProvenanceHash").asText());
 
@@ -138,7 +138,7 @@ class JungleEconomyOffParityAuditTest {
         Files.createDirectories(output);
         OffParityReport report = new OffParityReport(
                 "JUNGLE_ECONOMY_OFF_PARITY_REPORT_V1", BASELINE_SHA256,
-                "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V3",
+                "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V4",
                 SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION,
                 51, "replayProvenanceHash intentionally excluded from equality because engine "
                         + "implementation and active resource snapshot changed",

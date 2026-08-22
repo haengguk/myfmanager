@@ -125,7 +125,7 @@ GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history 
 
 `configurationHash`는 이 field-complete gameplay configuration만 고정한다. Diagnostics ON/OFF는 별도 `SimulationInstrumentation`이며 configuration/replay hash에서 제외되고 complete timeline과 Random fingerprint도 바꾸지 않는다.
 
-실행 이력 V3는 `engineImplementationVersion=MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V3`와 profile별 active rules를 분리한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`이다. `replayProvenanceHash`는 두 version, configuration, raw resource/version snapshot, side/team/roster, series history, Draft rules/scoring policy/final draft/final assignment, seed를 묶는다. `timelineHash`는 complete output을 별도로 고정한다. `randomFingerprint`는 실제 seeded `Random.next(bits)` 소비의 draw count와 ordered trace SHA-256을 기록하는 observational output이며 replay input hash에는 들어가지 않는다. 기존 `engineRulesVersion` field는 active rules의 additive compatibility alias다. 기존 `draftIdentity()`와 Hard Fearless commit semantics는 변경하지 않았다.
+실행 이력 V4는 `engineImplementationVersion=MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V4`와 profile별 active rules를 분리한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`이다. Batch C의 structured eligibility diagnostics는 tuning/rules contract를 바꾸지 않으므로 이 active rules version과 다섯 configuration hash는 그대로다. `replayProvenanceHash`는 두 version, configuration, raw resource/version snapshot, side/team/roster, series history, Draft rules/scoring policy/final draft/final assignment, seed를 묶는다. `timelineHash`는 complete output을 별도로 고정한다. `randomFingerprint`는 실제 seeded `Random.next(bits)` 소비의 draw count와 ordered trace SHA-256을 기록하는 observational output이며 replay input hash에는 들어가지 않는다. 기존 `engineRulesVersion` field는 active rules의 additive compatibility alias다. 기존 `draftIdentity()`와 Hard Fearless commit semantics는 변경하지 않았다.
 
 `BASELINE_V1`과 기존 autowired simulator의 same teams/assignments/seed complete timeline은 exact parity다. 기존 Spring `MatchController`는 계속 direct autowired simulator와 DummyDataFactory를 사용하고 HTTP profile 선택은 추가하지 않았다.
 
@@ -152,7 +152,7 @@ Artifact와 build report mirror는 canonical CRLF로 byte-identical하고 `SHA25
 
 Jungle Tempo production code를 추가하기 직전에는 V1-A clean full을 재사용한 동일 production tree에서 `PRE_JUNGLE_TEMPO_RUNTIME_BASELINE_V1`을 먼저 생성했다. Schedule은 기존 네 profile × GEN–T1 G1/G2 + T1–GEN mirror = 12 matches다. Artifact canonical CRLF raw SHA-256은 `17f703a48949b63bf4ca25f4b32be2bc22fac87a439cdd8cb7c18aadc7f82074`, 당시 canonical production guard는 464 files / `674b3148d782e98753bfd9e79f8b5f78b12cc3ecea8a85bc34ff8fbcaa2def0d`, engine은 V2다. JSON bytes는 동봉된 `SHA256SUMS.txt`로 고정한다.
 
-V1-B production tree에서 `verifyPreJungleTempoParity`를 실행한 결과 12/12 configuration/Draft/final assignment/complete timeline/Random fingerprint/winner/duration/event/snapshot exact parity가 통과했다. Engine V3 때문에 replay provenance hash만 의도적으로 달라지며, report는 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`에 기록된다.
+V1-B production tree에서 `verifyPreJungleTempoParity`를 실행한 결과 12/12 configuration/Draft/final assignment/complete timeline/Random fingerprint/winner/duration/event/snapshot exact parity가 통과했다. Batch C engine V4 tree에서도 같은 12/12 exact gameplay parity를 다시 통과했다. Baseline engine V2와 현재 engine V4가 다르므로 replay provenance hash만 의도적으로 달라지며, report는 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`에 기록된다.
 
 V1 JSON의 raw SHA `2dcf67a3501200f0bce3de6239dcfbed3b27bafdc9287940f3f56171223a1d71`은 그대로 유효하다. 다만 V1 생성 뒤 별도 JVM 재생성에서 `Set.copyOf(EnumSet)` iteration이 player skill별 seeded draw 배정을 바꾸고 Champion Power tag order가 snapshot summary를 바꾸는 두 cross-process 비결정성을 발견했다. 따라서 V1은 당시 실행의 immutable 기록으로 보존하되 공식 replay/timeline oracle로 사용하지 않고 V2가 이를 대체한다. V2는 canonical enum order를 production contract로 고정하고 두 별도 JVM에서 문서와 9개 timeline이 모두 동일함을 확인했다.
 
@@ -176,7 +176,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - real LCK Team→DraftEngine→final role→MatchChampionAssignments→seeded MatchSimulator application orchestration
 - field-complete closed-set runtime profiles, instrumentation isolation, configuration/replay/timeline hashing
 - ID-only factory boundary와 exact registry-membership 재검증으로 막은 fabricated resolved-profile 우회
-- 10개 raw resource identity와 roster/series/Draft/final assignment, engine/rules version을 포함한 structured execution provenance V3
+- 10개 raw resource identity와 roster/series/Draft/final assignment, engine/rules version을 포함한 structured execution provenance V4
 - gameplay와 격리된 per-match Random draw count/trace hash와 observed/plain exact timeline parity
 - canonical PlayerSkill realization 순서와 enum-set timeline serialization
 - clean full regression 뒤 생성하고 별도 JVM에서 재검증한 9-match Pre-Jungle V2 baseline
@@ -187,7 +187,9 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - match-scoped `JungleTempoState`, bounded efficiency/credit/readiness/action-cost rules, structured readiness/consumption diagnostics
 - Economy V1-A의 actual successful outcome만 credit으로 연결하고, gank/counter-gank base eligibility 뒤·trigger Random 전에 readiness를 적용하는 V1-B candidate
 - actual gank/counter attempt만 side별 credit을 소비한다. Tempo-not-ready/ineligible/duplicate path는 state와 trigger Random을 보존하고, eligible failed-trigger fallthrough는 trigger Random만 소비하면서 credit, action state와 downstream Random을 보존한다.
-- 다섯 번째 closed profile `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1`, rules V1, configuration hash와 engine provenance V3
+- Jungle Gank의 unavailable/cooldown/no-lane/not-ready와 Counter Gank의 기존 ineligibility를 reason별·side별 immutable match diagnostic으로 노출하는 Batch C structured eligibility
+- action/death/recovery/macro FARM block의 CS/FARM gold/XP/passive/Random 경계, priority/fallthrough/one-major-combat, reward/event integrity, fresh state와 same-seed replay를 묶은 `JUNGLE_V1_FOCUSED_HARDENING` gate
+- 다섯 번째 closed profile `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1`, rules V1, 고정 configuration hash와 engine provenance V4
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -207,11 +209,10 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Pending
 
-1. `JUNGLE_V1_FOCUSED_HARDENING`으로 더 넓은 eligibility, FARM/XP/gold integrity, Random non-consumption, priority/fallthrough, same-seed determinism을 하나의 gate로 묶는다.
-2. 그 뒤 다섯 profile lane(BASELINE / MATCHUP ONLY / FULL / FULL+JUNGLE ECONOMY / FULL+JUNGLE TEMPO)으로 `PHASE_13G_B_REAL_DATA_INTEGRATED_AUDIT_AND_CALIBRATION`을 수행한다.
-3. V1-A/B 진단 결과를 근거로 objective 직접 연결 여부를 별도 결정하고, `PRODUCTION_V1` 범위를 선택한다.
-4. Match Engine V1 input/output/profile/provenance를 freeze한다.
-5. 이후 Real Match API/frontend/BO3·BO5, Career/Save/Season 순으로 진행한다.
+1. 다섯 profile lane(BASELINE / MATCHUP ONLY / FULL / FULL+JUNGLE ECONOMY / FULL+JUNGLE TEMPO)으로 `PHASE_13G_B_REAL_DATA_INTEGRATED_AUDIT_AND_CALIBRATION`을 수행한다.
+2. V1-A/B 진단 결과를 근거로 objective 직접 연결 여부를 별도 결정하고, `PRODUCTION_V1` 범위를 선택한다.
+3. Match Engine V1 input/output/profile/provenance를 freeze한다.
+4. 이후 Real Match API/frontend/BO3·BO5, Career/Save/Season 순으로 진행한다.
 
 ## Test Snapshot
 
@@ -223,24 +224,26 @@ Final command:
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 163 |
-| Tests | 1,940 |
+| JUnit suites | 166 |
+| Tests | 1,951 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 500.926 seconds |
-| Gradle wall duration | 8m 32s |
+| Aggregate JUnit XML time | 519.521 seconds |
+| Gradle wall duration | 8m 51s |
 | Build | `BUILD SUCCESSFUL` |
 
 Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
 
 Jungle V1-B는 18개 default correctness test를 추가했고, affected focused regression은 기존 gank/counter/lane/FARM/simulator/Random/real Draft 경로까지 포함해 1분 52초에 clean pass했다. 새 경계는 first/repeat readiness, efficiency clamp, bank cap, continuity reset, duplicate/backward time, ineligible Random 0회, failed-trigger의 eligible trigger Random 소비와 credit/action-state 보존, lane fallthrough, no-kill actual consumption, counter-gank side별 consumption, diagnostics ON/OFF complete timeline equality와 real GEN–T1 replay를 포함한다.
 
-`verifyPreJungleTempoParity`는 1분 50초에 기존 네 profile 12/12 exact pass했고 report SHA-256은 `7bac4c34548019aaa2af422aa5e366dee42569dd8c4ed393645af8de33665313`이다. `runJungleTempoCandidateDiagnostic`의 고정 12-seed 관찰에서는 Economy-only 15 gank/3 counter-gank, Tempo 15 gank/2 counter-gank가 발생했고 Tempo의 structured consumption은 각각 15/2로 actual action과 exact equality였다. 이는 calibration이나 production gate가 아니며 report SHA-256은 `3f94b100464a48181fccf5a04a5e16f62dea3e17a05b1398215f65afddab1199`다.
+Jungle V1 focused hardening은 새 2개 class의 9개 cross-system test를 추가했다. Expanded focused regression은 17개 class / 166 tests를 2분에 clean pass했고 structured gank/counter eligibility, Random 0회, trigger/attempt/consumption algebra, action/death/recovery/macro FARM opportunity cost, passive gold, reward/event integrity, one-major-combat, match isolation과 same-seed replay를 포함한다.
 
-Final full 전후 canonical production source/resource/build guard는 모두 471 files / `143112d499c9731e25de80edf2883621c7bb9c3c948907f4a0c8d0146093a260`으로 동일하다. 이후 baseline byte-integrity correction에서 production source/resource/build는 변경하지 않고 test-only canonical serializer, raw-byte checksum test, `.gitattributes`, baseline CRLF bytes와 문서만 수정했다. 세 baseline raw SHA는 기존 `SHA256SUMS.txt`와 exact equality이며 focused 13 tests, Jungle Economy OFF 9/9 parity와 Pre-Tempo 12/12 parity가 통과했다. 이 isolated test/artifact/docs correction은 Full regression budget의 clean-pass 재사용 범위이므로 backend full regression을 반복하지 않았다.
+Batch C의 `verifyPreJungleTempoParity`는 2분 5초에 기존 네 profile 12/12 exact pass했고 report SHA-256은 `6ba6d0c33332fa4a6eef343a9030fd3f031f6cef3a6d0363c6877db25fb5878f`다. `runJungleTempoCandidateDiagnostic`의 고정 12-seed 관찰에서는 Economy-only 15 gank/3 counter-gank, Tempo 15 gank/2 counter-gank가 발생했고 Tempo의 structured consumption은 각각 15/2로 actual action과 exact equality였다. 이는 calibration이나 production gate가 아니며 작업 전후 report SHA-256은 모두 `3f94b100464a48181fccf5a04a5e16f62dea3e17a05b1398215f65afddab1199`로 byte-identical하다.
 
-이번 hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 위 final full을 실행했다. 그 뒤 executable production/test source는 변경하지 않았다.
+Batch C final full 전후 canonical production source/resource/build guard는 모두 472 files / `54b53ea30453e39791dd8aa0197e95ed190697ce1b83c010baff1df540c833d9`로 동일하다. Final full은 첫 실행에서 clean pass했으며 이후 executable production/test source는 변경하지 않았다. 직전 V1-B guard는 471 files / `143112d499c9731e25de80edf2883621c7bb9c3c948907f4a0c8d0146093a260`이었다. 그 뒤 baseline byte-integrity correction에서는 production source/resource/build를 바꾸지 않고 test-only canonical serializer, raw-byte checksum test, `.gitattributes`, baseline CRLF bytes와 문서만 수정했다. 세 baseline raw SHA는 기존 `SHA256SUMS.txt`와 exact equality다.
+
+Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 
 Pre-Jungle V2 생성 당시 production source/resource/build guard는 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`으로 동일했다. 당시 공식 V2를 새 JVM에서 같은 SHA로 재생성한 기록은 historical baseline provenance로 계속 보존한다.
 
@@ -248,4 +251,4 @@ Pre-Jungle V2 생성 당시 production source/resource/build guard는 456 files 
 
 ## Last Updated
 
-2026-08-22 (Asia/Seoul)
+2026-08-23 (Asia/Seoul)
