@@ -1,71 +1,91 @@
 ---
 name: lolmanager-verification
-description: Select and run proportionate verification for LoL Manager code, resource, runtime, and test changes. Use when implementing or reviewing changes that need focused tests, dedicated diagnostics, frontend build checks, or a backend full-regression decision; do not use for documentation-only edits.
+description: Route LoL Manager implementation or code-review changes to the smallest sufficient focused, build, diagnostic, or full-regression checks. Use when a verification-scope decision is needed; do not use for documentation-only work or ordinary explanation.
 ---
 
 # LoL Manager Verification
 
-Produce the smallest sufficient verification evidence for the requested change.
-Keep the repository's applicable `AGENTS.md` authoritative; do not restate or
-override its simulation invariants or full-regression budget.
+Select the smallest check that can establish the requested claim. The applicable
+`AGENTS.md` remains authoritative for simulation invariants and the full-regression
+budget; do not duplicate its rules here.
 
-## Establish the scope
+## Scope first
 
-1. Confirm whether the user asked for implementation, diagnosis, review, or
-   test execution. Do not expand a read-only request into broad or expensive
-   diagnostic execution.
-2. Inspect the relevant working-tree changes and distinguish task changes from
-   unrelated pre-existing user changes. Preserve unrelated files.
-3. Read `docs/development/testing.md` and the affected production and test code.
-   Inspect the current `backend/build.gradle` declaration before selecting a
-   custom diagnostic task; do not rely on a task name or old report alone.
-4. Classify the affected surface: backend production Java, production resource,
-   runtime wiring or API contract, frontend, shared test infrastructure,
-   isolated test code, or documentation/report only.
+1. Distinguish implementation, review, diagnosis, and explicit test execution.
+   A read-only review does not automatically authorize expensive diagnostics.
+2. Inspect the requested diff and `git status --short`. Separate task changes from
+   pre-existing user changes and preserve unrelated files.
+3. Classify the changed surface using the routing table below.
+4. Read only the context needed for that route:
+   - affected production and test code for all executable changes;
+   - `docs/development/testing.md` when choosing or interpreting project test tasks;
+   - the relevant `backend/build.gradle` block before invoking a custom diagnostic;
+   - frontend scripts before selecting a frontend command.
 
-## Choose checks
+## Verification router
 
-- Start with deterministic focused tests for the changed behavior and its
-  directly affected invariants. Run them from `backend/` with a narrow
-  `./gradlew test --tests 'fully.qualified.TestClass'` selector.
-- Include boundary, duplicate-call, Random-consumption, priority/fallthrough,
-  participant/reward, structured-event, and same-seed checks only when the
-  changed behavior touches those concerns.
-- For frontend source changes, run `npm run build` from `frontend/`. Do not
-  invent a frontend test command when no test script exists.
-- Treat the default backend `test` task as correctness regression, not as a
-  balance or full-population audit. It excludes diagnostic-tagged tests.
-- Run a large-seed, distribution, calibration, holdout, full-population, or
-  artifact-producing diagnostic only when the user explicitly requests that
-  evidence or focused correctness tests cannot establish the requested claim.
-  Select only the relevant declared Gradle task; never sweep all diagnostics.
-- Apply the `Full regression budget` section of `AGENTS.md` exactly. Finish
-  production and runtime changes first, run at most the necessary final full
-  regressions, and record why each full run was required. Documentation-only
-  changes never trigger a backend full regression.
+| Changed surface | Default evidence | Full backend regression |
+| --- | --- | --- |
+| Documentation or report wording only | None; inspect the diff | Never |
+| Isolated test, test-side parser, or artifact consumer | Narrow focused test; reproduce canonical output when that is the claim | No, unless it also changes shared fixtures, Gradle, global state, or suite order |
+| Backend production Java, API contract, runtime wiring, or production resource | Focused behavioral tests for the changed path and directly affected invariants | One final run after the production tree is complete |
+| Random order, determinism, global/static state, shared fixture, or Gradle/test configuration | Focused determinism and affected contract tests | Required on the final tree |
+| Frontend source | `npm run build`; add browser verification only when the requested user flow needs it | No backend full run unless backend/runtime also changed |
+| Diagnostic harness or generated artifact | Focused contract/smoke plus input binding and manifest checks | No by default; apply the executable surface rules above |
+| Calibration, holdout, distribution, or full-population audit | Do not run unless explicitly requested or correctness cannot establish the claim | Not a substitute for the default backend regression |
 
-## Handle outcomes
+## Project-specific selection
 
-- When a focused test fails, determine whether the cause is intended behavior,
-  a product regression, changed Random order or eligibility, duplicate state
-  mutation, event classification, stale expectation, or an environment/tooling
-  failure before changing code or expected values.
-- If an environment or tooling failure aborts a command, diagnose it before
-  repeating the unchanged command.
-- Treat generated reports and build artifacts as evidence from a particular
-  run, never as production source of truth or correctness-test input.
-- Reuse a clean full-regression result when later changes fall into an allowed
-  post-pass category. Do not rerun merely to refresh report wording.
+- Match-engine gameplay changes: select the changed resolver/system tests and the
+  affected boundary, duplicate, Random-consumption, priority/fallthrough,
+  participant/reward, structured-event, and same-seed checks. Include only concerns
+  the change can affect.
+- Runtime profile, provenance, or authored resource changes: include configuration
+  identity, resource/provenance, same-seed, and applicable immutable-baseline parity
+  checks before the final full regression.
+- B1/B2/B3 or later audit harness changes: run the focused contract or smoke route.
+  Never reopen an already consumed official holdout merely to confirm a report.
+- API changes: verify the affected backend contract and preserve existing fields;
+  run frontend build verification when frontend consumers changed.
+
+Start backend focused checks from `backend/` with the narrowest stable selector:
+
+```bash
+./gradlew test --tests 'fully.qualified.TestClass' --console=plain --no-daemon
+```
+
+Before using a named diagnostic task, confirm its current declaration and exclusions
+in `backend/build.gradle`. Never infer a task from an old report and never sweep all
+diagnostics.
+
+## Full-regression decision
+
+Apply the `AGENTS.md` full-regression budget exactly. In particular:
+
+- finish production/resource/runtime/build changes before the final full run;
+- reuse a clean full result after documentation, report wording, assertion-only, or
+  isolated test-local changes when `AGENTS.md` permits it;
+- require a new full run after post-pass production, resource, runtime, shared-fixture,
+  Gradle, global-state, Random-order, or suite-order changes;
+- do not describe a focused `--tests` invocation as a full regression.
+
+## Failures and artifacts
+
+- Classify a failure before editing expectations: intended behavior, product
+  regression, Random-order or eligibility change, duplicate mutation, event
+  classification, stale expectation, or environment/tooling failure.
+- Diagnose an environment failure before repeating the unchanged command.
+- Treat generated reports as evidence from one run, not production source or a
+  correctness-test oracle. Prefer manifest verification or artifact-only
+  regeneration over repeating expensive simulations.
 
 ## Report
 
-Summarize verification with exact commands and outcomes:
+State what was actually established:
 
-- focused checks run and their pass/fail status
-- frontend build status when applicable
-- diagnostic task and artifact scope, or why no diagnostic was needed
-- full-regression status, run count, and the rule supporting run or reuse
-- unresolved failures, skipped checks, and the concrete reason for each
+- focused/build/diagnostic commands and pass/fail results;
+- artifact and manifest scope when applicable;
+- full-regression run, reuse, or omission and the applicable rule;
+- skipped or unresolved checks with a concrete reason.
 
-Do not claim success from compilation alone when behavioral tests are required,
-and do not claim a full regression from a focused `--tests` invocation.
+Compilation alone is insufficient when the requested claim is behavioral.
