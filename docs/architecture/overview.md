@@ -8,6 +8,7 @@
 flowchart LR
     I[Player Identity + Rating + Proficiency Catalogs] --> R[LckTeamAssembler]
     R --> X[Real LCK Team]
+    Q[Real Match API V1] --> O
     X --> O[RealDraftMatchOrchestrator]
     O --> D[DraftEngine]
     O --> M[ConfiguredMatchSimulatorFactory]
@@ -21,11 +22,11 @@ flowchart LR
     T --> U[React timeline UI]
 ```
 
-두 진입 경로는 현재 동일하게 공개되어 있지 않다.
+두 backend 진입 경로는 모두 HTTP에 공개됐지만 frontend 연결 상태가 다르다.
 
 - `GET /api/champions`와 `POST /api/matches/simulate`는 Spring API에 연결되어 있다.
 - `RealDraftMatchOrchestrator`는 Spring application component로서 실제 LCK team assembly, real `DraftTeamContext`, `DraftEngine`, final assignment preflight와 `MatchSimulator`를 하나의 deterministic backend 호출로 연결한다.
-- 이 orchestration은 아직 Controller나 frontend에 노출되지 않았다. `MatchController` 기본 roster와 현재 frontend flow는 계속 dummy path다.
+- `GET /api/v1/real-matches/options`와 `POST /api/v1/real-matches/simulate`가 이 orchestration의 fresh Game 1 `MatchEngineV1` 경로를 immutable DTO로 노출한다. 현재 frontend flow는 아직 `MatchController`의 dummy path를 사용한다.
 
 ## Major Subsystems
 
@@ -39,7 +40,7 @@ flowchart LR
 | Progression | XP, level, gold, item stage와 그에 따른 실제 경기 전투 기여 | `PlayerProgressionState`, `ProgressionEconomyResolver`, `CombatProgressionEvaluator` |
 | Matchup | 같은 `Position`의 두 champion 사이 구조적 상호작용 | `ChampionMatchupEvaluator`, `ChampionMatchupResolver` |
 | Composition | 5인 lineup의 기능 조합, 결핍, context edge와 승인된 decision-channel 적용 | `TeamCompositionAnalyzer`, `CompositionRuntimeState` |
-| API / frontend | champion catalog 제공, simulation 실행, timeline 재생 | `ChampionController`, `MatchController`, `frontend/src/App.tsx` |
+| API / frontend | champion catalog, legacy simulation, actual roster/Draft/V1 simulation 제공과 timeline 재생 | `ChampionController`, `MatchController`, `RealMatchApiV1Controller`, `frontend/src/App.tsx` |
 
 ## Core Responsibility Boundaries
 
@@ -61,12 +62,13 @@ flowchart LR
 - [Player System](player-system.md)
 - [Draft System](draft-system.md)
 - [Match Simulation](match-simulation.md)
+- [Real Match API V1](real-match-api-v1.md)
 
 ## High-Level Runtime Flow
 
 1. Active manifest가 coherent champion resource set을 선택하고 cross-catalog coverage를 검증한다.
 2. 실제 roster path는 identity, rating, sparse proficiency resource의 version/hash/subject equality를 검증하고 `LckTeamAssembler`가 explicit `PlayerId`를 가진 팀을 만든다.
-3. legacy HTTP는 champion selection을 materialize하고, real backend path는 `RealDraftMatchOrchestrator`가 동일 Team으로 Draft를 실행한 뒤 `FinalDraftResult.matchChampionAssignments()`를 재해석 없이 선택한다.
+3. legacy HTTP는 champion selection을 materialize한다. Real Match API는 명시적 team code/seed를 검증하고 `RealDraftMatchOrchestrator`가 동일 Team으로 Draft를 실행한 뒤 `FinalDraftResult.matchChampionAssignments()`를 재해석 없이 선택한다.
 4. real path의 stateless preflight가 explicit team code, current `PlayerRatingKey`, roster `PlayerId`, Draft context, final role legality, assignment equality, series exclusions를 검증한다.
 5. real path는 closed runtime profile과 별도 instrumentation을 resolve해 configured simulator를 만들고, `MatchSimulator`가 fresh `GameState`, 두 `TeamState`, 열 `PlayerState(PlayerKey, PlayerId, displayName)`를 생성한다.
 6. 고정 resolver 순서로 tick을 진행하며 seed 기반 `Random`을 소비한다.
@@ -80,7 +82,7 @@ flowchart LR
 
 `RealDraftMatchOrchestrator`는 `ConfiguredMatchSimulatorFactory`를 주입받고 closed `SimulationRuntimeProfileId`를 registry에서 다시 resolve한다. 기존 overload는 `BASELINE_V1`, additive overload는 Matchup/Composition/Jungle Economy/Jungle Tempo candidate를 포함한 등록 profile을 선택하며 diagnostics는 별도 `SimulationInstrumentation`으로 전달한다. 임의 boolean 묶음이나 caller-fabricated resolved profile은 이 application 경계를 통과할 수 없다.
 
-Draft resource wiring은 Spring의 `ChampionCatalog` instance를 재사용해 active power/matchup/composition resource를 검증하고 `DraftEngine`을 구성한다. `MatchController`는 이 orchestration을 주입받지 않고 `DummyDataFactory`를 계속 사용하므로 backend real path와 HTTP demo path를 구분해야 한다.
+Draft resource wiring은 Spring의 `ChampionCatalog` instance를 재사용해 active power/matchup/composition resource를 검증하고 `DraftEngine`을 구성한다. `RealMatchApiV1Service`만 이 orchestration의 fresh single-game V1 overload를 호출하고 policy/provenance/output hash를 검증한다. `MatchController`는 이를 주입받지 않고 `DummyDataFactory`를 계속 사용하므로 Real Match V1 path와 legacy HTTP demo path를 구분해야 한다.
 
 ## Global Invariants
 

@@ -321,6 +321,45 @@ Match Engine V1 correctness는 대규모 balance population이 아니라 boundar
 
 Artifact writer는 clean full XML이 최소 170 suites / 1,970 tests이고 failure/error가 0인지 먼저 확인한다. 그 다음 historical Final 13G-B manifest 6/6, 실제 legacy/V1 gameplay/common provenance parity, V1 replay input 결속과 fresh-JVM 두 번을 재검증한 뒤 `build/reports/match-engine-v1-freeze/`의 JSON 7개와 `SHA256SUMS.txt`를 쓴다. 이 freeze 작업은 B2 calibration, B3 holdout 또는 baseline generator를 다시 실행하지 않는다.
 
+### Real Match API V1
+
+Real Match API V1은 큰 seed population이 아니라 strict HTTP boundary와 frozen engine parity를 검증한다. Focused 명령은 다음 6개 class를 실행한다.
+
+```text
+gradlew.bat test \
+  --tests com.lolfm.controller.RealMatchApiV1RequestParserTest \
+  --tests com.lolfm.application.RealMatchApiV1ServiceTest \
+  --tests com.lolfm.controller.RealMatchApiV1ControllerTest \
+  --tests com.lolfm.controller.RealMatchApiV1ErrorBoundaryTest \
+  --tests com.lolfm.controller.ChampionApiTest \
+  --tests com.lolfm.application.MatchEngineV1ContractTest \
+  --console=plain --no-daemon
+```
+
+이 묶음은 6 suites / 31 tests, failures 0 / errors 0 / skipped 0으로 통과했다. 주요 고정 항목은 다음과 같다.
+
+- options의 10팀, 팀당 5명, stable PlayerId 50개와 canonical ordering
+- required schema/team/seed, canonical signed long string과 V1-scoped unknown-field rejection
+- invalid 요청과 preflight rejection에서 orchestrator/Random 실행 없음
+- production policy/provenance/output hash 검증 전 response mapping 금지
+- fixed `GEN` 대 `T1`, seed `"73"`의 실제 roster/Draft/result/timeline/integrity
+- 같은 HTTP 요청 2회의 exact Draft/result/structured timeline/hash/Random fingerprint와 두 번째도 Game 1인 격리
+- direct `orchestrateV1` output과 HTTP projection의 JSON 의미 exact parity
+- seed/PlayerId/ChampionId/enum string, timeout winner null과 structured error serialization
+- 기존 Champion API와 frozen Match Engine V1 contract 보존
+
+Production controller/service/runtime wiring을 추가했으므로 focused 결과로 끝내지 않고 최종 executable tree에서 complete backend regression을 1회 실행했다.
+
+```text
+gradlew.bat test --console=plain --no-daemon
+```
+
+결과는 179 suites / 2,011 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 808.929초, Gradle wall 13분 41초로 clean pass했다. 이후 production Java, resource, Gradle/shared fixture를 바꾸지 않고 test-side artifact 실행과 문서만 갱신했으므로 full regression을 반복하지 않았다.
+
+`RealMatchApiV1ArtifactWriter`는 clean full XML이 최소 기존 175 suites / 1,993 tests 이상이며 failure/error가 0인지 확인하고, historical Match Engine V1 freeze manifest SHA와 7/7 raw SHA를 읽기 검증한다. 그 뒤 `build/reports/real-match-api-v1/`에 contract/options/fixed request/full fixed response/error/handoff JSON 6개와 manifest를 생성한다. 생성 manifest 6/6 raw SHA가 통과했고 manifest SHA-256은 `4b4d8c0a942db477a92db7ca17e9f5f767e326cc0ed92d49fd9366d081fc23b2`다. Runtime은 이 report를 읽지 않는다.
+
+이번 milestone은 frontend 파일을 바꾸지 않아 npm build와 Playwright를 실행하지 않았다. Balance 변경이 없으므로 B2 calibration, B3 holdout, Final 13G-B, 대규모 diagnostics와 baseline generator도 실행하지 않았다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.

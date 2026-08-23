@@ -12,9 +12,9 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 현재 `DummyDataFactory` team은 legacy `PlayerAttributes`를 사용한다. production Player Ratings resource는 Spring catalog로 로드되지만 이 endpoint의 roster 생성에는 아직 사용되지 않는다. 자세한 내용은 [Player System](player-system.md)에 있다.
 
-별도의 backend application entry point인 `RealDraftMatchOrchestrator`는 explicit LCK team code 두 개, caller-owned `SeriesDraftHistory`, match seed를 받는다. 이 path는 `LckTeamAssembler`가 만든 실제 Team으로 Draft를 실행하고 `FinalDraftResult.matchChampionAssignments()`를 그대로 같은 Team과 함께 simulator에 전달한다. Controller를 호출하거나 `DummyDataFactory`를 사용하지 않으며 아직 HTTP에 노출되지 않았다.
+별도의 backend application entry point인 `RealDraftMatchOrchestrator`는 explicit LCK team code 두 개, caller-owned `SeriesDraftHistory`, match seed를 받는다. 이 path는 `LckTeamAssembler`가 만든 실제 Team으로 Draft를 실행하고 `FinalDraftResult.matchChampionAssignments()`를 그대로 같은 Team과 함께 simulator에 전달한다. `GET /api/v1/real-matches/options`와 `POST /api/v1/real-matches/simulate`가 이 경로를 additive하게 노출한다. 기존 `MatchController`나 `DummyDataFactory`를 거치지 않으며 세부 HTTP 계약은 [Real Match API V1](real-match-api-v1.md)에 있다.
 
-동결된 application boundary인 `MatchEngineV1`은 완성된 roster/final Draft/seed를 immutable input으로 받아 immutable summary/timeline/provenance를 반환한다. `RealDraftMatchOrchestrator.orchestrateV1`이 이 경계에 additive하게 연결되며, 성공한 output까지 검증된 뒤에만 series history를 commit한다. 정책, 입출력, hash와 호환성의 전체 계약은 [Match Engine V1 Contract](match-engine-v1.md)에 있다.
+동결된 application boundary인 `MatchEngineV1`은 완성된 roster/final Draft/seed를 immutable input으로 받아 immutable summary/timeline/provenance를 반환한다. `RealDraftMatchOrchestrator.orchestrateV1`이 이 경계에 additive하게 연결되며, 성공한 output까지 검증된 뒤에만 series history를 commit한다. Real Match API service는 fresh-history 단판 overload만 호출하고 policy/provenance/output hash를 검증한 뒤 immutable transport DTO를 반환한다. 정책, 입출력, hash와 호환성의 전체 계약은 [Match Engine V1 Contract](match-engine-v1.md)에 있다.
 
 기존 overload는 `BASELINE_V1`을 명시적으로 resolve한다. Additive overload는 임의 boolean 묶음이 아니라 `SimulationRuntimeProfileId`만 받는다. `ConfiguredMatchSimulatorFactory`의 public boundary도 profile ID와 별도 `SimulationInstrumentation`만 받아 closed registry를 내부에서 resolve한다. Caller-fabricated `ResolvedSimulationRuntimeProfile`은 실행/provenance 경계에서 허용하지 않는다.
 
@@ -78,6 +78,7 @@ V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal ch
 | 구성 경로 | Champion Power | Matchup | Composition | Jungle Clear |
 | --- | --- | --- | --- | --- |
 | Spring `@Autowired MatchSimulator` (`MatchController`) | ON | `OFF` | `OFF` | OFF |
+| Real Match API V1 (`RealDraftMatchOrchestrator.orchestrateV1`) | ON | `OFF` | `OFF` | OFF |
 | 명시적 `SimulationOptions.productionDefaults()` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | OFF |
 | `RealDraftMatchOrchestrator` 기존 overload / `BASELINE_V1` | ON | `OFF` | `OFF` | OFF |
 | `MATCHUP_ONLY_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `OFF` | OFF |
