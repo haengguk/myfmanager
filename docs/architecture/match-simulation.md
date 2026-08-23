@@ -177,7 +177,7 @@ Test-side bridge는 package-private simulator result의 combat/roam/objective/la
 
 #### B2 calibration execution boundary
 
-B2는 B1 schedule의 `CALIBRATION` seed만 job으로 materialize한다. 각 fixture에서 production orchestration은 series target game까지 한 번만 준비되고, 그 fixed Draft/assignment를 24 seeds × 5 profiles에 재사용한다. 네 worker JVM은 fixture index modulo 4로 소유권을 나누므로 mutable match state나 output path를 공유하지 않는다. 한 fixture의 120행과 BASELINE replay가 모두 current guard를 통과한 뒤에만 임시 파일을 atomic move해 checkpoint로 승격한다.
+B2는 B1 schedule의 `CALIBRATION` seed만 job으로 materialize한다. 각 fixture에서 production orchestration은 series target game까지 한 번만 준비되고, 그 fixed Draft/assignment를 24 seeds × 5 profiles에 재사용한다. 네 shard class는 `forkEvery=1`로 JVM 재사용을 금지하고 fixture index modulo 4로 소유권을 나누므로 mutable match state나 output path를 공유하지 않는다. 실제 동시 실행 수가 Gradle worker 제한으로 줄어도 네 shard는 각각 fresh JVM이다. 한 fixture의 120행과 BASELINE replay가 모두 current guard를 통과한 뒤에만 임시 파일을 atomic move해 checkpoint로 승격한다.
 
 ```text
 fresh JVM A/B B1 artifact exact equality
@@ -185,16 +185,18 @@ fresh JVM A/B B1 artifact exact equality
   → fixture preparation / fixed Draft
   → 24 calibration seeds × 5 profiles
   → fixture BASELINE replay exact equality
-  → atomic 120-row checkpoint
-  → 100 checkpoint coverage와 12,000 frozen job order 재검증
+  → replay provenance 재계산 + row/fixed-Draft/replay payload digest
+  → atomic 120-row authenticated checkpoint
+  → shard worker receipt(checkpoint raw SHA + JVM identity)
+  → 4 distinct fresh JVM / 100 payload digest / frozen job order 재검증
   → artifact-only summaries / integrity / SHA manifest
 ```
 
-Run guard는 schedule/configuration/resource/engine/production source/B1+B2 harness source identity를 포함한다. Checkpoint row는 replay provenance, timeline, full structured diagnostics와 Random fingerprint hash, final result, domain별 integrity, 정글러 final state와 고정 시각 관측을 보존한다. Guard가 달라진 기존 checkpoint는 merge하거나 덮어 해석하지 않고 거부한다.
+Run guard는 schedule/configuration/resource/engine/Draft rule set/Draft scoring policy/production source/B1+B2 harness source identity를 포함한다. Validator는 각 row의 job/fixture/roster/Draft/profile/seed로 production replay provenance를 재계산한다. Checkpoint row는 timeline, full structured diagnostics와 Random fingerprint hash, final result, domain별 integrity, 정글러 final state와 고정 시각 관측을 보존하고 이 전체 serialized payload를 canonical digest에 묶는다. Shard 완료 receipt는 checkpoint raw bytes를 다시 SHA-256으로 묶으며 finalizer만 네 receipt를 검증해 공식 artifact writer를 열 수 있다. Synthetic validation은 별도 non-official status이고, guard가 달라진 기존 checkpoint는 merge하거나 덮어 해석하지 않고 거부한다.
 
 Simulator는 보통 10초 tick으로 snapshot을 만들지만 structure push가 respawn/공격 완료 시각으로 clock을 전진시켜 600/900/1,200/1,500/1,800초를 정확히 건너뛸 수 있다. B2는 없는 상태를 보간하지 않는다. 요청 시각 이상인 첫 recorded snapshot을 선택하고 두 시각을 함께 기록하며, match가 요청 시각 전에 끝났다면 final snapshot을 해당 checkpoint로 복제하지 않는다.
 
-B2 status `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`는 job/replay/hash/structural integrity가 깨끗하다는 뜻이다. Winner flip, gold/CS/XP/level, duration, action count 분포는 review-only balance signal이며 correctness pass나 `PRODUCTION_V1` 승인을 뜻하지 않는다. Candidate와 acceptance gate를 calibration 결과로 먼저 freeze한 뒤에만 별도 holdout lane을 열 수 있다.
+B2 status `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`는 job/replay/checkpoint payload/worker receipt/structural integrity가 깨끗하다는 뜻이다. Winner flip, gold/CS/XP/level, duration, action count 분포는 review-only balance signal이며 correctness pass나 `PRODUCTION_V1` 승인을 뜻하지 않는다. Candidate와 acceptance gate를 calibration 결과로 먼저 freeze한 뒤에만 별도 holdout lane을 열 수 있다.
 
 ## Combat Strength Inputs
 

@@ -10,10 +10,6 @@ import com.lolfm.player.PlayerIdentityCatalog;
 import com.lolfm.player.PlayerRatingCatalog;
 import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -84,117 +80,74 @@ class Phase13GB2RealDataCalibrationDiagnosticTest {
                 smokeOutput.resolve("phase13g-b2-smoke-marginals.csv")))
                 .hasSize(6);
 
-        var schedule = Phase13GB1AuditSchedule.create();
-        var fixture = schedule.allFixtures().stream()
+        var store = new Phase13GB2CheckpointStore(mapper);
+        var baseline = result.rows().getFirst();
+        var baselineEvidence = store.rowEvidence(baseline);
+        store.validateReplayProvenance(baseline, result.runGuard());
+        store.validateRowEvidence(baseline, baselineEvidence);
+
+        ObjectNode relabeledNode = mapper.valueToTree(baseline);
+        var fixture = Phase13GB1AuditSchedule.create().allFixtures().stream()
                 .filter(value -> value.fixtureId().equals(result.fixtureId()))
                 .findFirst().orElseThrow();
-        Map<com.lolfm.simulator.SimulationRuntimeProfileId,
-                Phase13GB2CalibrationModel.MatchRow> templates = result.rows().stream()
-                .collect(Collectors.toMap(
-                        Phase13GB2CalibrationModel.MatchRow::profileId,
-                        Function.identity()));
-        ArrayList<Phase13GB2CalibrationModel.MatchRow> syntheticRows = new ArrayList<>();
-        for (var job : Phase13GB2CalibrationContract.jobs(fixture)) {
-            ObjectNode node = mapper.valueToTree(templates.get(job.profileId()));
-            node.put("jobId", job.jobId());
-            node.put("seedIndex", job.seedIndex());
-            node.put("seed", job.seed());
-            node.put("profileIndex", job.profileIndex());
-            syntheticRows.add(mapper.treeToValue(
-                    node, Phase13GB2CalibrationModel.MatchRow.class));
-        }
-        var store = new Phase13GB2CheckpointStore(mapper);
-        var checkpoint = new Phase13GB2CalibrationModel.FixtureCheckpoint(
-                Phase13GB2CalibrationModel.CHECKPOINT_SCHEMA,
-                store.guardHash(result.runGuard()),
-                result.runGuard(),
-                result.fixedDraft(),
-                result.determinismReplay(),
-                syntheticRows);
-        Path checkpointPath = store.checkpointPath(
-                smokeOutput.resolve("checkpoint-roundtrip"), 0, fixture);
-        store.writeAtomic(checkpointPath, checkpoint, result.runGuard(), fixture);
-        assertThat(store.readAndValidate(
-                checkpointPath, result.runGuard(), fixture)).isEqualTo(checkpoint);
+        var relabeledJob = Phase13GB2CalibrationContract.jobs(fixture).get(5);
+        relabeledNode.put("jobId", relabeledJob.jobId());
+        relabeledNode.put("seedIndex", relabeledJob.seedIndex());
+        relabeledNode.put("seed", relabeledJob.seed());
+        var relabeled = mapper.treeToValue(
+                relabeledNode, Phase13GB2CalibrationModel.MatchRow.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> store.validateReplayProvenance(relabeled, result.runGuard()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("replay provenance");
 
-        ArrayList<Phase13GB2CalibrationModel.FixtureCheckpoint> syntheticPopulation =
-                new ArrayList<>();
-        int fixtureIndex = 0;
-        for (var scheduledFixture : schedule.allFixtures()) {
-            ObjectNode draftNode = mapper.valueToTree(result.fixedDraft());
-            draftNode.put("fixtureId", scheduledFixture.fixtureId());
-            draftNode.put("fixtureLane", scheduledFixture.fixtureLane().name());
-            draftNode.put("pairId", scheduledFixture.pairId());
-            draftNode.put("blueTeamCode", scheduledFixture.blueTeamCode());
-            draftNode.put("redTeamCode", scheduledFixture.redTeamCode());
-            draftNode.put("seriesGameNumber", scheduledFixture.seriesGameNumber());
-            draftNode.put("productionOrchestrationCount",
-                    scheduledFixture.seriesGameNumber());
-            var syntheticDraft = mapper.treeToValue(
-                    draftNode, Phase13GB2CalibrationModel.FixedDraftRow.class);
-            ObjectNode replayNode = mapper.valueToTree(result.determinismReplay());
-            replayNode.put("fixtureId", scheduledFixture.fixtureId());
-            replayNode.put("seedIndex", 0);
-            replayNode.put("seed", scheduledFixture.calibrationSeeds().getFirst());
-            var syntheticReplay = mapper.treeToValue(
-                    replayNode,
-                    Phase13GB2CalibrationModel.DeterminismReplayEvidence.class);
-            ArrayList<Phase13GB2CalibrationModel.MatchRow> fixtureRows = new ArrayList<>();
-            for (var job : Phase13GB2CalibrationContract.jobs(scheduledFixture)) {
-                ObjectNode node = mapper.valueToTree(templates.get(job.profileId()));
-                node.put("jobId", job.jobId());
-                node.put("fixtureId", job.fixtureId());
-                node.put("fixtureLane", job.fixtureLane().name());
-                node.put("pairId", job.pairId());
-                node.put("blueTeamCode", job.blueTeamCode());
-                node.put("redTeamCode", job.redTeamCode());
-                node.put("seriesGameNumber", job.seriesGameNumber());
-                node.put("seedIndex", job.seedIndex());
-                node.put("seed", job.seed());
-                node.put("profileIndex", job.profileIndex());
-                fixtureRows.add(mapper.treeToValue(
-                        node, Phase13GB2CalibrationModel.MatchRow.class));
-            }
-            syntheticPopulation.add(new Phase13GB2CalibrationModel.FixtureCheckpoint(
-                    Phase13GB2CalibrationModel.CHECKPOINT_SCHEMA,
-                    store.guardHash(result.runGuard()),
-                    result.runGuard(),
-                    syntheticDraft,
-                    syntheticReplay,
-                    fixtureRows));
-            fixtureIndex++;
-        }
-        Path finalizerOutput = smokeOutput.resolve("synthetic-finalizer");
-        var syntheticArtifacts = Phase13GB2CalibrationArtifactWriter.write(
-                mapper,
-                finalizerOutput,
-                schedule,
-                result.runGuard(),
-                syntheticPopulation);
-        assertThat(fixtureIndex).isEqualTo(100);
+        ObjectNode outcomeNode = mapper.valueToTree(baseline);
+        outcomeNode.put("blueGold", baseline.blueGold() + 1);
+        var outcomeChanged = mapper.treeToValue(
+                outcomeNode, Phase13GB2CalibrationModel.MatchRow.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> store.validateRowEvidence(outcomeChanged, baselineEvidence))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("outcome or observation");
+
+        ObjectNode observationNode = mapper.valueToTree(baseline);
+        ObjectNode firstObservation = (ObjectNode) observationNode
+                .withArray("jungleObservations").get(0);
+        firstObservation.put("gold", firstObservation.path("gold").asInt() + 1);
+        var observationChanged = mapper.treeToValue(
+                observationNode, Phase13GB2CalibrationModel.MatchRow.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> store.validateRowEvidence(observationChanged, baselineEvidence))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("outcome or observation");
+
+        byte[] checkpointPayload = mapper.writeValueAsBytes(result.rows());
+        var payloadReceipt = new Phase13GB2CalibrationModel.CheckpointPayloadReceipt(
+                0,
+                fixture.fixtureId(),
+                "smoke-checkpoint.json",
+                Phase13GB2CalibrationContract.EXPECTED_ROWS_PER_FIXTURE,
+                Phase13GB2CheckpointStore.sha256(checkpointPayload));
+        store.validatePayloadReceipt(checkpointPayload, payloadReceipt);
+        byte[] changedPayload = checkpointPayload.clone();
+        changedPayload[changedPayload.length - 1] ^= 1;
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> store.validatePayloadReceipt(changedPayload, payloadReceipt))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("digest");
+
+        var syntheticArtifacts =
+                Phase13GB2CalibrationArtifactWriter.writeSyntheticValidation(
+                        mapper,
+                        smokeOutput.resolve("synthetic-validation"),
+                        result.runGuard(),
+                        result.fixedDraft(),
+                        result.rows());
         assertThat(syntheticArtifacts.status())
-                .isEqualTo("CALIBRATION_EVIDENCE_READY_FOR_REVIEW");
-        assertThat(syntheticArtifacts.calibrationMatchCount()).isEqualTo(12_000);
-        assertThat(syntheticArtifacts.pairedMarginalCount()).isEqualTo(12_000);
-        assertThat(java.nio.file.Files.readAllLines(
-                finalizerOutput.resolve(
-                        Phase13GB2CalibrationArtifactWriter.MATCHES_JSONL_FILE)))
-                .hasSize(12_000);
-        assertThat(java.nio.file.Files.readAllLines(
-                finalizerOutput.resolve(Phase13GB2CalibrationArtifactWriter.SHA_FILE)))
-                .hasSize(15);
-        assertThat(java.nio.file.Files.readAllLines(finalizerOutput.resolve(
-                Phase13GB2CalibrationArtifactWriter.DETERMINISM_REPLAYS_FILE)))
-                .hasSize(101);
-        var contract = mapper.readTree(finalizerOutput.resolve(
-                Phase13GB2CalibrationArtifactWriter.CONTRACT_FILE).toFile());
-        assertThat(contract.path("fixturePreparationOrchestrationCount").asInt())
-                .isEqualTo(110);
-        assertThat(contract.path("calibrationMatchExecutionCount").asInt())
-                .isEqualTo(12_000);
-        assertThat(contract.path("determinismReplayExecutionCount").asInt())
-                .isEqualTo(100);
-        assertThat(contract.path("holdoutExecuted").asBoolean()).isFalse();
+                .isEqualTo("SYNTHETIC_VALIDATION_ONLY");
+        assertThat(syntheticArtifacts.officialCalibrationEvidence()).isFalse();
+        assertThat(syntheticArtifacts.status())
+                .isNotEqualTo("CALIBRATION_EVIDENCE_READY_FOR_REVIEW");
     }
 
     @Test
@@ -210,6 +163,16 @@ class Phase13GB2RealDataCalibrationDiagnosticTest {
         assertThat(result.artifacts().pairedMarginalCount()).isEqualTo(12_000);
         assertThat(result.artifacts().reviewSha256()).matches("[0-9a-f]{64}");
         assertThat(result.artifacts().shaManifestSha256()).matches("[0-9a-f]{64}");
+        var receiptManifest = mapper.readTree(OUTPUT.resolve(
+                Phase13GB2CalibrationArtifactWriter
+                        .CHECKPOINT_RECEIPT_MANIFEST_FILE).toFile());
+        assertThat(receiptManifest.path("workerReceiptCount").asInt()).isEqualTo(4);
+        assertThat(receiptManifest.path("distinctFreshJvmCount").asInt()).isEqualTo(4);
+        assertThat(receiptManifest.path("checkpointCount").asInt()).isEqualTo(100);
+        assertThat(receiptManifest.path("checkpoints").size()).isEqualTo(100);
+        assertThat(java.nio.file.Files.readAllLines(
+                OUTPUT.resolve(Phase13GB2CalibrationArtifactWriter.SHA_FILE)))
+                .hasSize(16);
     }
 
     private Phase13GB2CalibrationRunner runner() {

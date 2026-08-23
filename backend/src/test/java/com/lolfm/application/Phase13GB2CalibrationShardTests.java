@@ -41,6 +41,17 @@ abstract class Phase13GB2CalibrationShardTestSupport {
         assertThat(result.calibrationMatchCount()).isEqualTo(3_000);
         assertThat(result.holdoutMatchCount()).isZero();
         assertThat(result.runGuardHash()).matches("[0-9a-f]{64}");
+        Path receiptPath = OUTPUT
+                .resolve(Phase13GB2CheckpointStore.RECEIPT_DIRECTORY_NAME)
+                .resolve("shard-" + shardIndex + ".json");
+        var receipt = mapper.readValue(
+                receiptPath.toFile(),
+                Phase13GB2CalibrationModel.WorkerReceipt.class);
+        assertThat(receipt.shardIndex()).isEqualTo(shardIndex);
+        assertThat(receipt.shardCount()).isEqualTo(SHARD_COUNT);
+        assertThat(receipt.workerJvmIdentityHash())
+                .isEqualTo(Phase13GB2CheckpointStore.workerJvmIdentityHash());
+        assertThat(receipt.checkpoints()).hasSize(25);
     }
 }
 

@@ -30,6 +30,8 @@ public final class Phase13GB2CalibrationArtifactWriter {
     public static final String FIXED_DRAFTS_FILE = "phase13g-b2-fixed-drafts.csv";
     public static final String DETERMINISM_REPLAYS_FILE =
             "phase13g-b2-determinism-replays.csv";
+    public static final String CHECKPOINT_RECEIPT_MANIFEST_FILE =
+            "phase13g-b2-checkpoint-receipt-manifest.json";
     public static final String MATCHES_JSONL_FILE = "phase13g-b2-matches.jsonl";
     public static final String MATCHES_CSV_FILE = "phase13g-b2-matches.csv";
     public static final String JUNGLE_CHECKPOINTS_FILE =
@@ -54,6 +56,7 @@ public final class Phase13GB2CalibrationArtifactWriter {
             JOB_MANIFEST_FILE,
             FIXED_DRAFTS_FILE,
             DETERMINISM_REPLAYS_FILE,
+            CHECKPOINT_RECEIPT_MANIFEST_FILE,
             MATCHES_JSONL_FILE,
             MATCHES_CSV_FILE,
             JUNGLE_CHECKPOINTS_FILE,
@@ -127,15 +130,39 @@ public final class Phase13GB2CalibrationArtifactWriter {
         return new SmokeArtifactSet(output, rows.size(), marginals.size());
     }
 
-    public static ArtifactSet write(
+    static SyntheticArtifactSet writeSyntheticValidation(
+            ObjectMapper sourceMapper,
+            Path output,
+            RunGuard guard,
+            Phase13GB2CalibrationModel.FixedDraftRow fixedDraft,
+            List<MatchRow> rows
+    ) throws IOException {
+        Files.createDirectories(output);
+        ObjectMapper mapper = Phase13GB2CheckpointStore.canonicalMapper(sourceMapper);
+        Map<String, Object> report = new LinkedHashMap<>();
+        report.put("schemaVersion", "PHASE_13G_B2_SYNTHETIC_VALIDATION_V1");
+        report.put("status", "SYNTHETIC_VALIDATION_ONLY");
+        report.put("officialCalibrationEvidence", false);
+        report.put("runGuard", guard);
+        report.put("fixedDraft", fixedDraft);
+        report.put("rowCount", rows.size());
+        report.put("note", "Synthetic rows cannot enter the official finalizer path");
+        Path reportPath = output.resolve("phase13g-b2-synthetic-validation.json");
+        writeJson(mapper, reportPath, report);
+        return new SyntheticArtifactSet(
+                reportPath, "SYNTHETIC_VALIDATION_ONLY", rows.size(), false);
+    }
+
+    public static ArtifactSet writeOfficial(
             ObjectMapper sourceMapper,
             Path output,
             Phase13GB1AuditSchedule.Schedule schedule,
             RunGuard guard,
-            List<FixtureCheckpoint> checkpoints
+            Phase13GB2CheckpointStore.VerifiedOfficialEvidence officialEvidence
     ) throws IOException {
         schedule = Phase13GB1AuditSchedule.requireFrozen(schedule);
-        checkpoints = List.copyOf(checkpoints);
+        Objects.requireNonNull(officialEvidence, "officialEvidence");
+        List<FixtureCheckpoint> checkpoints = officialEvidence.checkpoints();
         if (checkpoints.isEmpty()) {
             throw new IllegalStateException("B2 finalization requires fixture checkpoints");
         }
@@ -149,7 +176,8 @@ public final class Phase13GB2CalibrationArtifactWriter {
             checkpointStore.validate(checkpoints.get(index), guard, fixtures.get(index));
         }
         ObjectMapper mapper = Phase13GB2CheckpointStore.canonicalMapper(sourceMapper);
-        Validation validation = validate(schedule, guard, checkpoints);
+        Validation validation = validate(
+                schedule, guard, checkpoints, officialEvidence.receiptManifest());
         Files.createDirectories(output);
 
         writeJson(mapper, output.resolve(CONTRACT_FILE), contract(guard, validation));
@@ -160,6 +188,10 @@ public final class Phase13GB2CalibrationArtifactWriter {
         Phase13GB2CheckpointStore.writeUtf8(
                 output.resolve(DETERMINISM_REPLAYS_FILE),
                 determinismReplays(checkpoints));
+        writeJson(
+                mapper,
+                output.resolve(CHECKPOINT_RECEIPT_MANIFEST_FILE),
+                officialEvidence.receiptManifest());
         writeJsonLines(mapper, output.resolve(MATCHES_JSONL_FILE), validation.rows());
         Phase13GB2CheckpointStore.writeUtf8(
                 output.resolve(MATCHES_CSV_FILE), matchesCsv(validation.rows()));
@@ -198,9 +230,11 @@ public final class Phase13GB2CalibrationArtifactWriter {
     private static Validation validate(
             Phase13GB1AuditSchedule.Schedule schedule,
             RunGuard guard,
-            List<FixtureCheckpoint> checkpoints
+            List<FixtureCheckpoint> checkpoints,
+            Phase13GB2CalibrationModel.CheckpointReceiptManifest receiptManifest
     ) {
         Objects.requireNonNull(guard, "guard");
+        Objects.requireNonNull(receiptManifest, "receiptManifest");
         List<Phase13GB2CalibrationContract.CalibrationJob> expectedJobs =
                 Phase13GB2CalibrationContract.jobs(schedule);
         ArrayList<MatchRow> rows = new ArrayList<>(Phase13GB2CalibrationContract.EXPECTED_MATCHES);
@@ -238,7 +272,18 @@ public final class Phase13GB2CalibrationArtifactWriter {
         boolean jobManifestExact = fixtureIds.equals(expectedFixtureIds)
                 && actualJobIds.equals(expectedJobIds)
                 && distinctJobs == expectedJobIds.size();
+        boolean receiptEvidenceExact = receiptManifest.expectedWorkerShardCount()
+                        == Phase13GB2CheckpointStore.OFFICIAL_SHARD_COUNT
+                && receiptManifest.workerReceiptCount()
+                        == Phase13GB2CheckpointStore.OFFICIAL_SHARD_COUNT
+                && receiptManifest.distinctFreshJvmCount()
+                        == Phase13GB2CheckpointStore.OFFICIAL_SHARD_COUNT
+                && receiptManifest.checkpointCount()
+                        == Phase13GB2CalibrationContract.EXPECTED_FIXTURES
+                && receiptManifest.checkpoints().size()
+                        == Phase13GB2CalibrationContract.EXPECTED_FIXTURES;
         String status = jobManifestExact
+                && receiptEvidenceExact
                 && dirtyRows == 0
                 && integrityErrors == 0
                 && holdoutRows == 0
@@ -247,7 +292,7 @@ public final class Phase13GB2CalibrationArtifactWriter {
                 ? "CALIBRATION_EVIDENCE_READY_FOR_REVIEW"
                 : "BLOCKED_BY_CALIBRATION_INTEGRITY";
         IntegrityReport integrity = new IntegrityReport(
-                "PHASE_13G_B2_CALIBRATION_INTEGRITY_V1",
+                "PHASE_13G_B2_CALIBRATION_INTEGRITY_V2",
                 status,
                 Phase13GB2CalibrationContract.EXPECTED_FIXTURES,
                 checkpoints.size(),
@@ -272,6 +317,12 @@ public final class Phase13GB2CalibrationArtifactWriter {
                 rows.stream().mapToLong(MatchRow::structureIntegrityErrors).sum(),
                 rows.stream().mapToLong(MatchRow::lanePhaseIntegrityErrors).sum(),
                 rows.stream().mapToLong(MatchRow::midGameMacroIntegrityErrors).sum(),
+                receiptManifest.expectedWorkerShardCount(),
+                receiptManifest.workerReceiptCount(),
+                receiptManifest.distinctFreshJvmCount(),
+                receiptManifest.checkpointCount(),
+                receiptEvidenceExact,
+                receiptManifest.checkpointPayloadManifestHash(),
                 guard);
         if (!jobManifestExact) {
             throw new IllegalStateException("B2 job manifest is missing, duplicated, or reordered");
@@ -283,6 +334,7 @@ public final class Phase13GB2CalibrationArtifactWriter {
                 marginals,
                 integrity,
                 checkpoints.getFirst().runGuardHash(),
+                receiptManifest,
                 checkpoints.stream().mapToInt(checkpoint -> checkpoint.fixedDraft()
                         .productionOrchestrationCount()).sum());
     }
@@ -337,6 +389,14 @@ public final class Phase13GB2CalibrationArtifactWriter {
                 Phase13GB2CalibrationContract.MARGINAL_COMPARISONS);
         result.put("fixtureAtomicCheckpointRows",
                 Phase13GB2CalibrationContract.EXPECTED_ROWS_PER_FIXTURE);
+        result.put("checkpointAuthenticityPolicy",
+                "RECOMPUTED_REPLAY_PROVENANCE_ROW_PAYLOAD_DIGEST_AND_WORKER_RECEIPT_V1");
+        result.put("workerShardCount",
+                validation.receiptManifest().workerReceiptCount());
+        result.put("distinctFreshJvmCount",
+                validation.receiptManifest().distinctFreshJvmCount());
+        result.put("checkpointPayloadManifestHash",
+                validation.receiptManifest().checkpointPayloadManifestHash());
         result.put("fixturePreparationOrchestrationCount",
                 validation.fixturePreparationOrchestrationCount());
         result.put("fixturePreparationMatchesExcludedFromCalibrationSample", true);
@@ -355,7 +415,7 @@ public final class Phase13GB2CalibrationArtifactWriter {
 
     private static Map<String, Object> review(Validation validation) {
         LinkedHashMap<String, Object> result = new LinkedHashMap<>();
-        result.put("schemaVersion", "PHASE_13G_B2_CALIBRATION_REVIEW_V1");
+        result.put("schemaVersion", "PHASE_13G_B2_CALIBRATION_REVIEW_V2");
         result.put("phase", "PHASE_13G_B2_REAL_DATA_CALIBRATION");
         result.put("status", validation.integrity().status());
         result.put("structuralIntegrityClean",
@@ -367,6 +427,14 @@ public final class Phase13GB2CalibrationArtifactWriter {
                 validation.integrity().actualDeterminismReplayCount());
         result.put("determinismReplayExact",
                 validation.integrity().determinismReplayCoverageExact());
+        result.put("checkpointPayloadDigestExact",
+                validation.integrity().checkpointPayloadDigestExact());
+        result.put("workerReceiptCount",
+                validation.integrity().workerReceiptCount());
+        result.put("distinctFreshJvmCount",
+                validation.integrity().distinctFreshJvmCount());
+        result.put("checkpointPayloadManifestHash",
+                validation.integrity().checkpointPayloadManifestHash());
         result.put("holdoutExecuted", false);
         result.put("holdoutMatchExecutionCount", 0);
         result.put("balanceSignalsAreReviewOnly", true);
@@ -475,14 +543,16 @@ public final class Phase13GB2CalibrationArtifactWriter {
         StringBuilder result = new StringBuilder();
         appendCsv(result, "fixtureId", "fixtureLane", "pairId", "blueTeamCode",
                 "redTeamCode", "seriesGameNumber", "productionOrchestrationCount",
-                "fixtureReusePolicy", "seriesHistoryBeforeHash", "draftDecisionHash",
+                "fixtureReusePolicy", "rosterIdentityHash", "seriesHistoryBeforeHash",
+                "draftDecisionHash",
                 "finalDraftHash", "finalAssignmentHash", "blueBans", "redBans",
                 "bluePicks", "redPicks", "canonicalAssignments");
         checkpoints.stream().map(FixtureCheckpoint::fixedDraft).forEach(value -> appendCsv(
                 result, value.fixtureId(), value.fixtureLane(), value.pairId(),
                 value.blueTeamCode(), value.redTeamCode(), value.seriesGameNumber(),
                 value.productionOrchestrationCount(), value.fixtureReusePolicy(),
-                value.seriesHistoryBeforeHash(), value.draftDecisionHash(),
+                value.rosterIdentityHash(), value.seriesHistoryBeforeHash(),
+                value.draftDecisionHash(),
                 value.finalDraftHash(), value.finalAssignmentHash(), value.blueBans(),
                 value.redBans(), value.bluePicks(), value.redPicks(),
                 value.canonicalAssignments()));
@@ -885,6 +955,7 @@ public final class Phase13GB2CalibrationArtifactWriter {
             List<MarginalRow> marginals,
             IntegrityReport integrity,
             String runGuardHash,
+            Phase13GB2CalibrationModel.CheckpointReceiptManifest receiptManifest,
             int fixturePreparationOrchestrationCount
     ) {
     }
@@ -915,6 +986,12 @@ public final class Phase13GB2CalibrationArtifactWriter {
             long structureIntegrityErrors,
             long lanePhaseIntegrityErrors,
             long midGameMacroIntegrityErrors,
+            int expectedWorkerShardCount,
+            int workerReceiptCount,
+            int distinctFreshJvmCount,
+            int checkpointPayloadCount,
+            boolean checkpointPayloadDigestExact,
+            String checkpointPayloadManifestHash,
             RunGuard runGuard
     ) {
     }
@@ -1110,6 +1187,14 @@ public final class Phase13GB2CalibrationArtifactWriter {
             Path outputDirectory,
             int matchCount,
             int marginalCount
+    ) {
+    }
+
+    record SyntheticArtifactSet(
+            Path reportPath,
+            String status,
+            int rowCount,
+            boolean officialCalibrationEvidence
     ) {
     }
 }

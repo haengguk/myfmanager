@@ -202,6 +202,18 @@ public final class Phase13GB1RealMatchHarness {
         return provenance.resourceProvenance();
     }
 
+    String draftRuleSetIdentity() {
+        return provenance.draftRuleSetIdentity();
+    }
+
+    String draftRuleSetHash() {
+        return provenance.draftRuleSetHash();
+    }
+
+    String draftScoringPolicyHash() {
+        return provenance.draftScoringPolicyHash();
+    }
+
     private static void requireScheduledSeed(
             Phase13GB1AuditSchedule.Fixture fixture,
             Phase13GB1AuditSchedule.SampleLane sampleLane,

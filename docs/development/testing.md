@@ -194,11 +194,11 @@ Report는 `build/reports/phase13g-b1/`에 생성한다.
 
 B1 hardening은 Champion Power/Matchup, Composition, Combat Outcome, Objective Priority, Structure, Lane Phase, Mid Game Macro, Progression과 Jungle Economy의 명시적 오류 카운터를 domain별 integrity로 집계한다. 정상 rejection/ineligible count는 오류로 오인하지 않는다. Full diagnostic equality는 메모리 record equality와 `SHA256_UTF8_RECORD_COMPONENT_MAP_KEY_CANONICAL_V1` hash로 이중 확인하며 Random raw trace는 기존 fingerprint가 담당한다. Tempo dry-run은 attempt-consumption equality뿐 아니라 READY 관찰과 GANK+COUNTER_GANK actual consumption 합계가 양수인지 고정한다.
 
-B1 task는 `diagnostic` tag라 기본 `test`에서 제외된다. P1 gate는 두 fresh JVM이 각각 쓴 7개 B1 artifact 전체를 byte-for-byte 비교하고, 그 manifest SHA를 직후 canonical `runPhase13GB1DryRun` manifest와 다시 대조한다. V6 final 실행은 두 probe와 dry-run이 각각 1 suite / 1 test, failures/errors/skipped 0으로 통과했고 probe JUnit 15.228/15.382초, dry-run 15.742초였다. B1 manifest 6/6이 통과했고 summary/manifest SHA-256은 각각 `83b926319f6342ea38e60195d27638ad3c2cae95b3ab3eda81460087b6faf739` / `91bf5762b5ac763473ab5bb91b8d7e9586eb382eac3cb09a177997fe4ad83811`이다. `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`가 B1 summary contract다. 단일 dry-run의 승패·경기 시간·profile 차이로 balance 결론을 내리면 안 된다.
+B1 task는 `diagnostic` tag라 기본 `test`에서 제외된다. P1 gate는 두 fresh JVM이 각각 쓴 7개 B1 artifact 전체를 byte-for-byte 비교하고, 그 manifest SHA를 직후 canonical `runPhase13GB1DryRun` manifest와 다시 대조한다. Authenticity hardening final 실행은 두 probe와 dry-run이 각각 1 suite / 1 test, failures/errors/skipped 0으로 통과했고 probe JUnit 17.020/16.786초, dry-run 17.361초였다. B1 manifest 6/6이 통과했고 summary/manifest SHA-256은 각각 `37ce2c275d5dc4837328c7e8c9fb7b100f62ffcdee4ee740217140d8c751f5c0` / `624638ca8958ab3dc8e7de127dee24d7ba808ca76508b605f4ea6e96db88bd6c`이다. `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`가 B1 summary contract다. 단일 dry-run의 승패·경기 시간·profile 차이로 balance 결론을 내리면 안 된다.
 
 ### Final 13G-B2 real-data calibration
 
-B2는 기본 `test`와 분리된 대규모 diagnostic이다. 전체 lifecycle은 fresh P1/B1 gate를 dependency로 실행하고 네 isolated JVM shard가 서로 다른 fixture checkpoint를 만든 뒤, gameplay를 실행하지 않는 finalizer가 artifact를 작성한다.
+B2는 기본 `test`와 분리된 대규모 diagnostic이다. 전체 lifecycle은 fresh P1/B1 gate를 dependency로 실행하고 `forkEvery=1`로 JVM 재사용을 금지한 네 shard class가 서로 다른 fixture checkpoint를 만든 뒤, gameplay를 실행하지 않는 finalizer가 worker receipt와 artifact를 검증한다. `maxParallelForks=4`는 동시 실행 상한일 뿐이므로 실제 병렬도와 무관하게 네 class가 네 fresh JVM을 사용한다.
 
 ```bash
 cd backend
@@ -207,13 +207,16 @@ cd backend
 ./gradlew runPhase13GB2Calibration --console=plain --no-daemon
 ```
 
-`runPhase13GB2Smoke`는 실제 LCK fixed Draft 1개 × calibration seed 1개 × 5 profiles, same-seed BASELINE replay, 120-row atomic checkpoint roundtrip과 synthetic 12,000-row finalizer를 검증한다. 시간 점프가 10초 경계의 exact snapshot을 건너뛰는 real fixture를 사용해 fixed checkpoint가 요청 시각 이상인 첫 실제 snapshot을 선택하고 requested/actual time을 모두 보존하는지도 확인한다. 상태를 보간하지 않으며 경기 종료 뒤 checkpoint를 복제하지 않는다.
+`runPhase13GB2Smoke`는 실제 LCK fixed Draft 1개 × calibration seed 1개 × 5 profiles와 same-seed BASELINE replay를 실행한다. Replay provenance 재계산과 canonical row evidence를 확인하고 seed/job 재라벨링, outcome 변조, Jungle observation 변조, checkpoint raw bytes 변조가 각각 거부되는지 검증한다. Synthetic report는 별도 `SYNTHETIC_VALIDATION_ONLY` 경로만 사용하며 공식 READY가 될 수 없다. 시간 점프가 10초 경계의 exact snapshot을 건너뛰는 real fixture를 사용해 requested/actual time을 모두 보존하고, 상태를 보간하거나 종료 뒤 checkpoint를 복제하지 않는지도 확인한다.
 
 Official contract는 다음을 고정한다.
 
 - 90 G1 + 10 Hard Fearless G2 fixtures, calibration seed 24개, 5-profile fixed order: 12,000 jobs
 - holdout seed 실행 경로 없음; 준비 orchestration 110회와 결정성 replay 100회는 calibration count에서 제외
-- fixture당 120행 atomic checkpoint와 changed guard rejection
+- fixture당 120행 canonical execution evidence와 atomic checkpoint, changed guard rejection
+- job/fixture/roster/Draft/profile/seed에서 replay provenance 재계산
+- outcome/diagnostics/Jungle observations를 포함한 row payload digest
+- shard별 raw checkpoint digest receipt, fixture ownership과 서로 다른 worker JVM identity 4개
 - 모든 match의 profile semantics, non-empty Random fingerprint와 전체 domain integrity
 - fixture당 BASELINE replay provenance/timeline/Random/full structured diagnostics exact equality
 - fixed Draft/final assignment, profile/source/resource/schedule hash와 job order exact equality
@@ -223,9 +226,9 @@ Artifact는 `build/reports/phase13g-b2/`에 생성한다.
 - contract, 12,000-job manifest, 100 fixed Draft와 100 determinism replay CSV
 - 12,000-row JSONL/CSV와 600/900/1,200/1,500/1,800/final Jungle checkpoint CSV
 - 12,000 paired marginal rows, lane/pair/profile/team/jungler-champion summaries
-- full-domain integrity JSON, review-only balance JSON, 15-file `SHA256SUMS.txt`
+- normalized checkpoint receipt manifest, full-domain integrity JSON, review-only balance JSON, 16-file `SHA256SUMS.txt`
 
-Final 실행은 100/100 fixture, 12,000/12,000 unique jobs, 100/100 exact replay, holdout 0, domain integrity error 0과 SHA 15/15로 `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`를 기록했다. Lifecycle wall time은 21분 3초, workers는 4 suites / 4 tests와 aggregate JUnit 2,516.151초, finalizer는 1 suite / 1 test와 6.344초였다. Review/manifest SHA-256은 `698aa741958a244e302f0f72a2516a7ec3d357aa3b8e57260611f5448956fd6f` / `f252eb2e1dc301250747ea74e2c26063a208a7ff318eba42473e1eb0691e1fe1`이다.
+Final 실행은 100/100 fixture, resume 0, 각 fixture `seed 24/24`, 12,000/12,000 unique jobs와 replay provenance, 100/100 exact replay, worker receipt와 distinct fresh JVM 4/4, checkpoint payload digest 100/100, holdout 0, domain integrity error 0과 SHA 16/16으로 `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`를 기록했다. Lifecycle wall time은 21분 3초, workers는 4 suites / 4 tests와 aggregate JUnit 3,432.287초, finalizer는 1 suite / 1 test와 18.716초였다. Review/manifest SHA-256은 `3eb79554205aa0bf4a5d3430af4432e66c0cddb66c804a82c380e3bb9cd81402` / `ec98898cc708c358f6d92ac056c1bd171e6cba3bae670b28545fde5d96559324`이고 checkpoint payload manifest SHA-256은 `acd042d7a7ec9ba574d420e3e1567a187c0edf41d6b9ce21614bad43922ea595`다.
 
 Balance output은 correctness assertion이 아니다. Economy − Full winner flip은 18/2,400, Tempo − Economy는 811/2,400이며 Tempo actual Gank/Counter-gank consumption은 5,175/660회였다. 이 값은 calibration human review와 B3 gate freeze의 입력이다. 자동 tuning, candidate freeze, holdout과 `PRODUCTION_V1` 결정은 이 task에서 금지한다.
 

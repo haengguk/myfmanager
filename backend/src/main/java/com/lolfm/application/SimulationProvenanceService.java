@@ -90,6 +90,18 @@ public final class SimulationProvenanceService {
         return resourceProvenance;
     }
 
+    String draftRuleSetIdentity() {
+        return draftRules.identity();
+    }
+
+    String draftRuleSetHash() {
+        return draftRuleSetHash;
+    }
+
+    String draftScoringPolicyHash() {
+        return draftScoringPolicyHash;
+    }
+
     public SimulationExecutionProvenance create(
             ResolvedSimulationRuntimeProfile profile,
             SimulationInstrumentation instrumentation,
@@ -378,7 +390,7 @@ public final class SimulationProvenanceService {
                         .append(entry.getValue().name()).append('\n'));
     }
 
-    private static String replayProvenanceHash(
+    static String replayProvenanceHash(
             String engineImplementationVersion,
             String activeGameplayRulesVersion,
             String configurationHash,

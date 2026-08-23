@@ -23,8 +23,16 @@ import java.util.Objects;
 
 /** Compact, serializable B2 evidence model; complete B1 diagnostics remain hash-bound. */
 public final class Phase13GB2CalibrationModel {
-    public static final String MATCH_ROW_SCHEMA = "PHASE_13G_B2_CALIBRATION_MATCH_ROW_V1";
-    public static final String CHECKPOINT_SCHEMA = "PHASE_13G_B2_FIXTURE_CHECKPOINT_V1";
+    public static final String MATCH_ROW_SCHEMA = "PHASE_13G_B2_CALIBRATION_MATCH_ROW_V2";
+    public static final String CHECKPOINT_SCHEMA = "PHASE_13G_B2_FIXTURE_CHECKPOINT_V2";
+    public static final String EXECUTION_EVIDENCE_SCHEMA =
+            "PHASE_13G_B2_CHECKPOINT_EXECUTION_EVIDENCE_V1";
+    public static final String ROW_EVIDENCE_SCHEMA =
+            "PHASE_13G_B2_MATCH_EXECUTION_EVIDENCE_V1";
+    public static final String WORKER_RECEIPT_SCHEMA =
+            "PHASE_13G_B2_WORKER_RECEIPT_V1";
+    public static final String RECEIPT_MANIFEST_SCHEMA =
+            "PHASE_13G_B2_CHECKPOINT_RECEIPT_MANIFEST_V1";
 
     private Phase13GB2CalibrationModel() {
     }
@@ -36,6 +44,9 @@ public final class Phase13GB2CalibrationModel {
             String engineImplementationVersion,
             Map<SimulationRuntimeProfileId, String> configurationHashes,
             String resourceProvenanceHash,
+            String draftRuleSetIdentity,
+            String draftRuleSetHash,
+            String draftScoringPolicyHash,
             SourceTreeIdentity productionSourceTree,
             SourceTreeIdentity phase13GBHarnessSourceTree,
             int expectedFixtureCount,
@@ -54,6 +65,9 @@ public final class Phase13GB2CalibrationModel {
             copy.putAll(configurationHashes);
             configurationHashes = Collections.unmodifiableMap(copy);
             Objects.requireNonNull(resourceProvenanceHash, "resourceProvenanceHash");
+            Objects.requireNonNull(draftRuleSetIdentity, "draftRuleSetIdentity");
+            requireHash(draftRuleSetHash, "draftRuleSetHash");
+            requireHash(draftScoringPolicyHash, "draftScoringPolicyHash");
             Objects.requireNonNull(productionSourceTree, "productionSourceTree");
             Objects.requireNonNull(phase13GBHarnessSourceTree, "phase13GBHarnessSourceTree");
             if (configurationHashes.size()
@@ -76,6 +90,7 @@ public final class Phase13GB2CalibrationModel {
             int seriesGameNumber,
             int productionOrchestrationCount,
             String fixtureReusePolicy,
+            String rosterIdentityHash,
             String seriesHistoryBeforeHash,
             String draftDecisionHash,
             String finalDraftHash,
@@ -112,6 +127,7 @@ public final class Phase13GB2CalibrationModel {
                     fixture.seriesGameNumber(),
                     prepared.productionOrchestrationCount(),
                     prepared.reusePolicy(),
+                    reference.rosterIdentityHash(),
                     reference.seriesHistoryBeforeHash(),
                     reference.draftDecisionHash(),
                     reference.finalDraftHash(),
@@ -147,6 +163,46 @@ public final class Phase13GB2CalibrationModel {
             boolean alive,
             boolean canFarm
     ) {
+    }
+
+    public record MatchExecutionEvidence(
+            String schemaVersion,
+            String jobId,
+            String replayProvenanceHash,
+            String timelineHash,
+            String structuredDiagnosticsHash,
+            String rowPayloadSha256
+    ) {
+        public MatchExecutionEvidence {
+            if (!ROW_EVIDENCE_SCHEMA.equals(schemaVersion)) {
+                throw new IllegalArgumentException("Unsupported B2 row evidence schema");
+            }
+            Objects.requireNonNull(jobId, "jobId");
+            requireHash(replayProvenanceHash, "replayProvenanceHash");
+            requireHash(timelineHash, "timelineHash");
+            requireHash(structuredDiagnosticsHash, "structuredDiagnosticsHash");
+            requireHash(rowPayloadSha256, "rowPayloadSha256");
+        }
+    }
+
+    public record CheckpointExecutionEvidence(
+            String schemaVersion,
+            String fixedDraftPayloadSha256,
+            String determinismReplayPayloadSha256,
+            List<MatchExecutionEvidence> rows,
+            String combinedPayloadSha256
+    ) {
+        public CheckpointExecutionEvidence {
+            if (!EXECUTION_EVIDENCE_SCHEMA.equals(schemaVersion)) {
+                throw new IllegalArgumentException(
+                        "Unsupported B2 checkpoint evidence schema");
+            }
+            requireHash(fixedDraftPayloadSha256, "fixedDraftPayloadSha256");
+            requireHash(determinismReplayPayloadSha256,
+                    "determinismReplayPayloadSha256");
+            rows = List.copyOf(rows);
+            requireHash(combinedPayloadSha256, "combinedPayloadSha256");
+        }
     }
 
     public record MatchRow(
@@ -406,6 +462,7 @@ public final class Phase13GB2CalibrationModel {
             RunGuard runGuard,
             FixedDraftRow fixedDraft,
             DeterminismReplayEvidence determinismReplay,
+            CheckpointExecutionEvidence executionEvidence,
             List<MatchRow> rows
     ) {
         public FixtureCheckpoint {
@@ -416,10 +473,12 @@ public final class Phase13GB2CalibrationModel {
             Objects.requireNonNull(runGuard, "runGuard");
             Objects.requireNonNull(fixedDraft, "fixedDraft");
             Objects.requireNonNull(determinismReplay, "determinismReplay");
+            Objects.requireNonNull(executionEvidence, "executionEvidence");
             rows = List.copyOf(rows);
             if (rows.size() != Phase13GB2CalibrationContract.EXPECTED_ROWS_PER_FIXTURE
                     || rows.stream().anyMatch(row -> !row.fixtureId()
-                            .equals(fixedDraft.fixtureId()))) {
+                            .equals(fixedDraft.fixtureId()))
+                    || executionEvidence.rows().size() != rows.size()) {
                 throw new IllegalArgumentException(
                         "A B2 fixture checkpoint must contain exactly 120 matching rows");
             }
@@ -472,6 +531,66 @@ public final class Phase13GB2CalibrationModel {
                     original.randomFingerprint().randomTraceHash(),
                     structuredExact,
                     exact);
+        }
+    }
+
+    public record CheckpointPayloadReceipt(
+            int fixtureIndex,
+            String fixtureId,
+            String fileName,
+            int rowCount,
+            String checkpointPayloadSha256
+    ) {
+        public CheckpointPayloadReceipt {
+            if (fixtureIndex < 0) {
+                throw new IllegalArgumentException("fixtureIndex must not be negative");
+            }
+            Objects.requireNonNull(fixtureId, "fixtureId");
+            Objects.requireNonNull(fileName, "fileName");
+            if (rowCount != Phase13GB2CalibrationContract.EXPECTED_ROWS_PER_FIXTURE) {
+                throw new IllegalArgumentException("Worker receipt row count differs");
+            }
+            requireHash(checkpointPayloadSha256, "checkpointPayloadSha256");
+        }
+    }
+
+    public record WorkerReceipt(
+            String schemaVersion,
+            String runGuardHash,
+            int shardIndex,
+            int shardCount,
+            String workerJvmIdentityHash,
+            List<CheckpointPayloadReceipt> checkpoints
+    ) {
+        public WorkerReceipt {
+            if (!WORKER_RECEIPT_SCHEMA.equals(schemaVersion)) {
+                throw new IllegalArgumentException("Unsupported B2 worker receipt schema");
+            }
+            requireHash(runGuardHash, "runGuardHash");
+            if (shardCount < 1 || shardIndex < 0 || shardIndex >= shardCount) {
+                throw new IllegalArgumentException("Invalid B2 worker receipt shard");
+            }
+            requireHash(workerJvmIdentityHash, "workerJvmIdentityHash");
+            checkpoints = List.copyOf(checkpoints);
+        }
+    }
+
+    public record CheckpointReceiptManifest(
+            String schemaVersion,
+            int expectedWorkerShardCount,
+            int workerReceiptCount,
+            int distinctFreshJvmCount,
+            int checkpointCount,
+            String checkpointPayloadManifestHash,
+            List<CheckpointPayloadReceipt> checkpoints
+    ) {
+        public CheckpointReceiptManifest {
+            if (!RECEIPT_MANIFEST_SCHEMA.equals(schemaVersion)) {
+                throw new IllegalArgumentException("Unsupported B2 receipt manifest schema");
+            }
+            requireHash(checkpointPayloadManifestHash,
+                    "checkpointPayloadManifestHash");
+            checkpoints = List.copyOf(checkpoints);
         }
     }
 
@@ -576,5 +695,13 @@ public final class Phase13GB2CalibrationModel {
             }
         }
         return Map.copyOf(result);
+    }
+
+    private static String requireHash(String value, String field) {
+        String hash = Objects.requireNonNull(value, field);
+        if (!hash.matches("[0-9a-f]{64}")) {
+            throw new IllegalArgumentException(field + " must be lowercase SHA-256");
+        }
+        return hash;
     }
 }

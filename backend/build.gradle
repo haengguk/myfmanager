@@ -671,6 +671,7 @@ tasks.register("runPhase13GB2CalibrationWorkers", Test) {
     }
     maxHeapSize = "2g"
     maxParallelForks = 4
+    forkEvery = 1
     failFast = true
     outputs.upToDateWhen { false }
     reports.html.outputLocation = layout.buildDirectory.dir(

@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Serial official runner with fixture-atomic resume and no holdout execution path. */
+/** Sharded calibration runner with authenticated fixture resume and no holdout path. */
 public final class Phase13GB2CalibrationRunner {
     private static final Path B1_REPORT = Path.of("build", "reports", "phase13g-b1");
     private static final Path CROSS_JVM_REPORT =
@@ -55,69 +55,14 @@ public final class Phase13GB2CalibrationRunner {
         this.proficiencies = Objects.requireNonNull(proficiencies, "proficiencies");
     }
 
-    public RunResult runOfficial(Path backendRoot, Path output) throws IOException {
-        var schedule = Phase13GB1AuditSchedule.requireFrozen(
-                Phase13GB1AuditSchedule.create());
-        var harness = harness();
-        RunGuard guard = guard(backendRoot, schedule, harness);
-        requireB1Gate(backendRoot, guard);
-        Phase13GB2CheckpointStore store = new Phase13GB2CheckpointStore(mapper);
-        String guardHash = store.guardHash(guard);
-        Path checkpointDirectory = output.resolve("checkpoints");
-        ArrayList<FixtureCheckpoint> checkpoints = new ArrayList<>(
-                Phase13GB2CalibrationContract.EXPECTED_FIXTURES);
-        List<Phase13GB1AuditSchedule.Fixture> fixtures = schedule.allFixtures();
-
-        for (int fixtureIndex = 0; fixtureIndex < fixtures.size(); fixtureIndex++) {
-            var fixture = fixtures.get(fixtureIndex);
-            Path checkpointPath = store.checkpointPath(
-                    checkpointDirectory, fixtureIndex, fixture);
-            FixtureCheckpoint checkpoint;
-            if (Files.isRegularFile(checkpointPath)) {
-                checkpoint = store.readAndValidate(checkpointPath, guard, fixture);
-                System.out.printf(
-                        java.util.Locale.ROOT,
-                        "B2 resume fixture %d/%d %s rows=%d%n",
-                        fixtureIndex + 1,
-                        fixtures.size(),
-                        fixture.fixtureId(),
-                        checkpoint.rows().size());
-            } else {
-                checkpoint = executeFixture(
-                        harness, fixture, guardHash, guard, fixtureIndex, fixtures.size());
-                store.writeAtomic(checkpointPath, checkpoint, guard, fixture);
-                System.out.printf(
-                        java.util.Locale.ROOT,
-                        "B2 checkpoint fixture %d/%d %s rows=%d%n",
-                        fixtureIndex + 1,
-                        fixtures.size(),
-                        fixture.fixtureId(),
-                        checkpoint.rows().size());
-            }
-            checkpoints.add(checkpoint);
-        }
-
-        var artifacts = Phase13GB2CalibrationArtifactWriter.write(
-                mapper, output, schedule, guard, checkpoints);
-        if (!"CALIBRATION_EVIDENCE_READY_FOR_REVIEW".equals(artifacts.status())) {
-            throw new IllegalStateException(
-                    "B2 calibration was blocked by structural integrity");
-        }
-        return new RunResult(
-                artifacts,
-                checkpoints.size(),
-                checkpoints.stream().mapToInt(value -> value.rows().size()).sum(),
-                0,
-                guardHash);
-    }
-
     public ShardResult runShard(
             Path backendRoot,
             Path output,
             int shardIndex,
             int shardCount
     ) throws IOException {
-        if (shardCount < 1 || shardIndex < 0 || shardIndex >= shardCount) {
+        if (shardCount != Phase13GB2CheckpointStore.OFFICIAL_SHARD_COUNT
+                || shardIndex < 0 || shardIndex >= shardCount) {
             throw new IllegalArgumentException("Invalid B2 shard identity");
         }
         var schedule = Phase13GB1AuditSchedule.requireFrozen(
@@ -127,8 +72,10 @@ public final class Phase13GB2CalibrationRunner {
         requireB1Gate(backendRoot, guard);
         Phase13GB2CheckpointStore store = new Phase13GB2CheckpointStore(mapper);
         String guardHash = store.guardHash(guard);
-        Path checkpointDirectory = output.resolve("checkpoints");
+        Path checkpointDirectory = store.checkpointDirectory(output);
         List<Phase13GB1AuditSchedule.Fixture> fixtures = schedule.allFixtures();
+        ArrayList<Phase13GB2CalibrationModel.CheckpointPayloadReceipt> payloadReceipts =
+                new ArrayList<>();
         int completedFixtures = 0;
         int completedMatches = 0;
         for (int fixtureIndex = 0; fixtureIndex < fixtures.size(); fixtureIndex++) {
@@ -139,6 +86,8 @@ public final class Phase13GB2CalibrationRunner {
             FixtureCheckpoint checkpoint;
             if (Files.isRegularFile(checkpointPath)) {
                 checkpoint = store.readAndValidate(checkpointPath, guard, fixture);
+                payloadReceipts.add(store.readPayloadReceipt(
+                        checkpointPath, fixtureIndex, fixture, checkpoint));
                 System.out.printf(
                         java.util.Locale.ROOT,
                         "B2 shard %d/%d resume fixture %d/%d %s rows=%d%n",
@@ -150,8 +99,14 @@ public final class Phase13GB2CalibrationRunner {
                         checkpoint.rows().size());
             } else {
                 checkpoint = executeFixture(
-                        harness, fixture, guardHash, guard, fixtureIndex, fixtures.size());
-                store.writeAtomic(checkpointPath, checkpoint, guard, fixture);
+                        store, harness, fixture, guardHash, guard,
+                        fixtureIndex, fixtures.size());
+                payloadReceipts.add(store.writeAtomic(
+                        checkpointPath,
+                        fixtureIndex,
+                        checkpoint,
+                        guard,
+                        fixture));
                 System.out.printf(
                         java.util.Locale.ROOT,
                         "B2 shard %d/%d checkpoint fixture %d/%d %s rows=%d%n",
@@ -172,6 +127,8 @@ public final class Phase13GB2CalibrationRunner {
                         * Phase13GB2CalibrationContract.EXPECTED_ROWS_PER_FIXTURE) {
             throw new IllegalStateException("B2 shard coverage differs from contract");
         }
+        store.writeWorkerReceipt(
+                output, guardHash, shardIndex, shardCount, payloadReceipts);
         return new ShardResult(
                 shardIndex,
                 shardCount,
@@ -188,22 +145,10 @@ public final class Phase13GB2CalibrationRunner {
         RunGuard guard = guard(backendRoot, schedule, harness);
         requireB1Gate(backendRoot, guard);
         Phase13GB2CheckpointStore store = new Phase13GB2CheckpointStore(mapper);
-        Path checkpointDirectory = output.resolve("checkpoints");
-        ArrayList<FixtureCheckpoint> checkpoints = new ArrayList<>(
-                Phase13GB2CalibrationContract.EXPECTED_FIXTURES);
-        List<Phase13GB1AuditSchedule.Fixture> fixtures = schedule.allFixtures();
-        for (int fixtureIndex = 0; fixtureIndex < fixtures.size(); fixtureIndex++) {
-            var fixture = fixtures.get(fixtureIndex);
-            Path checkpointPath = store.checkpointPath(
-                    checkpointDirectory, fixtureIndex, fixture);
-            if (!Files.isRegularFile(checkpointPath)) {
-                throw new IllegalStateException(
-                        "Missing B2 fixture checkpoint " + fixture.fixtureId());
-            }
-            checkpoints.add(store.readAndValidate(checkpointPath, guard, fixture));
-        }
-        var artifacts = Phase13GB2CalibrationArtifactWriter.write(
-                mapper, output, schedule, guard, checkpoints);
+        var verifiedEvidence = store.readOfficialEvidence(output, guard, schedule);
+        var checkpoints = verifiedEvidence.checkpoints();
+        var artifacts = Phase13GB2CalibrationArtifactWriter.writeOfficial(
+                mapper, output, schedule, guard, verifiedEvidence);
         if (!"CALIBRATION_EVIDENCE_READY_FOR_REVIEW".equals(artifacts.status())) {
             throw new IllegalStateException(
                     "B2 calibration was blocked by structural integrity");
@@ -224,6 +169,7 @@ public final class Phase13GB2CalibrationRunner {
                 .findFirst().orElseThrow();
         var harness = harness();
         RunGuard guard = guard(backendRoot, schedule, harness);
+        Phase13GB2CheckpointStore store = new Phase13GB2CheckpointStore(mapper);
         var prepared = harness.prepareFixture(fixture);
         long seed = fixture.calibrationSeeds().getFirst();
         var runs = harness.executeAllProfiles(
@@ -235,6 +181,8 @@ public final class Phase13GB2CalibrationRunner {
         for (int index = 0; index < runs.size(); index++) {
             MatchRow row = MatchRow.from(jobs.get(index), runs.get(index));
             validateRun(row);
+            store.validateReplayProvenance(row, guard);
+            store.validateRowEvidence(row, store.rowEvidence(row));
             rows.add(row);
         }
         assertFixedDraftAcrossRows(rows);
@@ -268,6 +216,7 @@ public final class Phase13GB2CalibrationRunner {
     }
 
     private FixtureCheckpoint executeFixture(
+            Phase13GB2CheckpointStore store,
             Phase13GB1RealMatchHarness harness,
             Phase13GB1AuditSchedule.Fixture fixture,
             String guardHash,
@@ -324,8 +273,7 @@ public final class Phase13GB2CalibrationRunner {
         if (firstRun == null || replayEvidence == null) {
             throw new IllegalStateException("B2 fixture produced no runs or replay evidence");
         }
-        return new FixtureCheckpoint(
-                Phase13GB2CalibrationModel.CHECKPOINT_SCHEMA,
+        return store.createCheckpoint(
                 guardHash,
                 guard,
                 Phase13GB2CalibrationModel.FixedDraftRow.from(prepared, firstRun),
@@ -401,6 +349,9 @@ public final class Phase13GB2CalibrationRunner {
                 SimulationProvenanceService.ENGINE_IMPLEMENTATION_VERSION,
                 hashes,
                 harness.resourceProvenance().resourceProvenanceHash(),
+                harness.draftRuleSetIdentity(),
+                harness.draftRuleSetHash(),
+                harness.draftScoringPolicyHash(),
                 Phase13GB1AuditArtifactWriter.productionSourceTree(backendRoot),
                 Phase13GB1AuditArtifactWriter.phaseTestSourceTree(
                         backendRoot, "Phase13GB"),
