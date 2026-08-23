@@ -13,6 +13,7 @@ import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
 import com.lolfm.simulator.MatchSimulator;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,11 +33,11 @@ class Phase13GBFinalRuntimeIdentityInspectorTest {
     @Autowired MockMvc mvc;
 
     @Test
-    void productionRegistryAndActualWiringProduceCanonicalRuntimeEvidence() throws Exception {
+    void productionRegistryAndActualWiringRemainExactAfterHistoricalDecisionSource() throws Exception {
         var evidence = inspector().inspect(Path.of("."));
-        Path output = Path.of("build", "reports", "final-13g-b-runtime-identity");
+        Path output = temporary.resolve("current-runtime-identity");
         String rawSha = Phase13GBFinalRuntimeIdentityEvidence.writeBundle(output, evidence);
-        var replay = Phase13GBFinalRuntimeIdentityEvidence.readBundle(output, true);
+        var replay = Phase13GBFinalRuntimeIdentityEvidence.readBundle(output, false);
 
         assertThat(replay).isEqualTo(evidence);
         assertThat(evidence.identityValues())
@@ -55,10 +56,11 @@ class Phase13GBFinalRuntimeIdentityInspectorTest {
                 .containsEntry("automaticTuningPerformed", "false")
                 .containsEntry("holdoutRerunPerformed", "false");
         assertThat(evidence.runtimeIdentityHash()).matches("[0-9a-f]{64}");
-        assertThat(evidence.runtimeIdentityHash())
-                .isEqualTo(Phase13GBFinalRuntimeIdentityEvidence.EXPECTED_RUNTIME_IDENTITY_HASH);
-        assertThat(rawSha)
-                .isEqualTo(Phase13GBFinalRuntimeIdentityEvidence.EXPECTED_EVIDENCE_RAW_SHA256);
+        assertThat(rawSha).matches("[0-9a-f]{64}");
+        assertThat(evidence.identityValues().get("productionSourceTreeHash"))
+                .isNotEqualTo(MatchEngineV1Policy.FINAL_13G_B_APPROVED_SOURCE_TREE_SHA256);
+        assertThat(Integer.parseInt(evidence.identityValues().get(
+                "productionSourceTreeFileCount"))).isGreaterThan(472);
     }
 
     @Test
@@ -80,4 +82,6 @@ class Phase13GBFinalRuntimeIdentityInspectorTest {
                 mapper, orchestrator, autowiredSimulator, configuredFactory,
                 champions, dummyDataFactory, controller);
     }
+
+    @TempDir Path temporary;
 }

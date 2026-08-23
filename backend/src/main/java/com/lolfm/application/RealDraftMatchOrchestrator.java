@@ -39,6 +39,8 @@ public final class RealDraftMatchOrchestrator {
     private final ConfiguredMatchSimulatorFactory matches;
     private final RealDraftMatchPreflightValidator preflight;
     private final SimulationProvenanceService provenance;
+    private final MatchEngineV1InputFactory matchEngineV1Inputs;
+    private final MatchEngineV1 matchEngineV1;
 
     @Autowired
     public RealDraftMatchOrchestrator(ObjectMapper mapper, ChampionCatalog champions,
@@ -47,7 +49,9 @@ public final class RealDraftMatchOrchestrator {
                                       RealDraftMatchPreflightValidator preflight,
                                       PlayerIdentityCatalog identities,
                                       PlayerRatingCatalog ratings,
-                                      ChampionProficiencyCatalog proficiencies) {
+                                      ChampionProficiencyCatalog proficiencies,
+                                      MatchEngineV1InputFactory matchEngineV1Inputs,
+                                      MatchEngineV1 matchEngineV1) {
         DraftResourceSet resources = DraftResourceSet.loadDefault(mapper, champions);
         DraftRuleSet rules = DraftRuleSet.professional();
         DraftScoringPolicy policy = DraftScoringPolicy.standard();
@@ -57,6 +61,9 @@ public final class RealDraftMatchOrchestrator {
         this.preflight = Objects.requireNonNull(preflight, "preflight");
         provenance = new SimulationProvenanceService(
                 mapper, resources, identities, ratings, proficiencies, rules, policy);
+        this.matchEngineV1Inputs = Objects.requireNonNull(
+                matchEngineV1Inputs, "matchEngineV1Inputs");
+        this.matchEngineV1 = Objects.requireNonNull(matchEngineV1, "matchEngineV1");
     }
 
     /** One isolated game with a fresh series scope. */
@@ -141,6 +148,58 @@ public final class RealDraftMatchOrchestrator {
                 blueTeam, redTeam, blueContext, redContext, draftResult,
                 timeline, matchSeed, gameNumber, exclusionsBeforeDraft,
                 seriesHistory.consumedPicks(), executionProvenance);
+    }
+
+    /** One isolated real-Draft game projected through the authoritative Match Engine V1 boundary. */
+    public MatchEngineV1Output orchestrateV1(
+            String blueTeamCode, String redTeamCode, long matchSeed
+    ) {
+        return orchestrateV1(blueTeamCode, redTeamCode, new SeriesDraftHistory(), matchSeed,
+                SimulationInstrumentation.enabled());
+    }
+
+    /**
+     * One caller-owned series game through V1. The completed Draft is committed exactly once,
+     * and only after simulation, mandatory provenance and immutable output creation succeed.
+     */
+    public MatchEngineV1Output orchestrateV1(
+            String blueTeamCode,
+            String redTeamCode,
+            SeriesDraftHistory seriesHistory,
+            long matchSeed
+    ) {
+        return orchestrateV1(blueTeamCode, redTeamCode, seriesHistory, matchSeed,
+                SimulationInstrumentation.enabled());
+    }
+
+    public MatchEngineV1Output orchestrateV1(
+            String blueTeamCode,
+            String redTeamCode,
+            SeriesDraftHistory seriesHistory,
+            long matchSeed,
+            SimulationInstrumentation instrumentation
+    ) {
+        Objects.requireNonNull(seriesHistory, "seriesHistory");
+        Objects.requireNonNull(instrumentation, "instrumentation");
+        String normalizedBlueTeamCode = normalizeTeamCode(blueTeamCode, "blueTeamCode");
+        String normalizedRedTeamCode = normalizeTeamCode(redTeamCode, "redTeamCode");
+        Team blueTeam = teams.assemble(normalizedBlueTeamCode);
+        Team redTeam = teams.assemble(normalizedRedTeamCode);
+        DraftTeamContext blueContext = DraftTeamContext.from(blueTeam);
+        DraftTeamContext redContext = DraftTeamContext.from(redTeam);
+        Set<ChampionId> exclusionsBeforeDraft = seriesHistory.consumedPicks();
+        int gameNumber = seriesHistory.committedGameCount() + 1;
+        FinalDraftResult draftResult = drafts.draft(blueContext, redContext, seriesHistory);
+        preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
+                blueContext, redContext, draftResult, seriesHistory);
+        MatchEngineV1Input input = matchEngineV1Inputs.fromRealDraft(
+                normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
+                matchSeed, gameNumber, exclusionsBeforeDraft, draftResult);
+        MatchEngineV1.MatchEngineV1Execution execution = matchEngineV1.executeDetailed(
+                input, instrumentation);
+        seriesHistory.commitCompleted(draftResult);
+        validateCommittedHistory(seriesHistory, draftResult, exclusionsBeforeDraft, gameNumber);
+        return execution.output();
     }
 
     private static String normalizeTeamCode(String value, String field) {

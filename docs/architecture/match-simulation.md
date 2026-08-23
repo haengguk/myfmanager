@@ -14,6 +14,8 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 별도의 backend application entry point인 `RealDraftMatchOrchestrator`는 explicit LCK team code 두 개, caller-owned `SeriesDraftHistory`, match seed를 받는다. 이 path는 `LckTeamAssembler`가 만든 실제 Team으로 Draft를 실행하고 `FinalDraftResult.matchChampionAssignments()`를 그대로 같은 Team과 함께 simulator에 전달한다. Controller를 호출하거나 `DummyDataFactory`를 사용하지 않으며 아직 HTTP에 노출되지 않았다.
 
+동결된 application boundary인 `MatchEngineV1`은 완성된 roster/final Draft/seed를 immutable input으로 받아 immutable summary/timeline/provenance를 반환한다. `RealDraftMatchOrchestrator.orchestrateV1`이 이 경계에 additive하게 연결되며, 성공한 output까지 검증된 뒤에만 series history를 commit한다. 정책, 입출력, hash와 호환성의 전체 계약은 [Match Engine V1 Contract](match-engine-v1.md)에 있다.
+
 기존 overload는 `BASELINE_V1`을 명시적으로 resolve한다. Additive overload는 임의 boolean 묶음이 아니라 `SimulationRuntimeProfileId`만 받는다. `ConfiguredMatchSimulatorFactory`의 public boundary도 profile ID와 별도 `SimulationInstrumentation`만 받아 closed registry를 내부에서 resolve한다. Caller-fabricated `ResolvedSimulationRuntimeProfile`은 실행/provenance 경계에서 허용하지 않는다.
 
 ## Explicit Runtime Profiles
@@ -33,6 +35,12 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
 
 기존 세 profile은 계속 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`을 사용한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
+
+## Match Engine V1 Policy Boundary
+
+Match Engine V1의 authoritative application policy는 `BASELINE_V1` 하나이며 Economy/Tempo candidate activation은 둘 다 `false`다. Caller는 V1 facade에 profile ID나 gameplay boolean을 전달할 수 없다. `SimulationOptions.productionDefaults()`는 별도의 저수준 constructor default이고 V1 policy로 해석하지 않는다.
+
+V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal champion-role을 simulator 및 seeded `Random` 생성 전에 거부한다. 성공 경로에서는 existing simulator와 common gameplay rules를 그대로 실행한 뒤 structured winner/end reason, final snapshot, stable participant identity, full provenance를 immutable output으로 투영한다. 기존 simulator와 Real Draft overload는 제거하거나 의미를 바꾸지 않았다.
 
 ## Configuration and Replay Provenance
 

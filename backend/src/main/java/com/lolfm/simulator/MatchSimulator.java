@@ -346,12 +346,29 @@ public class MatchSimulator {
             long seed,
             MatchChampionAssignments assignments
     ) {
+        StructuredMatchSimulationOutcome outcome = simulateStructuredObserved(
+                blueTeam, redTeam, seed, assignments);
+        return new ObservedMatchSimulation(outcome.timeline(), outcome.randomFingerprint());
+    }
+
+    /**
+     * Runs the same seeded gameplay and exposes structured terminal facts for application
+     * boundaries. Validation completes before the seeded Random observer is created.
+     */
+    public StructuredMatchSimulationOutcome simulateStructuredObserved(
+            Team blueTeam,
+            Team redTeam,
+            long seed,
+            MatchChampionAssignments assignments
+    ) {
         MatchLineupIdentityValidator.validate(blueTeam, redTeam);
         SideOrientationRandomTraceObserver random = new SideOrientationRandomTraceObserver(
                 seed, "RUNTIME", blueTeam.getName(), redTeam.getName(), false);
         SimulationResult result = runValidatedSimulation(
                 blueTeam, redTeam, assignments, random, seed);
-        return new ObservedMatchSimulation(result.timeline(), random.fingerprint());
+        return new StructuredMatchSimulationOutcome(
+                result.timeline(), result.winnerSide(), result.endReason(),
+                result.timeline().getDurationSeconds(), random.fingerprint());
     }
 
     SimulationResult simulateWithDiagnostics(Team blueTeam, Team redTeam, long seed) {

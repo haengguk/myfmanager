@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.lolfm.champion.ChampionAssignment;
+import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionResourceManifest;
 import com.lolfm.domain.MatchTimeline;
@@ -40,8 +41,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /** Pure observer that hashes explicit match inputs and the complete timeline. */
+@Component
 public final class SimulationProvenanceService {
     /** Compatibility alias retained for the V1 baseline document. */
     public static final String ENGINE_RULES_VERSION =
@@ -60,6 +64,18 @@ public final class SimulationProvenanceService {
     private final DraftScoringPolicy draftPolicy;
     private final String draftRuleSetHash;
     private final String draftScoringPolicyHash;
+
+    @Autowired
+    public SimulationProvenanceService(
+            ObjectMapper mapper,
+            ChampionCatalog champions,
+            PlayerIdentityCatalog identities,
+            PlayerRatingCatalog ratings,
+            ChampionProficiencyCatalog proficiencies
+    ) {
+        this(mapper, DraftResourceSet.loadDefault(mapper, champions), identities, ratings,
+                proficiencies, DraftRuleSet.professional(), DraftScoringPolicy.standard());
+    }
 
     public SimulationProvenanceService(
             ObjectMapper mapper,
@@ -90,15 +106,15 @@ public final class SimulationProvenanceService {
         return resourceProvenance;
     }
 
-    String draftRuleSetIdentity() {
+    public String draftRuleSetIdentity() {
         return draftRules.identity();
     }
 
-    String draftRuleSetHash() {
+    public String draftRuleSetHash() {
         return draftRuleSetHash;
     }
 
-    String draftScoringPolicyHash() {
+    public String draftScoringPolicyHash() {
         return draftScoringPolicyHash;
     }
 
@@ -150,6 +166,53 @@ public final class SimulationProvenanceService {
                 historyBeforeHash, draftResult.ruleSet().identity(), draftRuleSetHash,
                 draftScoringPolicyHash, draftResult.draftIdentity(), finalDraftHash,
                 finalAssignmentHash, replayHash, ORDERED_LINES_HASH_ALGORITHM,
+                timelineHash(timeline), TIMELINE_HASH_ALGORITHM, randomFingerprint);
+    }
+
+    /** Creates the same execution provenance from the immutable V1 input contract. */
+    public SimulationExecutionProvenance createV1(
+            MatchEngineV1Input input,
+            SimulationInstrumentation instrumentation,
+            MatchTimeline timeline,
+            SimulationRandomFingerprint randomFingerprint
+    ) {
+        Objects.requireNonNull(input, "input");
+        MatchEngineV1Policy.requireAuthoritative(input.productionPolicy());
+        Objects.requireNonNull(instrumentation, "instrumentation");
+        Objects.requireNonNull(timeline, "timeline");
+        Objects.requireNonNull(randomFingerprint, "randomFingerprint");
+        ResolvedSimulationRuntimeProfile profile =
+                MatchEngineV1Policy.resolvedRuntimeProfile();
+        MatchEngineV1Input.DraftInput draft = input.finalDraft();
+        if (!resourceProvenance.resourceProvenanceHash().equals(
+                MatchEngineV1Policy.APPROVED_RESOURCE_PROVENANCE_SHA256)
+                || !draft.draftRuleSetIdentity().equals(draftRules.identity())
+                || !draft.draftRuleSetHash().equals(draftRuleSetHash)
+                || !draft.draftScoringPolicyHash().equals(draftScoringPolicyHash)) {
+            throw new IllegalStateException("MATCH_ENGINE_V1_PROVENANCE_IDENTITY_DRIFT");
+        }
+        String replayHash = replayProvenanceHash(
+                ENGINE_IMPLEMENTATION_VERSION, profile.activeGameplayRulesVersion(),
+                profile.configurationHash(), resourceProvenance.resourceProvenanceHash(),
+                input.blueTeam().teamIdentity(), input.redTeam().teamIdentity(),
+                input.rosterIdentityHash(), input.matchSeed(), draft.seriesGameNumber(),
+                input.seriesHistoryBeforeHash(), draft.draftRuleSetIdentity(),
+                draft.draftRuleSetHash(), draft.draftScoringPolicyHash(),
+                draft.draftDecisionHash(), draft.finalDraftHash(),
+                draft.finalAssignmentHash());
+        return new SimulationExecutionProvenance(
+                SimulationExecutionProvenance.SCHEMA,
+                profile.profileId(), profile.gameplayConfiguration(), profile.configurationHash(),
+                SimulationRuntimeProfiles.CONFIGURATION_HASH_ALGORITHM,
+                instrumentation, profile.activeGameplayRulesVersion(),
+                ENGINE_IMPLEMENTATION_VERSION, profile.activeGameplayRulesVersion(),
+                resourceProvenance,
+                input.blueTeam().teamIdentity(), input.redTeam().teamIdentity(),
+                input.rosterIdentityHash(), input.matchSeed(), draft.seriesGameNumber(),
+                input.seriesHistoryBeforeHash(), draft.draftRuleSetIdentity(),
+                draft.draftRuleSetHash(), draft.draftScoringPolicyHash(),
+                draft.draftDecisionHash(), draft.finalDraftHash(),
+                draft.finalAssignmentHash(), replayHash, ORDERED_LINES_HASH_ALGORITHM,
                 timelineHash(timeline), TIMELINE_HASH_ALGORITHM, randomFingerprint);
     }
 
@@ -297,7 +360,7 @@ public final class SimulationProvenanceService {
         return value;
     }
 
-    private static String rosterIdentityHash(
+    static String rosterIdentityHash(
             String blueTeamCode, Team blueTeam, String redTeamCode, Team redTeam
     ) {
         StringBuilder canonical = new StringBuilder("rosterIdentitySchema=REAL_MATCH_ROSTER_V1\n");
@@ -321,7 +384,7 @@ public final class SimulationProvenanceService {
         }
     }
 
-    private static String seriesHistoryHash(int committedGames, Set<ChampionId> exclusions) {
+    static String seriesHistoryHash(int committedGames, Set<ChampionId> exclusions) {
         if (committedGames < 0) throw new IllegalArgumentException("committedGames must not be negative");
         StringBuilder canonical = new StringBuilder("seriesHistorySchema=HARD_FEARLESS_HISTORY_V1\n")
                 .append("committedGameCount=").append(committedGames).append('\n');
@@ -331,7 +394,7 @@ public final class SimulationProvenanceService {
         return orderedLinesHash(canonical.toString());
     }
 
-    private static String finalAssignmentHash(FinalDraftResult result) {
+    static String finalAssignmentHash(FinalDraftResult result) {
         StringBuilder canonical = new StringBuilder(
                 "finalAssignmentSchema=MATCH_CHAMPION_ASSIGNMENT_V1\n")
                 .append("selectionMode=")
@@ -349,7 +412,7 @@ public final class SimulationProvenanceService {
                 .append(assignment.selectedPosition().name()).append('\n');
     }
 
-    private static String finalDraftHash(FinalDraftResult result, String assignmentHash) {
+    static String finalDraftHash(FinalDraftResult result, String assignmentHash) {
         StringBuilder canonical = new StringBuilder("finalDraftSchema=FINAL_DRAFT_RESULT_V1\n")
                 .append("ruleSetIdentity=").append(result.ruleSet().identity()).append('\n')
                 .append("draftDecisionHash=").append(result.draftIdentity()).append('\n');

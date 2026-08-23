@@ -189,6 +189,16 @@ Tempo의 10개 공통 champion bucket별 민감도 순서는 calibration과 hold
 
 Machine-readable artifact는 `backend/build/reports/final-13g-b/`의 evidence binding, retained runtime identity, segmented sensitivity, flipped pairs, synthesis, Production Decision V2와 `SHA256SUMS.txt`다. 이전 5-entry manifest `f21a3bd1eaf34d9361c87c299199bce2432e6edb62585088cbc251a6e0145542`는 historical reference다. Hardened 6-entry manifest SHA-256은 `bd9a9cf3b089cfc76fceb0311094c1b70232278404f5675c42d89849d927bc98`이며 6/6 raw SHA가 통과했다. 이 결정은 gameplay source, resource, tuning, Gradle wiring, HTTP/frontend를 변경하지 않는다.
 
+### Match Engine V1 freeze
+
+Final 13G-B가 승인한 현재 runtime을 `MatchEngineV1` application facade로 동결했다. V1 policy는 `BASELINE_V1`과 configuration `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`만 허용하며 Economy/Tempo candidate activation은 둘 다 `false`다. Policy hash는 `61ec36e4ec36a3693a7fd34f9acbd018f615115dda45b558580f1ee7ff1a02a5`다.
+
+새 immutable input은 정확한 5×5 stable player/position/rating/proficiency roster, final champion assignment, ordered Draft/Hard Fearless/series context, seed와 policy requirement를 포함한다. 새 immutable output은 final-snapshot 기반 summary, stable participant/champion identity가 있는 structured timeline, final Draft와 mandatory execution provenance 및 input/structured timeline/output hash를 포함한다. Display name과 event message는 gameplay identity에서 제외한다.
+
+`RealDraftMatchOrchestrator.orchestrateV1`은 Draft를 한 번만 만들고 V1 input으로 변환한다. Simulation/projection/output validation까지 성공한 뒤에만 series history를 commit하며 실패 경로는 history를 변경하지 않는다. 기존 simulator/Real Draft overload와 HTTP response는 유지한다. 세부 계약은 [Match Engine V1 Contract](architecture/match-engine-v1.md)에 있다.
+
+Freeze artifact는 `backend/build/reports/match-engine-v1-freeze/`에 있으며 JSON 7개 manifest 7/7이 통과했다. Manifest SHA-256은 `2f750029173bda6a9490c42128c58fcd57f61cdaf64346cabc82a159677231cf`다. Fresh JVM A/B와 실제 legacy Real Draft↔V1은 canonical output/summary/provenance/Random 기준 exact equality다. Freeze source identity는 480 files / `56ccb66d1b0197a429a7bea0188162918de9859c8a4f04a477f0907368d6c859`이며 Final 13G-B historical source identity와 evidence manifest는 audit 기록으로 그대로 보존한다.
+
 ### Pre-Jungle baseline
 
 공식 oracle은 `PRE_JUNGLE_RUNTIME_BASELINE_V2`다. Focused tests와 final full regression이 clean pass하고 production source guard가 동일한 tree에서만 `generatePreJungleRuntimeBaselineV2`를 실행했다. 새 JVM 재생성도 source artifact와 byte-identical하게 성공했다.
@@ -255,6 +265,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - calibration-only 12,000경기, fixture-atomic resume, 100 replay exact, fixed-time Jungle 관측과 paired marginal/SHA artifact를 갖춘 Final 13G-B2 audit pipeline
 - 사전 동결 contract, one-time authorization, 4 fresh-JVM receipt, 100 authenticated checkpoint와 4,000-row paired evidence를 갖춘 Final 13G-B3 holdout pipeline
 - B2/B3 manifest를 다시 검증하고 player/champion/team/fixture 민감도를 분리해 현재 runtime 유지와 Match Engine V1 freeze readiness를 고정한 Final 13G-B production decision
+- `BASELINE_V1` production policy, complete immutable roster/Draft input, final-snapshot summary, immutable structured timeline, mandatory provenance와 cross-JVM hash를 하나의 additive application facade로 고정한 Match Engine V1
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -266,6 +277,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 ## Partial / Disabled
 
 - Real LCK Draft→Match flow는 backend component로 연결됐지만 `MatchController`, Draft API와 frontend에는 아직 노출되지 않았다.
+- Match Engine V1은 backend application boundary로 동결됐지만 현재 `POST /api/matches/simulate`와 frontend는 아직 이를 사용하지 않는다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
 - Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
 - Final 13G-B는 Economy `FAIL`과 Tempo `REVIEW_REQUIRED`를 보존한 채 Production V1을 `KEEP_CURRENT_RUNTIME_DEFAULT`로 결정했다. 두 candidate profile은 감사/향후 설계용으로 남지만 runtime 기본값에는 활성화하지 않는다.
@@ -275,10 +287,10 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Pending
 
-1. 결정된 현재 runtime 기준으로 Match Engine V1 input/output/profile/provenance를 freeze한다. Economy/Tempo candidate는 V1 기본 범위에서 제외한다.
-2. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
-3. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
-4. 이후 Real Match API/frontend/BO3·BO5, Career/Save/Season 순으로 진행한다.
+1. Match Engine V1을 사용하는 additive Real Match API와 frontend timeline 경계를 설계한다. 기존 Dummy HTTP demo는 명시적 migration 전까지 유지한다.
+2. BO3/BO5 lifecycle과 Save/Career/Season persistence가 caller-owned series context와 immutable match output을 소유하도록 설계한다.
+3. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
+4. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
 
 ## Test Snapshot
 
@@ -290,13 +302,13 @@ Final command:
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 170 |
-| Tests | 1,969 |
+| JUnit suites | 175 |
+| Tests | 1,993 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 488.240 seconds |
-| Gradle wall duration | 8m 23s |
+| Aggregate JUnit XML time | 677.653 seconds |
+| Gradle wall duration | 11m 28s |
 | Build | `BUILD SUCCESSFUL` |
 
 Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
@@ -318,6 +330,8 @@ Phase-specific guard로 재고정한 공식 `runPhase13GB2Calibration`은 P1 cro
 Final 13G-B3 final executable tree에서는 B1/B2/B3 contract focused tests가 clean pass했고 `runPhase13GB3Smoke`는 reserved holdout seed 없이 1 suite / 1 test, failures/errors/skipped 0, JUnit 14.262초, Gradle wall 26초로 통과했다. 이어 default full regression은 첫 실행에서 170 suites / 1,969 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 488.240초, Gradle wall 8분 23초로 clean pass했다. Phase-specific guard에 맞춘 B2 재고정은 20분 4초, frozen contract 생성은 16초, one-time `runPhase13GB3FrozenHoldout`은 22분 32초에 성공했다. 이후 executable source/resource/Gradle은 바꾸지 않고 artifact 검증과 문서만 갱신했으므로 full을 반복하지 않았다.
 
 Final 13G-B hardening은 3 suites / 14 focused tests, failures/errors/skipped 0으로 통과했다. Actual registry/RealDraft/Spring/HTTP wiring의 fixed-seed parity와 synthetic 6,400-row full-write/negative E2E를 확인했다. 독립 Java 17 compile/run은 두 output directory에서 같은 manifest `bd9a9cf3b089cfc76fceb0311094c1b70232278404f5675c42d89849d927bc98`와 7/7 byte-identical files를 만들었고 final manifest의 6/6 raw SHA가 통과했다. 이 후속 작업은 production Java/resource/Gradle/shared fixture를 바꾸지 않은 isolated test-side consumer와 문서 변경이므로 위 B3 clean full을 재사용했다.
+
+Match Engine V1 focused/cross-JVM/affected regression은 8 suites / 40 tests, failures/errors/skipped 0으로 통과했다. Production final tree의 complete backend regression은 첫 실행에서 175 suites / 1,993 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 677.653초, Gradle wall 11분 28초로 clean pass했다. Artifact writer는 historical Final manifest 6/6, 실제 legacy/V1 parity와 fresh-JVM A/B equality를 다시 확인하고 manifest 7/7을 생성했다. 이후 executable production/resource/Gradle/shared fixture는 바꾸지 않고 artifact와 문서만 갱신했으므로 full을 반복하지 않았다.
 
 Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 

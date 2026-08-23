@@ -303,6 +303,23 @@ Artifact는 `build/reports/final-13g-b/`의 다음 파일이다.
 
 Final hardening은 production Java/resource/Gradle/shared fixture를 변경하지 않았다. 따라서 B3 final tree에서 이미 통과한 170 suites / 1,969 tests full regression을 재사용하고 test-side focused tests만 실행했다. `runPhase13GB2Calibration`, `freezePhase13GB3CandidateAndGates`, `runPhase13GB3FrozenHoldout` 및 B3 worker/finalizer는 실행하지 않았다.
 
+### Match Engine V1 freeze
+
+Match Engine V1 correctness는 대규모 balance population이 아니라 boundary와 결정성 invariant로 검증한다.
+
+- policy/configuration/rules/engine과 candidate 비활성화 exact equality
+- roster/position/player/assignment/Draft/policy의 completeness와 fail-fast
+- illegal champion-role의 pre-Random rejection과 실패 시 series non-commit
+- final snapshot 기반 summary와 summary action/`KILL` event non-double-counting
+- input/output/timeline/provenance deep immutability와 display-label isolation
+- same seed complete structured output, diagnostics observational equality
+- legacy Real Draft↔V1 complete timeline/provenance/Random parity
+- 두 fresh JVM의 canonical output/summary/verification byte equality
+
+최종 focused 묶음은 8 suites / 40 tests, failures/errors/skipped 0으로 통과했다. 이어 production final tree의 complete backend regression은 첫 실행에서 175 suites / 1,993 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 677.653초, Gradle wall 11분 28초로 clean pass했다. 그 뒤에는 freeze artifact와 문서만 생성·갱신했으므로 full regression을 반복하지 않았다.
+
+Artifact writer는 clean full XML이 최소 170 suites / 1,970 tests이고 failure/error가 0인지 먼저 확인한다. 그 다음 historical Final 13G-B manifest 6/6, 실제 legacy/V1 parity와 fresh-JVM 두 번을 재검증한 뒤 `build/reports/match-engine-v1-freeze/`의 JSON 7개와 `SHA256SUMS.txt`를 쓴다. 이 freeze 작업은 B2 calibration, B3 holdout 또는 baseline generator를 다시 실행하지 않는다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.
