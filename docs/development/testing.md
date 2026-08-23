@@ -262,39 +262,46 @@ Machine-readable 결과는 `build/reports/phase13g-b3/phase13g-b3-final-review.j
 
 ### Final 13G-B synthesis and Production V1 decision
 
-Final 합성기는 test-side의 작은 plain-JDK consumer다. B2/B3 match를 재실행하지 않고 두 `SHA256SUMS.txt`의 16/18 entries, B3의 B2 review/manifest binding, frozen verdict와 실행 횟수를 먼저 확인한다. 그 뒤 `ECONOMY_MINUS_FULL`과 `TEMPO_MINUS_ECONOMY`의 B2/B3 paired row를 final Jungle player/champion 및 fixture team과 structured key로 join한다. Display name이나 event text는 사용하지 않는다.
+Final 합성기는 test-side의 plain-JDK consumer다. B2/B3 match를 재실행하지 않고 두 `SHA256SUMS.txt`의 16/18 entries, B3의 B2 review/manifest binding, frozen verdict와 실행 횟수를 먼저 확인한다. 별도 Spring-wired inspector는 closed registry, RealDraft 기본/explicit overload, autowired simulator, HTTP controller와 `SimulationOptions.productionDefaults()`를 소수 fixed seed로 검증하고 canonical runtime evidence를 만든다. Standalone consumer는 그 evidence의 raw SHA와 내부 identity hash가 frozen contract와 모두 일치해야만 `runtimeIdentityStatus=EXACT`를 허용한다.
 
 ```bash
 cd backend
 ./gradlew test \
   --tests 'com.lolfm.application.Phase13GBFinalSynthesisContractTest' \
+  --tests 'com.lolfm.application.Phase13GBFinalSynthesisE2ETest' \
+  --tests 'com.lolfm.application.Phase13GBFinalRuntimeIdentityInspectorTest' \
   --console=plain --no-daemon
 
 # 합성기는 외부 dependency가 없는 Java 17 source로 독립 컴파일 가능
 javac --release 17 \
-  -d build/classes/java/final-13g-b \
+  -d build/classes/java/final-13g-b-hardening \
+  src/test/java/com/lolfm/application/Phase13GBFinalRuntimeIdentityEvidence.java \
   src/test/java/com/lolfm/application/Phase13GBFinalSynthesis.java
-java -cp build/classes/java/final-13g-b \
+java -cp build/classes/java/final-13g-b-hardening \
   com.lolfm.application.Phase13GBFinalSynthesis \
   build/reports/phase13g-b2 \
   build/reports/phase13g-b3 \
+  build/reports/final-13g-b-runtime-identity \
   build/reports/final-13g-b
 
 cd build/reports/final-13g-b
 sha256sum -c SHA256SUMS.txt
 ```
 
-계약 테스트는 segment attribution/flip direction, common-key correlation, frozen `FAIL`/`REVIEW_REQUIRED`의 보수적 decision, invalid evidence 차단, raw-byte SHA tamper rejection, CSV/JSON canonicalization을 검증하며 6/6 통과했다. 공식 합성은 input paired row 6,400개, 새 simulation 0개로 `FINAL_EVIDENCE_VALID`와 `KEEP_CURRENT_RUNTIME_DEFAULT`를 만들었다. Output manifest SHA-256은 `f21a3bd1eaf34d9361c87c299199bce2432e6edb62585088cbc251a6e0145542`이고 5/5 entry 검사가 통과했다.
+Focused verification은 3 suites / 14 tests다. 기존 helper 계약과 runtime identity 상태 전이, 실제 Spring/RealDraft/HTTP wiring, 6,400-row synthetic full `write()`를 검증한다. Synthetic E2E는 official generated report를 fixture로 사용하지 않고 B2 4,800 + B3 1,600 paired row와 16/18-entry manifest를 programmatically 만든다. Profile/configuration/engine/source/resource/HTTP wiring identity 변조, B2/B3 raw manifest 변조, paired row 누락·중복과 runtime evidence 부재는 READY를 만들지 못한다.
+
+실제 합성은 input paired row 6,400개, 새 simulation 0개로 `FINAL_EVIDENCE_VALID`, `KEEP_CURRENT_RUNTIME_DEFAULT`, retained `BASELINE_V1`, runtime identity `EXACT`, `READY_FOR_MATCH_ENGINE_V1_FREEZE`를 만들었다. Runtime evidence raw SHA는 `7e54d89df8d3364e845703181a3214367818e7a34a122714299c65b480d0e109`, runtime identity hash는 `bcb3d2bdf009a8b53d6f99db69ad3f129a7c3c2f29570bcdf12ee0c0655ba675`다. Hardened output manifest SHA-256은 `bd9a9cf3b089cfc76fceb0311094c1b70232278404f5675c42d89849d927bc98`이고 6/6 entry가 통과했다. Java 17 두 별도 output directory의 7개 파일은 byte-for-byte identical이었다.
 
 Artifact는 `build/reports/final-13g-b/`의 다음 파일이다.
 
 - `final-13g-b-evidence-binding.json`: B2/B3 manifest/review/contract identity와 no-rerun binding
+- `final-13g-b-retained-runtime-identity.json`: retained configuration/rules/engine/source/resource/Draft identity와 실제 wiring
 - `final-13g-b-segmented-sensitivity.csv`: calibration/holdout/combined의 fixture/team/side/player/champion/player×champion/matchup 집계
 - `final-13g-b-flipped-pairs.csv`: winner가 바뀐 1,112개 paired row의 structured attribution
 - `final-13g-b-sensitivity-synthesis.json`: aggregate, B2↔B3 segment correlation과 top holdout segments
-- `final-13g-b-production-decision.json`: candidate activation false, current runtime 유지, Match Engine V1 freeze readiness
+- `final-13g-b-production-decision.json`: Decision V2, candidate activation false, retained `BASELINE_V1`, exact runtime identity와 Match Engine V1 freeze readiness
 
-Final 작업은 production Java/resource/Gradle/shared fixture를 변경하지 않았다. 따라서 B3 final tree에서 이미 통과한 170 suites / 1,969 tests full regression을 재사용하고, test-side 합성기 focused test만 실행했다. B3 official holdout task는 여전히 재실행 금지다.
+Final hardening은 production Java/resource/Gradle/shared fixture를 변경하지 않았다. 따라서 B3 final tree에서 이미 통과한 170 suites / 1,969 tests full regression을 재사용하고 test-side focused tests만 실행했다. `runPhase13GB2Calibration`, `freezePhase13GB3CandidateAndGates`, `runPhase13GB3FrozenHoldout` 및 B3 worker/finalizer는 실행하지 않았다.
 
 ## Generated Reports
 

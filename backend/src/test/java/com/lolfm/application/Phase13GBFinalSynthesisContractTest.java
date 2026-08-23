@@ -53,22 +53,38 @@ class Phase13GBFinalSynthesisContractTest {
     @Test
     void frozenFailureAndReviewProduceConservativeProductionDecision() {
         var decision = Phase13GBFinalSynthesis.decisionPolicy(
-                "FAIL", "REVIEW_REQUIRED", true, 0.013888888888888888,
+                "FAIL", "REVIEW_REQUIRED", true, "EXACT", 0.013888888888888888,
                 0.013794550001);
 
         assertThat(decision.productionDecision()).isEqualTo("KEEP_CURRENT_RUNTIME_DEFAULT");
         assertThat(decision.economyDisposition()).contains("NOT_APPROVED");
         assertThat(decision.tempoDisposition()).contains("DEFER_TO_V2");
-        assertThat(decision.freezeReadiness()).contains("WITHOUT_JUNGLE_ECONOMY_OR_TEMPO");
+        assertThat(decision.runtimeIdentityStatus()).isEqualTo("EXACT");
+        assertThat(decision.freezeReadiness()).isEqualTo("READY_FOR_MATCH_ENGINE_V1_FREEZE");
     }
 
     @Test
     void invalidEvidenceCannotCreateProductionDecision() {
         var decision = Phase13GBFinalSynthesis.decisionPolicy(
-                "FAIL", "REVIEW_REQUIRED", false, 0.02, 0.01);
+                "FAIL", "REVIEW_REQUIRED", false, "EXACT", 0.02, 0.01);
 
         assertThat(decision.productionDecision()).isEqualTo("FINAL_EVIDENCE_INVALID");
         assertThat(decision.freezeReadiness()).isEqualTo("BLOCK_MATCH_ENGINE_V1_FREEZE");
+    }
+
+    @Test
+    void validEvidenceWithoutExactRuntimeIdentityBlocksFreeze() {
+        for (String status : List.of("UNBOUND", "MISMATCH")) {
+            var decision = Phase13GBFinalSynthesis.decisionPolicy(
+                    "FAIL", "REVIEW_REQUIRED", true, status,
+                    0.013888888888888888, 0.013794550001);
+
+            assertThat(decision.productionDecision())
+                    .isEqualTo("KEEP_CURRENT_RUNTIME_DEFAULT");
+            assertThat(decision.runtimeIdentityStatus()).isEqualTo(status);
+            assertThat(decision.freezeReadiness())
+                    .isEqualTo("BLOCK_MATCH_ENGINE_V1_FREEZE_RUNTIME_IDENTITY_UNBOUND");
+        }
     }
 
     @Test

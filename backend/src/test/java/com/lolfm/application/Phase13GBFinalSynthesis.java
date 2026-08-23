@@ -31,6 +31,8 @@ public final class Phase13GBFinalSynthesis {
     public static final String PHASE = "FINAL_13G_B_SYNTHESIS_AND_PRODUCTION_V1_DECISION";
     public static final String EVIDENCE_BINDING_FILE =
             "final-13g-b-evidence-binding.json";
+    public static final String RETAINED_RUNTIME_IDENTITY_FILE =
+            "final-13g-b-retained-runtime-identity.json";
     public static final String SEGMENTED_SENSITIVITY_FILE =
             "final-13g-b-segmented-sensitivity.csv";
     public static final String FLIPPED_PAIRS_FILE =
@@ -55,6 +57,7 @@ public final class Phase13GBFinalSynthesis {
             "ECONOMY_ECONOMY_MINUS_FULL_PRIMARY_LEAGUE_G1_WINNER_FLIP_RATE";
     private static final List<String> OUTPUT_FILES = List.of(
             EVIDENCE_BINDING_FILE,
+            RETAINED_RUNTIME_IDENTITY_FILE,
             SEGMENTED_SENSITIVITY_FILE,
             FLIPPED_PAIRS_FILE,
             SYNTHESIS_FILE,
@@ -64,16 +67,21 @@ public final class Phase13GBFinalSynthesis {
     }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 3) {
+        if (args.length != 4) {
             throw new IllegalArgumentException(
-                    "Usage: Phase13GBFinalSynthesis <b2-report> <b3-report> <output>");
+                    "Usage: Phase13GBFinalSynthesis <b2-report> <b3-report> "
+                            + "<runtime-identity-evidence> <output>");
         }
-        ArtifactSet result = write(Path.of(args[0]), Path.of(args[1]), Path.of(args[2]));
+        ArtifactSet result = write(
+                Path.of(args[0]), Path.of(args[1]), Path.of(args[2]), Path.of(args[3]));
         System.out.println("phase=" + PHASE);
         System.out.println("evidenceStatus=" + result.evidenceStatus());
         System.out.println("productionDecision=" + result.productionDecision());
         System.out.println("economyDisposition=" + result.economyDisposition());
         System.out.println("tempoDisposition=" + result.tempoDisposition());
+        System.out.println("retainedRuntimeProfileId=" + result.retainedRuntimeProfileId());
+        System.out.println("runtimeIdentityStatus=" + result.runtimeIdentityStatus());
+        System.out.println("freezeReadiness=" + result.freezeReadiness());
         System.out.println("inputPairedRows=" + result.inputPairedRows());
         System.out.println("newSimulationExecutions=0");
         System.out.println("manifestSha256=" + result.manifestSha256());
@@ -81,9 +89,53 @@ public final class Phase13GBFinalSynthesis {
 
     public static ArtifactSet write(Path b2Directory, Path b3Directory, Path output)
             throws IOException {
+        return writeInternal(b2Directory, b3Directory, null, null, output);
+    }
+
+    public static ArtifactSet write(
+            Path b2Directory,
+            Path b3Directory,
+            Path runtimeIdentityDirectory,
+            Path output
+    ) throws IOException {
+        Objects.requireNonNull(runtimeIdentityDirectory, "runtimeIdentityDirectory");
+        Phase13GBFinalRuntimeIdentityEvidence.Evidence runtimeIdentity =
+                Phase13GBFinalRuntimeIdentityEvidence.readBundle(
+                        runtimeIdentityDirectory, true);
+        return writeInternal(b2Directory, b3Directory, runtimeIdentity,
+                Phase13GBFinalRuntimeIdentityEvidence.EXPECTED_EVIDENCE_RAW_SHA256, output);
+    }
+
+    static ArtifactSet writeVerifiedRuntimeIdentityForTest(
+            Path b2Directory,
+            Path b3Directory,
+            Phase13GBFinalRuntimeIdentityEvidence.Evidence runtimeIdentity,
+            String expectedRuntimeIdentityHash,
+            Path output
+    ) throws IOException {
+        Objects.requireNonNull(runtimeIdentity, "runtimeIdentity");
+        if (!runtimeIdentity.runtimeIdentityHash().equals(expectedRuntimeIdentityHash)) {
+            throw new IllegalStateException("Synthetic runtime identity contract mismatch");
+        }
+        String rawSha = sha256Bytes(runtimeIdentity.canonicalEvidence()
+                .getBytes(StandardCharsets.UTF_8));
+        return writeInternal(b2Directory, b3Directory, runtimeIdentity, rawSha, output);
+    }
+
+    private static ArtifactSet writeInternal(
+            Path b2Directory,
+            Path b3Directory,
+            Phase13GBFinalRuntimeIdentityEvidence.Evidence runtimeIdentity,
+            String suppliedRuntimeEvidenceRawSha,
+            Path output
+    ) throws IOException {
         Objects.requireNonNull(b2Directory, "b2Directory");
         Objects.requireNonNull(b3Directory, "b3Directory");
         Objects.requireNonNull(output, "output");
+        String runtimeIdentityStatus = runtimeIdentity == null ? "UNBOUND" : "EXACT";
+        String runtimeEvidenceRawSha = runtimeIdentity == null ? null
+                : Objects.requireNonNull(suppliedRuntimeEvidenceRawSha,
+                "suppliedRuntimeEvidenceRawSha");
         InputBinding inputs = verifyInputs(b2Directory, b3Directory);
         List<PairedEvidence> evidence = new ArrayList<>(6_400);
         evidence.addAll(loadPairedEvidence(b2Directory, SourcePopulation.CALIBRATION_B2));
@@ -100,12 +152,21 @@ public final class Phase13GBFinalSynthesis {
                 inputs.economyFrozenVerdict(),
                 inputs.tempoFrozenVerdict(),
                 inputs.exact(),
+                runtimeIdentityStatus,
                 economyBoundary.actual(),
                 economyBoundary.upperInclusive());
 
         Files.createDirectories(output);
-        Map<String, Object> binding = bindingReport(inputs, evidence);
+        Map<String, Object> binding = bindingReport(
+                inputs, evidence, runtimeIdentity, runtimeIdentityStatus, runtimeEvidenceRawSha);
         writeJson(output.resolve(EVIDENCE_BINDING_FILE), binding);
+        Map<String, Object> runtimeIdentityOutput = runtimeIdentity == null
+                ? Map.of(
+                "runtimeIdentityStatus", "UNBOUND",
+                "schemaVersion", Phase13GBFinalRuntimeIdentityEvidence.SCHEMA)
+                : Phase13GBFinalRuntimeIdentityEvidence.outputDocument(
+                runtimeIdentity, runtimeEvidenceRawSha);
+        writeJson(output.resolve(RETAINED_RUNTIME_IDENTITY_FILE), runtimeIdentityOutput);
         writeUtf8(output.resolve(SEGMENTED_SENSITIVITY_FILE), segmentsCsv(segments));
         writeUtf8(output.resolve(FLIPPED_PAIRS_FILE), flippedPairsCsv(evidence));
         Map<String, Object> synthesis = synthesisReport(
@@ -115,13 +176,15 @@ public final class Phase13GBFinalSynthesis {
         Map<String, String> decisionInputs = new TreeMap<>();
         for (String file : List.of(
                 EVIDENCE_BINDING_FILE,
+                RETAINED_RUNTIME_IDENTITY_FILE,
                 SEGMENTED_SENSITIVITY_FILE,
                 FLIPPED_PAIRS_FILE,
                 SYNTHESIS_FILE)) {
             decisionInputs.put(file, sha256(output.resolve(file)));
         }
         writeJson(output.resolve(DECISION_FILE), decisionReport(
-                inputs, policy, economyBoundary, evidence, segments, decisionInputs));
+                inputs, policy, economyBoundary, evidence, segments, decisionInputs,
+                runtimeIdentity, runtimeIdentityStatus, runtimeEvidenceRawSha));
         writeManifest(output);
         return new ArtifactSet(
                 output,
@@ -129,6 +192,10 @@ public final class Phase13GBFinalSynthesis {
                 policy.productionDecision(),
                 policy.economyDisposition(),
                 policy.tempoDisposition(),
+                runtimeIdentity == null ? null
+                        : runtimeIdentity.identityValues().get("retainedRuntimeProfileId"),
+                runtimeIdentityStatus,
+                policy.freezeReadiness(),
                 evidence.size(),
                 sha256(output.resolve(SHA_FILE)));
     }
@@ -396,6 +463,7 @@ public final class Phase13GBFinalSynthesis {
             String economyFrozenVerdict,
             String tempoFrozenVerdict,
             boolean evidenceExact,
+            String runtimeIdentityStatus,
             double economyActual,
             double economyUpper
     ) {
@@ -404,6 +472,7 @@ public final class Phase13GBFinalSynthesis {
                     "FINAL_EVIDENCE_INVALID",
                     "NO_PRODUCTION_DECISION",
                     "NO_PRODUCTION_DECISION",
+                    "NOT_EVALUATED",
                     "BLOCK_MATCH_ENGINE_V1_FREEZE");
         }
         if (!economyFrozenVerdict.equals("FAIL")
@@ -411,16 +480,33 @@ public final class Phase13GBFinalSynthesis {
                 || !(economyActual > economyUpper)) {
             throw new IllegalStateException("Unexpected frozen B3 decision inputs");
         }
+        if (!runtimeIdentityStatus.equals("EXACT")) {
+            if (!runtimeIdentityStatus.equals("UNBOUND")
+                    && !runtimeIdentityStatus.equals("MISMATCH")) {
+                throw new IllegalArgumentException(
+                        "Unknown runtime identity status " + runtimeIdentityStatus);
+            }
+            return new DecisionPolicy(
+                    "KEEP_CURRENT_RUNTIME_DEFAULT",
+                    "NOT_APPROVED_FOR_PRODUCTION_V1_BORDERLINE_FROZEN_GATE_FAILURE",
+                    "DEFER_TO_V2_PRODUCT_TOLERANCE_AND_TRAJECTORY_ISOLATION_REVIEW",
+                    runtimeIdentityStatus,
+                    "BLOCK_MATCH_ENGINE_V1_FREEZE_RUNTIME_IDENTITY_UNBOUND");
+        }
         return new DecisionPolicy(
                 "KEEP_CURRENT_RUNTIME_DEFAULT",
                 "NOT_APPROVED_FOR_PRODUCTION_V1_BORDERLINE_FROZEN_GATE_FAILURE",
                 "DEFER_TO_V2_PRODUCT_TOLERANCE_AND_TRAJECTORY_ISOLATION_REVIEW",
-                "READY_TO_FREEZE_WITHOUT_JUNGLE_ECONOMY_OR_TEMPO_CANDIDATES");
+                "EXACT",
+                "READY_FOR_MATCH_ENGINE_V1_FREEZE");
     }
 
     private static Map<String, Object> bindingReport(
             InputBinding inputs,
-            List<PairedEvidence> evidence
+            List<PairedEvidence> evidence,
+            Phase13GBFinalRuntimeIdentityEvidence.Evidence runtimeIdentity,
+            String runtimeIdentityStatus,
+            String runtimeEvidenceRawSha
     ) {
         Map<String, Object> report = new LinkedHashMap<>();
         report.put("allInputManifestEntriesExact", inputs.exact());
@@ -444,6 +530,11 @@ public final class Phase13GBFinalSynthesis {
         report.put("newSimulationExecutionCount", 0);
         report.put("pairedEvidenceRowsRead", evidence.size());
         report.put("phase", PHASE);
+        report.put("runtimeIdentity", runtimeIdentity == null ? Map.of(
+                "status", runtimeIdentityStatus) : Map.of(
+                "evidenceRawSha256", runtimeEvidenceRawSha,
+                "runtimeIdentityHash", runtimeIdentity.runtimeIdentityHash(),
+                "status", runtimeIdentityStatus));
         report.put("schemaVersion", "FINAL_13G_B_EVIDENCE_BINDING_V1");
         return report;
     }
@@ -471,11 +562,20 @@ public final class Phase13GBFinalSynthesis {
         report.put("stratifiedCalibrationHoldoutCorrelation",
                 correlationReport(segments));
         report.put("tempo", Map.of(
-                "championDependenceInterpretation",
-                "SYSTEMATIC_CHAMPION_DEPENDENCE_REPRODUCED_ACROSS_CALIBRATION_AND_HOLDOUT",
+                "causalAttributionEstablished", false,
+                "commonBucketCount", segmentRates(
+                        segments, SourcePopulation.CALIBRATION_B2, TEMPO,
+                        Dimension.CHAMPION).keySet().stream()
+                        .filter(segmentRates(
+                                segments, SourcePopulation.HOLDOUT_B3, TEMPO,
+                                Dimension.CHAMPION)::containsKey).count(),
+                "correlationMethod", "UNWEIGHTED_PEARSON_COMMON_CHAMPION_BUCKETS",
                 "frozenVerdict", inputs.tempoFrozenVerdict(),
                 "interpretation",
-                "WINNER_FLIP_IS_TRAJECTORY_SENSITIVITY_NOT_DIRECT_WIN_RATE_EFFECT",
+                "CHAMPION_BUCKET_SENSITIVITY_PATTERN_REPRODUCED_NOT_CAUSAL_EFFECT",
+                "isolatedChampionEffect", false,
+                "knownConfounders", List.of("PLAYER", "TEAM", "FIXTURE", "MATCHUP"),
+                "preRegisteredDecisionGate", false,
                 "productToleranceDefined", false));
         report.put("topHoldoutSegments", topHoldoutSegments(segments));
         return report;
@@ -487,7 +587,10 @@ public final class Phase13GBFinalSynthesis {
             GateBoundary economyBoundary,
             List<PairedEvidence> evidence,
             List<SegmentRow> segments,
-            Map<String, String> decisionInputs
+            Map<String, String> decisionInputs,
+            Phase13GBFinalRuntimeIdentityEvidence.Evidence runtimeIdentity,
+            String runtimeIdentityStatus,
+            String runtimeEvidenceRawSha
     ) {
         double tempoChampionCorrelation = correlation(
                 segmentRates(segments, SourcePopulation.CALIBRATION_B2, TEMPO,
@@ -513,6 +616,7 @@ public final class Phase13GBFinalSynthesis {
                 "upperInclusive", economyBoundary.upperInclusive()));
         report.put("evidenceStatus", "FINAL_EVIDENCE_VALID");
         report.put("matchEngineV1FreezeReadiness", policy.freezeReadiness());
+        report.put("holdoutRerunPerformed", false);
         report.put("nextStep", "MATCH_ENGINE_V1_FREEZE");
         report.put("phase", PHASE);
         report.put("productionCandidateActivation", Map.of(
@@ -520,19 +624,66 @@ public final class Phase13GBFinalSynthesis {
                 "FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1", false));
         report.put("productionDecision", policy.productionDecision());
         report.put("productionGameplayChanged", false);
-        report.put("schemaVersion", "FINAL_13G_B_PRODUCTION_DECISION_V1");
-        report.put("tempo", Map.of(
-                "calibrationHoldoutChampionRateCorrelation", tempoChampionCorrelation,
-                "calibrationWinnerFlipRate", tempoB2.winnerFlipRate(),
-                "disposition", policy.tempoDisposition(),
-                "frozenVerdict", inputs.tempoFrozenVerdict(),
-                "holdoutWinnerFlipRate", tempoB3.winnerFlipRate(),
-                "interpretation",
-                "CHAMPION_DEPENDENT_REPRODUCIBLE_BUT_NO_PRODUCT_TOLERANCE",
-                "rerunHoldout", false));
+        if (runtimeIdentity != null) {
+            Map<String, String> runtimeValues = runtimeIdentity.identityValues();
+            Map<String, Object> runtimeDocument =
+                    Phase13GBFinalRuntimeIdentityEvidence.outputDocument(
+                            runtimeIdentity,
+                            runtimeEvidenceRawSha);
+            report.put("activeGameplayRulesVersion",
+                    runtimeValues.get("activeGameplayRulesVersion"));
+            report.put("configurationHashAlgorithm",
+                    runtimeValues.get("configurationHashAlgorithm"));
+            report.put("draftRuleSetHash", runtimeValues.get("draftRuleSetHash"));
+            report.put("draftRuleSetIdentity", runtimeValues.get("draftRuleSetIdentity"));
+            report.put("draftScoringPolicyHash",
+                    runtimeValues.get("draftScoringPolicyHash"));
+            report.put("engineImplementationVersion",
+                    runtimeValues.get("engineImplementationVersion"));
+            report.put("productionSourceTreeHash",
+                    runtimeValues.get("productionSourceTreeHash"));
+            report.put("productionSourceTreeFileCount",
+                    Integer.parseInt(runtimeValues.get("productionSourceTreeFileCount")));
+            report.put("resourceProvenanceHash",
+                    runtimeValues.get("resourceProvenanceHash"));
+            report.put("retainedConfigurationHash",
+                    runtimeValues.get("retainedConfigurationHash"));
+            report.put("retainedGameplayConfiguration",
+                    runtimeDocument.get("retainedGameplayConfiguration"));
+            report.put("retainedRuntimeProfileId",
+                    runtimeValues.get("retainedRuntimeProfileId"));
+            report.put("runtimeIdentityHash", runtimeIdentity.runtimeIdentityHash());
+            report.put("runtimeIdentityHashAlgorithm",
+                    runtimeValues.get("runtimeIdentityHashAlgorithm"));
+            report.put("runtimeWiring", runtimeDocument.get("wiring"));
+        }
+        report.put("runtimeIdentityStatus", runtimeIdentityStatus);
+        report.put("schemaVersion", "FINAL_13G_B_PRODUCTION_DECISION_V2");
+        report.put("tempo", Map.ofEntries(
+                Map.entry("calibrationHoldoutChampionRateCorrelation", tempoChampionCorrelation),
+                Map.entry("calibrationWinnerFlipRate", tempoB2.winnerFlipRate()),
+                Map.entry("causalAttributionEstablished", false),
+                Map.entry("commonBucketCount", segmentRates(
+                        segments, SourcePopulation.CALIBRATION_B2, TEMPO,
+                        Dimension.CHAMPION).keySet().stream()
+                        .filter(segmentRates(
+                                segments, SourcePopulation.HOLDOUT_B3, TEMPO,
+                                Dimension.CHAMPION)::containsKey).count()),
+                Map.entry("correlationMethod",
+                        "UNWEIGHTED_PEARSON_COMMON_CHAMPION_BUCKETS"),
+                Map.entry("disposition", policy.tempoDisposition()),
+                Map.entry("frozenVerdict", inputs.tempoFrozenVerdict()),
+                Map.entry("holdoutWinnerFlipRate", tempoB3.winnerFlipRate()),
+                Map.entry("interpretation",
+                        "CHAMPION_BUCKET_SENSITIVITY_PATTERN_REPRODUCED_NOT_CAUSAL_EFFECT"),
+                Map.entry("isolatedChampionEffect", false),
+                Map.entry("knownConfounders",
+                        List.of("PLAYER", "TEAM", "FIXTURE", "MATCHUP")),
+                Map.entry("preRegisteredDecisionGate", false),
+                Map.entry("rerunHoldout", false)));
         report.put("tradeoffs", List.of(
                 "Frozen Economy FAIL is preserved even though the miss is one discrete flip",
-                "Tempo champion dependence is real but aggregate winner flip is not causal win rate",
+                "Tempo champion-bucket sensitivity ordering reproduced but does not isolate a causal champion effect",
                 "Keeping the current runtime avoids an evidence override and consumes no new seeds",
                 "Any V2 candidate requires a new contract, calibration plan, and fresh holdout"));
         return report;
@@ -939,6 +1090,15 @@ public final class Phase13GBFinalSynthesis {
         return java.util.HexFormat.of().formatHex(digest.digest());
     }
 
+    private static String sha256Bytes(byte[] bytes) {
+        try {
+            return java.util.HexFormat.of().formatHex(
+                    MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (NoSuchAlgorithmException error) {
+            throw new IllegalStateException(error);
+        }
+    }
+
     enum SourcePopulation {
         CALIBRATION_B2,
         HOLDOUT_B3,
@@ -1197,6 +1357,7 @@ public final class Phase13GBFinalSynthesis {
             String productionDecision,
             String economyDisposition,
             String tempoDisposition,
+            String runtimeIdentityStatus,
             String freezeReadiness
     ) {
     }
@@ -1236,6 +1397,9 @@ public final class Phase13GBFinalSynthesis {
             String productionDecision,
             String economyDisposition,
             String tempoDisposition,
+            String retainedRuntimeProfileId,
+            String runtimeIdentityStatus,
+            String freezeReadiness,
             int inputPairedRows,
             String manifestSha256
     ) {

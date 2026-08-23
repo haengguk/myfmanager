@@ -223,18 +223,24 @@ B2 calibration evidence(holdout 0)
 
 Final 13G-B는 simulator나 resolver가 아니라 B2/B3 artifact의 test-side read-only consumer다. B2/B3 raw manifest와 review cross-reference가 exact일 때만 결정을 만들며 새 seed, `Random`, Draft orchestration 또는 match state를 생성하지 않는다. Paired rows는 `fixtureId`, team code, stable player ID, champion ID와 side로 결합한다. Display nickname, event message, description과 array index는 gameplay attribution이나 segment key로 사용하지 않는다.
 
+Retained runtime evidence는 별도 test-side inspector가 actual production objects에서 만든다. Closed registry의 `BASELINE_V1`을 resolve하고 RealDraft 기본 overload와 explicit BASELINE, Spring autowired simulator, `POST /api/matches/simulate` controller injection을 fixed seed로 실행해 parity를 확인한다. Production source tree는 main Java/resources/settings와 B1/B2/B3 block을 제외한 production build contract에서 다시 계산하고, resource/Draft/rules/engine identity는 실제 RealDraft execution provenance에서 읽는다. Standalone synthesis는 frozen evidence raw SHA와 내부 ordered-lines runtime identity hash를 모두 다시 검증하므로 caller가 임의 profile/hash/wiring 값을 self-sign해 READY를 만들 수 없다.
+
 ```text
 B2 manifest/review + B3 manifest/review/frozen gate
   → raw SHA와 B2↔B3 binding 검증
+production registry/actual wiring
+  → canonical RuntimeIdentityEvidence + frozen raw/internal SHA
   → Economy−Full / Tempo−Economy paired population만 선택
   → fixture/team/side/player/champion/player×champion/matchup 분해
   → calibration↔holdout segment 재현성 + 방향성 합성
-  → Production V1 decision (candidate activation false)
+  → Production Decision V2 (candidate activation false, runtime identity EXACT)
 ```
 
-결정은 `KEEP_CURRENT_RUNTIME_DEFAULT`다. Economy의 frozen `FAIL`은 한 discrete G1 flip 경계라는 설명을 붙이되 승인으로 다시 이름 붙이지 않는다. Tempo는 champion segment의 calibration↔holdout correlation 0.906으로 능력치/챔피언 구성 의존성이 재현됐지만, winner flip 자체가 Random trajectory sensitivity이며 허용 가능한 product tolerance가 정의되지 않았다. 따라서 Economy/Tempo candidate configuration은 계속 explicit audit profile로 존재하되 Production V1 기본 runtime과 Match Engine V1 freeze 범위에는 들어가지 않는다.
+결정은 `KEEP_CURRENT_RUNTIME_DEFAULT`이며 retained application runtime은 `BASELINE_V1`이다. Configuration hash는 `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`, active rules는 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, engine은 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6`다. Final evidence와 runtime identity가 모두 exact일 때만 `READY_FOR_MATCH_ENGINE_V1_FREEZE`이며, runtime evidence가 없거나 frozen identity와 다르면 `BLOCK_MATCH_ENGINE_V1_FREEZE_RUNTIME_IDENTITY_UNBOUND`다.
 
-이 결정은 production configuration enum이나 HTTP default를 변경해 “OFF”를 새로 구현한 것이 아니다. 이미 존재하는 현재 default를 유지하고 두 candidate를 활성화하지 않는 범위 결정이다. 향후 Economy 수정 또는 Tempo V2는 소비된 B3 seed나 gate를 재사용하지 않고 새 candidate identity, calibration 계획, product tolerance와 fresh holdout을 가져야 한다.
+Economy의 frozen `FAIL`은 한 discrete G1 flip 경계라는 설명을 붙이되 승인으로 다시 이름 붙이지 않는다. Tempo의 10개 공통 champion bucket 민감도 순서는 calibration↔holdout unweighted Pearson 0.906으로 재현됐다. 이 분석은 pre-registered decision gate가 아니며 player/team/fixture/matchup confounder를 격리하지 않았으므로 champion의 독립 효과나 인과관계를 뜻하지 않는다. Winner flip 자체도 Random trajectory sensitivity이며 product tolerance가 정의되지 않았다. 따라서 Economy/Tempo candidate configuration은 계속 explicit audit profile로 존재하되 Production V1 기본 runtime에는 들어가지 않는다.
+
+이 결정은 production configuration enum이나 HTTP default를 변경해 “OFF”를 새로 구현한 것이 아니다. 이미 존재하는 현재 default를 유지하고 두 candidate를 활성화하지 않는 범위 결정이다. HTTP는 autowired `MatchSimulator`와 `DummyDataFactory` roster를 계속 사용하며 RealDraft API 전환은 하지 않았다. `SimulationOptions.productionDefaults()`는 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`, Jungle contribution OFF인 저수준 constructor default(configuration hash `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d`)로, authoritative application runtime default와 분리된다. 향후 Economy 수정 또는 Tempo V2는 소비된 B3 seed나 gate를 재사용하지 않고 새 candidate identity, calibration 계획, product tolerance와 fresh holdout을 가져야 한다.
 
 ## Combat Strength Inputs
 
