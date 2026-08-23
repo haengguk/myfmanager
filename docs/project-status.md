@@ -175,6 +175,16 @@ Tempo − Economy winner flip은 G1 249/720(34.58%), G2 23/80(28.75%), 전체 27
 
 각 shard는 자기 authorization 파일을 atomic move해 한 번만 시작할 수 있고 `forkEvery=1`인 네 독립 Test task가 4개 distinct JVM receipt를 남긴다. Finalizer는 authenticated checkpoint 100/100, raw payload digest 100/100, BASELINE replay 100/100 exact, calibration 실행 0, domain error 0, SUPPORT FARM CS 0, timeout 0을 재검증했다. Artifact는 `backend/build/reports/phase13g-b3/`에 있으며 final review SHA-256은 `60df0caa7b0193a4b67fe0380bc326d9e7efdae34f794515679131c3f305badf`, integrity SHA-256은 `909d2abb5869e68d7102fa7245410e535d8792dafe68051b200a352664b73bf7`, gate evaluation SHA-256은 `c1513e6adc633a1a4692cbe6a2b62a05a0977335fc6b143d4a82a522026b9ba1`, 18-entry manifest SHA-256은 `460d74573ffb971e9e2ff491a039d2002fc6e02a4f37067a9c18da73f0b70c9d`다. 이 holdout은 소비됐으며 결과가 불리해도 재실행하거나 gate/tuning을 바꾸는 입력으로 재사용하지 않는다.
 
+### Final 13G-B synthesis and Production V1 decision
+
+`FINAL_13G_B_SYNTHESIS_AND_PRODUCTION_V1_DECISION`은 새 match를 실행하지 않고 B2 12,000경기와 B3 4,000경기의 raw SHA manifest, review 상호 참조와 6,400개 주 비교 paired row만 읽었다. Final evidence는 `FINAL_EVIDENCE_VALID`, 새 simulation execution은 0이다. 결정은 `KEEP_CURRENT_RUNTIME_DEFAULT`: `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1`과 `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1`을 Production V1 기본값으로 활성화하지 않고 현재 runtime을 유지한다. Match Engine V1은 `READY_TO_FREEZE_WITHOUT_JUNGLE_ECONOMY_OR_TEMPO_CANDIDATES`이며 다음 단계는 `MATCH_ENGINE_V1_FREEZE`다.
+
+Economy의 frozen `FAIL`은 그대로 보존한다. G1 실제 1.388889%와 상한 1.379455%의 차이는 0.009434%p, 즉 이 표본 크기에서는 winner flip 한 건 경계다. 이를 구조적 결함이나 대규모 balance 붕괴로 확대 해석하지 않지만, 결과가 근소하다는 이유로 holdout을 다시 돌리거나 gate를 완화해 승인하지도 않는다. B2→B3 segment flip-rate 상관은 champion -0.394, player/team 0.104, player×champion -0.182로 안정된 특정 segment 패턴을 재현하지 않았다.
+
+Tempo는 선수·챔피언과 무관한 상수가 아니었다. B2→B3 flip-rate 상관은 champion 0.906, player×champion 0.588, fixture 0.422, player/team 0.219였다. 현재 snapshot은 팀당 정글러가 한 명이라 player와 team 효과를 서로 분리할 수 없지만, champion별 순서가 holdout에서도 강하게 재현된 것은 명확하다. 다만 33.79%→34.00% winner flip은 같은 seed에서 action eligibility와 이후 Random trajectory가 달라진 민감도이지 직접적인 승률 인과효과가 아니다. 명시적 product tolerance와 trajectory-isolation 기준이 없으므로 Tempo는 `DEFER_TO_V2_PRODUCT_TOLERANCE_AND_TRAJECTORY_ISOLATION_REVIEW`로 보류한다.
+
+Machine-readable artifact는 `backend/build/reports/final-13g-b/`의 evidence binding, segmented sensitivity, flipped pairs, synthesis, production decision과 `SHA256SUMS.txt`다. Manifest SHA-256은 `f21a3bd1eaf34d9361c87c299199bce2432e6edb62585088cbc251a6e0145542`이며 5/5 raw SHA가 통과했다. 이 결정은 gameplay source, resource, tuning, Gradle wiring, HTTP/frontend를 변경하지 않는다.
+
 ### Pre-Jungle baseline
 
 공식 oracle은 `PRE_JUNGLE_RUNTIME_BASELINE_V2`다. Focused tests와 final full regression이 clean pass하고 production source guard가 동일한 tree에서만 `generatePreJungleRuntimeBaselineV2`를 실행했다. 새 JVM 재생성도 source artifact와 byte-identical하게 성공했다.
@@ -240,6 +250,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - 명시적 PlayerKey 순서의 Champion Power 평균, fresh-JVM 2회 B1 artifact 7/7 byte equality와 canonical B1 manifest binding gate
 - calibration-only 12,000경기, fixture-atomic resume, 100 replay exact, fixed-time Jungle 관측과 paired marginal/SHA artifact를 갖춘 Final 13G-B2 audit pipeline
 - 사전 동결 contract, one-time authorization, 4 fresh-JVM receipt, 100 authenticated checkpoint와 4,000-row paired evidence를 갖춘 Final 13G-B3 holdout pipeline
+- B2/B3 manifest를 다시 검증하고 player/champion/team/fixture 민감도를 분리해 현재 runtime 유지와 Match Engine V1 freeze readiness를 고정한 Final 13G-B production decision
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -253,18 +264,17 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - Real LCK Draft→Match flow는 backend component로 연결됐지만 `MatchController`, Draft API와 frontend에는 아직 노출되지 않았다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
 - Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
-- Final 13G-B2 calibration 12,000경기와 B3 holdout 4,000경기는 완료했지만 둘 다 review evidence다. B3는 Economy `FAIL`, Tempo `REVIEW_REQUIRED`를 기록했으며 자동 tuning과 `PRODUCTION_V1` 결정은 수행하지 않았다.
-- Jungle Economy V1-A는 economy-only profile에서 계속 CS/gold/XP에만 연결된다. V1-B Tempo candidate는 별도 profile에서 bounded readiness를 gank와 counter-gank eligibility에만 연결했다. Objective eligibility/확률/reward에는 직접 연결하지 않았고 production 채택·튜닝도 아직 결정하지 않았다.
+- Final 13G-B는 Economy `FAIL`과 Tempo `REVIEW_REQUIRED`를 보존한 채 Production V1을 `KEEP_CURRENT_RUNTIME_DEFAULT`로 결정했다. 두 candidate profile은 감사/향후 설계용으로 남지만 runtime 기본값에는 활성화하지 않는다.
+- Jungle Economy V1-A는 economy-only candidate profile에서 계속 CS/gold/XP에만 연결된다. V1-B Tempo candidate는 별도 profile에서 bounded readiness를 gank와 counter-gank eligibility에만 연결한다. Objective eligibility/확률/reward에는 직접 연결하지 않았고 Production V1 tuning은 수행하지 않았다.
 - `DraftEngine`은 application component 내부의 pure domain dependency이며 독립 Spring bean/API로 공개되지 않는다.
 - 첫 game은 exclusion이 없어 단판처럼 동작하지만 별도 Standard ruleset 선택 기능은 없다.
 
 ## Pending
 
-1. Final 13G-B에서 B2/B3를 종합해 Economy의 단일 근소 gate failure와 Tempo의 재현된 34.00% sensitivity를 검토하고, 원래 의사결정 구조에 따라 `PRODUCTION_V1` 범위를 결정한다. B3 holdout 자체는 재실행하지 않는다.
-2. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 holdout 계약을 만든다.
+1. 결정된 현재 runtime 기준으로 Match Engine V1 input/output/profile/provenance를 freeze한다. Economy/Tempo candidate는 V1 기본 범위에서 제외한다.
+2. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 3. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
-4. 결정된 Match Engine V1 input/output/profile/provenance를 freeze한다.
-5. 이후 Real Match API/frontend/BO3·BO5, Career/Save/Season 순으로 진행한다.
+4. 이후 Real Match API/frontend/BO3·BO5, Career/Save/Season 순으로 진행한다.
 
 ## Test Snapshot
 
@@ -302,6 +312,8 @@ Checkpoint authenticity/fresh-JVM hardening final tree의 default full regressio
 Phase-specific guard로 재고정한 공식 `runPhase13GB2Calibration`은 P1 cross-JVM → B1 dry-run → `forkEvery=1`인 4 fresh-JVM calibration workers → receipt-bound artifact finalizer 순으로 20분 4초에 clean pass했다. 서로 다른 JVM identity 4/4, authenticated fixture checkpoint 100/100, checkpoint payload digest 100/100, 12,000 calibration rows, 12,000 paired marginals, 100 exact replay, holdout 0과 SHA manifest 16/16을 확인했고 기존 B2 balance signal과 exact equality였다.
 
 Final 13G-B3 final executable tree에서는 B1/B2/B3 contract focused tests가 clean pass했고 `runPhase13GB3Smoke`는 reserved holdout seed 없이 1 suite / 1 test, failures/errors/skipped 0, JUnit 14.262초, Gradle wall 26초로 통과했다. 이어 default full regression은 첫 실행에서 170 suites / 1,969 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 488.240초, Gradle wall 8분 23초로 clean pass했다. Phase-specific guard에 맞춘 B2 재고정은 20분 4초, frozen contract 생성은 16초, one-time `runPhase13GB3FrozenHoldout`은 22분 32초에 성공했다. 이후 executable source/resource/Gradle은 바꾸지 않고 artifact 검증과 문서만 갱신했으므로 full을 반복하지 않았다.
+
+Final 13G-B 합성기는 1 suite / 6 focused tests, failures/errors/skipped 0으로 통과했다. Java 21 Gradle compile 경로와 독립 Java 17 compile/run 경로에서 같은 6,400-row 합성 결과와 manifest SHA-256 `f21a3bd1eaf34d9361c87c299199bce2432e6edb62585088cbc251a6e0145542`를 만들었고 5/5 raw SHA가 통과했다. 이 후속 작업은 production Java/resource/Gradle/shared fixture를 바꾸지 않은 isolated test-side consumer와 문서 변경이므로 위 B3 clean full을 재사용했다.
 
 Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 

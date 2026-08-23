@@ -219,6 +219,23 @@ B2 calibration evidence(holdout 0)
 
 공식 B3는 G1 3,600, G2 400으로 총 4,000 holdout matches를 한 번 실행했다. Replay 100/100 exact, unique job/provenance 4,000/4,000, distinct JVM 4/4, calibration execution 0, structural/domain error 0, SUPPORT FARM CS 0, timeout 0이다. Evidence status는 `HOLDOUT_EVIDENCE_READY_FOR_FINAL_REVIEW`; Economy는 frozen G1 winner-flip gate 하나를 근소하게 넘겨 `FAIL`, Tempo는 모든 structural/numeric gate를 통과했지만 높은 민감도의 product tolerance가 없어 `REVIEW_REQUIRED`, production decision은 `NOT_EVALUATED`다. 이 결과는 Final 13G-B의 입력이며 runtime default나 gameplay tuning을 직접 바꾸지 않는다.
 
+#### Final synthesis and Production V1 boundary
+
+Final 13G-B는 simulator나 resolver가 아니라 B2/B3 artifact의 test-side read-only consumer다. B2/B3 raw manifest와 review cross-reference가 exact일 때만 결정을 만들며 새 seed, `Random`, Draft orchestration 또는 match state를 생성하지 않는다. Paired rows는 `fixtureId`, team code, stable player ID, champion ID와 side로 결합한다. Display nickname, event message, description과 array index는 gameplay attribution이나 segment key로 사용하지 않는다.
+
+```text
+B2 manifest/review + B3 manifest/review/frozen gate
+  → raw SHA와 B2↔B3 binding 검증
+  → Economy−Full / Tempo−Economy paired population만 선택
+  → fixture/team/side/player/champion/player×champion/matchup 분해
+  → calibration↔holdout segment 재현성 + 방향성 합성
+  → Production V1 decision (candidate activation false)
+```
+
+결정은 `KEEP_CURRENT_RUNTIME_DEFAULT`다. Economy의 frozen `FAIL`은 한 discrete G1 flip 경계라는 설명을 붙이되 승인으로 다시 이름 붙이지 않는다. Tempo는 champion segment의 calibration↔holdout correlation 0.906으로 능력치/챔피언 구성 의존성이 재현됐지만, winner flip 자체가 Random trajectory sensitivity이며 허용 가능한 product tolerance가 정의되지 않았다. 따라서 Economy/Tempo candidate configuration은 계속 explicit audit profile로 존재하되 Production V1 기본 runtime과 Match Engine V1 freeze 범위에는 들어가지 않는다.
+
+이 결정은 production configuration enum이나 HTTP default를 변경해 “OFF”를 새로 구현한 것이 아니다. 이미 존재하는 현재 default를 유지하고 두 candidate를 활성화하지 않는 범위 결정이다. 향후 Economy 수정 또는 Tempo V2는 소비된 B3 seed나 gate를 재사용하지 않고 새 candidate identity, calibration 계획, product tolerance와 fresh holdout을 가져야 한다.
+
 ## Combat Strength Inputs
 
 전투 점수는 한 거대한 profile로 합쳐 저장하지 않는다.

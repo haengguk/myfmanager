@@ -260,6 +260,42 @@ Final executable tree의 B1/B2/B3 focused contract tests와 B3 smoke는 clean pa
 
 Machine-readable 결과는 `build/reports/phase13g-b3/phase13g-b3-final-review.json`과 `phase13g-b3-frozen-gate-evaluation.json`을 사용한다. Evidence는 READY이고 exact 7/7, numeric 66/67이다. Economy G1 winner flip 10/720(1.3889%)이 frozen inclusive 상한 1.379455%를 넘겨 Economy `FAIL`; Tempo 전체 flip 272/800(34.00%)은 B2 33.79%의 interval과 일치하지만 product tolerance가 없어 `REVIEW_REQUIRED`다. 이는 holdout 재실행·threshold 완화·자동 tuning의 근거가 아니며 `productionDecision`은 Final 13G-B까지 `NOT_EVALUATED`다.
 
+### Final 13G-B synthesis and Production V1 decision
+
+Final 합성기는 test-side의 작은 plain-JDK consumer다. B2/B3 match를 재실행하지 않고 두 `SHA256SUMS.txt`의 16/18 entries, B3의 B2 review/manifest binding, frozen verdict와 실행 횟수를 먼저 확인한다. 그 뒤 `ECONOMY_MINUS_FULL`과 `TEMPO_MINUS_ECONOMY`의 B2/B3 paired row를 final Jungle player/champion 및 fixture team과 structured key로 join한다. Display name이나 event text는 사용하지 않는다.
+
+```bash
+cd backend
+./gradlew test \
+  --tests 'com.lolfm.application.Phase13GBFinalSynthesisContractTest' \
+  --console=plain --no-daemon
+
+# 합성기는 외부 dependency가 없는 Java 17 source로 독립 컴파일 가능
+javac --release 17 \
+  -d build/classes/java/final-13g-b \
+  src/test/java/com/lolfm/application/Phase13GBFinalSynthesis.java
+java -cp build/classes/java/final-13g-b \
+  com.lolfm.application.Phase13GBFinalSynthesis \
+  build/reports/phase13g-b2 \
+  build/reports/phase13g-b3 \
+  build/reports/final-13g-b
+
+cd build/reports/final-13g-b
+sha256sum -c SHA256SUMS.txt
+```
+
+계약 테스트는 segment attribution/flip direction, common-key correlation, frozen `FAIL`/`REVIEW_REQUIRED`의 보수적 decision, invalid evidence 차단, raw-byte SHA tamper rejection, CSV/JSON canonicalization을 검증하며 6/6 통과했다. 공식 합성은 input paired row 6,400개, 새 simulation 0개로 `FINAL_EVIDENCE_VALID`와 `KEEP_CURRENT_RUNTIME_DEFAULT`를 만들었다. Output manifest SHA-256은 `f21a3bd1eaf34d9361c87c299199bce2432e6edb62585088cbc251a6e0145542`이고 5/5 entry 검사가 통과했다.
+
+Artifact는 `build/reports/final-13g-b/`의 다음 파일이다.
+
+- `final-13g-b-evidence-binding.json`: B2/B3 manifest/review/contract identity와 no-rerun binding
+- `final-13g-b-segmented-sensitivity.csv`: calibration/holdout/combined의 fixture/team/side/player/champion/player×champion/matchup 집계
+- `final-13g-b-flipped-pairs.csv`: winner가 바뀐 1,112개 paired row의 structured attribution
+- `final-13g-b-sensitivity-synthesis.json`: aggregate, B2↔B3 segment correlation과 top holdout segments
+- `final-13g-b-production-decision.json`: candidate activation false, current runtime 유지, Match Engine V1 freeze readiness
+
+Final 작업은 production Java/resource/Gradle/shared fixture를 변경하지 않았다. 따라서 B3 final tree에서 이미 통과한 170 suites / 1,969 tests full regression을 재사용하고, test-side 합성기 focused test만 실행했다. B3 official holdout task는 여전히 재실행 금지다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.
