@@ -56,5 +56,13 @@ public class LaneStructureState {
         if (!isInhibitorVulnerable()) return false;
         inhibitorAlive=false; inhibitorDestroyedAtSeconds=currentTimeSeconds; return true;
     }
+    public boolean refreshAt(int currentTimeSeconds) {
+        if (inhibitorAlive || inhibitorDestroyedAtSeconds < 0
+                || currentTimeSeconds < inhibitorDestroyedAtSeconds
+                + StructureRuleConfig.INHIBITOR_RESPAWN_SECONDS) return false;
+        inhibitorAlive = true;
+        inhibitorDestroyedAtSeconds = -1;
+        return true;
+    }
     public int destroyedTowerCount() { int value=0; if(!outerTowerAlive)value++; if(!innerTowerAlive)value++; if(!inhibitorTowerAlive)value++; return value; }
 }

@@ -60,6 +60,12 @@ public class PushResolver {
         }
 
         int objectiveTime = postFightObjective.map(this::objectiveTimeCostSeconds).orElse(0);
+        if (objectiveTime > 0) {
+            // Taking a major objective consumes this simulation tick's conversion window.
+            // A later macro tick may begin a separate structure attempt.
+            state.recordPushFailure(PushFailureReason.TARGET_UNAVAILABLE);
+            return List.of();
+        }
         int startTime = Math.max(currentTime, fight.endedAtSeconds()) + objectiveTime;
         int availableUntil = Math.min(
                 defendersReachThreeAliveAt(state, attacking.opposite(), startTime),
@@ -70,11 +76,6 @@ public class PushResolver {
                 || attackers.hasActiveBaronBuff(startTime)
                 || state.getMapState().hasActiveBasePressure(attacking, startTime);
         int maximumStructures = maximumWindowStructures(fight.grade(), largePressure, startTime, availableUntil, random);
-        if (hasActiveElder(attackers, startTime)) {
-            if (fight.grade() == FightGrade.NORMAL_WIN) maximumStructures = Math.max(maximumStructures, 2);
-            if (fight.grade() == FightGrade.BIG_WIN) maximumStructures = Math.max(maximumStructures, 3);
-            if (fight.grade() == FightGrade.ACE) maximumStructures = Math.max(maximumStructures, 5);
-        }
         if (maximumStructures == 0 || startTime >= availableUntil) return List.of();
 
         Lane lane = chooseWindowLane(state, attacking, random);
@@ -92,14 +93,13 @@ public class PushResolver {
         int nextAttack = window.nextStructureAttackSeconds();
         while (!state.isFinished() && results.size() < window.maximumStructures() && nextAttack < window.availableUntilSeconds()) {
             if (countAlive(attackers, nextAttack) < 2) break;
-            advanceTo(state, nextAttack);
             Optional<StructureOutcome> result = destroyWindowTarget(state, window, resolver);
             if (result.isEmpty()) break;
             StructureOutcome structure = result.get();
             results.add(structure);
             state.recordPushSuccess();
             if (structure.gameEnded()) break;
-            nextAttack += structureAttackSeconds(attackers, state.getCurrentTimeSeconds());
+            nextAttack += structureAttackSeconds(attackers, nextAttack);
         }
         if (results.isEmpty()) state.recordPushFailure(PushFailureReason.TARGET_UNAVAILABLE);
         else {
@@ -120,12 +120,9 @@ public class PushResolver {
     private int maximumWindowStructures(FightGrade grade, boolean largePressure, int start, int availableUntil, Random random) {
         int available = availableUntil - start;
         if (available <= 0) return 0;
-        return switch (grade) {
-            case SMALL_WIN -> 1;
-            case NORMAL_WIN -> available >= PushRuleConfig.STANDARD_STRUCTURE_ATTACK_SECONDS * 2 && random.nextDouble() < 0.20 ? 2 : 1;
-            case BIG_WIN -> 2;
-            case ACE -> 4;
-        };
+        // The simulator resolves one map mutation per ten-second tick. A later tick may
+        // continue the push, but one combat result cannot instantly remove an entire base.
+        return 1;
     }
 
     private Lane chooseWindowLane(GameState state, TeamSide attacking, Random random) {
@@ -169,10 +166,6 @@ public class PushResolver {
         return attackers.hasActiveBaronBuff(time)
                 ? PushRuleConfig.BARON_STRUCTURE_ATTACK_SECONDS
                 : PushRuleConfig.STANDARD_STRUCTURE_ATTACK_SECONDS;
-    }
-
-    private void advanceTo(GameState state, int targetTime) {
-        if (targetTime > state.getCurrentTimeSeconds()) state.advanceTimeSeconds(targetTime - state.getCurrentTimeSeconds());
     }
 
     public Optional<StructureOutcome> maybeResolveMacroPush(GameState state,Random random,StructureResolver resolver){

@@ -45,7 +45,7 @@ class JungleEconomyResolverTest {
         assertThat(outcome.championClearMultiplier()).isEqualTo(1.05);
         assertThat(outcome.resourceManagementMultiplier()).isEqualTo(1.0);
         assertThat(outcome.combinedEfficiency()).isEqualTo(1.05);
-        assertThat(outcome.expectedCs()).isEqualTo(1.015);
+        assertThat(outcome.expectedCs()).isEqualTo(1.155);
         assertThat(outcome.awardedCs()).isEqualTo(1);
         assertThat(outcome.awardedGold()).isEqualTo(20);
         assertThat(outcome.awardedExperience()).isEqualTo(63);

@@ -136,7 +136,7 @@ class LaneCombatTest {
         assertEquals(before, victim.getCs()); assertEquals(goldAfterDeath + PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK, victim.getGold());
         setTime(state,620); simulator.applyTickEconomy(new Random(3), state, state.getRedTeamState(), TeamSide.RED,10,620);
         assertEquals(before, victim.getCs());
-        setTime(state,640); simulator.applyTickEconomy(new Random(3), state, state.getRedTeamState(), TeamSide.RED,10,640);
+        setTime(state,650); simulator.applyTickEconomy(new Random(3), state, state.getRedTeamState(), TeamSide.RED,10,650);
         assertTrue(victim.getCs() > before);
     }
 

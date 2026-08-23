@@ -504,7 +504,7 @@ class MatchSimulatorSmokeTest {
     }
 
     @Test
-    void bigWinPushWindowDestroysTwoStructuresOnTheSameLane() {
+    void bigWinPushWindowMutatesOnlyOneStructureInTheCurrentTick() {
         GameState state = createGameState();
         state.advanceTimeSeconds(2_700);
         StructureResolver structures = new StructureResolver();
@@ -516,14 +516,13 @@ class MatchSimulatorSmokeTest {
                 state, java.util.Optional.of(bigWin), java.util.Optional.empty(), forceSuccessfulRandom(1L), structures
         );
 
-        assertEquals(2, outcomes.size());
+        assertEquals(1, outcomes.size());
         assertEquals(Lane.MID, outcomes.get(0).lane());
-        assertEquals(Lane.MID, outcomes.get(1).lane());
-        assertTrue(outcomes.get(0).occurredAtSeconds() < outcomes.get(1).occurredAtSeconds());
+        assertEquals(2_700, state.getCurrentTimeSeconds());
     }
 
     @Test
-    void acePushWindowCanFinishFromInhibitorToNexusBeforeDefendersReturn() {
+    void acePushWindowCannotInstantlyRemoveAnEntireBase() {
         GameState state = createGameState();
         state.advanceTimeSeconds(2_700);
         StructureResolver structures = new StructureResolver();
@@ -537,11 +536,10 @@ class MatchSimulatorSmokeTest {
                 state, java.util.Optional.of(ace), java.util.Optional.empty(), forceSuccessfulRandom(2L), structures
         );
 
-        assertEquals(List.of(StructureKind.INHIBITOR, StructureKind.NEXUS_TURRET, StructureKind.NEXUS_TURRET, StructureKind.NEXUS),
+        assertEquals(List.of(StructureKind.INHIBITOR),
                 outcomes.stream().map(StructureOutcome::structureKind).toList());
-        assertTrue(state.isFinished());
-        assertEquals(GameEndReason.NEXUS_DESTROYED, state.getEndReason());
-        assertTrue(outcomes.stream().allMatch(outcome -> outcome.occurredAtSeconds() < 2_770));
+        assertFalse(state.isFinished());
+        assertEquals(2_700, state.getCurrentTimeSeconds());
     }
 
     @Test
@@ -557,9 +555,8 @@ class MatchSimulatorSmokeTest {
                 state, java.util.Optional.of(ace), java.util.Optional.of(baron), forceSuccessfulRandom(3L), structures
         );
 
-        assertFalse(outcomes.isEmpty());
-        assertEquals(2_735, outcomes.get(0).occurredAtSeconds());
-        assertTrue(outcomes.stream().allMatch(outcome -> outcome.occurredAtSeconds() < 2_750));
+        assertTrue(outcomes.isEmpty());
+        assertEquals(2_700, state.getCurrentTimeSeconds());
     }
 
     @Test
@@ -607,13 +604,24 @@ class MatchSimulatorSmokeTest {
     void simulationCreatesAtMostOneTowerEventPerTeamSidePerTick() {
         for (long seed = 1; seed <= 120; seed++) {
             Map<String, Integer> towersByTimeAndSide = new HashMap<>();
-            for (MatchEvent event : simulate(seed).getEvents()) {
+            List<MatchEvent> simulatedEvents = simulate(seed).getEvents();
+            for (MatchEvent event : simulatedEvents) {
                 if (event.getType() == MatchEventType.TOWER) {
                     String key = event.getTimeSeconds() + ":" + event.getStructureAttackingSide();
                     towersByTimeAndSide.merge(key, 1, Integer::sum);
                 }
             }
-            for (int count : towersByTimeAndSide.values()) assertTrue(count <= 1);
+            for (Map.Entry<String, Integer> entry : towersByTimeAndSide.entrySet()) {
+                String target = entry.getKey();
+                assertTrue(entry.getValue() <= 1, "seed=" + seed + " key=" + entry
+                        + " events=" + simulatedEvents.stream()
+                        .filter(event -> event.getType() == MatchEventType.TOWER)
+                        .filter(event -> (event.getTimeSeconds() + ":"
+                                + event.getStructureAttackingSide()).equals(target))
+                        .map(event -> event.getStructureKind() + ":"
+                                + event.getStructureActionSource() + ":" + event.getStructureLane())
+                        .toList());
+            }
         }
     }
 

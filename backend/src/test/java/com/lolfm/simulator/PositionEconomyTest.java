@@ -39,10 +39,10 @@ class PositionEconomyTest {
     void laneAndJungleFarmAwardCsGoldAndBountyProgressButSupportDoesNot() {
         TeamState team = completeTeam(14);
         new PositionEconomyResolver().resolve(team, 600, 600, new Random(1));
-        assertEquals(70, team.playerAt(Position.TOP).getCs());
-        assertEquals(71, team.playerAt(Position.MID).getCs());
-        assertEquals(72, team.playerAt(Position.ADC).getCs());
-        assertEquals(58, team.playerAt(Position.JUNGLE).getCs());
+        assertEquals(81, team.playerAt(Position.TOP).getCs());
+        assertEquals(86, team.playerAt(Position.MID).getCs());
+        assertEquals(92, team.playerAt(Position.ADC).getCs());
+        assertEquals(66, team.playerAt(Position.JUNGLE).getCs());
         PlayerState top = team.playerAt(Position.TOP);
         assertEquals(500 + top.getCs() * PositionEconomyRuleConfig.CS_GOLD, top.getGold());
         assertEquals(top.getCs(), top.getBountyProgress(), 0.000001);
@@ -72,20 +72,20 @@ class PositionEconomyTest {
         PositionEconomyResolver resolver = new PositionEconomyResolver();
         resolver.resolve(team, 20, 10, new Random(3));
         assertEquals(0, top.getCs());
-        resolver.resolve(team, 79, 10, new Random(3));
+        resolver.resolve(team, 89, 10, new Random(3));
         assertEquals(0, top.getCs());
-        resolver.resolve(team, 80, 10, new Random(3));
+        resolver.resolve(team, 90, 10, new Random(3));
         assertTrue(top.getCs() > 0);
     }
 
     @Test
-    void passiveGoldIsFourteenForEveryFarmingValueAndPositionAndDoesNotCreateBountyProgress() {
+    void passiveAndSupportQuestGoldStartWithTheEconomyClock() {
         for (int farming : List.of(1, 10, 14, 18, 20)) {
             for (Position position : Position.values()) {
                 PlayerState player = player(position.name(), position, farming);
                 TeamState team = new TeamState("team-" + position + farming, List.of(player));
-                simulator().applyTickEconomy(new Random(1), team, 10, 10);
-                assertEquals(PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK,
+                simulator().applyTickEconomy(new Random(1), team, 10, 70);
+                assertEquals(PositionEconomyRuleConfig.passiveGoldPerTick(position),
                         player.getGold() - 500 - player.getCs() * PositionEconomyRuleConfig.CS_GOLD);
                 assertEquals(player.getCs(), player.getBountyProgress(), 0.000001);
             }
@@ -97,9 +97,9 @@ class PositionEconomyTest {
         PlayerState top = player("top", Position.TOP, 14);
         TeamState team = new TeamState("team", List.of(top));
         top.markDead(0, 60);
-        simulator().applyTickEconomy(new Random(1), team, 10, 10);
+        simulator().applyTickEconomy(new Random(1), team, 10, 70);
         assertEquals(0, top.getCs());
-        assertEquals(514, top.getGold());
+        assertEquals(520, top.getGold());
         assertEquals(0.0, top.getBountyProgress());
     }
 
@@ -108,15 +108,15 @@ class PositionEconomyTest {
         PlayerState top = player("top", Position.TOP, 14);
         TeamState team = new TeamState("team", List.of(top));
         MatchSimulator simulator = simulator();
-        simulator.applyTickEconomy(new Random(4), team, 10, 10);
+        simulator.applyTickEconomy(new Random(4), team, 10, 70);
         int cs = top.getCs(), gold = top.getGold();
-        simulator.applyTickEconomy(new Random(99), team, 10, 10);
+        simulator.applyTickEconomy(new Random(99), team, 10, 70);
         assertEquals(cs, top.getCs());
         assertEquals(gold, top.getGold());
         assertEquals(1, team.getDuplicateEconomyResolutionCount());
-        simulator.applyTickEconomy(new Random(5), team, 10, 20);
+        simulator.applyTickEconomy(new Random(5), team, 10, 80);
         assertTrue(top.getGold() >= gold + PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK);
-        assertEquals(20, team.getLastEconomyResolvedAtSeconds());
+        assertEquals(80, team.getLastEconomyResolvedAtSeconds());
     }
 
     @Test
@@ -126,10 +126,10 @@ class PositionEconomyTest {
         TeamState second = new TeamState("same", List.of(player("second", Position.TOP, 14)));
         assertEquals(-1, first.getLastEconomyResolvedAtSeconds());
         assertEquals(-1, second.getLastEconomyResolvedAtSeconds());
-        simulator.applyTickEconomy(new Random(1), first, 10, 10);
-        simulator.applyTickEconomy(new Random(1), second, 10, 10);
-        assertEquals(514 + first.getPlayers().getFirst().getCs() * PositionEconomyRuleConfig.CS_GOLD, first.getPlayers().getFirst().getGold());
-        assertEquals(514 + second.getPlayers().getFirst().getCs() * PositionEconomyRuleConfig.CS_GOLD, second.getPlayers().getFirst().getGold());
+        simulator.applyTickEconomy(new Random(1), first, 10, 70);
+        simulator.applyTickEconomy(new Random(1), second, 10, 70);
+        assertEquals(520 + first.getPlayers().getFirst().getCs() * PositionEconomyRuleConfig.CS_GOLD, first.getPlayers().getFirst().getGold());
+        assertEquals(520 + second.getPlayers().getFirst().getCs() * PositionEconomyRuleConfig.CS_GOLD, second.getPlayers().getFirst().getGold());
         assertThrows(IllegalArgumentException.class, () -> simulator.applyTickEconomy(new Random(1), first, 10, 5));
     }
 

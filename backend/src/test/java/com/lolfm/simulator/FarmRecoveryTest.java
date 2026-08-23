@@ -29,21 +29,21 @@ class FarmRecoveryTest {
 
     @Test
     void preFourteenMinuteDeathUsesPositionReturnDelay() {
-        assertDelay(Position.TOP, 20);
-        assertDelay(Position.JUNGLE, 10);
-        assertDelay(Position.MID, 10);
-        assertDelay(Position.ADC, 20);
+        assertDelay(Position.TOP, 30);
+        assertDelay(Position.JUNGLE, 20);
+        assertDelay(Position.MID, 25);
+        assertDelay(Position.ADC, 35);
         assertDelay(Position.SUPPORT, 0);
     }
 
     @Test
-    void returnDelayAppliesAt840ButNot841() {
+    void returnDelayAppliesThroughoutTheMatch() {
         PlayerState atBoundary = player("TOP", Position.TOP, true);
         atBoundary.markDead(840, 20);
-        assertEquals(880, atBoundary.getFarmResumeAtSeconds());
+        assertEquals(890, atBoundary.getFarmResumeAtSeconds());
         PlayerState afterBoundary = player("TOP", Position.TOP, true);
         afterBoundary.markDead(841, 20);
-        assertEquals(861, afterBoundary.getFarmResumeAtSeconds());
+        assertEquals(891, afterBoundary.getFarmResumeAtSeconds());
     }
 
     @Test
@@ -57,13 +57,13 @@ class FarmRecoveryTest {
         assertFalse(top.isAlive(180));
         assertFalse(top.canFarmAt(180));
         assertEquals(0, top.getCs());
-        assertEquals(514, top.getGold());
+        assertEquals(520, top.getGold());
         assertEquals(0, random.calls);
         simulator.applyTickEconomy(random, team, 10, 190);
         assertTrue(top.isAlive(190));
         assertFalse(top.canFarmAt(190));
         assertEquals(0, top.getCs());
-        assertEquals(528, top.getGold());
+        assertEquals(540, top.getGold());
         assertEquals(0.0, top.getBountyProgress());
         assertEquals(0, random.calls);
     }
@@ -73,11 +73,11 @@ class FarmRecoveryTest {
         PlayerState top = player("TOP", Position.TOP, true);
         TeamState team = new TeamState("BLUE", List.of(top));
         top.markDead(180, 10);
-        assertFalse(top.canFarmAt(209));
+        assertFalse(top.canFarmAt(219));
         new PositionEconomyResolver().resolve(team, 200, 10, new Random(1));
         assertEquals(0, top.getCs());
-        assertTrue(top.canFarmAt(210));
-        new PositionEconomyResolver().resolve(team, 210, 10, new FixedRandom(0));
+        assertTrue(top.canFarmAt(220));
+        new PositionEconomyResolver().resolve(team, 220, 10, new FixedRandom(0));
         assertEquals(2, top.getCs());
     }
 
@@ -92,7 +92,7 @@ class FarmRecoveryTest {
         assertEquals(0, adc.getCs());
         assertEquals(500, adc.getGold());
         assertEquals(0.0, adc.getBountyProgress());
-        new PositionEconomyResolver().resolve(team, 210, 10, random);
+        new PositionEconomyResolver().resolve(team, 225, 10, random);
         assertEquals(1, random.calls);
         assertTrue(adc.getCs() > 0);
         assertEquals(500 + adc.getCs() * PositionEconomyRuleConfig.CS_GOLD, adc.getGold());
@@ -106,7 +106,7 @@ class FarmRecoveryTest {
         MatchSimulator simulator = simulator(true);
         simulator.applyTickEconomy(new FixedRandom(1), team, 10, 180);
         simulator.applyTickEconomy(new FixedRandom(1), team, 10, 190);
-        assertEquals(528, mid.getGold());
+        assertEquals(540, mid.getGold());
         assertEquals(0, mid.getCs());
         assertEquals(0.0, mid.getBountyProgress());
     }
@@ -118,7 +118,7 @@ class FarmRecoveryTest {
         List<MatchEvent> laneEvents = new ArrayList<>();
         new LaneCombatResolver().resolve(laneState, new SequenceRandom(0, 1, 1, .5, 0, 0, 0), laneEvents);
         PlayerState laneVictim = laneState.getRedTeamState().playerAt(Position.TOP);
-        assertEquals(laneVictim.getRespawnAtSeconds() + 20, laneVictim.getFarmResumeAtSeconds());
+        assertEquals(laneVictim.getRespawnAtSeconds() + 30, laneVictim.getFarmResumeAtSeconds());
 
         assertCombatSourceUsesCommonRule(false);
         assertCombatSourceUsesCommonRule(true);
@@ -128,13 +128,13 @@ class FarmRecoveryTest {
     void repeatedDeathWhileReturningMovesResumeForwardAndDuplicateDoesNotExtend() {
         PlayerState top = player("TOP", Position.TOP, true);
         top.markDead(180, 10);
-        assertEquals(210, top.getFarmResumeAtSeconds());
+        assertEquals(220, top.getFarmResumeAtSeconds());
         top.markDead(180, 10);
         assertEquals(1, top.getDeaths());
-        assertEquals(210, top.getFarmResumeAtSeconds());
+        assertEquals(220, top.getFarmResumeAtSeconds());
         top.markDead(190, 10);
         assertEquals(2, top.getDeaths());
-        assertEquals(220, top.getFarmResumeAtSeconds());
+        assertEquals(230, top.getFarmResumeAtSeconds());
     }
 
     @Test
@@ -146,7 +146,7 @@ class FarmRecoveryTest {
         simulator.applyTickEconomy(new FixedRandom(0), team, 10, 180);
         simulator.applyTickEconomy(new FixedRandom(0), team, 10, 190);
         assertEquals(0, support.getCs());
-        assertEquals(528, support.getGold());
+        assertEquals(558, support.getGold());
         assertEquals(0.0, support.getBountyProgress());
     }
 
@@ -162,19 +162,19 @@ class FarmRecoveryTest {
         assertFalse(deadTop.isAlive());
         assertFalse(deadTop.isCanFarm());
         assertEquals(190, deadTop.getRespawnAtSeconds());
-        assertEquals(210, deadTop.getFarmResumeAtSeconds());
-        assertEquals(30, deadTop.getFarmReturnSecondsRemaining());
+        assertEquals(220, deadTop.getFarmResumeAtSeconds());
+        assertEquals(40, deadTop.getFarmReturnSecondsRemaining());
         state.advanceTimeSeconds(10);
         PlayerSnapshot returning = snapshot(factory.create(state), "BLUE-TOP");
         assertTrue(returning.isAlive());
         assertFalse(returning.isCanFarm());
-        assertEquals(20, returning.getFarmReturnSecondsRemaining());
-        state.advanceTimeSeconds(20);
+        assertEquals(30, returning.getFarmReturnSecondsRemaining());
+        state.advanceTimeSeconds(30);
         PlayerSnapshot ready = snapshot(factory.create(state), "BLUE-TOP");
         assertTrue(ready.isCanFarm());
         assertEquals(0, ready.getFarmReturnSecondsRemaining());
         assertFalse(deadTop.isAlive());
-        assertEquals(30, deadTop.getFarmReturnSecondsRemaining());
+        assertEquals(40, deadTop.getFarmReturnSecondsRemaining());
     }
 
     @Test

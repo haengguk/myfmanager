@@ -81,7 +81,7 @@ class MatchEngineV1ContractTest {
         assertThat(policy.activeGameplayRulesVersion())
                 .isEqualTo("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2");
         assertThat(policy.engineImplementationVersion())
-                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6");
+                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V7");
         assertThat(policy.gameplayConfiguration().championMatchupMode())
                 .isEqualTo(ChampionMatchupMode.OFF);
         assertThat(policy.gameplayConfiguration().teamCompositionGameplayMode())

@@ -52,17 +52,17 @@ class StructureActionAttemptAuditTest {
         assertThat(state.wasStructureMutationPerformedThisTick(TeamSide.RED)).isTrue();
     }
 
-    @Test void multiStructurePostFightWindowRemainsAllowedWithinSingleAttempt() {
+    @Test void postFightWindowAllowsOnlyOneMutationInTheCurrentTick() {
         GameState state = postFightWindowState();
         TeamfightOutcome fight = new TeamfightOutcome(TeamSide.BLUE, FightGrade.BIG_WIN, 4, 0, 2_700, java.util.List.of());
         java.util.List<StructureOutcome> outcomes = pushes.resolvePostFightWindow(
                 state, Optional.of(fight), Optional.empty(), new CountingRandom(0), structures);
         StructureActionExecutionStatsSnapshot stats = state.getStructureActionExecutionStats().snapshot();
-        assertThat(outcomes).hasSize(2);
+        assertThat(outcomes).hasSize(1);
         assertThat(stats.structureAttempted()).isOne();
         assertThat(stats.structureMutationPerformed()).isOne();
-        assertThat(stats.postFightMultiStructureActions()).isOne();
-        assertThat(stats.postFightMultiStructureMutationCount()).isEqualTo(2);
+        assertThat(stats.postFightMultiStructureActions()).isZero();
+        assertThat(stats.postFightMultiStructureMutationCount()).isZero();
         assertThat(stats.postFightInternalBlockError()).isZero();
     }
 
@@ -70,7 +70,7 @@ class StructureActionAttemptAuditTest {
         GameState state = postFightWindowState();
         TeamfightOutcome fight = new TeamfightOutcome(TeamSide.BLUE, FightGrade.BIG_WIN, 4, 0, 2_700, java.util.List.of());
         assertThat(pushes.resolvePostFightWindow(state, Optional.of(fight), Optional.empty(),
-                new CountingRandom(0), structures)).hasSize(2);
+                new CountingRandom(0), structures)).hasSize(1);
         state.getMapState().markPushAttempted(TeamSide.RED, state.getCurrentTimeSeconds(), 10_000);
         CountingRandom lowerPriorityRandom = new CountingRandom(0);
         assertThat(pushes.maybeResolveMacroPush(state, lowerPriorityRandom, structures)).isEmpty();

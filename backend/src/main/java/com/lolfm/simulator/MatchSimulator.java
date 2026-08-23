@@ -491,7 +491,7 @@ public class MatchSimulator {
             Optional<MatchEvent> postFightObjective = outcome.flatMap(result -> postFightResolver.resolve(
                     gameState, result, random, objectiveResolver));
             postFightObjective.ifPresent(event -> { events.add(event); cancelMacroSetupForCapture(gameState, event); });
-            boolean postFightSideAlreadyActed = outcome
+            boolean postFightSideAlreadyActed = postFightObjective.isPresent() || outcome
                     .map(result -> gameState.wasStructureActionPerformedThisTick(result.winningSide()))
                     .orElse(false);
             randomContext(random, SideOrientationRandomTraceObserver.Source.STRUCTURE_PUSH, null, gameState);
@@ -538,6 +538,12 @@ public class MatchSimulator {
                 null,
                 List.of()
         ));
+
+        events.sort(java.util.Comparator.comparingInt(MatchEvent::getTimeSeconds));
+        if (events.stream().anyMatch(event -> event.getTimeSeconds()
+                > gameState.getCurrentTimeSeconds())) {
+            throw new IllegalStateException("Timeline event exceeds terminal match time for seed " + seed);
+        }
 
         MatchTimeline timeline = new MatchTimeline(
                 gameState.getCurrentTimeSeconds(), endGameDecision.getWinner(), events, snapshots
@@ -753,8 +759,11 @@ public class MatchSimulator {
 
     private boolean awardPassiveForTick(TeamState state, int currentTime) {
         if (!state.shouldResolveEconomyAt(currentTime)) return false;
+        if (currentTime < PositionEconomyRuleConfig.ECONOMY_START_SECONDS) return false;
         for (PlayerState player : state.getPlayers()) {
-            goldAwards.awardGold(state, player, passiveGoldPerTick(), GoldSource.PASSIVE, false, currentTime);
+            goldAwards.awardGold(state, player,
+                    PositionEconomyRuleConfig.passiveGoldPerTick(player.getPosition()),
+                    GoldSource.PASSIVE, false, currentTime);
         }
         return true;
     }
@@ -765,8 +774,6 @@ public class MatchSimulator {
         positionEconomyResolver.resolve(gameState, state, side, currentTime, elapsedSeconds, random);
         state.markEconomyResolvedAt(currentTime);
     }
-
-    private int passiveGoldPerTick() { return PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK; }
 
     private boolean maybeCreateKillEvent(Random random, Team blueTeam, Team redTeam, GameState state, List<MatchEvent> events) {
         double chance = genericSkirmishChance(state);
@@ -818,17 +825,29 @@ public class MatchSimulator {
                     "HIGH".equals(band) && !attacking.localDecision().baselineDecision().equals(attacking.localDecision().candidateDecision()),
                     true, ""));
         }
-        boolean resolved = teamfightResolver.resolveKill(
-                state.getCurrentTimeSeconds(), random,
+        Lane combatLane = Lane.values()[random.nextInt(Lane.values().length)];
+        boolean resolved = teamfightResolver.resolveLocalizedSkirmishKill(
+                state.getCurrentTimeSeconds(), combatLane, random,
                 attacking.actingTeam(), attacking.actingState(),
                 attacking.opposingTeam(), attacking.opposingState(),
-                events, false, new HashSet<>()
+                events, new HashSet<>()
         );
         if (resolved) {
-            for (PlayerState player : attacking.actingState().getPlayers()) if (player.canParticipateInMajorCombatAt(state.getCurrentTimeSeconds())) state.markMajorCombatParticipant(player);
-            for (PlayerState player : attacking.opposingState().getPlayers()) if (player.canParticipateInMajorCombatAt(state.getCurrentTimeSeconds())) state.markMajorCombatParticipant(player);
+            MatchEvent kill = events.getLast();
+            markStructuredParticipants(state, kill);
         }
         return resolved;
+    }
+
+    private void markStructuredParticipants(GameState state, MatchEvent event) {
+        java.util.Set<String> ids = new java.util.HashSet<>(event.getAssistPlayerIds());
+        if (event.getKillerPlayerId() != null) ids.add(event.getKillerPlayerId());
+        if (event.getVictimPlayerId() != null) ids.add(event.getVictimPlayerId());
+        for (TeamSide side : TeamSide.values()) {
+            for (PlayerState player : state.getTeamState(side).getPlayers()) {
+                if (ids.contains(player.getStructuredPlayerId())) state.markMajorCombatParticipant(player);
+            }
+        }
     }
 
     private TeamSelection chooseTeamForSkirmish(Random random, Team blueTeam, Team redTeam, GameState state) {
@@ -905,16 +924,20 @@ public class MatchSimulator {
         if(alive==0)return .1;
         List<PlayerState> own=team.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
         List<PlayerState> enemy=state.getTeamState(side.opposite()).getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
-        double existing=total+team.getKills()*3.0+team.getGold()/900.0;
+        double existing=total+team.getGold()/1_500.0;
         return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.GENERIC_SKIRMISH,own,enemy,existing,0,ProgressionApplicationStage.INITIATIVE);
     }
 
     double genericSkirmishChance(GameState state) {
         double averageTendency = (averageSkirmishTendency(state.getBlueTeamState())
                 + averageSkirmishTendency(state.getRedTeamState())) / 2.0;
-        double baseChance = state.getCurrentTimeSeconds() >= 900 ? 0.11 : 0.08;
+        double baseChance = state.getCurrentTimeSeconds() >= 900
+                ? CombatRealismRuleConfig.LATE_GENERIC_SKIRMISH_CHANCE
+                : CombatRealismRuleConfig.EARLY_GENERIC_SKIRMISH_CHANCE;
         return clamp(baseChance + (averageTendency - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE)
-                * PlayerImpactRuleConfig.SKIRMISH_CHANCE_PER_AVERAGE_AGGRESSION_POINT, 0.05, 0.15);
+                * PlayerImpactRuleConfig.SKIRMISH_CHANCE_PER_AVERAGE_AGGRESSION_POINT,
+                CombatRealismRuleConfig.MIN_GENERIC_SKIRMISH_CHANCE,
+                CombatRealismRuleConfig.MAX_GENERIC_SKIRMISH_CHANCE);
     }
 
     private double averageSkirmishTendency(TeamState team) {

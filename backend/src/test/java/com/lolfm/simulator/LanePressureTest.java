@@ -33,7 +33,7 @@ class LanePressureTest {
     }
     @Test void pressureChangesOnlyMatchingLaneCs() {
         GameState state=game(14,14); state.laneState(Lane.TOP).setPressure(100); PositionEconomyResolver r=new PositionEconomyResolver();
-        assertEquals(1.05,r.laneCsMultiplier(Position.TOP,state,TeamSide.BLUE),.00001); assertEquals(.95,r.laneCsMultiplier(Position.TOP,state,TeamSide.RED),.00001); assertEquals(1.0,r.laneCsMultiplier(Position.JUNGLE,state,TeamSide.BLUE),.00001); assertEquals(1.0,r.laneCsMultiplier(Position.SUPPORT,state,TeamSide.BLUE),.00001);
+        assertEquals(1.15,r.laneCsMultiplier(Position.TOP,state,TeamSide.BLUE),.00001); assertEquals(.85,r.laneCsMultiplier(Position.TOP,state,TeamSide.RED),.00001); assertEquals(1.0,r.laneCsMultiplier(Position.JUNGLE,state,TeamSide.BLUE),.00001); assertEquals(1.0,r.laneCsMultiplier(Position.SUPPORT,state,TeamSide.BLUE),.00001);
     }
     @Test void snapshotIsImmutableAndOrdered() {
         GameState state=game(14,14); state.laneState(Lane.BOT).setPressure(25); var snapshot=new SnapshotFactory().create(state); state.laneState(Lane.BOT).setPressure(-25);

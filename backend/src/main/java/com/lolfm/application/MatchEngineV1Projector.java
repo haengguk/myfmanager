@@ -111,6 +111,7 @@ final class MatchEngineV1Projector {
         put(structured, "jungleGank", source.getJungleGank());
         put(structured, "counterGank", source.getCounterGank());
         put(structured, "roam", source.getRoam());
+        put(structured, "combatLane", source.getCombatLane());
         put(structured, "objectivePriorityDecision", source.getObjectivePriorityDecision());
         put(structured, "objectiveDecision", source.getObjectiveDecision());
         put(structured, "midGameMacroDecision", source.getMidGameMacroDecision());
@@ -241,6 +242,7 @@ final class MatchEngineV1Projector {
         if (event.getJungleGank() != null) return event.getJungleGank().targetLane();
         if (event.getCounterGank() != null) return event.getCounterGank().targetLane();
         if (event.getRoam() != null) return event.getRoam().targetLane();
+        if (event.getCombatLane() != null) return event.getCombatLane();
         if (event.getOuterTurretSiege() != null) return event.getOuterTurretSiege().lane();
         if (event.getMidGameMacroDecision() != null) return event.getMidGameMacroDecision().targetLane();
         if (event.getMidGameMacroAction() != null) return event.getMidGameMacroAction().targetLane();

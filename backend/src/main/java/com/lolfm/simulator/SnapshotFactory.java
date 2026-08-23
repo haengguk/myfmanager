@@ -81,7 +81,7 @@ public class SnapshotFactory {
     private com.lolfm.domain.TeamProgressionSnapshot teamProgression(TeamState team, boolean power) {
         java.util.EnumMap<com.lolfm.domain.Position,com.lolfm.domain.PlayerProgressionSnapshot> players=new java.util.EnumMap<>(com.lolfm.domain.Position.class);
         double levels=0;int cores=0,level18=0;
-        for(PlayerState player:team.getPlayers()){var snapshot=player.getProgressionState().snapshot(power);players.put(player.getPosition(),snapshot);levels+=snapshot.level();if(snapshot.level()==18)level18++;cores+=Math.max(0,snapshot.itemStage().ordinal()-1)+(snapshot.itemStage()==ItemProgressStage.FULL_BUILD?1:0);}
+        for(PlayerState player:team.getPlayers()){var snapshot=player.getProgressionState().snapshot(power);players.put(player.getPosition(),snapshot);levels+=snapshot.level();if(snapshot.level()>=18)level18++;cores+=Math.max(0,snapshot.itemStage().ordinal()-1)+(snapshot.itemStage()==ItemProgressStage.FULL_BUILD?1:0);}
         return new com.lolfm.domain.TeamProgressionSnapshot(team.getPlayers().isEmpty()?1:levels/team.getPlayers().size(),cores,level18,players);
     }
 

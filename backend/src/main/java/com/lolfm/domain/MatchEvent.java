@@ -27,6 +27,7 @@ public class MatchEvent {
     private CounterGankData counterGank;
     private RoamData roam;
     private CombatSource combatSource;
+    private Lane combatLane;
     private ObjectivePriorityDecisionData objectivePriorityDecision;
     private ObjectiveDecisionData objectiveDecision;
     private StructureActionSource structureActionSource;
@@ -92,6 +93,8 @@ public class MatchEvent {
     public void setRoam(RoamData roam) { this.roam = roam; }
     public CombatSource getCombatSource() { return combatSource; }
     public void setCombatSource(CombatSource combatSource) { this.combatSource = combatSource; }
+    public Lane getCombatLane() { return combatLane; }
+    public void setCombatLane(Lane combatLane) { this.combatLane = combatLane; }
     public ObjectivePriorityDecisionData getObjectivePriorityDecision() { return objectivePriorityDecision; }
     public void setObjectivePriorityDecision(ObjectivePriorityDecisionData value) {
         objectivePriorityDecision = value;

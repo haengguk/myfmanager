@@ -20,6 +20,12 @@ public class MapState {
             baseStates.put(side, new BaseState());
         }
     }
+    public void refreshAt(int currentTimeSeconds) {
+        for (TeamSide side : TeamSide.values()) {
+            for (Lane lane : Lane.values()) getLaneState(side, lane).refreshAt(currentTimeSeconds);
+            getBaseState(side).refreshAt(currentTimeSeconds);
+        }
+    }
     public LaneStructureState getLaneState(TeamSide defendingSide, Lane lane) { return laneStates.get(defendingSide).get(lane); }
     public BaseState getBaseState(TeamSide defendingSide) { return baseStates.get(defendingSide); }
     public List<Lane> getAttackableLanes(TeamSide defendingSide) {

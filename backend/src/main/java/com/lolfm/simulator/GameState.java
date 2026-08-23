@@ -461,7 +461,10 @@ public class GameState {
     }
 
     public void advanceTimeSeconds(int amount) {
+        if (amount < 0) throw new IllegalArgumentException("Simulation time cannot move backwards");
+        if (finished) return;
         currentTimeSeconds += amount;
+        mapState.refreshAt(currentTimeSeconds);
     }
 
     public TeamState getTeamState(TeamSide side) {

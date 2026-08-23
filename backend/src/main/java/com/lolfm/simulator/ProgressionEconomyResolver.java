@@ -21,7 +21,10 @@ public final class ProgressionEconomyResolver {
 
         if (eligible(state, side, top, timeSeconds, false)) {
             rewards.awardExperience(top, ExperienceSource.LANE_ECONOMY,
-                    ProgressionRuleConfig.SOLO_LANE_XP_PER_TICK, timeSeconds);
+                    timeSeconds >= PositionEconomyRuleConfig.ROLE_QUEST_ACTIVATION_SECONDS
+                            ? ProgressionRuleConfig.TOP_QUEST_XP_PER_TICK
+                            : ProgressionRuleConfig.SOLO_LANE_XP_PER_TICK,
+                    timeSeconds);
         }
         if (eligible(state, side, mid, timeSeconds, false)) {
             rewards.awardExperience(mid, ExperienceSource.LANE_ECONOMY,

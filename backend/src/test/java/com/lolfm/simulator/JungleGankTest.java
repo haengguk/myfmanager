@@ -216,7 +216,7 @@ class JungleGankTest {
     @Test void farmBlockAndDeathRecoveryOverlapByMaximumWithoutCsCatchup() {
         GameState state = state(14, 14, 14, 14); PlayerState jungle = state.getBlueTeamState().playerAt(Position.JUNGLE);
         state.jungleActionState(TeamSide.BLUE).recordAttempt(180, Lane.TOP); jungle.markDead(180, 10);
-        assertFalse(jungle.canFarmAt(190)); assertTrue(jungle.canFarmAt(200));
+        assertFalse(jungle.canFarmAt(190)); assertFalse(jungle.canFarmAt(200)); assertTrue(jungle.canFarmAt(210));
         assertTrue(200 < state.jungleActionState(TeamSide.BLUE).getJungleFarmBlockedUntilSeconds());
         new PositionEconomyResolver().resolve(state, state.getBlueTeamState(), TeamSide.BLUE, 200, 10, new Random(1));
         assertEquals(0, jungle.getCs());

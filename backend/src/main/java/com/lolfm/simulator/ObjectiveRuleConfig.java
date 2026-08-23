@@ -12,7 +12,7 @@ public final class ObjectiveRuleConfig {
     public static final double DRAGON_CAPTURE_CHANCE_AFTER_180_SECONDS = 0.10;
     public static final double DRAGON_CAPTURE_CHANCE_AFTER_300_SECONDS = 0.18;
     public static final int DRAGON_GOLD_PER_PLAYER = 90;
-    public static final int BARON_GOLD_PER_PLAYER = 300;
+    public static final int BARON_GOLD_PER_PLAYER = 150;
 
     private ObjectiveRuleConfig() {
     }

@@ -43,7 +43,8 @@ class JungleTempoGankIntegrationTest {
     @Test
     void currentButInsufficientCreditConsumesNoRandomAndAllowsLaneCombat() {
         GameState state = tempoState();
-        creditBoth(state, 18, 0.85);
+        creditInsufficientAt180(state, TeamSide.BLUE);
+        creditInsufficientAt180(state, TeamSide.RED);
         at180(state);
         CountingRandom random = new CountingRandom(0.0);
 
@@ -111,7 +112,7 @@ class JungleTempoGankIntegrationTest {
     void notReadyDefenderCannotRollCounterGankOrConsumeCredit() {
         GameState state = tempoState();
         credit(state, TeamSide.BLUE, 18, 1.0);
-        credit(state, TeamSide.RED, 18, 0.85);
+        creditInsufficientAt180(state, TeamSide.RED);
         at180(state);
         SequenceRandom random = new SequenceRandom(0, 0, .99);
 
@@ -188,6 +189,12 @@ class JungleTempoGankIntegrationTest {
             state.jungleTempoState(side).recordEconomyOutcome(
                     outcome(side, tick * 10, efficiency));
         }
+    }
+
+    private void creditInsufficientAt180(GameState state, TeamSide side) {
+        credit(state, side, 12, 0.85);
+        state.jungleTempoState(side).recordEconomyOutcome(
+                outcome(side, 180, 0.85));
     }
 
     private JungleEconomyOutcome outcome(

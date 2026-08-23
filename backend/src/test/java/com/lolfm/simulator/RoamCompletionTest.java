@@ -184,13 +184,15 @@ class RoamCompletionTest {
         assertTrue(mid.canFarmAt(270) || mid.getFarmResumeAtSeconds() > 270);
     }
 
-    @Test void supportHasZeroFarmCsAndGoldWhilePassiveContinues() {
+    @Test void supportHasZeroFarmCsWhilePassiveAndQuestIncomeContinue() {
         MatchSimulator simulator = simulator(SimulationOptions.productionDefaults());
         GameState state = state();
         PlayerState support = state.getBlueTeamState().playerAt(Position.SUPPORT);
-        simulator.applyTickEconomy(new CountingRandom(0), state, state.getBlueTeamState(), TeamSide.BLUE, 10, 10);
+        state.advanceTimeSeconds(70);
+        simulator.applyTickEconomy(new CountingRandom(0), state, state.getBlueTeamState(), TeamSide.BLUE, 10, 70);
         assertEquals(0, support.getCs());
-        assertEquals(500 + PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK, support.getGold());
+        assertEquals(500 + PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK
+                + PositionEconomyRuleConfig.SUPPORT_QUEST_GOLD_PER_TICK, support.getGold());
     }
 
     @Test void midOriginPressureCostsAreBlueMinusEightAndRedPlusEight() {

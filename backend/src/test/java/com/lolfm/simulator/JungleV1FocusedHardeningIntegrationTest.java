@@ -144,7 +144,7 @@ class JungleV1FocusedHardeningIntegrationTest {
 
         assertThat(state.jungleActionState(TeamSide.BLUE)
                 .getJungleFarmBlockedUntilSeconds()).isEqualTo(210);
-        assertThat(jungler.getFarmResumeAtSeconds()).isEqualTo(220);
+        assertThat(jungler.getFarmResumeAtSeconds()).isEqualTo(230);
         assertThat(jungler.getCs()).isEqualTo(csBeforeBlock);
         assertThat(jungler.getGold()).isEqualTo(goldBeforeBlock
                 + 3 * PositionEconomyRuleConfig.PASSIVE_GOLD_PER_TICK);
@@ -155,7 +155,7 @@ class JungleV1FocusedHardeningIntegrationTest {
                 .containsEntry(JungleEconomySkipReason.DEAD, 2)
                 .containsEntry(JungleEconomySkipReason.FARM_RECOVERY, 1);
 
-        applyBlueEconomyAt(state, simulator, economyRandom, 220);
+        applyBlueEconomyAt(state, simulator, economyRandom, 230);
 
         assertThat(jungler.getCs()).isEqualTo(csBeforeBlock + 1);
         assertThat(jungler.getGold()).isEqualTo(goldBeforeBlock

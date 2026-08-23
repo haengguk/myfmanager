@@ -14,7 +14,7 @@ public final class LanePressureRuleConfig {
     public static final double PRIORITY_THRESHOLD = 20.0;
     public static final double STRONG_PRESSURE_THRESHOLD = 50.0;
     public static final double DOMINANT_PRESSURE_THRESHOLD = 75.0;
-    public static final double MAX_LANE_CS_MODIFIER = 0.05;
+    public static final double MAX_LANE_CS_MODIFIER = 0.15;
     public static final double BOT_ADC_CONTRIBUTION = 0.60;
     public static final double BOT_SUPPORT_CONTRIBUTION = 0.40;
     public static final double CHAMPION_LANE_OPPORTUNITY_SCALE = 4.0;

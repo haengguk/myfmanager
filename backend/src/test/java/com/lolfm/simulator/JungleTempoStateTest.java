@@ -19,7 +19,7 @@ class JungleTempoStateTest {
         JungleTempoState.Readiness first = state.readinessAt(180);
         assertThat(first.status()).isEqualTo(JungleTempoReadinessStatus.READY);
         assertThat(first.creditSeconds()).isEqualTo(180.0);
-        assertThat(first.requiredCreditSeconds()).isEqualTo(180.0);
+        assertThat(first.requiredCreditSeconds()).isEqualTo(120.0);
 
         JungleTempoState.Consumption consumed = state.consumeActualActionAt(180);
         assertThat(consumed.creditBeforeSeconds()).isEqualTo(180.0);

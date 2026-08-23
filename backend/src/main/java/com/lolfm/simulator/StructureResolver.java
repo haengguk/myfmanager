@@ -26,7 +26,8 @@ public class StructureResolver {
                     state.getCurrentTimeSeconds(), reason, false));
         }
         BaseState base = state.getMapState().getBaseState(defendingSide);
-        if (state.getMapState().areNexusTurretsVulnerable(defendingSide) && base.destroyOneNexusTurret()) {
+        if (state.getMapState().areNexusTurretsVulnerable(defendingSide)
+                && base.destroyOneNexusTurret(state.getCurrentTimeSeconds())) {
             state.markStructureMutationPerformed(attackingSide);
             return Optional.of(new StructureOutcome(attackingSide, defendingSide, StructureKind.NEXUS_TURRET, null, null,
                     state.getCurrentTimeSeconds(), reason, false));
