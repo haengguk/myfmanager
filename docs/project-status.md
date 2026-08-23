@@ -193,11 +193,11 @@ Machine-readable artifact는 `backend/build/reports/final-13g-b/`의 evidence bi
 
 Final 13G-B가 승인한 현재 runtime을 `MatchEngineV1` application facade로 동결했다. V1 policy는 `BASELINE_V1`과 configuration `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`만 허용하며 Economy/Tempo candidate activation은 둘 다 `false`다. Policy hash는 `61ec36e4ec36a3693a7fd34f9acbd018f615115dda45b558580f1ee7ff1a02a5`다.
 
-새 immutable input은 정확한 5×5 stable player/position/rating/proficiency roster, final champion assignment, ordered Draft/Hard Fearless/series context, seed와 policy requirement를 포함한다. 새 immutable output은 final-snapshot 기반 summary, stable participant/champion identity가 있는 structured timeline, final Draft와 mandatory execution provenance 및 input/structured timeline/output hash를 포함한다. Display name과 event message는 gameplay identity에서 제외한다.
+새 immutable input은 정확한 5×5 stable player/position/rating/proficiency roster, final champion assignment, ordered Draft/Hard Fearless/series context, seed와 policy requirement를 포함한다. V1 replay provenance는 기존 resource/Draft/profile/seed identity와 전체 input hash를 다시 결속해 동적 rating/proficiency snapshot도 빠짐없이 구분한다. 새 immutable output은 final-snapshot 기반 summary, stable participant/champion identity가 있는 structured timeline, final Draft와 mandatory execution provenance 및 input/structured timeline/output hash를 포함한다. `hasValidOutputHash`는 실제 timeline hash를 먼저 재계산한 뒤 output envelope를 확인하며, display name과 event message는 gameplay identity에서 제외한다.
 
 `RealDraftMatchOrchestrator.orchestrateV1`은 Draft를 한 번만 만들고 V1 input으로 변환한다. Simulation/projection/output validation까지 성공한 뒤에만 series history를 commit하며 실패 경로는 history를 변경하지 않는다. 기존 simulator/Real Draft overload와 HTTP response는 유지한다. 세부 계약은 [Match Engine V1 Contract](architecture/match-engine-v1.md)에 있다.
 
-Freeze artifact는 `backend/build/reports/match-engine-v1-freeze/`에 있으며 JSON 7개 manifest 7/7이 통과했다. Manifest SHA-256은 `2f750029173bda6a9490c42128c58fcd57f61cdaf64346cabc82a159677231cf`다. Fresh JVM A/B와 실제 legacy Real Draft↔V1은 canonical output/summary/provenance/Random 기준 exact equality다. Freeze source identity는 480 files / `56ccb66d1b0197a429a7bea0188162918de9859c8a4f04a477f0907368d6c859`이며 Final 13G-B historical source identity와 evidence manifest는 audit 기록으로 그대로 보존한다.
+Freeze artifact는 `backend/build/reports/match-engine-v1-freeze/`에 있으며 JSON 7개 manifest 7/7이 통과했다. Manifest SHA-256은 `1f5bc20c347d25d833e822325de1fa294dc61d38c55da121ea30d15ab70a0728`, production source identity는 480 files / `5bb14af3eab33ceb5c9b6fed6f88d7bfa421b212663ac94e99067f05fdcafac6`다. Fresh JVM A/B의 canonical output/summary/provenance/Random은 exact equality다. 실제 legacy Real Draft↔V1은 complete gameplay timeline, Random fingerprint와 replay hash/algorithm을 제외한 provenance field가 exact이며, V1 replay hash는 전체 input snapshot 결속 때문에 의도적으로 별도 값이다. Final 13G-B historical source identity와 evidence manifest는 audit 기록으로 그대로 보존한다.
 
 ### Pre-Jungle baseline
 
@@ -303,12 +303,12 @@ Final command:
 | 항목 | 결과 |
 | --- | ---: |
 | JUnit suites | 175 |
-| Tests | 1,993 |
+| Tests | 1,995 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 677.653 seconds |
-| Gradle wall duration | 11m 28s |
+| Aggregate JUnit XML time | 628.861 seconds |
+| Gradle wall duration | 10m 39s |
 | Build | `BUILD SUCCESSFUL` |
 
 Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
@@ -331,7 +331,7 @@ Final 13G-B3 final executable tree에서는 B1/B2/B3 contract focused tests가 c
 
 Final 13G-B hardening은 3 suites / 14 focused tests, failures/errors/skipped 0으로 통과했다. Actual registry/RealDraft/Spring/HTTP wiring의 fixed-seed parity와 synthetic 6,400-row full-write/negative E2E를 확인했다. 독립 Java 17 compile/run은 두 output directory에서 같은 manifest `bd9a9cf3b089cfc76fceb0311094c1b70232278404f5675c42d89849d927bc98`와 7/7 byte-identical files를 만들었고 final manifest의 6/6 raw SHA가 통과했다. 이 후속 작업은 production Java/resource/Gradle/shared fixture를 바꾸지 않은 isolated test-side consumer와 문서 변경이므로 위 B3 clean full을 재사용했다.
 
-Match Engine V1 focused/cross-JVM/affected regression은 8 suites / 40 tests, failures/errors/skipped 0으로 통과했다. Production final tree의 complete backend regression은 첫 실행에서 175 suites / 1,993 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 677.653초, Gradle wall 11분 28초로 clean pass했다. Artifact writer는 historical Final manifest 6/6, 실제 legacy/V1 parity와 fresh-JVM A/B equality를 다시 확인하고 manifest 7/7을 생성했다. 이후 executable production/resource/Gradle/shared fixture는 바꾸지 않고 artifact와 문서만 갱신했으므로 full을 반복하지 않았다.
+Match Engine V1 focused/cross-JVM/affected regression은 8 suites / 42 tests, failures/errors/skipped 0으로 통과했고 최종 보강 뒤 핵심 2 suites / 12 tests도 다시 통과했다. Production final tree의 complete backend regression은 첫 실행에서 175 suites / 1,995 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 628.861초, Gradle wall 10분 39초로 clean pass했다. Artifact writer는 historical Final manifest 6/6, 실제 legacy/V1 gameplay/common provenance parity, V1 replay input 결속과 fresh-JVM A/B equality를 다시 확인하고 manifest 7/7을 생성했다. 이후 executable production/resource/Gradle/shared fixture는 바꾸지 않고 artifact와 문서만 갱신했으므로 full을 반복하지 않았다.
 
 Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 

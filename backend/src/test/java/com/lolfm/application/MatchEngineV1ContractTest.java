@@ -12,10 +12,13 @@ import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionMatchupMode;
 import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.composition.TeamCompositionGameplayMode;
+import com.lolfm.domain.ChampionProficiencies;
 import com.lolfm.domain.CombatSource;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.MatchSnapshot;
 import com.lolfm.domain.PlayerSnapshot;
+import com.lolfm.domain.PlayerRatings;
+import com.lolfm.domain.PlayerSkill;
 import com.lolfm.domain.Position;
 import com.lolfm.draft.SeriesDraftHistory;
 import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
@@ -27,6 +30,8 @@ import com.lolfm.simulator.SimulationRuntimeProfileId;
 import com.lolfm.simulator.SimulationRuntimeProfiles;
 import com.lolfm.simulator.TeamSide;
 import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -306,11 +311,68 @@ class MatchEngineV1ContractTest {
     }
 
     @Test
-    void legacyAndV1RealDraftPathsHaveExactGameplayAndProvenanceParity() {
+    void v1ReplayProvenanceBindsCompleteRatingAndProficiencyInput() {
+        MatchEngineV1Input changedInput = withChangedPlayerGameplaySnapshot(input);
+        MatchEngineV1Output changedOutput = engine.execute(changedInput);
+        SimulationExecutionProvenance original = execution.output().executionProvenance();
+        SimulationExecutionProvenance changed = changedOutput.executionProvenance();
+
+        assertThat(changedInput.rosterIdentityHash()).isEqualTo(input.rosterIdentityHash());
+        assertThat(changedInput.finalDraft()).isEqualTo(input.finalDraft());
+        assertThat(changedInput.inputHash()).isNotEqualTo(input.inputHash());
+        assertThat(changed.resourceProvenance()).isEqualTo(original.resourceProvenance());
+        assertThat(original.replayProvenanceHash()).isEqualTo(
+                SimulationProvenanceService.matchEngineV1ReplayProvenanceHash(
+                        legacy.executionProvenance().replayProvenanceHash(), input.inputHash()));
+        assertThat(changed.replayProvenanceHash()).isEqualTo(
+                SimulationProvenanceService.matchEngineV1ReplayProvenanceHash(
+                        legacy.executionProvenance().replayProvenanceHash(),
+                        changedInput.inputHash()));
+        assertThat(changed.replayProvenanceHash()).isNotEqualTo(original.replayProvenanceHash());
+        assertThat(changed.replayProvenanceHashAlgorithm()).isEqualTo(
+                SimulationProvenanceService.MATCH_ENGINE_V1_REPLAY_PROVENANCE_HASH_ALGORITHM);
+        assertThat(changedOutput.outputHash()).isNotEqualTo(execution.output().outputHash());
+    }
+
+    @Test
+    void outputHashValidationRecomputesActualStructuredTimeline() {
+        MatchEngineV1Output source = execution.output();
+        MatchEngineV1Output.EventV1 first = source.timeline().events().getFirst();
+        int changedGold = first.goldAmount() == Integer.MAX_VALUE
+                ? first.goldAmount() - 1 : first.goldAmount() + 1;
+        MatchEngineV1Output tamperedGameplay = withFirstEvent(source, copyEvent(
+                first, changedGold, first.displayMessage()));
+        MatchEngineV1Output.SnapshotV1 last = source.timeline().snapshots().getLast();
+        HashMap<String, Object> changedState = new HashMap<>(last.structuredState());
+        changedState.put("tamperedSnapshotMarker", true);
+        MatchEngineV1Output tamperedSnapshot = withLastSnapshot(source,
+                new MatchEngineV1Output.SnapshotV1(
+                        last.timeSeconds(), last.blueTeam(), last.redTeam(),
+                        last.players(), changedState));
+        MatchEngineV1Output displayOnly = withFirstEvent(source, copyEvent(
+                first, first.goldAmount(), first.displayMessage() + " [display-only]"));
+
+        assertThat(tamperedGameplay.hasValidOutputHash(canonicalizer)).isFalse();
+        assertThat(tamperedSnapshot.hasValidOutputHash(canonicalizer)).isFalse();
+        assertThat(displayOnly.hasValidOutputHash(canonicalizer)).isTrue();
+    }
+
+    @Test
+    void legacyAndV1RealDraftPathsHaveExactGameplayAndInputBoundProvenance() {
         assertCompleteTimelineEquals(legacy.timeline(), execution.legacyTimeline());
-        assertThat(execution.executionProvenance()).isEqualTo(legacy.executionProvenance());
+        assertThat(execution.executionProvenance())
+                .usingRecursiveComparison()
+                .ignoringFields("replayProvenanceHash", "replayProvenanceHashAlgorithm")
+                .isEqualTo(legacy.executionProvenance());
+        assertThat(execution.executionProvenance().replayProvenanceHash())
+                .isEqualTo(SimulationProvenanceService.matchEngineV1ReplayProvenanceHash(
+                        legacy.executionProvenance().replayProvenanceHash(), input.inputHash()))
+                .isNotEqualTo(legacy.executionProvenance().replayProvenanceHash());
+        assertThat(execution.executionProvenance().replayProvenanceHashAlgorithm())
+                .isEqualTo(
+                        SimulationProvenanceService.MATCH_ENGINE_V1_REPLAY_PROVENANCE_HASH_ALGORITHM);
         assertThat(execution.output().executionProvenance()).isEqualTo(
-                legacy.executionProvenance());
+                execution.executionProvenance());
         assertThat(orchestratedV1).isEqualTo(execution.output());
 
         SeriesDraftHistory history = new SeriesDraftHistory();
@@ -405,6 +467,93 @@ class MatchEngineV1ContractTest {
         MatchEngineV1Input.TeamInput red = renamedTeam(source.redTeam(), "Red display renamed");
         return copy(source, blue, red, source.championAssignments(), source.finalDraft(),
                 source.productionPolicy());
+    }
+
+    private static MatchEngineV1Input withChangedPlayerGameplaySnapshot(
+            MatchEngineV1Input source
+    ) {
+        MatchEngineV1Input.PlayerInput original = source.player(TeamSide.BLUE, Position.TOP);
+        PlayerSkill skill = PlayerSkill.orderedForPosition(Position.TOP).getFirst();
+        EnumMap<PlayerSkill, Integer> ratings = new EnumMap<>(PlayerSkill.class);
+        ratings.putAll(original.ratings());
+        int rating = ratings.get(skill);
+        ratings.put(skill, rating == PlayerRatings.MAX ? rating - 1 : rating + 1);
+
+        ChampionRoleKey role = new ChampionRoleKey(
+                source.assignment(TeamSide.BLUE, Position.TOP).championId(), Position.TOP);
+        HashMap<ChampionRoleKey, Integer> proficiencies = new HashMap<>(
+                original.proficiencies());
+        int proficiency = proficiencies.getOrDefault(role, ChampionProficiencies.NEUTRAL);
+        proficiencies.put(role, proficiency == 20 ? proficiency - 1 : proficiency + 1);
+
+        MatchEngineV1Input.PlayerInput changed = new MatchEngineV1Input.PlayerInput(
+                original.playerId(), original.displayName(), original.teamSide(),
+                original.position(), ratings, proficiencies);
+        ArrayList<MatchEngineV1Input.PlayerInput> lineup = new ArrayList<>(
+                source.blueTeam().lineup());
+        lineup.set(lineup.indexOf(original), changed);
+        MatchEngineV1Input.TeamInput blue = new MatchEngineV1Input.TeamInput(
+                source.blueTeam().teamIdentity(), source.blueTeam().displayName(),
+                source.blueTeam().teamSide(), lineup);
+        return copy(source, blue, source.redTeam(), source.championAssignments(),
+                source.finalDraft(), source.productionPolicy());
+    }
+
+    private static MatchEngineV1Output.EventV1 copyEvent(
+            MatchEngineV1Output.EventV1 source,
+            int goldAmount,
+            String displayMessage
+    ) {
+        return new MatchEngineV1Output.EventV1(
+                source.timeSeconds(), source.eventType(), source.actorSide(),
+                source.actorPosition(), source.lane(), source.killerPlayerId(),
+                source.victimPlayerId(), source.assistantPlayerIds(),
+                source.killerChampionId(), source.victimChampionId(),
+                source.assistantChampionIds(), source.combatSource(),
+                source.structureActionSource(), source.structureKind(),
+                source.structureTowerTier(), source.structureAttackingSide(),
+                source.structureDefendingSide(), goldAmount,
+                source.bountyRawBeforePayout(), displayMessage, source.structuredData());
+    }
+
+    private static MatchEngineV1Output withFirstEvent(
+            MatchEngineV1Output source,
+            MatchEngineV1Output.EventV1 first
+    ) {
+        ArrayList<MatchEngineV1Output.EventV1> events = new ArrayList<>(
+                source.timeline().events());
+        events.set(0, first);
+        MatchEngineV1Output.TimelineV1 timeline = new MatchEngineV1Output.TimelineV1(
+                source.timeline().schemaVersion(), source.timeline().durationSeconds(),
+                source.timeline().winner(), source.timeline().endReason(), events,
+                source.timeline().snapshots());
+        return new MatchEngineV1Output(
+                source.schemaVersion(), source.matchIdentity(), source.productionPolicy(),
+                source.configurationHash(), source.resultSummary(), source.finalDraft(), timeline,
+                source.executionProvenance(), source.inputHash(), source.inputHashAlgorithm(),
+                source.simulatorTimelineHash(), source.structuredTimelineHash(),
+                source.structuredTimelineHashAlgorithm(), source.outputHash(),
+                source.outputHashAlgorithm(), source.outputHashScope());
+    }
+
+    private static MatchEngineV1Output withLastSnapshot(
+            MatchEngineV1Output source,
+            MatchEngineV1Output.SnapshotV1 last
+    ) {
+        ArrayList<MatchEngineV1Output.SnapshotV1> snapshots = new ArrayList<>(
+                source.timeline().snapshots());
+        snapshots.set(snapshots.size() - 1, last);
+        MatchEngineV1Output.TimelineV1 timeline = new MatchEngineV1Output.TimelineV1(
+                source.timeline().schemaVersion(), source.timeline().durationSeconds(),
+                source.timeline().winner(), source.timeline().endReason(),
+                source.timeline().events(), snapshots);
+        return new MatchEngineV1Output(
+                source.schemaVersion(), source.matchIdentity(), source.productionPolicy(),
+                source.configurationHash(), source.resultSummary(), source.finalDraft(), timeline,
+                source.executionProvenance(), source.inputHash(), source.inputHashAlgorithm(),
+                source.simulatorTimelineHash(), source.structuredTimelineHash(),
+                source.structuredTimelineHashAlgorithm(), source.outputHash(),
+                source.outputHashAlgorithm(), source.outputHashScope());
     }
 
     private static MatchEngineV1Input.TeamInput renamedTeam(

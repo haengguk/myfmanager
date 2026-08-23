@@ -87,6 +87,19 @@ public record MatchEngineV1Output(
     }
 
     public boolean hasValidOutputHash(MatchEngineV1Canonicalizer canonicalizer) {
+        Objects.requireNonNull(canonicalizer, "canonicalizer");
+        if (!inputHashAlgorithm.equals(MatchEngineV1Input.INPUT_HASH_ALGORITHM)
+                || !structuredTimelineHashAlgorithm.equals(
+                MatchEngineV1Canonicalizer.HASH_ALGORITHM)
+                || !outputHashAlgorithm.equals(MatchEngineV1Canonicalizer.HASH_ALGORITHM)
+                || !outputHashScope.equals(OUTPUT_HASH_SCOPE)) {
+            return false;
+        }
+        String actualStructuredTimelineHash = canonicalizer.hash(
+                structuredTimelineHashMaterial(timeline));
+        if (!structuredTimelineHash.equals(actualStructuredTimelineHash)) {
+            return false;
+        }
         return outputHash.equals(canonicalizer.hash(outputHashMaterial(
                 schemaVersion, matchIdentity, productionPolicy, configurationHash,
                 inputHash, resultSummary, finalDraft, structuredTimelineHash,
@@ -119,6 +132,44 @@ public record MatchEngineV1Output(
         identity.put("randomFingerprint", provenance.randomFingerprint());
         identity.put("diagnosticsExcludedFromGameplayIdentity", true);
         return Collections.unmodifiableMap(identity);
+    }
+
+    static Map<String, Object> structuredTimelineHashMaterial(TimelineV1 timeline) {
+        Objects.requireNonNull(timeline, "timeline");
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
+        result.put("schemaVersion", timeline.schemaVersion());
+        result.put("durationSeconds", timeline.durationSeconds());
+        result.put("winner", timeline.winner() == null ? "NONE" : timeline.winner().name());
+        result.put("endReason", timeline.endReason().name());
+        result.put("events", timeline.events().stream()
+                .map(MatchEngineV1Output::structuredEventHashMaterial).toList());
+        result.put("snapshots", timeline.snapshots());
+        return Collections.unmodifiableMap(result);
+    }
+
+    private static Map<String, Object> structuredEventHashMaterial(EventV1 event) {
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
+        result.put("timeSeconds", event.timeSeconds());
+        result.put("eventType", event.eventType());
+        putIfNonNull(result, "actorSide", event.actorSide());
+        putIfNonNull(result, "actorPosition", event.actorPosition());
+        putIfNonNull(result, "lane", event.lane());
+        putIfNonNull(result, "killerPlayerId", event.killerPlayerId());
+        putIfNonNull(result, "victimPlayerId", event.victimPlayerId());
+        result.put("assistantPlayerIds", event.assistantPlayerIds());
+        putIfNonNull(result, "killerChampionId", event.killerChampionId());
+        putIfNonNull(result, "victimChampionId", event.victimChampionId());
+        result.put("assistantChampionIds", event.assistantChampionIds());
+        putIfNonNull(result, "combatSource", event.combatSource());
+        putIfNonNull(result, "structureActionSource", event.structureActionSource());
+        putIfNonNull(result, "structureKind", event.structureKind());
+        putIfNonNull(result, "structureTowerTier", event.structureTowerTier());
+        putIfNonNull(result, "structureAttackingSide", event.structureAttackingSide());
+        putIfNonNull(result, "structureDefendingSide", event.structureDefendingSide());
+        result.put("goldAmount", event.goldAmount());
+        result.put("bountyRawBeforePayout", event.bountyRawBeforePayout());
+        result.put("structuredData", event.structuredData());
+        return Collections.unmodifiableMap(result);
     }
 
     public record MatchResultSummaryV1(
@@ -390,5 +441,11 @@ public record MatchEngineV1Output(
             return Collections.unmodifiableList(copy);
         }
         return String.valueOf(value);
+    }
+
+    private static void putIfNonNull(
+            Map<String, Object> target, String key, Object value
+    ) {
+        if (value != null) target.put(key, value);
     }
 }

@@ -59,6 +59,8 @@ public final class MatchEngineV1CrossJvmProbe {
         verification.put("inputHash", result.inputHash());
         verification.put("replayProvenanceHash",
                 result.executionProvenance().replayProvenanceHash());
+        verification.put("replayProvenanceHashAlgorithm",
+                result.executionProvenance().replayProvenanceHashAlgorithm());
         verification.put("simulatorTimelineHash", result.simulatorTimelineHash());
         verification.put("structuredTimelineHash", result.structuredTimelineHash());
         verification.put("randomFingerprint",

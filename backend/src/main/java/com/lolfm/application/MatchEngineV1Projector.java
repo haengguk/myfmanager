@@ -43,7 +43,8 @@ final class MatchEngineV1Projector {
         MatchEngineV1Output.TimelineV1 timeline = new MatchEngineV1Output.TimelineV1(
                 MatchEngineV1Output.TimelineV1.SCHEMA, outcome.endedAtSeconds(),
                 outcome.winnerSide(), outcome.endReason(), events, snapshots);
-        String structuredTimelineHash = canonicalizer.hash(gameplayTimelineIdentity(timeline));
+        String structuredTimelineHash = canonicalizer.hash(
+                MatchEngineV1Output.structuredTimelineHashMaterial(timeline));
         MatchEngineV1Output.MatchResultSummaryV1 summary = summary(
                 input, outcome, provenance, snapshots.getLast());
         String inputHash = input.inputHash();
@@ -245,42 +246,6 @@ final class MatchEngineV1Projector {
         if (event.getMidGameMacroAction() != null) return event.getMidGameMacroAction().targetLane();
         if (event.getLateGameDecision() != null) return event.getLateGameDecision().targetLane();
         return null;
-    }
-
-    private Map<String, Object> gameplayTimelineIdentity(MatchEngineV1Output.TimelineV1 timeline) {
-        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
-        result.put("schemaVersion", timeline.schemaVersion());
-        result.put("durationSeconds", timeline.durationSeconds());
-        result.put("winner", timeline.winner() == null ? "NONE" : timeline.winner().name());
-        result.put("endReason", timeline.endReason().name());
-        result.put("events", timeline.events().stream().map(this::eventIdentity).toList());
-        result.put("snapshots", timeline.snapshots());
-        return result;
-    }
-
-    private Map<String, Object> eventIdentity(MatchEngineV1Output.EventV1 event) {
-        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
-        result.put("timeSeconds", event.timeSeconds());
-        result.put("eventType", event.eventType());
-        put(result, "actorSide", event.actorSide());
-        put(result, "actorPosition", event.actorPosition());
-        put(result, "lane", event.lane());
-        put(result, "killerPlayerId", event.killerPlayerId());
-        put(result, "victimPlayerId", event.victimPlayerId());
-        result.put("assistantPlayerIds", event.assistantPlayerIds());
-        put(result, "killerChampionId", event.killerChampionId());
-        put(result, "victimChampionId", event.victimChampionId());
-        result.put("assistantChampionIds", event.assistantChampionIds());
-        put(result, "combatSource", event.combatSource());
-        put(result, "structureActionSource", event.structureActionSource());
-        put(result, "structureKind", event.structureKind());
-        put(result, "structureTowerTier", event.structureTowerTier());
-        put(result, "structureAttackingSide", event.structureAttackingSide());
-        put(result, "structureDefendingSide", event.structureDefendingSide());
-        result.put("goldAmount", event.goldAmount());
-        result.put("bountyRawBeforePayout", event.bountyRawBeforePayout());
-        result.put("structuredData", event.structuredData());
-        return result;
     }
 
     private static void put(Map<String, Object> target, String key, Object value) {

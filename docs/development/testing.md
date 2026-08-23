@@ -313,12 +313,13 @@ Match Engine V1 correctness는 대규모 balance population이 아니라 boundar
 - final snapshot 기반 summary와 summary action/`KILL` event non-double-counting
 - input/output/timeline/provenance deep immutability와 display-label isolation
 - same seed complete structured output, diagnostics observational equality
-- legacy Real Draft↔V1 complete timeline/provenance/Random parity
+- legacy Real Draft↔V1 complete timeline/Random/common provenance field parity와 V1 `inputHash` replay 결속
+- 실제 structured timeline 변조 거부와 display-message-only hash 제외
 - 두 fresh JVM의 canonical output/summary/verification byte equality
 
-최종 focused 묶음은 8 suites / 40 tests, failures/errors/skipped 0으로 통과했다. 이어 production final tree의 complete backend regression은 첫 실행에서 175 suites / 1,993 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 677.653초, Gradle wall 11분 28초로 clean pass했다. 그 뒤에는 freeze artifact와 문서만 생성·갱신했으므로 full regression을 반복하지 않았다.
+영향 범위 focused 묶음은 8 suites / 42 tests, failures/errors/skipped 0으로 통과했고 최종 replay binding material과 snapshot 변조 assertion 보강 뒤 핵심 2 suites / 12 tests도 다시 통과했다. 이어 production final tree의 complete backend regression은 첫 실행에서 175 suites / 1,995 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 628.861초, Gradle wall 10분 39초로 clean pass했다. 그 뒤에는 freeze artifact와 문서만 생성·갱신했으므로 full regression을 반복하지 않았다.
 
-Artifact writer는 clean full XML이 최소 170 suites / 1,970 tests이고 failure/error가 0인지 먼저 확인한다. 그 다음 historical Final 13G-B manifest 6/6, 실제 legacy/V1 parity와 fresh-JVM 두 번을 재검증한 뒤 `build/reports/match-engine-v1-freeze/`의 JSON 7개와 `SHA256SUMS.txt`를 쓴다. 이 freeze 작업은 B2 calibration, B3 holdout 또는 baseline generator를 다시 실행하지 않는다.
+Artifact writer는 clean full XML이 최소 170 suites / 1,970 tests이고 failure/error가 0인지 먼저 확인한다. 그 다음 historical Final 13G-B manifest 6/6, 실제 legacy/V1 gameplay/common provenance parity, V1 replay input 결속과 fresh-JVM 두 번을 재검증한 뒤 `build/reports/match-engine-v1-freeze/`의 JSON 7개와 `SHA256SUMS.txt`를 쓴다. 이 freeze 작업은 B2 calibration, B3 holdout 또는 baseline generator를 다시 실행하지 않는다.
 
 ## Generated Reports
 

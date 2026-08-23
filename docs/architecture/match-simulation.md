@@ -50,7 +50,7 @@ V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal ch
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
 - `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6`다. Batch C V4는 structured eligibility diagnostics와 invariant gate를 추가했고, V5 follow-up은 Counter Gank의 death/activity reason을 분리하고 같은 종류의 중복 major-combat attempt도 검출하도록 gate를 강화했다. V6는 Champion Power 참가자 map과 부동소수점 평균을 명시적 `PlayerKey(TeamSide, Position)` 순서로 계산해 JVM별 iteration order 차이를 제거했다. Gameplay tuning과 profile별 active rules version은 그대로다.
 - `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`이다.
-- `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다.
+- `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다. Match Engine V1은 이 legacy identity와 전체 `MatchEngineV1Input.inputHash`를 별도 V1 replay binding으로 다시 묶어 명시적 rating/proficiency snapshot도 재현 입력에 포함한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
 - `randomFingerprint`: match의 seeded `Random.next(bits)` draw count와 resolver context/value의 ordered SHA-256을 기록한다. Gameplay input이 아닌 observational output이므로 configuration/replay hash에는 넣지 않는다.
 
@@ -284,7 +284,7 @@ Frontend는 snapshot을 현재 playback time 이하에서 선택하고 event를 
 - Champion Power 참가자 map과 평균은 Blue/Red × TOP/JUNGLE/MID/ADC/SUPPORT의 명시적 `PlayerKey` 순서로 canonicalize한다. `Map.copyOf().values()` iteration order로 부동소수점 합산 순서를 결정하지 않는다.
 - request에 seed가 없으면 매 요청마다 wall-clock seed가 선택되므로 자동으로 같은 결과가 나오지 않는다. response seed를 다시 보내야 replay할 수 있다.
 - structured timeline 전체—participants, outcome, rewards, objectives, structures, winner—가 same-seed 회귀의 대상이다.
-- replay provenance는 동일 input snapshot을 식별하고 timeline hash와 Random fingerprint는 그 input에서 나온 complete output/consumption을 별도로 식별한다.
+- legacy replay provenance는 resource-backed 실행 입력을 식별하고, Match Engine V1 replay provenance는 여기에 전체 immutable input hash를 추가 결속한다. Timeline hash와 Random fingerprint는 그 입력에서 나온 complete output/consumption을 별도로 식별한다.
 
 공식 Pre-Jungle cross-process oracle은 `backend/baseline/pre-jungle-runtime-v2/`다. `verifyJungleEconomyOffParity`는 기존 세 OFF profile × 세 case에서 configuration, complete timeline hash, Random draw count/trace hash가 이 artifact와 exact equality인지 검사한다. Engine/resource snapshot 변경으로 달라지는 replay provenance hash는 gameplay equality와 분리한다.
 

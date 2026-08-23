@@ -33,6 +33,9 @@ class MatchEngineV1CrossJvmDeterminismTest {
                 MatchEngineV1CrossJvmProbe.PAYLOAD_FILES.get(2))))
                 .contains("\"runtimeProfileId\":\"BASELINE_V1\"")
                 .contains("\"configurationHash\":\"c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215\"")
+                .contains("\"replayProvenanceHashAlgorithm\":\""
+                        + SimulationProvenanceService
+                        .MATCH_ENGINE_V1_REPLAY_PROVENANCE_HASH_ALGORITHM + "\"")
                 .contains("\"outputHash\":");
     }
 }

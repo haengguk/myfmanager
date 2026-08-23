@@ -76,8 +76,17 @@ public final class MatchEngineV1FreezeArtifactWriter {
                 legacy.hardFearlessExclusionsBeforeDraft(), legacy.draftResult());
         MatchEngineV1.MatchEngineV1Execution v1 = engine.executeDetailed(
                 input, SimulationInstrumentation.enabled());
-        require(legacy.executionProvenance().equals(v1.executionProvenance()),
-                "Existing RealDraft and V1 provenance differ");
+        requireCommonProvenanceExact(
+                canonicalizer, legacy.executionProvenance(), v1.executionProvenance());
+        require(v1.executionProvenance().replayProvenanceHash().equals(
+                        SimulationProvenanceService.matchEngineV1ReplayProvenanceHash(
+                                legacy.executionProvenance().replayProvenanceHash(),
+                                input.inputHash())),
+                "V1 replay provenance does not bind the complete input hash");
+        require(v1.executionProvenance().replayProvenanceHashAlgorithm().equals(
+                        SimulationProvenanceService
+                                .MATCH_ENGINE_V1_REPLAY_PROVENANCE_HASH_ALGORITHM),
+                "V1 replay provenance algorithm differs");
         require(legacy.executionProvenance().timelineHash().equals(
                 v1.executionProvenance().timelineHash()),
                 "Existing RealDraft and V1 timeline differ");
@@ -132,6 +141,8 @@ public final class MatchEngineV1FreezeArtifactWriter {
                         "finalDraftHash", input.finalDraft().finalDraftHash(),
                         "finalAssignmentHash", input.finalDraft().finalAssignmentHash(),
                         "replayProvenanceHash", provenance.replayProvenanceHash(),
+                        "replayProvenanceHashAlgorithm",
+                        provenance.replayProvenanceHashAlgorithm(),
                         "simulatorTimelineHash", provenance.timelineHash(),
                         "structuredTimelineHash", v1.output().structuredTimelineHash(),
                         "randomFingerprint", provenance.randomFingerprint(),
@@ -145,7 +156,8 @@ public final class MatchEngineV1FreezeArtifactWriter {
                         "winnerParity", true,
                         "completeTimelineParity", true,
                         "finalStateParity", true,
-                        "provenanceParity", true,
+                        "commonProvenanceFieldsParity", true,
+                        "v1ReplayProvenanceInputBound", true,
                         "randomFingerprintParity", true),
                 "summary", v1.output().resultSummary()));
         writeJson(canonicalizer, output.resolve(CROSS_JVM), map(
@@ -155,6 +167,7 @@ public final class MatchEngineV1FreezeArtifactWriter {
                 "structuredSummaryExact", true,
                 "timelineHashExact", true,
                 "replayProvenanceHashExact", true,
+                "replayProvenanceHashAlgorithmExact", true,
                 "randomFingerprintExact", true,
                 "outputHashExact", true,
                 "generatedManifestExact", true,
@@ -181,7 +194,10 @@ public final class MatchEngineV1FreezeArtifactWriter {
         summary.put("randomConsumptionChanged", false);
         summary.put("draftLogicChanged", false);
         summary.put("candidateSystemsActive", false);
-        summary.put("realDraftV1ParityExact", true);
+        summary.put("realDraftV1GameplayParityExact", true);
+        summary.put("realDraftV1CommonProvenanceFieldsExact", true);
+        summary.put("v1ReplayProvenanceInputBound", true);
+        summary.put("outputHashRecomputesStructuredTimeline", true);
         summary.put("crossJvmExact", true);
         summary.put("fullBackendRegression", full);
         summary.put("httpDemoUsesMatchEngineV1", false);
@@ -232,13 +248,35 @@ public final class MatchEngineV1FreezeArtifactWriter {
                 "deepCopy", true,
                 "collectionsExternallyMutable", false,
                 "mandatoryExecutionProvenance", true,
+                "outputHashValidation",
+                "RECOMPUTE_ACTUAL_STRUCTURED_TIMELINE_THEN_VERIFY_OUTPUT_ENVELOPE",
                 "hashContracts", Map.of(
                         "configurationHash", "GAMEPLAY_CONFIGURATION_ONLY_DIAGNOSTICS_EXCLUDED",
-                        "replayProvenanceHash", "EXECUTION_INPUT_RESOURCE_DRAFT_PROFILE_SEED",
+                        "replayProvenanceHash",
+                        "LEGACY_EXECUTION_INPUT_RESOURCE_DRAFT_PROFILE_SEED_"
+                                + "PLUS_COMPLETE_MATCH_ENGINE_V1_INPUT_HASH",
                         "simulatorTimelineHash", "LEGACY_COMPLETE_TIMELINE_INCLUDING_DISPLAY_PLAYBACK",
                         "structuredTimelineHash", "V1_STRUCTURED_PLAYBACK_DISPLAY_WORDING_EXCLUDED",
                         "outputHash", MatchEngineV1Output.OUTPUT_HASH_SCOPE,
                         "canonicalJson", MatchEngineV1Canonicalizer.HASH_ALGORITHM));
+    }
+
+    private static void requireCommonProvenanceExact(
+            MatchEngineV1Canonicalizer canonicalizer,
+            SimulationExecutionProvenance legacy,
+            SimulationExecutionProvenance v1
+    ) {
+        LinkedHashMap<String, Object> legacyFields = new LinkedHashMap<>(
+                canonicalizer.immutableObject(legacy));
+        LinkedHashMap<String, Object> v1Fields = new LinkedHashMap<>(
+                canonicalizer.immutableObject(v1));
+        for (String field : List.of(
+                "replayProvenanceHash", "replayProvenanceHashAlgorithm")) {
+            legacyFields.remove(field);
+            v1Fields.remove(field);
+        }
+        require(legacyFields.equals(v1Fields),
+                "Existing RealDraft and V1 common provenance fields differ");
     }
 
     private static Map<String, Object> finalBinding() {

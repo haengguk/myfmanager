@@ -54,6 +54,9 @@ public final class SimulationProvenanceService {
             "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6";
     public static final String ORDERED_LINES_HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_FIELD_LINES_TRAILING_NEWLINE_V1";
+    public static final String MATCH_ENGINE_V1_REPLAY_PROVENANCE_HASH_ALGORITHM =
+            "SHA256_UTF8_EXPLICIT_ORDERED_MATCH_ENGINE_V1_REPLAY_BINDING_LINES_"
+                    + "TRAILING_NEWLINE_V1";
     public static final String TIMELINE_HASH_ALGORITHM =
             "SHA256_CANONICAL_JSON_SORTED_PROPERTIES_AND_MAP_KEYS_V1";
 
@@ -169,7 +172,7 @@ public final class SimulationProvenanceService {
                 timelineHash(timeline), TIMELINE_HASH_ALGORITHM, randomFingerprint);
     }
 
-    /** Creates the same execution provenance from the immutable V1 input contract. */
+    /** Creates V1 provenance whose replay identity binds the complete immutable input snapshot. */
     public SimulationExecutionProvenance createV1(
             MatchEngineV1Input input,
             SimulationInstrumentation instrumentation,
@@ -191,7 +194,7 @@ public final class SimulationProvenanceService {
                 || !draft.draftScoringPolicyHash().equals(draftScoringPolicyHash)) {
             throw new IllegalStateException("MATCH_ENGINE_V1_PROVENANCE_IDENTITY_DRIFT");
         }
-        String replayHash = replayProvenanceHash(
+        String legacyReplayHash = replayProvenanceHash(
                 ENGINE_IMPLEMENTATION_VERSION, profile.activeGameplayRulesVersion(),
                 profile.configurationHash(), resourceProvenance.resourceProvenanceHash(),
                 input.blueTeam().teamIdentity(), input.redTeam().teamIdentity(),
@@ -200,6 +203,8 @@ public final class SimulationProvenanceService {
                 draft.draftRuleSetHash(), draft.draftScoringPolicyHash(),
                 draft.draftDecisionHash(), draft.finalDraftHash(),
                 draft.finalAssignmentHash());
+        String replayHash = matchEngineV1ReplayProvenanceHash(
+                legacyReplayHash, input.inputHash());
         return new SimulationExecutionProvenance(
                 SimulationExecutionProvenance.SCHEMA,
                 profile.profileId(), profile.gameplayConfiguration(), profile.configurationHash(),
@@ -212,7 +217,8 @@ public final class SimulationProvenanceService {
                 input.seriesHistoryBeforeHash(), draft.draftRuleSetIdentity(),
                 draft.draftRuleSetHash(), draft.draftScoringPolicyHash(),
                 draft.draftDecisionHash(), draft.finalDraftHash(),
-                draft.finalAssignmentHash(), replayHash, ORDERED_LINES_HASH_ALGORITHM,
+                draft.finalAssignmentHash(), replayHash,
+                MATCH_ENGINE_V1_REPLAY_PROVENANCE_HASH_ALGORITHM,
                 timelineHash(timeline), TIMELINE_HASH_ALGORITHM, randomFingerprint);
     }
 
@@ -488,6 +494,25 @@ public final class SimulationProvenanceService {
                 + "draftDecisionHash=" + draftDecisionHash + '\n'
                 + "finalDraftHash=" + finalDraftHash + '\n'
                 + "finalAssignmentHash=" + finalAssignmentHash + '\n';
+        return orderedLinesHash(canonical);
+    }
+
+    static String matchEngineV1ReplayProvenanceHash(
+            String legacyReplayProvenanceHash,
+            String matchEngineInputHash
+    ) {
+        String legacyHash = MatchEngineV1Policy.requiredHash(
+                legacyReplayProvenanceHash, "legacyReplayProvenanceHash");
+        String inputHash = MatchEngineV1Policy.requiredHash(
+                matchEngineInputHash, "matchEngineInputHash");
+        String canonical = "matchEngineV1ReplayProvenanceSchema="
+                + "MATCH_ENGINE_V1_REPLAY_PROVENANCE_V1\n"
+                + "legacyReplayProvenanceHashAlgorithm="
+                + ORDERED_LINES_HASH_ALGORITHM + '\n'
+                + "legacyReplayProvenanceHash=" + legacyHash + '\n'
+                + "matchEngineInputHashAlgorithm="
+                + MatchEngineV1Input.INPUT_HASH_ALGORITHM + '\n'
+                + "matchEngineInputHash=" + inputHash + '\n';
         return orderedLinesHash(canonical);
     }
 
