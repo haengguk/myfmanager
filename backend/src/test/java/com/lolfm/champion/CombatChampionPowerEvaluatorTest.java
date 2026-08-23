@@ -4,10 +4,47 @@ import static org.assertj.core.api.Assertions.*;
 import com.lolfm.domain.PlayerAttributes;
 import com.lolfm.domain.Position;
 import com.lolfm.simulator.*;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class CombatChampionPowerEvaluatorTest {
+    @Test void participantOrderCannotChangeChampionPowerFloatingPointBits() {
+        var fixture = new ChampionPowerTestFixture(true);
+        var evaluator = new CombatChampionPowerEvaluator();
+        List<PlayerState> blue = players(fixture.blue);
+        List<PlayerState> red = players(fixture.red);
+        for (int index = 0; index < Position.values().length; index++) {
+            ChampionPowerTestFixture.grow(blue.get(index), 320 * (index + 1), 710 * (index + 1));
+            ChampionPowerTestFixture.grow(red.get(index), 270 * (index + 1), 630 * (index + 1));
+        }
+
+        var expected = evaluator.evaluate(
+                fixture.state, blue, red,
+                ProgressionCombatContext.TEAMFIGHT,
+                ProgressionApplicationStage.FIGHT_GRADE);
+        for (List<PlayerState> permutation : permutations(blue)) {
+            assertExactPowerBits(expected, evaluator.evaluate(
+                    fixture.state, permutation, red,
+                    ProgressionCombatContext.TEAMFIGHT,
+                    ProgressionApplicationStage.FIGHT_GRADE));
+        }
+        for (List<PlayerState> permutation : permutations(red)) {
+            assertExactPowerBits(expected, evaluator.evaluate(
+                    fixture.state, blue, permutation,
+                    ProgressionCombatContext.TEAMFIGHT,
+                    ProgressionApplicationStage.FIGHT_GRADE));
+        }
+
+        assertThat(new ArrayList<>(expected.ownParticipants().keySet())).containsExactly(
+                new PlayerKey(TeamSide.BLUE, Position.TOP),
+                new PlayerKey(TeamSide.BLUE, Position.JUNGLE),
+                new PlayerKey(TeamSide.BLUE, Position.MID),
+                new PlayerKey(TeamSide.BLUE, Position.ADC),
+                new PlayerKey(TeamSide.BLUE, Position.SUPPORT));
+    }
+
     @Test void actualParticipantsAreAveragedAndSwapReversesSignedEdge() {
         var f = new ChampionPowerTestFixture(true); var evaluator = new CombatChampionPowerEvaluator();
         PlayerState blue = f.blue.playerAt(Position.TOP), red = f.red.playerAt(Position.TOP);
@@ -31,5 +68,53 @@ class CombatChampionPowerEvaluatorTest {
         assertThat(clamped.finalChampionEdge()).isEqualTo(ChampionPowerRuleConfig.MAX_ABS_TEAM_CHAMPION_EDGE); assertThat(clamped.teamEdgeClampApplied()).isTrue();
         var off = new ChampionPowerTestFixture(false); var neutral = new CombatChampionPowerEvaluator().evaluate(off.state,List.of(off.blue.playerAt(Position.TOP)),List.of(off.red.playerAt(Position.TOP)),ProgressionCombatContext.LANE_COMBAT,ProgressionApplicationStage.COMBAT_SCORE);
         assertThat(neutral.finalContribution()).isZero(); assertThat(neutral.ownParticipants()).isNotEmpty(); assertThat(neutral.championPowerEnabled()).isFalse();
+    }
+
+    private static List<PlayerState> players(TeamState team) {
+        return List.of(Position.values()).stream().map(team::playerAt).toList();
+    }
+
+    private static List<List<PlayerState>> permutations(List<PlayerState> source) {
+        ArrayList<List<PlayerState>> result = new ArrayList<>();
+        ArrayList<PlayerState> mutable = new ArrayList<>(source);
+        permute(mutable, 0, result);
+        return List.copyOf(result);
+    }
+
+    private static void permute(
+            ArrayList<PlayerState> values,
+            int index,
+            List<List<PlayerState>> result
+    ) {
+        if (index == values.size()) {
+            result.add(List.copyOf(values));
+            return;
+        }
+        for (int candidate = index; candidate < values.size(); candidate++) {
+            Collections.swap(values, index, candidate);
+            permute(values, index + 1, result);
+            Collections.swap(values, index, candidate);
+        }
+    }
+
+    private static void assertExactPowerBits(
+            ChampionCombatPowerBreakdown expected,
+            ChampionCombatPowerBreakdown actual
+    ) {
+        assertThat(bits(actual.ownAverageChampionPower()))
+                .isEqualTo(bits(expected.ownAverageChampionPower()));
+        assertThat(bits(actual.enemyAverageChampionPower()))
+                .isEqualTo(bits(expected.enemyAverageChampionPower()));
+        assertThat(bits(actual.rawChampionEdge())).isEqualTo(bits(expected.rawChampionEdge()));
+        assertThat(bits(actual.finalChampionEdge())).isEqualTo(bits(expected.finalChampionEdge()));
+        assertThat(bits(actual.levelContribution())).isEqualTo(bits(expected.levelContribution()));
+        assertThat(bits(actual.itemContribution())).isEqualTo(bits(expected.itemContribution()));
+        assertThat(bits(actual.contextContribution())).isEqualTo(bits(expected.contextContribution()));
+        assertThat(actual.ownParticipants()).isEqualTo(expected.ownParticipants());
+        assertThat(actual.enemyParticipants()).isEqualTo(expected.enemyParticipants());
+    }
+
+    private static long bits(double value) {
+        return Double.doubleToRawLongBits(value);
     }
 }

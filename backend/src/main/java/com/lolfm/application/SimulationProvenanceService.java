@@ -47,7 +47,7 @@ public final class SimulationProvenanceService {
     public static final String ENGINE_RULES_VERSION =
             SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION;
     public static final String ENGINE_IMPLEMENTATION_VERSION =
-            "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V5";
+            "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6";
     public static final String ORDERED_LINES_HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_FIELD_LINES_TRAILING_NEWLINE_V1";
     public static final String TIMELINE_HASH_ALGORITHM =

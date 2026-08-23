@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.domain.MatchSnapshot;
+import com.lolfm.domain.MatchTimeline;
 import com.lolfm.domain.PlayerSnapshot;
 import com.lolfm.domain.Position;
 import com.lolfm.draft.DraftResourceSet;
@@ -176,6 +177,7 @@ public final class Phase13GB1RealMatchHarness {
                 executionProvenance.finalAssignmentHash(),
                 executionProvenance.replayProvenanceHash(),
                 executionProvenance.timelineHash(),
+                execution.timeline(),
                 execution.randomFingerprint(),
                 execution.timeline().getWinner(),
                 execution.winnerSide(),
@@ -681,6 +683,7 @@ public final class Phase13GB1RealMatchHarness {
             String finalAssignmentHash,
             String replayProvenanceHash,
             String timelineHash,
+            @JsonIgnore MatchTimeline timeline,
             SimulationRandomFingerprint randomFingerprint,
             String winnerTeamCode,
             TeamSide winnerSide,
@@ -706,6 +709,7 @@ public final class Phase13GB1RealMatchHarness {
             }
             Objects.requireNonNull(profileId, "profileId");
             Objects.requireNonNull(resolvedGameplayConfiguration, "resolvedGameplayConfiguration");
+            Objects.requireNonNull(timeline, "timeline");
             Objects.requireNonNull(randomFingerprint, "randomFingerprint");
             Objects.requireNonNull(blueJungle, "blueJungle");
             Objects.requireNonNull(redJungle, "redJungle");

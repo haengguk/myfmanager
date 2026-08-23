@@ -64,17 +64,9 @@ public final class Phase13GB1AuditArtifactWriter {
         validateDryRun(prepared, runs, deterministicReplay, resources);
         Files.createDirectories(output);
         ObjectMapper mapper = canonicalMapper(sourceMapper);
-        SourceTreeIdentity productionSource = sourceTreeIdentity(
-                backendRoot,
-                List.of(Path.of("src", "main", "java"),
-                        Path.of("src", "main", "resources")),
-                List.of(Path.of("build.gradle"), Path.of("settings.gradle")),
-                value -> true);
-        SourceTreeIdentity auditHarnessSource = sourceTreeIdentity(
-                backendRoot,
-                List.of(Path.of("src", "test", "java")),
-                List.of(Path.of("build.gradle"), Path.of("settings.gradle")),
-                value -> value.getFileName().toString().startsWith("Phase13GB1"));
+        SourceTreeIdentity productionSource = productionSourceTree(backendRoot);
+        SourceTreeIdentity auditHarnessSource = phaseTestSourceTree(
+                backendRoot, "Phase13GB1");
         List<ProfileContract> profiles = Phase13GB1RealMatchHarness.AUDIT_PROFILES.stream()
                 .map(SimulationRuntimeProfiles::resolve)
                 .map(Phase13GB1AuditArtifactWriter::profileContract)
@@ -369,6 +361,27 @@ public final class Phase13GB1AuditArtifactWriter {
                     .append(run.integrityDiagnostics().clean()).append('\n');
         }
         return result.toString();
+    }
+
+    static SourceTreeIdentity productionSourceTree(Path backendRoot) throws IOException {
+        return sourceTreeIdentity(
+                backendRoot,
+                List.of(Path.of("src", "main", "java"),
+                        Path.of("src", "main", "resources")),
+                List.of(Path.of("build.gradle"), Path.of("settings.gradle")),
+                value -> true);
+    }
+
+    static SourceTreeIdentity phaseTestSourceTree(
+            Path backendRoot,
+            String fileNamePrefix
+    ) throws IOException {
+        Objects.requireNonNull(fileNamePrefix, "fileNamePrefix");
+        return sourceTreeIdentity(
+                backendRoot,
+                List.of(Path.of("src", "test", "java")),
+                List.of(Path.of("build.gradle"), Path.of("settings.gradle")),
+                value -> value.getFileName().toString().startsWith(fileNamePrefix));
     }
 
     private static SourceTreeIdentity sourceTreeIdentity(

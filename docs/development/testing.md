@@ -144,7 +144,7 @@ cd backend
 ./gradlew runJungleTempoCandidateDiagnostic
 ```
 
-첫 task는 12 matches의 configuration/Draft/final assignment/complete timeline/Random fingerprint/result exact equality를 검증하고 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`을 쓴다. Replay provenance hash는 baseline engine V2와 현재 engine V5가 다르므로 equality에서 제외한다. 두 번째 task는 12 fixed same-seed Economy-only/Tempo pair의 readiness와 actual consumption을 기록한다. 이 작은 sample은 구조 확인용이며 calibration이나 production-activation gate가 아니다.
+첫 task는 12 matches의 configuration/Draft/final assignment/complete timeline/Random fingerprint/result exact equality를 검증하고 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`을 쓴다. Replay provenance hash는 baseline engine V2와 현재 engine V6가 다르므로 equality에서 제외한다. Current V6 report SHA-256은 `a38b16811a3b74f5fe8958bce5eb5b8e1310ba18795af46ea016f705bbec22c9`다. 두 번째 task는 12 fixed same-seed Economy-only/Tempo pair의 readiness와 actual consumption을 기록한다. 이 작은 sample은 구조 확인용이며 calibration이나 production-activation gate가 아니다.
 
 V1-B focused correctness는 `JungleTempoStateTest`, `JungleTempoGankIntegrationTest`, economy/runtime integration과 real GEN–T1 smoke가 담당한다. Tempo-not-ready/ineligible/duplicate path는 tempo state와 trigger Random을 소비하지 않는다. Tempo-ready 뒤 failed trigger는 eligible trigger Random만 소비하고 tempo credit, action state와 downstream action Random은 보존한다. 실제 no-kill gank와 successful counter response는 각각 자기 side의 credit만 한 번 소비하며, non-attempt는 lane combat으로 fall through해야 한다.
 
@@ -165,7 +165,7 @@ cd backend
 
 Expanded focused regression은 위 두 class와 Jungle Economy/Tempo/Gank/Counter Gank/Lane Combat/FARM Recovery/Mid Game Macro/runtime profile/Random fingerprint/real Draft 경로 17개 class, 168 tests를 실행한다. 구조화된 reason count와 trigger roll algebra, actual action/Tempo consumption equality, action/death/recovery/macro FARM block의 CS/FARM gold/XP/passive/Random boundary, priority/fallthrough, common reward와 event linkage, match state isolation, same-seed complete timeline을 검증한다. V5 follow-up은 살아 있는 non-default activity를 death와 구분하고, 같은 tick의 같은 종류 actual attempt 두 개가 gate를 통과하지 못하는 negative fixture를 추가한다.
 
-`verifyPreJungleTempoParity`는 Batch C engine V4에서 기존 네 profile 12/12 exact gameplay parity로 통과했고 report SHA-256은 `6ba6d0c33332fa4a6eef343a9030fd3f031f6cef3a6d0363c6877db25fb5878f`였다. V5 follow-up도 12/12 exact pass했고 current report SHA-256은 `87577b6c26073fb748ab6d9b9d2bda719437c60381ba99f71b07482bcdeca927`다. Batch C 전후와 V5의 `runJungleTempoCandidateDiagnostic` report SHA-256은 모두 `3f94b100464a48181fccf5a04a5e16f62dea3e17a05b1398215f65afddab1199`로 byte-identical하다. 이는 Economy-only 15/3과 Tempo 15/2 gank/counter-gank, Tempo consumption 15/2를 그대로 보존한다.
+`verifyPreJungleTempoParity`는 Batch C engine V4/V5에서 기존 네 profile 12/12 exact gameplay parity로 통과했고 report SHA-256은 각각 `6ba6d0c33332fa4a6eef343a9030fd3f031f6cef3a6d0363c6877db25fb5878f` / `87577b6c26073fb748ab6d9b9d2bda719437c60381ba99f71b07482bcdeca927`였다. V6도 12/12 exact pass했고 current report SHA-256은 `a38b16811a3b74f5fe8958bce5eb5b8e1310ba18795af46ea016f705bbec22c9`다. Batch C 전후와 V5의 historical `runJungleTempoCandidateDiagnostic` report SHA-256은 모두 `3f94b100464a48181fccf5a04a5e16f62dea3e17a05b1398215f65afddab1199`로 byte-identical하다. 이는 Economy-only 15/3과 Tempo 15/2 gank/counter-gank, Tempo consumption 15/2를 그대로 보존한다.
 
 Batch C V4 final full regression은 166 suites / 1,951 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 519.521초, Gradle wall 8분 51초로 clean pass했고 당시 production guard는 472 files / `54b53ea30453e39791dd8aa0197e95ed190697ce1b83c010baff1df540c833d9`였다. V5 follow-up final full regression은 166 suites / 1,953 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 513.886초, Gradle wall 8분 49초로 첫 실행에서 clean pass했다. Full 뒤에는 production/shared fixture를 바꾸지 않고 one-major-combat test의 marker 분류만 assertion-only로 좁혔으며 affected 5 tests가 clean pass했다. Full regression budget의 재사용 조건에 따라 full은 반복하지 않았고 immutable baseline도 재생성하지 않았다.
 
@@ -178,6 +178,7 @@ cd backend
 ./gradlew test \
   --tests 'com.lolfm.application.Phase13GB1AuditScheduleTest' \
   --tests 'com.lolfm.application.Phase13GB1AuditContractTest'
+./gradlew verifyPhase13GB1CrossJvmDeterminism
 ./gradlew runPhase13GB1DryRun
 ```
 
@@ -193,7 +194,40 @@ Report는 `build/reports/phase13g-b1/`에 생성한다.
 
 B1 hardening은 Champion Power/Matchup, Composition, Combat Outcome, Objective Priority, Structure, Lane Phase, Mid Game Macro, Progression과 Jungle Economy의 명시적 오류 카운터를 domain별 integrity로 집계한다. 정상 rejection/ineligible count는 오류로 오인하지 않는다. Full diagnostic equality는 메모리 record equality와 `SHA256_UTF8_RECORD_COMPONENT_MAP_KEY_CANONICAL_V1` hash로 이중 확인하며 Random raw trace는 기존 fingerprint가 담당한다. Tempo dry-run은 attempt-consumption equality뿐 아니라 READY 관찰과 GANK+COUNTER_GANK actual consumption 합계가 양수인지 고정한다.
 
-B1 task는 `diagnostic` tag라 기본 `test`에서 제외된다. Hardened 실행 결과는 2 focused suites / 7 tests와 1 dry-run test가 모두 clean pass했고 manifest 6/6이 일치했다. Dry-run JUnit suite는 18.445초, Gradle wall은 33초였다. 이어 B1에서 추가했던 Gradle/test configuration까지 포함해 backend full regression을 첫 실행에서 168 suites / 1,960 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 540.965초, Gradle wall 9분 15초로 clean pass했다. `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`가 summary contract다. 단일 dry-run의 승패·경기 시간·profile 차이로 balance 결론을 내리거나 expected value를 바꾸면 안 된다. 다음 B2는 calibration seed만 소비하며, holdout seed는 B3 전까지 실행하지 않는다.
+B1 task는 `diagnostic` tag라 기본 `test`에서 제외된다. P1 gate는 두 fresh JVM이 각각 쓴 7개 B1 artifact 전체를 byte-for-byte 비교하고, 그 manifest SHA를 직후 canonical `runPhase13GB1DryRun` manifest와 다시 대조한다. V6 final 실행은 두 probe와 dry-run이 각각 1 suite / 1 test, failures/errors/skipped 0으로 통과했고 probe JUnit 15.228/15.382초, dry-run 15.742초였다. B1 manifest 6/6이 통과했고 summary/manifest SHA-256은 각각 `83b926319f6342ea38e60195d27638ad3c2cae95b3ab3eda81460087b6faf739` / `91bf5762b5ac763473ab5bb91b8d7e9586eb382eac3cb09a177997fe4ad83811`이다. `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`가 B1 summary contract다. 단일 dry-run의 승패·경기 시간·profile 차이로 balance 결론을 내리면 안 된다.
+
+### Final 13G-B2 real-data calibration
+
+B2는 기본 `test`와 분리된 대규모 diagnostic이다. 전체 lifecycle은 fresh P1/B1 gate를 dependency로 실행하고 네 isolated JVM shard가 서로 다른 fixture checkpoint를 만든 뒤, gameplay를 실행하지 않는 finalizer가 artifact를 작성한다.
+
+```bash
+cd backend
+./gradlew runPhase13GB2Smoke
+./gradlew test --console=plain --no-daemon
+./gradlew runPhase13GB2Calibration --console=plain --no-daemon
+```
+
+`runPhase13GB2Smoke`는 실제 LCK fixed Draft 1개 × calibration seed 1개 × 5 profiles, same-seed BASELINE replay, 120-row atomic checkpoint roundtrip과 synthetic 12,000-row finalizer를 검증한다. 시간 점프가 10초 경계의 exact snapshot을 건너뛰는 real fixture를 사용해 fixed checkpoint가 요청 시각 이상인 첫 실제 snapshot을 선택하고 requested/actual time을 모두 보존하는지도 확인한다. 상태를 보간하지 않으며 경기 종료 뒤 checkpoint를 복제하지 않는다.
+
+Official contract는 다음을 고정한다.
+
+- 90 G1 + 10 Hard Fearless G2 fixtures, calibration seed 24개, 5-profile fixed order: 12,000 jobs
+- holdout seed 실행 경로 없음; 준비 orchestration 110회와 결정성 replay 100회는 calibration count에서 제외
+- fixture당 120행 atomic checkpoint와 changed guard rejection
+- 모든 match의 profile semantics, non-empty Random fingerprint와 전체 domain integrity
+- fixture당 BASELINE replay provenance/timeline/Random/full structured diagnostics exact equality
+- fixed Draft/final assignment, profile/source/resource/schedule hash와 job order exact equality
+
+Artifact는 `build/reports/phase13g-b2/`에 생성한다.
+
+- contract, 12,000-job manifest, 100 fixed Draft와 100 determinism replay CSV
+- 12,000-row JSONL/CSV와 600/900/1,200/1,500/1,800/final Jungle checkpoint CSV
+- 12,000 paired marginal rows, lane/pair/profile/team/jungler-champion summaries
+- full-domain integrity JSON, review-only balance JSON, 15-file `SHA256SUMS.txt`
+
+Final 실행은 100/100 fixture, 12,000/12,000 unique jobs, 100/100 exact replay, holdout 0, domain integrity error 0과 SHA 15/15로 `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`를 기록했다. Lifecycle wall time은 21분 3초, workers는 4 suites / 4 tests와 aggregate JUnit 2,516.151초, finalizer는 1 suite / 1 test와 6.344초였다. Review/manifest SHA-256은 `698aa741958a244e302f0f72a2516a7ec3d357aa3b8e57260611f5448956fd6f` / `f252eb2e1dc301250747ea74e2c26063a208a7ff318eba42473e1eb0691e1fe1`이다.
+
+Balance output은 correctness assertion이 아니다. Economy − Full winner flip은 18/2,400, Tempo − Economy는 811/2,400이며 Tempo actual Gank/Counter-gank consumption은 5,175/660회였다. 이 값은 calibration human review와 B3 gate freeze의 입력이다. 자동 tuning, candidate freeze, holdout과 `PRODUCTION_V1` 결정은 이 task에서 금지한다.
 
 ## Generated Reports
 

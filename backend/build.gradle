@@ -575,3 +575,131 @@ tasks.register("runPhase13GB1DryRun", Test) {
     reports.junitXml.outputLocation = layout.buildDirectory.dir(
             "test-results/phase13GB1DryRun")
 }
+
+def registerPhase13GB1CrossJvmProbe = { String taskName, String probeId ->
+    tasks.register(taskName, Test) {
+        group = "verification"
+        description = "Runs Phase 13G-B1 determinism probe in fresh JVM ${probeId}."
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        useJUnitPlatform {
+            includeTags "phase13g-b1-cross-jvm-probe"
+        }
+        maxHeapSize = "2g"
+        maxParallelForks = 1
+        outputs.upToDateWhen { false }
+        systemProperty "lolfm.phase13gb1.crossJvmOutput",
+                layout.buildDirectory.dir(
+                        "reports/phase13g-b1-cross-jvm/${probeId}").get().asFile.absolutePath
+        reports.html.outputLocation = layout.buildDirectory.dir(
+                "reports/tests/phase13GB1CrossJvm-${probeId}")
+        reports.junitXml.outputLocation = layout.buildDirectory.dir(
+                "test-results/phase13GB1CrossJvm-${probeId}")
+    }
+}
+
+registerPhase13GB1CrossJvmProbe("runPhase13GB1CrossJvmProbeA", "jvm-a")
+registerPhase13GB1CrossJvmProbe("runPhase13GB1CrossJvmProbeB", "jvm-b")
+
+tasks.register("verifyPhase13GB1CrossJvmDeterminism") {
+    group = "verification"
+    description = "Compares complete B1 artifact sets emitted by two fresh JVMs."
+    dependsOn("runPhase13GB1CrossJvmProbeA", "runPhase13GB1CrossJvmProbeB")
+    outputs.upToDateWhen { false }
+    doLast {
+        File root = layout.buildDirectory.dir("reports/phase13g-b1-cross-jvm").get().asFile
+        List<String> artifactFiles = [
+                "phase13g-b1-audit-contract.json",
+                "phase13g-b1-profile-contract.json",
+                "phase13g-b1-schedule.json",
+                "phase13g-b1-schedule.csv",
+                "phase13g-b1-dry-run-provenance.json",
+                "phase13g-b1-dry-run-matches.csv",
+                "SHA256SUMS.txt"
+        ]
+        artifactFiles.each { String name ->
+            File first = new File(new File(root, "jvm-a"), name)
+            File second = new File(new File(root, "jvm-b"), name)
+            if (!first.isFile() || !second.isFile()) {
+                throw new GradleException("Missing cross-JVM B1 artifact: ${name}")
+            }
+            if (!java.util.Arrays.equals(first.bytes, second.bytes)) {
+                throw new GradleException("Cross-JVM B1 artifact differs: ${name}")
+            }
+        }
+        File result = new File(root, "cross-jvm-determinism.txt")
+        String manifestSha256 = java.util.HexFormat.of().formatHex(
+                java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(new File(new File(root, "jvm-a"), "SHA256SUMS.txt").bytes))
+        result.setText(
+                "status=PASS\nfreshJvmCount=2\n"
+                        + "artifactFileCount=${artifactFiles.size()}\n"
+                        + "b1ManifestSha256=${manifestSha256}\n",
+                "UTF-8")
+    }
+}
+
+tasks.named("runPhase13GB1DryRun") {
+    mustRunAfter("verifyPhase13GB1CrossJvmDeterminism")
+}
+
+tasks.register("runPhase13GB2Smoke", Test) {
+    group = "verification"
+    description = "Runs one fixed-Draft, one-seed, five-profile B2 calibration smoke test."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "phase13g-b2-smoke"
+    }
+    maxHeapSize = "2g"
+    maxParallelForks = 1
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/phase13GB2Smoke")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/phase13GB2Smoke")
+}
+
+tasks.register("runPhase13GB2CalibrationWorkers", Test) {
+    group = "verification"
+    description = "Runs four isolated JVM shards for the 12,000-match B2 calibration."
+    dependsOn("verifyPhase13GB1CrossJvmDeterminism", "runPhase13GB1DryRun")
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "phase13g-b2-calibration-shard"
+    }
+    maxHeapSize = "2g"
+    maxParallelForks = 4
+    failFast = true
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/phase13GB2CalibrationWorkers")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/phase13GB2CalibrationWorkers")
+}
+
+tasks.register("finalizePhase13GB2Calibration", Test) {
+    group = "verification"
+    description = "Finalizes B2 artifacts from the complete fixture checkpoints without gameplay."
+    dependsOn("runPhase13GB2CalibrationWorkers")
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "phase13g-b2-calibration-finalizer"
+    }
+    maxHeapSize = "3g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/phase13GB2CalibrationFinalizer")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/phase13GB2CalibrationFinalizer")
+}
+
+tasks.register("runPhase13GB2Calibration") {
+    group = "verification"
+    description = "Runs workers then artifact-only finalization for official Phase 13G-B2."
+    dependsOn("finalizePhase13GB2Calibration")
+}

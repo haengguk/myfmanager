@@ -40,7 +40,7 @@ Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `S
 
 - `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
-- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V5`다. Batch C V4는 structured eligibility diagnostics와 invariant gate를 추가했고, V5 follow-up은 Counter Gank의 death/activity reason을 분리하고 같은 종류의 중복 major-combat attempt도 검출하도록 gate를 강화했다. Gameplay tuning과 profile별 active rules version은 그대로다.
+- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6`다. Batch C V4는 structured eligibility diagnostics와 invariant gate를 추가했고, V5 follow-up은 Counter Gank의 death/activity reason을 분리하고 같은 종류의 중복 major-combat attempt도 검출하도록 gate를 강화했다. V6는 Champion Power 참가자 map과 부동소수점 평균을 명시적 `PlayerKey(TeamSide, Position)` 순서로 계산해 JVM별 iteration order 차이를 제거했다. Gameplay tuning과 profile별 active rules version은 그대로다.
 - `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`이다.
 - `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
@@ -142,7 +142,7 @@ Tempo는 objective attempt eligibility, probability 또는 reward에 직접 연�
 
 ### Jungle V1 focused hardening
 
-Batch C는 새 정글 행동이나 밸런스 수치를 추가하지 않는다. 기존 gank side 평가는 `NONE`, jungler unavailable, shared jungle-action cooldown, eligible lane 부재, Tempo not-ready로 구조화하고, 기존 counter-gank ineligibility도 실제 defender response 평가마다 함께 기록한다. V5에서는 `isAlive`와 non-default `PlayerActivityType`을 별도로 확인해 살아 있는 roaming participant를 `DEAD`로 집계하지 않는다. Match-scoped diagnostics는 reason별 canonical enum map과 side별 latest decision을 immutable snapshot으로 노출한다. Gameplay resolver는 이 통계를 읽지 않으며 reason 기록 전후의 eligibility 순서와 Random 호출 순서는 같다.
+Batch C는 새 정글 행동이나 밸런스 수치를 추가하지 않는다. 기존 gank side 평가는 `NONE`, jungler unavailable, shared jungle-action cooldown, eligible lane 부재, Tempo not-ready로 구조화하고, 기존 counter-gank ineligibility도 실제 defender response 평가마다 함께 기록한다. V5에서는 `isAlive`와 non-default `PlayerActivityType`을 별도로 확인해 살아 있는 roaming participant를 `DEAD`로 집계하지 않는다. Match-scoped diagnostics는 reason별 canonical enum map과 side별 latest decision을 immutable snapshot으로 노출한다. Gameplay resolver는 이 통계를 읽지 않으며 reason 기록 전후의 eligibility 순서와 Random 호출 순서는 같다. V6는 이 gameplay 의미를 바꾸지 않고 Champion Power diagnostic 집계의 process-level 결정성만 고정한다.
 
 Focused gate는 다음 교차 계약을 한 묶음으로 검증한다.
 
@@ -152,7 +152,7 @@ Focused gate는 다음 교차 계약을 한 묶음으로 검증한다.
 - death/FARM recovery와 action block이 겹치면 가장 늦은 boundary까지 유지한다. Macro FARM block도 CS/FARM gold/XP/Tempo credit/Jungle Economy Random을 모두 막되 passive gold는 유지한다.
 - duplicate/ineligible path, priority fallthrough, 한 tick 한 major combat, common reward/death path, structured summary/KILL 연결, fresh-match state와 same-seed replay를 함께 검증한다. Major-combat gate는 종류 집합이 아니라 actual summary marker의 multiplicity를 유지하므로 같은 tick의 같은 종류 중복도 실패하며, 연결된 `KILL`은 별도 attempt로 세지 않는다.
 
-다섯 profile의 configuration hash와 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`은 바뀌지 않았다. Engine implementation은 Batch C V4 뒤 follow-up V5로 올라가 replay provenance hash는 의도적으로 달라지지만, 기존 네 profile 12경기의 complete timeline과 Random fingerprint는 Pre-Tempo oracle과 exact parity다. Tempo candidate의 12 fixed-seed report도 Batch C 전후와 V5에서 byte-identical하다. 이 gate는 correctness hardening이며 calibration이나 `PRODUCTION_V1` 채택 결정이 아니다.
+다섯 profile의 configuration hash와 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`은 바뀌지 않았다. Engine implementation은 Batch C V4/V5 뒤 determinism V6로 올라가 replay provenance hash는 의도적으로 달라지지만, 기존 네 profile 12경기의 complete timeline과 Random fingerprint는 Pre-Tempo oracle과 exact parity다. B1 artifact도 두 fresh JVM에서 7/7 byte-identical하다. 이 gate는 correctness hardening이며 calibration이나 `PRODUCTION_V1` 채택 결정이 아니다.
 
 ### Final 13G-B real-data audit boundary
 
@@ -174,6 +174,27 @@ B1 audit harness는 production match engine 바깥의 test-side consumer다. Pro
 Schedule identity는 10-team G1 양방향 전수 90 fixtures, all-team Hard Fearless G2 양방향 10 fixtures, calibration/holdout seed split 전체를 SHA-256으로 고정한다. Dry-run/calibration/holdout lane은 seed derivation domain부터 분리한다. Writer는 전달된 schedule content로 hash를 재계산하고 canonical frozen instance와 exact equality를 확인하므로 기존 hash 문자열을 붙인 변경 fixture를 거부한다. Prepared fixture도 public constructor가 없고 production orchestration을 완료한 harness만 생성할 수 있다. Report writer에는 실행 시각이나 wall duration을 넣지 않고 canonical JSON, stable CSV ordering과 SHA manifest만 기록한다. Generated report는 관찰 증거이며 gameplay input이나 baseline이 아니다.
 
 Test-side bridge는 package-private simulator result의 combat/roam/objective/lane/macro/structure/progression/Jungle/Champion Power/Matchup/Composition/Combat Outcome diagnostic snapshot과 history를 모두 보존하지만 production visibility를 넓히지 않는다. Same-seed replay는 이 전체 record의 exact equality를 확인한다. Artifact에는 structured map key까지 명시적으로 정렬하는 canonical SHA-256과 domain별 명시적 오류 카운터를 기록하고, Random raw trace는 별도 fingerprint가 담당한다. 정상적인 rejection/ineligible 관찰은 structural error로 세지 않는다. 진단은 gameplay state와 Random의 입력이 아니며 profile configuration hash에도 포함되지 않는다. B1은 runtime/API/frontend와 tuning을 변경하지 않고, calibration·holdout·`PRODUCTION_V1` 판단도 수행하지 않는다.
+
+#### B2 calibration execution boundary
+
+B2는 B1 schedule의 `CALIBRATION` seed만 job으로 materialize한다. 각 fixture에서 production orchestration은 series target game까지 한 번만 준비되고, 그 fixed Draft/assignment를 24 seeds × 5 profiles에 재사용한다. 네 worker JVM은 fixture index modulo 4로 소유권을 나누므로 mutable match state나 output path를 공유하지 않는다. 한 fixture의 120행과 BASELINE replay가 모두 current guard를 통과한 뒤에만 임시 파일을 atomic move해 checkpoint로 승격한다.
+
+```text
+fresh JVM A/B B1 artifact exact equality
+  → canonical B1 manifest와 gate manifest binding
+  → fixture preparation / fixed Draft
+  → 24 calibration seeds × 5 profiles
+  → fixture BASELINE replay exact equality
+  → atomic 120-row checkpoint
+  → 100 checkpoint coverage와 12,000 frozen job order 재검증
+  → artifact-only summaries / integrity / SHA manifest
+```
+
+Run guard는 schedule/configuration/resource/engine/production source/B1+B2 harness source identity를 포함한다. Checkpoint row는 replay provenance, timeline, full structured diagnostics와 Random fingerprint hash, final result, domain별 integrity, 정글러 final state와 고정 시각 관측을 보존한다. Guard가 달라진 기존 checkpoint는 merge하거나 덮어 해석하지 않고 거부한다.
+
+Simulator는 보통 10초 tick으로 snapshot을 만들지만 structure push가 respawn/공격 완료 시각으로 clock을 전진시켜 600/900/1,200/1,500/1,800초를 정확히 건너뛸 수 있다. B2는 없는 상태를 보간하지 않는다. 요청 시각 이상인 첫 recorded snapshot을 선택하고 두 시각을 함께 기록하며, match가 요청 시각 전에 끝났다면 final snapshot을 해당 checkpoint로 복제하지 않는다.
+
+B2 status `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`는 job/replay/hash/structural integrity가 깨끗하다는 뜻이다. Winner flip, gold/CS/XP/level, duration, action count 분포는 review-only balance signal이며 correctness pass나 `PRODUCTION_V1` 승인을 뜻하지 않는다. Candidate와 acceptance gate를 calibration 결과로 먼저 freeze한 뒤에만 별도 holdout lane을 열 수 있다.
 
 ## Combat Strength Inputs
 
@@ -206,6 +227,7 @@ Frontend는 snapshot을 현재 playback time 이하에서 선택하고 event를 
 - real orchestration replay는 동일 team codes, fresh/equivalent series history, authored resources, match seed에서 Draft decisions, final roles, assignment, events, snapshots, winner와 duration이 모두 같다.
 - ineligible action, duplicate evaluation, 실행되지 않는 branch, diagnostics는 불필요한 Random을 소비하면 안 된다.
 - API/timeline에 노출되는 enum set은 immutable `EnumSet` declaration order로 canonicalize한다. Hash/summary/serialization은 `Set.copyOf`의 JVM별 iteration order에 의존하지 않는다.
+- Champion Power 참가자 map과 평균은 Blue/Red × TOP/JUNGLE/MID/ADC/SUPPORT의 명시적 `PlayerKey` 순서로 canonicalize한다. `Map.copyOf().values()` iteration order로 부동소수점 합산 순서를 결정하지 않는다.
 - request에 seed가 없으면 매 요청마다 wall-clock seed가 선택되므로 자동으로 같은 결과가 나오지 않는다. response seed를 다시 보내야 replay할 수 있다.
 - structured timeline 전체—participants, outcome, rewards, objectives, structures, winner—가 same-seed 회귀의 대상이다.
 - replay provenance는 동일 input snapshot을 식별하고 timeline hash와 Random fingerprint는 그 input에서 나온 complete output/consumption을 별도로 식별한다.
