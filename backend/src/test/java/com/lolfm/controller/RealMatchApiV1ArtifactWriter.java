@@ -22,12 +22,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.springframework.boot.WebApplicationType;
@@ -48,8 +51,21 @@ public final class RealMatchApiV1ArtifactWriter {
             CONTRACT, OPTIONS, REQUEST, RESPONSE, ERRORS, HANDOFF);
     static final String MATCH_ENGINE_FREEZE_MANIFEST_SHA256 =
             "1f5bc20c347d25d833e822325de1fa294dc61d38c55da121ea30d15ab70a0728";
-    static final String BASE_HEAD =
-            "3d9570372c83de3a7325ad0d5186def3537bd4d7";
+    static final int MIN_FULL_REGRESSION_SUITES = 180;
+    static final int MIN_FULL_REGRESSION_TESTS = 2_016;
+    static final String SOURCE_TREE_HASH_ALGORITHM =
+            "SHA256_UTF8_SORTED_RELATIVE_PATH_AND_RAW_FILE_SHA256_LINES_V1";
+    static final String SOURCE_BINDING_SUITE =
+            "com.lolfm.controller.RealMatchApiV1VerificationBindingTest";
+    static final Map<String, Integer> REQUIRED_FULL_REGRESSION_SUITES = Map.ofEntries(
+            Map.entry("com.lolfm.controller.RealMatchApiV1RequestParserTest", 4),
+            Map.entry("com.lolfm.application.RealMatchApiV1ServiceTest", 7),
+            Map.entry("com.lolfm.controller.RealMatchApiV1ControllerTest", 7),
+            Map.entry("com.lolfm.controller.RealMatchApiV1ErrorBoundaryTest", 2),
+            Map.entry(SOURCE_BINDING_SUITE, 1),
+            Map.entry("com.lolfm.controller.ChampionApiTest", 4),
+            Map.entry("com.lolfm.application.MatchEngineV1ContractTest", 11),
+            Map.entry("com.lolfm.application.RealDraftMatchOrchestratorTest", 14));
     static final String FIXED_BLUE = "GEN";
     static final String FIXED_RED = "T1";
     static final String FIXED_SEED = "73";
@@ -63,14 +79,17 @@ public final class RealMatchApiV1ArtifactWriter {
         }
         Path backendRoot = Path.of(args[0]).toAbsolutePath().normalize();
         Path output = Path.of(args[1]).toAbsolutePath().normalize();
+        SourceTreeIdentity productionSource = productionSourceTree(backendRoot);
+        SourceTreeIdentity verificationSource = verificationSourceTree(backendRoot);
         FullRegressionResult full = fullRegression(
-                backendRoot.resolve("build/test-results/test"));
+                backendRoot.resolve("build/test-results/test"),
+                productionSource, verificationSource);
         FreezeBinding freeze = verifyMatchEngineFreeze(
                 backendRoot.resolve("build/reports/match-engine-v1-freeze"));
         try (ConfigurableApplicationContext context = new SpringApplicationBuilder(
                 LolfmApplication.class).web(WebApplicationType.NONE)
                 .properties("spring.main.banner-mode=off", "logging.level.root=ERROR").run()) {
-            write(context, output, full, freeze);
+            write(context, output, full, freeze, productionSource, verificationSource);
         }
     }
 
@@ -78,7 +97,9 @@ public final class RealMatchApiV1ArtifactWriter {
             ConfigurableApplicationContext context,
             Path output,
             FullRegressionResult full,
-            FreezeBinding freeze
+            FreezeBinding freeze,
+            SourceTreeIdentity productionSource,
+            SourceTreeIdentity verificationSource
     ) throws IOException {
         Files.createDirectories(output);
         RealMatchApiV1Service service = context.getBean(RealMatchApiV1Service.class);
@@ -95,18 +116,23 @@ public final class RealMatchApiV1ArtifactWriter {
         require(response.draft().hardFearlessExclusionsBeforeDraft().isEmpty(),
                 "Fixed response unexpectedly inherited series exclusions");
 
-        writeJson(canonicalizer, output.resolve(CONTRACT), contract(options, freeze));
+        writeJson(canonicalizer, output.resolve(CONTRACT), contract(
+                options, freeze, productionSource, verificationSource));
         writeJson(canonicalizer, output.resolve(OPTIONS), options);
         writeJson(canonicalizer, output.resolve(REQUEST), request);
         writeJson(canonicalizer, output.resolve(RESPONSE), response);
         writeJson(canonicalizer, output.resolve(ERRORS), errorContract());
-        writeJson(canonicalizer, output.resolve(HANDOFF), handoff(response, full, freeze));
+        writeJson(canonicalizer, output.resolve(HANDOFF), handoff(
+                response, full, freeze, productionSource, verificationSource));
         writeManifest(output);
         verifyGeneratedManifest(output);
     }
 
     private static Map<String, Object> contract(
-            RealMatchApiV1Dtos.OptionsResponse options, FreezeBinding freeze
+            RealMatchApiV1Dtos.OptionsResponse options,
+            FreezeBinding freeze,
+            SourceTreeIdentity productionSource,
+            SourceTreeIdentity verificationSource
     ) {
         return map(
                 "schemaVersion", "REAL_MATCH_API_V1_CONTRACT_DOCUMENT_V1",
@@ -159,9 +185,12 @@ public final class RealMatchApiV1ArtifactWriter {
                         "matchEngineContract", MatchEngineV1Policy.CONTRACT_SCHEMA,
                         "scope", "FRESH_SINGLE_GAME_1_PER_HTTP_REQUEST",
                         "sharedSeriesState", false,
+                        "requestOutputProvenanceBindingRequired", true,
+                        "typedPreflightFailureBoundary", true,
                         "outputIntegrityRequiredBeforeResponse", true),
                 "productionPolicy", options.productionPolicy(),
                 "matchEngineFreeze", freeze,
+                "sourceEvidence", sourceEvidence(productionSource, verificationSource),
                 "compatibility", Map.of(
                         "legacyPostApiMatchesSimulatePreserved", true,
                         "championApiPreserved", true,
@@ -283,11 +312,12 @@ public final class RealMatchApiV1ArtifactWriter {
     private static Map<String, Object> handoff(
             RealMatchApiV1Dtos.Response response,
             FullRegressionResult full,
-            FreezeBinding freeze
+            FreezeBinding freeze,
+            SourceTreeIdentity productionSource,
+            SourceTreeIdentity verificationSource
     ) {
         return map(
                 "schemaVersion", "REAL_MATCH_API_V1_FRONTEND_HANDOFF_V1",
-                "backendBaseHead", BASE_HEAD,
                 "suggestedCommitMessage", "feat: [BE] 실제 LCK 매치 API V1 추가",
                 "status", "BACKEND_READY_FRONTEND_NOT_YET_CONNECTED",
                 "endpoints", List.of(
@@ -343,6 +373,7 @@ public final class RealMatchApiV1ArtifactWriter {
                         "activeGameplayRulesVersion",
                         response.integrity().activeGameplayRulesVersion()),
                 "matchEngineFreeze", freeze,
+                "sourceEvidence", sourceEvidence(productionSource, verificationSource),
                 "backendRun", "cd backend && gradlew.bat bootRun --console=plain",
                 "curlExamples", List.of(
                         "curl http://localhost:8080/api/v1/real-matches/options",
@@ -398,13 +429,20 @@ public final class RealMatchApiV1ArtifactWriter {
                 lines.size(), "RAW_SHA256_VERIFIED_NO_REGENERATION");
     }
 
-    private static FullRegressionResult fullRegression(Path directory) throws Exception {
+    private static FullRegressionResult fullRegression(
+            Path directory,
+            SourceTreeIdentity productionSource,
+            SourceTreeIdentity verificationSource
+    ) throws Exception {
         require(Files.isDirectory(directory), "Missing full regression XML directory");
         int suites = 0;
         int tests = 0;
         int failures = 0;
         int errors = 0;
         int skipped = 0;
+        LinkedHashMap<String, Integer> requiredSuiteTests = new LinkedHashMap<>();
+        String expectedBinding = sourceBindingTestName(productionSource, verificationSource);
+        boolean currentSourceBindingFound = false;
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
         try (Stream<Path> paths = Files.list(directory)) {
@@ -413,19 +451,124 @@ public final class RealMatchApiV1ArtifactWriter {
                     .sorted().toList()) {
                 Element suite = factory.newDocumentBuilder().parse(path.toFile())
                         .getDocumentElement();
+                String suiteName = suite.getAttribute("name");
+                int suiteTests = Integer.parseInt(suite.getAttribute("tests"));
                 suites++;
-                tests += Integer.parseInt(suite.getAttribute("tests"));
+                tests += suiteTests;
                 failures += Integer.parseInt(suite.getAttribute("failures"));
                 errors += Integer.parseInt(suite.getAttribute("errors"));
                 skipped += Integer.parseInt(suite.getAttribute("skipped"));
+                if (REQUIRED_FULL_REGRESSION_SUITES.containsKey(suiteName)) {
+                    requiredSuiteTests.put(suiteName, suiteTests);
+                }
+                if (SOURCE_BINDING_SUITE.equals(suiteName)) {
+                    org.w3c.dom.NodeList testCases = suite.getElementsByTagName("testcase");
+                    for (int index = 0; index < testCases.getLength(); index++) {
+                        Element testCase = (Element) testCases.item(index);
+                        if (testCase.getAttribute("name").contains(expectedBinding)) {
+                            currentSourceBindingFound = true;
+                        }
+                    }
+                }
             }
         }
-        require(suites >= 175 && tests >= 1_993,
+        require(suites >= MIN_FULL_REGRESSION_SUITES && tests >= MIN_FULL_REGRESSION_TESTS,
                 "Test XML does not represent a complete backend regression");
-        require(failures == 0 && errors == 0, "Full backend regression is not clean");
+        for (Map.Entry<String, Integer> required : REQUIRED_FULL_REGRESSION_SUITES.entrySet()) {
+            Integer actual = requiredSuiteTests.get(required.getKey());
+            require(actual != null && actual >= required.getValue(),
+                    "Missing or stale required full-regression suite: " + required.getKey());
+        }
+        require(currentSourceBindingFound,
+                "Full regression XML is not bound to the current production/API source trees");
+        require(failures == 0 && errors == 0 && skipped == 0,
+                "Full backend regression is not a clean unskipped pass");
         return new FullRegressionResult(
-                "CLEAN_PASS", suites, tests, failures, errors, skipped, 1,
+                "CLEAN_PASS_BOUND_TO_CURRENT_SOURCE", suites, tests, failures, errors, skipped,
+                Map.copyOf(requiredSuiteTests),
+                "REQUIRED_SUITES_AND_DYNAMIC_SOURCE_HASH_TESTCASE_VERIFIED",
                 "gradlew.bat test --console=plain --no-daemon");
+    }
+
+    static SourceTreeIdentity productionSourceTree(Path backendRoot) throws IOException {
+        return sourceTreeIdentity(
+                backendRoot,
+                List.of(Path.of("src", "main", "java"),
+                        Path.of("src", "main", "resources")),
+                List.of(Path.of("build.gradle"), Path.of("settings.gradle")),
+                value -> true);
+    }
+
+    static SourceTreeIdentity verificationSourceTree(Path backendRoot) throws IOException {
+        return sourceTreeIdentity(
+                backendRoot,
+                List.of(Path.of("src", "test", "java")),
+                List.of(),
+                value -> {
+                    String name = value.getFileName().toString();
+                    return name.startsWith("RealMatchApiV1")
+                            || name.equals("RealDraftMatchOrchestratorTest.java")
+                            || name.equals("MatchEngineV1ContractTest.java")
+                            || name.equals("ChampionApiTest.java");
+                });
+    }
+
+    static String sourceBindingTestName(
+            SourceTreeIdentity productionSource,
+            SourceTreeIdentity verificationSource
+    ) {
+        return "productionSourceTreeHash=" + productionSource.hash()
+                + ";verificationSourceTreeHash=" + verificationSource.hash();
+    }
+
+    private static SourceTreeIdentity sourceTreeIdentity(
+            Path backendRoot,
+            List<Path> sourceRoots,
+            List<Path> standaloneFiles,
+            Predicate<Path> include
+    ) throws IOException {
+        Path normalizedRoot = backendRoot.toAbsolutePath().normalize();
+        ArrayList<Path> files = new ArrayList<>();
+        for (Path sourceRoot : sourceRoots) {
+            Path directory = normalizedRoot.resolve(sourceRoot).normalize();
+            require(directory.startsWith(normalizedRoot) && Files.isDirectory(directory),
+                    "Missing source tree directory: " + sourceRoot);
+            try (Stream<Path> paths = Files.walk(directory)) {
+                paths.filter(Files::isRegularFile).filter(include).forEach(files::add);
+            }
+        }
+        for (Path standalone : standaloneFiles) {
+            Path file = normalizedRoot.resolve(standalone).normalize();
+            require(file.startsWith(normalizedRoot) && Files.isRegularFile(file),
+                    "Missing source identity file: " + standalone);
+            if (include.test(file)) files.add(file);
+        }
+        files.sort(Comparator.comparing(path -> relativePath(normalizedRoot, path)));
+        StringBuilder canonical = new StringBuilder(
+                "sourceTreeIdentitySchema=REAL_MATCH_API_V1_SOURCE_TREE_IDENTITY_V1\n");
+        for (Path file : files) {
+            canonical.append("file=").append(relativePath(normalizedRoot, file)).append('\n')
+                    .append("rawSha256=").append(sha256(Files.readAllBytes(file))).append('\n');
+        }
+        return new SourceTreeIdentity(
+                SOURCE_TREE_HASH_ALGORITHM,
+                sha256(canonical.toString().getBytes(StandardCharsets.UTF_8)),
+                files.size());
+    }
+
+    private static String relativePath(Path root, Path file) {
+        return root.relativize(file.toAbsolutePath().normalize()).toString()
+                .replace('\\', '/');
+    }
+
+    private static Map<String, Object> sourceEvidence(
+            SourceTreeIdentity productionSource,
+            SourceTreeIdentity verificationSource
+    ) {
+        return map(
+                "productionSourceTree", productionSource,
+                "verificationSourceTree", verificationSource,
+                "binding", "FULL_REGRESSION_DYNAMIC_TESTCASE_EXACT_HASH");
     }
 
     private static void writeJson(
@@ -510,8 +653,16 @@ public final class RealMatchApiV1ArtifactWriter {
             int failures,
             int errors,
             int skipped,
-            int fullRegressionRunCount,
+            Map<String, Integer> requiredSuiteTestCounts,
+            String sourceBinding,
             String command
+    ) {
+    }
+
+    record SourceTreeIdentity(
+            String hashAlgorithm,
+            String hash,
+            int fileCount
     ) {
     }
 }

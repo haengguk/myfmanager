@@ -41,11 +41,11 @@ public final class RealMatchApiV1ResponseMapper {
     }
 
     public RealMatchApiV1Dtos.OptionsResponse options() {
-        List<Team> assembled = teams.assembleAll().stream()
-                .sorted(Comparator.comparing(Team::getName)).toList();
         Set<String> playerIds = new HashSet<>();
-        List<RealMatchApiV1Dtos.OptionTeam> optionTeams = assembled.stream()
-                .map(team -> optionTeam(team, playerIds)).toList();
+        List<RealMatchApiV1Dtos.OptionTeam> optionTeams = teams.teamCodes().stream()
+                .sorted()
+                .map(teamCode -> optionTeam(teamCode, teams.assemble(teamCode), playerIds))
+                .toList();
         if (optionTeams.size() != EXPECTED_TEAM_COUNT
                 || playerIds.size() != EXPECTED_PLAYER_COUNT) {
             throw new IllegalStateException("REAL_MATCH_OPTIONS_ROSTER_CARDINALITY_DRIFT");
@@ -81,7 +81,9 @@ public final class RealMatchApiV1ResponseMapper {
                 integrity(output, execution));
     }
 
-    private RealMatchApiV1Dtos.OptionTeam optionTeam(Team team, Set<String> allPlayerIds) {
+    private RealMatchApiV1Dtos.OptionTeam optionTeam(
+            String teamCode, Team team, Set<String> allPlayerIds
+    ) {
         List<RealMatchApiV1Dtos.OptionPlayer> lineup = team.getPlayers().stream()
                 .sorted(Comparator.comparing(Player::getPosition))
                 .map(player -> {
@@ -98,9 +100,9 @@ public final class RealMatchApiV1ResponseMapper {
                 .collect(java.util.stream.Collectors.toSet())
                 .equals(EnumSet.allOf(Position.class))) {
             throw new IllegalStateException(
-                    "REAL_MATCH_OPTIONS_POSITION_COVERAGE_DRIFT: " + team.getName());
+                    "REAL_MATCH_OPTIONS_POSITION_COVERAGE_DRIFT: " + teamCode);
         }
-        return new RealMatchApiV1Dtos.OptionTeam(team.getName(), team.getName(), lineup);
+        return new RealMatchApiV1Dtos.OptionTeam(teamCode, team.getName(), lineup);
     }
 
     private RealMatchApiV1Dtos.TeamPresentation teamPresentation(
@@ -109,7 +111,7 @@ public final class RealMatchApiV1ResponseMapper {
         Team source = teams.assemble(teamCode);
         MatchEngineV1Output.TeamResultV1 result = output.resultSummary().teams().stream()
                 .filter(value -> value.teamSide() == side).findFirst().orElseThrow();
-        if (!result.teamIdentity().equals(teamCode) || !source.getName().equals(teamCode)) {
+        if (!result.teamIdentity().equals(teamCode)) {
             throw new IllegalStateException("REAL_MATCH_PRESENTATION_TEAM_IDENTITY_MISMATCH");
         }
         List<RealMatchApiV1Dtos.PlayerPresentation> lineup = new ArrayList<>();

@@ -41,6 +41,21 @@ public final class RealDraftMatchPreflightValidator {
                          String redTeamCode, Team redTeam,
                          DraftTeamContext blueContext, DraftTeamContext redContext,
                          FinalDraftResult draftResult, SeriesDraftHistory seriesHistory) {
+        try {
+            validatePreflight(blueTeamCode, blueTeam, redTeamCode, redTeam,
+                    blueContext, redContext, draftResult, seriesHistory);
+        } catch (RealDraftMatchPreflightException error) {
+            throw error;
+        } catch (IllegalArgumentException error) {
+            throw new RealDraftMatchPreflightException(error);
+        }
+    }
+
+    private void validatePreflight(String blueTeamCode, Team blueTeam,
+                                   String redTeamCode, Team redTeam,
+                                   DraftTeamContext blueContext, DraftTeamContext redContext,
+                                   FinalDraftResult draftResult,
+                                   SeriesDraftHistory seriesHistory) {
         Objects.requireNonNull(blueTeamCode, "blueTeamCode");
         Objects.requireNonNull(blueTeam, "blueTeam");
         Objects.requireNonNull(redTeamCode, "redTeamCode");
@@ -185,7 +200,7 @@ public final class RealDraftMatchPreflightValidator {
         }
     }
 
-    private static IllegalArgumentException failure(String code, String detail) {
-        return new IllegalArgumentException(code + ": " + detail);
+    private static RealDraftMatchPreflightException failure(String code, String detail) {
+        return new RealDraftMatchPreflightException(code + ": " + detail);
     }
 }

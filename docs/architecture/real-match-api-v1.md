@@ -10,7 +10,7 @@ Real Match API V1은 실제 LCK roster, Professional Draft와 동결된 `MatchEn
 
 ### `GET /api/v1/real-matches/options`
 
-응답 schema는 `REAL_MATCH_OPTIONS_V1`이다. `LckTeamAssembler`와 기존 player/resource catalog에서 현재 지원하는 LCK 10팀, 팀당 5명, 총 50개의 unique stable `PlayerId`를 투영한다. 팀은 canonical team code 순서, 선수는 `TOP`, `JUNGLE`, `MID`, `ADC`, `SUPPORT` 순서다.
+응답 schema는 `REAL_MATCH_OPTIONS_V1`이다. `LckTeamAssembler`와 기존 player/resource catalog에서 현재 지원하는 LCK 10팀, 팀당 5명, 총 50개의 unique stable `PlayerId`를 투영한다. 팀은 명시적 team code 순서, 선수는 `TOP`, `JUNGLE`, `MID`, `ADC`, `SUPPORT` 순서다. `teamCode`는 assembler가 받은 structured code를 유지하고 `displayName`은 `Team.getName()`에서 별도로 가져오므로 표시명을 바꿔도 API identity가 바뀌지 않는다.
 
 응답에는 다음이 포함된다.
 
@@ -58,6 +58,9 @@ Controller는 Draft나 simulator를 직접 조립하지 않는다. Service는 �
 
 - mandatory execution provenance가 존재한다.
 - output의 production policy와 configuration이 authoritative V1 policy와 exact다.
+- execution provenance의 BLUE/RED team code와 match seed가 현재 HTTP 요청과 exact다.
+- execution provenance와 final Draft가 모두 fresh Game 1이고 이전 Hard Fearless history/exclusion이 비어 있다.
+- runtime profile, gameplay configuration, rules/engine, Draft/final assignment와 result provenance가 서로 exact다.
 - `MatchEngineV1Output.hasValidOutputHash(...)`가 실제 structured timeline과 output envelope에 대해 `true`다.
 
 검증에 실패하면 부분적인 Draft/result/timeline을 반환하지 않고 structured 500 오류를 반환한다.
@@ -128,15 +131,17 @@ V1은 다음 runtime만 허용한다.
 | 422 | `REAL_MATCH_PREFLIGHT_FAILED` |
 | 500 | `ENGINE_OUTPUT_INTEGRITY_FAILED`, `REAL_MATCH_INTERNAL_ERROR` |
 
-오류 boundary는 `RealMatchApiV1Controller`에만 적용된다. Stack trace, exception 원문과 local resource path를 노출하지 않으며 기존 Champion selection과 legacy endpoint의 오류 의미를 바꾸지 않는다.
+오류 boundary는 `RealMatchApiV1Controller`에만 적용된다. `RealDraftMatchPreflightException`으로 식별된 roster/Draft 사전 검증 실패만 422로 변환하며, 엔진·입력 생성·오케스트레이션에서 발생한 일반 `IllegalArgumentException`을 preflight로 오인하지 않고 500 `REAL_MATCH_INTERNAL_ERROR`로 처리한다. Stack trace, exception 원문과 local resource path를 노출하지 않으며 기존 Champion selection과 legacy endpoint의 오류 의미를 바꾸지 않는다.
 
 ## 검증과 frontend handoff
 
-Focused 검증은 6 suites / 31 tests, failures 0 / errors 0 / skipped 0으로 통과했다. 요청 parser, invalid 요청의 orchestrator/Random 미실행, service preflight와 output hash gate, HTTP options/success/error/serialization, same-request exact replay와 Game 1 isolation, direct orchestrator projection parity, 기존 Champion API와 Match Engine V1 계약을 포함한다.
+Focused 검증은 8 suites / 50 tests, failures 0 / errors 0 / skipped 0으로 통과했다. 요청 parser, typed preflight/internal error 분리, 요청 team/seed와 output provenance 결속, Game 2/inherited history 거부, display name과 team code 분리, HTTP options/success/error/serialization, same-request exact replay와 Game 1 isolation, direct orchestrator projection parity, 기존 Real Draft/Champion API/Match Engine V1 계약과 source-binding test를 포함한다.
 
-최종 complete backend regression은 `gradlew.bat test --console=plain --no-daemon` 1회에서 179 suites / 2,011 tests, failures 0 / errors 0 / skipped 0으로 통과했다. Gradle wall time은 13분 41초다. 이후 executable production source, resource, Gradle과 shared fixture는 변경하지 않았다.
+최종 complete backend regression은 `gradlew.bat test --console=plain --no-daemon` 1회에서 180 suites / 2,016 tests, failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 835.846초, Gradle wall time은 14분 14초다. 이후 executable production source, resource, Gradle과 shared fixture는 변경하지 않았다.
 
-Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`에 있다. Contract, options example, 고정 `GEN` 대 `T1` seed `"73"` 요청/전체 응답, error contract, handoff 6개 JSON과 `SHA256SUMS.txt`를 제공한다. Manifest는 6/6 raw SHA가 통과했고 SHA-256은 `4b4d8c0a942db477a92db7ca17e9f5f767e326cc0ed92d49fd9366d081fc23b2`다. 고정 output hash는 `41eccdae5750d80f3d8b940f65ea93a8113148063fd4017dcde062b9f9fb651b`다.
+Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`에 있다. Contract, options example, 고정 `GEN` 대 `T1` seed `"73"` 요청/전체 응답, error contract, handoff 6개 JSON과 `SHA256SUMS.txt`를 제공한다. Manifest는 6/6 raw SHA가 통과했고 SHA-256은 `67c29caaf76dd27db2fd8f489c30a58ca0f34c8731ebb0342c51d11381834b97`다. 고정 output hash는 `41eccdae5750d80f3d8b940f65ea93a8113148063fd4017dcde062b9f9fb651b`로 그대로다.
+
+Artifact writer는 전체 XML의 단순 개수만 신뢰하지 않는다. 필수 8개 suite와 최소 test 수, failures/errors/skipped 0을 확인하고, 전용 dynamic test가 기록한 production source 488 files / `c5d1a9ec5ac18ccf1cfc47c864f616884ecea4faefed60b94b70498cfe5907a1` 및 API verification source 9 files / `8bb5ac9fd2e4b8e68ea4052abbb3ae2d54d836779f112be646d2f60efa27bce2`를 현재 tree와 exact 비교한다. 따라서 이전 clean XML이나 고정 base commit/run-count 표시는 새 evidence로 재사용할 수 없다.
 
 Historical Match Engine V1 freeze artifact는 재생성하지 않았다. 기존 7-entry manifest SHA-256 `1f5bc20c347d25d833e822325de1fa294dc61d38c55da121ea30d15ab70a0728`을 raw SHA로 다시 검증해 handoff에 결속했다.
 

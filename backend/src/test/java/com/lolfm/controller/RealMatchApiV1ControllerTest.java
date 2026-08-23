@@ -1,6 +1,9 @@
 package com.lolfm.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -8,11 +11,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.application.SimulationProvenanceService;
 import com.lolfm.application.MatchEngineV1Output;
 import com.lolfm.application.MatchEngineV1Policy;
 import com.lolfm.application.RealDraftMatchOrchestrator;
 import com.lolfm.application.RealMatchApiV1ResponseMapper;
+import com.lolfm.champion.ChampionCatalog;
+import com.lolfm.domain.Team;
 import com.lolfm.dto.RealMatchApiV1Dtos;
+import com.lolfm.player.LckTeamAssembler;
 import com.lolfm.simulator.GameEndReason;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -39,6 +46,9 @@ class RealMatchApiV1ControllerTest {
     @Autowired ObjectMapper mapper;
     @Autowired RealDraftMatchOrchestrator orchestrator;
     @Autowired RealMatchApiV1ResponseMapper responseMapper;
+    @Autowired LckTeamAssembler teams;
+    @Autowired ChampionCatalog champions;
+    @Autowired SimulationProvenanceService provenance;
 
     private JsonNode first;
     private JsonNode second;
@@ -197,6 +207,35 @@ class RealMatchApiV1ControllerTest {
                 .isEqualTo(direct.executionProvenance().replayProvenanceHash());
         assertThat(first.path("integrity").path("structuredTimelineHash").asText())
                 .isEqualTo(direct.structuredTimelineHash());
+    }
+
+    @Test
+    void explicitTeamCodesStayStableWhenPresentationNamesDiffer() {
+        LckTeamAssembler renamedTeams = mock(LckTeamAssembler.class);
+        when(renamedTeams.teamCodes()).thenReturn(teams.teamCodes());
+        when(renamedTeams.assemble(anyString())).thenAnswer(invocation -> {
+            String teamCode = invocation.getArgument(0, String.class);
+            Team source = teams.assemble(teamCode);
+            return new Team("Display " + teamCode, source.getPlayers());
+        });
+        RealMatchApiV1ResponseMapper renamedMapper = new RealMatchApiV1ResponseMapper(
+                renamedTeams, champions, provenance);
+
+        RealMatchApiV1Dtos.OptionsResponse options = renamedMapper.options();
+        assertThat(options.teams())
+                .extracting(RealMatchApiV1Dtos.OptionTeam::teamCode)
+                .containsExactlyElementsOf(teams.teamCodes().stream().sorted().toList());
+        assertThat(options.teams()).allSatisfy(team ->
+                assertThat(team.displayName()).isEqualTo("Display " + team.teamCode()));
+
+        RealMatchApiV1Dtos.Response response = renamedMapper.response(
+                orchestrator.orchestrateV1("GEN", "T1", 73L));
+        assertThat(response.teams())
+                .extracting(RealMatchApiV1Dtos.TeamPresentation::teamCode)
+                .containsExactly("GEN", "T1");
+        assertThat(response.teams())
+                .extracting(RealMatchApiV1Dtos.TeamPresentation::displayName)
+                .containsExactly("Display GEN", "Display T1");
     }
 
     @Test

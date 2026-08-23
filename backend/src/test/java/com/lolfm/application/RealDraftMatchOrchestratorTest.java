@@ -169,7 +169,7 @@ class RealDraftMatchOrchestratorTest {
         assertThatThrownBy(() -> preflight.validate("GEN", incomplete, "T1", gameOne.redTeam(),
                 gameOne.blueDraftContext(), gameOne.redDraftContext(), gameOne.draftResult(),
                 new SeriesDraftHistory()))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RealDraftMatchPreflightException.class)
                 .hasMessageContaining("INVALID_REAL_TEAM_LINEUP");
 
         Team wrongIdentity = replacePlayerId(gameOne.blueTeam(), Position.TOP,
@@ -177,13 +177,13 @@ class RealDraftMatchOrchestratorTest {
         assertThatThrownBy(() -> preflight.validate("GEN", wrongIdentity, "T1", gameOne.redTeam(),
                 DraftTeamContext.from(wrongIdentity), gameOne.redDraftContext(),
                 gameOne.draftResult(), new SeriesDraftHistory()))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RealDraftMatchPreflightException.class)
                 .hasMessageContaining("PLAYER_ID_RATING_KEY_MISMATCH");
 
         assertThatThrownBy(() -> preflight.validate("GEN", gameOne.blueTeam(), "T1", gameOne.redTeam(),
                 gameOne.redDraftContext(), gameOne.redDraftContext(), gameOne.draftResult(),
                 new SeriesDraftHistory()))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RealDraftMatchPreflightException.class)
                 .hasMessageContaining("DRAFT_CONTEXT_PLAYER_ID_MISMATCH");
     }
 
@@ -196,7 +196,7 @@ class RealDraftMatchOrchestratorTest {
         assertThatThrownBy(() -> preflight.validate("GEN", gameOne.blueTeam(), "T1", gameOne.redTeam(),
                 gameOne.blueDraftContext(), gameOne.redDraftContext(), wrongAssignments,
                 new SeriesDraftHistory()))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RealDraftMatchPreflightException.class)
                 .hasMessageContaining("DRAFT_MATCH_ASSIGNMENT_MISMATCH");
 
         SeriesDraftHistory alreadyCommitted = new SeriesDraftHistory();
@@ -204,7 +204,7 @@ class RealDraftMatchOrchestratorTest {
         assertThatThrownBy(() -> preflight.validate("GEN", gameOne.blueTeam(), "T1", gameOne.redTeam(),
                 gameOne.blueDraftContext(), gameOne.redDraftContext(), gameOne.draftResult(),
                 alreadyCommitted))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RealDraftMatchPreflightException.class)
                 .hasMessageContaining("HARD_FEARLESS_HISTORY_MISMATCH");
     }
 
@@ -218,7 +218,7 @@ class RealDraftMatchOrchestratorTest {
         assertThatThrownBy(() -> preflight.validate("GEN", gameOne.blueTeam(), "T1", duplicateRed,
                 gameOne.blueDraftContext(), DraftTeamContext.from(duplicateRed),
                 gameOne.draftResult(), new SeriesDraftHistory()))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(RealDraftMatchPreflightException.class)
                 .hasMessageContaining("DUPLICATE_MATCH_PLAYER_ID");
     }
 
