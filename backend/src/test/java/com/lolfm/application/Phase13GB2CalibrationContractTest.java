@@ -36,9 +36,9 @@ class Phase13GB2CalibrationContractTest {
     @Test
     void freezesFivePairedMarginalsWithoutOpeningHoldout() {
         assertThat(Phase13GB2CalibrationContract.SCHEMA)
-                .endsWith("CONTRACT_V2");
+                .endsWith("CONTRACT_V3");
         assertThat(Phase13GB2CalibrationModel.CHECKPOINT_SCHEMA)
-                .endsWith("CHECKPOINT_V2");
+                .endsWith("CHECKPOINT_V3");
         assertThat(Phase13GB2CalibrationContract.MARGINAL_COMPARISONS)
                 .extracting(Phase13GB2CalibrationContract.MarginalComparison::comparisonId)
                 .containsExactly(

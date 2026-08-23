@@ -7,7 +7,7 @@ import java.util.Objects;
 
 /** Frozen job and comparison contract for calibration only; holdout is never scheduled here. */
 public final class Phase13GB2CalibrationContract {
-    public static final String SCHEMA = "PHASE_13G_B2_REAL_DATA_CALIBRATION_CONTRACT_V2";
+    public static final String SCHEMA = "PHASE_13G_B2_REAL_DATA_CALIBRATION_CONTRACT_V3";
     public static final String JOB_SCHEMA = "PHASE_13G_B2_CALIBRATION_JOB_V1";
     public static final int EXPECTED_PRIMARY_FIXTURES = 90;
     public static final int EXPECTED_SECONDARY_FIXTURES = 10;

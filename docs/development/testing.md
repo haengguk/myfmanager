@@ -194,7 +194,7 @@ Report는 `build/reports/phase13g-b1/`에 생성한다.
 
 B1 hardening은 Champion Power/Matchup, Composition, Combat Outcome, Objective Priority, Structure, Lane Phase, Mid Game Macro, Progression과 Jungle Economy의 명시적 오류 카운터를 domain별 integrity로 집계한다. 정상 rejection/ineligible count는 오류로 오인하지 않는다. Full diagnostic equality는 메모리 record equality와 `SHA256_UTF8_RECORD_COMPONENT_MAP_KEY_CANONICAL_V1` hash로 이중 확인하며 Random raw trace는 기존 fingerprint가 담당한다. Tempo dry-run은 attempt-consumption equality뿐 아니라 READY 관찰과 GANK+COUNTER_GANK actual consumption 합계가 양수인지 고정한다.
 
-B1 task는 `diagnostic` tag라 기본 `test`에서 제외된다. P1 gate는 두 fresh JVM이 각각 쓴 7개 B1 artifact 전체를 byte-for-byte 비교하고, 그 manifest SHA를 직후 canonical `runPhase13GB1DryRun` manifest와 다시 대조한다. Authenticity hardening final 실행은 두 probe와 dry-run이 각각 1 suite / 1 test, failures/errors/skipped 0으로 통과했고 probe JUnit 17.020/16.786초, dry-run 17.361초였다. B1 manifest 6/6이 통과했고 summary/manifest SHA-256은 각각 `37ce2c275d5dc4837328c7e8c9fb7b100f62ffcdee4ee740217140d8c751f5c0` / `624638ca8958ab3dc8e7de127dee24d7ba808ca76508b605f4ea6e96db88bd6c`이다. `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`가 B1 summary contract다. 단일 dry-run의 승패·경기 시간·profile 차이로 balance 결론을 내리면 안 된다.
+B1 task는 `diagnostic` tag라 기본 `test`에서 제외된다. P1 gate는 두 fresh JVM이 각각 쓴 7개 B1 artifact 전체를 byte-for-byte 비교하고, 그 manifest SHA를 직후 canonical `runPhase13GB1DryRun` manifest와 다시 대조한다. Phase-specific guard 재고정에서도 두 probe와 dry-run이 모두 clean pass했고 세 manifest SHA-256은 `dc8f63a117bbd15dc05ca533ae8c98a3707ae70fa9af810f6f14539d8ee9b9cd`로 같았다. Summary SHA-256은 `37ce2c275d5dc4837328c7e8c9fb7b100f62ffcdee4ee740217140d8c751f5c0`이다. `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`가 B1 summary contract다. 단일 dry-run의 승패·경기 시간·profile 차이로 balance 결론을 내리면 안 된다.
 
 ### Final 13G-B2 real-data calibration
 
@@ -228,9 +228,37 @@ Artifact는 `build/reports/phase13g-b2/`에 생성한다.
 - 12,000 paired marginal rows, lane/pair/profile/team/jungler-champion summaries
 - normalized checkpoint receipt manifest, full-domain integrity JSON, review-only balance JSON, 16-file `SHA256SUMS.txt`
 
-Final 실행은 100/100 fixture, resume 0, 각 fixture `seed 24/24`, 12,000/12,000 unique jobs와 replay provenance, 100/100 exact replay, worker receipt와 distinct fresh JVM 4/4, checkpoint payload digest 100/100, holdout 0, domain integrity error 0과 SHA 16/16으로 `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`를 기록했다. Lifecycle wall time은 21분 3초, workers는 4 suites / 4 tests와 aggregate JUnit 3,432.287초, finalizer는 1 suite / 1 test와 18.716초였다. Review/manifest SHA-256은 `3eb79554205aa0bf4a5d3430af4432e66c0cddb66c804a82c380e3bb9cd81402` / `ec98898cc708c358f6d92ac056c1bd171e6cba3bae670b28545fde5d96559324`이고 checkpoint payload manifest SHA-256은 `acd042d7a7ec9ba574d420e3e1567a187c0edf41d6b9ce21614bad43922ea595`다.
+Phase-specific source/build guard 도입 뒤 stale checkpoint를 사용하지 않고 V3 경로에서 B2를 다시 실행했다. Final 실행은 100/100 fixture, resume 0, 각 fixture `seed 24/24`, 12,000/12,000 unique jobs와 replay provenance, 100/100 exact replay, worker receipt와 distinct fresh JVM 4/4, checkpoint payload digest 100/100, holdout 0, domain integrity error 0과 SHA 16/16으로 `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`를 기록했다. Lifecycle wall time은 20분 4초였다. Review/manifest SHA-256은 `32c1770b6971179c0cb7033e853882e7e9fb06c6980285eb2dba23210993fbee` / `71ac3a26cc4df6c49794c2daeb2efc75bd2667b39237b89af4a1a6bda963d7e4`이고 checkpoint payload manifest SHA-256은 `f1945f8333733a4c3ecefdfcaa30276129a98a3b58ae9e609e45d247de79df58`다. 이전 B2와 calibration behavior는 exact equality다.
 
 Balance output은 correctness assertion이 아니다. Economy − Full winner flip은 18/2,400, Tempo − Economy는 811/2,400이며 Tempo actual Gank/Counter-gank consumption은 5,175/660회였다. 이 값은 calibration human review와 B3 gate freeze의 입력이다. 자동 tuning, candidate freeze, holdout과 `PRODUCTION_V1` 결정은 이 task에서 금지한다.
+
+### Final 13G-B3 frozen holdout
+
+B3 contract/smoke/official population은 모두 기본 `test`와 분리된 diagnostic task다. Smoke는 dry-run 전용 seed만 사용하며 reserved holdout을 소비하지 않는다. Official task는 이미 한 번 완료됐으므로 결과 확인이나 FAIL 분석을 위해 다시 실행하면 안 된다.
+
+```bash
+cd backend
+./gradlew test \
+  --tests 'com.lolfm.application.Phase13GB1AuditContractTest' \
+  --tests 'com.lolfm.application.Phase13GB2CalibrationContractTest' \
+  --tests 'com.lolfm.application.Phase13GB3FrozenHoldoutContractTest' \
+  --console=plain --no-daemon
+./gradlew runPhase13GB3Smoke --console=plain --no-daemon
+./gradlew test --console=plain --no-daemon
+./gradlew runPhase13GB2Calibration --console=plain --no-daemon
+./gradlew freezePhase13GB3CandidateAndGates --console=plain --no-daemon
+./gradlew runPhase13GB3FrozenHoldout --console=plain --no-daemon # one-time: 완료됨, 재실행 금지
+cd build/reports/phase13g-b3
+sha256sum -c SHA256SUMS.txt
+```
+
+Focused contract tests는 4,000-job/G1·G2 cardinality, seed disjoint와 calibration 거부, profile 누락·중복·순서 변경, contract/hash 및 B2 binding 변조, source/resource/configuration mismatch, row/job/fixture/roster/Draft/profile/seed·outcome·diagnostics·Jungle observation·checkpoint bytes·receipt ownership/JVM identity 변조, synthetic official READY 거부를 검증한다. Smoke는 one-fixture five-profile row와 same-seed replay, full diagnostics/Random/timeline equality를 확인한다.
+
+`freezePhase13GB3CandidateAndGates`는 B2 evidence와 최종 source guard를 확인한 뒤 contract와 shard별 authorization만 생성하며 이때 holdout execution count가 0이어야 한다. 네 shard별 Test class/task는 각각 `forkEvery=1`로 fresh JVM receipt를 남기고 fixture index modulo 4만 소유한다. Fixture당 40행 전체가 검증된 뒤 임시 checkpoint를 atomic move한다. Authorization은 shard 시작 시 `.authorized`에서 `.started`로 atomic move되어 completion receipt가 있는 공식 run을 반복할 수 없다. Finalizer만 4 receipt, 100 checkpoint, 4,000 rows와 provenance, replay 및 domain integrity를 결합해 official artifact writer를 연다.
+
+Final executable tree의 B1/B2/B3 focused contract tests와 B3 smoke는 clean pass했다. Default full regression은 첫 실행에서 170 suites / 1,969 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 488.240초, Gradle wall 8분 23초였다. B2 V3 재고정은 20분 4초, contract freeze는 16초, official B3는 22분 32초에 성공했다. B3는 100/100 checkpoint, payload digest 100/100, unique job/provenance 4,000/4,000, exact BASELINE replay 100/100, distinct fresh JVM 4/4, calibration 0, domain error/timeout/SUPPORT FARM CS 0과 SHA manifest 18/18을 기록했다.
+
+Machine-readable 결과는 `build/reports/phase13g-b3/phase13g-b3-final-review.json`과 `phase13g-b3-frozen-gate-evaluation.json`을 사용한다. Evidence는 READY이고 exact 7/7, numeric 66/67이다. Economy G1 winner flip 10/720(1.3889%)이 frozen inclusive 상한 1.379455%를 넘겨 Economy `FAIL`; Tempo 전체 flip 272/800(34.00%)은 B2 33.79%의 interval과 일치하지만 product tolerance가 없어 `REVIEW_REQUIRED`다. 이는 holdout 재실행·threshold 완화·자동 tuning의 근거가 아니며 `productionDecision`은 Final 13G-B까지 `NOT_EVALUATED`다.
 
 ## Generated Reports
 

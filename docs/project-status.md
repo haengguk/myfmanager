@@ -137,9 +137,9 @@ GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history 
 
 B1 bounded dry-run은 `GEN` Blue–`T1` Red G1 fixture와 calibration/holdout에 속하지 않는 별도 seed 하나로 다섯 profile을 한 번씩 실행하고 `BASELINE_V1`을 한 번 재실행했다. 다섯 실행의 Draft/final assignment/resource/roster identity가 exact equality였고 BASELINE same-seed replay의 replay provenance, timeline, Random fingerprint와 simulator의 전체 diagnostic snapshot/history가 exact equality였다. Champion Power/Matchup, Composition, Combat Outcome, Objective Priority, Structure, Lane Phase, Mid Game Macro, Progression과 Jungle Economy의 명시적 구조 오류는 모두 0이다. 세 pre-Jungle profile은 Jungle Economy/Tempo 실행 0, Economy candidate는 CS/gold/XP 경로 reachability, Tempo candidate는 READY 관찰 23회와 Gank actual consumption 1회를 보였다. 이 단일 fixture 관찰의 winner, 경기 시간이나 profile 차이는 balance 근거가 아니다.
 
-P1 선행 gate는 같은 B1 fixture를 두 fresh JVM에서 각각 실행해 7개 artifact 전체를 byte-for-byte 비교한다. Champion Power 집계 순서를 고친 V6에서 두 manifest SHA가 `624638ca8958ab3dc8e7de127dee24d7ba808ca76508b605f4ea6e96db88bd6c`로 같았고, gate report의 manifest SHA와 직후 canonical B1 manifest SHA도 exact equality였다. 이 연결이 다르면 B2 worker는 시작하지 않는다.
+P1 선행 gate는 같은 B1 fixture를 두 fresh JVM에서 각각 실행해 7개 artifact 전체를 byte-for-byte 비교한다. Phase-specific source/build guard로 재고정한 V6 tree에서 두 manifest SHA가 `dc8f63a117bbd15dc05ca533ae8c98a3707ae70fa9af810f6f14539d8ee9b9cd`로 같았고, 직후 canonical B1 manifest SHA도 exact equality였다. 이 연결이 다르면 B2 worker는 시작하지 않는다.
 
-재고정한 generated artifact는 `backend/build/reports/phase13g-b1/`의 contract/profile/schedule JSON, 3,200-row reserved schedule CSV, 5-row dry-run JSON/CSV와 `SHA256SUMS.txt`다. Summary SHA-256은 `37ce2c275d5dc4837328c7e8c9fb7b100f62ffcdee4ee740217140d8c751f5c0`, manifest SHA-256은 `624638ca8958ab3dc8e7de127dee24d7ba808ca76508b605f4ea6e96db88bd6c`다. Report status는 `HARNESS_HARDENED_READY_FOR_CALIBRATION`이며 `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`를 명시한다. Canonical production guard는 472 files / `0d106c2e4a7f6469cf686ab733d82843703dfd499a5b3d26cf93ce10d2faed33`, B1 audit harness guard는 10 files / `82335933d71778718c811fafddff8f80e704c39f4370080684c4771d8f2e6a3d`이다. Build report는 증거이지 baseline 또는 correctness input이 아니다.
+재고정한 generated artifact는 `backend/build/reports/phase13g-b1/`의 contract/profile/schedule JSON, 3,200-row reserved schedule CSV, 5-row dry-run JSON/CSV와 `SHA256SUMS.txt`다. Summary SHA-256은 `37ce2c275d5dc4837328c7e8c9fb7b100f62ffcdee4ee740217140d8c751f5c0`, manifest SHA-256은 `dc8f63a117bbd15dc05ca533ae8c98a3707ae70fa9af810f6f14539d8ee9b9cd`다. Report status는 `HARNESS_HARDENED_READY_FOR_CALIBRATION`이며 `calibrationExecuted=false`, `holdoutExecuted=false`, `productionDecision=NOT_EVALUATED`를 명시한다. Canonical production guard는 472 files / `68edbcb7393c9a54c0888a4f27a4e286774306675dce48991554fd22dcb2ddac`, B1 audit harness guard는 9 files / `20c6d834dd01d90688c377da1f68afd28abb20dff34e7cf02bb0253a22271b74`이다. Build report는 증거이지 baseline 또는 correctness input이 아니다.
 
 ### Final 13G-B2 real-data calibration
 
@@ -159,9 +159,21 @@ Calibration의 paired winner identity 변화는 다음과 같다. 이는 같은 
 | Tempo − Economy | 732 / 2,160 | 79 / 240 | 811 / 2,400 (33.79%) |
 | Tempo − Baseline | 755 / 2,160 | 87 / 240 | 842 / 2,400 (35.08%) |
 
-Economy − Full은 G1에서 Blue/Red 정글 최종 CS가 평균 +3.382/+4.230, XP가 +644.8/+691.5였고 G2에서는 CS +6.233/+2.096, XP +814.3/+579.0이었다. Tempo − Economy는 G1에서 경기 시간 평균 +7.79초, 정글 CS +1.137/+0.644, XP +80.4/+30.7이고 G2에서는 +33.42초, CS +2.925/+4.063, XP +167.6/+272.7이었다. Tempo profile 2,400경기에서 Gank readiness/actual consumption은 47,495/5,175회, Counter-gank는 4,447/660회로 실제 경로가 충분히 도달했다. Tempo − Economy flip 방향은 Blue→Red 386, Red→Blue 425로 한 방향 독점은 아니지만, 33.79%의 높은 paired 민감도는 B3 기준을 freeze하기 전에 별도 human review가 필요한 핵심 신호다. 모든 profile의 timeout은 0이었다.
+Economy − Full은 G1에서 Blue/Red 정글 최종 CS가 평균 +3.382/+4.230, XP가 +644.8/+691.5였고 G2에서는 CS +6.233/+2.096, XP +814.3/+579.0이었다. Tempo − Economy는 G1에서 경기 시간 평균 +7.79초, 정글 CS +1.137/+0.644, XP +80.4/+30.7이고 G2에서는 +33.42초, CS +2.925/+4.063, XP +167.6/+272.7이었다. Tempo profile 2,400경기에서 Gank readiness/actual consumption은 47,495/5,175회, Counter-gank는 4,447/660회로 실제 경로가 충분히 도달했다. Tempo − Economy flip 방향은 Blue→Red 386, Red→Blue 425로 한 방향 독점은 아니지만, 33.79%의 높은 paired 민감도는 B3 gate 동결 시 별도 product review 대상으로 보존했다. 모든 profile의 timeout은 0이었다.
 
-Artifact는 `backend/build/reports/phase13g-b2/`의 contract/job/fixed-Draft/replay/checkpoint receipt manifest/match/checkpoint/marginal 및 profile/team/jungler summary, integrity/review JSON과 `SHA256SUMS.txt`다. 16/16 raw SHA가 통과했고 review SHA-256은 `3eb79554205aa0bf4a5d3430af4432e66c0cddb66c804a82c380e3bb9cd81402`, manifest SHA-256은 `ec98898cc708c358f6d92ac056c1bd171e6cba3bae670b28545fde5d96559324`다. Status는 `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`, run guard는 `65193833610acce0d84956b8c044cfd483fc1c07355ffffd1f09edade6641cef`, checkpoint payload manifest는 `acd042d7a7ec9ba574d420e3e1567a187c0edf41d6b9ce21614bad43922ea595`다. B2 harness guard는 18 files / `c7ac63ad36ab710dd91362fd6d3f9caf9bfd15c6a471046facf84f4fe0c2fb4a`다. 자동 tuning, candidate freeze와 `PRODUCTION_V1` 결정은 수행하지 않았다.
+Artifact는 `backend/build/reports/phase13g-b2/`의 contract/job/fixed-Draft/replay/checkpoint receipt manifest/match/checkpoint/marginal 및 profile/team/jungler summary, integrity/review JSON과 `SHA256SUMS.txt`다. Phase-specific source/build guard 도입으로 stale checkpoint를 재사용하지 않고 V3 경로에서 12,000경기를 다시 고정했다. 16/16 raw SHA가 통과했고 review SHA-256은 `32c1770b6971179c0cb7033e853882e7e9fb06c6980285eb2dba23210993fbee`, manifest SHA-256은 `71ac3a26cc4df6c49794c2daeb2efc75bd2667b39237b89af4a1a6bda963d7e4`다. Status는 `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`, run guard는 `281ecd7b4985695f0c3168fd699b6be0c525387aea14f701a23d2f0614485e30`, checkpoint payload manifest는 `f1945f8333733a4c3ecefdfcaa30276129a98a3b58ae9e609e45d247de79df58`다. B1/B2 combined guard는 18 files / `040800b178865ebec1a41e9dbbd78a2b7166c52b5e94a14df17fad7d6dea4a24`이며 calibration behavior는 이전 B2와 exact equality다. 자동 tuning과 `PRODUCTION_V1` 결정은 수행하지 않았다.
+
+### Final 13G-B3 frozen holdout
+
+`PHASE_13G_B3_FROZEN_HOLDOUT`은 B2를 다시 실행한 최종 executable tree에서 candidate와 acceptance gate를 먼저 canonical JSON으로 고정한 뒤, B1에 예약된 `HOLDOUT` seed만 한 번 materialize했다. Contract 생성 시 holdout execution count는 0이었고, contract SHA-256 `7b7de51ac242e0bd260efe7f2130db17c538cef49b897c02bfe3579484aa8fa4`, candidate identity `6a920353b5436d7053fa2863de361a1201b09d88a08ef0c25ecaca20051ea81f`, acceptance gate identity `b05a346777cce78f0c31f7916de24d062a6e55bb4d17bf67eafe92eb225a00dd`를 official runner가 exact match로 요구한다. Economy의 주 판정은 `ECONOMY_MINUS_FULL`, Tempo는 `TEMPO_MINUS_ECONOMY`이며 나머지 비교는 regression/context evidence다.
+
+수치 gate 67개는 B2 point estimate와 calibration/holdout 표본 수를 사용한 99% two-sample normal prediction interval로 고정했다. 연속값은 `mean ± z·s·sqrt(1/nCalibration + 1/nHoldout)`, 비율은 `p ± z·sqrt(p(1-p)·(1/nCalibration + 1/nHoldout))`, `z=2.5758293035489004`, 소수 12자리 바깥쪽 반올림, 양 끝 inclusive다. G1/G2/전체 winner flip, 경기 시간, Blue gold edge, Blue/Red 정글 CS·XP, gank/counter-gank attempt drift와 side gap을 분리했고 Tempo flip 방향도 별도 gate로 고정했다. Award reachability, pre-Jungle/Tempo contribution 0, Tempo readiness/consumption reachability 및 actual attempt binding, SUPPORT FARM CS 0, timeout 0은 7개 exact behavior gate다. 명시적 product tolerance가 없는 Tempo 33.79%는 수치 일관성이 있어도 자동 PASS로 만들지 않고 `REVIEW_REQUIRED`로 남긴다.
+
+공식 holdout은 G1 3,600 + Hard Fearless G2 400 = 4,000 matches, 4,000 unique jobs/provenance와 paired marginals를 만들었다. Economy − Full winner flip은 G1 10/720(1.389%), G2 1/80(1.25%), 전체 11/800(1.375%)였다. G1 상한 1.379455%를 1건에 해당하는 0.00943%p만 넘겨 수치 gate 67개 중 이 gate 하나만 실패했고 Economy verdict는 `FAIL`이다. 나머지 Economy 축은 범위 안이었으며 G1/G2 Blue/Red 정글 CS 변화는 +3.606/+4.226 및 +6.438/+2.050, XP 변화는 +644.2/+705.7 및 +785.3/+549.3이었다.
+
+Tempo − Economy winner flip은 G1 249/720(34.58%), G2 23/80(28.75%), 전체 272/800(34.00%)로 B2 전체 33.79%의 높은 민감도를 재현했다. 방향은 Blue→Red 135, Red→Blue 137로 한 방향 독점이 아니며, Gank readiness/consumption 15,858/1,715와 Counter-gank 1,489/189가 모두 도달했고 consumption과 actual attempt 차이는 0이다. Tempo 수치 gate는 모두 통과했지만 높은 민감도에 대한 product tolerance가 없으므로 verdict는 `REVIEW_REQUIRED`다. Exact behavior gate는 7/7, numeric gate는 66/67이며 evidence 자체는 `HOLDOUT_EVIDENCE_READY_FOR_FINAL_REVIEW`, `productionDecision=NOT_EVALUATED`다.
+
+각 shard는 자기 authorization 파일을 atomic move해 한 번만 시작할 수 있고 `forkEvery=1`인 네 독립 Test task가 4개 distinct JVM receipt를 남긴다. Finalizer는 authenticated checkpoint 100/100, raw payload digest 100/100, BASELINE replay 100/100 exact, calibration 실행 0, domain error 0, SUPPORT FARM CS 0, timeout 0을 재검증했다. Artifact는 `backend/build/reports/phase13g-b3/`에 있으며 final review SHA-256은 `60df0caa7b0193a4b67fe0380bc326d9e7efdae34f794515679131c3f305badf`, integrity SHA-256은 `909d2abb5869e68d7102fa7245410e535d8792dafe68051b200a352664b73bf7`, gate evaluation SHA-256은 `c1513e6adc633a1a4692cbe6a2b62a05a0977335fc6b143d4a82a522026b9ba1`, 18-entry manifest SHA-256은 `460d74573ffb971e9e2ff491a039d2002fc6e02a4f37067a9c18da73f0b70c9d`다. 이 holdout은 소비됐으며 결과가 불리해도 재실행하거나 gate/tuning을 바꾸는 입력으로 재사용하지 않는다.
 
 ### Pre-Jungle baseline
 
@@ -227,6 +239,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - 실제 10개 LCK 팀의 90 G1 + 10 Hard Fearless G2 fixture, calibration/holdout seed split, frozen input rejection, full diagnostics integrity/hash와 fixed-Draft 5-profile JSON/CSV/SHA 출력을 고정한 hardened Final 13G-B1 test-side audit harness
 - 명시적 PlayerKey 순서의 Champion Power 평균, fresh-JVM 2회 B1 artifact 7/7 byte equality와 canonical B1 manifest binding gate
 - calibration-only 12,000경기, fixture-atomic resume, 100 replay exact, fixed-time Jungle 관측과 paired marginal/SHA artifact를 갖춘 Final 13G-B2 audit pipeline
+- 사전 동결 contract, one-time authorization, 4 fresh-JVM receipt, 100 authenticated checkpoint와 4,000-row paired evidence를 갖춘 Final 13G-B3 holdout pipeline
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -240,17 +253,17 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - Real LCK Draft→Match flow는 backend component로 연결됐지만 `MatchController`, Draft API와 frontend에는 아직 노출되지 않았다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
 - Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
-- Final 13G-B2 calibration 12,000경기는 완료했지만 결과는 review evidence다. Candidate/gate freeze, 8-seed holdout, 자동 tuning과 `PRODUCTION_V1` 결정은 아직 수행하지 않았다.
+- Final 13G-B2 calibration 12,000경기와 B3 holdout 4,000경기는 완료했지만 둘 다 review evidence다. B3는 Economy `FAIL`, Tempo `REVIEW_REQUIRED`를 기록했으며 자동 tuning과 `PRODUCTION_V1` 결정은 수행하지 않았다.
 - Jungle Economy V1-A는 economy-only profile에서 계속 CS/gold/XP에만 연결된다. V1-B Tempo candidate는 별도 profile에서 bounded readiness를 gank와 counter-gank eligibility에만 연결했다. Objective eligibility/확률/reward에는 직접 연결하지 않았고 production 채택·튜닝도 아직 결정하지 않았다.
 - `DraftEngine`은 application component 내부의 pure domain dependency이며 독립 Spring bean/API로 공개되지 않는다.
 - 첫 game은 exclusion이 없어 단판처럼 동작하지만 별도 Standard ruleset 선택 기능은 없다.
 
 ## Pending
 
-1. B2 calibration evidence를 human review하고 Economy/Tempo candidate 범위와 정량 acceptance gate를 동결한다. 특히 Tempo − Economy 33.79% paired winner sensitivity의 원인·허용 범위를 먼저 판단하며 이 단계에서 holdout을 보지 않는다.
-2. Candidate와 기준을 freeze한 뒤 예약된 8-seed holdout lane으로 `PHASE_13G_B3_FROZEN_HOLDOUT`을 단 한 번 수행한다.
-3. Final 13G-B에서 calibration/holdout을 종합하고 필요한 final full regression을 실행해 `PRODUCTION_V1` 범위와 objective 직접 연결 보류 여부를 결정한다.
-4. Match Engine V1 input/output/profile/provenance를 freeze한다.
+1. Final 13G-B에서 B2/B3를 종합해 Economy의 단일 근소 gate failure와 Tempo의 재현된 34.00% sensitivity를 검토하고, 원래 의사결정 구조에 따라 `PRODUCTION_V1` 범위를 결정한다. B3 holdout 자체는 재실행하지 않는다.
+2. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 holdout 계약을 만든다.
+3. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
+4. 결정된 Match Engine V1 input/output/profile/provenance를 freeze한다.
 5. 이후 Real Match API/frontend/BO3·BO5, Career/Save/Season 순으로 진행한다.
 
 ## Test Snapshot
@@ -263,13 +276,13 @@ Final command:
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 169 |
-| Tests | 1,964 |
+| JUnit suites | 170 |
+| Tests | 1,969 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 497.860 seconds |
-| Gradle wall duration | 8m 28s |
+| Aggregate JUnit XML time | 488.240 seconds |
+| Gradle wall duration | 8m 23s |
 | Build | `BUILD SUCCESSFUL` |
 
 Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
@@ -286,7 +299,9 @@ Final 13G-B1 hardening의 schedule/profile focused verification은 2 suites / 7 
 
 Checkpoint authenticity/fresh-JVM hardening final tree의 default full regression은 첫 실행에서 169 suites / 1,964 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 497.860초, Gradle wall 8분 28초로 clean pass했다. Production replay hash canonical 함수의 package 경계, B1 harness provenance context, Gradle `forkEvery=1`까지 모두 반영한 final executable tree에서 수행했으며 이후에는 generated artifact와 문서만 갱신했으므로 full을 반복하지 않았다. 최종 smoke는 1 suite / 1 test, JUnit 15.121초로 재라벨링·outcome·observation·checkpoint bytes 변조 거부와 synthetic non-official status를 확인했다. Cross-JVM probes는 각 1 suite / 1 test와 17.020/16.786초, canonical B1 dry-run은 17.361초로 모두 clean했다.
 
-공식 `runPhase13GB2Calibration`은 P1 cross-JVM → B1 dry-run → `forkEvery=1`인 4 fresh-JVM calibration workers → receipt-bound artifact finalizer 순으로 21분 3초에 clean pass했다. Workers는 4 suites / 4 tests, failures/errors/skipped 0, aggregate JUnit XML 3,432.287초였고 병렬 실행 합계라 wall time과 동일하지 않다. Finalizer는 1 suite / 1 test, 18.716초다. 서로 다른 JVM identity 4/4, authenticated fixture checkpoint 100/100, checkpoint payload digest 100/100, 12,000 calibration rows, 12,000 paired marginals, 100 exact replay, holdout 0과 SHA manifest 16/16을 확인했다.
+Phase-specific guard로 재고정한 공식 `runPhase13GB2Calibration`은 P1 cross-JVM → B1 dry-run → `forkEvery=1`인 4 fresh-JVM calibration workers → receipt-bound artifact finalizer 순으로 20분 4초에 clean pass했다. 서로 다른 JVM identity 4/4, authenticated fixture checkpoint 100/100, checkpoint payload digest 100/100, 12,000 calibration rows, 12,000 paired marginals, 100 exact replay, holdout 0과 SHA manifest 16/16을 확인했고 기존 B2 balance signal과 exact equality였다.
+
+Final 13G-B3 final executable tree에서는 B1/B2/B3 contract focused tests가 clean pass했고 `runPhase13GB3Smoke`는 reserved holdout seed 없이 1 suite / 1 test, failures/errors/skipped 0, JUnit 14.262초, Gradle wall 26초로 통과했다. 이어 default full regression은 첫 실행에서 170 suites / 1,969 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 488.240초, Gradle wall 8분 23초로 clean pass했다. Phase-specific guard에 맞춘 B2 재고정은 20분 4초, frozen contract 생성은 16초, one-time `runPhase13GB3FrozenHoldout`은 22분 32초에 성공했다. 이후 executable source/resource/Gradle은 바꾸지 않고 artifact 검증과 문서만 갱신했으므로 full을 반복하지 않았다.
 
 Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 

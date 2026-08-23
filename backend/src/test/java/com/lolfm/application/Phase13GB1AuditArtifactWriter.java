@@ -368,8 +368,9 @@ public final class Phase13GB1AuditArtifactWriter {
                 backendRoot,
                 List.of(Path.of("src", "main", "java"),
                         Path.of("src", "main", "resources")),
-                List.of(Path.of("build.gradle"), Path.of("settings.gradle")),
-                value -> true);
+                List.of(Path.of("settings.gradle")),
+                value -> true,
+                Map.of("build.gradle", productionBuildContract(backendRoot)));
     }
 
     static SourceTreeIdentity phaseTestSourceTree(
@@ -377,11 +378,36 @@ public final class Phase13GB1AuditArtifactWriter {
             String fileNamePrefix
     ) throws IOException {
         Objects.requireNonNull(fileNamePrefix, "fileNamePrefix");
+        List<String> sourcePrefixes;
+        List<String> buildPhases;
+        if (fileNamePrefix.equals("Phase13GB3")) {
+            sourcePrefixes = List.of("Phase13GB3");
+            buildPhases = List.of("B3");
+        } else if (fileNamePrefix.equals("Phase13GB")) {
+            sourcePrefixes = List.of("Phase13GB1", "Phase13GB2");
+            buildPhases = List.of("B1", "B2");
+        } else if (fileNamePrefix.equals("Phase13GB1")) {
+            sourcePrefixes = List.of("Phase13GB1");
+            buildPhases = List.of("B1");
+        } else if (fileNamePrefix.equals("Phase13GB2")) {
+            sourcePrefixes = List.of("Phase13GB2");
+            buildPhases = List.of("B2");
+        } else {
+            sourcePrefixes = List.of(fileNamePrefix);
+            buildPhases = List.of();
+        }
+        LinkedHashMap<String, byte[]> virtualFiles = new LinkedHashMap<>();
+        for (String phase : buildPhases) {
+            virtualFiles.put("build.gradle#PHASE_13G_" + phase + "_BUILD_CONTRACT",
+                    phaseBuildContract(backendRoot, phase));
+        }
         return sourceTreeIdentity(
                 backendRoot,
                 List.of(Path.of("src", "test", "java")),
-                List.of(Path.of("build.gradle"), Path.of("settings.gradle")),
-                value -> value.getFileName().toString().startsWith(fileNamePrefix));
+                List.of(),
+                value -> sourcePrefixes.stream().anyMatch(prefix ->
+                        value.getFileName().toString().startsWith(prefix)),
+                virtualFiles);
     }
 
     private static SourceTreeIdentity sourceTreeIdentity(
@@ -389,6 +415,16 @@ public final class Phase13GB1AuditArtifactWriter {
             List<Path> roots,
             List<Path> explicitFiles,
             java.util.function.Predicate<Path> filter
+    ) throws IOException {
+        return sourceTreeIdentity(backendRoot, roots, explicitFiles, filter, Map.of());
+    }
+
+    private static SourceTreeIdentity sourceTreeIdentity(
+            Path backendRoot,
+            List<Path> roots,
+            List<Path> explicitFiles,
+            java.util.function.Predicate<Path> filter,
+            Map<String, byte[]> virtualFiles
     ) throws IOException {
         Path normalizedRoot = backendRoot.toAbsolutePath().normalize();
         ArrayList<Path> files = new ArrayList<>();
@@ -408,15 +444,60 @@ public final class Phase13GB1AuditArtifactWriter {
         files = new ArrayList<>(files.stream().distinct()
                 .sorted(Comparator.comparing(value -> portablePath(normalizedRoot.relativize(value))))
                 .toList());
-        StringBuilder canonical = new StringBuilder();
+        java.util.TreeMap<String, byte[]> inputs = new java.util.TreeMap<>();
         for (Path file : files) {
-            canonical.append(portablePath(normalizedRoot.relativize(file))).append('|')
-                    .append(sha256(Files.readAllBytes(file))).append('\n');
+            inputs.put(portablePath(normalizedRoot.relativize(file)), Files.readAllBytes(file));
         }
+        inputs.putAll(virtualFiles);
+        StringBuilder canonical = new StringBuilder();
+        inputs.forEach((path, bytes) -> canonical.append(path).append('|')
+                .append(sha256(bytes)).append('\n'));
         return new SourceTreeIdentity(
-                SOURCE_TREE_HASH_ALGORITHM,
+                "SHA256_UTF8_SORTED_LOGICAL_PATH_PIPE_RAW_OR_NORMALIZED_FILE_SHA256_LINES_V2",
                 sha256(canonical.toString().getBytes(StandardCharsets.UTF_8)),
-                files.size());
+                inputs.size());
+    }
+
+    private static byte[] productionBuildContract(Path backendRoot) throws IOException {
+        String build = Files.readString(backendRoot.resolve("build.gradle"),
+                StandardCharsets.UTF_8).replace("\r\n", "\n");
+        for (String phase : List.of("B1", "B2", "B3")) {
+            build = removeMarkedSection(build, phase);
+        }
+        return build.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static byte[] phaseBuildContract(Path backendRoot, String phase)
+            throws IOException {
+        String build = Files.readString(backendRoot.resolve("build.gradle"),
+                StandardCharsets.UTF_8).replace("\r\n", "\n");
+        String start = "// PHASE_13G_" + phase + "_BUILD_CONTRACT_START";
+        String end = "// PHASE_13G_" + phase + "_BUILD_CONTRACT_END";
+        int from = build.indexOf(start);
+        int to = build.indexOf(end);
+        if (from < 0 || to < from || build.indexOf(start, from + 1) >= 0
+                || build.indexOf(end, to + 1) >= 0) {
+            throw new IllegalStateException("Missing or duplicate " + phase
+                    + " Gradle build contract markers");
+        }
+        return (build.substring(from, to + end.length()) + '\n')
+                .getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String removeMarkedSection(String build, String phase) {
+        String start = "// PHASE_13G_" + phase + "_BUILD_CONTRACT_START";
+        String end = "// PHASE_13G_" + phase + "_BUILD_CONTRACT_END";
+        int from = build.indexOf(start);
+        if (from < 0) return build;
+        int to = build.indexOf(end, from);
+        if (to < 0 || build.indexOf(start, from + 1) >= 0
+                || build.indexOf(end, to + 1) >= 0) {
+            throw new IllegalStateException("Invalid " + phase
+                    + " Gradle build contract markers");
+        }
+        int after = to + end.length();
+        if (after < build.length() && build.charAt(after) == '\n') after++;
+        return build.substring(0, from) + build.substring(after);
     }
 
     private static ObjectMapper canonicalMapper(ObjectMapper source) {

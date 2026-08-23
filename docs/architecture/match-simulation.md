@@ -198,6 +198,27 @@ Simulator는 보통 10초 tick으로 snapshot을 만들지만 structure push가 
 
 B2 status `CALIBRATION_EVIDENCE_READY_FOR_REVIEW`는 job/replay/checkpoint payload/worker receipt/structural integrity가 깨끗하다는 뜻이다. Winner flip, gold/CS/XP/level, duration, action count 분포는 review-only balance signal이며 correctness pass나 `PRODUCTION_V1` 승인을 뜻하지 않는다. Candidate와 acceptance gate를 calibration 결과로 먼저 freeze한 뒤에만 별도 holdout lane을 열 수 있다.
 
+#### B3 frozen holdout execution boundary
+
+B3는 B2 artifact identity, schedule/configuration/resource/engine/Draft identity와 production/B1/B2/B3 source identity를 하나의 immutable contract에 묶는다. Source guard는 production과 phase별 harness/Gradle block을 별도로 canonicalize한다. 따라서 B3 전용 task의 단순 추가는 B2 의미를 오염시키지 않지만, B1/B2 worker의 `forkEvery`, shard/JVM 또는 task 설정 변경은 해당 guard를 바꾼다. Contract hash 없이 official runner를 시작할 수 없고 runner는 contract를 재생성하거나 threshold를 수정하지 않는다.
+
+```text
+B2 calibration evidence(holdout 0)
+  → Economy=ECONOMY_MINUS_FULL / Tempo=TEMPO_MINUS_ECONOMY 범위 고정
+  → 7 exact behavior gates + 67 numeric gates 고정
+  → canonical contract/hash + shard별 one-time authorization
+  → 8 holdout seeds × 5 fixed profiles = fixture당 40 rows
+  → atomic authenticated checkpoint + worker receipt
+  → 4 distinct fresh JVM / 100 checkpoints / 4,000 rows 재검증
+  → evidence verdict와 Economy/Tempo verdict를 독립 기록
+```
+
+연속값과 비율의 numeric gate는 B2와 B3 표본 수를 함께 반영한 99% two-sample normal prediction interval이며 소수 12자리에서 바깥쪽으로 반올림하고 양 끝을 포함한다. G1, G2, 전체를 분리하고 side/orientation gap도 독립 gate로 평가한다. 이는 구조적 correctness gate와 분리된다. 명시적 product tolerance가 없는 Tempo winner sensitivity는 interval 통과만으로 자동 승인하지 않고 `REVIEW_REQUIRED`다.
+
+각 checkpoint는 complete match row, outcome, full structured diagnostics, Random fingerprint, timeline/replay provenance, fixed-time Jungle observations, 10명 final player state, team/Jungle result, row/fixed-Draft/replay/combined digest를 보존한다. 각 worker는 자기 `.authorized` 파일을 atomic move해 `.started`로 소비하므로 완료 receipt가 있는 같은 official holdout을 다시 실행할 수 없다. 같은 frozen contract/run guard의 도구 장애만 authenticated checkpoint resume가 가능하다. Finalizer는 receipt/fixture modulo ownership/JVM identity/checkpoint raw SHA를 다시 결합하며 synthetic path는 공식 READY status를 만들 수 없다.
+
+공식 B3는 G1 3,600, G2 400으로 총 4,000 holdout matches를 한 번 실행했다. Replay 100/100 exact, unique job/provenance 4,000/4,000, distinct JVM 4/4, calibration execution 0, structural/domain error 0, SUPPORT FARM CS 0, timeout 0이다. Evidence status는 `HOLDOUT_EVIDENCE_READY_FOR_FINAL_REVIEW`; Economy는 frozen G1 winner-flip gate 하나를 근소하게 넘겨 `FAIL`, Tempo는 모든 structural/numeric gate를 통과했지만 높은 민감도의 product tolerance가 없어 `REVIEW_REQUIRED`, production decision은 `NOT_EVALUATED`다. 이 결과는 Final 13G-B의 입력이며 runtime default나 gameplay tuning을 직접 바꾸지 않는다.
+
 ## Combat Strength Inputs
 
 전투 점수는 한 거대한 profile로 합쳐 저장하지 않는다.

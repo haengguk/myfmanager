@@ -560,6 +560,7 @@ tasks.register("runJungleTempoCandidateDiagnostic", Test) {
             "test-results/jungleTempoCandidateDiagnostic")
 }
 
+// PHASE_13G_B1_BUILD_CONTRACT_START
 tasks.register("runPhase13GB1DryRun", Test) {
     group = "verification"
     description = "Runs the bounded five-profile real-LCK Phase 13G-B1 harness dry-run."
@@ -642,7 +643,9 @@ tasks.register("verifyPhase13GB1CrossJvmDeterminism") {
 tasks.named("runPhase13GB1DryRun") {
     mustRunAfter("verifyPhase13GB1CrossJvmDeterminism")
 }
+// PHASE_13G_B1_BUILD_CONTRACT_END
 
+// PHASE_13G_B2_BUILD_CONTRACT_START
 tasks.register("runPhase13GB2Smoke", Test) {
     group = "verification"
     description = "Runs one fixed-Draft, one-seed, five-profile B2 calibration smoke test."
@@ -704,3 +707,104 @@ tasks.register("runPhase13GB2Calibration") {
     description = "Runs workers then artifact-only finalization for official Phase 13G-B2."
     dependsOn("finalizePhase13GB2Calibration")
 }
+// PHASE_13G_B2_BUILD_CONTRACT_END
+
+// PHASE_13G_B3_BUILD_CONTRACT_START
+tasks.register("runPhase13GB3Smoke", Test) {
+    group = "verification"
+    description = "Runs B3 dry-run smoke without consuming reserved holdout seeds."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "phase13g-b3-smoke"
+    }
+    maxHeapSize = "2g"
+    maxParallelForks = 1
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/phase13GB3Smoke")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/phase13GB3Smoke")
+}
+
+tasks.register("freezePhase13GB3CandidateAndGates", Test) {
+    group = "verification"
+    description = "Freezes the B2-bound B3 candidate and acceptance contract with holdout count zero."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "phase13g-b3-freeze"
+    }
+    maxHeapSize = "2g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/phase13GB3Freeze")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/phase13GB3Freeze")
+}
+
+def registerPhase13GB3Shard = { String taskName, String className, int shardIndex ->
+    tasks.register(taskName, Test) {
+        group = "verification"
+        description = "Runs frozen B3 holdout shard ${shardIndex} in its own fresh JVM."
+        dependsOn("freezePhase13GB3CandidateAndGates")
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        useJUnitPlatform()
+        filter {
+            includeTestsMatching "com.lolfm.application.${className}"
+        }
+        maxHeapSize = "2g"
+        maxParallelForks = 1
+        forkEvery = 1
+        failFast = true
+        outputs.upToDateWhen { false }
+        reports.html.outputLocation = layout.buildDirectory.dir(
+                "reports/tests/phase13GB3Shard${shardIndex}")
+        reports.junitXml.outputLocation = layout.buildDirectory.dir(
+                "test-results/phase13GB3Shard${shardIndex}")
+    }
+}
+
+registerPhase13GB3Shard("runPhase13GB3HoldoutShard0", "Phase13GB3HoldoutShard0Test", 0)
+registerPhase13GB3Shard("runPhase13GB3HoldoutShard1", "Phase13GB3HoldoutShard1Test", 1)
+registerPhase13GB3Shard("runPhase13GB3HoldoutShard2", "Phase13GB3HoldoutShard2Test", 2)
+registerPhase13GB3Shard("runPhase13GB3HoldoutShard3", "Phase13GB3HoldoutShard3Test", 3)
+
+tasks.register("runPhase13GB3HoldoutWorkers") {
+    group = "verification"
+    description = "Runs the four one-time B3 holdout shards in distinct fresh JVMs."
+    dependsOn(
+            "runPhase13GB3HoldoutShard0",
+            "runPhase13GB3HoldoutShard1",
+            "runPhase13GB3HoldoutShard2",
+            "runPhase13GB3HoldoutShard3")
+}
+
+tasks.register("finalizePhase13GB3FrozenHoldout", Test) {
+    group = "verification"
+    description = "Finalizes receipt-bound B3 evidence without executing gameplay."
+    dependsOn("runPhase13GB3HoldoutWorkers")
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "phase13g-b3-finalizer"
+    }
+    maxHeapSize = "3g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/phase13GB3Finalizer")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/phase13GB3Finalizer")
+}
+
+tasks.register("runPhase13GB3FrozenHoldout") {
+    group = "verification"
+    description = "Consumes the frozen B1 holdout lane once and writes official B3 evidence."
+    dependsOn("finalizePhase13GB3FrozenHoldout")
+}
+// PHASE_13G_B3_BUILD_CONTRACT_END

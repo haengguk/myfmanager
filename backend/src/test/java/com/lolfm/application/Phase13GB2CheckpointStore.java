@@ -33,8 +33,8 @@ import java.util.Set;
 
 /** Fixture-atomic persistence with execution evidence and worker-receipt validation. */
 public final class Phase13GB2CheckpointStore {
-    static final String CHECKPOINT_DIRECTORY_NAME = "checkpoints-authenticated-v2";
-    static final String RECEIPT_DIRECTORY_NAME = "worker-receipts-v1";
+    static final String CHECKPOINT_DIRECTORY_NAME = "checkpoints-authenticated-v3";
+    static final String RECEIPT_DIRECTORY_NAME = "worker-receipts-v2";
     static final int OFFICIAL_SHARD_COUNT = 4;
 
     private final ObjectMapper mapper;

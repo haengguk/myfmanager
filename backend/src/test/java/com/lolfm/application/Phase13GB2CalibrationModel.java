@@ -24,7 +24,7 @@ import java.util.Objects;
 /** Compact, serializable B2 evidence model; complete B1 diagnostics remain hash-bound. */
 public final class Phase13GB2CalibrationModel {
     public static final String MATCH_ROW_SCHEMA = "PHASE_13G_B2_CALIBRATION_MATCH_ROW_V2";
-    public static final String CHECKPOINT_SCHEMA = "PHASE_13G_B2_FIXTURE_CHECKPOINT_V2";
+    public static final String CHECKPOINT_SCHEMA = "PHASE_13G_B2_FIXTURE_CHECKPOINT_V3";
     public static final String EXECUTION_EVIDENCE_SCHEMA =
             "PHASE_13G_B2_CHECKPOINT_EXECUTION_EVIDENCE_V1";
     public static final String ROW_EVIDENCE_SCHEMA =
