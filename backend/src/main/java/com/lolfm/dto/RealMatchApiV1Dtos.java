@@ -350,6 +350,7 @@ public final class RealMatchApiV1Dtos {
             TeamSide actorSide,
             Position actorPosition,
             Lane lane,
+            String actorPlayerId,
             String killerPlayerId,
             String victimPlayerId,
             List<String> assistantPlayerIds,
@@ -364,6 +365,8 @@ public final class RealMatchApiV1Dtos {
             TeamSide structureDefendingSide,
             int goldAmount,
             double bountyRawBeforePayout,
+            String actionId,
+            String parentActionId,
             String displayMessage,
             Map<String, Object> structuredData
     ) {

@@ -2,6 +2,8 @@ package com.lolfm.simulator;
 
 public enum PushFailureReason {
     INSUFFICIENT_ATTACKERS,
+    COMBAT_PARTICIPANTS_UNAVAILABLE,
+    RECENTLY_REPELLED,
     NO_TARGET,
     CHANCE_ROLL_FAILED,
     TARGET_UNAVAILABLE

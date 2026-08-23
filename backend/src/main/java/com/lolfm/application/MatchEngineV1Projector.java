@@ -97,12 +97,14 @@ final class MatchEngineV1Projector {
     private MatchEngineV1Output.EventV1 event(MatchEngineV1Input input, MatchEvent source) {
         PlayerId killer = participant(source.getKillerPlayerId(), input);
         PlayerId victim = participant(source.getVictimPlayerId(), input);
+        PlayerId actor = participant(source.getActorPlayerId(), input);
+        if (actor == null) actor = killer;
         List<PlayerId> assistants = source.getAssistPlayerIds().stream()
                 .map(value -> participant(value, input)).toList();
-        TeamSide actorSide = actorSide(source, killer, input);
-        com.lolfm.domain.Position actorPosition = killer == null
+        TeamSide actorSide = actorSide(source, actor, input);
+        com.lolfm.domain.Position actorPosition = actor == null
                 ? source.getRoam() == null ? null : source.getRoam().roamerPosition()
-                : input.player(killer).position();
+                : input.player(actor).position();
         Lane lane = eventLane(source);
         List<ChampionId> assistantChampions = assistants.stream()
                 .map(value -> champion(input, value)).toList();
@@ -120,15 +122,18 @@ final class MatchEngineV1Projector {
         put(structured, "matchPhaseChange", source.getMatchPhaseChange());
         put(structured, "lateGameDecision", source.getLateGameDecision());
         put(structured, "progressionEvent", source.getProgressionEvent());
+        put(structured, "kill", source.getKillEvent());
+        put(structured, "assist", source.getAssistEvent());
         return new MatchEngineV1Output.EventV1(
                 source.getTimeSeconds(), source.getType(), actorSide, actorPosition, lane,
-                killer, victim, assistants,
+                actor, killer, victim, assistants,
                 killer == null ? null : champion(input, killer),
                 victim == null ? null : champion(input, victim),
                 assistantChampions, source.getCombatSource(), source.getStructureActionSource(),
                 source.getStructureKind(), source.getStructureTowerTier(),
                 source.getStructureAttackingSide(), source.getStructureDefendingSide(),
-                source.getGoldAmount(), source.getBountyRawBeforePayout(), source.getMessage(),
+                source.getGoldAmount(), source.getBountyRawBeforePayout(), source.getActionId(),
+                source.getParentActionId(), source.getMessage(),
                 canonicalizer.immutableObject(structured));
     }
 
@@ -215,15 +220,19 @@ final class MatchEngineV1Projector {
     }
 
     private static TeamSide actorSide(
-            MatchEvent event, PlayerId killer, MatchEngineV1Input input
+            MatchEvent event, PlayerId actor, MatchEngineV1Input input
     ) {
-        if (killer != null) return input.player(killer).teamSide();
+        if (actor != null) return input.player(actor).teamSide();
         if (event.getStructureAttackingSide() != null) return event.getStructureAttackingSide();
         if (event.getLaneCombat() != null) return event.getLaneCombat().initiatorSide();
         if (event.getJungleGank() != null) return event.getJungleGank().gankingSide();
         if (event.getCounterGank() != null) return event.getCounterGank().attackingSide();
         if (event.getRoam() != null) return event.getRoam().roamingSide();
-        if (event.getObjectiveDecision() != null) return event.getObjectiveDecision().initiativeSide();
+        if (event.getObjectiveDecision() != null) {
+            return event.getObjectiveDecision().captureSide() != null
+                    ? event.getObjectiveDecision().captureSide()
+                    : event.getObjectiveDecision().initiativeSide();
+        }
         if (event.getObjectivePriorityDecision() != null) {
             return event.getObjectivePriorityDecision().selectedSide();
         }

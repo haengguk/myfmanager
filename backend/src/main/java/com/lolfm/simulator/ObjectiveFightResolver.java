@@ -41,7 +41,11 @@ public final class ObjectiveFightResolver {
                 losingTeam, losingState, events, true, dead);
         if (killed) {
             for (int i = before; i < events.size(); i++) {
-                if (events.get(i).getType() == MatchEventType.KILL) events.get(i).setCombatSource(CombatSource.OBJECTIVE_FIGHT);
+                MatchEventType type = events.get(i).getType();
+                if (type == MatchEventType.KILL || type == MatchEventType.ASSIST
+                        || type == MatchEventType.SHUTDOWN) {
+                    events.get(i).setCombatSource(CombatSource.OBJECTIVE_FIGHT);
+                }
             }
         }
         teamfights.commitPendingCombatProgress(state.getBlueTeamState());

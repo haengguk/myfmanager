@@ -498,7 +498,11 @@ public class MatchSimulator {
             List<StructureOutcome> postFightStructures = postFightSideAlreadyActed
                     ? List.of()
                     : pushResolver.resolvePostFightWindow(gameState, outcome, postFightObjective, random, structureResolver);
-            for (StructureOutcome structure : postFightStructures) events.add(structureResolver.createStructureEvent(gameState, structure));
+            for (StructureOutcome structure : postFightStructures) {
+                MatchEvent structureEvent = structureResolver.createStructureEvent(gameState, structure);
+                outcome.map(TeamfightOutcome::actionId).ifPresent(structureEvent::setParentActionId);
+                events.add(structureEvent);
+            }
             if (!gameState.isFinished() && postFightObjective.isEmpty()) {
                 randomContext(random, SideOrientationRandomTraceObserver.Source.OBJECTIVE_FIGHT, null, gameState);
                 Optional<MatchEvent> generalObjective = objectiveAttemptResolver.maybeAttemptObjective(gameState, random, objectiveResolver, structureResolver, events);
@@ -826,6 +830,7 @@ public class MatchSimulator {
                     true, ""));
         }
         Lane combatLane = Lane.values()[random.nextInt(Lane.values().length)];
+        int eventStart = events.size();
         boolean resolved = teamfightResolver.resolveLocalizedSkirmishKill(
                 state.getCurrentTimeSeconds(), combatLane, random,
                 attacking.actingTeam(), attacking.actingState(),
@@ -833,8 +838,12 @@ public class MatchSimulator {
                 events, new HashSet<>()
         );
         if (resolved) {
-            MatchEvent kill = events.getLast();
-            markStructuredParticipants(state, kill);
+            for (int i = eventStart; i < events.size(); i++) {
+                if (events.get(i).getType() == MatchEventType.KILL) {
+                    markStructuredParticipants(state, events.get(i));
+                    break;
+                }
+            }
         }
         return resolved;
     }

@@ -308,6 +308,7 @@ public record MatchEngineV1Output(
             TeamSide actorSide,
             Position actorPosition,
             Lane lane,
+            PlayerId actorPlayerId,
             PlayerId killerPlayerId,
             PlayerId victimPlayerId,
             List<PlayerId> assistantPlayerIds,
@@ -322,6 +323,8 @@ public record MatchEngineV1Output(
             TeamSide structureDefendingSide,
             int goldAmount,
             double bountyRawBeforePayout,
+            String actionId,
+            String parentActionId,
             String displayMessage,
             Map<String, Object> structuredData
     ) {

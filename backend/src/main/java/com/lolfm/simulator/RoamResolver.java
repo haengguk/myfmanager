@@ -87,18 +87,17 @@ public final class RoamResolver {
             int start = events.size();
             rewards.award(time, state.getTeamState(winning), killer, state.getTeamState(winning.opposite()), victim,
                     assistants, respawnDelay(time), false, null, events);
-            for (int i = start; i < events.size(); i++) events.get(i).setCombatSource(CombatSource.ROAM);
-            MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Roam kill",
-                    killer.getPlayerName(), victim.getPlayerName(), names(assistants));
-            kill.setParticipantPlayerIds(killer.getStructuredPlayerId(), victim.getStructuredPlayerId(),
-                    ids(assistants));
-            kill.setCombatSource(CombatSource.ROAM); events.add(kill);
+            for (int i = start; i < events.size(); i++) {
+                events.get(i).setCombatSource(CombatSource.ROAM);
+                events.get(i).setCombatLane(target);
+            }
             double shock = target == Lane.BOT ? RoamRuleConfig.BOT_TARGET_PRESSURE_SHOCK : RoamRuleConfig.SOLO_TARGET_PRESSURE_SHOCK;
             targetAfter = clamp(targetBefore + (winning == TeamSide.BLUE ? shock : -shock), -100, 100);
             state.laneState(target).setPressure(targetAfter);
             new ObjectivePriorityResolver().applyRoamKill(state, time, target, winning);
         }
-        MatchEvent event = new MatchEvent(time, MatchEventType.ROAM, "Roam",
+        MatchEvent event = new MatchEvent(time, MatchEventType.ROAM,
+                "로밍 합류로 " + laneName(target) + "에서 교전이 발생했습니다.",
                 killer == null ? null : killer.getPlayerName(),
                 victim == null ? null : victim.getPlayerName(), names(assistants));
         event.setParticipantPlayerIds(
@@ -118,6 +117,10 @@ public final class RoamResolver {
                 edgeBreakdown.goldEdge(), edgeBreakdown.vulnerabilityEdge(), edgeBreakdown.numbersEdge()));
         events.add(event);
         return true;
+    }
+
+    private String laneName(Lane lane) {
+        return switch (lane) { case TOP -> "탑"; case MID -> "미드"; case BOT -> "바텀"; };
     }
 
     private List<Candidate> candidates(GameState state, int time) {

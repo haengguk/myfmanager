@@ -70,14 +70,10 @@ public final class LaneCombatResolver {
         List<PlayerState> assistants = lane == Lane.BOT ? List.of(otherBotPlayer(winners, killer)) : List.of();
         int eventStart = events.size();
         rewards.award(time, winners, killer, losers, victim, assistants, respawnDelaySeconds(time), false, null, events);
-        for (int i = eventStart; i < events.size(); i++) events.get(i).setCombatSource(CombatSource.LANE_COMBAT);
-        MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Lane combat kill",
-                killer.getPlayerName(), victim.getPlayerName(),
-                assistants.stream().map(PlayerState::getPlayerName).toList());
-        kill.setParticipantPlayerIds(killer.getStructuredPlayerId(), victim.getStructuredPlayerId(),
-                assistants.stream().map(PlayerState::getStructuredPlayerId).toList());
-        kill.setCombatSource(CombatSource.LANE_COMBAT);
-        events.add(kill);
+        for (int i = eventStart; i < events.size(); i++) {
+            events.get(i).setCombatSource(CombatSource.LANE_COMBAT);
+            events.get(i).setCombatLane(lane);
+        }
         state.getCombatExecutionStats().recordLaneCombatKill();
 
         double shock = lane == Lane.BOT
@@ -171,7 +167,7 @@ public final class LaneCombatResolver {
                                  List<PlayerState> assistants, double before, double after) {
         List<String> assistantNames = assistants.stream().map(PlayerState::getPlayerName).toList();
         List<String> assistantIds = assistants.stream().map(PlayerState::getStructuredPlayerId).toList();
-        MatchEvent event = new MatchEvent(time, MatchEventType.LANE_COMBAT, "Lane combat",
+        MatchEvent event = new MatchEvent(time, MatchEventType.LANE_COMBAT, laneMessage(lane, outcome),
                 killer == null ? null : killer.getPlayerName(),
                 victim == null ? null : victim.getPlayerName(), assistantNames);
         event.setParticipantPlayerIds(
@@ -182,6 +178,13 @@ public final class LaneCombatResolver {
                 killer == null ? null : killer.getStructuredPlayerId(),
                 victim == null ? null : victim.getStructuredPlayerId(), assistantIds, before, after));
         return event;
+    }
+
+    private String laneMessage(Lane lane, LaneCombatOutcome outcome) {
+        String laneName = switch (lane) { case TOP -> "탑"; case MID -> "미드"; case BOT -> "바텀"; };
+        return outcome == LaneCombatOutcome.NO_KILL
+                ? laneName + " 라인에서 교전이 벌어졌지만 킬 없이 종료됐습니다."
+                : laneName + " 라인 교전에서 킬이 발생했습니다.";
     }
 
     private double laneAggression(GameState state, Lane lane, TeamSide side) {

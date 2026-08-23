@@ -58,6 +58,33 @@ Before using a named diagnostic task, confirm its current declaration and exclus
 in `backend/build.gradle`. Never infer a task from an old report and never sweep all
 diagnostics.
 
+## Artifact-bound finalization
+
+When completion depends on a generated fixed response, baseline, or handoff artifact:
+
+1. Define the artifact's semantic acceptance checks, generation command, expected
+   output, and execution budget before the first full regression.
+2. Before the final full regression, generate an explicitly unverified candidate
+   under `build/reports`, or exercise the same serializer and projector through a
+   focused in-memory path. Candidate generation must not overwrite or promote the
+   official artifact.
+3. Audit the candidate's relevant cross-field and domain invariants. Inspect the
+   complete candidate and batch related findings before changing production code;
+   do not discover one artifact defect per full-regression cycle.
+4. Fix the production tree, run the affected focused checks, and freeze production,
+   resource, runtime, shared-fixture, and build inputs before the final full run.
+5. After a clean full regression, only bind, promote, or deterministically regenerate
+   the official artifact and verify its focused acceptance checks and manifest. Do
+   not reopen exploratory production analysis that could have run on the candidate.
+6. Keep full-regression reuse identity distinct from focused artifact-acceptance
+   evidence. An assertion-only or isolated acceptance-test change that `AGENTS.md`
+   permits after a clean full run must not force another full run merely to refresh a
+   combined source hash. If current tooling couples those identities, report or fix
+   that workflow rather than rerunning the unchanged full suite for reassurance.
+7. If post-full artifact inspection reveals a production defect, inspect the rest of
+   the artifact first, apply the smallest batched causal fix, rerun focused evidence,
+   and then apply the `AGENTS.md` rule for any required final full regression.
+
 ## Full-regression decision
 
 Apply the `AGENTS.md` full-regression budget exactly. In particular:

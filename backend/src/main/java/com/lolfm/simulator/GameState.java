@@ -62,6 +62,7 @@ public class GameState {
     private final EnumMap<TeamSide, Boolean> structureActionAttemptedThisTick = new EnumMap<>(TeamSide.class);
     private final EnumMap<TeamSide, Boolean> structureMutationPerformedThisTick = new EnumMap<>(TeamSide.class);
     private final EnumMap<TeamSide, Boolean> duplicateStructureAttemptPendingBySide = new EnumMap<>(TeamSide.class);
+    private final EnumMap<TeamSide, Integer> structurePushBlockedUntilSeconds = new EnumMap<>(TeamSide.class);
     private final StructureActionExecutionStats structureActionExecutionStats = new StructureActionExecutionStats();
     private final ProgressionExecutionStats progressionExecutionStats = new ProgressionExecutionStats();
     private boolean progressionEnabled = true;
@@ -146,6 +147,7 @@ public class GameState {
             structureActionAttemptedThisTick.put(side, false);
             structureMutationPerformedThisTick.put(side, false);
             duplicateStructureAttemptPendingBySide.put(side, false);
+            structurePushBlockedUntilSeconds.put(side, 0);
         }
         for (Lane lane : Lane.values()) laneStates.put(lane, new LaneState(lane));
         for (TeamSide side : TeamSide.values()) {
@@ -258,7 +260,13 @@ public class GameState {
         for (TeamSide side : TeamSide.values()) for (PlayerState player : getTeamState(side).getPlayers()) {
             for (ProgressionEventData data : player.getProgressionState().drainEvents()) {
                 MatchEventType type = data.type() == ProgressionEventType.LEVEL_UP ? MatchEventType.LEVEL_UP : MatchEventType.ITEM_STAGE_REACHED;
-                MatchEvent event = new MatchEvent(Math.min(data.timeSeconds(), currentTimeSeconds), type, type == MatchEventType.LEVEL_UP ? "Level up" : "Item stage reached", null, null, List.of());
+                String team = getTeamState(side).getTeamName();
+                String message = type == MatchEventType.LEVEL_UP
+                        ? team + " " + data.position() + "가 " + data.newLevel() + "레벨에 도달했습니다."
+                        : team + " " + data.position() + "의 아이템 단계가 "
+                        + data.newItemStage() + "로 상승했습니다.";
+                MatchEvent event = new MatchEvent(Math.min(data.timeSeconds(), currentTimeSeconds), type,
+                        message, null, null, List.of());
                 event.setProgressionEvent(data); events.add(event);
             }
         }
@@ -301,6 +309,15 @@ public class GameState {
     public void markMajorCombatParticipant(PlayerState player) { majorCombatParticipantsThisTick.add(player); }
     public boolean wasMajorCombatParticipantThisTick(PlayerState player) { return majorCombatParticipantsThisTick.contains(player); }
     public boolean wasMajorCombatAttemptedThisTick() { return !majorCombatParticipantsThisTick.isEmpty(); }
+    public void blockStructurePushUntil(TeamSide side, int untilSeconds) {
+        structurePushBlockedUntilSeconds.merge(side, untilSeconds, Math::max);
+    }
+    public boolean isStructurePushBlocked(TeamSide side, int timeSeconds) {
+        return timeSeconds < structurePushBlockedUntilSeconds.getOrDefault(side, 0);
+    }
+    public int getStructurePushBlockedUntilSeconds(TeamSide side) {
+        return structurePushBlockedUntilSeconds.getOrDefault(side, 0);
+    }
 
     public MapState getMapState() {
         return mapState;

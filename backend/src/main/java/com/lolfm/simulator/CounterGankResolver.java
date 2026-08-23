@@ -71,13 +71,10 @@ public final class CounterGankResolver {
             int eventStart = events.size();
             rewards.award(time, state.getTeamState(winningSide), killer, state.getTeamState(winningSide.opposite()),
                     victim, assistants, respawnDelaySeconds(time), false, null, events);
-            for (int i = eventStart; i < events.size(); i++) events.get(i).setCombatSource(CombatSource.COUNTER_GANK);
-            MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Counter-gank kill",
-                    killer.getPlayerName(), victim.getPlayerName(), names(assistants));
-            kill.setParticipantPlayerIds(killer.getStructuredPlayerId(), victim.getStructuredPlayerId(),
-                    ids(assistants));
-            kill.setCombatSource(CombatSource.COUNTER_GANK);
-            events.add(kill);
+            for (int i = eventStart; i < events.size(); i++) {
+                events.get(i).setCombatSource(CombatSource.COUNTER_GANK);
+                events.get(i).setCombatLane(lane);
+            }
             double shock = lane == Lane.BOT ? CounterGankRuleConfig.BOT_COUNTER_GANK_PRESSURE_SHOCK
                     : CounterGankRuleConfig.SOLO_COUNTER_GANK_PRESSURE_SHOCK;
             after = clamp(before + (winningSide == TeamSide.BLUE ? shock : -shock), -100, 100);
@@ -85,7 +82,8 @@ public final class CounterGankResolver {
             new ObjectivePriorityResolver().applyCounterGankKill(state, time, lane, winningSide);
         }
 
-        MatchEvent event = new MatchEvent(time, MatchEventType.COUNTER_GANK, "Counter gank",
+        MatchEvent event = new MatchEvent(time, MatchEventType.COUNTER_GANK,
+                "카운터 갱킹 교전이 발생했습니다.",
                 killer == null ? null : killer.getPlayerName(),
                 victim == null ? null : victim.getPlayerName(), names(assistants));
         event.setParticipantPlayerIds(

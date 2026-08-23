@@ -259,9 +259,41 @@ class MatchEngineV1ContractTest {
         long structuredAssistLinks = output.timeline().events().stream()
                 .filter(value -> value.eventType() == MatchEventType.KILL)
                 .mapToLong(value -> value.assistantPlayerIds().size()).sum();
+        List<MatchEngineV1Output.EventV1> killEvents = output.timeline().events().stream()
+                .filter(value -> value.eventType() == MatchEventType.KILL).toList();
+        List<MatchEngineV1Output.EventV1> assistEvents = output.timeline().events().stream()
+                .filter(value -> value.eventType() == MatchEventType.ASSIST).toList();
         assertThat(structuredKillEvents).isEqualTo(teamKills);
         assertThat(summaryActionEvents).isPositive();
         assertThat(structuredAssistLinks).isPositive();
+        assertThat(killEvents).allSatisfy(value -> {
+            assertThat(value.goldAmount()).isPositive();
+            assertThat(value.actorPlayerId()).isEqualTo(value.killerPlayerId());
+            assertThat(value.structuredData()).containsKey("kill");
+        });
+        assertThat(killEvents.stream().filter(value -> {
+            Object kill = value.structuredData().get("kill");
+            return kill instanceof java.util.Map<?, ?> fields
+                    && Boolean.TRUE.equals(fields.get("firstBlood"));
+        })).hasSize(1);
+        assertThat(assistEvents).hasSize((int) structuredAssistLinks).allSatisfy(value -> {
+            assertThat(value.goldAmount()).isEqualTo(150);
+            assertThat(value.actorPlayerId()).isNotNull();
+            assertThat(value.structuredData()).containsKey("assist");
+        });
+        assertThat(killEvents.stream()
+                .filter(value -> value.combatSource() == CombatSource.JUNGLE_GANK))
+                .allSatisfy(value -> assertThat(value.lane()).isNotNull());
+        assertThat(output.timeline().events().stream()
+                .filter(value -> value.eventType() == MatchEventType.DRAGON
+                        || value.eventType() == MatchEventType.BARON
+                        || value.eventType() == MatchEventType.ELDER))
+                .allSatisfy(value -> {
+                    Object decision = value.structuredData().get("objectiveDecision");
+                    assertThat(decision).isInstanceOf(java.util.Map.class);
+                    assertThat(value.actorSide().name()).isEqualTo(
+                            ((java.util.Map<?, ?>) decision).get("captureSide"));
+                });
         assertThat(structuredKillEvents + summaryActionEvents).isGreaterThan(teamKills);
     }
 
@@ -506,14 +538,15 @@ class MatchEngineV1ContractTest {
     ) {
         return new MatchEngineV1Output.EventV1(
                 source.timeSeconds(), source.eventType(), source.actorSide(),
-                source.actorPosition(), source.lane(), source.killerPlayerId(),
+                source.actorPosition(), source.lane(), source.actorPlayerId(), source.killerPlayerId(),
                 source.victimPlayerId(), source.assistantPlayerIds(),
                 source.killerChampionId(), source.victimChampionId(),
                 source.assistantChampionIds(), source.combatSource(),
                 source.structureActionSource(), source.structureKind(),
                 source.structureTowerTier(), source.structureAttackingSide(),
                 source.structureDefendingSide(), goldAmount,
-                source.bountyRawBeforePayout(), displayMessage, source.structuredData());
+                source.bountyRawBeforePayout(), source.actionId(), source.parentActionId(),
+                displayMessage, source.structuredData());
     }
 
     private static MatchEngineV1Output withFirstEvent(

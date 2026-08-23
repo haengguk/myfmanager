@@ -1,6 +1,7 @@
 package com.lolfm.simulator;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -170,24 +171,39 @@ public class PushResolver {
 
     public Optional<StructureOutcome> maybeResolveMacroPush(GameState state,Random random,StructureResolver resolver){
         int time=state.getCurrentTimeSeconds();if(time<480||state.isFinished())return Optional.empty();
-        List<TeamSide>sides=new ArrayList<>();for(TeamSide side:TeamSide.values())if(state.getMapState().isPushAttemptDue(side,time))sides.add(side);
-        if(sides.size()==2&&random.nextBoolean()){TeamSide first=sides.get(0);sides.set(0,sides.get(1));sides.set(1,first);}
-        for (TeamSide side : sides) {
+        List<TeamSide>sides=new ArrayList<>();
+        EnumMap<TeamSide,Integer> availableBySide=new EnumMap<>(TeamSide.class);
+        for(TeamSide side:TeamSide.values()){
+            if(!state.getMapState().isPushAttemptDue(side,time))continue;
             if (state.wasStructureActionPerformedThisTick(side)) {
                 state.recordLaterStructureResolverBlockedByAttempt();
                 continue;
             }
+            if (state.isStructurePushBlocked(side, time)) {
+                state.recordPushFailure(PushFailureReason.RECENTLY_REPELLED);
+                continue;
+            }
             TeamState team = state.getTeamState(side);
-            int interval = attemptInterval(state, side, time);
-            state.getMapState().markPushAttempted(side, time, interval);
             if (countAlive(team, time) < 2) {
                 state.recordPushFailure(PushFailureReason.INSUFFICIENT_ATTACKERS);
+                continue;
+            }
+            int availablePushers = countAvailableMacroPushers(state, side, time);
+            if (availablePushers < 2) {
+                state.recordPushFailure(PushFailureReason.COMBAT_PARTICIPANTS_UNAVAILABLE);
                 continue;
             }
             if (!hasAnyTarget(state, side)) {
                 state.recordPushFailure(PushFailureReason.NO_TARGET);
                 continue;
             }
+            sides.add(side);availableBySide.put(side,availablePushers);
+        }
+        if(sides.size()==2&&random.nextBoolean()){TeamSide first=sides.get(0);sides.set(0,sides.get(1));sides.set(1,first);}
+        for (TeamSide side : sides) {
+            int availablePushers=availableBySide.get(side);
+            int interval = attemptInterval(state, side, time);
+            state.getMapState().markPushAttempted(side, time, interval);
             Lane lane = chooseLane(state, side.opposite(), false, random);
             state.recordPushAttempt();
             state.getCompositionRuntimeState().recordActualAttempt(
@@ -200,7 +216,7 @@ public class PushResolver {
                 continue;
             }
             Optional<StructureOutcome> result = destroyChosen(
-                    state, side, false, lane, random, resolver, PushReason.MACRO_PLAY
+                    state, side, false, lane, availablePushers, random, resolver, PushReason.MACRO_PLAY
             );
             if (result.isPresent()) {
                 state.recordPushSuccess();
@@ -231,18 +247,26 @@ public class PushResolver {
         return resolver.destroyNextStructure(s, side, chooseLane(s, defending, priority, r), reason(s, side, fallbackReason));
     }
 
-    private Optional<StructureOutcome> destroyChosen(GameState s, TeamSide side, boolean priority, Lane lane, Random r, StructureResolver resolver, PushReason fallbackReason) {
+    private Optional<StructureOutcome> destroyChosen(GameState s, TeamSide side, boolean priority, Lane lane,
+                                                     int availablePushers, Random r,
+                                                     StructureResolver resolver, PushReason fallbackReason) {
         TeamSide defending = side.opposite();
-        if (canTargetNexus(s, side) && countAlive(s.getTeamState(side), s.getCurrentTimeSeconds()) >= 3) {
+        if (canTargetNexus(s, side) && availablePushers >= 3) {
             return resolver.destroyNextStructure(s, side, Lane.MID, reason(s, side, fallbackReason));
         }
-        if (canTargetNexusTurret(s, side) && countAlive(s.getTeamState(side), s.getCurrentTimeSeconds()) >= 3) {
+        if (canTargetNexusTurret(s, side) && availablePushers >= 3) {
             return resolver.destroyNextStructure(s, side, Lane.MID, reason(s, side, fallbackReason));
         }
         if (s.getMapState().getPressureLanes(defending).isEmpty()) {
             return Optional.empty();
         }
         return resolver.destroyNextStructure(s, side, lane, reason(s, side, fallbackReason));
+    }
+    private int countAvailableMacroPushers(GameState state, TeamSide side, int time) {
+        return (int) state.getTeamState(side).getPlayers().stream()
+                .filter(player -> player.canParticipateInMajorCombatAt(time))
+                .filter(player -> !state.wasMajorCombatParticipantThisTick(player))
+                .count();
     }
     private boolean canTargetNexusTurret(GameState s,TeamSide side){int t=s.getCurrentTimeSeconds();TeamSide d=side.opposite();if(!s.getMapState().areNexusTurretsVulnerable(d))return false;return countAlive(s.getTeamState(d),t)<=2||s.hasRecentBigWin(s.getTeamState(side).getTeamName(),120)||s.hasRecentAce(s.getTeamState(side).getTeamName(),120)||s.getTeamState(side).hasActiveBaronBuff(t)||s.getMapState().hasActiveBasePressure(side,t);}
     private boolean canTargetNexus(GameState s,TeamSide side){int t=s.getCurrentTimeSeconds();TeamSide d=side.opposite();if(!s.getMapState().isNexusVulnerable(d))return false;int defenders=countAlive(s.getTeamState(d),t);return defenders<=2||s.hasRecentAce(s.getTeamState(side).getTeamName(),120)||(s.getTeamState(side).hasActiveBaronBuff(t)&&defenders<=3)||(s.getMapState().hasActiveBasePressure(side,t)&&defenders<=2);}

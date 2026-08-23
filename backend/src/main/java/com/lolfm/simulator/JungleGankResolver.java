@@ -108,14 +108,10 @@ public final class JungleGankResolver {
         int eventStart = events.size();
         rewards.award(time, participants.winners(), participants.killer(), participants.losers(), participants.victim(),
                 participants.assistants(), respawnDelaySeconds(time), false, null, events);
-        for (int i = eventStart; i < events.size(); i++) events.get(i).setCombatSource(CombatSource.JUNGLE_GANK);
-        MatchEvent kill = new MatchEvent(time, MatchEventType.KILL, "Jungle gank kill",
-                participants.killer().getPlayerName(), participants.victim().getPlayerName(),
-                names(participants.assistants()));
-        kill.setParticipantPlayerIds(participants.killer().getStructuredPlayerId(),
-                participants.victim().getStructuredPlayerId(), ids(participants.assistants()));
-        kill.setCombatSource(CombatSource.JUNGLE_GANK);
-        events.add(kill);
+        for (int i = eventStart; i < events.size(); i++) {
+            events.get(i).setCombatSource(CombatSource.JUNGLE_GANK);
+            events.get(i).setCombatLane(lane);
+        }
 
         TeamSide winningSide = outcome == JungleGankOutcome.GANK_SUCCESS ? side : side.opposite();
         double shock = lane == Lane.BOT ? JungleGankRuleConfig.BOT_GANK_PRESSURE_SHOCK
@@ -341,7 +337,7 @@ public final class JungleGankResolver {
                                  double attemptChance, double targetWeight, double edge, double decisive, double success,
                                  boolean blueTriggered, boolean redTriggered,
                                  CounterGankResolver.ResponseDecision counterDecision) {
-        MatchEvent event = new MatchEvent(time, MatchEventType.JUNGLE_GANK, "Jungle gank",
+        MatchEvent event = new MatchEvent(time, MatchEventType.JUNGLE_GANK, gankMessage(lane, outcome),
                 killer == null ? null : killer.getPlayerName(),
                 victim == null ? null : victim.getPlayerName(), names(assists));
         event.setParticipantPlayerIds(
@@ -358,6 +354,15 @@ public final class JungleGankResolver {
                 counterDecision.defenderInitiallyTriggered(), counterDecision.responseRolled(),
                 counterDecision.responseChance(), counterDecision.responseSucceeded()));
         return event;
+    }
+
+    private String gankMessage(Lane lane, JungleGankOutcome outcome) {
+        String laneName = switch (lane) { case TOP -> "탑"; case MID -> "미드"; case BOT -> "바텀"; };
+        return switch (outcome) {
+            case NO_KILL -> laneName + " 갱킹이 킬 없이 종료됐습니다.";
+            case GANK_SUCCESS -> laneName + " 갱킹이 성공했습니다.";
+            case DEFENDER_REVERSE_KILL -> laneName + " 갱킹에서 수비 팀이 역으로 킬을 만들었습니다.";
+        };
     }
 
     private TeamSide weightedSide(Map<TeamSide, Double> weights, Random random) {

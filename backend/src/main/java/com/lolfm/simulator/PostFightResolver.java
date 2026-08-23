@@ -1,8 +1,10 @@
 package com.lolfm.simulator;
 
 import com.lolfm.domain.MatchEvent;
+import com.lolfm.domain.ObjectiveDecisionData;
 import com.lolfm.domain.ObjectivePriorityDecisionData;
 import com.lolfm.domain.ObjectiveSelectionWeightBreakdown;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import org.springframework.stereotype.Component;
@@ -45,28 +47,29 @@ public class PostFightResolver {
         if (elderAvailable && (outcome.grade() == FightGrade.ACE || outcome.grade() == FightGrade.BIG_WIN) && random.nextDouble() < 0.78) {
             return objectiveResolver.captureElder(gameState, outcome.winningSide(), currentTime, "한타 대승 이후 장로 드래곤을 확보합니다.")
                     .map(ElderCaptureOutcome::event)
-                    .map(event -> attachDecision(gameState, event, ObjectiveType.ELDER, currentTime, outcome.winningSide()));
+                    .map(event -> attachDecision(gameState, event, ObjectiveType.ELDER, currentTime, outcome));
         }
         if (baronAvailable && shouldChooseBaron(outcome.grade(), dragonAvailable, winningTeam.getDragons(), random)) {
             if (elderAvailable) return objectiveResolver.captureElder(gameState, outcome.winningSide(), currentTime, "상대의 긴 부활 시간을 활용해 장로 드래곤을 처치합니다.")
                     .map(ElderCaptureOutcome::event)
-                    .map(event -> attachDecision(gameState, event, ObjectiveType.ELDER, currentTime, outcome.winningSide()));
+                    .map(event -> attachDecision(gameState, event, ObjectiveType.ELDER, currentTime, outcome));
             return objectiveResolver.captureBaron(gameState, outcome.winningSide(), currentTime)
-                    .map(event -> attachDecision(gameState, event, ObjectiveType.BARON, currentTime, outcome.winningSide()));
+                    .map(event -> attachDecision(gameState, event, ObjectiveType.BARON, currentTime, outcome));
         }
         if (dragonAvailable) {
             return objectiveResolver.captureDragon(gameState, outcome.winningSide(), currentTime, DragonCaptureSource.POST_FIGHT, "")
-                    .map(event -> attachDecision(gameState, event, ObjectiveType.DRAGON, currentTime, outcome.winningSide()));
+                    .map(event -> attachDecision(gameState, event, ObjectiveType.DRAGON, currentTime, outcome));
         }
         if (elderAvailable) return objectiveResolver.captureElder(gameState, outcome.winningSide(), currentTime, "상대의 긴 부활 시간을 활용해 장로 드래곤을 처치합니다.")
                 .map(ElderCaptureOutcome::event)
-                .map(event -> attachDecision(gameState, event, ObjectiveType.ELDER, currentTime, outcome.winningSide()));
+                .map(event -> attachDecision(gameState, event, ObjectiveType.ELDER, currentTime, outcome));
         return objectiveResolver.captureBaron(gameState, outcome.winningSide(), currentTime)
-                .map(event -> attachDecision(gameState, event, ObjectiveType.BARON, currentTime, outcome.winningSide()));
+                .map(event -> attachDecision(gameState, event, ObjectiveType.BARON, currentTime, outcome));
     }
 
     private MatchEvent attachDecision(GameState state, MatchEvent event, ObjectiveType type,
-                                      int time, TeamSide selectedSide) {
+                                      int time, TeamfightOutcome outcome) {
+        TeamSide selectedSide = outcome.winningSide();
         ObjectivePriorityResolver priority = new ObjectivePriorityResolver();
         double lane = type == ObjectiveType.DRAGON ? priority.dragonLanePressureScore(state)
                 : type == ObjectiveType.BARON ? priority.baronLanePressureScore(state) : 0;
@@ -81,7 +84,33 @@ public class PostFightResolver {
                 0, 0, 0, false, false, false, false,
                 ObjectiveSelectionWeightBreakdown.zero(), ObjectiveSelectionWeightBreakdown.zero(),
                 1, 1, 0, 0, false, selectedSide));
+        event.setActionId("POST_FIGHT_OBJECTIVE:" + time + ":" + type);
+        event.setParentActionId(outcome.actionId() == null ? "COMBAT_AT:" + time : outcome.actionId());
+        if (state.isObjectiveDecisionEnabled()) {
+            ObjectiveDecisionState decisions = state.getObjectiveDecisionState();
+            ObjectiveDecisionKey key = new ObjectiveDecisionKey(type, time, time, selectedSide);
+            if (decisions.reserve(key)) {
+                ObjectiveDecisionData data = new ObjectiveDecisionData(
+                        decisions.nextSequence(), time, type, true, selectedSide,
+                        selectedSide.opposite(), List.of(), ObjectiveDecisionAction.TAKE,
+                        false, null, List.of(), ObjectiveDecisionAction.GIVE,
+                        false, null, null, null, 0, false, false,
+                        true, selectedSide, selectedSide, ObjectiveDecisionResult.CONTEST_FIGHT,
+                        true, false, nextAttempt(state.getObjectiveState(), type), true,
+                        type == ObjectiveType.ELDER || state.getObjectiveState().isElderAlive());
+                decisions.record(data);
+                event.setObjectiveDecision(data);
+            }
+        }
         return event;
+    }
+
+    private int nextAttempt(ObjectiveState state, ObjectiveType type) {
+        return switch (type) {
+            case DRAGON -> state.getNextDragonAttemptSeconds();
+            case BARON -> state.getNextBaronAttemptSeconds();
+            case ELDER -> state.getNextElderAttemptSeconds();
+        };
     }
 
     private int countAlivePlayers(TeamState teamState, int currentTimeSeconds) {

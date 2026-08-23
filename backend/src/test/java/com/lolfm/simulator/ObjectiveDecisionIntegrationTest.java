@@ -38,15 +38,23 @@ class ObjectiveDecisionIntegrationTest {
     }
 
     @Test
-    void postFightCaptureBypassesDecisionStateAndRandom() {
+    void postFightCaptureRecordsStructuredDecisionWithoutAdditionalRandom() {
         GameState state = ObjectiveDecisionTestSupport.dragonState(true);
         ObjectiveDecisionTestSupport.SequenceRandom random = new ObjectiveDecisionTestSupport.SequenceRandom(0);
         MatchEvent event = new PostFightResolver().resolve(state,
-                new TeamfightOutcome(TeamSide.BLUE, FightGrade.BIG_WIN, 3, 0, 340, List.of()),
+                new TeamfightOutcome(TeamSide.BLUE, FightGrade.BIG_WIN, 3, 0, 340,
+                        List.of(), "COMBAT:7"),
                 random, new ObjectiveResolver()).orElseThrow();
 
-        assertThat(event.getObjectiveDecision()).isNull();
-        assertThat(state.getObjectiveDecisionState().getHistory()).isEmpty();
+        assertThat(event.getObjectiveDecision()).isNotNull();
+        assertThat(event.getObjectiveDecision().postFightPath()).isTrue();
+        assertThat(event.getObjectiveDecision().result())
+                .isEqualTo(ObjectiveDecisionResult.CONTEST_FIGHT);
+        assertThat(event.getObjectiveDecision().fightWinner()).isEqualTo(TeamSide.BLUE);
+        assertThat(event.getObjectiveDecision().captureSide()).isEqualTo(TeamSide.BLUE);
+        assertThat(event.getParentActionId()).isEqualTo("COMBAT:7");
+        assertThat(event.getActionId()).isEqualTo("POST_FIGHT_OBJECTIVE:340:DRAGON");
+        assertThat(state.getObjectiveDecisionState().getHistory()).hasSize(1);
         assertThat(random.doubleCalls()).isOne();
         assertThat(state.wasAnyStructureActionPerformedThisTick()).isFalse();
     }

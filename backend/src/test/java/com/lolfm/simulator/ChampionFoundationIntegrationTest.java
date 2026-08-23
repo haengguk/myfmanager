@@ -5,6 +5,7 @@ import static com.lolfm.testing.CompleteTimelineAssertions.assertTimelineEqualsI
 import static org.assertj.core.api.Assertions.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.*;
+import com.lolfm.composition.TeamCompositionGameplayMode;
 import com.lolfm.domain.Position;
 import com.lolfm.factory.DummyDataFactory;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class ChampionFoundationIntegrationTest {
     private MatchSimulator simulator() { return new MatchSimulator(new TeamfightResolver(), new EndGameEvaluator(),
             new SnapshotFactory(catalog), new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(),
             new StructureResolver(), new PushResolver(), SimulationOptions.productionDefaults()); }
-    private MatchSimulator simulatorOff(){return new MatchSimulator(new TeamfightResolver(),new EndGameEvaluator(),new SnapshotFactory(catalog),new ObjectiveResolver(),new PostFightResolver(),new ObjectiveAttemptResolver(),new StructureResolver(),new PushResolver(),SimulationOptions.productionDefaults().withChampionPowerEnabled(false).withChampionMatchupMode(ChampionMatchupMode.OFF));}
+    private MatchSimulator simulatorOff(){return new MatchSimulator(new TeamfightResolver(),new EndGameEvaluator(),new SnapshotFactory(catalog),new ObjectiveResolver(),new PostFightResolver(),new ObjectiveAttemptResolver(),new StructureResolver(),new PushResolver(),SimulationOptions.productionDefaults().withChampionPowerEnabled(false).withChampionMatchupMode(ChampionMatchupMode.OFF).withTeamCompositionGameplayMode(TeamCompositionGameplayMode.OFF));}
     private ChampionSelectionRequest lineupC() { return new ChampionSelectionRequest(
             new ChampionLineupRequest("renekton","sejuani","azir","jinx","nautilus"),
             new ChampionLineupRequest("jax","lee-sin","ahri","kaisa","rakan")); }

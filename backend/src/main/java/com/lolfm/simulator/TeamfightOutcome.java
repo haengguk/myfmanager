@@ -8,8 +8,14 @@ public record TeamfightOutcome(
         int winningTeamKills,
         int losingTeamKills,
         int endedAtSeconds,
-        List<String> deadPlayerNames
+        List<String> deadPlayerNames,
+        String actionId
 ) {
+    public TeamfightOutcome(TeamSide winningSide, FightGrade grade, int winningTeamKills,
+                            int losingTeamKills, int endedAtSeconds, List<String> deadPlayerNames) {
+        this(winningSide, grade, winningTeamKills, losingTeamKills, endedAtSeconds,
+                deadPlayerNames, null);
+    }
     public TeamfightOutcome {
         deadPlayerNames = List.copyOf(deadPlayerNames);
     }

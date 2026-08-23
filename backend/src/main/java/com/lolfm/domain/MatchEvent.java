@@ -20,6 +20,9 @@ public class MatchEvent {
     private String killerPlayerId;
     private String victimPlayerId;
     private List<String> assistPlayerIds = List.of();
+    private String actorPlayerId;
+    private String actionId;
+    private String parentActionId;
     private final int goldAmount;
     private final double bountyRawBeforePayout;
     private LaneCombatData laneCombat;
@@ -42,6 +45,8 @@ public class MatchEvent {
     private MatchPhaseChangeData matchPhaseChange;
     private LateGameDecisionData lateGameDecision;
     private ProgressionEventData progressionEvent;
+    private KillEventData killEvent;
+    private AssistEventData assistEvent;
 
     public MatchEvent(int timeSeconds, MatchEventType type, String message, String killer,
                       String victim, List<String> assists) {
@@ -81,6 +86,12 @@ public class MatchEvent {
         this.victimPlayerId = victimPlayerId;
         this.assistPlayerIds = assistPlayerIds == null ? List.of() : List.copyOf(assistPlayerIds);
     }
+    public String getActorPlayerId() { return actorPlayerId; }
+    public void setActorPlayerId(String value) { actorPlayerId = value; }
+    public String getActionId() { return actionId; }
+    public void setActionId(String value) { actionId = value; }
+    public String getParentActionId() { return parentActionId; }
+    public void setParentActionId(String value) { parentActionId = value; }
     public int getGoldAmount() { return goldAmount; }
     public double getBountyRawBeforePayout() { return bountyRawBeforePayout; }
     public LaneCombatData getLaneCombat() { return laneCombat; }
@@ -125,4 +136,8 @@ public class MatchEvent {
     public void setLateGameDecision(LateGameDecisionData value) { lateGameDecision = value; }
     public ProgressionEventData getProgressionEvent() { return progressionEvent; }
     public void setProgressionEvent(ProgressionEventData value) { progressionEvent = value; }
+    public KillEventData getKillEvent() { return killEvent; }
+    public void setKillEvent(KillEventData value) { killEvent = value; }
+    public AssistEventData getAssistEvent() { return assistEvent; }
+    public void setAssistEvent(AssistEventData value) { assistEvent = value; }
 }

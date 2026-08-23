@@ -120,7 +120,8 @@ class LaneCombatTest {
         PlayerState victim = state.getRedTeamState().playerAt(Position.ADC); victim.addImmediateBountyProgress(400);
         List<MatchEvent> events = new ArrayList<>(); resolver.resolve(state, sequence(1,1,0,.5,0,0,0,0,0), events);
         PlayerState killer = state.getBlueTeamState().playerAt(Position.ADC), assistant = state.getBlueTeamState().playerAt(Position.SUPPORT);
-        assertEquals(500 + KillRewardResolver.BASE_KILL_GOLD + 300, killer.getGold());
+        assertEquals(500 + KillRewardResolver.BASE_KILL_GOLD
+                + KillRewardRuleConfig.FIRST_BLOOD_BONUS_GOLD + 300, killer.getGold());
         assertEquals(500 + KillRewardResolver.BASE_ASSIST_GOLD, assistant.getGold());
         int gold = killer.getGold(); resolver.resolve(state, ones(), events); assertEquals(gold, killer.getGold());
     }

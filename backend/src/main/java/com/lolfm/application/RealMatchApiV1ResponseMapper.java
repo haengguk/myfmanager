@@ -195,7 +195,8 @@ public final class RealMatchApiV1ResponseMapper {
     private static RealMatchApiV1Dtos.Event event(MatchEngineV1Output.EventV1 source) {
         return new RealMatchApiV1Dtos.Event(
                 source.timeSeconds(), source.eventType(), source.actorSide(),
-                source.actorPosition(), source.lane(), nullableId(source.killerPlayerId()),
+                source.actorPosition(), source.lane(), nullableId(source.actorPlayerId()),
+                nullableId(source.killerPlayerId()),
                 nullableId(source.victimPlayerId()),
                 source.assistantPlayerIds().stream().map(value -> value.value()).toList(),
                 nullableChampionId(source.killerChampionId()),
@@ -204,7 +205,8 @@ public final class RealMatchApiV1ResponseMapper {
                 source.combatSource(), source.structureActionSource(), source.structureKind(),
                 source.structureTowerTier(), source.structureAttackingSide(),
                 source.structureDefendingSide(), source.goldAmount(),
-                source.bountyRawBeforePayout(), source.displayMessage(),
+                source.bountyRawBeforePayout(), source.actionId(), source.parentActionId(),
+                source.displayMessage(),
                 source.structuredData());
     }
 

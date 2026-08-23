@@ -188,7 +188,7 @@ class JungleGankTest {
         PlayerState killer = blue.playerAt(Position.JUNGLE), assist = blue.playerAt(Position.TOP), victim = red.playerAt(Position.TOP);
         KillRewardResolver rewards = new KillRewardResolver();
         rewards.award(180, blue, killer, red, victim, List.of(assist), 10, false, null, new ArrayList<>());
-        assertEquals(800, killer.getGold()); assertEquals(650, assist.getGold()); assertEquals(1, victim.getDeaths());
+        assertEquals(900, killer.getGold()); assertEquals(650, assist.getGold()); assertEquals(1, victim.getDeaths());
         rewards.award(180, blue, killer, red, victim, List.of(), 10, false, null, new ArrayList<>());
         assertEquals(1, victim.getDeaths());
     }

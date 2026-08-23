@@ -45,6 +45,29 @@ public class StructureResolver {
         if (target == null || state.wasStructureMutationPerformedThisTick(attackingSide)) return Optional.empty();
         LateGameStructureTarget current = new BaseThreatEvaluator().nextTarget(state, attackingSide, lane);
         if (current != target) return Optional.empty();
+        TeamSide defendingSide = attackingSide.opposite();
+        BaseState base = state.getMapState().getBaseState(defendingSide);
+        if (target == LateGameStructureTarget.NEXUS_TURRET) {
+            if (!state.getMapState().areNexusTurretsVulnerable(defendingSide)
+                    || !base.destroyOneNexusTurret(state.getCurrentTimeSeconds())) {
+                return Optional.empty();
+            }
+            state.markStructureMutationPerformed(attackingSide);
+            return Optional.of(new StructureOutcome(attackingSide, defendingSide,
+                    StructureKind.NEXUS_TURRET, null, null,
+                    state.getCurrentTimeSeconds(), reason, false));
+        }
+        if (target == LateGameStructureTarget.NEXUS) {
+            if (!state.getMapState().isNexusVulnerable(defendingSide)
+                    || !base.destroyNexus(state.getCurrentTimeSeconds())) {
+                return Optional.empty();
+            }
+            state.markStructureMutationPerformed(attackingSide);
+            state.finish(attackingSide, GameEndReason.NEXUS_DESTROYED);
+            return Optional.of(new StructureOutcome(attackingSide, defendingSide,
+                    StructureKind.NEXUS, null, null,
+                    state.getCurrentTimeSeconds(), reason, true));
+        }
         return destroyNextStructure(state, attackingSide, lane == null ? Lane.MID : lane, reason);
     }
 
@@ -98,6 +121,8 @@ public class StructureResolver {
         event.setStructureAttackingSide(outcome.attackingSide());
         event.setStructureDefendingSide(outcome.defendingSide());
         event.setOuterTurretSiege(outcome.outerTurretSiege());
+        event.setActionId("STRUCTURE:" + outcome.occurredAtSeconds() + ":"
+                + outcome.attackingSide() + ":" + outcome.source());
         return event;
     }
 

@@ -55,6 +55,7 @@ public class TeamfightResolver {
                 : CombatRealismRuleConfig.STANDARD_TEAMFIGHT_TRIGGER_CHANCE;
         if (random.nextDouble() >= triggerChance) return Optional.empty();
 
+        int eventStart = events.size();
         TeamfightSides sides = determineTeamfightSides(gameState, blueTeam, redTeam, random, progressionContext, structuredAttackingSide);
         CompositionActionType compositionAction = progressionContext == ProgressionCombatContext.BASE_DEFENSE
                 ? CompositionActionType.BASE_DEFENSE
@@ -220,6 +221,10 @@ public class TeamfightResolver {
                 List.of()
         ));
 
+        String actionId = compositionAttemptId == null
+                ? "COMBAT_AT:" + currentTime
+                : "COMBAT:" + compositionAttemptId.sequence();
+        for (int i = eventStart; i < events.size(); i++) events.get(i).setActionId(actionId);
         gameState.getCombatOutcomeExecutionStats().record(progressionContext,currentTime,true,sides.winningSide(),blueParticipants,redParticipants);
         return Optional.of(new TeamfightOutcome(
                 sides.winningSide(),
@@ -227,7 +232,8 @@ public class TeamfightResolver {
                 winningKillsCreated,
                 losingKillsCreated,
                 nextEventTime,
-                deadPlayers.stream().map(PlayerState::getPlayerName).toList()
+                deadPlayers.stream().map(PlayerState::getPlayerName).toList(),
+                actionId
         ));
     }
 
@@ -243,7 +249,13 @@ public class TeamfightResolver {
                 ? ProgressionCombatContext.BASE_DEFENSE : ProgressionCombatContext.LATE_GAME_SIEGE;
         Optional<TeamfightOutcome> outcome = maybeResolveTeamfight(state, blueTeam, redTeam,
                 new ForcedTriggerRandom(random), events, context, structuredAttackingSide);
-        for (int i = before; i < events.size(); i++) if (events.get(i).getType() == MatchEventType.KILL) events.get(i).setCombatSource(source);
+        for (int i = before; i < events.size(); i++) {
+            MatchEventType type = events.get(i).getType();
+            if (type == MatchEventType.KILL || type == MatchEventType.ASSIST
+                    || type == MatchEventType.SHUTDOWN) {
+                events.get(i).setCombatSource(source);
+            }
+        }
         return outcome;
     }
 
@@ -379,32 +391,22 @@ public class TeamfightResolver {
         List<PlayerState> assistantStates = assistantPlayers.stream()
                 .map(player -> attackingTeamState.playerAt(player.getPosition()))
                 .toList();
-        List<String> assists = assistantPlayers.stream().map(Player::getName).toList();
+        int eventStart = events.size();
         killRewards.award(
                 timeSeconds, attackingTeamState, killerState, defendingTeamState, victimState, assistantStates,
                 calculateRespawnDelaySeconds(timeSeconds), teamfight,
                 frozenShutdownGold == null ? null : frozenShutdownGold.get(victimState), events
         );
         deadPlayers.add(victimState);
-
-        MatchEvent killEvent = new MatchEvent(
-                timeSeconds,
-                MatchEventType.KILL,
-                buildKillMessage(killer.getName(), victim.getName(), assists),
-                killer.getName(),
-                victim.getName(),
-                assists
-        );
-        killEvent.setParticipantPlayerIds(killerState.getStructuredPlayerId(),
-                victimState.getStructuredPlayerId(),
-                assistantStates.stream().map(PlayerState::getStructuredPlayerId).toList());
-        killEvent.setCombatSource(teamfight
+        com.lolfm.domain.CombatSource source = teamfight
                 ? com.lolfm.domain.CombatSource.TEAMFIGHT
-                : com.lolfm.domain.CombatSource.SKIRMISH);
-        if (!teamfight && allowedPositions != null) {
-            killEvent.setCombatLane(laneForLocalizedPositions(allowedPositions));
+                : com.lolfm.domain.CombatSource.SKIRMISH;
+        Lane localizedLane = !teamfight && allowedPositions != null
+                ? laneForLocalizedPositions(allowedPositions) : null;
+        for (int i = eventStart; i < events.size(); i++) {
+            events.get(i).setCombatSource(source);
+            if (localizedLane != null) events.get(i).setCombatLane(localizedLane);
         }
-        events.add(killEvent);
         if (!teamfight) {
             commitPendingCombatProgress(attackingTeamState);
             commitPendingCombatProgress(defendingTeamState);

@@ -58,13 +58,14 @@ public final class LanePhaseResolver {
     }
     public Optional<MatchEvent> transitionIfDue(GameState state){
         Optional<MatchPhaseChangeData> transition=state.getLanePhaseState().transitionIfDue(state.getCurrentTimeSeconds());
-        return transition.map(data->{MatchEvent event=new MatchEvent(data.transitionTimeSeconds(),MatchEventType.MATCH_PHASE_CHANGE,"Match phase changed",null,null,List.of());event.setMatchPhaseChange(data);return event;});
+        return transition.map(data->{MatchEvent event=new MatchEvent(data.transitionTimeSeconds(),MatchEventType.MATCH_PHASE_CHANGE,phaseMessage(data),null,null,List.of());event.setMatchPhaseChange(data);return event;});
     }
     public Optional<MatchEvent> transitionToLateGameIfDue(GameState state){
         Optional<MatchPhaseChangeData> transition=state.getLanePhaseState().transitionToLateGameIfDue(state);
-        return transition.map(data->{MatchEvent event=new MatchEvent(data.transitionTimeSeconds(),MatchEventType.MATCH_PHASE_CHANGE,"Match phase changed",null,null,List.of());event.setMatchPhaseChange(data);return event;});
+        return transition.map(data->{MatchEvent event=new MatchEvent(data.transitionTimeSeconds(),MatchEventType.MATCH_PHASE_CHANGE,phaseMessage(data),null,null,List.of());event.setMatchPhaseChange(data);return event;});
     }
     private PlayerState primary(TeamState team,Lane lane){return team.playerAt(switch(lane){case TOP->Position.TOP;case MID->Position.MID;case BOT->Position.ADC;});}
     private boolean supportPresent(TeamState team,int time){PlayerState support=team.playerAt(Position.SUPPORT);return support.isAlive(time)&&support.getActivityState().getActivityType()==PlayerActivityType.DEFAULT_ROLE;}
+    private String phaseMessage(MatchPhaseChangeData data){return switch(data.newPhase()){case MID_GAME->"라인전이 종료되고 미드 게임 단계로 전환됩니다.";case LATE_GAME->"경기가 후반 운영 단계로 전환됩니다.";case LANING->"라인전 단계가 시작됩니다.";};}
     private double clamp(double v,double min,double max){return Math.max(min,Math.min(max,v));}
 }

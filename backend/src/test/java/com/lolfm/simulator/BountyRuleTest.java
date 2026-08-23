@@ -77,11 +77,11 @@ class BountyRuleTest {
 
         new KillRewardResolver().award(100, attackers, killer, defenders, victim, List.of(assistant), 10, false, 700, events);
 
-        assertEquals(1_500, killer.getGold()); // 500 + 300 + 700
+        assertEquals(1_600, killer.getGold()); // 500 + 300 + 100 first blood + 700
         assertEquals(650, assistant.getGold());
         assertEquals(700, killer.getTotalShutdownGoldEarned());
         assertEquals(700, victim.getTotalShutdownGoldGiven());
-        assertEquals(237.5, victim.getBountyProgress(), 0.000001);
+        assertEquals(212.5, victim.getBountyProgress(), 0.000001);
         assertTrue(events.stream().anyMatch(event -> event.getType() == MatchEventType.SHUTDOWN));
         assertFalse(assistant.getTotalShutdownGoldEarned() > 0);
     }
