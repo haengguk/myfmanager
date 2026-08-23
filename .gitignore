@@ -39,6 +39,7 @@ out/
 ### Runtime output ###
 *.log
 *.pid
+/output/
 
 ### Frontend dependencies and generated output ###
 /frontend/node_modules/
