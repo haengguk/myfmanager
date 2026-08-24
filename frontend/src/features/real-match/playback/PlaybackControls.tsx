@@ -12,6 +12,7 @@ interface PlaybackControlsProps {
   onToggle: () => void;
   onSpeedChange: (speed: PlaybackSpeed) => void;
   onSeek: (seconds: number) => void;
+  onReset: () => void;
   onOpenResult: () => void;
   resultButtonRef: RefObject<HTMLButtonElement>;
 }
@@ -25,7 +26,8 @@ export function PlaybackControls(props: PlaybackControlsProps) {
       </div>
       <PlaybackTimeline currentSeconds={props.currentSeconds} durationSeconds={props.durationSeconds} onSeek={props.onSeek} />
       <span className="rm-control-status">x{props.speed} · {props.playing ? '재생 중' : '일시정지'}</span>
-      <button className="rm-secondary-action" ref={props.resultButtonRef} type="button" onClick={props.onOpenResult}>즉시 결과</button>
+      <button className="rm-text-action" type="button" onClick={props.onReset}>처음으로</button>
+      <button className="rm-secondary-action" ref={props.resultButtonRef} type="button" onClick={props.onOpenResult}>경기 결과</button>
     </section>
   );
 }

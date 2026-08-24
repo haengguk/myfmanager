@@ -1,38 +1,18 @@
-export type TeamSide = 'BLUE' | 'RED';
-export type Position = 'TOP' | 'JUNGLE' | 'MID' | 'ADC' | 'SUPPORT';
-export type Lane = 'TOP' | 'MID' | 'BOT';
-export type ObjectiveType = 'VOID_GRUBS' | 'DRAGON' | 'BARON' | 'TOWER' | 'INHIBITOR' | 'NEXUS';
+import type {
+  CombatSource, GameEndReason, Lane, MatchEventType, Position, ReferenceAbilityProfile,
+  StructureActionSource, StructureKind, TeamSide, TowerTier,
+} from './reference/realMatchReference.contract';
 
-export interface ChampionViewModel {
-  id: string;
-  name: string;
-  position: Position;
-  portraitUrl: string;
-}
+export type { CombatSource, GameEndReason, Lane, MatchEventType, Position, TeamSide };
 
-export interface TeamViewModel {
-  side: TeamSide;
-  code: string;
-  record: string;
-  seriesScore: number;
-}
+export interface ChampionViewModel { id: string; name: string; nameEn: string; portraitUrl: string; }
+export interface TeamViewModel { side: TeamSide; code: string; displayName: string; detail: string; }
+export interface DraftRosterSlotViewModel { playerId: string; playerName: string; position: Position; championId: string; }
+export interface DraftDecisionViewModel { turn: number; side: TeamSide; actionType: 'BAN' | 'PICK'; championId: string; }
 
-export interface DraftRosterSlotViewModel {
-  playerId: string;
-  playerName: string;
-  position: Position;
-  championId: string | null;
-}
-
-export type DraftDecisionPhase = 'BAN' | 'PICK';
-
+// 향후 수동 Draft 프로토타입 전용 타입. Real Match V1 경로에서는 사용하지 않는다.
 export interface DraftTurnViewModel {
-  id: string;
-  phase: DraftDecisionPhase;
-  side: TeamSide;
-  position: Position | null;
-  round: 1 | 2;
-  order: number;
+  id: string; phase: 'BAN' | 'PICK'; side: TeamSide; position: Position | null; round: 1 | 2; order: number;
 }
 
 export interface DraftViewModel {
@@ -41,117 +21,65 @@ export interface DraftViewModel {
   seasonLabel: string;
   gameNumber: number;
   seriesType: string;
-  initialSeconds: number;
+  referenceLabel: string;
   teams: Record<TeamSide, TeamViewModel>;
-  champions: readonly ChampionViewModel[];
+  championsById: Readonly<Record<string, ChampionViewModel>>;
   rosters: Record<TeamSide, readonly DraftRosterSlotViewModel[]>;
   bans: Record<TeamSide, readonly string[]>;
-  fearlessChampionIds: readonly string[];
-  turnQueue: readonly DraftTurnViewModel[];
-}
-
-export interface DraftResultViewModel {
-  rosters: Record<TeamSide, readonly DraftRosterSlotViewModel[]>;
-  bans: Record<TeamSide, readonly string[]>;
-}
-
-export type PlaybackEventType =
-  | 'MATCH_START'
-  | 'ROAM'
-  | 'GANK_ATTEMPT'
-  | 'GOLD_LEAD'
-  | 'KILL'
-  | 'ASSIST'
-  | 'PHASE_CHANGE'
-  | 'OBJECTIVE'
-  | 'TOWER'
-  | 'TEAMFIGHT'
-  | 'INHIBITOR'
-  | 'MATCH_END';
-
-export type CombatSource = 'JUNGLE_GANK' | 'LANE_COMBAT' | 'TEAMFIGHT' | 'OBJECTIVE_FIGHT' | null;
-
-export interface StructuredEventParticipant {
-  playerId: string;
-  teamSide: TeamSide;
-  role: 'KILLER' | 'VICTIM' | 'ASSISTANT' | 'PARTICIPANT';
+  picks: Record<TeamSide, readonly string[]>;
+  decisions: readonly DraftDecisionViewModel[];
+  draftRuleSetIdentity: string;
+  finalDraftHash: string;
+  finalAssignmentHash: string;
 }
 
 export interface PlaybackEventViewModel {
-  id: string;
-  occurredAtSeconds: number;
-  eventType: PlaybackEventType;
-  teamSide: TeamSide | null;
-  combatSource: CombatSource;
-  engagementId: string | null;
-  summaryOfEngagementId: string | null;
-  engagementRole: 'SUMMARY' | 'DETAIL' | null;
-  killerPlayerId: string | null;
-  victimPlayerId: string | null;
-  assistantPlayerIds: readonly string[];
-  objective: ObjectiveType | null;
-  lane: Lane | null;
-  participants: readonly StructuredEventParticipant[];
-  description: string;
-  isMajor: boolean;
+  id: string; occurredAtSeconds: number; eventType: MatchEventType;
+  actorSide: TeamSide | null; actorPosition: Position | null; lane: Lane | null;
+  actorPlayerId: string | null; killerPlayerId: string | null; victimPlayerId: string | null;
+  assistantPlayerIds: readonly string[]; combatSource: CombatSource | null;
+  structureActionSource: StructureActionSource | null; structureKind: StructureKind | null;
+  structureTowerTier: TowerTier | null; structureAttackingSide: TeamSide | null;
+  structureDefendingSide: TeamSide | null; actionId: string | null; parentActionId: string | null;
+  displayMessage: string; isMajor: boolean;
 }
 
 export interface LiveChampionStateViewModel {
-  playerId: string;
-  playerName: string;
-  championId: string;
-  position: Position;
-  level: number;
-  alive: boolean;
-  respawnSeconds: number;
+  playerId: string; playerName: string; championId: string; position: Position;
+  kills: number; deaths: number; assists: number; cs: number; gold: number;
+  totalExperience: number; level: number; alive: boolean; respawnSeconds: number;
 }
 
 export interface TeamSnapshotViewModel {
-  side: TeamSide;
-  kills: number;
-  gold: number;
-  champions: readonly LiveChampionStateViewModel[];
+  side: TeamSide; kills: number; gold: number; towersDestroyed: number; dragons: number;
+  inhibitorsRemaining: number; champions: readonly LiveChampionStateViewModel[];
 }
 
-export interface MatchSnapshotViewModel {
-  atSeconds: number;
-  teams: Record<TeamSide, TeamSnapshotViewModel>;
-}
+export interface MatchSnapshotViewModel { atSeconds: number; teams: Record<TeamSide, TeamSnapshotViewModel>; }
 
 export interface PlayerComparisonViewModel {
-  playerId: string;
-  playerName: string;
-  championId: string;
-  position: Position;
-  kills: number;
-  deaths: number;
-  assists: number;
-  cs: number;
-  gold: number;
-  level: number;
+  playerId: string; playerName: string; championId: string; position: Position;
+  kills: number; deaths: number; assists: number; cs: number; gold: number;
+  totalExperience: number; level: number;
 }
 
-export interface PositionComparisonViewModel {
-  position: Position;
-  blue: PlayerComparisonViewModel;
-  red: PlayerComparisonViewModel;
-}
+export interface PositionComparisonViewModel { position: Position; blue: PlayerComparisonViewModel; red: PlayerComparisonViewModel; }
 
 export interface PlaybackViewModel {
-  matchId: string;
-  simulationSeed: string;
-  seasonLabel: string;
-  gameNumber: number;
-  seriesType: string;
-  durationSeconds: number;
-  initialSeconds: number;
-  comparisonReferenceSeconds: number;
+  matchId: string; simulationSeed: string; seasonLabel: string; gameNumber: number; seriesType: string;
+  referenceLabel: string; durationSeconds: number; initialSeconds: number;
   teams: Record<TeamSide, TeamViewModel>;
   championsById: Readonly<Record<string, ChampionViewModel>>;
+  playerNamesById: Readonly<Record<string, string>>;
   events: readonly PlaybackEventViewModel[];
   snapshots: readonly MatchSnapshotViewModel[];
-  comparisonAtInitialTime: readonly PositionComparisonViewModel[];
   finalScore: Record<TeamSide, number>;
   winner: TeamSide | null;
-  endReason: 'NEXUS_DESTROYED' | 'TIMEOUT';
+  endReason: GameEndReason;
+  projection: { sourceEventCount: number; includedEventCount: number; sourceSnapshotCount: number; includedSnapshotCount: number; };
+}
+
+export interface PlayerAbilityViewModel {
+  playerId: string; playerName: string; championId: string; championName: string; position: Position;
+  profile: ReferenceAbilityProfile;
 }

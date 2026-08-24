@@ -14,8 +14,8 @@ export function TeamFinalStats({ result }: { result: MatchResultViewModel }) {
     ['포탑', formatNumber(blue.towers), formatNumber(red.towers)],
     ['드래곤', formatNumber(blue.dragons), formatNumber(red.dragons)],
     ['바론', formatNumber(blue.barons), formatNumber(red.barons)],
-    ['억제기', formatNumber(blue.inhibitors), formatNumber(red.inhibitors)],
-    ['종료 사유', result.endReason === 'TIMEOUT' ? '제한 시간 종료' : '넥서스 파괴', result.endReason === 'TIMEOUT' ? '제한 시간 종료' : '넥서스 파괴'],
+    ['억제기 파괴', formatNumber(blue.inhibitorsDestroyed), formatNumber(red.inhibitorsDestroyed)],
+    ['종료 사유', result.endReason === 'SIMULATION_TIMEOUT' ? '제한 시간 종료' : '넥서스 파괴', result.endReason === 'SIMULATION_TIMEOUT' ? '제한 시간 종료' : '넥서스 파괴'],
   ] as const;
   return (
     <section className="rm-team-final-stats" aria-labelledby="rm-team-stats-heading">

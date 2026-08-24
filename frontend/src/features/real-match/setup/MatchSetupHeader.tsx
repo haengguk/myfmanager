@@ -1,10 +1,10 @@
 import { MatchUtilityBar } from '../MatchChrome';
 import type { MatchSetupOptionsViewModel } from '../matchSession.types';
 
-export function MatchSetupHeader({ options, onBack }: { options: MatchSetupOptionsViewModel; onBack: () => void }) {
+export function MatchSetupHeader({ options, onBack, onLegacy }: { options: MatchSetupOptionsViewModel; onBack: () => void; onLegacy: () => void }) {
   return (
     <>
-      <MatchUtilityBar meta={options.seasonLabel} onBack={onBack} />
+      <MatchUtilityBar meta={options.seasonLabel} onBack={onBack} backLabel="대시보드로 돌아가기" secondaryLabel="기존 시뮬레이터" onSecondary={onLegacy} />
       <section className="rm-setup-context" aria-labelledby="match-setup-heading">
         <div>
           <span>경기 센터 / 경기 준비</span>

@@ -8,12 +8,12 @@ function verdict(side: TeamSide, winner: TeamSide | null): string {
 }
 
 export function FinalTeamScore({ result }: { result: MatchResultViewModel }) {
-  const timeout = result.endReason === 'TIMEOUT';
+  const timeout = result.endReason === 'SIMULATION_TIMEOUT';
   return (
     <section className={`rm-result-score${timeout ? ' is-timeout' : ''}`} aria-labelledby="rm-result-heading">
       <div className="rm-result-team rm-side-blue">
         <div className="rm-result-team-mark" role="img" aria-label={`${result.teams.BLUE.code} 약칭 로고 자리`}><span>{result.teams.BLUE.code}</span></div>
-        <div><strong>{result.teams.BLUE.code}</strong><span>{result.teams.BLUE.record}</span></div>
+        <div><strong>{result.teams.BLUE.code}</strong><span>{result.teams.BLUE.detail}</span></div>
       </div>
       <div className="rm-result-kills"><span>킬</span><strong>{result.teamStats.BLUE.kills}</strong></div>
       <div className={`rm-result-verdict${result.winner === 'BLUE' ? ' is-winner' : ''}`}>{verdict('BLUE', result.winner)}</div>
@@ -22,7 +22,7 @@ export function FinalTeamScore({ result }: { result: MatchResultViewModel }) {
       <div className="rm-result-kills"><span>킬</span><strong>{result.teamStats.RED.kills}</strong></div>
       <div className="rm-result-team rm-side-red">
         <div className="rm-result-team-mark" role="img" aria-label={`${result.teams.RED.code} 약칭 로고 자리`}><span>{result.teams.RED.code}</span></div>
-        <div><strong>{result.teams.RED.code}</strong><span>{result.teams.RED.record}</span></div>
+        <div><strong>{result.teams.RED.code}</strong><span>{result.teams.RED.detail}</span></div>
       </div>
     </section>
   );

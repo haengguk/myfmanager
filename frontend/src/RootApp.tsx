@@ -7,8 +7,7 @@ import { InboxPage } from './features/inbox/InboxPage';
 import type { ToastMessage } from './features/inbox/inbox.types';
 import { DraftRoomPage } from './features/real-match/draft/DraftRoomPage';
 import { MatchPlaybackPage } from './features/real-match/playback/MatchPlaybackPage';
-import { createMatchResult, createMatchSession, completeSessionDraft } from './features/real-match/matchSession.adapter';
-import { matchSetupOptionsFixture } from './features/real-match/matchSession.fixtures';
+import { createReferenceMatchSession, referenceMatchSetupOptions } from './features/real-match/matchSession.adapter';
 import type { MatchSessionViewModel, MatchSetupSelection } from './features/real-match/matchSession.types';
 import { MatchSetupPage } from './features/real-match/setup/MatchSetupPage';
 import { MatchResultPage } from './features/real-match/result/MatchResultPage';
@@ -20,7 +19,7 @@ type ActiveScreen = AppSection | 'setup' | 'draft' | 'playback' | 'result';
 function RootApp() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('inbox');
   const [matchSession, setMatchSession] = useState<MatchSessionViewModel | null>(null);
-  const [draftReview, setDraftReview] = useState(false);
+  const [draftReturnScreen, setDraftReturnScreen] = useState<ActiveScreen>('setup');
   const [searchValue, setSearchValue] = useState('');
   const [gameTime, setGameTime] = useState('오후 1:42');
   const [progressModalOpen, setProgressModalOpen] = useState(false);
@@ -48,7 +47,7 @@ function RootApp() {
     document.title = activeScreen === 'setup'
       ? 'lolmanager — Match Setup'
       : activeScreen === 'draft'
-      ? 'lolmanager — Draft Room'
+      ? 'lolmanager — 자동 Draft 결과'
       : activeScreen === 'playback'
         ? 'lolmanager — Match Playback'
         : activeScreen === 'result'
@@ -75,29 +74,29 @@ function RootApp() {
   }, [showToast]);
 
   const startMatch = (selection: MatchSetupSelection) => {
-    setMatchSession(createMatchSession(matchSetupOptionsFixture, selection));
-    setDraftReview(false);
+    setMatchSession(createReferenceMatchSession(selection));
+    setDraftReturnScreen('setup');
     setActiveScreen('draft');
   };
 
   if (activeScreen === 'setup') {
-    return <MatchSetupPage options={matchSetupOptionsFixture} onBack={() => setActiveScreen('match')} onStart={startMatch} />;
+    return <MatchSetupPage options={referenceMatchSetupOptions} onBack={() => setActiveScreen('inbox')} onLegacy={() => setActiveScreen('match')} onStart={startMatch} />;
   }
 
   if (activeScreen === 'draft' && matchSession) {
-    return <DraftRoomPage viewModel={matchSession.draft} reviewResult={draftReview ? matchSession.draftResult : null} onBack={() => setActiveScreen(draftReview ? 'result' : 'match')} onComplete={(result) => { setMatchSession((current) => current ? completeSessionDraft(current, result) : current); setDraftReview(false); setActiveScreen('playback'); }} onReviewContinue={() => setActiveScreen('playback')} />;
+    return <DraftRoomPage viewModel={matchSession.draft} onBack={() => setActiveScreen(draftReturnScreen)} onContinue={() => setActiveScreen('playback')} />;
   }
 
   if (activeScreen === 'playback' && matchSession) {
-    return <MatchPlaybackPage viewModel={matchSession.playback} onBack={() => setActiveScreen('match')} onDraft={() => { setDraftReview(Boolean(matchSession.draftResult)); setActiveScreen('draft'); }} onComplete={() => { setMatchSession((current) => current ? { ...current, result: createMatchResult(current) } : current); setActiveScreen('result'); }} />;
+    return <MatchPlaybackPage viewModel={matchSession.playback} onBack={() => setActiveScreen('setup')} onDraft={() => { setDraftReturnScreen('playback'); setActiveScreen('draft'); }} onComplete={() => setActiveScreen('result')} />;
   }
 
-  if (activeScreen === 'result' && matchSession?.result) {
-    return <MatchResultPage result={matchSession.result} championsById={matchSession.playback.championsById} onBack={() => setActiveScreen('match')} onDraft={() => { setDraftReview(true); setActiveScreen('draft'); }} onPlayback={() => setActiveScreen('playback')} onRerun={() => startMatch(matchSession.setup)} onNewMatch={() => { setMatchSession(null); setDraftReview(false); setActiveScreen('setup'); }} />;
+  if (activeScreen === 'result' && matchSession) {
+    return <MatchResultPage result={matchSession.result} championsById={matchSession.playback.championsById} onBack={() => setActiveScreen('setup')} onDraft={() => { setDraftReturnScreen('result'); setActiveScreen('draft'); }} onPlayback={() => setActiveScreen('playback')} onRerun={() => setActiveScreen('playback')} onNewMatch={() => { setMatchSession(null); setDraftReturnScreen('setup'); setActiveScreen('setup'); }} />;
   }
 
   if (activeScreen === 'draft' || activeScreen === 'playback' || activeScreen === 'result') {
-    return <MatchSetupPage options={matchSetupOptionsFixture} onBack={() => setActiveScreen('match')} onStart={startMatch} />;
+    return <MatchSetupPage options={referenceMatchSetupOptions} onBack={() => setActiveScreen('inbox')} onLegacy={() => setActiveScreen('match')} onStart={startMatch} />;
   }
 
   const activeSection: AppSection = activeScreen;
@@ -110,7 +109,7 @@ function RootApp() {
         searchValue={searchValue}
         gameTime={gameTime}
         primaryActionLabel={activeSection === 'match' ? '경기 준비' : '다음 진행'}
-        onNavigate={setActiveScreen}
+        onNavigate={(section) => setActiveScreen(section === 'match' ? 'setup' : section)}
         onSearchChange={setSearchValue}
         onContinue={() => activeSection === 'match' ? setActiveScreen('setup') : setProgressModalOpen(true)}
         onNotify={showToast}

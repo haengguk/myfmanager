@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "reference:generate": "node scripts/generate-real-match-reference.mjs",
+    "reference:check": "node scripts/generate-real-match-reference.mjs --check",
+    "reference:verify": "node scripts/verify-real-match-ui-contract.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

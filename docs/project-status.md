@@ -209,7 +209,9 @@ Freeze artifact는 `backend/build/reports/match-engine-v1-freeze/`에 있으며 
 
 Current V8 fixed `GEN` 대 `T1`, seed `"73"`는 독립 요청 2회와 fresh JVM candidate A/B에서 Draft/result/structured timeline/output hash/Random fingerprint가 exact하고 두 요청 모두 Game 1이다. 결과는 GEN(BLUE) 승리, `NEXUS_DESTROYED`, 3,430초(57분 10초)이며 output hash는 `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. Scanner focused 6 suites / 214 tests, API focused 9 suites / 55 tests와 complete backend 196 suites / 2,091 tests가 failures/errors/skipped 0으로 통과했다.
 
-Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`의 contract/options/fixed request/full response/error/handoff JSON 6개와 `SHA256SUMS.txt`다. 두 fresh JVM candidate의 7개 파일은 byte-for-byte exact였고 V8 semantic audit 뒤 공식 local artifact로 승격했다. Manifest 6/6 raw SHA가 통과했고 raw SHA-256은 `fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525`다. Full XML은 필수 8개 suite 및 skipped 0뿐 아니라 production 502 files / `e23f2d2149edd3a7478b5333f126e876d969b5a3c71c20b670447cc9cbd71817`과 API verification 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`의 dynamic source-binding과 exact여야 artifact를 만들 수 있다. Historical Match Engine freeze는 재생성하지 않고 기존 manifest 7/7과 SHA를 읽기 검증해 결속했다. 현재 frontend는 아직 이 API를 사용하지 않는다.
+Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`의 contract/options/fixed request/full response/error/handoff JSON 6개와 `SHA256SUMS.txt`다. 두 fresh JVM candidate의 7개 파일은 byte-for-byte exact였고 V8 semantic audit 뒤 공식 local artifact로 승격했다. Manifest 6/6 raw SHA가 통과했고 raw SHA-256은 `fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525`다. Full XML은 필수 8개 suite 및 skipped 0뿐 아니라 production 502 files / `e23f2d2149edd3a7478b5333f126e876d969b5a3c71c20b670447cc9cbd71817`과 API verification 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`의 dynamic source-binding과 exact여야 artifact를 만들 수 있다. Historical Match Engine freeze는 재생성하지 않고 기존 manifest 7/7과 SHA를 읽기 검증해 결속했다.
+
+Frontend V1-A는 이 handoff를 검증하는 deterministic extractor로 33,617,922-byte 전체 응답에서 767,407-byte presentation projection을 생성한다. Checked-in fixture는 실제 options 10팀/50명, `GEN` 대 `T1` seed `"73"`의 20개 자동 Draft 결정과 10개 final assignment, structured event 287/517개, 60초 간격을 포함한 실제 snapshot 59/344개, 최종 result/integrity와 선수 10명의 `PLAYER_ABILITY_PROFILE_V1`을 보존한다. 대시보드/수신함→경기 설정→읽기 전용 자동 Draft→57:10 재생→결과의 다섯 OpenDesign 화면은 하나의 normalized reference session에서 파생된다. 아직 `/api/v1/real-matches/options`와 `/simulate`를 호출하지 않으며 V1-B live HTTP 공급자는 시작하지 않았다.
 
 ### Pre-Jungle baseline
 
@@ -289,7 +291,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Partial / Disabled
 
-- Real LCK Draft→Match flow와 Match Engine V1은 additive Real Match API V1으로 HTTP에 노출됐지만 현재 frontend는 아직 이 API를 사용하지 않는다.
+- Real LCK Draft→Match flow와 Match Engine V1은 additive Real Match API V1으로 HTTP에 노출됐다. Frontend V1-A는 승인된 V8 reference projection만 사용하며 live options/simulate HTTP 공급자는 아직 연결하지 않았다.
 - 기존 `POST /api/matches/simulate`는 호환성을 위해 Dummy roster와 legacy timeline 경로를 계속 사용한다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
 - Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
@@ -300,7 +302,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Pending
 
-1. `REAL_MATCH_FRONTEND_V1`에서 team 선택, explicit seed, automatic Draft와 structured result/timeline playback을 새 additive API에 연결한다.
+1. `REAL_MATCH_FRONTEND_V1_B`에서 현재 fixture 공급자 경계를 live options/simulate HTTP 공급자로 교체하고 loading/error/timeout, 33MB급 응답 처리와 backend/frontend E2E를 검증한다.
 2. `SERIES_LIFECYCLE_V1`에서 BO3/BO5와 누적 Hard Fearless history를 caller-owned series context로 설계한다. Save/Career/Season persistence는 그 이후 별도 범위다.
 3. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 4. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.

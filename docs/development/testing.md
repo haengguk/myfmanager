@@ -369,7 +369,21 @@ gradlew.bat test --console=plain --no-daemon
 
 Writer는 공식 폴더를 바로 덮지 않고 두 fresh JVM에서 candidate A/B를 생성했다. JSON 6개와 `SHA256SUMS.txt` 7/7이 byte-for-byte exact였고 semantic audit가 통과한 뒤 `build/reports/real-match-api-v1/`로 승격했다. 고정 V8 결과는 GEN(BLUE) 승, `NEXUS_DESTROYED`, 3,430초, output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. 생성 manifest 6/6 raw SHA가 통과했고 manifest raw SHA-256은 `fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525`다. Runtime은 이 report를 읽지 않는다.
 
-이번 milestone은 frontend 파일을 바꾸지 않아 npm build와 Playwright를 실행하지 않았다. Balance 변경이 없으므로 B2 calibration, B3 holdout, Final 13G-B, 대규모 diagnostics와 baseline generator도 실행하지 않았다.
+이 backend V8 handoff milestone 당시에는 frontend 파일을 바꾸지 않아 npm build와 Playwright를 실행하지 않았다. Balance 변경이 없으므로 B2 calibration, B3 holdout, Final 13G-B, 대규모 diagnostics와 baseline generator도 실행하지 않았다.
+
+### Real Match Frontend V1-A
+
+V1-A reference 변경은 backend full regression 대신 다음 frontend 경계를 검증한다.
+
+```text
+cd frontend
+npm run reference:check
+npm run reference:verify
+npx tsc -b
+npm run build
+```
+
+`reference:check`는 현재 handoff에서 다시 만든 projection과 checked-in JSON의 byte equality를 확인한다. `reference:verify`는 10팀/50명 stable ID, GEN/T1/73/Game 1, Draft 20개와 assignment 10개, cross-screen final state, engine/output hash, 10명×12 ability rating과 canonical signed-int64 seed 경계를 확인한다. Browser smoke는 대시보드/수신함, 경기 설정, 자동 Draft, 재생, 결과를 1440×900과 1280×720에서 클릭하고 가로 overflow, 57:10 seek, 재생/일시정지/속도/event 선택, modal/ability/integrity, console과 비정적 network 요청을 확인한다. 이 검증은 live API를 호출하지 않는다.
 
 ## Generated Reports
 

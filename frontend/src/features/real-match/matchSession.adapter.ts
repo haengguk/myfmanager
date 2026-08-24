@@ -1,264 +1,300 @@
-import { draftFixture, playbackFixture } from './realMatch.fixtures';
 import type {
-  FinalPlayerComparisonViewModel,
-  MatchResultViewModel,
-  MatchSessionViewModel,
-  MatchSetupOptionsViewModel,
-  MatchSetupSelection,
-  MatchTeamOptionViewModel,
-  TeamFinalStatsViewModel,
+  FinalPlayerComparisonViewModel, FinalPlayerViewModel, MatchResultViewModel, MatchSessionViewModel,
+  MatchSetupOptionsViewModel, MatchSetupSelection, MatchTeamOptionViewModel, TeamFinalStatsViewModel,
 } from './matchSession.types';
+import { realMatchV8ReferenceProjection } from './reference/realMatchReference.fixture';
 import type {
-  DraftResultViewModel,
-  DraftViewModel,
-  PlaybackViewModel,
-  Position,
-  TeamSide,
-  TeamViewModel,
+  RealMatchV8ReferenceProjection, ReferencePlayerResult, ReferenceProjectedTeamState,
+  ReferenceTeamPresentation, ReferenceTeamResult,
+} from './reference/realMatchReference.contract';
+import type {
+  ChampionViewModel, DraftViewModel, MatchSnapshotViewModel, PlaybackEventViewModel, PlaybackViewModel,
+  Position, TeamSide, TeamViewModel,
 } from './realMatch.types';
-import { applyDraftResult } from './realMatch.adapter';
 
-const sides: readonly TeamSide[] = ['BLUE', 'RED'];
+const SIDES: readonly TeamSide[] = ['BLUE', 'RED'];
+const POSITIONS: readonly Position[] = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'];
+const MAJOR_EVENT_TYPES = new Set([
+  'KILL', 'JUNGLE_GANK', 'COUNTER_GANK', 'LANE_COMBAT', 'DRAGON', 'BARON', 'ELDER',
+  'TOWER', 'TEAMFIGHT', 'TEAMFIGHT_RESULT', 'ACE', 'GAME_END',
+]);
 
-function toTeamViewModel(side: TeamSide, team: MatchTeamOptionViewModel): TeamViewModel {
-  return { side, code: team.code, record: `${team.league} · ${team.record}`, seriesScore: 0 };
+const reference = realMatchV8ReferenceProjection;
+
+export const referenceMatchSetupOptions: MatchSetupOptionsViewModel = {
+  seasonLabel: 'REAL_MATCH_API_V1 · V8 Reference',
+  gameNumber: reference.match.draft.seriesGameNumber,
+  seriesType: '단판 · Fresh Game 1',
+  draftRule: 'Professional Draft · 자동',
+  defaultSeed: reference.request.seed,
+  referenceBlueTeamCode: reference.request.blueTeamCode,
+  referenceRedTeamCode: reference.request.redTeamCode,
+  referenceLabel: reference.provenance.referenceLabel,
+  teams: reference.options.teams.map((team): MatchTeamOptionViewModel => ({
+    teamId: team.teamCode,
+    code: team.teamCode,
+    name: team.displayName,
+    sourceLabel: 'Backend options reference · 선발 5명',
+    roster: team.lineup.map((player) => ({
+      playerId: player.playerId,
+      playerName: player.nickname,
+      position: player.position,
+    })),
+  })),
+};
+
+export function isReferenceSelection(selection: MatchSetupSelection): boolean {
+  return selection.blueTeamId === reference.request.blueTeamCode
+    && selection.redTeamId === reference.request.redTeamCode
+    && selection.seed === reference.request.seed
+    && selection.gameNumber === reference.match.draft.seriesGameNumber;
 }
 
-function selectedTeam(options: MatchSetupOptionsViewModel, teamId: string): MatchTeamOptionViewModel {
-  const selected = options.teams.find((team) => team.teamId === teamId);
-  if (!selected) throw new Error(`선택한 팀(${teamId})을 찾을 수 없습니다.`);
-  return selected;
+function bySide<T extends { teamSide: TeamSide }>(values: readonly T[], side: TeamSide): T {
+  const value = values.find((candidate) => candidate.teamSide === side);
+  if (!value) throw new Error(`${side} reference 데이터를 찾을 수 없습니다.`);
+  return value;
 }
 
-function createDraft(
-  options: MatchSetupOptionsViewModel,
-  selection: MatchSetupSelection,
-  selectedTeams: Record<TeamSide, MatchTeamOptionViewModel>,
-  matchId: string,
-): DraftViewModel {
+function toTeamViewModel(team: ReferenceTeamPresentation): TeamViewModel {
   return {
-    ...draftFixture,
-    matchId,
-    simulationSeed: selection.seed,
-    seasonLabel: options.seasonLabel,
-    gameNumber: selection.gameNumber,
-    seriesType: selection.seriesType,
-    teams: {
-      BLUE: toTeamViewModel('BLUE', selectedTeams.BLUE),
-      RED: toTeamViewModel('RED', selectedTeams.RED),
-    },
-    rosters: {
-      BLUE: selectedTeams.BLUE.roster.map((player) => ({ ...player, championId: null })),
-      RED: selectedTeams.RED.roster.map((player) => ({ ...player, championId: null })),
-    },
-    bans: { BLUE: [], RED: [] },
+    side: team.teamSide,
+    code: team.teamCode,
+    displayName: team.displayName,
+    detail: 'V8 Reference · Fresh Game 1',
   };
 }
 
-function createPlayerIdentityMap(
-  base: PlaybackViewModel,
-  selectedTeams: Record<TeamSide, MatchTeamOptionViewModel>,
-) {
-  const identityMap = new Map<string, { playerId: string; playerName: string }>();
-  const nameReplacements = new Map<string, string>();
-  const teamReplacements = new Map<string, string>();
-
-  for (const side of sides) {
-    const basePlayers = base.snapshots[0].teams[side].champions;
-    for (const basePlayer of basePlayers) {
-      const replacement = selectedTeams[side].roster.find((player) => player.position === basePlayer.position);
-      if (!replacement) continue;
-      identityMap.set(basePlayer.playerId, replacement);
-      nameReplacements.set(basePlayer.playerName, replacement.playerName);
+function createChampionMap(source: RealMatchV8ReferenceProjection): Readonly<Record<string, ChampionViewModel>> {
+  const entries = source.match.teams.flatMap((team) => team.lineup.map((player) => [
+    player.championId,
+    {
+      id: player.championId,
+      name: player.champion.displayNameKo,
+      nameEn: player.champion.displayNameEn,
+      portraitUrl: player.champion.portraitUrl,
+    } satisfies ChampionViewModel,
+  ] as const));
+  for (const championId of [...source.match.draft.blueBans, ...source.match.draft.redBans]) {
+    if (!entries.some(([id]) => id === championId)) {
+      entries.push([championId, { id: championId, name: championId, nameEn: championId, portraitUrl: '' }]);
     }
-    teamReplacements.set(base.teams[side].code, selectedTeams[side].code);
   }
-
-  return { identityMap, nameReplacements, teamReplacements };
+  return Object.fromEntries(entries);
 }
 
-function replaceDisplayNames(value: string, replacements: readonly Map<string, string>[]): string {
-  return replacements.reduce((copy, map) => [...map.entries()].reduce(
-    (current, [source, target]) => current.split(source).join(target),
-    copy,
-  ), value);
-}
-
-function createPlayback(
-  selection: MatchSetupSelection,
-  selectedTeams: Record<TeamSide, MatchTeamOptionViewModel>,
-  matchId: string,
-): PlaybackViewModel {
-  const base = playbackFixture;
-  const { identityMap, nameReplacements, teamReplacements } = createPlayerIdentityMap(base, selectedTeams);
-  const identityFor = (playerId: string) => identityMap.get(playerId) ?? { playerId, playerName: playerId };
-  const mapPlayerId = (playerId: string | null) => playerId ? identityFor(playerId).playerId : null;
-  const teams = {
-    BLUE: toTeamViewModel('BLUE', selectedTeams.BLUE),
-    RED: toTeamViewModel('RED', selectedTeams.RED),
-  };
-  const timeout = selection.seed === 'TIMEOUT-73';
-  const winner: TeamSide | null = timeout
-    ? null
-    : selectedTeams.BLUE.code === 'GEN'
-      ? 'BLUE'
-      : selectedTeams.RED.code === 'GEN'
-        ? 'RED'
-        : 'BLUE';
-  const finalScore = timeout
-    ? { BLUE: 14, RED: 14 }
-    : winner === 'BLUE'
-      ? { BLUE: 18, RED: 11 }
-      : { BLUE: 12, RED: 17 };
-  const durationSeconds = timeout ? 2700 : winner === 'BLUE' ? 1938 : 2046;
-  const timeFactor = durationSeconds / base.durationSeconds;
-  const finalGold = timeout
-    ? { BLUE: 62, RED: 61.8 }
-    : winner === 'BLUE'
-      ? { BLUE: 55.8, RED: 49.2 }
-      : { BLUE: 51.2, RED: 54.8 };
-
+function createDraft(source: RealMatchV8ReferenceProjection, teams: Record<TeamSide, TeamViewModel>, championsById: Readonly<Record<string, ChampionViewModel>>): DraftViewModel {
   return {
-    ...base,
-    matchId,
-    simulationSeed: selection.seed,
-    gameNumber: selection.gameNumber,
-    seriesType: selection.seriesType,
+    matchId: source.match.matchIdentity,
+    simulationSeed: source.match.seed,
+    seasonLabel: referenceMatchSetupOptions.seasonLabel,
+    gameNumber: source.match.draft.seriesGameNumber,
+    seriesType: referenceMatchSetupOptions.seriesType,
+    referenceLabel: source.provenance.referenceLabel,
     teams,
-    winner,
-    endReason: timeout ? 'TIMEOUT' : 'NEXUS_DESTROYED',
-    durationSeconds,
-    comparisonReferenceSeconds: Math.round(base.comparisonReferenceSeconds * timeFactor),
-    finalScore,
-    events: base.events.map((event) => ({
-      ...event,
-      occurredAtSeconds: Math.round(event.occurredAtSeconds * timeFactor),
-      killerPlayerId: mapPlayerId(event.killerPlayerId),
-      victimPlayerId: mapPlayerId(event.victimPlayerId),
-      assistantPlayerIds: event.assistantPlayerIds.map((id) => identityFor(id).playerId),
-      participants: event.participants.map((participant) => ({ ...participant, playerId: identityFor(participant.playerId).playerId })),
-      description: replaceDisplayNames(event.description, [nameReplacements, teamReplacements]),
-    })),
-    snapshots: base.snapshots.map((snapshot) => ({
-      ...snapshot,
-      atSeconds: Math.round(snapshot.atSeconds * timeFactor),
-      teams: {
-        BLUE: {
-          ...snapshot.teams.BLUE,
-          kills: snapshot.atSeconds === base.durationSeconds ? finalScore.BLUE : snapshot.teams.BLUE.kills,
-          gold: snapshot.atSeconds === base.durationSeconds ? finalGold.BLUE : snapshot.teams.BLUE.gold,
-          champions: snapshot.teams.BLUE.champions.map((player) => ({ ...player, ...identityFor(player.playerId) })),
-        },
-        RED: {
-          ...snapshot.teams.RED,
-          kills: snapshot.atSeconds === base.durationSeconds ? finalScore.RED : snapshot.teams.RED.kills,
-          gold: snapshot.atSeconds === base.durationSeconds ? finalGold.RED : snapshot.teams.RED.gold,
-          champions: snapshot.teams.RED.champions.map((player) => ({ ...player, ...identityFor(player.playerId) })),
-        },
-      },
-    })),
-    comparisonAtInitialTime: base.comparisonAtInitialTime.map((row) => ({
-      ...row,
-      blue: { ...row.blue, ...identityFor(row.blue.playerId) },
-      red: { ...row.red, ...identityFor(row.red.playerId) },
-    })),
+    championsById,
+    rosters: {
+      BLUE: bySide(source.match.teams, 'BLUE').lineup.map((player) => ({ playerId: player.playerId, playerName: player.nickname, position: player.position, championId: player.championId })),
+      RED: bySide(source.match.teams, 'RED').lineup.map((player) => ({ playerId: player.playerId, playerName: player.nickname, position: player.position, championId: player.championId })),
+    },
+    bans: { BLUE: source.match.draft.blueBans, RED: source.match.draft.redBans },
+    picks: { BLUE: source.match.draft.bluePicks, RED: source.match.draft.redPicks },
+    decisions: source.match.draft.decisions.map((decision) => ({ turn: decision.turn, side: decision.teamSide, actionType: decision.actionType, championId: decision.championId })),
+    draftRuleSetIdentity: source.match.draft.draftRuleSetIdentity,
+    finalDraftHash: source.match.draft.finalDraftHash,
+    finalAssignmentHash: source.match.draft.finalAssignmentHash,
   };
 }
 
-export function createMatchSession(
-  options: MatchSetupOptionsViewModel,
-  selection: MatchSetupSelection,
-): MatchSessionViewModel {
-  const selectedTeams = {
-    BLUE: selectedTeam(options, selection.blueTeamId),
-    RED: selectedTeam(options, selection.redTeamId),
-  };
-  const sessionId = `fixture-${selection.blueTeamId}-${selection.redTeamId}-${selection.gameNumber}-${Date.now()}`;
+function mapTeamSnapshot(source: ReferenceProjectedTeamState, side: TeamSide, players: MatchSnapshotViewModel['teams'][TeamSide]['champions']): MatchSnapshotViewModel['teams'][TeamSide] {
   return {
-    sessionId,
-    createdAt: new Date().toISOString(),
-    setup: selection,
-    selectedTeams,
-    draft: createDraft(options, selection, selectedTeams, sessionId),
-    draftResult: null,
-    playback: createPlayback(selection, selectedTeams, sessionId),
-    result: null,
+    side,
+    kills: source.kills,
+    gold: source.gold,
+    towersDestroyed: source.towersDestroyed,
+    dragons: source.dragons,
+    inhibitorsRemaining: source.inhibitorsRemaining,
+    champions: players,
   };
 }
 
-export function completeSessionDraft(
-  session: MatchSessionViewModel,
-  draftResult: DraftResultViewModel,
-): MatchSessionViewModel {
-  return {
-    ...session,
-    draftResult,
-    playback: applyDraftResult(session.playback, draftResult),
-  };
-}
-
-function resultPlayers(playback: PlaybackViewModel): readonly FinalPlayerComparisonViewModel[] {
-  return playback.comparisonAtInitialTime.map((row) => {
-    const bluePerformance = playback.winner === 'RED' ? row.red : row.blue;
-    const redPerformance = playback.winner === 'RED' ? row.blue : row.red;
-    const blue = { ...row.blue, kills: bluePerformance.kills, deaths: bluePerformance.deaths, assists: bluePerformance.assists, cs: bluePerformance.cs, gold: bluePerformance.gold, level: bluePerformance.level };
-    const red = { ...row.red, kills: redPerformance.kills, deaths: redPerformance.deaths, assists: redPerformance.assists, cs: redPerformance.cs, gold: redPerformance.gold, level: redPerformance.level };
-    const blueGold = Math.round(blue.gold * 1000);
-    const redGold = Math.round(red.gold * 1000);
-    const difference = blueGold - redGold;
+function createPlayback(source: RealMatchV8ReferenceProjection, teams: Record<TeamSide, TeamViewModel>, championsById: Readonly<Record<string, ChampionViewModel>>): PlaybackViewModel {
+  const playerNamesById = Object.fromEntries(source.match.teams.flatMap((team) => team.lineup.map((player) => [player.playerId, player.nickname])));
+  const events: readonly PlaybackEventViewModel[] = source.match.timeline.events.map((event) => ({
+    id: event.projectionId,
+    occurredAtSeconds: event.timeSeconds,
+    eventType: event.eventType,
+    actorSide: event.actorSide,
+    actorPosition: event.actorPosition,
+    lane: event.lane,
+    actorPlayerId: event.actorPlayerId,
+    killerPlayerId: event.killerPlayerId,
+    victimPlayerId: event.victimPlayerId,
+    assistantPlayerIds: event.assistantPlayerIds,
+    combatSource: event.combatSource,
+    structureActionSource: event.structureActionSource,
+    structureKind: event.structureKind,
+    structureTowerTier: event.structureTowerTier,
+    structureAttackingSide: event.structureAttackingSide,
+    structureDefendingSide: event.structureDefendingSide,
+    actionId: event.actionId,
+    parentActionId: event.parentActionId,
+    displayMessage: event.displayMessage ?? event.eventType,
+    isMajor: MAJOR_EVENT_TYPES.has(event.eventType),
+  }));
+  const snapshots: readonly MatchSnapshotViewModel[] = source.match.timeline.snapshots.map((snapshot) => {
+    const playerState = (side: TeamSide) => snapshot.players.filter((player) => player.teamSide === side).map((player) => ({
+      playerId: player.playerId,
+      playerName: playerNamesById[player.playerId] ?? player.playerId,
+      championId: player.championId,
+      position: player.position,
+      kills: player.kills,
+      deaths: player.deaths,
+      assists: player.assists,
+      cs: player.cs,
+      gold: player.gold,
+      totalExperience: player.totalExperience,
+      level: player.level,
+      alive: player.alive,
+      respawnSeconds: player.respawnRemainingSeconds,
+    }));
     return {
-      position: row.position,
-      blue: { ...blue, gold: blueGold, laneGoldDifference: difference },
-      red: { ...red, gold: redGold, laneGoldDifference: -difference },
+      atSeconds: snapshot.timeSeconds,
+      teams: {
+        BLUE: mapTeamSnapshot(snapshot.blueTeam, 'BLUE', playerState('BLUE')),
+        RED: mapTeamSnapshot(snapshot.redTeam, 'RED', playerState('RED')),
+      },
     };
+  });
+  return {
+    matchId: source.match.matchIdentity,
+    simulationSeed: source.match.seed,
+    seasonLabel: referenceMatchSetupOptions.seasonLabel,
+    gameNumber: source.match.draft.seriesGameNumber,
+    seriesType: referenceMatchSetupOptions.seriesType,
+    referenceLabel: source.provenance.referenceLabel,
+    durationSeconds: source.match.timeline.durationSeconds,
+    initialSeconds: 0,
+    teams,
+    championsById,
+    playerNamesById,
+    events,
+    snapshots,
+    finalScore: {
+      BLUE: bySide(source.match.result.teams, 'BLUE').kills,
+      RED: bySide(source.match.result.teams, 'RED').kills,
+    },
+    winner: source.match.timeline.winner,
+    endReason: source.match.timeline.endReason,
+    projection: {
+      sourceEventCount: source.provenance.sourceEventCount,
+      includedEventCount: source.provenance.includedEventCount,
+      sourceSnapshotCount: source.provenance.sourceSnapshotCount,
+      includedSnapshotCount: source.provenance.includedSnapshotCount,
+    },
+  };
+}
+
+function playerView(player: ReferencePlayerResult, playerName: string, goldDifference: number): FinalPlayerViewModel {
+  return {
+    playerId: player.playerId, playerName, championId: player.championId, position: player.position,
+    kills: player.kills, deaths: player.deaths, assists: player.assists, cs: player.cs, gold: player.gold,
+    totalExperience: player.totalExperience, level: player.level, goldDifference, abilityProfile: player.abilityProfile,
+  };
+}
+
+function resultPlayers(source: RealMatchV8ReferenceProjection, names: Readonly<Record<string, string>>): readonly FinalPlayerComparisonViewModel[] {
+  return POSITIONS.map((position) => {
+    const blue = source.match.result.players.find((player) => player.teamSide === 'BLUE' && player.position === position);
+    const red = source.match.result.players.find((player) => player.teamSide === 'RED' && player.position === position);
+    if (!blue || !red) throw new Error(`${position} result 비교 데이터를 찾을 수 없습니다.`);
+    const difference = blue.gold - red.gold;
+    return { position, blue: playerView(blue, names[blue.playerId] ?? blue.playerId, difference), red: playerView(red, names[red.playerId] ?? red.playerId, -difference) };
   });
 }
 
-function teamStats(winner: TeamSide | null): Record<TeamSide, TeamFinalStatsViewModel> {
-  if (winner === null) {
-    return {
-      BLUE: { kills: 14, deaths: 14, assists: 37, gold: 62000, goldDifference: 200, towers: 7, dragons: 3, barons: 1, inhibitors: 1 },
-      RED: { kills: 14, deaths: 14, assists: 35, gold: 61800, goldDifference: -200, towers: 7, dragons: 3, barons: 1, inhibitors: 1 },
-    };
-  }
-  const winning: TeamFinalStatsViewModel = { kills: winner === 'BLUE' ? 18 : 17, deaths: winner === 'BLUE' ? 11 : 12, assists: winner === 'BLUE' ? 43 : 46, gold: winner === 'BLUE' ? 55800 : 54800, goldDifference: winner === 'BLUE' ? 6600 : 3600, towers: winner === 'BLUE' ? 9 : 10, dragons: 4, barons: 2, inhibitors: 2 };
-  const losing: TeamFinalStatsViewModel = { kills: winner === 'BLUE' ? 11 : 12, deaths: winner === 'BLUE' ? 18 : 17, assists: winner === 'BLUE' ? 24 : 31, gold: winner === 'BLUE' ? 49200 : 51200, goldDifference: -winning.goldDifference, towers: winner === 'BLUE' ? 5 : 6, dragons: 2, barons: 0, inhibitors: 0 };
-  return winner === 'BLUE' ? { BLUE: winning, RED: losing } : { BLUE: losing, RED: winning };
+function teamStats(source: RealMatchV8ReferenceProjection, side: TeamSide): TeamFinalStatsViewModel {
+  const team: ReferenceTeamResult = bySide(source.match.result.teams, side);
+  const opponent: ReferenceTeamResult = bySide(source.match.result.teams, side === 'BLUE' ? 'RED' : 'BLUE');
+  const players = source.match.result.players.filter((player) => player.teamSide === side);
+  return {
+    kills: team.kills,
+    deaths: players.reduce((total, player) => total + player.deaths, 0),
+    assists: players.reduce((total, player) => total + player.assists, 0),
+    gold: team.totalGold,
+    goldDifference: team.totalGold - opponent.totalGold,
+    towers: team.towersDestroyed,
+    dragons: team.dragons,
+    barons: source.match.timeline.events.filter((event) => event.eventType === 'BARON' && event.actorSide === side).length,
+    inhibitorsDestroyed: 3 - opponent.inhibitorsRemaining,
+  };
 }
 
-export function createMatchResult(session: MatchSessionViewModel): MatchResultViewModel {
-  const playback = session.playback;
-  const seedHash = [...session.setup.seed].reduce((total, character) => total + character.charCodeAt(0), 0).toString(16).padStart(4, '0');
+function createResult(source: RealMatchV8ReferenceProjection, teams: Record<TeamSide, TeamViewModel>, names: Readonly<Record<string, string>>): MatchResultViewModel {
+  const integrity = source.match.integrity;
   return {
-    matchId: session.sessionId,
-    seasonLabel: '2026 LCK SPRING',
-    gameNumber: session.setup.gameNumber,
-    seriesType: session.setup.seriesType,
-    seed: session.setup.seed,
-    durationSeconds: playback.durationSeconds,
-    winner: playback.winner,
-    endReason: playback.endReason,
-    teams: playback.teams,
-    teamStats: teamStats(playback.winner),
-    players: resultPlayers(playback),
-    bans: session.draftResult?.bans ?? { BLUE: [], RED: [] },
+    matchId: source.match.matchIdentity,
+    seasonLabel: referenceMatchSetupOptions.seasonLabel,
+    gameNumber: source.match.draft.seriesGameNumber,
+    seriesType: referenceMatchSetupOptions.seriesType,
+    seed: source.match.seed,
+    durationSeconds: source.match.result.durationSeconds,
+    winner: source.match.result.winner,
+    endReason: source.match.result.endReason,
+    teams,
+    teamStats: { BLUE: teamStats(source, 'BLUE'), RED: teamStats(source, 'RED') },
+    players: resultPlayers(source, names),
+    bans: { BLUE: source.match.draft.blueBans, RED: source.match.draft.redBans },
     integrity: {
-      seed: session.setup.seed,
-      outputHash: `sha256:${seedHash}4c53188f25a81b9f4387cfa738086b2b5f6609f169ba2a998ce4c3fde7187ab2e`,
-      replayHash: `sha256:${seedHash}9e207a248e6f7cf10c08ea6545c5bd17e96fe78a11f0a2795e355f84fe6f07154e`,
-      runtimeProfile: 'lol-sim-fixture-v1 / deterministic-cpu',
-      responseTime: new Date().toISOString(),
+      seed: source.match.seed,
+      referenceLabel: source.provenance.referenceLabel,
+      runtimeProfile: integrity.runtimeProfileId,
+      configurationHash: integrity.configurationHash,
+      policyHash: integrity.policyHash,
+      engineImplementationVersion: integrity.engineImplementationVersion,
+      resourceProvenanceHash: integrity.resourceProvenanceHash,
+      replayHash: integrity.replayProvenanceHash,
+      simulatorTimelineHash: integrity.simulatorTimelineHash,
+      structuredTimelineHash: integrity.structuredTimelineHash,
+      outputHash: integrity.outputHash,
+      randomDrawCount: integrity.randomFingerprint.randomDrawCount,
+      randomTraceHash: integrity.randomFingerprint.randomTraceHash,
+      manifestRawSha256: source.provenance.sourceManifestRawSha256,
     },
   };
 }
 
-export const resultStateFixtures = {
-  blueWin: { winner: 'BLUE', endReason: 'NEXUS_DESTROYED' },
-  redWin: { winner: 'RED', endReason: 'NEXUS_DESTROYED' },
-  timeout: { winner: null, endReason: 'TIMEOUT' },
-  loading: { status: 'loading' },
-  error: { status: 'error' },
-  partialIntegrity: { replayHash: null },
-} as const;
+export function createReferenceMatchSession(selection: MatchSetupSelection): MatchSessionViewModel {
+  if (!isReferenceSelection(selection)) throw new Error('V1-A에서는 GEN 대 T1, seed 73 reference 경기만 확인할 수 있습니다.');
+  const selectedTeams = {
+    BLUE: referenceMatchSetupOptions.teams.find((team) => team.code === selection.blueTeamId),
+    RED: referenceMatchSetupOptions.teams.find((team) => team.code === selection.redTeamId),
+  };
+  if (!selectedTeams.BLUE || !selectedTeams.RED) throw new Error('승인 reference 팀을 options에서 찾을 수 없습니다.');
+  const teams = {
+    BLUE: toTeamViewModel(bySide(reference.match.teams, 'BLUE')),
+    RED: toTeamViewModel(bySide(reference.match.teams, 'RED')),
+  };
+  const championsById = createChampionMap(reference);
+  const playback = createPlayback(reference, teams, championsById);
+  return {
+    sessionId: reference.match.matchIdentity,
+    scenario: 'REFERENCE_SUCCESS',
+    setup: selection,
+    selectedTeams: { BLUE: selectedTeams.BLUE, RED: selectedTeams.RED },
+    draft: createDraft(reference, teams, championsById),
+    playback,
+    result: createResult(reference, teams, playback.playerNamesById),
+  };
+}
 
-export const positions: readonly Position[] = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'];
+export const referenceMatchSession = createReferenceMatchSession({
+  blueTeamId: reference.request.blueTeamCode,
+  redTeamId: reference.request.redTeamCode,
+  seed: reference.request.seed,
+  gameNumber: reference.match.draft.seriesGameNumber,
+  seriesType: referenceMatchSetupOptions.seriesType,
+});
+
+export const positions = POSITIONS;
+export const sides = SIDES;

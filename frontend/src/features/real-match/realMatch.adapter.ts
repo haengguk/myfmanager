@@ -1,54 +1,31 @@
 import type {
-  DraftResultViewModel,
-  MatchSnapshotViewModel,
-  PlaybackEventType,
-  PlaybackViewModel,
-  PositionComparisonViewModel,
-  TeamSide,
+  MatchEventType, MatchSnapshotViewModel, PlaybackViewModel, Position, PositionComparisonViewModel, TeamSide,
 } from './realMatch.types';
 
-export function applyDraftResult(viewModel: PlaybackViewModel, result: DraftResultViewModel): PlaybackViewModel {
-  const championByPlayerId = new Map(
-    [...result.rosters.BLUE, ...result.rosters.RED]
-      .filter((slot) => slot.championId !== null)
-      .map((slot) => [slot.playerId, slot.championId as string]),
-  );
-  const championFor = (playerId: string, fallback: string) => championByPlayerId.get(playerId) ?? fallback;
+export const positionLabels = { TOP: 'TOP', JUNGLE: 'JUNGLE', MID: 'MID', ADC: 'ADC', SUPPORT: 'SUPPORT' } as const;
 
-  return {
-    ...viewModel,
-    snapshots: viewModel.snapshots.map((snapshot) => ({
-      ...snapshot,
-      teams: {
-        BLUE: { ...snapshot.teams.BLUE, champions: snapshot.teams.BLUE.champions.map((player) => ({ ...player, championId: championFor(player.playerId, player.championId) })) },
-        RED: { ...snapshot.teams.RED, champions: snapshot.teams.RED.champions.map((player) => ({ ...player, championId: championFor(player.playerId, player.championId) })) },
-      },
-    })),
-    comparisonAtInitialTime: viewModel.comparisonAtInitialTime.map((row) => ({
-      ...row,
-      blue: { ...row.blue, championId: championFor(row.blue.playerId, row.blue.championId) },
-      red: { ...row.red, championId: championFor(row.red.playerId, row.red.championId) },
-    })),
-  };
-}
-
-export const positionLabels = {
-  TOP: 'TOP', JUNGLE: 'JUNGLE', MID: 'MID', ADC: 'ADC', SUPPORT: 'SUPPORT',
-} as const;
-
-export const eventPresentation: Record<PlaybackEventType, { label: string; tone: string }> = {
-  MATCH_START: { label: '경기 시작', tone: 'phase' },
-  ROAM: { label: '로밍', tone: 'accent' },
-  GANK_ATTEMPT: { label: '갱킹', tone: 'accent' },
-  GOLD_LEAD: { label: '골드 격차', tone: 'accent' },
+export const eventPresentation: Record<MatchEventType, { label: string; tone: string }> = {
+  GAME_START: { label: '경기 시작', tone: 'phase' },
   KILL: { label: '킬', tone: 'kill' },
   ASSIST: { label: '어시스트', tone: 'kill' },
-  PHASE_CHANGE: { label: '단계 전환', tone: 'phase' },
-  OBJECTIVE: { label: '오브젝트', tone: 'objective' },
-  TOWER: { label: '포탑', tone: 'phase' },
+  JUNGLE_GANK: { label: '정글 갱킹', tone: 'accent' },
+  COUNTER_GANK: { label: '역갱', tone: 'accent' },
+  LANE_COMBAT: { label: '라인 교전', tone: 'kill' },
+  ROAM: { label: '로밍', tone: 'accent' },
+  SHUTDOWN: { label: '제압', tone: 'kill' },
+  DRAGON: { label: '드래곤', tone: 'objective' },
+  BARON: { label: '바론', tone: 'objective' },
+  ELDER: { label: '장로', tone: 'objective' },
+  TOWER: { label: '구조물', tone: 'phase' },
   TEAMFIGHT: { label: '한타', tone: 'teamfight' },
-  INHIBITOR: { label: '억제기', tone: 'phase' },
-  MATCH_END: { label: '종료', tone: 'success' },
+  TEAMFIGHT_RESULT: { label: '한타 결과', tone: 'teamfight' },
+  ACE: { label: '에이스', tone: 'teamfight' },
+  MATCH_PHASE_CHANGE: { label: '단계 전환', tone: 'phase' },
+  MACRO_ACTION: { label: '운영', tone: 'accent' },
+  LATE_GAME_ACTION: { label: '후반 운영', tone: 'accent' },
+  LEVEL_UP: { label: '레벨 업', tone: 'phase' },
+  ITEM_STAGE_REACHED: { label: '아이템', tone: 'phase' },
+  GAME_END: { label: '경기 종료', tone: 'success' },
 };
 
 export function formatMatchTime(seconds: number): string {
@@ -57,27 +34,37 @@ export function formatMatchTime(seconds: number): string {
 }
 
 export function selectSnapshot(viewModel: PlaybackViewModel, currentSeconds: number): MatchSnapshotViewModel {
-  return [...viewModel.snapshots].reverse().find((snapshot) => snapshot.atSeconds <= currentSeconds) ?? viewModel.snapshots[0];
+  for (let index = viewModel.snapshots.length - 1; index >= 0; index -= 1) {
+    if (viewModel.snapshots[index].atSeconds <= currentSeconds) return viewModel.snapshots[index];
+  }
+  return viewModel.snapshots[0];
 }
 
-export function comparisonAt(viewModel: PlaybackViewModel, currentSeconds: number): readonly PositionComparisonViewModel[] {
-  const factor = currentSeconds <= 0 ? 0 : Math.min(1.5, currentSeconds / viewModel.comparisonReferenceSeconds);
-  return viewModel.comparisonAtInitialTime.map((row) => ({
-    ...row,
-    blue: scalePlayer(row.blue, factor),
-    red: scalePlayer(row.red, factor),
-  }));
-}
-
-function scalePlayer(player: PositionComparisonViewModel['blue'], factor: number): PositionComparisonViewModel['blue'] {
+function playerAt(snapshot: MatchSnapshotViewModel, side: TeamSide, position: Position) {
+  const player = snapshot.teams[side].champions.find((candidate) => candidate.position === position);
+  if (!player) throw new Error(`${side} ${position} snapshot 선수를 찾을 수 없습니다.`);
   return {
-    ...player,
-    kills: Math.round(player.kills * factor), deaths: Math.round(player.deaths * factor), assists: Math.round(player.assists * factor),
-    cs: Math.round(player.cs * factor), gold: player.gold * factor,
-    level: factor === 0 ? 1 : Math.max(1, Math.round(player.level * Math.min(1, factor))),
+    playerId: player.playerId,
+    playerName: player.playerName,
+    championId: player.championId,
+    position: player.position,
+    kills: player.kills,
+    deaths: player.deaths,
+    assists: player.assists,
+    cs: player.cs,
+    gold: player.gold,
+    totalExperience: player.totalExperience,
+    level: player.level,
   };
 }
 
-export function sideName(side: TeamSide): string {
-  return side === 'BLUE' ? '블루' : '레드';
+export function comparisonAt(viewModel: PlaybackViewModel, currentSeconds: number): readonly PositionComparisonViewModel[] {
+  const snapshot = selectSnapshot(viewModel, currentSeconds);
+  return (['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] as const).map((position) => ({
+    position,
+    blue: playerAt(snapshot, 'BLUE', position),
+    red: playerAt(snapshot, 'RED', position),
+  }));
 }
+
+export function sideName(side: TeamSide): string { return side === 'BLUE' ? '블루' : '레드'; }

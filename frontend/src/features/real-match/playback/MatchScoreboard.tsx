@@ -9,5 +9,5 @@ export function MatchScoreboard({ viewModel, snapshot, currentSeconds, playing }
 function TeamScoreBlock({ side, viewModel, kills, gold, otherGold }: { side: TeamSide; viewModel: PlaybackViewModel; kills: number; gold: number; otherGold: number }) {
   const team = viewModel.teams[side];
   const lead = gold - otherGold;
-  return <div className={`rm-score-team rm-side-${side.toLowerCase()}`}><TeamEmblem side={side} code={team.code} /><div className="rm-score-team-copy"><span>{side} · 시리즈 {team.seriesScore}</span><h2>{team.code}</h2><small>{team.record}</small></div><div className="rm-score-stat"><span>킬</span><strong>{kills}</strong></div><div className="rm-score-stat"><span>총 골드</span><strong>{gold.toFixed(1)}K</strong>{lead > 0 ? <em>{team.code} +{lead.toFixed(1)}K</em> : null}</div></div>;
+  return <div className={`rm-score-team rm-side-${side.toLowerCase()}`}><TeamEmblem side={side} code={team.code} /><div className="rm-score-team-copy"><span>{side} · Fresh Game 1</span><h2>{team.code}</h2><small>{team.detail}</small></div><div className="rm-score-stat"><span>킬</span><strong>{kills}</strong></div><div className="rm-score-stat"><span>총 골드</span><strong>{(gold / 1000).toFixed(1)}K</strong>{lead > 0 ? <em>{team.code} +{(lead / 1000).toFixed(1)}K</em> : null}</div></div>;
 }

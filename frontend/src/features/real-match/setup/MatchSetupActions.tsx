@@ -15,7 +15,7 @@ export function MatchSetupActions({
     <footer className="rm-setup-actions">
       <div aria-live="polite"><strong>{statusTitle}</strong><span>{statusCopy}</span></div>
       <button className="rm-primary-action" type="button" disabled={!ready || creating} onClick={onStart}>
-        {creating ? <><span className="rm-spinner" aria-hidden="true" />경기 생성 중…</> : '경기 시작'}
+        {creating ? <><span className="rm-spinner" aria-hidden="true" />Reference 준비 중…</> : '자동 Draft 결과 보기'}
       </button>
     </footer>
   );

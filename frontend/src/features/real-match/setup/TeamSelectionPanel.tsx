@@ -43,8 +43,8 @@ export function TeamRosterPreview({ team, loading, error }: { team: MatchTeamOpt
   return (
     <div className="rm-team-preview">
       <header>
-        <div><h2>{team.code}</h2><p>{team.league} · {team.name}</p></div>
-        <div><strong>{team.record}</strong><span>현재 시즌</span></div>
+        <div><h2>{team.code}</h2><p>LCK · {team.name}</p></div>
+        <div><strong>선발 5명</strong><span>승인 options</span></div>
       </header>
       <div className="rm-setup-roster">
         {team.roster.map((player) => (
