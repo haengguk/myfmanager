@@ -134,6 +134,135 @@ tasks.register("runRealMatchRuntimeAutoDraftScalabilityAuditV1", Test) {
             "test-results/realMatchRuntimeAutoDraftScalabilityV1")
 }
 
+["A", "B"].each { String suffix ->
+    tasks.register("runDraftEnginePerformanceCrossJvmProbe${suffix}", Test) {
+        group = "verification"
+        description = "Captures optimized Draft identity in fresh JVM ${suffix}."
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        useJUnitPlatform {
+            includeTags "auto-draft-cross-jvm-v1"
+        }
+        maxHeapSize = "3g"
+        maxParallelForks = 1
+        failFast = true
+        outputs.upToDateWhen { false }
+        systemProperty "autoDraftProbeOutput", layout.buildDirectory.file(
+                "reports/draft-engine-performance-hardening-v1-inputs/"
+                        + "cross-jvm-${suffix.toLowerCase()}.json").get().asFile.absolutePath
+        reports.html.outputLocation = layout.buildDirectory.dir(
+                "reports/tests/draftEnginePerformanceCrossJvm${suffix}")
+        reports.junitXml.outputLocation = layout.buildDirectory.dir(
+                "test-results/draftEnginePerformanceCrossJvm${suffix}")
+    }
+}
+
+tasks.register("verifyDraftEnginePerformanceCrossJvmV1") {
+    group = "verification"
+    description = "Byte-verifies optimized Draft identity across two fresh JVMs."
+    dependsOn("runDraftEnginePerformanceCrossJvmProbeA",
+            "runDraftEnginePerformanceCrossJvmProbeB")
+    doLast {
+        def directory = layout.buildDirectory.dir(
+                "reports/draft-engine-performance-hardening-v1-inputs").get().asFile.toPath()
+        byte[] first = Files.readAllBytes(directory.resolve("cross-jvm-a.json"))
+        byte[] second = Files.readAllBytes(directory.resolve("cross-jvm-b.json"))
+        if (!Arrays.equals(first, second)) {
+            throw new GradleException("Draft performance cross-JVM identity mismatch")
+        }
+    }
+}
+
+tasks.register("runDraftEnginePerformanceCandidateV1", Test) {
+    group = "verification"
+    description = "Captures an unverified 12-fixture Draft performance candidate."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "draft-engine-performance-hardening-v1"
+    }
+    maxHeapSize = "3g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    systemProperty "draftPerformanceOutput", "candidate"
+    systemProperty "lolfm.gradleVersion", gradle.gradleVersion
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/draftEnginePerformanceCandidateV1")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/draftEnginePerformanceCandidateV1")
+}
+
+tasks.register("runDraftEnginePerformanceHardeningV1", Test) {
+    group = "verification"
+    description = "Captures the official post-regression Draft performance hardening evidence."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "draft-engine-performance-hardening-v1"
+    }
+    maxHeapSize = "3g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    systemProperty "draftPerformanceOutput", "official"
+    systemProperty "lolfm.gradleVersion", gradle.gradleVersion
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/draftEnginePerformanceHardeningV1")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/draftEnginePerformanceHardeningV1")
+}
+
+["A", "B"].each { String suffix ->
+    tasks.register("generateRealMatchApiV1HandoffRefreshCandidate${suffix}", JavaExec) {
+        group = "verification"
+        description = "Generates current-source Real Match API handoff candidate ${suffix}."
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = "com.lolfm.controller.RealMatchApiV1ArtifactWriter"
+        dependsOn(testClasses)
+        args projectDir.absolutePath, layout.buildDirectory.dir(
+                "reports/real-match-api-v1-refresh-candidates/${suffix.toLowerCase()}")
+                .get().asFile.absolutePath
+        outputs.upToDateWhen { false }
+    }
+}
+
+tasks.register("verifyRealMatchApiV1HandoffRefreshCandidatesV1") {
+    group = "verification"
+    description = "Byte-verifies two fresh current-source Real Match handoff candidates."
+    dependsOn("generateRealMatchApiV1HandoffRefreshCandidateA",
+            "generateRealMatchApiV1HandoffRefreshCandidateB")
+    doLast {
+        def root = layout.buildDirectory.dir(
+                "reports/real-match-api-v1-refresh-candidates").get().asFile.toPath()
+        def first = root.resolve("a")
+        def second = root.resolve("b")
+        def files = Files.list(first).withCloseable { stream ->
+            stream.map { path -> path.fileName.toString() }.sorted().toList()
+        }
+        def other = Files.list(second).withCloseable { stream ->
+            stream.map { path -> path.fileName.toString() }.sorted().toList()
+        }
+        if (files != other || files.any { name ->
+            !Arrays.equals(Files.readAllBytes(first.resolve(name)),
+                    Files.readAllBytes(second.resolve(name)))
+        }) {
+            throw new GradleException("Real Match API handoff refresh candidates differ")
+        }
+    }
+}
+
+tasks.register("generateRealMatchApiV1HandoffRefreshOfficialV1", JavaExec) {
+    group = "verification"
+    description = "Refreshes the official current-source Real Match API handoff after candidate equality."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.controller.RealMatchApiV1ArtifactWriter"
+    dependsOn("verifyRealMatchApiV1HandoffRefreshCandidatesV1")
+    args projectDir.absolutePath,
+            layout.buildDirectory.dir("reports/real-match-api-v1").get().asFile.absolutePath
+    outputs.upToDateWhen { false }
+}
+
 tasks.register("runRealMatchPerformanceBaselineV1", Test) {
     group = "verification"
     description = "Captures the two-fixture Real Match V1 performance baseline in one fresh JVM."

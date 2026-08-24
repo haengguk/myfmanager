@@ -20,6 +20,16 @@ public final class RoleAssignmentSolver {
     public RoleAssignmentSolver(ChampionCatalog catalog) { this.catalog = Objects.requireNonNull(catalog); }
 
     public List<RoleAssignment> feasibleAssignments(List<ChampionId> champions) {
+        return computeFeasibleAssignments(champions);
+    }
+
+    List<RoleAssignment> feasibleAssignments(List<ChampionId> champions,
+                                             DraftComputationContext context) {
+        return context.roleAssignments(champions,
+                () -> computeFeasibleAssignments(champions));
+    }
+
+    private List<RoleAssignment> computeFeasibleAssignments(List<ChampionId> champions) {
         if (champions.size() > Position.values().length) return List.of();
         if (champions.stream().distinct().count() != champions.size()) return List.of();
         List<ChampionId> stable = champions.stream().sorted(Comparator.comparing(ChampionId::value)).toList();
@@ -48,24 +58,57 @@ public final class RoleAssignmentSolver {
 
     public boolean isFeasible(List<ChampionId> champions) { return !feasibleAssignments(champions).isEmpty(); }
 
+    boolean isFeasible(List<ChampionId> champions, DraftComputationContext context) {
+        return !feasibleAssignments(champions, context).isEmpty();
+    }
+
     /** Roles the candidate can still occupy in at least one legal assignment of the current partial draft. */
     public Set<Position> feasibleCandidatePositions(List<ChampionId> picks, ChampionId candidate) {
+        return computeFeasibleCandidatePositions(picks, candidate, null);
+    }
+
+    Set<Position> feasibleCandidatePositions(List<ChampionId> picks, ChampionId candidate,
+                                             DraftComputationContext context) {
+        return context.candidatePositions(picks, candidate,
+                () -> computeFeasibleCandidatePositions(picks, candidate, context));
+    }
+
+    private Set<Position> computeFeasibleCandidatePositions(
+            List<ChampionId> picks, ChampionId candidate,
+            DraftComputationContext context) {
         ArrayList<ChampionId> next = new ArrayList<>(picks);
         next.add(candidate);
         EnumSet<Position> result = EnumSet.noneOf(Position.class);
-        feasibleAssignments(next).forEach(value -> result.add(value.positionOf(candidate)));
+        assignments(next, context).forEach(value -> result.add(value.positionOf(candidate)));
         return Set.copyOf(result);
     }
 
     public Set<Position> feasiblePickedPositions(List<ChampionId> picks, ChampionId champion) {
+        return computeFeasiblePickedPositions(picks, champion, null);
+    }
+
+    Set<Position> feasiblePickedPositions(List<ChampionId> picks, ChampionId champion,
+                                          DraftComputationContext context) {
+        return context.pickedPositions(picks, champion,
+                () -> computeFeasiblePickedPositions(picks, champion, context));
+    }
+
+    private Set<Position> computeFeasiblePickedPositions(
+            List<ChampionId> picks, ChampionId champion,
+            DraftComputationContext context) {
         if (!picks.contains(champion)) return Set.of();
         EnumSet<Position> result = EnumSet.noneOf(Position.class);
-        feasibleAssignments(picks).forEach(value -> result.add(value.positionOf(champion)));
+        assignments(picks, context).forEach(value -> result.add(value.positionOf(champion)));
         return Set.copyOf(result);
     }
 
     public RoleAssignment bestAssignment(List<ChampionId> champions, DraftTeamContext team) {
-        return feasibleAssignments(champions).stream()
+        return bestAssignment(champions, team, null);
+    }
+
+    RoleAssignment bestAssignment(List<ChampionId> champions, DraftTeamContext team,
+                                  DraftComputationContext context) {
+        return assignments(champions, context).stream()
                 .max(Comparator.comparingDouble((RoleAssignment value) -> proficiencyScore(value, team))
                         .thenComparing(RoleAssignment::stableId, Comparator.reverseOrder()))
                 .orElseThrow(() -> new IllegalArgumentException("No legal role assignment"));
@@ -78,8 +121,13 @@ public final class RoleAssignmentSolver {
     }
 
     public double practicalFlexValue(List<ChampionId> picks, ChampionId candidate, DraftTeamContext team) {
+        return practicalFlexValue(picks, candidate, team, null);
+    }
+
+    double practicalFlexValue(List<ChampionId> picks, ChampionId candidate,
+                              DraftTeamContext team, DraftComputationContext context) {
         ArrayList<ChampionId> next = new ArrayList<>(picks); next.add(candidate);
-        List<RoleAssignment> feasible = feasibleAssignments(next);
+        List<RoleAssignment> feasible = assignments(next, context);
         if (feasible.isEmpty()) return Double.NEGATIVE_INFINITY;
         EnumMap<Position, Double> roleBest = new EnumMap<>(Position.class);
         feasible.forEach(value -> roleBest.merge(value.positionOf(candidate),
@@ -87,6 +135,12 @@ public final class RoleAssignmentSolver {
         double best = roleBest.values().stream().mapToDouble(Double::doubleValue).max().orElse(0.0);
         long strong = roleBest.values().stream().filter(value -> value >= best - 2.0).count();
         return Math.min(20.0, best * 0.72 + Math.min(6, strong) * 1.3);
+    }
+
+    private List<RoleAssignment> assignments(List<ChampionId> champions,
+                                             DraftComputationContext context) {
+        return context == null ? feasibleAssignments(champions)
+                : feasibleAssignments(champions, context);
     }
 
     public record RoleAssignment(Map<ChampionId, Position> positions) {

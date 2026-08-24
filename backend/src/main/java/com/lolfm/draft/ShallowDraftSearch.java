@@ -21,19 +21,26 @@ public final class ShallowDraftSearch {
     }
 
     public SearchChoice choose(DraftState state, DraftTeamContext blue, DraftTeamContext red) {
+        return choose(state, blue, red, DraftComputationContext.uncached());
+    }
+
+    SearchChoice choose(DraftState state, DraftTeamContext blue, DraftTeamContext red,
+                        DraftComputationContext context) {
         TeamSide root = state.currentTurn().side();
-        DraftPlanPortfolio rootPortfolio = portfolio(state, root, blue, red);
-        DraftPlanPortfolio enemyPortfolio = portfolio(state, root.opposite(), blue, red);
+        DraftPlanPortfolio rootPortfolio = portfolio(state, root, blue, red, context);
+        DraftPlanPortfolio enemyPortfolio = portfolio(
+                state, root.opposite(), blue, red, context);
         List<ChampionId> rootCandidates = candidates.generate(state, context(root, blue, red),
-                context(root.opposite(), blue, red), rootPortfolio, enemyPortfolio);
+                context(root.opposite(), blue, red), rootPortfolio, enemyPortfolio, context);
         if (rootCandidates.isEmpty()) throw new IllegalStateException("No legal draft candidate at turn " + state.currentTurn().number());
         ArrayList<ScoredCandidate> scored = new ArrayList<>();
         for (ChampionId candidate : rootCandidates) {
             ActionEvaluation evaluation = actionEvaluation(state, candidate, blue, red,
-                    rootPortfolio, enemyPortfolio);
+                    rootPortfolio, enemyPortfolio, context);
             double immediate = evaluation.score();
             DraftState next = state.apply(action(state, candidate));
-            double continuation = utility(next, root, blue, red, policy.searchDepth() - 1, 0.72);
+            double continuation = utility(next, root, blue, red,
+                    policy.searchDepth() - 1, 0.72, context);
             scored.add(new ScoredCandidate(candidate, immediate, continuation,
                     immediate + continuation, evaluation.components()));
         }
@@ -59,20 +66,25 @@ public final class ShallowDraftSearch {
     }
 
     private double utility(DraftState state, TeamSide root, DraftTeamContext blue, DraftTeamContext red,
-                           int depth, double discount) {
+                           int depth, double discount,
+                           DraftComputationContext context) {
         if (depth == 0 || state.complete()) return terminalRoleSecurity(state, root);
         TeamSide actor = state.currentTurn().side();
-        DraftPlanPortfolio actorPortfolio = portfolio(state, actor, blue, red);
-        DraftPlanPortfolio enemyPortfolio = portfolio(state, actor.opposite(), blue, red);
+        DraftPlanPortfolio actorPortfolio = portfolio(state, actor, blue, red, context);
+        DraftPlanPortfolio enemyPortfolio = portfolio(
+                state, actor.opposite(), blue, red, context);
         List<ChampionId> generated = candidates.generate(state, context(actor, blue, red),
-                context(actor.opposite(), blue, red), actorPortfolio, enemyPortfolio)
+                context(actor.opposite(), blue, red), actorPortfolio, enemyPortfolio,
+                context)
                 .stream().limit(policy.beamWidth()).toList();
         if (generated.isEmpty()) return actor == root ? -1000.0 : 1000.0;
         double best = actor == root ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
         for (ChampionId candidate : generated) {
             double signed = (actor == root ? 1.0 : -1.0)
-                    * actionEvaluation(state, candidate, blue, red, actorPortfolio, enemyPortfolio).score() * discount;
-            double value = signed + utility(state.apply(action(state, candidate)), root, blue, red, depth - 1, discount * 0.72);
+                    * actionEvaluation(state, candidate, blue, red, actorPortfolio,
+                    enemyPortfolio, context).score() * discount;
+            double value = signed + utility(state.apply(action(state, candidate)), root,
+                    blue, red, depth - 1, discount * 0.72, context);
             best = actor == root ? Math.max(best, value) : Math.min(best, value);
         }
         return best;
@@ -81,23 +93,29 @@ public final class ShallowDraftSearch {
     private ActionEvaluation actionEvaluation(DraftState state, ChampionId candidate,
                                               DraftTeamContext blue, DraftTeamContext red,
                                               DraftPlanPortfolio ownPlan,
-                                              DraftPlanPortfolio enemyPlan) {
+                                              DraftPlanPortfolio enemyPlan,
+                                              DraftComputationContext context) {
         TeamSide side = state.currentTurn().side();
         DraftTeamContext own = context(side, blue, red), enemy = context(side.opposite(), blue, red);
         if (state.currentTurn().actionType() == DraftActionType.PICK) {
-            PickEvaluation value = picks.evaluate(state, side, candidate, own, enemy, ownPlan, enemyPlan);
+            PickEvaluation value = picks.evaluate(state, side, candidate, own, enemy,
+                    ownPlan, enemyPlan, context);
             Map<String, Double> components = new LinkedHashMap<>();
             value.components().forEach((key, component) -> components.put(key.name(), component));
             return new ActionEvaluation(value.finalScore(), components);
         }
-        BanEvaluation value = bans.evaluate(state, side, candidate, own, enemy, ownPlan, enemyPlan);
+        BanEvaluation value = bans.evaluate(state, side, candidate, own, enemy,
+                ownPlan, enemyPlan, context);
         Map<String, Double> components = new LinkedHashMap<>();
         value.components().forEach((key, component) -> components.put(key.name(), component));
         return new ActionEvaluation(value.finalScore(), components);
     }
 
-    private DraftPlanPortfolio portfolio(DraftState state, TeamSide side, DraftTeamContext blue, DraftTeamContext red) {
-        return planner.replan(context(side, blue, red), context(side.opposite(), blue, red), side, state);
+    private DraftPlanPortfolio portfolio(DraftState state, TeamSide side,
+                                         DraftTeamContext blue, DraftTeamContext red,
+                                         DraftComputationContext computation) {
+        return planner.replan(context(side, blue, red), context(side.opposite(), blue, red),
+                side, state, computation);
     }
     private static DraftTeamContext context(TeamSide side, DraftTeamContext blue, DraftTeamContext red) {
         return side == TeamSide.BLUE ? blue : red;

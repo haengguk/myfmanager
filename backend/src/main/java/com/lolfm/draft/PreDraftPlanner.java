@@ -31,52 +31,86 @@ public final class PreDraftPlanner {
 
     public DraftPlanPortfolio plan(DraftTeamContext team, DraftTeamContext opponent, TeamSide side,
                                    Set<ChampionId> fearlessExclusions) {
-        return build(team, opponent, side, fearlessExclusions, List.of(), List.of());
+        return plan(team, opponent, side, fearlessExclusions,
+                DraftComputationContext.uncached());
+    }
+
+    DraftPlanPortfolio plan(DraftTeamContext team, DraftTeamContext opponent, TeamSide side,
+                            Set<ChampionId> fearlessExclusions,
+                            DraftComputationContext context) {
+        return build(team, opponent, side, fearlessExclusions, List.of(), List.of(),
+                context);
     }
 
     public DraftPlanPortfolio replan(DraftTeamContext team, DraftTeamContext opponent, TeamSide side,
                                      Set<ChampionId> fearlessExclusions, List<ChampionId> ownPicks,
                                      List<ChampionId> enemyPicks) {
+        return replan(team, opponent, side, fearlessExclusions, ownPicks, enemyPicks,
+                DraftComputationContext.uncached());
+    }
+
+    DraftPlanPortfolio replan(DraftTeamContext team, DraftTeamContext opponent, TeamSide side,
+                              Set<ChampionId> fearlessExclusions,
+                              List<ChampionId> ownPicks, List<ChampionId> enemyPicks,
+                              DraftComputationContext context) {
         Set<ChampionId> unavailable = new java.util.HashSet<>(fearlessExclusions);
         unavailable.addAll(ownPicks);
         unavailable.addAll(enemyPicks);
-        return build(team, opponent, side, unavailable, ownPicks, enemyPicks);
+        return build(team, opponent, side, unavailable, ownPicks, enemyPicks, context);
     }
 
     public DraftPlanPortfolio replan(DraftTeamContext team, DraftTeamContext opponent,
                                      TeamSide side, DraftState state) {
+        return replan(team, opponent, side, state, DraftComputationContext.uncached());
+    }
+
+    DraftPlanPortfolio replan(DraftTeamContext team, DraftTeamContext opponent,
+                              TeamSide side, DraftState state,
+                              DraftComputationContext context) {
         return build(team, opponent, side, state.unavailableChampions(),
-                state.picks(side), state.picks(side.opposite()));
+                state.picks(side), state.picks(side.opposite()), context);
     }
 
     private DraftPlanPortfolio build(DraftTeamContext team, DraftTeamContext opponent, TeamSide side,
                                      Set<ChampionId> unavailable, List<ChampionId> ownPicks,
-                                     List<ChampionId> enemyPicks) {
+                                     List<ChampionId> enemyPicks,
+                                     DraftComputationContext context) {
         List<ChampionId> available = champions.all().stream().map(value -> value.id())
                 .filter(id -> !unavailable.contains(id)).toList();
         Map<ChampionId, Set<Position>> ownCandidateRoles = available.stream().collect(
                 java.util.stream.Collectors.toUnmodifiableMap(
-                        id -> id, id -> assignments.feasibleCandidatePositions(ownPicks, id)));
+                        id -> id, id -> assignments.feasibleCandidatePositions(
+                                ownPicks, id, context)));
         Map<ChampionId, Set<Position>> enemyCandidateRoles = available.stream().collect(
                 java.util.stream.Collectors.toUnmodifiableMap(
-                        id -> id, id -> assignments.feasibleCandidatePositions(enemyPicks, id)));
+                        id -> id, id -> assignments.feasibleCandidatePositions(
+                                enemyPicks, id, context)));
         Map<ChampionId, Set<Position>> enemyPickedRoles = enemyPicks.stream().collect(
                 java.util.stream.Collectors.toUnmodifiableMap(
-                        id -> id, id -> assignments.feasiblePickedPositions(enemyPicks, id)));
+                        id -> id, id -> assignments.feasiblePickedPositions(
+                                enemyPicks, id, context)));
         List<RoleAssignmentSolver.RoleAssignment> ownAssignments =
-                assignments.feasibleAssignments(ownPicks);
+                assignments.feasibleAssignments(ownPicks, context);
         ArrayList<DraftPlan> plans = new ArrayList<>();
         for (DraftPlanArchetype archetype : DraftPlanArchetype.values()) {
+            Map<ChampionId, Double> localCandidateValues = context.reuseEnabled()
+                    ? precomputeCandidateValues(
+                    available, archetype, team, ownCandidateRoles, context)
+                    : Map.of();
             List<ChampionId> core = available.stream()
                     .filter(id -> !ownCandidateRoles.get(id).isEmpty())
                     .sorted(Comparator.comparingDouble((ChampionId id) -> candidatePlanValue(
-                                    id, archetype, team, ownCandidateRoles.get(id))).reversed()
+                                    id, archetype, team, ownCandidateRoles.get(id), context,
+                                    localCandidateValues)).reversed()
                             .thenComparing(ChampionId::value)).limit(10).toList();
             EnumMap<CompositionCapability, Double> missing = missing(
                     archetype, team, ownAssignments);
             double pool = core.stream().mapToDouble(id -> candidatePlanValue(
-                    id, archetype, team, ownCandidateRoles.get(id))).average().orElse(0.0);
-            double own = partialPlanValue(archetype, team, pool, ownAssignments);
+                    id, archetype, team, ownCandidateRoles.get(id), context,
+                    localCandidateValues))
+                    .average().orElse(0.0);
+            double own = partialPlanValue(
+                    archetype, team, pool, ownAssignments, context);
             double opponentExposure = opponentExposure(
                     archetype, opponent, available, enemyPicks,
                     enemyCandidateRoles, enemyPickedRoles);
@@ -86,6 +120,22 @@ public final class PreDraftPlanner {
         }
         return new DraftPlanPortfolio(plans.stream().sorted(Comparator.comparingDouble(DraftPlan::viability).reversed()
                 .thenComparing(plan -> plan.archetype().name())).limit(3).toList());
+    }
+
+    private Map<ChampionId, Double> precomputeCandidateValues(
+            List<ChampionId> available, DraftPlanArchetype archetype,
+            DraftTeamContext team,
+            Map<ChampionId, Set<Position>> candidateRoles,
+            DraftComputationContext context) {
+        HashMap<ChampionId, Double> result = new HashMap<>();
+        for (ChampionId id : available) {
+            Set<Position> positions = candidateRoles.get(id);
+            if (!positions.isEmpty()) {
+                result.put(id, candidatePlanValue(
+                        id, archetype, team, positions, context));
+            }
+        }
+        return result;
     }
 
     private double opponentExposure(DraftPlanArchetype archetype, DraftTeamContext opponent,
@@ -123,6 +173,25 @@ public final class PreDraftPlanner {
         return best;
     }
 
+    private double candidatePlanValue(ChampionId id, DraftPlanArchetype archetype,
+                                      DraftTeamContext team, Set<Position> feasiblePositions,
+                                      DraftComputationContext context) {
+        context.recordPlannerCandidatePhysicalComputation();
+        return candidatePlanValue(id, archetype, team, feasiblePositions);
+    }
+
+    private double candidatePlanValue(ChampionId id, DraftPlanArchetype archetype,
+                                      DraftTeamContext team, Set<Position> feasiblePositions,
+                                      DraftComputationContext context,
+                                      Map<ChampionId, Double> localCandidateValues) {
+        Double value = localCandidateValues.get(id);
+        if (value != null) {
+            context.recordPlannerCandidateLocalReuse();
+            return value;
+        }
+        return candidatePlanValue(id, archetype, team, feasiblePositions, context);
+    }
+
     private EnumMap<CompositionCapability, Double> missing(
             DraftPlanArchetype archetype, DraftTeamContext team,
             List<RoleAssignmentSolver.RoleAssignment> feasible) {
@@ -138,10 +207,11 @@ public final class PreDraftPlanner {
 
     private double partialPlanValue(DraftPlanArchetype archetype, DraftTeamContext team,
                                     double fallback,
-                                    List<RoleAssignmentSolver.RoleAssignment> feasible) {
+                                    List<RoleAssignmentSolver.RoleAssignment> feasible,
+                                    DraftComputationContext context) {
         return feasible.stream().mapToDouble(assignment ->
                 assignment.positions().entrySet().stream().mapToDouble(entry -> candidatePlanValue(
-                        entry.getKey(), archetype, team, Set.of(entry.getValue())))
+                        entry.getKey(), archetype, team, Set.of(entry.getValue()), context))
                         .average().orElse(fallback)).max().orElse(fallback);
     }
 

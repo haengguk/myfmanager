@@ -33,23 +33,38 @@ public final class BanEvaluator {
     public BanEvaluation evaluate(DraftState state, TeamSide side, ChampionId candidate,
                                   DraftTeamContext own, DraftTeamContext enemy,
                                   DraftPlanPortfolio ownPortfolio, DraftPlanPortfolio enemyPortfolio) {
-        boolean opponentCanComplete = availability.canComplete(state, side.opposite(), candidate);
+        return evaluate(state, side, candidate, own, enemy, ownPortfolio, enemyPortfolio,
+                DraftComputationContext.uncached());
+    }
+
+    BanEvaluation evaluate(DraftState state, TeamSide side, ChampionId candidate,
+                           DraftTeamContext own, DraftTeamContext enemy,
+                           DraftPlanPortfolio ownPortfolio,
+                           DraftPlanPortfolio enemyPortfolio,
+                           DraftComputationContext context) {
+        boolean opponentCanComplete = availability.canComplete(
+                state, side.opposite(), candidate, context);
         Set<Position> enemyPositions = assignments.feasibleCandidatePositions(
-                state.picks(side.opposite()), candidate);
+                state.picks(side.opposite()), candidate, context);
         double enemyExpected = opponentCanComplete
-                ? opponentExpectedValue(state, side, candidate, enemy, enemyPortfolio) : 0.0;
+                ? opponentExpectedValue(state, side, candidate, enemy, enemyPortfolio,
+                        context) : 0.0;
         double threat = opponentCanComplete ? structuralThreat(candidate, ownPortfolio, enemyPositions) : 0.0;
         double metaValue = opponentCanComplete
                 ? best(candidate, enemyPositions, key -> meta.priority(key)) : 0.0;
         double flex = opponentCanComplete
-                ? assignments.practicalFlexValue(state.picks(side.opposite()), candidate, enemy) : 0.0;
+                ? assignments.practicalFlexValue(state.picks(side.opposite()), candidate,
+                        enemy, context) : 0.0;
         if (!Double.isFinite(flex)) flex = 0.0;
         double compression = opponentCanComplete
-                ? availability.rolePoolCompression(state, side.opposite(), candidate) : 0.0;
+                ? availability.rolePoolCompression(
+                        state, side.opposite(), candidate, context) : 0.0;
         double protection = opponentCanComplete
-                ? protectionValue(state, side, candidate, ownPortfolio, enemyPositions) : 0.0;
-        Set<Position> ownPositions = assignments.feasibleCandidatePositions(state.picks(side), candidate);
-        double lost = availability.canComplete(state, side, candidate)
+                ? protectionValue(state, side, candidate, ownPortfolio, enemyPositions,
+                        context) : 0.0;
+        Set<Position> ownPositions = assignments.feasibleCandidatePositions(
+                state.picks(side), candidate, context);
+        double lost = availability.canComplete(state, side, candidate, context)
                 ? best(candidate, ownPositions, key -> meta.priority(key) * 0.55 + own.proficiency(key) * 0.45)
                 : 0.0;
         if (side == TeamSide.RED || state.nextTurnIndex() >= 6) lost *= 0.82;
@@ -66,29 +81,37 @@ public final class BanEvaluator {
     }
 
     private double opponentExpectedValue(DraftState state, TeamSide side, ChampionId candidate,
-                                         DraftTeamContext enemy, DraftPlanPortfolio enemyPortfolio) {
+                                         DraftTeamContext enemy,
+                                         DraftPlanPortfolio enemyPortfolio,
+                                         DraftComputationContext context) {
         Set<Position> feasiblePositions = assignments.feasibleCandidatePositions(
-                state.picks(side.opposite()), candidate);
+                state.picks(side.opposite()), candidate, context);
         double base = best(candidate, feasiblePositions,
                 key -> meta.priority(key) * 0.48 + enemy.proficiency(key) * 0.30);
         double plan = enemyPortfolio.plans().stream().filter(value -> value.coreCandidates().contains(candidate))
                 .mapToDouble(DraftPlan::viability).max().orElse(0.0);
-        double flex = assignments.practicalFlexValue(state.picks(side.opposite()), candidate, enemy);
-        double fit = draftComposition.compositionFit(state.picks(side.opposite()), candidate, enemy, enemyPortfolio);
+        double flex = assignments.practicalFlexValue(
+                state.picks(side.opposite()), candidate, enemy, context);
+        double fit = draftComposition.compositionFit(state.picks(side.opposite()), candidate,
+                enemy, enemyPortfolio, context);
         return base + plan * 0.10 + Math.max(0.0, flex) * 0.10 + Math.max(0.0, fit) * 0.10;
     }
 
     private double protectionValue(DraftState state, TeamSide side, ChampionId threat,
-                                   DraftPlanPortfolio ownPortfolio, Set<Position> threatPositions) {
+                                   DraftPlanPortfolio ownPortfolio,
+                                   Set<Position> threatPositions,
+                                   DraftComputationContext context) {
         double pickedProtection = state.picks(side).stream().mapToDouble(core -> directCoreThreat(
                 threat, core, threatPositions,
-                assignments.feasiblePickedPositions(state.picks(side), core))).max().orElse(0.0);
+                assignments.feasiblePickedPositions(
+                        state.picks(side), core, context))).max().orElse(0.0);
         double futureProtection = ownPortfolio.plans().stream()
                 .flatMap(plan -> plan.coreCandidates().stream().limit(5))
                 .filter(core -> !state.unavailableChampions().contains(core))
-                .filter(core -> availability.canComplete(state, side, core))
+                .filter(core -> availability.canComplete(state, side, core, context))
                 .mapToDouble(core -> directCoreThreat(threat, core, threatPositions,
-                        assignments.feasibleCandidatePositions(state.picks(side), core)))
+                        assignments.feasibleCandidatePositions(
+                                state.picks(side), core, context)))
                 .max().orElse(0.0);
         return Math.max(pickedProtection, futureProtection);
     }

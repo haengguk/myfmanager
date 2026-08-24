@@ -17,8 +17,17 @@ public final class FinalRoleAssignmentResolver {
 
     public ResolvedPair resolve(List<ChampionId> bluePicks, List<ChampionId> redPicks,
                                 DraftTeamContext blue, DraftTeamContext red) {
-        List<RoleAssignmentSolver.RoleAssignment> blueAssignments = assignments.feasibleAssignments(bluePicks);
-        List<RoleAssignmentSolver.RoleAssignment> redAssignments = assignments.feasibleAssignments(redPicks);
+        return resolve(bluePicks, redPicks, blue, red,
+                DraftComputationContext.uncached());
+    }
+
+    ResolvedPair resolve(List<ChampionId> bluePicks, List<ChampionId> redPicks,
+                         DraftTeamContext blue, DraftTeamContext red,
+                         DraftComputationContext context) {
+        List<RoleAssignmentSolver.RoleAssignment> blueAssignments =
+                assignments.feasibleAssignments(bluePicks, context);
+        List<RoleAssignmentSolver.RoleAssignment> redAssignments =
+                assignments.feasibleAssignments(redPicks, context);
         RoleAssignmentSolver.RoleAssignment blueChoice = robustChoice(blueAssignments, redAssignments, blue);
         RoleAssignmentSolver.RoleAssignment redChoice = robustChoice(redAssignments, blueAssignments, red);
         return new ResolvedPair(blueChoice, redChoice);

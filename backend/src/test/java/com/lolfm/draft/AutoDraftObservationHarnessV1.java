@@ -55,18 +55,30 @@ public final class AutoDraftObservationHarnessV1 {
 
     public Observation observe(DraftTeamContext blue, DraftTeamContext red,
                                SeriesDraftHistory history) {
+        return observe(blue, red, history, true);
+    }
+
+    public Observation observeUncached(DraftTeamContext blue, DraftTeamContext red,
+                                       SeriesDraftHistory history) {
+        return observe(blue, red, history, false);
+    }
+
+    private Observation observe(DraftTeamContext blue, DraftTeamContext red,
+                                SeriesDraftHistory history, boolean cacheEnabled) {
         Objects.requireNonNull(blue, "blue");
         Objects.requireNonNull(red, "red");
         Objects.requireNonNull(history, "history");
+        DraftComputationContext computation = cacheEnabled
+                ? DraftComputationContext.cached() : DraftComputationContext.uncached();
         Counters counters = new Counters();
         long draftStart = clock.getAsLong();
         DraftState state = DraftState.fresh(rules, history);
 
         long initialPlanStart = clock.getAsLong();
         DraftPlanPortfolio blueInitial = plan(blue, red, TeamSide.BLUE,
-                state.fearlessExclusions(), counters);
+                state.fearlessExclusions(), counters, computation);
         DraftPlanPortfolio redInitial = plan(red, blue, TeamSide.RED,
-                state.fearlessExclusions(), counters);
+                state.fearlessExclusions(), counters, computation);
         long initialPlanNanos = elapsed(initialPlanStart);
 
         ArrayList<DraftDecision> decisions = new ArrayList<>();
@@ -75,7 +87,7 @@ public final class AutoDraftObservationHarnessV1 {
             DraftTurn turn = state.currentTurn();
             CounterSnapshot before = counters.snapshot();
             long turnStart = clock.getAsLong();
-            SearchChoice choice = choose(state, blue, red, counters);
+            SearchChoice choice = choose(state, blue, red, counters, computation);
             long turnNanos = elapsed(turnStart);
             DraftDecision decision = new DraftDecision(
                     turn.number(), turn.side(), turn.actionType(), choice.championId(),
@@ -92,7 +104,7 @@ public final class AutoDraftObservationHarnessV1 {
 
         long finalRoleStart = clock.getAsLong();
         FinalRoleAssignmentResolver.ResolvedPair resolved = finalRoles.resolve(
-                state.bluePicks(), state.redPicks(), blue, red);
+                state.bluePicks(), state.redPicks(), blue, red, computation);
         long finalRoleNanos = elapsed(finalRoleStart);
         RoleAssignmentSolver.RoleAssignment blueRoles = resolved.blue();
         RoleAssignmentSolver.RoleAssignment redRoles = resolved.red();
@@ -102,8 +114,10 @@ public final class AutoDraftObservationHarnessV1 {
         long matchAssignmentNanos = elapsed(matchAssignmentStart);
 
         long finalPlanStart = clock.getAsLong();
-        DraftPlanPortfolio blueFinal = replan(blue, red, TeamSide.BLUE, state, counters);
-        DraftPlanPortfolio redFinal = replan(red, blue, TeamSide.RED, state, counters);
+        DraftPlanPortfolio blueFinal = replan(
+                blue, red, TeamSide.BLUE, state, counters, computation);
+        DraftPlanPortfolio redFinal = replan(
+                red, blue, TeamSide.RED, state, counters, computation);
         long finalPlanNanos = elapsed(finalPlanStart);
 
         FinalDraftResult result = new FinalDraftResult(
@@ -113,7 +127,8 @@ public final class AutoDraftObservationHarnessV1 {
                 resources.meta().metaVersion(), resources.meta().requiredLegalRoleKeyHash(),
                 resources.meta().actualLegalRoleKeyHash());
         return new Observation(result, elapsed(draftStart), initialPlanNanos, finalRoleNanos,
-                finalPlanNanos, matchAssignmentNanos, List.copyOf(turns), counters.snapshot());
+                finalPlanNanos, matchAssignmentNanos, List.copyOf(turns), counters.snapshot(),
+                ComputationSnapshot.from(computation.snapshot()));
     }
 
     public static boolean productionEquivalent(FinalDraftResult left,
@@ -145,14 +160,16 @@ public final class AutoDraftObservationHarnessV1 {
     }
 
     private SearchChoice choose(DraftState state, DraftTeamContext blue, DraftTeamContext red,
-                                Counters counters) {
+                                Counters counters,
+                                DraftComputationContext computation) {
         TeamSide root = state.currentTurn().side();
-        DraftPlanPortfolio rootPortfolio = portfolio(state, root, blue, red, counters);
+        DraftPlanPortfolio rootPortfolio = portfolio(
+                state, root, blue, red, counters, computation);
         DraftPlanPortfolio enemyPortfolio = portfolio(
-                state, root.opposite(), blue, red, counters);
+                state, root.opposite(), blue, red, counters, computation);
         List<ChampionId> rootCandidates = generate(state, context(root, blue, red),
                 context(root.opposite(), blue, red), rootPortfolio, enemyPortfolio, true,
-                counters);
+                counters, computation);
         if (rootCandidates.isEmpty()) {
             throw new IllegalStateException(
                     "No legal draft candidate at turn " + state.currentTurn().number());
@@ -160,11 +177,12 @@ public final class AutoDraftObservationHarnessV1 {
         ArrayList<ScoredCandidate> scored = new ArrayList<>();
         for (ChampionId candidate : rootCandidates) {
             ActionEvaluation evaluation = actionEvaluation(state, candidate, blue, red,
-                    rootPortfolio, enemyPortfolio, true, counters);
+                    rootPortfolio, enemyPortfolio, true, counters, computation);
             double immediate = evaluation.score();
             DraftState next = state.apply(action(state, candidate));
             double continuation = utility(next, root, blue, red,
-                    policy.searchDepth() - 1, CONTINUATION_DISCOUNT, counters);
+                    policy.searchDepth() - 1, CONTINUATION_DISCOUNT, counters,
+                    computation);
             scored.add(new ScoredCandidate(candidate, immediate, continuation,
                     immediate + continuation, evaluation.components()));
         }
@@ -184,7 +202,8 @@ public final class AutoDraftObservationHarnessV1 {
 
     private double utility(DraftState state, TeamSide root, DraftTeamContext blue,
                            DraftTeamContext red, int depth, double discount,
-                           Counters counters) {
+                           Counters counters,
+                           DraftComputationContext computation) {
         counters.continuationNodes++;
         counters.maximumContinuationDepth = Math.max(
                 counters.maximumContinuationDepth, policy.searchDepth() - depth);
@@ -193,12 +212,13 @@ public final class AutoDraftObservationHarnessV1 {
             return terminalRoleSecurity(state, root);
         }
         TeamSide actor = state.currentTurn().side();
-        DraftPlanPortfolio actorPortfolio = portfolio(state, actor, blue, red, counters);
+        DraftPlanPortfolio actorPortfolio = portfolio(
+                state, actor, blue, red, counters, computation);
         DraftPlanPortfolio enemyPortfolio = portfolio(
-                state, actor.opposite(), blue, red, counters);
+                state, actor.opposite(), blue, red, counters, computation);
         List<ChampionId> generated = generate(state, context(actor, blue, red),
                 context(actor.opposite(), blue, red), actorPortfolio, enemyPortfolio,
-                false, counters).stream().limit(policy.beamWidth()).toList();
+                false, counters, computation).stream().limit(policy.beamWidth()).toList();
         if (generated.isEmpty()) {
             counters.emptyContinuationCandidateSets++;
             return actor == root ? -1000.0 : 1000.0;
@@ -207,9 +227,10 @@ public final class AutoDraftObservationHarnessV1 {
         for (ChampionId candidate : generated) {
             double signed = (actor == root ? 1.0 : -1.0)
                     * actionEvaluation(state, candidate, blue, red, actorPortfolio,
-                    enemyPortfolio, false, counters).score() * discount;
+                    enemyPortfolio, false, counters, computation).score() * discount;
             double value = signed + utility(state.apply(action(state, candidate)), root,
-                    blue, red, depth - 1, discount * CONTINUATION_DISCOUNT, counters);
+                    blue, red, depth - 1, discount * CONTINUATION_DISCOUNT, counters,
+                    computation);
             best = actor == root ? Math.max(best, value) : Math.min(best, value);
         }
         return best;
@@ -219,7 +240,8 @@ public final class AutoDraftObservationHarnessV1 {
                                               DraftTeamContext blue, DraftTeamContext red,
                                               DraftPlanPortfolio ownPlan,
                                               DraftPlanPortfolio enemyPlan,
-                                              boolean rootEvaluation, Counters counters) {
+                                              boolean rootEvaluation, Counters counters,
+                                              DraftComputationContext computation) {
         TeamSide side = state.currentTurn().side();
         DraftTeamContext own = context(side, blue, red);
         DraftTeamContext enemy = context(side.opposite(), blue, red);
@@ -229,7 +251,7 @@ public final class AutoDraftObservationHarnessV1 {
         if (state.currentTurn().actionType() == DraftActionType.PICK) {
             counters.pickEvaluations++;
             PickEvaluation value = picks.evaluate(
-                    state, side, candidate, own, enemy, ownPlan, enemyPlan);
+                    state, side, candidate, own, enemy, ownPlan, enemyPlan, computation);
             Map<String, Double> components = new LinkedHashMap<>();
             value.components().forEach(
                     (key, component) -> components.put(key.name(), component));
@@ -237,7 +259,7 @@ public final class AutoDraftObservationHarnessV1 {
         }
         counters.banEvaluations++;
         BanEvaluation value = bans.evaluate(
-                state, side, candidate, own, enemy, ownPlan, enemyPlan);
+                state, side, candidate, own, enemy, ownPlan, enemyPlan, computation);
         Map<String, Double> components = new LinkedHashMap<>();
         value.components().forEach(
                 (key, component) -> components.put(key.name(), component));
@@ -248,12 +270,13 @@ public final class AutoDraftObservationHarnessV1 {
                                       DraftTeamContext enemy,
                                       DraftPlanPortfolio ownPortfolio,
                                       DraftPlanPortfolio enemyPortfolio,
-                                      boolean rootGeneration, Counters counters) {
+                                      boolean rootGeneration, Counters counters,
+                                      DraftComputationContext computation) {
         counters.candidateGenerationCalls++;
         if (rootGeneration) counters.rootCandidateGenerationCalls++;
         else counters.continuationCandidateGenerationCalls++;
         List<ChampionId> generated = candidates.generate(
-                state, own, enemy, ownPortfolio, enemyPortfolio);
+                state, own, enemy, ownPortfolio, enemyPortfolio, computation);
         counters.candidatesReturned += generated.size();
         if (rootGeneration) counters.rootCandidatesReturned += generated.size();
         else counters.continuationCandidatesReturned += generated.size();
@@ -262,22 +285,25 @@ public final class AutoDraftObservationHarnessV1 {
 
     private DraftPlanPortfolio plan(DraftTeamContext own, DraftTeamContext enemy,
                                     TeamSide side, java.util.Set<ChampionId> exclusions,
-                                    Counters counters) {
+                                    Counters counters,
+                                    DraftComputationContext computation) {
         counters.initialPlanCalls++;
-        return planner.plan(own, enemy, side, exclusions);
+        return planner.plan(own, enemy, side, exclusions, computation);
     }
 
     private DraftPlanPortfolio replan(DraftTeamContext own, DraftTeamContext enemy,
-                                      TeamSide side, DraftState state, Counters counters) {
+                                      TeamSide side, DraftState state, Counters counters,
+                                      DraftComputationContext computation) {
         counters.replanCalls++;
-        return planner.replan(own, enemy, side, state);
+        return planner.replan(own, enemy, side, state, computation);
     }
 
     private DraftPlanPortfolio portfolio(DraftState state, TeamSide side,
                                          DraftTeamContext blue, DraftTeamContext red,
-                                         Counters counters) {
+                                         Counters counters,
+                                         DraftComputationContext computation) {
         return replan(context(side, blue, red), context(side.opposite(), blue, red),
-                side, state, counters);
+                side, state, counters, computation);
     }
 
     private long elapsed(long start) {
@@ -332,9 +358,40 @@ public final class AutoDraftObservationHarnessV1 {
     public record Observation(FinalDraftResult result, long fullDraftNanos,
                               long initialPlanNanos, long finalRoleResolutionNanos,
                               long finalPlanNanos, long matchAssignmentProjectionNanos,
-                              List<TurnObservation> turns, CounterSnapshot counters) {
+                              List<TurnObservation> turns, CounterSnapshot counters,
+                              ComputationSnapshot computation) {
         public Observation {
             turns = List.copyOf(turns);
+        }
+    }
+
+    public record ComputationSnapshot(
+            boolean cacheEnabled, long roleAssignmentRequests,
+            long roleAssignmentHits, long roleAssignmentMisses,
+            long roleAssignmentPhysicalComputations, int roleAssignmentEntries,
+            long rolePositionRequests, long rolePositionHits,
+            long rolePositionMisses, int rolePositionEntries,
+            long completionRequests, long completionHits, long completionMisses,
+            long completionPhysicalComputations, int completionEntries,
+            long poolHealthRequests, long poolHealthHits, long poolHealthMisses,
+            long poolHealthPhysicalComputations, int poolHealthEntries,
+            long plannerCandidatePhysicalComputations,
+            long plannerCandidateLocalReuses, int peakEntries) {
+        private static ComputationSnapshot from(DraftComputationContext.Snapshot value) {
+            return new ComputationSnapshot(value.cacheEnabled(),
+                    value.roleAssignmentRequests(), value.roleAssignmentHits(),
+                    value.roleAssignmentMisses(),
+                    value.roleAssignmentPhysicalComputations(),
+                    value.roleAssignmentEntries(), value.rolePositionRequests(),
+                    value.rolePositionHits(), value.rolePositionMisses(),
+                    value.rolePositionEntries(), value.completionRequests(),
+                    value.completionHits(), value.completionMisses(),
+                    value.completionPhysicalComputations(), value.completionEntries(),
+                    value.poolHealthRequests(), value.poolHealthHits(),
+                    value.poolHealthMisses(), value.poolHealthPhysicalComputations(),
+                    value.poolHealthEntries(),
+                    value.plannerCandidatePhysicalComputations(),
+                    value.plannerCandidateLocalReuses(), value.peakEntries());
         }
     }
 

@@ -45,25 +45,31 @@ public final class DraftEngine {
     }
 
     public FinalDraftResult draft(DraftTeamContext blue, DraftTeamContext red, SeriesDraftHistory history) {
+        DraftComputationContext context = DraftComputationContext.cached();
         DraftState state = DraftState.fresh(rules, history);
-        DraftPlanPortfolio blueInitial = planner.plan(blue, red, TeamSide.BLUE, state.fearlessExclusions());
-        DraftPlanPortfolio redInitial = planner.plan(red, blue, TeamSide.RED, state.fearlessExclusions());
+        DraftPlanPortfolio blueInitial = planner.plan(
+                blue, red, TeamSide.BLUE, state.fearlessExclusions(), context);
+        DraftPlanPortfolio redInitial = planner.plan(
+                red, blue, TeamSide.RED, state.fearlessExclusions(), context);
         ArrayList<DraftDecision> decisions = new ArrayList<>();
         while (!state.complete()) {
             DraftTurn turn = state.currentTurn();
-            ShallowDraftSearch.SearchChoice choice = search.choose(state, blue, red);
+            ShallowDraftSearch.SearchChoice choice = search.choose(state, blue, red, context);
             decisions.add(new DraftDecision(turn.number(), turn.side(), turn.actionType(), choice.championId(),
                     choice.immediateScore(), choice.continuationScore(), choice.finalSearchScore(),
                     choice.componentBreakdown(), choice.portfolio().preferred().archetype(),
                     choice.portfolio().preferred().viability(), choice.alternatives()));
             state = state.apply(new DraftAction(turn.number(), turn.side(), turn.actionType(), choice.championId()));
         }
-        FinalRoleAssignmentResolver.ResolvedPair resolved = finalRoles.resolve(state.bluePicks(), state.redPicks(), blue, red);
+        FinalRoleAssignmentResolver.ResolvedPair resolved = finalRoles.resolve(
+                state.bluePicks(), state.redPicks(), blue, red, context);
         RoleAssignmentSolver.RoleAssignment blueRoles = resolved.blue();
         RoleAssignmentSolver.RoleAssignment redRoles = resolved.red();
         MatchChampionAssignments matchAssignments = toMatchAssignments(blueRoles, redRoles);
-        DraftPlanPortfolio blueFinal = planner.replan(blue, red, TeamSide.BLUE, state);
-        DraftPlanPortfolio redFinal = planner.replan(red, blue, TeamSide.RED, state);
+        DraftPlanPortfolio blueFinal = planner.replan(
+                blue, red, TeamSide.BLUE, state, context);
+        DraftPlanPortfolio redFinal = planner.replan(
+                red, blue, TeamSide.RED, state, context);
         return new FinalDraftResult(rules, state.blueBans(), state.redBans(), state.bluePicks(), state.redPicks(), decisions,
                 blueRoles.positions(), redRoles.positions(), matchAssignments, blueInitial, redInitial, blueFinal, redFinal,
                 state.fearlessExclusions(), resources.meta().metaVersion(), resources.meta().requiredLegalRoleKeyHash(),

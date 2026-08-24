@@ -26,8 +26,15 @@ public final class DraftCompositionEvaluator {
 
     public double compositionFit(List<ChampionId> ownPicks, ChampionId candidate,
                                  DraftTeamContext team, DraftPlanPortfolio portfolio) {
+        return compositionFit(ownPicks, candidate, team, portfolio,
+                DraftComputationContext.uncached());
+    }
+
+    double compositionFit(List<ChampionId> ownPicks, ChampionId candidate,
+                          DraftTeamContext team, DraftPlanPortfolio portfolio,
+                          DraftComputationContext context) {
         List<ChampionId> next = append(ownPicks, candidate);
-        return assignments.feasibleAssignments(next).stream().mapToDouble(assignment -> {
+        return assignments.feasibleAssignments(next, context).stream().mapToDouble(assignment -> {
             TeamShape shape = shape(assignment);
             double desired = portfolio.preferred().desiredCapabilities().stream()
                     .mapToDouble(capability -> boundedCoverage(shape.capabilities().get(capability))).average().orElse(10.0);
@@ -41,15 +48,23 @@ public final class DraftCompositionEvaluator {
     public double compositionResponse(List<ChampionId> ownPicks, List<ChampionId> enemyPicks,
                                       ChampionId candidate, DraftTeamContext ownTeam,
                                       DraftTeamContext enemyTeam) {
+        return compositionResponse(ownPicks, enemyPicks, candidate, ownTeam, enemyTeam,
+                DraftComputationContext.uncached());
+    }
+
+    double compositionResponse(List<ChampionId> ownPicks, List<ChampionId> enemyPicks,
+                               ChampionId candidate, DraftTeamContext ownTeam,
+                               DraftTeamContext enemyTeam,
+                               DraftComputationContext context) {
         if (enemyPicks.isEmpty()) return 10.0;
-        TeamShape enemy = threateningPartialShape(enemyPicks);
+        TeamShape enemy = threateningPartialShape(enemyPicks, context);
         double dive = average(enemy, CompositionCapability.BACKLINE_ACCESS, CompositionCapability.ENGAGE,
                 CompositionCapability.FOLLOW_UP, CompositionCapability.BURST_DAMAGE);
         double poke = average(enemy, CompositionCapability.POKE, CompositionCapability.SIEGE,
                 CompositionCapability.WAVE_CLEAR);
         double frontline = enemy.capabilities().get(CompositionCapability.FRONTLINE);
         double sideLane = enemy.capabilities().get(CompositionCapability.SIDE_LANE_PRESSURE);
-        return feasibleCandidatePositions(ownPicks, candidate).stream()
+        return feasibleCandidatePositions(ownPicks, candidate, context).stream()
                 .mapToDouble(position -> responseScore(enemy, profile(candidate, position))).max().orElse(0.0);
     }
 
@@ -81,24 +96,44 @@ public final class DraftCompositionEvaluator {
 
     public double repairValue(List<ChampionId> ownPicks, List<ChampionId> enemyPicks,
                               ChampionId candidate, DraftTeamContext team, DraftTeamContext enemy) {
-        TeamShape own = ownPicks.isEmpty() ? TeamShape.empty() : bestPartialShape(ownPicks, team);
+        return repairValue(ownPicks, enemyPicks, candidate, team, enemy,
+                DraftComputationContext.uncached());
+    }
+
+    double repairValue(List<ChampionId> ownPicks, List<ChampionId> enemyPicks,
+                       ChampionId candidate, DraftTeamContext team,
+                       DraftTeamContext enemy, DraftComputationContext context) {
+        TeamShape own = ownPicks.isEmpty() ? TeamShape.empty()
+                : bestPartialShape(ownPicks, team, context);
         double missingEngage = Math.max(0.0, 13.0 - own.capabilities().get(CompositionCapability.ENGAGE));
-        java.util.Set<Position> feasiblePositions = feasibleCandidatePositions(ownPicks, candidate);
+        java.util.Set<Position> feasiblePositions = feasibleCandidatePositions(
+                ownPicks, candidate, context);
         double engage = feasiblePositions.stream()
                 .mapToInt(position -> profile(candidate, position).capability(CompositionCapability.ENGAGE)).max().orElse(0);
         double imbalanceRepair = damageRepair(own.damage(), candidate, feasiblePositions);
-        double response = compositionResponse(ownPicks, enemyPicks, candidate, team, enemy);
+        double response = compositionResponse(
+                ownPicks, enemyPicks, candidate, team, enemy, context);
         return missingEngage * engage / 10.0 + imbalanceRepair + Math.max(0.0, response - 10.0);
     }
 
     public TeamShape bestPartialShape(List<ChampionId> picks, DraftTeamContext team) {
-        return assignments.feasibleAssignments(picks).stream()
+        return bestPartialShape(picks, team, DraftComputationContext.uncached());
+    }
+
+    TeamShape bestPartialShape(List<ChampionId> picks, DraftTeamContext team,
+                               DraftComputationContext context) {
+        return assignments.feasibleAssignments(picks, context).stream()
                 .max(java.util.Comparator.comparingDouble(value -> assignments.proficiencyScore(value, team)))
                 .map(this::shape).orElse(TeamShape.empty());
     }
 
     public TeamShape threateningPartialShape(List<ChampionId> picks) {
-        return assignments.feasibleAssignments(picks).stream().map(this::shape)
+        return threateningPartialShape(picks, DraftComputationContext.uncached());
+    }
+
+    TeamShape threateningPartialShape(List<ChampionId> picks,
+                                      DraftComputationContext context) {
+        return assignments.feasibleAssignments(picks, context).stream().map(this::shape)
                 .max(java.util.Comparator.comparingDouble(value -> average(value,
                         CompositionCapability.ENGAGE, CompositionCapability.BACKLINE_ACCESS,
                         CompositionCapability.POKE, CompositionCapability.BURST_DAMAGE)))
@@ -107,6 +142,12 @@ public final class DraftCompositionEvaluator {
 
     public java.util.Set<Position> feasibleCandidatePositions(List<ChampionId> ownPicks, ChampionId candidate) {
         return assignments.feasibleCandidatePositions(ownPicks, candidate);
+    }
+
+    java.util.Set<Position> feasibleCandidatePositions(
+            List<ChampionId> ownPicks, ChampionId candidate,
+            DraftComputationContext context) {
+        return assignments.feasibleCandidatePositions(ownPicks, candidate, context);
     }
 
     public double assignmentQuality(RoleAssignmentSolver.RoleAssignment assignment) {

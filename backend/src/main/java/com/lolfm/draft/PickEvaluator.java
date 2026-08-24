@@ -30,20 +30,38 @@ public final class PickEvaluator {
     public PickEvaluation evaluate(DraftState state, TeamSide side, ChampionId candidate,
                                    DraftTeamContext own, DraftTeamContext enemy,
                                    DraftPlanPortfolio ownPortfolio, DraftPlanPortfolio enemyPortfolio) {
+        return evaluate(state, side, candidate, own, enemy, ownPortfolio, enemyPortfolio,
+                DraftComputationContext.uncached());
+    }
+
+    PickEvaluation evaluate(DraftState state, TeamSide side, ChampionId candidate,
+                            DraftTeamContext own, DraftTeamContext enemy,
+                            DraftPlanPortfolio ownPortfolio,
+                            DraftPlanPortfolio enemyPortfolio,
+                            DraftComputationContext context) {
         if (state.unavailableChampions().contains(candidate)) return illegal(candidate);
         ArrayList<ChampionId> next = new ArrayList<>(state.picks(side)); next.add(candidate);
-        List<RoleAssignmentSolver.RoleAssignment> feasible = assignments.feasibleAssignments(next);
-        if (feasible.isEmpty() || !availability.canComplete(state, side, candidate)) return illegal(candidate);
+        List<RoleAssignmentSolver.RoleAssignment> feasible =
+                assignments.feasibleAssignments(next, context);
+        if (feasible.isEmpty()
+                || !availability.canComplete(state, side, candidate, context)) {
+            return illegal(candidate);
+        }
         Set<com.lolfm.domain.Position> feasiblePositions = assignments.feasibleCandidatePositions(
-                state.picks(side), candidate);
+                state.picks(side), candidate, context);
         double metaPriority = bestRoleValue(candidate, feasiblePositions, key -> meta.priority(key));
         double playerFit = feasible.stream().mapToDouble(value -> assignments.proficiencyScore(value, own)).max().orElse(0.0);
-        double matchupValue = matchup.robustScore(next, state.picks(side.opposite()));
-        double compFit = composition.compositionFit(state.picks(side), candidate, own, ownPortfolio);
-        double compResponse = composition.compositionResponse(state.picks(side), state.picks(side.opposite()), candidate, own, enemy);
-        double flexibility = assignments.practicalFlexValue(state.picks(side), candidate, own);
-        double denial = opponentValue(state, side, candidate, enemy, enemyPortfolio);
-        double future = availability.poolHealth(state, side, candidate);
+        double matchupValue = matchup.robustScore(
+                next, state.picks(side.opposite()), context);
+        double compFit = composition.compositionFit(
+                state.picks(side), candidate, own, ownPortfolio, context);
+        double compResponse = composition.compositionResponse(state.picks(side),
+                state.picks(side.opposite()), candidate, own, enemy, context);
+        double flexibility = assignments.practicalFlexValue(
+                state.picks(side), candidate, own, context);
+        double denial = opponentValue(
+                state, side, candidate, enemy, enemyPortfolio, context);
+        double future = availability.poolHealth(state, side, candidate, context);
         EnumMap<PickScoreComponent, Double> components = new EnumMap<>(PickScoreComponent.class);
         components.put(PickScoreComponent.META_PRIORITY, metaPriority);
         components.put(PickScoreComponent.PLAYER_FIT, playerFit);
@@ -58,16 +76,21 @@ public final class PickEvaluator {
     }
 
     private double opponentValue(DraftState state, TeamSide side, ChampionId candidate,
-                                 DraftTeamContext opponent, DraftPlanPortfolio enemyPortfolio) {
-        if (!availability.canComplete(state, side.opposite(), candidate)) return 0.0;
+                                 DraftTeamContext opponent,
+                                 DraftPlanPortfolio enemyPortfolio,
+                                 DraftComputationContext context) {
+        if (!availability.canComplete(
+                state, side.opposite(), candidate, context)) return 0.0;
         Set<com.lolfm.domain.Position> feasiblePositions = assignments.feasibleCandidatePositions(
-                state.picks(side.opposite()), candidate);
+                state.picks(side.opposite()), candidate, context);
         double roleValue = feasiblePositions.stream()
                 .map(position -> new ChampionRoleKey(candidate, position))
                 .mapToDouble(key -> meta.priority(key) * 0.50 + opponent.proficiency(key) * 0.28).max().orElse(0.0);
-        double flex = assignments.practicalFlexValue(state.picks(side.opposite()), candidate, opponent);
+        double flex = assignments.practicalFlexValue(
+                state.picks(side.opposite()), candidate, opponent, context);
         double plan = planRelevance(candidate, enemyPortfolio);
-        double fit = composition.compositionFit(state.picks(side.opposite()), candidate, opponent, enemyPortfolio);
+        double fit = composition.compositionFit(state.picks(side.opposite()), candidate,
+                opponent, enemyPortfolio, context);
         return Math.max(0.0, roleValue + Math.max(0.0, flex) * 0.10 + plan * 0.07 + fit * 0.08);
     }
     private double planRelevance(ChampionId candidate, DraftPlanPortfolio portfolio) {

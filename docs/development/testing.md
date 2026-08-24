@@ -357,17 +357,17 @@ gradlew.bat test \
 
 이번 refresh 전 남아 있던 6 failures는 gameplay assertion이 아니라 backend 테스트가 `frontend/src`의 `.woff2`를 UTF-8 text로 읽은 `MalformedInputException`이었다. 공통 test-side scanner는 `.ts`, `.tsx`, `.js`, `.jsx`, `.css`, `.html`, `.json`, `.mjs`, `.cjs`, `.md`, `.svg`만 읽고 `node_modules`, `dist`, `build`, `out`, `coverage`, binary와 source root 밖을 제외한다. 허용 text 파일의 encoding/I/O 오류는 숨기지 않으며 canonical relative path로 정렬한다. 새 scanner contract와 영향 5개 class의 focused 결과는 6 suites / 214 tests, failures/errors/skipped 0이다.
 
-Current V8 source에 clean full evidence가 필요했으므로 focused 결과로 끝내지 않고 최종 executable tree에서 complete backend regression을 1회 실행했다. Windows paging 한도 때문에 테스트 선택은 유지한 채 일회성 init script로 test JVM을 768MB, single worker, Serial GC로 제한했다. Production runtime이나 authored `build.gradle` 설정은 바꾸지 않았다.
+Draft Engine performance hardening 뒤 current V8 source에 새 clean full evidence가 필요했으므로 focused 결과로 끝내지 않고 최종 executable tree에서 complete backend regression을 1회 실행했다. Production runtime의 Match Engine/Draft scoring policy와 authored resource는 바꾸지 않았다.
 
 ```text
 gradlew.bat test --console=plain --no-daemon
 ```
 
-결과는 196 suites / 2,091 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 810.092초, Gradle wall 13분 43초로 첫 실행에서 clean pass했다. 이전 focused 시도의 JVM paging 중단은 full regression 실행 횟수에 포함되지 않는다. 이후 production Java, resource, Gradle/shared fixture를 바꾸지 않고 artifact 실행과 문서만 갱신했으므로 full regression을 반복하지 않았다.
+결과는 203 suites / 2,117 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 679.103초, Gradle wall 11분 33초로 첫 실행에서 clean pass했다. 이후 production Java, resource, Gradle/shared fixture를 바꾸지 않고 artifact 실행과 문서만 갱신했으므로 full regression을 반복하지 않았다.
 
-`RealMatchApiV1ArtifactWriter`는 clean full XML이 최소 180 suites / 2,016 tests인지, 필수 API/Real Draft/Champion/Match Engine 8개 suite가 각 최소 test 수를 만족하는지, failures/errors/skipped가 모두 0인지 확인한다. `RealMatchApiV1VerificationBindingTest`의 dynamic testcase 이름에 기록된 current production source 502 files / `e23f2d2149edd3a7478b5333f126e876d969b5a3c71c20b670447cc9cbd71817`과 API verification source 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`도 현재 tree와 exact여야 한다. 그 뒤 historical Match Engine V1 freeze manifest SHA와 7/7 raw SHA, V8 options/roster/Draft/result/final snapshot/structured participant/hash/Random/ability profile semantic consistency와 same-request replay를 검증한다.
+`RealMatchApiV1ArtifactWriter`는 clean full XML이 최소 180 suites / 2,016 tests인지, 필수 API/Real Draft/Champion/Match Engine 8개 suite가 각 최소 test 수를 만족하는지, failures/errors/skipped가 모두 0인지 확인한다. `RealMatchApiV1VerificationBindingTest`의 dynamic testcase 이름에 기록된 current production source 503 files / `cfcc138fbaffc914c8521ad11e4d7b835d56a178453c10a2f2fa956149e24df9`과 API verification source 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`도 현재 tree와 exact여야 한다. 그 뒤 historical Match Engine V1 freeze manifest SHA와 7/7 raw SHA, V8 options/roster/Draft/result/final snapshot/structured participant/hash/Random/ability profile semantic consistency와 same-request replay를 검증한다.
 
-Writer는 공식 폴더를 바로 덮지 않고 두 fresh JVM에서 candidate A/B를 생성했다. JSON 6개와 `SHA256SUMS.txt` 7/7이 byte-for-byte exact였고 semantic audit가 통과한 뒤 `build/reports/real-match-api-v1/`로 승격했다. 고정 V8 결과는 GEN(BLUE) 승, `NEXUS_DESTROYED`, 3,430초, output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. 생성 manifest 6/6 raw SHA가 통과했고 manifest raw SHA-256은 `fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525`다. Runtime은 이 report를 읽지 않는다.
+Writer는 공식 폴더를 바로 덮지 않고 두 fresh JVM에서 candidate A/B를 생성했다. JSON 6개와 `SHA256SUMS.txt`가 byte-for-byte exact였고 semantic audit가 통과한 뒤 `build/reports/real-match-api-v1/`로 승격했다. 고정 V8 결과는 GEN(BLUE) 승, `NEXUS_DESTROYED`, 3,430초, output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. 생성 manifest 6/6 raw SHA가 통과했고 manifest raw SHA-256은 `0a9da8e91bf5426ef374fd5487dea86b6534b07217a1b96329e23446f37a844d`다. Runtime은 이 report를 읽지 않는다.
 
 이 backend V8 handoff milestone 당시에는 frontend 파일을 바꾸지 않아 npm build와 Playwright를 실행하지 않았다. Balance 변경이 없으므로 B2 calibration, B3 holdout, Final 13G-B, 대규모 diagnostics와 baseline generator도 실행하지 않았다.
 
@@ -461,6 +461,35 @@ sha256sum -c SHA256SUMS.txt
 공식 결과는 full Draft median/p90/max 11.173/13.420/15.412초, BAN median 733.136ms, PICK median 487.298ms, 준비 구간 내 Draft median share 99.9901%다. Exact counter는 Draft당 replan 1,362회, candidate generation 680회/8,160개, action evaluation 1,560회다. JFR CPU/allocation 상위는 `DraftAvailability`, `PreDraftPlanner.candidatePlanValue`, `RoleAssignmentSolver`였지만 sample/profiler evidence일 뿐 exact byte나 인과 비율은 아니다.
 
 Artifact status는 `REAL_MATCH_RUNTIME_HARDENED_AND_AUTO_DRAFT_SCALABILITY_AUDIT_CAPTURED`, manifest 7/7과 raw SHA-256 `751cb19ccf55b34cc0bf4a410a292ba66df4e84d566dd1e217b4a68712d3be8b`다. 이 report는 correctness input이나 production source of truth가 아니며, search/scoring/tuning/cache 변경 없이 다음 `DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`의 기준선으로만 사용한다.
+
+### Draft Engine performance hardening V1
+
+빠른 계약/경계 검증과 fresh JVM 재현성은 다음처럼 실행한다.
+
+```text
+gradlew.bat test \
+  --tests com.lolfm.draft.DraftComputationContextTest \
+  --tests com.lolfm.controller.DraftEnginePerformanceHardeningV1ArtifactsTest \
+  --console=plain --no-daemon
+gradlew.bat verifyDraftEnginePerformanceCrossJvmV1 --console=plain --no-daemon
+```
+
+`DraftComputationContextTest`는 0/duplicate/1–5 champion 경계, canonical key와 immutable value, cached/uncached full Draft 및 모든 root score exact equality, 물리 계산 감소, 100회 fresh lifecycle, 실패 뒤 격리, singleton engine의 동시 same/different input, static mutable cache 부재를 검증한다. 기존 Draft core/evaluation/search/semantic/integration/scenario/observation과 함께 실행한 focused 묶음은 58 tests / failures 0 / errors 0 / skipped 0이다. Cross-JVM A/B output SHA-256은 모두 `abc0bf8ffd57d87c6bded2d4a58cb8bacac6c12ee9bb4defdf8e361738273511`였다.
+
+성능 diagnostic은 default `test`에서 제외한다. Candidate는 full regression 전에 threshold와 evidence completeness를 확인하고, official task는 final executable tree의 clean full regression 뒤 실행한다.
+
+```text
+gradlew.bat runDraftEnginePerformanceCandidateV1 --console=plain --no-daemon
+gradlew.bat test --console=plain --no-daemon
+gradlew.bat generateRealMatchApiV1HandoffRefreshOfficialV1 --console=plain --no-daemon
+gradlew.bat runDraftEnginePerformanceHardeningV1 --console=plain --no-daemon
+cd build/reports/draft-engine-performance-hardening-v1
+sha256sum -c SHA256SUMS.txt
+```
+
+Candidate/official diagnostic은 global warmup 1회, 12 fixtures × 2 cached measured Draft와 fixture별 uncached reference 1회를 순차 실행한다. Acceptance는 upstream 24개 final Draft/API identity와 동일 JVM uncached reference의 480개 turn decision/component/alternative/root score/counter exact equality다. 과거 timing JVM의 비선택 후보 double bit 비교는 observational field로만 기록한다. Timing gate는 frozen median 11.173초 대비 40% 이상, p90 13.420초 대비 30% 이상 단축이다.
+
+최종 full regression은 203 suites / 2,117 tests / failures 0 / errors 0 / skipped 0, Gradle wall 11분 33초로 첫 실행에서 clean pass했다. Official full Draft median/p90/max는 4.032/4.314/5.854초이고 status는 `DRAFT_ENGINE_PERFORMANCE_HARDENED`다. Manifest 7/7 raw SHA-256은 `ae11f4eb368a8b796a113b32963048a764509b0bb98e27ebce313b7ec645d694`다. Full pass 뒤 실행 코드 변경은 없으므로 official report와 문서 갱신 때문에 full regression을 반복하지 않는다.
 
 ## Generated Reports
 

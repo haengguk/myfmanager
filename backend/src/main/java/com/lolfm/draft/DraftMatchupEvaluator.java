@@ -26,8 +26,15 @@ public final class DraftMatchupEvaluator {
     }
 
     public double robustScore(List<ChampionId> ownPicks, List<ChampionId> enemyPicks) {
-        List<RoleAssignmentSolver.RoleAssignment> own = assignments.feasibleAssignments(ownPicks);
-        List<RoleAssignmentSolver.RoleAssignment> enemy = assignments.feasibleAssignments(enemyPicks);
+        return robustScore(ownPicks, enemyPicks, DraftComputationContext.uncached());
+    }
+
+    double robustScore(List<ChampionId> ownPicks, List<ChampionId> enemyPicks,
+                       DraftComputationContext context) {
+        List<RoleAssignmentSolver.RoleAssignment> own =
+                assignments.feasibleAssignments(ownPicks, context);
+        List<RoleAssignmentSolver.RoleAssignment> enemy =
+                assignments.feasibleAssignments(enemyPicks, context);
         if (own.isEmpty()) return 0.0;
         if (enemy.isEmpty()) return 10.0;
         double robustEdge = own.stream().mapToDouble(ours -> enemy.stream()
