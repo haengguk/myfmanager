@@ -144,7 +144,7 @@ cd backend
 ./gradlew runJungleTempoCandidateDiagnostic
 ```
 
-첫 task는 12 matches의 configuration/Draft/final assignment/complete timeline/Random fingerprint/result exact equality를 검증하고 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`을 쓴다. Replay provenance hash는 baseline engine V2와 현재 engine V6가 다르므로 equality에서 제외한다. Current V6 report SHA-256은 `a38b16811a3b74f5fe8958bce5eb5b8e1310ba18795af46ea016f705bbec22c9`다. 두 번째 task는 12 fixed same-seed Economy-only/Tempo pair의 readiness와 actual consumption을 기록한다. 이 작은 sample은 구조 확인용이며 calibration이나 production-activation gate가 아니다.
+첫 task는 12 matches의 configuration/Draft/final assignment/complete timeline/Random fingerprint/result exact equality를 검증하고 `build/reports/jungle-tempo-v1-b/pre-tempo-parity-report.json`을 쓴다. Replay provenance hash는 baseline engine V2와 해당 report 생성 당시 engine V6가 다르므로 equality에서 제외했다. Historical V6 report SHA-256은 `a38b16811a3b74f5fe8958bce5eb5b8e1310ba18795af46ea016f705bbec22c9`다. 두 번째 task는 12 fixed same-seed Economy-only/Tempo pair의 readiness와 actual consumption을 기록한다. 이 작은 sample은 구조 확인용이며 calibration이나 production-activation gate가 아니다.
 
 V1-B focused correctness는 `JungleTempoStateTest`, `JungleTempoGankIntegrationTest`, economy/runtime integration과 real GEN–T1 smoke가 담당한다. Tempo-not-ready/ineligible/duplicate path는 tempo state와 trigger Random을 소비하지 않는다. Tempo-ready 뒤 failed trigger는 eligible trigger Random만 소비하고 tempo credit, action state와 downstream action Random은 보존한다. 실제 no-kill gank와 successful counter response는 각각 자기 side의 credit만 한 번 소비하며, non-attempt는 lane combat으로 fall through해야 한다.
 
@@ -323,7 +323,7 @@ Artifact writer는 clean full XML이 최소 170 suites / 1,970 tests이고 failu
 
 ### Real Match API V1
 
-Real Match API V1은 큰 seed population이 아니라 strict HTTP boundary와 frozen engine parity를 검증한다. Focused 명령은 다음 8개 class를 실행한다.
+Real Match API V1은 큰 seed population이 아니라 strict HTTP boundary와 current Match Engine V1 parity를 검증한다. V8 focused 명령은 다음 9개 class를 실행한다.
 
 ```text
 gradlew.bat test \
@@ -335,10 +335,11 @@ gradlew.bat test \
   --tests com.lolfm.controller.ChampionApiTest \
   --tests com.lolfm.application.MatchEngineV1ContractTest \
   --tests com.lolfm.application.RealDraftMatchOrchestratorTest \
+  --tests com.lolfm.application.PlayerAbilityProfileContractTest \
   --console=plain --no-daemon
 ```
 
-이 묶음은 8 suites / 50 tests, failures 0 / errors 0 / skipped 0으로 통과했다. 주요 고정 항목은 다음과 같다.
+이 묶음은 9 suites / 55 tests, failures 0 / errors 0 / skipped 0으로 통과했다. 주요 고정 항목은 다음과 같다.
 
 - options의 10팀, 팀당 5명, stable PlayerId 50개와 canonical ordering
 - required schema/team/seed, canonical signed long string과 V1-scoped unknown-field rejection
@@ -348,20 +349,25 @@ gradlew.bat test \
 - production policy/provenance/output hash 검증 전 response mapping 금지
 - display team name이 바뀌어도 explicit team code identity와 canonical ordering 유지
 - fixed `GEN` 대 `T1`, seed `"73"`의 실제 roster/Draft/result/timeline/integrity
+- current V8의 player별 12개 base/realized/delta rating, 선택 champion proficiency와 HTTP `PLAYER_ABILITY_PROFILE_V1` exact projection
 - 같은 HTTP 요청 2회의 exact Draft/result/structured timeline/hash/Random fingerprint와 두 번째도 Game 1인 격리
 - direct `orchestrateV1` output과 HTTP projection의 JSON 의미 exact parity
 - seed/PlayerId/ChampionId/enum string, timeout winner null과 structured error serialization
 - 기존 Champion API와 frozen Match Engine V1 contract 보존
 
-Production controller/service/runtime wiring을 추가했으므로 focused 결과로 끝내지 않고 최종 executable tree에서 complete backend regression을 1회 실행했다.
+이번 refresh 전 남아 있던 6 failures는 gameplay assertion이 아니라 backend 테스트가 `frontend/src`의 `.woff2`를 UTF-8 text로 읽은 `MalformedInputException`이었다. 공통 test-side scanner는 `.ts`, `.tsx`, `.js`, `.jsx`, `.css`, `.html`, `.json`, `.mjs`, `.cjs`, `.md`, `.svg`만 읽고 `node_modules`, `dist`, `build`, `out`, `coverage`, binary와 source root 밖을 제외한다. 허용 text 파일의 encoding/I/O 오류는 숨기지 않으며 canonical relative path로 정렬한다. 새 scanner contract와 영향 5개 class의 focused 결과는 6 suites / 214 tests, failures/errors/skipped 0이다.
+
+Current V8 source에 clean full evidence가 필요했으므로 focused 결과로 끝내지 않고 최종 executable tree에서 complete backend regression을 1회 실행했다. Windows paging 한도 때문에 테스트 선택은 유지한 채 일회성 init script로 test JVM을 768MB, single worker, Serial GC로 제한했다. Production runtime이나 authored `build.gradle` 설정은 바꾸지 않았다.
 
 ```text
 gradlew.bat test --console=plain --no-daemon
 ```
 
-결과는 180 suites / 2,016 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 835.846초, Gradle wall 14분 14초로 clean pass했다. 이후 production Java, resource, Gradle/shared fixture를 바꾸지 않고 artifact 실행과 문서만 갱신했으므로 full regression을 반복하지 않았다.
+결과는 196 suites / 2,091 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 810.092초, Gradle wall 13분 43초로 첫 실행에서 clean pass했다. 이전 focused 시도의 JVM paging 중단은 full regression 실행 횟수에 포함되지 않는다. 이후 production Java, resource, Gradle/shared fixture를 바꾸지 않고 artifact 실행과 문서만 갱신했으므로 full regression을 반복하지 않았다.
 
-`RealMatchApiV1ArtifactWriter`는 clean full XML이 최소 180 suites / 2,016 tests인지, 필수 API/Real Draft/Champion/Match Engine 8개 suite가 각 최소 test 수를 만족하는지, failures/errors/skipped가 모두 0인지 확인한다. `RealMatchApiV1VerificationBindingTest`의 dynamic testcase 이름에 기록된 production source 488 files / `c5d1a9ec5ac18ccf1cfc47c864f616884ecea4faefed60b94b70498cfe5907a1`과 API verification source 9 files / `8bb5ac9fd2e4b8e68ea4052abbb3ae2d54d836779f112be646d2f60efa27bce2`도 현재 tree와 exact여야 한다. 그 뒤 historical Match Engine V1 freeze manifest SHA와 7/7 raw SHA를 읽기 검증하고 `build/reports/real-match-api-v1/`에 contract/options/fixed request/full fixed response/error/handoff JSON 6개와 manifest를 생성한다. 생성 manifest 6/6 raw SHA가 통과했고 manifest SHA-256은 `67c29caaf76dd27db2fd8f489c30a58ca0f34c8731ebb0342c51d11381834b97`다. Runtime은 이 report를 읽지 않는다.
+`RealMatchApiV1ArtifactWriter`는 clean full XML이 최소 180 suites / 2,016 tests인지, 필수 API/Real Draft/Champion/Match Engine 8개 suite가 각 최소 test 수를 만족하는지, failures/errors/skipped가 모두 0인지 확인한다. `RealMatchApiV1VerificationBindingTest`의 dynamic testcase 이름에 기록된 current production source 502 files / `e23f2d2149edd3a7478b5333f126e876d969b5a3c71c20b670447cc9cbd71817`과 API verification source 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`도 현재 tree와 exact여야 한다. 그 뒤 historical Match Engine V1 freeze manifest SHA와 7/7 raw SHA, V8 options/roster/Draft/result/final snapshot/structured participant/hash/Random/ability profile semantic consistency와 same-request replay를 검증한다.
+
+Writer는 공식 폴더를 바로 덮지 않고 두 fresh JVM에서 candidate A/B를 생성했다. JSON 6개와 `SHA256SUMS.txt` 7/7이 byte-for-byte exact였고 semantic audit가 통과한 뒤 `build/reports/real-match-api-v1/`로 승격했다. 고정 V8 결과는 GEN(BLUE) 승, `NEXUS_DESTROYED`, 3,430초, output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. 생성 manifest 6/6 raw SHA가 통과했고 manifest raw SHA-256은 `fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525`다. Runtime은 이 report를 읽지 않는다.
 
 이번 milestone은 frontend 파일을 바꾸지 않아 npm build와 Playwright를 실행하지 않았다. Balance 변경이 없으므로 B2 calibration, B3 holdout, Final 13G-B, 대규모 diagnostics와 baseline generator도 실행하지 않았다.
 

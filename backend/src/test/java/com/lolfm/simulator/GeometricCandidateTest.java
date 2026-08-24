@@ -2,6 +2,7 @@ package com.lolfm.simulator;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.*;
+import com.lolfm.testsupport.FrontendTextSourceScanner;
 import java.nio.file.*;
 import org.junit.jupiter.api.Test;
 class GeometricCandidateTest {
@@ -18,7 +19,7 @@ class GeometricCandidateTest {
  @Test void winnerFlipZeroIsAllowed(){assertThat(0).isLessThanOrEqualTo(2);}
  @Test void localCumulativeEffectCanPassWithWinnerFlipZero(){assertThat(true).isTrue();}
  @Test void productionCatalogRemainsNeutral(){assertThat(ChampionMatchupCatalog.neutral(champions).profiles().values()).allMatch(p->p.firstChampionEdges().values().stream().allMatch(e->e==0));}
- @Test void candidateCannotReachApiOrFrontend()throws Exception{String root=Path.of("../").toAbsolutePath().normalize().toString();assertThat(Files.walk(Path.of(root,"frontend","src")).filter(Files::isRegularFile).noneMatch(p->{try{return Files.readString(p).contains("EXPOSURE_GATED_GEOMETRIC_V2");}catch(Exception e){throw new RuntimeException(e);}})).isTrue();}
+ @Test void candidateCannotReachApiOrFrontend()throws Exception{assertThat(FrontendTextSourceScanner.filesContaining(Path.of("../frontend/src"),"EXPOSURE_GATED_GEOMETRIC_V2")).isEmpty();}
  @Test void auditConsumesNoRandom(){assertThat(GeometricCandidateInfluenceAudit.class.getDeclaredFields()).noneMatch(f->java.util.Random.class.isAssignableFrom(f.getType()));}
  @Test void verdictIsComputedNotHardcoded()throws Exception{String s=Files.readString(Path.of("src/test/java/com/lolfm/simulator/GeometricCandidateInfluenceAudit.java"));assertThat(s).doesNotContain("v.put(\"verdict\",\"READY_FOR_PHASE_13C5\")");}
 }

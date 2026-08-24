@@ -1,6 +1,6 @@
 package com.lolfm.composition;
 import static org.assertj.core.api.Assertions.*;
-import com.lolfm.champion.*;import com.lolfm.domain.Position;import com.lolfm.simulator.SimulationOptions;import java.nio.file.*;import java.lang.reflect.Modifier;import java.util.*;import org.junit.jupiter.api.Test;
+import com.lolfm.champion.*;import com.lolfm.domain.Position;import com.lolfm.simulator.SimulationOptions;import com.lolfm.testsupport.FrontendTextSourceScanner;import java.nio.file.*;import java.lang.reflect.Modifier;import java.util.*;import org.junit.jupiter.api.Test;
 class TeamCompositionFoundationTest{
  @Test void compositionProfileRequiresAllFifteenCapabilities(){var f=f();var k=f.lineup().championsByPosition().get(Position.TOP);assertThatThrownBy(()->new ChampionCompositionProfile(k,Map.of(),new DamageChannelProfile(0,0,0))).isInstanceOf(IllegalArgumentException.class);}
  @Test void compositionProfileRejectsCapabilityBelowZero(){assertBadCapability(-1);}
@@ -55,7 +55,7 @@ class TeamCompositionFoundationTest{
  @Test void productionMatchupDefaultRemainsGeometricV2(){assertThat(SimulationOptions.productionDefaults().championMatchupMode()).isEqualTo(ChampionMatchupMode.GEOMETRIC_V2);}
  @Test void explicitMatchupOffRollbackStillWorks(){var e=new ChampionMatchupEvaluator(ChampionRoleMatchupProfileCatalog.production());var k=new ChampionRoleKey(new ChampionId("unsupported"),Position.TOP);assertThat(e.evaluate(k,k,com.lolfm.simulator.ProgressionCombatContext.LANE_COMBAT,ChampionMatchupMode.OFF).finalEdge()).isZero();}
  @Test void apiSchemaIsUnchanged()throws Exception{for(Path p:Files.walk(Path.of("src/main/java/com/lolfm/dto")).filter(Files::isRegularFile).toList())assertThat(Files.readString(p)).doesNotContain("TeamComposition");}
- @Test void frontendFilesAreUnchanged()throws Exception{for(Path p:Files.walk(Path.of("../frontend/src")).filter(Files::isRegularFile).toList())assertThat(Files.readString(p)).doesNotContain("TeamComposition");}
+ @Test void frontendFilesAreUnchanged()throws Exception{assertThat(FrontendTextSourceScanner.filesContaining(Path.of("../frontend/src"),"TeamComposition")).isEmpty();}
  @Test void auditRunsNoMatchSimulation()throws Exception{String s=Files.readString(Path.of("src/test/java/com/lolfm/composition/TeamCompositionFoundationAudit.java"));assertThat(s).doesNotContain("MatchSimulator","simulate(");}
  @Test void verdictIsComputedNotHardcoded()throws Exception{String s=Files.readString(Path.of("src/test/java/com/lolfm/composition/TeamCompositionFoundationAudit.java"));assertThat(s).doesNotContain("summary.put(\"verdict\",\"READY_FOR_PHASE_13D2\")");}
  private void assertBadCapability(int v){var f=f();var k=f.lineup().championsByPosition().get(Position.TOP);var m=SyntheticTeamCompositionFixtures.values(10);m.put(CompositionCapability.ENGAGE,v);assertThatThrownBy(()->new ChampionCompositionProfile(k,m,new DamageChannelProfile(0,0,0))).isInstanceOf(IllegalArgumentException.class);}

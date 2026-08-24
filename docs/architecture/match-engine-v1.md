@@ -14,11 +14,13 @@
 | Runtime profile | `BASELINE_V1` |
 | Configuration hash | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
 | Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2` |
-| Engine implementation | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6` |
+| Current engine implementation | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8` |
 | Matchup / Composition / Jungle contribution | `OFF` / `OFF` / `DISABLED_NOT_INTEGRATED` |
 | Economy / Tempo candidate activation | `false` / `false` |
 
 `SimulationOptions.productionDefaults()`는 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`를 사용하는 저수준 constructor default다. 이름이 비슷하더라도 Match Engine V1의 authoritative application policy가 아니며 V1 facade는 이를 선택하지 않는다.
+
+이 표는 현재 application policy를 설명한다. 아래 Freeze Evidence는 Match Engine V1 경계를 처음 고정했을 때의 historical V6 artifact이며 재생성하지 않는다. 이후 production implementation은 player ratings의 전투·오브젝트·운영 반영과 ability profile projection을 포함한 V8로 진화했지만, retained `BASELINE_V1`, configuration/policy, candidate 비활성화와 HTTP 경계 의미는 유지된다. 현재 V8 실행 증거는 별도의 Real Match API frontend handoff에 결속한다.
 
 ## Immutable Input
 
@@ -74,9 +76,9 @@ Nexus 파괴 종료는 반드시 winner가 있고, safety timeout은 winner가 `
 
 현재 `POST /api/matches/simulate`는 계속 `DummyDataFactory`와 legacy HTTP response를 사용한다. Match Engine V1을 HTTP나 frontend에 노출하거나 기존 demo response를 교체하지 않았다. Career/Save/Season, BO3/BO5 series service와 persistence도 이 freeze 범위에 포함되지 않는다.
 
-## Freeze Evidence
+## Historical Freeze Evidence
 
-Freeze artifact는 `backend/build/reports/match-engine-v1-freeze/`에 생성됐다.
+Freeze artifact는 V6 당시 `backend/build/reports/match-engine-v1-freeze/`에 생성됐다.
 
 - `match-engine-v1-contract.json`
 - `match-engine-v1-production-policy.json`

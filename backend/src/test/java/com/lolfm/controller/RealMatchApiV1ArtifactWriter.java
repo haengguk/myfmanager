@@ -4,11 +4,16 @@ import com.lolfm.LolfmApplication;
 import com.lolfm.application.MatchEngineV1Canonicalizer;
 import com.lolfm.application.MatchEngineV1Policy;
 import com.lolfm.application.RealMatchApiV1Service;
+import com.lolfm.application.SimulationProvenanceService;
+import com.lolfm.champion.ChampionId;
+import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.domain.CombatSource;
 import com.lolfm.domain.MatchEventType;
+import com.lolfm.domain.Player;
 import com.lolfm.domain.Position;
 import com.lolfm.draft.DraftActionType;
 import com.lolfm.dto.RealMatchApiV1Dtos;
+import com.lolfm.player.LckTeamAssembler;
 import com.lolfm.simulator.GameEndReason;
 import com.lolfm.simulator.Lane;
 import com.lolfm.simulator.PlayerActivityType;
@@ -25,11 +30,16 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HexFormat;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -69,6 +79,8 @@ public final class RealMatchApiV1ArtifactWriter {
     static final String FIXED_BLUE = "GEN";
     static final String FIXED_RED = "T1";
     static final String FIXED_SEED = "73";
+    static final List<String> EXPECTED_TEAM_CODES = List.of(
+            "BFX", "BRO", "DK", "DNS", "GEN", "HLE", "KRX", "KT", "NS", "T1");
 
     private RealMatchApiV1ArtifactWriter() {
     }
@@ -103,6 +115,7 @@ public final class RealMatchApiV1ArtifactWriter {
     ) throws IOException {
         Files.createDirectories(output);
         RealMatchApiV1Service service = context.getBean(RealMatchApiV1Service.class);
+        LckTeamAssembler teams = context.getBean(LckTeamAssembler.class);
         MatchEngineV1Canonicalizer canonicalizer = context.getBean(
                 MatchEngineV1Canonicalizer.class);
         RealMatchApiV1Dtos.OptionsResponse options = service.options();
@@ -115,6 +128,10 @@ public final class RealMatchApiV1ArtifactWriter {
                 "Fixed response is not isolated Game 1");
         require(response.draft().hardFearlessExclusionsBeforeDraft().isEmpty(),
                 "Fixed response unexpectedly inherited series exclusions");
+        validateCurrentRuntimeHandoff(options, request, response, teams);
+        RealMatchApiV1Dtos.Response replay = service.simulate(request);
+        require(canonicalizer.canonicalJson(response).equals(canonicalizer.canonicalJson(replay)),
+                "Fixed response differs on same-request same-seed replay");
 
         writeJson(canonicalizer, output.resolve(CONTRACT), contract(
                 options, freeze, productionSource, verificationSource));
@@ -211,6 +228,8 @@ public final class RealMatchApiV1ArtifactWriter {
                 "result", recordFields(RealMatchApiV1Dtos.Result.class),
                 "teamResult", recordFields(RealMatchApiV1Dtos.TeamResult.class),
                 "playerResult", recordFields(RealMatchApiV1Dtos.PlayerResult.class),
+                "playerAbilityProfile",
+                recordFields(RealMatchApiV1Dtos.PlayerAbilityProfile.class),
                 "timeline", recordFields(RealMatchApiV1Dtos.Timeline.class),
                 "event", recordFields(RealMatchApiV1Dtos.Event.class),
                 "snapshot", recordFields(RealMatchApiV1Dtos.Snapshot.class),
@@ -346,7 +365,7 @@ public final class RealMatchApiV1ArtifactWriter {
                 "frontendAuthoritativeStructuredFields", List.of(
                         "teams[].teamSide/teamCode/lineup[].playerId/position/championId",
                         "draft.decisions/finalAssignments/finalDraftHash/finalAssignmentHash",
-                        "result.winner/endReason/teams/players",
+                        "result.winner/endReason/teams/players/players[].abilityProfile",
                         "timeline.events[].eventType/stable participant IDs/combat and structure fields",
                         "timeline.snapshots[].team state/player state/structured progression",
                         "integrity.policy/input/resource/replay/timeline/output hashes/randomFingerprint"),
@@ -361,6 +380,8 @@ public final class RealMatchApiV1ArtifactWriter {
                         "seriesGameNumber", response.draft().seriesGameNumber(),
                         "hardFearlessExclusionsBeforeDraft",
                         response.draft().hardFearlessExclusionsBeforeDraft(),
+                        "winner", response.result().winner(),
+                        "durationSeconds", response.result().durationSeconds(),
                         "outputHash", response.integrity().outputHash()),
                 "productionPolicy", Map.of(
                         "contract", response.integrity().matchEngineContract(),
@@ -386,6 +407,7 @@ public final class RealMatchApiV1ArtifactWriter {
                         "legacyEndpointPreserved", true,
                         "championApiPreserved", true,
                         "frontendFilesChanged", false),
+                "semanticAudit", "CURRENT_RUNTIME_V8_EXACT_PASS",
                 "knownLimitations", List.of(
                         "SINGLE_GAME_GAME_1_ONLY",
                         "NO_SHARED_HARD_FEARLESS_SERIES_HISTORY",
@@ -397,6 +419,237 @@ public final class RealMatchApiV1ArtifactWriter {
                 "verification", full,
                 "nextMilestones", List.of(
                         "REAL_MATCH_FRONTEND_V1", "SERIES_LIFECYCLE_V1"));
+    }
+
+    private static void validateCurrentRuntimeHandoff(
+            RealMatchApiV1Dtos.OptionsResponse options,
+            RealMatchApiV1Dtos.SimulateRequest request,
+            RealMatchApiV1Dtos.Response response,
+            LckTeamAssembler teams
+    ) {
+        require(RealMatchApiV1Dtos.OPTIONS_SCHEMA.equals(options.schemaVersion()),
+                "Options schema differs");
+        require(options.teams().stream().map(RealMatchApiV1Dtos.OptionTeam::teamCode).toList()
+                        .equals(EXPECTED_TEAM_CODES),
+                "Options team set or canonical ordering differs");
+        HashSet<String> allOptionPlayerIds = new HashSet<>();
+        for (RealMatchApiV1Dtos.OptionTeam team : options.teams()) {
+            require(team.lineup().size() == Position.values().length,
+                    "Options lineup cardinality differs: " + team.teamCode());
+            require(team.lineup().stream().map(RealMatchApiV1Dtos.OptionPlayer::position)
+                            .collect(java.util.stream.Collectors.toSet())
+                            .equals(EnumSet.allOf(Position.class)),
+                    "Options position coverage differs: " + team.teamCode());
+            require(team.lineup().stream().map(RealMatchApiV1Dtos.OptionPlayer::playerId)
+                            .allMatch(allOptionPlayerIds::add),
+                    "Options player identity is not unique: " + team.teamCode());
+        }
+        require(allOptionPlayerIds.size() == 50, "Options unique player count differs");
+
+        require(RealMatchApiV1Dtos.REQUEST_SCHEMA.equals(request.schemaVersion())
+                        && FIXED_BLUE.equals(request.blueTeamCode())
+                        && FIXED_RED.equals(request.redTeamCode())
+                        && FIXED_SEED.equals(request.seed()),
+                "Fixed request identity differs");
+        require(RealMatchApiV1Dtos.RESPONSE_SCHEMA.equals(response.schemaVersion())
+                        && FIXED_SEED.equals(response.seed()),
+                "Fixed response schema or seed differs");
+
+        RealMatchApiV1Dtos.ProductionPolicy policy = options.productionPolicy();
+        RealMatchApiV1Dtos.Integrity integrity = response.integrity();
+        require("BASELINE_V1".equals(policy.runtimeProfileId())
+                        && !policy.economyCandidateActivation()
+                        && !policy.tempoCandidateActivation()
+                        && SimulationProvenanceService.ENGINE_IMPLEMENTATION_VERSION.equals(
+                        policy.engineImplementationVersion())
+                        && "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8".equals(
+                        integrity.engineImplementationVersion()),
+                "Current V8 production policy differs");
+        require(policy.policyId().equals(integrity.policyId())
+                        && policy.policyHash().equals(integrity.policyHash())
+                        && policy.runtimeProfileId().equals(integrity.runtimeProfileId())
+                        && policy.configurationHash().equals(integrity.configurationHash())
+                        && policy.activeGameplayRulesVersion().equals(
+                        integrity.activeGameplayRulesVersion())
+                        && policy.engineImplementationVersion().equals(
+                        integrity.engineImplementationVersion())
+                        && policy.diagnosticsExcludedFromGameplayIdentity()
+                        == integrity.diagnosticsExcludedFromGameplayIdentity(),
+                "Options and fixed-response policy identity differ");
+        require(options.resourceVersions().resourceProvenanceHash().equals(
+                        integrity.resourceProvenanceHash())
+                        && response.result().resourceProvenanceHash().equals(
+                        integrity.resourceProvenanceHash())
+                        && response.result().replayProvenanceHash().equals(
+                        integrity.replayProvenanceHash()),
+                "Resource or replay provenance differs");
+
+        require(response.teams().size() == TeamSide.values().length,
+                "Fixed response team presentation cardinality differs");
+        Map<TeamSide, String> expectedTeamCodes = Map.of(
+                TeamSide.BLUE, FIXED_BLUE, TeamSide.RED, FIXED_RED);
+        Map<String, RealMatchApiV1Dtos.OptionPlayer> fixedRoster = new HashMap<>();
+        Map<String, Player> authoritativePlayers = new HashMap<>();
+        for (RealMatchApiV1Dtos.TeamPresentation team : response.teams()) {
+            require(expectedTeamCodes.get(team.teamSide()).equals(team.teamCode()),
+                    "Fixed response side/team identity differs");
+            RealMatchApiV1Dtos.OptionTeam optionTeam = options.teams().stream()
+                    .filter(value -> value.teamCode().equals(team.teamCode()))
+                    .findFirst().orElseThrow();
+            optionTeam.lineup().forEach(player -> fixedRoster.put(player.playerId(), player));
+            teams.assemble(team.teamCode()).getPlayers().forEach(player ->
+                    authoritativePlayers.put(player.requirePlayerId().value(), player));
+            require(team.lineup().size() == Position.values().length,
+                    "Fixed response lineup cardinality differs");
+            for (RealMatchApiV1Dtos.PlayerPresentation player : team.lineup()) {
+                RealMatchApiV1Dtos.OptionPlayer option = fixedRoster.get(player.playerId());
+                require(option != null && option.position() == player.position(),
+                        "Presentation player identity differs from authoritative options roster");
+                require(player.championId().equals(player.champion().championId()),
+                        "Presentation champion identity differs");
+            }
+        }
+        require(fixedRoster.size() == 10, "Fixed response roster cardinality differs");
+
+        RealMatchApiV1Dtos.Draft draft = response.draft();
+        require(RealMatchApiV1Dtos.DRAFT_SCHEMA.equals(draft.schemaVersion())
+                        && draft.seriesGameNumber() == 1
+                        && draft.hardFearlessExclusionsBeforeDraft().isEmpty()
+                        && draft.decisions().size() == 20
+                        && draft.finalAssignments().size() == 10,
+                "Fixed response Draft structure differs");
+        for (int index = 0; index < draft.decisions().size(); index++) {
+            require(draft.decisions().get(index).turn() == index + 1,
+                    "Draft decisions are not in turn order");
+        }
+
+        Map<String, RealMatchApiV1Dtos.FinalAssignment> assignments = new HashMap<>();
+        for (RealMatchApiV1Dtos.FinalAssignment assignment : draft.finalAssignments()) {
+            require(assignments.put(assignment.playerId(), assignment) == null
+                            && fixedRoster.containsKey(assignment.playerId()),
+                    "Draft assignment player identity differs");
+        }
+        Map<String, RealMatchApiV1Dtos.PlayerPresentation> presentation = new HashMap<>();
+        response.teams().forEach(team -> team.lineup().forEach(player ->
+                presentation.put(player.playerId(), player)));
+        Map<String, RealMatchApiV1Dtos.PlayerResult> results = new HashMap<>();
+        for (RealMatchApiV1Dtos.PlayerResult player : response.result().players()) {
+            RealMatchApiV1Dtos.FinalAssignment assignment = assignments.get(player.playerId());
+            RealMatchApiV1Dtos.PlayerPresentation shown = presentation.get(player.playerId());
+            require(results.put(player.playerId(), player) == null
+                            && assignment != null && shown != null
+                            && assignment.teamSide() == player.teamSide()
+                            && assignment.position() == player.position()
+                            && assignment.championId().equals(player.championId())
+                            && shown.position() == player.position()
+                            && shown.championId().equals(player.championId()),
+                    "Draft, presentation and result player identity differ");
+            require(player.abilityProfile() != null
+                            && RealMatchApiV1Dtos.PlayerAbilityProfile.SCHEMA.equals(
+                            player.abilityProfile().schemaVersion()),
+                    "Current V8 player ability profile is missing");
+            Player authoritative = authoritativePlayers.get(player.playerId());
+            TreeMap<String, Integer> expectedBaseRatings = new TreeMap<>();
+            authoritative.getRatings().asMap().forEach((skill, value) ->
+                    expectedBaseRatings.put(skill.name(), value));
+            int expectedProficiency = authoritative.getChampionProficiencies().get(
+                    new ChampionRoleKey(
+                            new ChampionId(player.championId()), player.position()));
+            require(player.abilityProfile().baseRatings().equals(expectedBaseRatings)
+                            && player.abilityProfile().selectedChampionProficiency()
+                            == expectedProficiency,
+                    "Current V8 player ability profile differs from authoritative resources");
+        }
+        require(results.size() == 10, "Fixed result player cardinality differs");
+
+        require(response.result().durationSeconds() == response.timeline().durationSeconds()
+                        && response.result().winner() == response.timeline().winner()
+                        && response.result().endReason() == response.timeline().endReason()
+                        && response.result().finalDraftHash().equals(draft.finalDraftHash())
+                        && response.result().finalAssignmentHash().equals(
+                        draft.finalAssignmentHash()),
+                "Draft, result and timeline identity differ");
+        require(!response.timeline().snapshots().isEmpty(),
+                "Fixed timeline has no snapshots");
+        RealMatchApiV1Dtos.Snapshot finalSnapshot = response.timeline().snapshots().getLast();
+        require(finalSnapshot.timeSeconds() == response.result().durationSeconds(),
+                "Final snapshot duration differs");
+        Map<TeamSide, RealMatchApiV1Dtos.TeamState> finalTeams = Map.of(
+                TeamSide.BLUE, finalSnapshot.blueTeam(),
+                TeamSide.RED, finalSnapshot.redTeam());
+        for (RealMatchApiV1Dtos.TeamResult team : response.result().teams()) {
+            RealMatchApiV1Dtos.TeamState state = finalTeams.get(team.teamSide());
+            require(state != null && state.teamIdentity().equals(team.teamIdentity())
+                            && state.kills() == team.kills()
+                            && state.gold() == team.totalGold()
+                            && state.dragons() == team.dragons()
+                            && state.hasDragonSoul() == team.hasDragonSoul()
+                            && state.hasBaronBuff() == team.hasBaronBuff()
+                            && state.hasElderBuff() == team.hasElderBuff()
+                            && state.towersDestroyed() == team.towersDestroyed()
+                            && state.inhibitorsRemaining() == team.inhibitorsRemaining()
+                            && state.nexusTurretsRemaining() == team.nexusTurretsRemaining()
+                            && state.nexusAlive() == team.nexusAlive()
+                            && state.alivePlayers() == team.alivePlayers(),
+                    "Final team result differs from final snapshot");
+        }
+        if (response.result().endReason() == GameEndReason.NEXUS_DESTROYED) {
+            require(response.result().winner() != null
+                            && response.result().teams().stream()
+                            .filter(team -> team.teamSide() != response.result().winner())
+                            .noneMatch(RealMatchApiV1Dtos.TeamResult::nexusAlive),
+                    "Nexus winner/final team state differs");
+        } else {
+            require(response.result().winner() == null,
+                    "Timeout result unexpectedly has a winner");
+        }
+
+        Map<String, RealMatchApiV1Dtos.PlayerState> finalPlayers = new HashMap<>();
+        finalSnapshot.players().forEach(player -> finalPlayers.put(player.playerId(), player));
+        require(finalPlayers.size() == 10, "Final snapshot player cardinality differs");
+        for (RealMatchApiV1Dtos.PlayerResult result : response.result().players()) {
+            RealMatchApiV1Dtos.PlayerState state = finalPlayers.get(result.playerId());
+            require(state != null && state.teamSide() == result.teamSide()
+                            && state.position() == result.position()
+                            && state.championId().equals(result.championId())
+                            && state.kills() == result.kills()
+                            && state.deaths() == result.deaths()
+                            && state.assists() == result.assists()
+                            && state.cs() == result.cs()
+                            && state.gold() == result.gold()
+                            && state.totalExperience() == result.totalExperience()
+                            && state.level() == result.level(),
+                    "Final player result differs from final snapshot");
+        }
+
+        Set<String> rosterIds = Set.copyOf(results.keySet());
+        for (RealMatchApiV1Dtos.Event event : response.timeline().events()) {
+            require(isRosterParticipant(event.actorPlayerId(), rosterIds)
+                            && isRosterParticipant(event.killerPlayerId(), rosterIds)
+                            && isRosterParticipant(event.victimPlayerId(), rosterIds)
+                            && rosterIds.containsAll(event.assistantPlayerIds()),
+                    "Timeline event contains a participant outside the fixed roster");
+        }
+        requireHashes(draft.draftRuleSetHash(), draft.draftScoringPolicyHash(),
+                draft.finalDraftHash(), draft.finalAssignmentHash(), policy.policyHash(),
+                policy.configurationHash(), options.resourceVersions().resourceProvenanceHash(),
+                integrity.inputHash(), integrity.resourceProvenanceHash(),
+                integrity.replayProvenanceHash(), integrity.simulatorTimelineHash(),
+                integrity.structuredTimelineHash(), integrity.outputHash(),
+                integrity.randomFingerprint().randomTraceHash());
+        require(integrity.randomFingerprint().randomDrawCount() >= 0,
+                "Random fingerprint draw count is negative");
+    }
+
+    private static boolean isRosterParticipant(String playerId, Set<String> rosterIds) {
+        return playerId == null || rosterIds.contains(playerId);
+    }
+
+    private static void requireHashes(String... values) {
+        for (String value : values) {
+            require(value != null && value.matches("[0-9a-f]{64}"),
+                    "Current runtime evidence contains an invalid SHA-256 value");
+        }
     }
 
     private static Map<String, Object> error(

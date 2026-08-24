@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.*;
 import com.lolfm.champion.*;
 import com.lolfm.domain.Position;
 import com.lolfm.simulator.SimulationOptions;
+import com.lolfm.testsupport.FrontendTextSourceScanner;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.security.MessageDigest;
@@ -75,7 +76,7 @@ class ThirtyChampionCompositionProfilesTest {
  @Test void productionMatchupDefaultRemainsGeometricV2(){assertThat(SimulationOptions.productionDefaults().championMatchupMode()).isEqualTo(ChampionMatchupMode.GEOMETRIC_V2);}
  @Test void explicitMatchupOffRollbackStillWorks(){var e=new ChampionMatchupEvaluator(ChampionRoleMatchupProfileCatalog.production());var k=key("unsupported",Position.TOP);assertThat(e.evaluate(k,k,com.lolfm.simulator.ProgressionCombatContext.LANE_COMBAT,ChampionMatchupMode.OFF).finalEdge()).isZero();}
  @Test void apiSchemaIsUnchanged()throws Exception{for(var p:Files.walk(Path.of("src/main/java/com/lolfm/dto")).filter(Files::isRegularFile).toList())assertThat(Files.readString(p)).doesNotContain("ThirtyChampionCompositionProfiles");}
- @Test void frontendFilesAreUnchanged()throws Exception{for(var p:Files.walk(Path.of("../frontend/src")).filter(Files::isRegularFile).toList())assertThat(Files.readString(p)).doesNotContain("ThirtyChampionCompositionProfiles");}
+ @Test void frontendFilesAreUnchanged()throws Exception{assertThat(FrontendTextSourceScanner.filesContaining(Path.of("../frontend/src"),"ThirtyChampionCompositionProfiles")).isEmpty();}
  @Test void previousFoundationArtifactsRemainUnchanged()throws Exception{assertThat(hash(Path.of("build/reports/team-composition-foundation/team-composition-foundation-summary.csv"))).isEqualTo("98c896c81e3b432c095b74b3693c3491f3d9cac7c941d98b9c34ea658b33afa1");assertThat(hash(Path.of("build/reports/team-composition-foundation/team-composition-foundation-audit.log"))).isEqualTo("8fe61f85d16a5c4339b1ceed969114dcf49d09749300285c6a4f41b2b941d746");}
  @Test void verdictIsComputedNotHardcoded()throws Exception{assertThat(auditSource()).contains("integrity != 0 ?").doesNotContain("String verdict = \"READY_FOR_PHASE_13D3\"");}
  private boolean bounded(double v){return v>=0&&v<=1;}

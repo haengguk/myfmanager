@@ -85,7 +85,7 @@ REAL_MATCH_RESPONSE_V1
 - `TeamSide`, `Position`, Draft action, end reason, event type, lane, combat/structure/activity 값은 enum string이다.
 - `teams`는 최종 champion assignment와 catalog 기반 display name/portrait를 함께 제공한다.
 - `draft`는 rules identity/hash, Game 1, Draft 전 exclusion, ordered ban/pick decision, 양 팀 ban/pick, final player-position-champion assignment와 final hash를 제공한다.
-- `result`는 `MATCH_RESULT_SUMMARY_V1`의 winner/end reason/duration, 팀 최종 상태, 10명 KDA/CS/gold/XP/level을 그대로 투영한다.
+- `result`는 `MATCH_RESULT_SUMMARY_V1`의 winner/end reason/duration, 팀 최종 상태, 10명 KDA/CS/gold/XP/level과 V8의 `PLAYER_ABILITY_PROFILE_V1`을 그대로 투영한다. 선수별 profile은 12개 base/realized/delta rating과 선택 champion proficiency 및 실행 보정을 stable `PlayerId`/position/champion assignment에 결속한다.
 - `timeline`은 모든 immutable structured event와 snapshot을 투영한다. Stable participant ID, champion ID, `CombatSource`, objective/structure field, structured data와 player progression을 보존한다. `displayMessage`는 표시용이다.
 - `integrity`는 contract/policy/configuration/rules/engine identity, input/resource/replay/timeline/output hash와 Random fingerprint를 제공한다.
 
@@ -105,7 +105,7 @@ V1은 다음 runtime만 허용한다.
 | Runtime profile | `BASELINE_V1` |
 | Configuration hash | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
 | Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2` |
-| Engine | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6` |
+| Engine | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8` |
 | Matchup / Composition | `OFF` / `OFF` |
 | Jungle contribution | `DISABLED_NOT_INTEGRATED` |
 | Economy / Tempo candidate | `false` / `false` |
@@ -135,14 +135,16 @@ V1은 다음 runtime만 허용한다.
 
 ## 검증과 frontend handoff
 
-Focused 검증은 8 suites / 50 tests, failures 0 / errors 0 / skipped 0으로 통과했다. 요청 parser, typed preflight/internal error 분리, 요청 team/seed와 output provenance 결속, Game 2/inherited history 거부, display name과 team code 분리, HTTP options/success/error/serialization, same-request exact replay와 Game 1 isolation, direct orchestrator projection parity, 기존 Real Draft/Champion API/Match Engine V1 계약과 source-binding test를 포함한다.
+Frontend source scanner 하드닝 focused 검증은 새 scanner 계약과 기존 영향 5개 class를 묶어 6 suites / 214 tests, failures 0 / errors 0 / skipped 0으로 통과했다. 명시적 text extension만 UTF-8로 읽고 `.woff2` 등 binary, `node_modules`, `dist`, `build`와 source root 밖을 제외한다. 허용 text의 encoding/I/O 오류와 `.ts`/`.tsx` 금지 문자열은 계속 fail-fast한다.
 
-최종 complete backend regression은 `gradlew.bat test --console=plain --no-daemon` 1회에서 180 suites / 2,016 tests, failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 835.846초, Gradle wall time은 14분 14초다. 이후 executable production source, resource, Gradle과 shared fixture는 변경하지 않았다.
+Real Match API focused 검증은 V8 `PlayerAbilityProfileContractTest`를 포함한 9 suites / 55 tests, failures 0 / errors 0 / skipped 0으로 통과했다. 요청 parser, typed preflight/internal error 분리, 요청 team/seed와 output provenance 결속, Game 2/inherited history 거부, display name과 team code 분리, HTTP options/success/error/serialization, same-request exact replay와 Game 1 isolation, direct orchestrator projection parity, 기존 Real Draft/Champion API/Match Engine V1 계약, ability profile projection과 source-binding test를 포함한다.
 
-Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`에 있다. Contract, options example, 고정 `GEN` 대 `T1` seed `"73"` 요청/전체 응답, error contract, handoff 6개 JSON과 `SHA256SUMS.txt`를 제공한다. Manifest는 6/6 raw SHA가 통과했고 SHA-256은 `67c29caaf76dd27db2fd8f489c30a58ca0f34c8731ebb0342c51d11381834b97`다. 고정 output hash는 `41eccdae5750d80f3d8b940f65ea93a8113148063fd4017dcde062b9f9fb651b`로 그대로다.
+최종 complete backend regression은 메모리 한도에 맞춘 일회성 JVM/worker 제한 아래 default `test` 전체를 첫 실행에서 수행했고 196 suites / 2,091 tests, failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 810.092초, Gradle wall time은 13분 43초다. 테스트 선택이나 default diagnostic 제외 경계는 바꾸지 않았으며, 이후 executable production source, resource, Gradle과 shared fixture는 변경하지 않았다.
 
-Artifact writer는 전체 XML의 단순 개수만 신뢰하지 않는다. 필수 8개 suite와 최소 test 수, failures/errors/skipped 0을 확인하고, 전용 dynamic test가 기록한 production source 488 files / `c5d1a9ec5ac18ccf1cfc47c864f616884ecea4faefed60b94b70498cfe5907a1` 및 API verification source 9 files / `8bb5ac9fd2e4b8e68ea4052abbb3ae2d54d836779f112be646d2f60efa27bce2`를 현재 tree와 exact 비교한다. 따라서 이전 clean XML이나 고정 base commit/run-count 표시는 새 evidence로 재사용할 수 없다.
+Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`에 있다. Contract, options example, 고정 `GEN` 대 `T1` seed `"73"` 요청/전체 응답, error contract, handoff 6개 JSON과 `SHA256SUMS.txt`를 제공한다. 현재 V8 고정 결과는 GEN(BLUE) 승리, `NEXUS_DESTROYED`, 3,430초(57분 10초), output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. Manifest는 6/6 raw SHA가 통과했고 raw SHA-256은 `fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525`다.
 
-Historical Match Engine V1 freeze artifact는 재생성하지 않았다. 기존 7-entry manifest SHA-256 `1f5bc20c347d25d833e822325de1fa294dc61d38c55da121ea30d15ab70a0728`을 raw SHA로 다시 검증해 handoff에 결속했다.
+Artifact writer는 전체 XML의 단순 개수만 신뢰하지 않는다. 필수 8개 suite와 최소 test 수, failures/errors/skipped 0을 확인하고, 전용 dynamic test가 기록한 production source 502 files / `e23f2d2149edd3a7478b5333f126e876d969b5a3c71c20b670447cc9cbd71817` 및 API verification source 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`를 현재 tree와 exact 비교한다. 생성 전에는 options/roster/Draft/result/final snapshot/structured participant/hash/Random/선수 ability profile의 V8 semantic audit와 same-request replay도 수행한다. 두 fresh JVM candidate A/B의 JSON 6개와 manifest는 7/7 byte-for-byte exact였고, 감사 통과 뒤에만 공식 local artifact로 승격했다. 따라서 이전 V6/V7 handoff, 이전 clean XML이나 고정 base commit/run-count 표시는 새 evidence로 재사용할 수 없다.
+
+Historical Match Engine V1 freeze artifact는 V6 당시 evidence로 재생성하지 않았다. 기존 7-entry manifest SHA-256 `1f5bc20c347d25d833e822325de1fa294dc61d38c55da121ea30d15ab70a0728`을 raw SHA로 다시 검증해 현재 V8 handoff에 결속했다. Historical freeze, 현재 production implementation V8, 현재 frontend handoff는 서로 다른 evidence 범위다.
 
 다음 milestone은 `REAL_MATCH_FRONTEND_V1`이다. 그 뒤 `SERIES_LIFECYCLE_V1`이 BO3/BO5와 누적 Hard Fearless history의 소유권을 별도 계약으로 다룬다. Save/Load, Career/Season도 아직 구현되지 않았다.

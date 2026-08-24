@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.*;
 import com.lolfm.domain.*;
 import com.lolfm.dto.MatchSimulateRequest;
+import com.lolfm.testsupport.FrontendTextSourceScanner;
 import java.nio.file.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
@@ -36,8 +37,8 @@ class ChampionMatchupProductionTest {
     @Test void offOnOffModeSequenceDoesNotLeak() throws Exception { var l=GeneratedMatchupRoundRobinLineupFactory.create(champions,"S0").getFirst();String off1=run(l,ChampionMatchupMode.OFF,7),on1=run(l,ChampionMatchupMode.GEOMETRIC_V2,7),off2=run(l,ChampionMatchupMode.OFF,7),on2=run(l,ChampionMatchupMode.GEOMETRIC_V2,7);assertThat(off1).isEqualTo(off2);assertThat(on1).isEqualTo(on2); }
     @Test void modeIsMatchScopedAndDoesNotLeak() throws Exception { offOnOffModeSequenceDoesNotLeak(); }
     @Test void apiSchemaIsUnchanged() { assertThat(Arrays.stream(MatchSimulateRequest.class.getDeclaredFields()).map(java.lang.reflect.Field::getName)).doesNotContain("championMatchupMode"); }
-    @Test void candidateModeIsNotApiExposed() throws Exception { assertThat(Files.walk(Path.of("../frontend/src")).filter(Files::isRegularFile).noneMatch(p->{try{return Files.readString(p).contains("ChampionMatchupMode");}catch(Exception e){throw new RuntimeException(e);}})).isTrue(); }
-    @Test void frontendFilesAreUnchanged() throws Exception { assertThat(Files.walk(Path.of("../frontend/src")).filter(Files::isRegularFile).noneMatch(p->{try{return Files.readString(p).contains("EXPOSURE_GATED_GEOMETRIC_V2");}catch(Exception e){throw new RuntimeException(e);}})).isTrue(); }
+    @Test void candidateModeIsNotApiExposed() throws Exception { assertThat(FrontendTextSourceScanner.filesContaining(Path.of("../frontend/src"),"ChampionMatchupMode")).isEmpty(); }
+    @Test void frontendFilesAreUnchanged() throws Exception { assertThat(FrontendTextSourceScanner.filesContaining(Path.of("../frontend/src"),"EXPOSURE_GATED_GEOMETRIC_V2")).isEmpty(); }
     @Test void activationVerdictIsComputed() { var d=ChampionMatchupActivationGate.evaluate(new ChampionMatchupActivationGate.Input(0,1,.01,.01,0,0,0,true));assertThat(d.verdict()).isEqualTo("MATCHUP_PRODUCTION_ACTIVATED"); }
     @Test void failedGateLeavesOrRestoresDefaultOff() { var d=ChampionMatchupActivationGate.evaluate(new ChampionMatchupActivationGate.Input(1,0,0,0,0,0,0,false));assertThat(d.defaultMode()).isEqualTo(ChampionMatchupMode.OFF);assertThat(d.productionActivated()).isFalse(); }
 
