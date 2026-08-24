@@ -53,6 +53,8 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
   const [requestStage, setRequestStage] = useState<MatchRequestStage>('CONNECTING');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const optionsSequenceRef = useRef(0);
+  const createAttemptRef = useRef(0);
+  const creatingRef = useRef(false);
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -87,6 +89,11 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
     return () => window.clearInterval(timer);
   }, [creating]);
 
+  useEffect(() => () => {
+    createAttemptRef.current += 1;
+    creatingRef.current = false;
+  }, []);
+
   const displayOptions = options ?? emptyOptions(dataSource);
   const teamById = useMemo(() => new Map(displayOptions.teams.map((team) => [team.teamId, team])), [displayOptions.teams]);
   const selected = (teamId: string): MatchTeamOptionViewModel | null => teamById.get(teamId) ?? null;
@@ -95,7 +102,13 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
   const selection: MatchSetupSelection = { blueTeamId, redTeamId, seed, gameNumber: displayOptions.gameNumber, seriesType: displayOptions.seriesType };
   const optionsReady = Boolean(options && !optionsLoading && !optionsError
     && (options.source === 'LIVE' ? options.teams.length === 10 : options.teams.length >= 2));
-  const ready = optionsReady && Boolean(blueTeamId && redTeamId) && !conflict && !seedError && !creating;
+  const referenceSelectionReady = !options || options.source !== 'REFERENCE'
+    || (blueTeamId === options.defaultBlueTeamCode
+      && redTeamId === options.defaultRedTeamCode
+      && seed === options.defaultSeed
+      && displayOptions.gameNumber === 1);
+  const ready = optionsReady && Boolean(blueTeamId && redTeamId) && !conflict && !seedError
+    && referenceSelectionReady && !creating;
   const blockReason = optionsLoading
     ? `${dataSource} 데이터 공급자에서 팀과 로스터를 불러오고 있습니다.`
     : optionsError
@@ -104,7 +117,11 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
         ? 'BLUE와 RED 팀을 모두 선택하세요.'
         : conflict
           ? 'BLUE와 RED에는 서로 다른 팀을 선택해야 합니다.'
-          : seedError ?? '';
+          : seedError
+            ? seedError
+            : !referenceSelectionReady
+              ? 'REFERENCE 데이터는 기본 GEN 대 T1 · seed 73 · Fresh Game 1 조합만 실행할 수 있습니다.'
+              : '';
   const pairCopy = ready
     ? `${selected(blueTeamId)?.code} · ${selected(redTeamId)?.code} · seed ${seed} · ${displayOptions.source} 자동 Draft를 실행합니다.`
     : creating
@@ -120,16 +137,30 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
     setSeed(options.defaultSeed); setDefaultApplied(true); setCreateError(null);
   };
   const start = async () => {
-    if (!ready || !options || creating) return;
+    if (!ready || !options || creatingRef.current) return;
+    const attempt = ++createAttemptRef.current;
+    creatingRef.current = true;
     setCreating(true); setRequestStage('CONNECTING'); setCreateError(null);
     try {
-      await onStart(selection, options, setRequestStage);
+      await onStart(selection, options, (stage) => {
+        if (attempt === createAttemptRef.current) setRequestStage(stage);
+      });
     } catch (error) {
-      setCreateError(errorMessage(error));
-      setCreating(false);
+      if (attempt === createAttemptRef.current) setCreateError(errorMessage(error));
+    } finally {
+      if (attempt === createAttemptRef.current) {
+        creatingRef.current = false;
+        setCreating(false);
+      }
     }
   };
-  const cancel = () => { onCancelStart(); setCreateError('경기 요청을 취소했습니다. 팀과 seed 선택은 유지됩니다.'); setCreating(false); };
+  const cancel = () => {
+    createAttemptRef.current += 1;
+    creatingRef.current = false;
+    onCancelStart();
+    setCreateError('경기 요청을 취소했습니다. 팀과 seed 선택은 유지됩니다.');
+    setCreating(false);
+  };
 
   return (
     <div className="rm-setup-app">

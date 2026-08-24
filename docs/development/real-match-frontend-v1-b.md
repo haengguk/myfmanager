@@ -77,7 +77,7 @@ npm run build
 npm run bundle:verify
 ```
 
-`live:verify`는 valid/invalid signed-long 경계, options와 full response validator, 10팀/50명, Draft/result/timeline/integrity 정규화를 검사한다. `bundle:verify`는 initial entry에 reference fixture payload가 포함되지 않았는지와 lazy chunk 경계를 확인한다. 이 frontend-only 변경에는 backend full regression을 실행하지 않았다.
+`live:verify`는 현재 TypeScript validator/adapter를 실제로 bundle/import한 뒤 valid/invalid signed-long 경계, options와 33MB full response, 10팀/50명, Draft/result/timeline/integrity 정규화 및 훼손 payload 거부를 검사한다. `bundle:verify`는 `dist/index.html`의 module entry에서 static import graph 전체를 순회해 reference fixture payload가 initial graph에 포함되지 않았는지와 lazy chunk 경계를 확인한다. 이 frontend-only 변경에는 backend full regression을 실행하지 않았다.
 
 ## 남은 제한과 다음 단계
 

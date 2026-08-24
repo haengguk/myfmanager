@@ -10,7 +10,7 @@
 | --- | --- |
 | Contract schema | `MATCH_ENGINE_CONTRACT_V1` |
 | Policy | `MATCH_ENGINE_V1_BASELINE_PRODUCTION_POLICY` |
-| Policy hash | `61ec36e4ec36a3693a7fd34f9acbd018f615115dda45b558580f1ee7ff1a02a5` |
+| Policy hash | `cd5512dcfeae92ff3222367d4aa8a9fc352cc1bf57f9e3ea20382e6a5959bf0a` |
 | Runtime profile | `BASELINE_V1` |
 | Configuration hash | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
 | Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2` |

@@ -87,27 +87,30 @@ function RootApp() {
   }, []);
 
   const startMatch = async (selection: MatchSetupSelection, options: MatchSetupOptionsViewModel, onStage: (stage: MatchRequestStage) => void) => {
-    cancelMatchRequest();
+    if (matchRequestRef.current && !matchRequestRef.current.signal.aborted) return;
     const requestId = ++matchRequestSequenceRef.current;
     const controller = new AbortController();
     matchRequestRef.current = controller;
     setMatchSession(null);
-    const session = await createMatchSession(options.source, options, selection, controller.signal, onStage);
-    if (controller.signal.aborted || requestId !== matchRequestSequenceRef.current) throw new DOMException('Stale match response', 'AbortError');
-    matchRequestRef.current = null;
-    setMatchSession(session);
-    console.info('[real-match-performance]', JSON.stringify({
-      source: session.source,
-      matchIdentity: session.sessionId,
-      payloadBytes: session.performance.payloadBytes,
-      requestAndDownloadMs: Number(session.performance.requestAndDownloadMs.toFixed(1)),
-      jsonParseMs: Number(session.performance.jsonParseMs.toFixed(1)),
-      runtimeValidationMs: Number(session.performance.runtimeValidationMs.toFixed(1)),
-      normalizationMs: Number(session.performance.normalizationMs.toFixed(1)),
-      rawPayloadRetained: false,
-    }));
-    setDraftReturnScreen('setup');
-    setActiveScreen('draft');
+    try {
+      const session = await createMatchSession(options.source, options, selection, controller.signal, onStage);
+      if (controller.signal.aborted || requestId !== matchRequestSequenceRef.current) throw new DOMException('Stale match response', 'AbortError');
+      setMatchSession(session);
+      console.info('[real-match-performance]', JSON.stringify({
+        source: session.source,
+        matchIdentity: session.sessionId,
+        payloadBytes: session.performance.payloadBytes,
+        requestAndDownloadMs: Number(session.performance.requestAndDownloadMs.toFixed(1)),
+        jsonParseMs: Number(session.performance.jsonParseMs.toFixed(1)),
+        runtimeValidationMs: Number(session.performance.runtimeValidationMs.toFixed(1)),
+        normalizationMs: Number(session.performance.normalizationMs.toFixed(1)),
+        rawPayloadRetained: false,
+      }));
+      setDraftReturnScreen('setup');
+      setActiveScreen('draft');
+    } finally {
+      if (matchRequestRef.current === controller) matchRequestRef.current = null;
+    }
   };
 
   if (activeScreen === 'setup') {

@@ -7,6 +7,7 @@ import type {
 } from './realMatchApi.types';
 
 type JsonRecord = Record<string, unknown>;
+type PresentationPlayerIdentity = { side: TeamSide; position: Position; championId: string };
 
 const TEAM_SIDES = ['BLUE', 'RED'] as const;
 const POSITIONS = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] as const;
@@ -99,6 +100,11 @@ function exactSet(values: readonly string[], expected: readonly string[], path: 
     fail(path, `${expected.join(', ')}의 중복 없는 정확한 구성이 필요합니다.`);
   }
 }
+function exactArray(values: readonly string[], expected: readonly string[], path: string): void {
+  if (values.length !== expected.length || values.some((item, index) => item !== expected[index])) {
+    fail(path, `${expected.join(', ')} 순서와 정확히 일치해야 합니다.`);
+  }
+}
 function teamSide(value: unknown, path: string): TeamSide { return oneOf(value, TEAM_SIDES, path); }
 function position(value: unknown, path: string): Position { return oneOf(value, POSITIONS, path); }
 function validateTeamCode(value: unknown, path: string): string {
@@ -181,19 +187,28 @@ function validateAbilityProfile(value: unknown, positionValue: Position, path: s
   const profile = record(value, path);
   literal(profile.schemaVersion, 'PLAYER_ABILITY_PROFILE_V1', `${path}.schemaVersion`);
   const expected = expectedRatings(positionValue);
-  for (const field of ['baseRatings', 'realizedRatings', 'realizationDeltas']) {
-    const ratings = record(profile[field], `${path}.${field}`);
+  const baseRatings = record(profile.baseRatings, `${path}.baseRatings`);
+  const realizedRatings = record(profile.realizedRatings, `${path}.realizedRatings`);
+  const realizationDeltas = record(profile.realizationDeltas, `${path}.realizationDeltas`);
+  for (const [field, ratings] of Object.entries({ baseRatings, realizedRatings, realizationDeltas })) {
     exactSet(Object.keys(ratings), expected, `${path}.${field}`);
-    for (const key of expected) finiteNumber(ratings[key], `${path}.${field}.${key}`);
+  }
+  for (const key of expected) {
+    const base = integer(baseRatings[key], `${path}.baseRatings.${key}`, 1);
+    if (base > 20) fail(`${path}.baseRatings.${key}`, '20 이하여야 합니다.');
+    const realized = finiteNumber(realizedRatings[key], `${path}.realizedRatings.${key}`);
+    if (realized < 1 || realized > 20) fail(`${path}.realizedRatings.${key}`, '1 이상 20 이하여야 합니다.');
+    const delta = finiteNumber(realizationDeltas[key], `${path}.realizationDeltas.${key}`);
+    if (realized - base !== delta) fail(`${path}.realizationDeltas.${key}`, 'realizedRating - baseRating과 일치해야 합니다.');
   }
   const proficiency = integer(profile.selectedChampionProficiency, `${path}.selectedChampionProficiency`, 1);
   if (proficiency > 20) fail(`${path}.selectedChampionProficiency`, '20 이하여야 합니다.');
   finiteNumber(profile.proficiencyExecutionAdjustment, `${path}.proficiencyExecutionAdjustment`);
 }
 
-function validateTeamState(value: unknown, expectedSide: TeamSide, path: string): void {
+function validateTeamState(value: unknown, expectedSide: TeamSide, expectedTeamCode: string, path: string): void {
   const state = record(value, path);
-  text(state.teamIdentity, `${path}.teamIdentity`);
+  if (text(state.teamIdentity, `${path}.teamIdentity`) !== expectedTeamCode) fail(`${path}.teamIdentity`, 'response team identity와 일치해야 합니다.');
   if (teamSide(state.teamSide, `${path}.teamSide`) !== expectedSide) fail(`${path}.teamSide`, `${expectedSide}여야 합니다.`);
   for (const key of ['kills', 'gold', 'dragons', 'elderBuffRemainingSeconds', 'towersDestroyed', 'inhibitorsRemaining', 'nexusTurretsRemaining', 'alivePlayers']) {
     integer(state[key], `${path}.${key}`);
@@ -223,20 +238,49 @@ function validatePlayerState(value: unknown, path: string): { playerId: string; 
   return { playerId, side, position: positionValue, championId };
 }
 
-function validateEvent(value: unknown, index: number, durationSeconds: number): number {
+function validateEvent(
+  value: unknown,
+  index: number,
+  durationSeconds: number,
+  presentationPlayers: ReadonlyMap<string, PresentationPlayerIdentity>,
+): number {
   const path = `$.timeline.events[${index}]`;
   const event = record(value, path);
   const time = integer(event.timeSeconds, `${path}.timeSeconds`);
   if (time > durationSeconds) fail(`${path}.timeSeconds`, '경기 시간을 벗어났습니다.');
   oneOf(event.eventType, EVENT_TYPES, `${path}.eventType`) as MatchEventType;
-  nullableOneOf(event.actorSide, TEAM_SIDES, `${path}.actorSide`) as TeamSide | null;
-  nullableOneOf(event.actorPosition, POSITIONS, `${path}.actorPosition`) as Position | null;
+  const actorSide = nullableOneOf(event.actorSide, TEAM_SIDES, `${path}.actorSide`) as TeamSide | null;
+  const actorPosition = nullableOneOf(event.actorPosition, POSITIONS, `${path}.actorPosition`) as Position | null;
   nullableOneOf(event.lane, LANES, `${path}.lane`) as Lane | null;
-  for (const key of ['actorPlayerId', 'killerPlayerId', 'victimPlayerId', 'killerChampionId', 'victimChampionId', 'actionId', 'parentActionId', 'displayMessage']) {
-    nullableText(event[key], `${path}.${key}`);
+  const actorPlayerId = nullableText(event.actorPlayerId, `${path}.actorPlayerId`);
+  const killerPlayerId = nullableText(event.killerPlayerId, `${path}.killerPlayerId`);
+  const victimPlayerId = nullableText(event.victimPlayerId, `${path}.victimPlayerId`);
+  const killerChampionId = nullableText(event.killerChampionId, `${path}.killerChampionId`);
+  const victimChampionId = nullableText(event.victimChampionId, `${path}.victimChampionId`);
+  for (const key of ['actionId', 'parentActionId', 'displayMessage']) nullableText(event[key], `${path}.${key}`);
+  const actor = actorPlayerId === null ? null : presentationPlayers.get(actorPlayerId);
+  if (actorPlayerId !== null && !actor) fail(`${path}.actorPlayerId`, 'presentation에 없는 선수입니다.');
+  if (actor && (actor.side !== actorSide || actor.position !== actorPosition)) fail(`${path}.actorPlayerId`, 'actor side/position과 선수 identity가 일치하지 않습니다.');
+  for (const [role, playerId, championId] of [
+    ['killer', killerPlayerId, killerChampionId], ['victim', victimPlayerId, victimChampionId],
+  ] as const) {
+    if ((playerId === null) !== (championId === null)) fail(`${path}.${role}PlayerId`, 'player/champion identity는 함께 제공되어야 합니다.');
+    if (playerId !== null) {
+      const identity = presentationPlayers.get(playerId);
+      if (!identity) fail(`${path}.${role}PlayerId`, 'presentation에 없는 선수입니다.');
+      if (identity.championId !== championId) fail(`${path}.${role}ChampionId`, '선수의 최종 champion identity와 일치하지 않습니다.');
+    }
   }
-  stringArray(event.assistantPlayerIds, `${path}.assistantPlayerIds`);
-  stringArray(event.assistantChampionIds, `${path}.assistantChampionIds`);
+  const assistantPlayerIds = stringArray(event.assistantPlayerIds, `${path}.assistantPlayerIds`);
+  const assistantChampionIds = stringArray(event.assistantChampionIds, `${path}.assistantChampionIds`);
+  if (assistantPlayerIds.length !== assistantChampionIds.length || new Set(assistantPlayerIds).size !== assistantPlayerIds.length) {
+    fail(`${path}.assistantPlayerIds`, 'assistant player/champion identity가 중복 없이 쌍을 이뤄야 합니다.');
+  }
+  assistantPlayerIds.forEach((playerId, assistantIndex) => {
+    const identity = presentationPlayers.get(playerId);
+    if (!identity) fail(`${path}.assistantPlayerIds[${assistantIndex}]`, 'presentation에 없는 선수입니다.');
+    if (identity.championId !== assistantChampionIds[assistantIndex]) fail(`${path}.assistantChampionIds[${assistantIndex}]`, '선수의 최종 champion identity와 일치하지 않습니다.');
+  });
   nullableOneOf(event.combatSource, COMBAT_SOURCES, `${path}.combatSource`) as CombatSource | null;
   nullableOneOf(event.structureActionSource, STRUCTURE_SOURCES, `${path}.structureActionSource`) as StructureActionSource | null;
   nullableOneOf(event.structureKind, STRUCTURE_KINDS, `${path}.structureKind`) as StructureKind | null;
@@ -275,7 +319,7 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
   const presentationTeams = array(root.teams, '$.teams');
   if (presentationTeams.length !== 2) fail('$.teams', 'BLUE/RED 두 팀이 필요합니다.');
   const responseTeamCodes = new Map<TeamSide, string>();
-  const presentationPlayers = new Map<string, { side: TeamSide; position: Position; championId: string }>();
+  const presentationPlayers = new Map<string, PresentationPlayerIdentity>();
   presentationTeams.forEach((teamValue, teamIndex) => {
     const path = `$.teams[${teamIndex}]`;
     const team = record(teamValue, path);
@@ -314,15 +358,22 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
   const decisions = array(draft.decisions, '$.draft.decisions');
   if (decisions.length !== 20) fail('$.draft.decisions', '정확히 20개의 자동 Draft 결정이 필요합니다.');
   const turns: number[] = [];
+  const decisionChampions: Record<TeamSide, Record<DraftActionType, string[]>> = {
+    BLUE: { PICK: [], BAN: [] }, RED: { PICK: [], BAN: [] },
+  };
+  const allDecisionChampions: string[] = [];
   decisions.forEach((decisionValue, index) => {
     const path = `$.draft.decisions[${index}]`;
     const decision = record(decisionValue, path);
     turns.push(integer(decision.turn, `${path}.turn`, 1));
-    teamSide(decision.teamSide, `${path}.teamSide`);
-    oneOf(decision.actionType, DRAFT_ACTIONS, `${path}.actionType`) as DraftActionType;
-    text(decision.championId, `${path}.championId`);
+    const side = teamSide(decision.teamSide, `${path}.teamSide`);
+    const actionType = oneOf(decision.actionType, DRAFT_ACTIONS, `${path}.actionType`) as DraftActionType;
+    const championId = text(decision.championId, `${path}.championId`);
+    decisionChampions[side][actionType].push(championId);
+    allDecisionChampions.push(championId);
   });
   exactSet(turns.map(String), Array.from({ length: 20 }, (_, index) => String(index + 1)), '$.draft.decisions.turn');
+  if (new Set(allDecisionChampions).size !== 20) fail('$.draft.decisions.championId', 'Draft 전체에서 중복 없는 20개 챔피언이 필요합니다.');
   const blueBans = stringArray(draft.blueBans, '$.draft.blueBans');
   const bluePicks = stringArray(draft.bluePicks, '$.draft.bluePicks');
   const redBans = stringArray(draft.redBans, '$.draft.redBans');
@@ -330,9 +381,15 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
   for (const [name, values] of Object.entries({ blueBans, bluePicks, redBans, redPicks })) {
     if (values.length !== 5 || new Set(values).size !== 5) fail(`$.draft.${name}`, '중복 없는 챔피언 5개가 필요합니다.');
   }
+  if (new Set([...blueBans, ...bluePicks, ...redBans, ...redPicks]).size !== 20) fail('$.draft', 'Draft 전체에서 챔피언이 중복될 수 없습니다.');
+  exactArray(decisionChampions.BLUE.BAN, blueBans, '$.draft.decisions.BLUE.BAN');
+  exactArray(decisionChampions.BLUE.PICK, bluePicks, '$.draft.decisions.BLUE.PICK');
+  exactArray(decisionChampions.RED.BAN, redBans, '$.draft.decisions.RED.BAN');
+  exactArray(decisionChampions.RED.PICK, redPicks, '$.draft.decisions.RED.PICK');
   const assignments = array(draft.finalAssignments, '$.draft.finalAssignments');
   if (assignments.length !== 10) fail('$.draft.finalAssignments', '정확히 10개의 최종 배치가 필요합니다.');
   const assignedPlayers = new Set<string>();
+  const assignedChampions: Record<TeamSide, string[]> = { BLUE: [], RED: [] };
   assignments.forEach((assignmentValue, index) => {
     const path = `$.draft.finalAssignments[${index}]`;
     const assignment = record(assignmentValue, path);
@@ -345,7 +402,11 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
     const positionValue = position(assignment.position, `${path}.position`);
     const championId = text(assignment.championId, `${path}.championId`);
     if (presented.side !== side || presented.position !== positionValue || presented.championId !== championId) fail(path, 'presentation과 최종 배치가 일치하지 않습니다.');
+    assignedChampions[side].push(championId);
   });
+  if (new Set([...assignedChampions.BLUE, ...assignedChampions.RED]).size !== 10) fail('$.draft.finalAssignments.championId', '최종 배치 챔피언이 중복될 수 없습니다.');
+  exactSet(assignedChampions.BLUE, bluePicks, '$.draft.finalAssignments.BLUE.championId');
+  exactSet(assignedChampions.RED, redPicks, '$.draft.finalAssignments.RED.championId');
 
   const result = record(root.result, '$.result');
   literal(result.schemaVersion, 'MATCH_RESULT_SUMMARY_V1', '$.result.schemaVersion');
@@ -397,7 +458,7 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
   if (events.length === 0) fail('$.timeline.events', '이벤트가 비어 있습니다.');
   let previousEventTime = -1;
   events.forEach((event, index) => {
-    const time = validateEvent(event, index, durationSeconds);
+    const time = validateEvent(event, index, durationSeconds, presentationPlayers);
     if (time < previousEventTime) fail(`$.timeline.events[${index}].timeSeconds`, '이벤트 시간이 정렬되어야 합니다.');
     previousEventTime = time;
   });
@@ -409,9 +470,10 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
     const snapshot = record(snapshotValue, path);
     const time = integer(snapshot.timeSeconds, `${path}.timeSeconds`);
     if (time < previousSnapshotTime || time > durationSeconds) fail(`${path}.timeSeconds`, 'snapshot 시간이 정렬 범위를 벗어났습니다.');
+    if (index === 0 && time !== 0) fail(`${path}.timeSeconds`, '첫 snapshot은 0초여야 합니다.');
     previousSnapshotTime = time;
-    validateTeamState(snapshot.blueTeam, 'BLUE', `${path}.blueTeam`);
-    validateTeamState(snapshot.redTeam, 'RED', `${path}.redTeam`);
+    validateTeamState(snapshot.blueTeam, 'BLUE', responseTeamCodes.get('BLUE')!, `${path}.blueTeam`);
+    validateTeamState(snapshot.redTeam, 'RED', responseTeamCodes.get('RED')!, `${path}.redTeam`);
     const players = array(snapshot.players, `${path}.players`);
     if (players.length !== 10) fail(`${path}.players`, 'snapshot마다 선수 10명이 필요합니다.');
     const snapshotPlayers = new Set<string>();
