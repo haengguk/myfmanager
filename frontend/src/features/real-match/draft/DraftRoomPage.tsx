@@ -14,10 +14,10 @@ function withObjectParticle(value: string): string {
   return `${value}${hasFinalConsonant ? '을' : '를'}`;
 }
 
-export function DraftRoomPage({ viewModel, onBack, onComplete }: { viewModel: DraftViewModel; onBack: () => void; onComplete: (result: DraftResultViewModel) => void }) {
-  const [rosters, setRosters] = useState<Record<TeamSide, DraftRosterSlotViewModel[]>>(() => ({ BLUE: viewModel.rosters.BLUE.map((slot) => ({ ...slot })), RED: viewModel.rosters.RED.map((slot) => ({ ...slot })) }));
-  const [bans, setBans] = useState<Record<TeamSide, string[]>>(() => ({ BLUE: [...viewModel.bans.BLUE], RED: [...viewModel.bans.RED] }));
-  const [turnIndex, setTurnIndex] = useState(0);
+export function DraftRoomPage({ viewModel, reviewResult = null, onBack, onComplete, onReviewContinue }: { viewModel: DraftViewModel; reviewResult?: DraftResultViewModel | null; onBack: () => void; onComplete: (result: DraftResultViewModel) => void; onReviewContinue?: () => void }) {
+  const [rosters, setRosters] = useState<Record<TeamSide, DraftRosterSlotViewModel[]>>(() => ({ BLUE: (reviewResult?.rosters.BLUE ?? viewModel.rosters.BLUE).map((slot) => ({ ...slot })), RED: (reviewResult?.rosters.RED ?? viewModel.rosters.RED).map((slot) => ({ ...slot })) }));
+  const [bans, setBans] = useState<Record<TeamSide, string[]>>(() => ({ BLUE: [...(reviewResult?.bans.BLUE ?? viewModel.bans.BLUE)], RED: [...(reviewResult?.bans.RED ?? viewModel.bans.RED)] }));
+  const [turnIndex, setTurnIndex] = useState(reviewResult ? viewModel.turnQueue.length : 0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
@@ -86,11 +86,11 @@ export function DraftRoomPage({ viewModel, onBack, onComplete }: { viewModel: Dr
 
   return (
     <div className="rm-draft-app">
-      <MatchUtilityBar meta={viewModel.seasonLabel} onBack={onBack} />
+      <MatchUtilityBar meta={viewModel.seasonLabel} onBack={onBack} backLabel={reviewResult ? '경기 결과로 돌아가기' : undefined} />
       <DraftHeader viewModel={viewModel} championsById={championsById} currentTurn={currentTurn} seconds={seconds} complete={complete} />
       <main className="rm-draft-stage">
         <DraftTeamPanel side="BLUE" teamCode={viewModel.teams.BLUE.code} roster={rosters.BLUE} bans={bans.BLUE} currentPosition={currentTurn?.phase === 'PICK' && currentTurn.side === 'BLUE' ? currentTurn.position : null} championsById={championsById} />
-        <ChampionSelector champions={viewModel.champions} selectedId={selectedId} searchValue={searchValue} roleFilter={roleFilter} disabledReason={disabledReason} decisionCount={turnIndex} currentTurn={currentTurn} complete={complete} onSearchChange={setSearchValue} onRoleChange={setRoleFilter} onSelect={setSelectedId} onCancel={() => setSelectedId(null)} onConfirm={confirmSelection} onUndo={undo} onContinue={() => onComplete({ rosters, bans })} />
+        <ChampionSelector champions={viewModel.champions} selectedId={selectedId} searchValue={searchValue} roleFilter={roleFilter} disabledReason={disabledReason} decisionCount={turnIndex} currentTurn={currentTurn} complete={complete} onSearchChange={setSearchValue} onRoleChange={setRoleFilter} onSelect={setSelectedId} onCancel={() => setSelectedId(null)} onConfirm={confirmSelection} onUndo={undo} onContinue={() => reviewResult && onReviewContinue ? onReviewContinue() : onComplete({ rosters, bans })} />
         <DraftTeamPanel side="RED" teamCode={viewModel.teams.RED.code} roster={rosters.RED} bans={bans.RED} currentPosition={currentTurn?.phase === 'PICK' && currentTurn.side === 'RED' ? currentTurn.position : null} championsById={championsById} />
       </main>
       <MatchToast {...toast} />

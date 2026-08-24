@@ -1,6 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
-export function ResultModal({ open, blueScore, redScore, winnerName, returnFocusRef, onClose, onConfirm }: { open: boolean; blueScore: number; redScore: number; winnerName: string; returnFocusRef: RefObject<HTMLButtonElement>; onClose: () => void; onConfirm: () => void }) {
+export function ResultModal({ open, blueName, redName, blueScore, redScore, outcomeLabel, returnFocusRef, onClose, onConfirm }: { open: boolean; blueName: string; redName: string; blueScore: number; redScore: number; outcomeLabel: string; returnFocusRef: RefObject<HTMLButtonElement>; onClose: () => void; onConfirm: () => void }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -25,7 +25,7 @@ export function ResultModal({ open, blueScore, redScore, winnerName, returnFocus
     <div className="rm-modal-layer" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div className="rm-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="rm-result-title">
         <p className="rm-dialog-kicker">즉시 결과</p><h2 id="rm-result-title">경기 결과를 즉시 계산할까요?</h2><p>현재 재생 시점 이후의 이벤트를 계산해 최종 결과를 표시합니다.</p>
-        <div className="rm-result-grid"><div><span>GEN</span><strong>{blueScore}</strong></div><em>{winnerName} 승리</em><div><span>T1</span><strong>{redScore}</strong></div></div>
+        <div className="rm-result-grid"><div><span>{blueName}</span><strong>{blueScore}</strong></div><em>{outcomeLabel}</em><div><span>{redName}</span><strong>{redScore}</strong></div></div>
         <div className="rm-dialog-actions"><button className="rm-secondary-action" ref={closeButtonRef} type="button" onClick={onClose}>닫기</button><button className="rm-primary-action" type="button" onClick={onConfirm}>결과 적용</button></div>
       </div>
     </div>

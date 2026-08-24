@@ -5,12 +5,12 @@ import type { ChampionViewModel, PositionComparisonViewModel } from '../realMatc
 const formatGold = (value: number) => `${value.toFixed(1)}K`;
 const formatLead = (value: number) => `+${Math.abs(value).toFixed(1)}K`;
 
-export function PlayerComparison({ rows, currentSeconds, championsById }: { rows: readonly PositionComparisonViewModel[]; currentSeconds: number; championsById: Readonly<Record<string, ChampionViewModel>> }) {
+export function PlayerComparison({ rows, currentSeconds, championsById, blueTeamCode, redTeamCode }: { rows: readonly PositionComparisonViewModel[]; currentSeconds: number; championsById: Readonly<Record<string, ChampionViewModel>>; blueTeamCode: string; redTeamCode: string }) {
   return (
     <section className="rm-comparison" aria-labelledby="rm-comparison-heading">
       <header><h2 id="rm-comparison-heading">포지션별 선수 비교</h2><span>{formatMatchTime(currentSeconds)} 시점</span></header>
       <table>
-        <thead><tr><th>GEN 선수 / 챔피언</th><th>K/D/A</th><th>CS</th><th>보유 골드</th><th className="rm-lead-cell"><span className="lm-sr-only">GEN 골드 우위</span></th><th className="rm-position-cell">포지션</th><th className="rm-lead-cell"><span className="lm-sr-only">T1 골드 우위</span></th><th>보유 골드</th><th>CS</th><th>K/D/A</th><th>T1 선수 / 챔피언</th></tr></thead>
+        <thead><tr><th>{blueTeamCode} 선수 / 챔피언</th><th>K/D/A</th><th>CS</th><th>보유 골드</th><th className="rm-lead-cell"><span className="lm-sr-only">{blueTeamCode} 골드 우위</span></th><th className="rm-position-cell">포지션</th><th className="rm-lead-cell"><span className="lm-sr-only">{redTeamCode} 골드 우위</span></th><th>보유 골드</th><th>CS</th><th>K/D/A</th><th>{redTeamCode} 선수 / 챔피언</th></tr></thead>
         <tbody>{rows.map((row) => {
           const lead = row.blue.gold - row.red.gold;
           return <tr key={row.position} aria-label={`${row.position} ${row.blue.playerName} 대 ${row.red.playerName}`}>

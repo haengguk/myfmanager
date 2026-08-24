@@ -5,19 +5,22 @@ import { Toast } from './components/Toast';
 import { inboxMessages } from './features/inbox/inbox.fixtures';
 import { InboxPage } from './features/inbox/InboxPage';
 import type { ToastMessage } from './features/inbox/inbox.types';
-import { draftFixture, playbackFixture } from './features/real-match/realMatch.fixtures';
-import { applyDraftResult } from './features/real-match/realMatch.adapter';
 import { DraftRoomPage } from './features/real-match/draft/DraftRoomPage';
 import { MatchPlaybackPage } from './features/real-match/playback/MatchPlaybackPage';
-import type { DraftResultViewModel } from './features/real-match/realMatch.types';
+import { createMatchResult, createMatchSession, completeSessionDraft } from './features/real-match/matchSession.adapter';
+import { matchSetupOptionsFixture } from './features/real-match/matchSession.fixtures';
+import type { MatchSessionViewModel, MatchSetupSelection } from './features/real-match/matchSession.types';
+import { MatchSetupPage } from './features/real-match/setup/MatchSetupPage';
+import { MatchResultPage } from './features/real-match/result/MatchResultPage';
 import { AppShell } from './layout/AppShell';
 import type { AppSection } from './layout/Sidebar';
 
-type ActiveScreen = AppSection | 'draft' | 'playback';
+type ActiveScreen = AppSection | 'setup' | 'draft' | 'playback' | 'result';
 
 function RootApp() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('inbox');
-  const [draftResult, setDraftResult] = useState<DraftResultViewModel | null>(null);
+  const [matchSession, setMatchSession] = useState<MatchSessionViewModel | null>(null);
+  const [draftReview, setDraftReview] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [gameTime, setGameTime] = useState('오후 1:42');
   const [progressModalOpen, setProgressModalOpen] = useState(false);
@@ -31,11 +34,6 @@ function RootApp() {
     () => inboxMessages.filter((message) => message.important && unreadIds.has(message.id)).length,
     [unreadIds],
   );
-  const playbackViewModel = useMemo(
-    () => draftResult ? applyDraftResult(playbackFixture, draftResult) : playbackFixture,
-    [draftResult],
-  );
-
   const showToast = useCallback((title: string, message: string) => {
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     setToast({ title, message });
@@ -47,10 +45,14 @@ function RootApp() {
   }, []);
 
   useEffect(() => {
-    document.title = activeScreen === 'draft'
+    document.title = activeScreen === 'setup'
+      ? 'lolmanager — Match Setup'
+      : activeScreen === 'draft'
       ? 'lolmanager — Draft Room'
       : activeScreen === 'playback'
         ? 'lolmanager — Match Playback'
+        : activeScreen === 'result'
+          ? 'lolmanager — Match Result'
         : activeScreen === 'match'
           ? 'lolmanager — 경기 센터'
           : 'lolmanager — 홈·수신함';
@@ -72,12 +74,30 @@ function RootApp() {
     showToast('시간 진행 완료', '게임 시간이 오후 2:00로 진행되었습니다.');
   }, [showToast]);
 
-  if (activeScreen === 'draft') {
-    return <DraftRoomPage viewModel={draftFixture} onBack={() => setActiveScreen('match')} onComplete={(result) => { setDraftResult(result); setActiveScreen('playback'); }} />;
+  const startMatch = (selection: MatchSetupSelection) => {
+    setMatchSession(createMatchSession(matchSetupOptionsFixture, selection));
+    setDraftReview(false);
+    setActiveScreen('draft');
+  };
+
+  if (activeScreen === 'setup') {
+    return <MatchSetupPage options={matchSetupOptionsFixture} onBack={() => setActiveScreen('match')} onStart={startMatch} />;
   }
 
-  if (activeScreen === 'playback') {
-    return <MatchPlaybackPage viewModel={playbackViewModel} onBack={() => setActiveScreen('match')} onDraft={() => { setDraftResult(null); setActiveScreen('draft'); }} />;
+  if (activeScreen === 'draft' && matchSession) {
+    return <DraftRoomPage viewModel={matchSession.draft} reviewResult={draftReview ? matchSession.draftResult : null} onBack={() => setActiveScreen(draftReview ? 'result' : 'match')} onComplete={(result) => { setMatchSession((current) => current ? completeSessionDraft(current, result) : current); setDraftReview(false); setActiveScreen('playback'); }} onReviewContinue={() => setActiveScreen('playback')} />;
+  }
+
+  if (activeScreen === 'playback' && matchSession) {
+    return <MatchPlaybackPage viewModel={matchSession.playback} onBack={() => setActiveScreen('match')} onDraft={() => { setDraftReview(Boolean(matchSession.draftResult)); setActiveScreen('draft'); }} onComplete={() => { setMatchSession((current) => current ? { ...current, result: createMatchResult(current) } : current); setActiveScreen('result'); }} />;
+  }
+
+  if (activeScreen === 'result' && matchSession?.result) {
+    return <MatchResultPage result={matchSession.result} championsById={matchSession.playback.championsById} onBack={() => setActiveScreen('match')} onDraft={() => { setDraftReview(true); setActiveScreen('draft'); }} onPlayback={() => setActiveScreen('playback')} onRerun={() => startMatch(matchSession.setup)} onNewMatch={() => { setMatchSession(null); setDraftReview(false); setActiveScreen('setup'); }} />;
+  }
+
+  if (activeScreen === 'draft' || activeScreen === 'playback' || activeScreen === 'result') {
+    return <MatchSetupPage options={matchSetupOptionsFixture} onBack={() => setActiveScreen('match')} onStart={startMatch} />;
   }
 
   const activeSection: AppSection = activeScreen;
@@ -89,10 +109,10 @@ function RootApp() {
         screenTitle={activeSection === 'inbox' ? '수신함' : '경기 센터'}
         searchValue={searchValue}
         gameTime={gameTime}
-        primaryActionLabel={activeSection === 'match' ? '드래프트 룸' : '다음 진행'}
+        primaryActionLabel={activeSection === 'match' ? '경기 준비' : '다음 진행'}
         onNavigate={setActiveScreen}
         onSearchChange={setSearchValue}
-        onContinue={() => activeSection === 'match' ? setActiveScreen('draft') : setProgressModalOpen(true)}
+        onContinue={() => activeSection === 'match' ? setActiveScreen('setup') : setProgressModalOpen(true)}
         onNotify={showToast}
       >
         {activeSection === 'inbox' ? (

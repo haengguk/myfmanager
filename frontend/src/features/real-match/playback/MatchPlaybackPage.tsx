@@ -9,7 +9,7 @@ import { PlaybackControls, type PlaybackSpeed } from './PlaybackControls';
 import { PlayerComparison } from './PlayerComparison';
 import { ResultModal } from './ResultModal';
 
-export function MatchPlaybackPage({ viewModel, onBack, onDraft }: { viewModel: PlaybackViewModel; onBack: () => void; onDraft: () => void }) {
+export function MatchPlaybackPage({ viewModel, onBack, onDraft, onComplete }: { viewModel: PlaybackViewModel; onBack: () => void; onDraft: () => void; onComplete: () => void }) {
   const [currentSeconds, setCurrentSeconds] = useState(viewModel.initialSeconds);
   const [speed, setSpeed] = useState<PlaybackSpeed>(1);
   const [playing, setPlaying] = useState(false);
@@ -17,6 +17,7 @@ export function MatchPlaybackPage({ viewModel, onBack, onDraft }: { viewModel: P
   const [toast, setToast] = useState({ title: '', message: '', visible: false });
   const toastTimer = useRef<number | null>(null);
   const resultButtonRef = useRef<HTMLButtonElement>(null);
+  const completeAtEndRef = useRef(false);
   const snapshot = useMemo(() => selectSnapshot(viewModel, currentSeconds), [viewModel, currentSeconds]);
   const comparison = useMemo(() => comparisonAt(viewModel, currentSeconds), [viewModel, currentSeconds]);
 
@@ -30,17 +31,23 @@ export function MatchPlaybackPage({ viewModel, onBack, onDraft }: { viewModel: P
     if (!playing) return;
     const timer = window.setInterval(() => setCurrentSeconds((current) => {
       const next = Math.min(viewModel.durationSeconds, current + speed / 4);
-      if (next >= viewModel.durationSeconds) setPlaying(false);
+      if (next >= viewModel.durationSeconds) { setPlaying(false); completeAtEndRef.current = true; }
       return next;
     }), 250);
     return () => window.clearInterval(timer);
   }, [playing, speed, viewModel.durationSeconds]);
 
+  useEffect(() => {
+    if (currentSeconds < viewModel.durationSeconds || !completeAtEndRef.current) return;
+    completeAtEndRef.current = false;
+    onComplete();
+  }, [currentSeconds, onComplete, viewModel.durationSeconds]);
+
   useEffect(() => () => { if (toastTimer.current !== null) window.clearTimeout(toastTimer.current); }, []);
 
   const changeSpeed = (nextSpeed: PlaybackSpeed) => { setSpeed(nextSpeed); showToast('재생 속도 변경', `x${nextSpeed} 속도로 설정했습니다.`); };
-  const applyResult = () => { setResultOpen(false); setCurrentSeconds(viewModel.durationSeconds); setPlaying(false); showToast('결과 적용', `${viewModel.teams.BLUE.code} ${viewModel.finalScore.BLUE} · ${viewModel.teams.RED.code} ${viewModel.finalScore.RED}으로 경기가 종료되었습니다.`); };
-  const winnerName = viewModel.teams[viewModel.winner].code;
+  const applyResult = () => { setResultOpen(false); setCurrentSeconds(viewModel.durationSeconds); setPlaying(false); onComplete(); };
+  const outcomeLabel = viewModel.winner === null ? '승자 없음' : `${viewModel.teams[viewModel.winner].code} 승리`;
 
   return (
     <div className="rm-playback-app">
@@ -52,8 +59,8 @@ export function MatchPlaybackPage({ viewModel, onBack, onDraft }: { viewModel: P
         <LiveChampionPanel side="RED" teamCode={viewModel.teams.RED.code} snapshot={snapshot.teams.RED} championsById={viewModel.championsById} />
       </main>
       <PlaybackControls currentSeconds={currentSeconds} durationSeconds={viewModel.durationSeconds} speed={speed} playing={playing} resultButtonRef={resultButtonRef} onToggle={() => { if (currentSeconds >= viewModel.durationSeconds) setCurrentSeconds(0); setPlaying((current) => !current); }} onSpeedChange={changeSpeed} onSeek={(seconds) => { setCurrentSeconds(seconds); setPlaying(false); }} onOpenResult={() => setResultOpen(true)} />
-      <PlayerComparison rows={comparison} currentSeconds={currentSeconds} championsById={viewModel.championsById} />
-      <ResultModal open={resultOpen} blueScore={viewModel.finalScore.BLUE} redScore={viewModel.finalScore.RED} winnerName={winnerName} returnFocusRef={resultButtonRef} onClose={() => setResultOpen(false)} onConfirm={applyResult} />
+      <PlayerComparison rows={comparison} currentSeconds={currentSeconds} championsById={viewModel.championsById} blueTeamCode={viewModel.teams.BLUE.code} redTeamCode={viewModel.teams.RED.code} />
+      <ResultModal open={resultOpen} blueName={viewModel.teams.BLUE.code} redName={viewModel.teams.RED.code} blueScore={viewModel.finalScore.BLUE} redScore={viewModel.finalScore.RED} outcomeLabel={outcomeLabel} returnFocusRef={resultButtonRef} onClose={() => setResultOpen(false)} onConfirm={applyResult} />
       <MatchToast {...toast} />
     </div>
   );

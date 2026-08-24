@@ -1,11 +1,11 @@
 import type { TeamSide } from './realMatch.types';
 
-export function MatchUtilityBar({ meta, onBack, secondaryLabel, onSecondary }: { meta: string; onBack: () => void; secondaryLabel?: string; onSecondary?: () => void }) {
+export function MatchUtilityBar({ meta, onBack, backLabel = '경기 센터로 돌아가기', secondaryLabel, onSecondary }: { meta: string; onBack: () => void; backLabel?: string; secondaryLabel?: string; onSecondary?: () => void }) {
   return (
     <header className="rm-utility-bar">
       <button className="rm-back-link" type="button" onClick={onBack}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6" /></svg>
-        경기 센터로 돌아가기
+        {backLabel}
       </button>
       <span className="rm-utility-divider" aria-hidden="true" />
       <span className="rm-utility-meta">{meta}</span>

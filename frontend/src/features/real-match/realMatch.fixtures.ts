@@ -21,7 +21,7 @@ const teams = {
 
 export const draftFixture: DraftViewModel = {
   matchId: 'spring-2026-gen-t1-g2',
-  simulationSeed: 73,
+  simulationSeed: '73',
   seasonLabel: '2026년 8월 24일 · Spring Split',
   gameNumber: 2,
   seriesType: 'BO3',
@@ -199,7 +199,7 @@ const comparison: readonly PositionComparisonViewModel[] = [
 });
 
 export const playbackFixture: PlaybackViewModel = {
-  matchId: 'spring-2026-gen-t1-g2', simulationSeed: 73, seasonLabel: '2026년 8월 24일 · Spring Split', gameNumber: 2, seriesType: 'BO3',
+  matchId: 'spring-2026-gen-t1-g2', simulationSeed: '73', seasonLabel: '2026년 8월 24일 · Spring Split', gameNumber: 2, seriesType: 'BO3',
   durationSeconds: 2260, initialSeconds: 0, comparisonReferenceSeconds: 1508, teams,
   championsById: Object.fromEntries(realMatchChampions.map((champion) => [champion.id, champion])),
   events: playbackEvents,
@@ -211,5 +211,5 @@ export const playbackFixture: PlaybackViewModel = {
     snapshot(2260, 16, 68.4, 10, 59.8),
   ],
   comparisonAtInitialTime: comparison,
-  finalScore: { BLUE: 16, RED: 10 }, winner: 'BLUE',
+  finalScore: { BLUE: 16, RED: 10 }, winner: 'BLUE', endReason: 'NEXUS_DESTROYED',
 };

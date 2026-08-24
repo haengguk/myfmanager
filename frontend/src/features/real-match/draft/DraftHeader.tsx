@@ -29,5 +29,5 @@ function DraftTimer({ viewModel, currentTurn, seconds, complete }: Pick<DraftHea
 }
 
 function FearlessChampionList({ viewModel, championsById }: Pick<DraftHeaderProps, 'viewModel' | 'championsById'>) {
-  return <div className="rm-fearless-row"><span>Game 2 · 하드 피어리스</span>{viewModel.fearlessChampionIds.map((id) => <span className="rm-portrait" key={id} title={`이전 게임 사용: ${championsById[id].name}`}><ChampionPortrait name={championsById[id].name} portraitUrl={championsById[id].portraitUrl} /></span>)}</div>;
+  return <div className="rm-fearless-row"><span>Game {viewModel.gameNumber} · 하드 피어리스</span>{viewModel.fearlessChampionIds.map((id) => <span className="rm-portrait" key={id} title={`이전 게임 사용: ${championsById[id].name}`}><ChampionPortrait name={championsById[id].name} portraitUrl={championsById[id].portraitUrl} /></span>)}</div>;
 }

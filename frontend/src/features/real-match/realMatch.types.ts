@@ -37,7 +37,7 @@ export interface DraftTurnViewModel {
 
 export interface DraftViewModel {
   matchId: string;
-  simulationSeed: number;
+  simulationSeed: string;
   seasonLabel: string;
   gameNumber: number;
   seriesType: string;
@@ -139,7 +139,7 @@ export interface PositionComparisonViewModel {
 
 export interface PlaybackViewModel {
   matchId: string;
-  simulationSeed: number;
+  simulationSeed: string;
   seasonLabel: string;
   gameNumber: number;
   seriesType: string;
@@ -152,5 +152,6 @@ export interface PlaybackViewModel {
   snapshots: readonly MatchSnapshotViewModel[];
   comparisonAtInitialTime: readonly PositionComparisonViewModel[];
   finalScore: Record<TeamSide, number>;
-  winner: TeamSide;
+  winner: TeamSide | null;
+  endReason: 'NEXUS_DESTROYED' | 'TIMEOUT';
 }
