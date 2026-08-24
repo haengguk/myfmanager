@@ -65,6 +65,57 @@ class ObjectiveDecisionSelectionTest {
                         ObjectiveDecisionRuleConfig.MAX_DECISION_WEIGHT));
     }
 
+    @Test
+    void aliveButUnavailableTeamHasStructuredNoParticipantReason() {
+        GameState state = ObjectiveDecisionTestSupport.dragonState(true);
+        int time = state.getCurrentTimeSeconds();
+        for (PlayerState player : state.getRedTeamState().getPlayers()) {
+            player.beginRoamActivity(Lane.BOT, Lane.MID, time);
+        }
+        ObjectiveDecisionContext context = resolver.buildContext(
+                state, ObjectiveType.DRAGON, TeamSide.BLUE, 0);
+
+        ObjectiveDecisionWeightBreakdown contest = action(
+                resolver.responderWeights(state, context), ObjectiveDecisionAction.CONTEST);
+
+        assertThat(context.redAliveCount()).isEqualTo(5);
+        assertThat(contest.eligible()).isFalse();
+        assertThat(contest.reason())
+                .isEqualTo(ObjectiveDecisionIneligibleReason.INSUFFICIENT_COMBAT_PARTICIPANTS);
+
+        for (PlayerState player : state.getBlueTeamState().getPlayers()) {
+            player.beginRoamActivity(Lane.BOT, Lane.MID, time);
+        }
+        ObjectiveDecisionContext bothUnavailable = resolver.buildContext(
+                state, ObjectiveType.DRAGON, TeamSide.BLUE, 0);
+        ObjectiveDecisionWeightBreakdown take = action(
+                resolver.initiativeWeights(state, bothUnavailable), ObjectiveDecisionAction.TAKE);
+        assertThat(take.eligible()).isFalse();
+        assertThat(take.reason())
+                .isEqualTo(ObjectiveDecisionIneligibleReason.INSUFFICIENT_COMBAT_PARTICIPANTS);
+    }
+
+    @Test
+    void unavailableHighTeamfighterIsExcludedFromDecisionFightEdge() {
+        TeamState blue = ObjectiveDecisionTestSupport.team("BLUE");
+        TeamState red = new TeamState("RED", List.of(
+                ObjectiveDecisionTestSupport.player("RED-TOP", com.lolfm.domain.Position.TOP, 14, 20),
+                ObjectiveDecisionTestSupport.player("RED-JUNGLE", com.lolfm.domain.Position.JUNGLE, 14, 14),
+                ObjectiveDecisionTestSupport.player("RED-MID", com.lolfm.domain.Position.MID, 14, 14),
+                ObjectiveDecisionTestSupport.player("RED-ADC", com.lolfm.domain.Position.ADC, 14, 14),
+                ObjectiveDecisionTestSupport.player("RED-SUPPORT", com.lolfm.domain.Position.SUPPORT, 14, 14)));
+        GameState state = ObjectivePlayerSkillTestSupport.dragonState(blue, red);
+        ObjectiveDecisionContext available = resolver.buildContext(
+                state, ObjectiveType.DRAGON, TeamSide.BLUE, 0);
+        red.playerAt(com.lolfm.domain.Position.TOP).beginRoamActivity(
+                Lane.TOP, Lane.MID, state.getCurrentTimeSeconds());
+        ObjectiveDecisionContext unavailable = resolver.buildContext(
+                state, ObjectiveType.DRAGON, TeamSide.BLUE, 0);
+
+        assertThat(available.redAverageTeamfighting()).isGreaterThan(14);
+        assertThat(unavailable.redAverageTeamfighting()).isEqualTo(14);
+    }
+
     private ObjectiveDecisionWeightBreakdown action(List<ObjectiveDecisionWeightBreakdown> weights,
                                                      ObjectiveDecisionAction action) {
         return weights.stream().filter(weight -> weight.action() == action).findFirst().orElseThrow();

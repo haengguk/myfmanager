@@ -29,18 +29,23 @@ public class ObjectiveAttemptResolver {
         ObjectiveState objectives = gameState.getObjectiveState();
         int currentTime = gameState.getCurrentTimeSeconds();
         if (objectives.isElderAttemptDue(currentTime)) {
-            objectives.markElderAttempted(currentTime);
+            boolean eligible = !eligibleSides(gameState, currentTime, 4).isEmpty();
+            if (eligible) objectives.markElderAttempted(currentTime);
             Optional<MatchEvent> elder = maybeAttemptElder(gameState, random, objectiveResolver, structureResolver, events);
             if (elder.isPresent()) return elder;
         }
         if (objectives.isElementalDragonPhase() && objectives.isDragonAttemptDue(currentTime)) {
-            objectives.markDragonAttempted(currentTime);
-            gameState.recordGeneralDragonAttempt();
+            boolean eligible = !eligibleSides(gameState, currentTime, 3).isEmpty();
+            if (eligible) {
+                objectives.markDragonAttempted(currentTime);
+                gameState.recordGeneralDragonAttempt();
+            }
             Optional<MatchEvent> dragon = maybeAttemptDragon(gameState, random, objectiveResolver, structureResolver, events);
             if (dragon.isPresent()) return dragon;
         }
         if (objectives.isBaronAttemptDue(currentTime)) {
-            objectives.markBaronAttempted(currentTime);
+            boolean eligible = !eligibleSides(gameState, currentTime, 4).isEmpty();
+            if (eligible) objectives.markBaronAttempted(currentTime);
             return maybeAttemptBaron(gameState, random, objectiveResolver, structureResolver, events);
         }
         return Optional.empty();
@@ -200,12 +205,24 @@ public class ObjectiveAttemptResolver {
         double bigWin = state.hasRecentBigWin(side, 120) ? 450.0 : 0;
         double ace = state.hasRecentAce(side, 120) ? 800.0 : 0;
         PlayerState jungler = team.playerAt(com.lolfm.domain.Position.JUNGLE);
-        double other = !jungler.hasMatchPerformance() ? 0.0
-                : (playerSkills.objectiveSecure(jungler) - 14) * 12.0
-                + (playerSkills.areaSetup(team.playerAt(com.lolfm.domain.Position.SUPPORT)) - 14) * 6.0
-                + (playerSkills.visionControl(team.playerAt(com.lolfm.domain.Position.SUPPORT)) - 14) * 4.0;
+        PlayerState support = team.playerAt(com.lolfm.domain.Position.SUPPORT);
+        int time = state.getCurrentTimeSeconds();
+        double secure = jungler.hasMatchPerformance()
+                && jungler.canParticipateInMajorCombatAt(time)
+                ? (playerSkills.objectiveSecure(jungler) - ObjectivePlayerSkillRuleConfig.BASELINE_SKILL)
+                * ObjectivePlayerSkillRuleConfig.OBJECTIVE_SECURE_SELECTION_WEIGHT_PER_POINT : 0.0;
+        double areaSetup = support.hasMatchPerformance()
+                && support.canParticipateInMajorCombatAt(time)
+                ? (playerSkills.areaSetup(support) - ObjectivePlayerSkillRuleConfig.BASELINE_SKILL)
+                * ObjectivePlayerSkillRuleConfig.AREA_SETUP_SELECTION_WEIGHT_PER_POINT : 0.0;
+        double visionControl = support.hasMatchPerformance()
+                && support.canParticipateInMajorCombatAt(time)
+                ? (playerSkills.visionControl(support) - ObjectivePlayerSkillRuleConfig.BASELINE_SKILL)
+                * ObjectivePlayerSkillRuleConfig.VISION_CONTROL_SELECTION_WEIGHT_PER_POINT : 0.0;
+        double other = secure + areaSetup + visionControl;
         return new ObjectiveSelectionWeightBreakdown(alive, gold, kills, bigWin, ace, other,
-                alive + gold + kills + bigWin + ace + other);
+                alive + gold + kills + bigWin + ace + other,
+                secure, areaSetup, visionControl);
     }
 
     double priorityMultiplier(double signedPriority, TeamSide side, boolean enabled) {
@@ -257,7 +274,8 @@ public class ObjectiveAttemptResolver {
     private List<TeamSide> eligibleSides(GameState state, int currentTime, int minimumAlivePlayers) {
         List<TeamSide> eligible = new ArrayList<>();
         for (TeamSide side : TeamSide.values()) {
-            if (countAlivePlayers(state.getTeamState(side), currentTime) >= minimumAlivePlayers) eligible.add(side);
+            if (countParticipatingPlayers(state.getTeamState(side), currentTime)
+                    >= minimumAlivePlayers) eligible.add(side);
         }
         return eligible;
     }
@@ -265,6 +283,14 @@ public class ObjectiveAttemptResolver {
     private int countAlivePlayers(TeamState team, int currentTime) {
         int count = 0;
         for (PlayerState player : team.getPlayers()) if (player.isAlive(currentTime)) count++;
+        return count;
+    }
+
+    private int countParticipatingPlayers(TeamState team, int currentTime) {
+        int count = 0;
+        for (PlayerState player : team.getPlayers()) {
+            if (player.canParticipateInMajorCombatAt(currentTime)) count++;
+        }
         return count;
     }
 

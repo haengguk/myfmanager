@@ -24,6 +24,8 @@ import com.lolfm.draft.SeriesDraftHistory;
 import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
 import com.lolfm.simulator.JungleClearContribution;
 import com.lolfm.simulator.PlayerKey;
+import com.lolfm.simulator.PlayerMatchPerformanceSnapshot;
+import com.lolfm.simulator.PlayerRatingRuleConfig;
 import com.lolfm.simulator.SimulationInstrumentation;
 import com.lolfm.simulator.SimulationOptions;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
@@ -48,6 +50,7 @@ class MatchEngineV1ContractTest {
     @Autowired MatchEngineV1InputFactory inputs;
     @Autowired MatchEngineV1 engine;
     @Autowired MatchEngineV1Canonicalizer canonicalizer;
+    @Autowired RealMatchApiV1ResponseMapper realMatchResponses;
 
     private RealDraftMatchResult legacy;
     private MatchEngineV1Input input;
@@ -81,7 +84,7 @@ class MatchEngineV1ContractTest {
         assertThat(policy.activeGameplayRulesVersion())
                 .isEqualTo("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2");
         assertThat(policy.engineImplementationVersion())
-                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V7");
+                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8");
         assertThat(policy.gameplayConfiguration().championMatchupMode())
                 .isEqualTo(ChampionMatchupMode.OFF);
         assertThat(policy.gameplayConfiguration().teamCompositionGameplayMode())
@@ -124,6 +127,64 @@ class MatchEngineV1ContractTest {
         assertThat(input.finalDraft().finalAssignmentHash())
                 .isEqualTo(legacy.executionProvenance().finalAssignmentHash());
         assertThat(execution.output().hasValidOutputHash(canonicalizer)).isTrue();
+    }
+
+    @Test
+    void outputExposesExactBaseRealizedAndSelectedChampionAbilityProfile() {
+        assertThat(execution.output().resultSummary().players()).allSatisfy(result -> {
+            MatchEngineV1Input.PlayerInput source = input.player(
+                    result.teamSide(), result.position());
+            MatchEngineV1Output.PlayerAbilityProfileV1 profile = result.abilityProfile();
+            ChampionRoleKey roleKey = new ChampionRoleKey(
+                    result.championId(), result.position());
+            int expectedProficiency = new ChampionProficiencies(
+                    source.proficiencies()).get(roleKey);
+            PlayerMatchPerformanceSnapshot actualPerformance = execution.playerMatchPerformances()
+                    .stream()
+                    .filter(value -> value.playerKey().equals(
+                            new PlayerKey(result.teamSide(), result.position())))
+                    .findFirst().orElseThrow();
+
+            assertThat(profile.schemaVersion())
+                    .isEqualTo(MatchEngineV1Output.PlayerAbilityProfileV1.SCHEMA);
+            assertThat(profile.baseRatings()).hasSize(12);
+            assertThat(profile.realizedRatings()).hasSize(12);
+            assertThat(profile.realizationDeltas()).hasSize(12);
+            source.ratings().forEach((skill, value) -> {
+                assertThat(profile.baseRatings()).containsEntry(skill.name(), value);
+                assertThat(profile.realizedRatings()).containsEntry(
+                        skill.name(), actualPerformance.realizedRatings().get(skill));
+                assertThat(profile.realizationDeltas().get(skill.name()))
+                        .isEqualTo(profile.realizedRatings().get(skill.name()) - value);
+            });
+            assertThat(profile.selectedChampionProficiency()).isEqualTo(expectedProficiency);
+            assertThat(profile.proficiencyExecutionAdjustment())
+                    .isEqualTo(PlayerRatingRuleConfig.proficiencyAdjustment(expectedProficiency));
+        });
+        MatchEngineV1Output.PlayerAbilityProfileV1 first = execution.output()
+                .resultSummary().players().getFirst().abilityProfile();
+        assertThatThrownBy(() -> first.baseRatings().put("MUTATION", 1))
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> first.realizedRatings().put("MUTATION", 1.0))
+                .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void abilityProfileMapsToRealMatchHttpContractWithoutLosingValues() {
+        com.lolfm.dto.RealMatchApiV1Dtos.Response response =
+                realMatchResponses.response(execution.output());
+
+        assertThat(response.result().players()).hasSize(10);
+        assertThat(response.result().players()).allSatisfy(player -> {
+            MatchEngineV1Output.PlayerResultV1 source = execution.output().resultSummary()
+                    .players().stream()
+                    .filter(value -> value.playerId().value().equals(player.playerId()))
+                    .findFirst().orElseThrow();
+            assertThat(player.abilityProfile().baseRatings())
+                    .isEqualTo(source.abilityProfile().baseRatings());
+            assertThat(player.abilityProfile().realizedRatings())
+                    .isEqualTo(source.abilityProfile().realizedRatings());
+        });
     }
 
     @Test

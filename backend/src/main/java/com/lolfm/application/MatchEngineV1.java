@@ -6,8 +6,10 @@ import com.lolfm.domain.MatchTimeline;
 import com.lolfm.domain.Team;
 import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
 import com.lolfm.simulator.MatchSimulator;
+import com.lolfm.simulator.PlayerMatchPerformanceSnapshot;
 import com.lolfm.simulator.SimulationInstrumentation;
 import com.lolfm.simulator.StructuredMatchSimulationOutcome;
+import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Component;
 
@@ -59,7 +61,9 @@ public final class MatchEngineV1 {
         SimulationExecutionProvenance executionProvenance = provenance.createV1(
                 input, instrumentation, outcome.timeline(), outcome.randomFingerprint());
         MatchEngineV1Output output = projector.project(input, outcome, executionProvenance);
-        return new MatchEngineV1Execution(output, outcome.timeline(), executionProvenance);
+        return new MatchEngineV1Execution(
+                output, outcome.timeline(), executionProvenance,
+                outcome.playerMatchPerformances());
     }
 
     private static void validateBeforeRandom(MatchEngineV1Input input) {
@@ -86,12 +90,14 @@ public final class MatchEngineV1 {
     record MatchEngineV1Execution(
             MatchEngineV1Output output,
             MatchTimeline legacyTimeline,
-            SimulationExecutionProvenance executionProvenance
+            SimulationExecutionProvenance executionProvenance,
+            List<PlayerMatchPerformanceSnapshot> playerMatchPerformances
     ) {
         MatchEngineV1Execution {
             Objects.requireNonNull(output, "output");
             Objects.requireNonNull(legacyTimeline, "legacyTimeline");
             Objects.requireNonNull(executionProvenance, "executionProvenance");
+            playerMatchPerformances = List.copyOf(playerMatchPerformances);
         }
     }
 }

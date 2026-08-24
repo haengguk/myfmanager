@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 public class TeamfightResolver {
 
     private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
+    private final CombatParticipantSelector participantSelector = new CombatParticipantSelector();
     private static final int SIMULATION_SAFETY_TIMEOUT_SECONDS = MatchSimulator.SIMULATION_SAFETY_TIMEOUT_SECONDS;
     private final KillRewardResolver killRewards = new KillRewardResolver();
 
@@ -45,12 +46,17 @@ public class TeamfightResolver {
         int currentTime = gameState.getCurrentTimeSeconds();
         int minimumAlive = progressionContext == ProgressionCombatContext.TEAMFIGHT
                 ? CombatRealismRuleConfig.MIN_ALIVE_PLAYERS_FOR_STANDARD_TEAMFIGHT : 1;
+        List<PlayerState> blueParticipants = eligibleParticipants(
+                gameState.getBlueTeamState(), currentTime);
+        List<PlayerState> redParticipants = eligibleParticipants(
+                gameState.getRedTeamState(), currentTime);
         if (currentTime < 900
-                || countAlivePlayers(gameState.getBlueTeamState(), currentTime) < minimumAlive
-                || countAlivePlayers(gameState.getRedTeamState(), currentTime) < minimumAlive) {
+                || blueParticipants.size() < minimumAlive
+                || redParticipants.size() < minimumAlive) {
             return Optional.empty();
         }
-        double triggerChance = hasElderTeamWithThreeAlive(gameState, currentTime)
+        double triggerChance = hasElderTeamWithThreeParticipants(
+                blueParticipants, redParticipants, currentTime)
                 ? ElderRuleConfig.TEAMFIGHT_TRIGGER_CHANCE
                 : CombatRealismRuleConfig.STANDARD_TEAMFIGHT_TRIGGER_CHANCE;
         if (random.nextDouble() >= triggerChance) return Optional.empty();
@@ -71,10 +77,8 @@ public class TeamfightResolver {
                         : CompositionBaselineScoreDomain.BASE_DEFENSE_SCORE,
                 teamfightScore(gameState, sides.winningSide(), sides.winningTeam()),
                 teamfightScore(gameState, sides.winningSide().opposite(), sides.losingTeam()));
-        List<PlayerState> blueParticipants=gameState.getBlueTeamState().getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
-        List<PlayerState> redParticipants=gameState.getRedTeamState().getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
-        for (PlayerState player : gameState.getBlueTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
-        for (PlayerState player : gameState.getRedTeamState().getPlayers()) if (player.canParticipateInMajorCombatAt(currentTime)) gameState.markMajorCombatParticipant(player);
+        blueParticipants.forEach(gameState::markMajorCombatParticipant);
+        redParticipants.forEach(gameState::markMajorCombatParticipant);
         GameplayAttemptId compositionAttemptId = gameState.getCompositionRuntimeState().lastActualAttemptId();
         if (gameState.getCompositionRuntimeState().isAuditSemantics()) {
             TeamSide attacker = sides.structuredAttackingSide();
@@ -121,7 +125,7 @@ public class TeamfightResolver {
         }
         int winningKillTarget = Math.min(
                 determineWinningTeamKillCount(plannedGrade, random),
-                countAlivePlayers(sides.losingTeamState(), currentTime)
+                eligibleParticipants(sides.losingTeamState(), currentTime).size()
         );
         int counterKillTarget = determineCounterKillCount(plannedGrade, winningKillTarget, random);
         Set<PlayerState> deadPlayers = new HashSet<>();
@@ -221,9 +225,7 @@ public class TeamfightResolver {
                 List.of()
         ));
 
-        String actionId = compositionAttemptId == null
-                ? "COMBAT_AT:" + currentTime
-                : "COMBAT:" + compositionAttemptId.sequence();
+        String actionId = "COMBAT_AT:" + currentTime;
         for (int i = eventStart; i < events.size(); i++) events.get(i).setActionId(actionId);
         gameState.getCombatOutcomeExecutionStats().record(progressionContext,currentTime,true,sides.winningSide(),blueParticipants,redParticipants);
         return Optional.of(new TeamfightOutcome(
@@ -304,6 +306,28 @@ public class TeamfightResolver {
                 localizedPositions(lane));
     }
 
+    /** Eligibility probe used before a localized skirmish consumes trigger or selection Random. */
+    boolean canResolveLocalizedSkirmishKill(
+            int timeSeconds,
+            Lane lane,
+            TeamState attackingTeamState,
+            TeamState defendingTeamState
+    ) {
+        Set<Position> positions = localizedPositions(lane);
+        return hasEligibleLocalizedPlayer(attackingTeamState, timeSeconds, positions)
+                && hasEligibleLocalizedPlayer(defendingTeamState, timeSeconds, positions);
+    }
+
+    private boolean hasEligibleLocalizedPlayer(
+            TeamState teamState,
+            int timeSeconds,
+            Set<Position> positions
+    ) {
+        return teamState.getPlayers().stream()
+                .anyMatch(player -> positions.contains(player.getPosition())
+                        && player.canParticipateInMajorCombatAt(timeSeconds));
+    }
+
     private boolean resolveKill(
             int timeSeconds,
             Random random,
@@ -346,48 +370,28 @@ public class TeamfightResolver {
             return false;
         }
 
-        Player killer = pickWeightedPlayer(killerCandidates, random, player -> {
-            PlayerState candidate = attackingTeamState.playerAt(player.getPosition());
-            double weight = candidate.hasMatchPerformance()
-                    ? playerSkills.combatExecution(candidate)
-                    * (PlayerImpactRuleConfig.KILLER_MECHANICS_WEIGHT
-                    + PlayerImpactRuleConfig.KILLER_AGGRESSION_WEIGHT
-                    + PlayerImpactRuleConfig.KILLER_TEAMFIGHTING_WEIGHT)
-                    : candidate.getMechanics() * PlayerImpactRuleConfig.KILLER_MECHANICS_WEIGHT
-                    + candidate.getAggression() * PlayerImpactRuleConfig.KILLER_AGGRESSION_WEIGHT
-                    + candidate.getTeamfighting() * PlayerImpactRuleConfig.KILLER_TEAMFIGHTING_WEIGHT;
-            if (teamfight) weight += (candidate.hasMatchPerformance()
-                    ? playerSkills.combatExecution(candidate) : candidate.getTeamfighting()) * 0.8;
-            if (player.getPosition() == Position.ADC || player.getPosition() == Position.MID) weight += 8.0;
-            return weight * CombatRealismRuleConfig.killerRoleMultiplier(player.getPosition());
-        });
-        Player victim = pickWeightedPlayer(victimCandidates, random, player -> {
-            PlayerState candidate = defendingTeamState.playerAt(player.getPosition());
-            double positionRisk = switch (player.getPosition()) {
-                case ADC -> 1.45;
-                case MID -> 1.25;
-                case SUPPORT -> 1.15;
-                case JUNGLE -> 1.0;
-                case TOP -> 0.9;
-            };
-            if (!candidate.hasMatchPerformance()) {
-                return Math.max(0.15, positionRisk
-                        + candidate.getAggression() * PlayerImpactRuleConfig.VICTIM_AGGRESSION_RISK_WEIGHT
-                        - candidate.getMechanics() * PlayerImpactRuleConfig.VICTIM_MECHANICS_PROTECTION_WEIGHT
-                        + candidate.getDeaths() * 0.08);
-            }
-            return Math.max(0.15, positionRisk
-                    - playerSkills.exposureSafety(candidate)
-                    * PlayerImpactRuleConfig.VICTIM_MECHANICS_PROTECTION_WEIGHT
-                    + candidate.getDeaths() * 0.08);
-        });
+        List<PlayerState> killerStateCandidates = killerCandidates.stream()
+                .map(player -> attackingTeamState.playerAt(player.getPosition())).toList();
+        List<Double> killerRolePriors = killerCandidates.stream()
+                .map(player -> CombatParticipantRuleConfig.teamfightKillerRolePrior(
+                        player.getPosition(), teamfight)).toList();
+        PlayerState killerState = participantSelector.selectKiller(
+                killerStateCandidates, killerRolePriors, random);
+        Player killer = playerAtPosition(killerCandidates, killerState.getPosition());
+
+        List<PlayerState> victimStateCandidates = victimCandidates.stream()
+                .map(player -> defendingTeamState.playerAt(player.getPosition())).toList();
+        List<Double> victimRolePriors = victimCandidates.stream()
+                .map(player -> CombatParticipantRuleConfig.teamfightVictimRolePrior(
+                        player.getPosition())).toList();
+        PlayerState victimState = participantSelector.selectTeamfightVictim(
+                victimStateCandidates, victimRolePriors, random);
+        Player victim = playerAtPosition(victimCandidates, victimState.getPosition());
         List<Player> assistantPlayers = pickAssistPlayers(
                 attackingTeam, attackingTeamState, killer, timeSeconds, random, teamfight,
                 deadPlayers, allowedPositions
         );
 
-        PlayerState killerState = attackingTeamState.playerAt(killer.getPosition());
-        PlayerState victimState = defendingTeamState.playerAt(victim.getPosition());
         List<PlayerState> assistantStates = assistantPlayers.stream()
                 .map(player -> attackingTeamState.playerAt(player.getPosition()))
                 .toList();
@@ -456,12 +460,14 @@ public class TeamfightResolver {
         double existing = goldContribution + killContribution + blueScore - redScore;
         CombatProgressionEvaluator progression = new CombatProgressionEvaluator();
         CombatProgressionBreakdown baselineBreakdown = progression.evaluate(state, context,
-                alivePlayers(blue, state.getCurrentTimeSeconds()), alivePlayers(red, state.getCurrentTimeSeconds()),
+                eligibleParticipants(blue, state.getCurrentTimeSeconds()),
+                eligibleParticipants(red, state.getCurrentTimeSeconds()),
                 baselineExisting, goldContribution);
         ProgressionCombatSample baselineProgressionSample = state.getProgressionExecutionStats().snapshot().combatSamples().getLast();
         double baselineScoreWithoutNoise = baselineExisting + baselineBreakdown.finalContribution();
         CombatProgressionBreakdown historicalBreakdown = progression.evaluate(state, context,
-                alivePlayers(blue, state.getCurrentTimeSeconds()), alivePlayers(red, state.getCurrentTimeSeconds()),
+                eligibleParticipants(blue, state.getCurrentTimeSeconds()),
+                eligibleParticipants(red, state.getCurrentTimeSeconds()),
                 existing, goldContribution);
         double historicalScoreWithoutNoise = existing + historicalBreakdown.finalContribution();
         CompositionCombatRole blueRole = context == ProgressionCombatContext.BASE_DEFENSE
@@ -566,7 +572,11 @@ public class TeamfightResolver {
                 : TeamCompositionContext.TEAMFIGHT;
     }
 
-    private List<PlayerState> alivePlayers(TeamState team,int time){return team.getPlayers().stream().filter(p->p.isAlive(time)).toList();}
+    private List<PlayerState> eligibleParticipants(TeamState team, int time) {
+        return team.getPlayers().stream()
+                .filter(player -> player.canParticipateInMajorCombatAt(time))
+                .toList();
+    }
 
     private double clampTeamfightDecisionEdge(double value) {
         return Math.max(-CombatRealismRuleConfig.MAX_TEAMFIGHT_DECISION_EDGE,
@@ -580,7 +590,7 @@ public class TeamfightResolver {
         double totalTeamfighting = 0.0;
         double totalMechanics = 0.0;
         for (PlayerState player : teamState.getPlayers()) {
-            if (!player.isAlive(currentTime)) continue;
+            if (!player.canParticipateInMajorCombatAt(currentTime)) continue;
             alive++;
             if (player.hasMatchPerformance()) {
                 totalTeamfighting += playerSkills.combatExecution(player);
@@ -612,11 +622,12 @@ public class TeamfightResolver {
                 compositionAttemptId, baselineWinningScore, baselineLosingScore);
         CombatProgressionEvaluator progression = new CombatProgressionEvaluator();
         double baselineTeamfightGap = Math.max(0.0, baselineGap + progression.contribution(state, context,
-                alivePlayers(sides.winningTeamState(), currentTime), alivePlayers(sides.losingTeamState(), currentTime),
+                eligibleParticipants(sides.winningTeamState(), currentTime),
+                eligibleParticipants(sides.losingTeamState(), currentTime),
                 baselineGap, 0, ProgressionApplicationStage.FIGHT_GRADE));
         double historicalCandidateTeamfightGap = Math.max(0.0, historicalCandidateGap + progression.contribution(
-                state, context, alivePlayers(sides.winningTeamState(), currentTime),
-                alivePlayers(sides.losingTeamState(), currentTime), historicalCandidateGap, 0,
+                state, context, eligibleParticipants(sides.winningTeamState(), currentTime),
+                eligibleParticipants(sides.losingTeamState(), currentTime), historicalCandidateGap, 0,
                 ProgressionApplicationStage.FIGHT_GRADE));
         CompositionActionType action = compositionAction(context);
         CompositionBaselineScoreDomain domain = compositionDomain(context);
@@ -745,15 +756,26 @@ public class TeamfightResolver {
         };
     }
 
-    private boolean hasElderTeamWithThreeAlive(GameState state, int time) {
-        return activeElderPlayers(state.getBlueTeamState(), time) >= 3 || activeElderPlayers(state.getRedTeamState(), time) >= 3;
+    private boolean hasElderTeamWithThreeParticipants(
+            List<PlayerState> blueParticipants,
+            List<PlayerState> redParticipants,
+            int time
+    ) {
+        return activeElderPlayers(blueParticipants, time) >= 3
+                || activeElderPlayers(redParticipants, time) >= 3;
     }
 
     private double supportToolExecution(GameState state, TeamSide side) {
         CompositionRuntimeState runtime = state.getCompositionRuntimeState();
-        if (!runtime.isActive() || !runtime.initialized()) return 0;
-        TeamCompositionAnalysis analysis = side == TeamSide.BLUE ? runtime.blueAnalysis() : runtime.redAnalysis();
         PlayerState support = state.getTeamState(side).playerAt(Position.SUPPORT);
+        if (!support.canParticipateInMajorCombatAt(state.getCurrentTimeSeconds())) return 0.0;
+        if (!runtime.isActive() || !runtime.initialized()) {
+            return (playerSkills.engageExecution(support) - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE)
+                    * CombatParticipantRuleConfig.COMPOSITION_OFF_ENGAGE_SCORE_PER_POINT
+                    + (playerSkills.allyProtection(support) - PlayerImpactRuleConfig.BASELINE_ATTRIBUTE)
+                    * CombatParticipantRuleConfig.COMPOSITION_OFF_PROTECTION_SCORE_PER_POINT;
+        }
+        TeamCompositionAnalysis analysis = side == TeamSide.BLUE ? runtime.blueAnalysis() : runtime.redAnalysis();
         double engageTool = supportCapability(analysis, CompositionCapability.ENGAGE);
         double peelTool = supportCapability(analysis, CompositionCapability.PEEL);
         return (playerSkills.engageExecution(support) - 14) * engageTool * .30
@@ -767,7 +789,15 @@ public class TeamfightResolver {
                 .findFirst().orElse(0.0);
     }
 
-    private int activeElderPlayers(TeamState team, int time) { int count = 0; for (PlayerState player : team.getPlayers()) if (player.hasActiveElderBuff(time)) count++; return count; }
+    private int activeElderPlayers(TeamState team, int time) {
+        return activeElderPlayers(eligibleParticipants(team, time), time);
+    }
+
+    private int activeElderPlayers(List<PlayerState> participants, int time) {
+        return (int) participants.stream()
+                .filter(player -> player.hasActiveElderBuff(time))
+                .count();
+    }
 
     private FightGrade resolveFightGrade(FightGrade planned, int winningKills, int losingKills) {
         if (winningKills == 5) {
@@ -845,9 +875,24 @@ public class TeamfightResolver {
                 : minimum + random.nextInt(maximum - minimum + 1);
         List<Player> assists = new ArrayList<>();
         for (int index = 0; index < assistCount && !candidates.isEmpty(); index++) {
-            assists.add(candidates.remove(random.nextInt(candidates.size())));
+            List<PlayerState> candidateStates = candidates.stream()
+                    .map(player -> state.playerAt(player.getPosition())).toList();
+            PlayerState selected = participantSelector.selectAssist(candidateStates, random);
+            assists.add(candidates.remove(indexOfPosition(candidates, selected.getPosition())));
         }
         return assists;
+    }
+
+    private Player playerAtPosition(List<Player> players, Position position) {
+        return players.stream().filter(player -> player.getPosition() == position)
+                .findFirst().orElseThrow();
+    }
+
+    private int indexOfPosition(List<Player> players, Position position) {
+        for (int index = 0; index < players.size(); index++) {
+            if (players.get(index).getPosition() == position) return index;
+        }
+        throw new IllegalArgumentException("No combat participant at " + position);
     }
 
     private Set<Position> localizedPositions(Lane lane) {
@@ -883,18 +928,6 @@ public class TeamfightResolver {
         if (time < 2_700) return RespawnRuleConfig.FROM_40_TO_45_MINUTES_SECONDS;
         if (time < 3_000) return RespawnRuleConfig.FROM_45_TO_50_MINUTES_SECONDS;
         return RespawnRuleConfig.FROM_50_MINUTES_SECONDS;
-    }
-
-    private Player pickWeightedPlayer(List<Player> players, Random random, java.util.function.ToDoubleFunction<Player> weight) {
-        double total = 0.0;
-        for (Player player : players) total += Math.max(0.1, weight.applyAsDouble(player));
-        double roll = random.nextDouble() * total;
-        double cursor = 0.0;
-        for (Player player : players) {
-            cursor += Math.max(0.1, weight.applyAsDouble(player));
-            if (roll <= cursor) return player;
-        }
-        return players.get(players.size() - 1);
     }
 
     private boolean isMajorObjectiveMoment(int time) {

@@ -15,6 +15,7 @@ import java.util.Random;
 /** Stateless resolver for one possible MID or SUPPORT roam per evaluation tick. */
 public final class RoamResolver {
     private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
+    private final CombatParticipantSelector participantSelector = new CombatParticipantSelector();
     private final KillRewardResolver rewards = new KillRewardResolver();
 
     public boolean resolve(GameState state, Random random, List<MatchEvent> events) {
@@ -176,9 +177,9 @@ public final class RoamResolver {
     private Participants participants(GameState state, Candidate c, Lane lane, RoamOutcome outcome, Random random) {
         List<PlayerState> attackers = new ArrayList<>(); attackers.add(player(state,c)); attackers.addAll(lanePlayers(state.getTeamState(c.side()),lane));
         List<PlayerState> defenders = lanePlayers(state.getTeamState(c.side().opposite()),lane);
-        if (outcome == RoamOutcome.ROAMING_SIDE_KILL) { PlayerState killer=weighted(attackers, successWeights(c.position(),lane),random); PlayerState victim=lane==Lane.BOT?weighted(defenders,List.of(.65,.35),random):defenders.getFirst(); return new Participants(killer,victim,attackers.stream().filter(p->p!=killer).toList()); }
-        PlayerState killer=lane==Lane.BOT?weighted(defenders,List.of(RoamRuleConfig.BOT_REVERSE_ADC_KILLER_WEIGHT,RoamRuleConfig.BOT_REVERSE_SUPPORT_KILLER_WEIGHT),random):defenders.getFirst();
-        PlayerState victim=weighted(attackers, reverseWeights(c.position(),lane),random); return new Participants(killer,victim,lane==Lane.BOT?defenders.stream().filter(p->p!=killer).toList():List.of());
+        if (outcome == RoamOutcome.ROAMING_SIDE_KILL) { PlayerState killer=participantSelector.selectKiller(attackers, successWeights(c.position(),lane),random); PlayerState victim=lane==Lane.BOT?participantSelector.selectVictim(defenders,List.of(RoamRuleConfig.BOT_SUCCESS_ADC_VICTIM_WEIGHT,RoamRuleConfig.BOT_SUCCESS_SUPPORT_VICTIM_WEIGHT),random):defenders.getFirst(); return new Participants(killer,victim,attackers.stream().filter(p->p!=killer).toList()); }
+        PlayerState killer=lane==Lane.BOT?participantSelector.selectKiller(defenders,List.of(RoamRuleConfig.BOT_REVERSE_ADC_KILLER_WEIGHT,RoamRuleConfig.BOT_REVERSE_SUPPORT_KILLER_WEIGHT),random):defenders.getFirst();
+        PlayerState victim=participantSelector.selectVictim(attackers, reverseWeights(c.position(),lane),random); return new Participants(killer,victim,lane==Lane.BOT?defenders.stream().filter(p->p!=killer).toList():List.of());
     }
     private List<Double> successWeights(Position p,Lane lane){ if(p==Position.SUPPORT)return List.of(RoamRuleConfig.SUPPORT_TO_MID_ROAMER_KILLER_WEIGHT,RoamRuleConfig.SUPPORT_TO_MID_MID_KILLER_WEIGHT); if(lane==Lane.TOP)return List.of(RoamRuleConfig.MID_TO_TOP_ROAMER_KILLER_WEIGHT,RoamRuleConfig.MID_TO_TOP_LANER_KILLER_WEIGHT); return List.of(RoamRuleConfig.MID_TO_BOT_ROAMER_KILLER_WEIGHT,RoamRuleConfig.MID_TO_BOT_ADC_KILLER_WEIGHT,RoamRuleConfig.MID_TO_BOT_SUPPORT_KILLER_WEIGHT); }
     private List<Double> reverseWeights(Position p,Lane lane){ if(lane==Lane.BOT)return List.of(RoamRuleConfig.BOT_REVERSE_ROAMER_VICTIM_WEIGHT,RoamRuleConfig.BOT_REVERSE_ADC_VICTIM_WEIGHT,RoamRuleConfig.BOT_REVERSE_SUPPORT_VICTIM_WEIGHT); return List.of(RoamRuleConfig.SOLO_REVERSE_ROAMER_VICTIM_WEIGHT,RoamRuleConfig.SOLO_REVERSE_TARGET_LANER_VICTIM_WEIGHT); }
@@ -202,14 +203,13 @@ public final class RoamResolver {
     }
     double decisiveChance(PlayerState p,double edge,double over){return clamp(RoamRuleConfig.BASE_ROAM_DECISIVE_CHANCE+((p.hasMatchPerformance()?playerSkills.combatExecution(p):p.getAggression())-14)*RoamRuleConfig.ROAMER_AGGRESSION_DECISIVE_FACTOR+Math.abs(edge)*RoamRuleConfig.ROAM_DECISIVE_EDGE_FACTOR+over/100*RoamRuleConfig.ROAM_DECISIVE_OVEREXTENSION_MAX_BONUS,RoamRuleConfig.MIN_ROAM_DECISIVE_CHANCE,RoamRuleConfig.MAX_ROAM_DECISIVE_CHANCE);}
     double successChance(double edge){return clamp(RoamRuleConfig.BASE_ROAM_SUCCESS_CHANCE+edge*RoamRuleConfig.ROAM_SUCCESS_EDGE_FACTOR,RoamRuleConfig.MIN_ROAM_SUCCESS_CHANCE,RoamRuleConfig.MAX_ROAM_SUCCESS_CHANCE);}
-    private int combatTendency(PlayerState p){return p.hasMatchPerformance()?PlayerImpactRuleConfig.BASELINE_ATTRIBUTE:p.getAggression();}
+    private int combatTendency(PlayerState p){return (int)Math.round(playerSkills.decisionQuality(p));}
     private double group(GameState s,TeamSide side,Lane l,java.util.function.ToIntFunction<PlayerState> value){List<PlayerState> ps=lanePlayers(s.getTeamState(side),l);return l==Lane.BOT?value.applyAsInt(ps.get(0))*.60+value.applyAsInt(ps.get(1))*.40:value.applyAsInt(ps.getFirst());}
     private double averageGold(PlayerState roamer,List<PlayerState> ps){double sum=roamer==null?0:roamer.getGold();for(PlayerState p:ps)sum+=p.getGold();return sum/(ps.size()+(roamer==null?0:1));}
     double originPriority(GameState s,Candidate c){return Math.max(relativePressure(s,c.side(),origin(c.position())),0);}
     double enemyOverextension(GameState s,TeamSide side,Lane lane){return Math.max(-relativePressure(s,side,lane),0);}
     private double relativePressure(GameState s,TeamSide side,Lane lane){return side==TeamSide.BLUE?s.laneState(lane).getPressure():-s.laneState(lane).getPressure();}
     private Candidate weightedCandidate(List<Candidate> cs,Random r){double total=cs.stream().mapToDouble(Candidate::attemptChance).sum(),roll=r.nextDouble()*total;for(Candidate c:cs){roll-=c.attemptChance();if(roll<=0)return c;}return cs.getLast();}
-    private PlayerState weighted(List<PlayerState> ps,List<Double>w,Random r){double roll=r.nextDouble()*w.stream().mapToDouble(Double::doubleValue).sum();for(int i=0;i<ps.size();i++){roll-=w.get(i);if(roll<=0)return ps.get(i);}return ps.getLast();}
     private PlayerState player(GameState s,Candidate c){return s.getTeamState(c.side()).playerAt(c.position());}
     private List<Lane> targets(Position p){return p==Position.MID?List.of(Lane.TOP,Lane.BOT):List.of(Lane.MID);}
     private Lane origin(Position p){return p==Position.MID?Lane.MID:Lane.BOT;}

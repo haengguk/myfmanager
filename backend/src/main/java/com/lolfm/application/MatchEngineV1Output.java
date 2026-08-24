@@ -4,10 +4,13 @@ import com.lolfm.champion.ChampionId;
 import com.lolfm.domain.CombatSource;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.Position;
+import com.lolfm.domain.PlayerRatings;
+import com.lolfm.domain.PlayerSkill;
 import com.lolfm.player.PlayerId;
 import com.lolfm.simulator.GameEndReason;
 import com.lolfm.simulator.Lane;
 import com.lolfm.simulator.PlayerActivityType;
+import com.lolfm.simulator.PlayerRatingRuleConfig;
 import com.lolfm.simulator.StructureActionSource;
 import com.lolfm.simulator.StructureKind;
 import com.lolfm.simulator.TeamSide;
@@ -262,13 +265,87 @@ public record MatchEngineV1Output(
             int cs,
             int gold,
             int totalExperience,
-            int level
+            int level,
+            PlayerAbilityProfileV1 abilityProfile
     ) {
         public PlayerResultV1 {
             Objects.requireNonNull(playerId, "playerId");
             Objects.requireNonNull(teamSide, "teamSide");
             Objects.requireNonNull(position, "position");
             Objects.requireNonNull(championId, "championId");
+            if (abilityProfile != null) {
+                HashSet<String> expectedSkills = new HashSet<>();
+                PlayerSkill.orderedForPosition(position)
+                        .forEach(skill -> expectedSkills.add(skill.name()));
+                if (!abilityProfile.baseRatings().keySet().equals(expectedSkills)) {
+                    throw new IllegalArgumentException(
+                            "Player ability profile does not match position");
+                }
+            }
+        }
+
+        public PlayerResultV1(
+                PlayerId playerId, TeamSide teamSide, Position position,
+                ChampionId championId, int kills, int deaths, int assists, int cs,
+                int gold, int totalExperience, int level) {
+            this(playerId, teamSide, position, championId, kills, deaths, assists, cs,
+                    gold, totalExperience, level, null);
+        }
+    }
+
+    /** Exact match-scoped player inputs and their deterministic realization for this match. */
+    public record PlayerAbilityProfileV1(
+            String schemaVersion,
+            Map<String, Integer> baseRatings,
+            Map<String, Double> realizedRatings,
+            Map<String, Double> realizationDeltas,
+            int selectedChampionProficiency,
+            double proficiencyExecutionAdjustment
+    ) {
+        public static final String SCHEMA = "PLAYER_ABILITY_PROFILE_V1";
+
+        public PlayerAbilityProfileV1 {
+            schemaVersion = MatchEngineV1Policy.required(
+                    schemaVersion, "playerAbilityProfileSchemaVersion");
+            if (!SCHEMA.equals(schemaVersion)) {
+                throw new IllegalArgumentException("Unsupported player ability profile schema");
+            }
+            baseRatings = immutableNumberMap(baseRatings, "baseRating");
+            realizedRatings = immutableNumberMap(realizedRatings, "realizedRating");
+            realizationDeltas = immutableNumberMap(realizationDeltas, "realizationDelta");
+            if (baseRatings.size() != 12 || realizedRatings.size() != 12
+                    || !baseRatings.keySet().equals(realizedRatings.keySet())
+                    || !baseRatings.keySet().equals(realizationDeltas.keySet())) {
+                throw new IllegalArgumentException("Player ability profile rating coverage mismatch");
+            }
+            if (selectedChampionProficiency < 1 || selectedChampionProficiency > 20) {
+                throw new IllegalArgumentException("selectedChampionProficiency");
+            }
+            for (String key : baseRatings.keySet()) {
+                try {
+                    PlayerSkill.valueOf(key);
+                } catch (IllegalArgumentException invalidSkill) {
+                    throw new IllegalArgumentException(
+                            "Unknown player ability profile skill: " + key, invalidSkill);
+                }
+                int base = baseRatings.get(key);
+                double realized = realizedRatings.get(key);
+                double delta = realizationDeltas.get(key);
+                if (base < PlayerRatings.MIN || base > PlayerRatings.MAX
+                        || !Double.isFinite(realized) || !Double.isFinite(delta)
+                        || realized < PlayerRatings.MIN || realized > PlayerRatings.MAX
+                        || Double.compare(realized - base, delta) != 0) {
+                    throw new IllegalArgumentException(
+                            "Player ability profile rating invariant mismatch: " + key);
+                }
+            }
+            double expectedAdjustment = PlayerRatingRuleConfig.proficiencyAdjustment(
+                    selectedChampionProficiency);
+            if (!Double.isFinite(proficiencyExecutionAdjustment)
+                    || Double.compare(proficiencyExecutionAdjustment, expectedAdjustment) != 0) {
+                throw new IllegalArgumentException(
+                        "Player ability profile proficiency adjustment mismatch");
+            }
         }
     }
 
@@ -444,6 +521,17 @@ public record MatchEngineV1Output(
             return Collections.unmodifiableList(copy);
         }
         return String.valueOf(value);
+    }
+
+    private static <N extends Number> Map<String, N> immutableNumberMap(
+            Map<String, N> value, String field
+    ) {
+        Objects.requireNonNull(value, field);
+        TreeMap<String, N> copy = new TreeMap<>();
+        value.forEach((key, number) -> copy.put(
+                MatchEngineV1Policy.required(key, field + "Key"),
+                Objects.requireNonNull(number, field + "Value")));
+        return Collections.unmodifiableMap(copy);
     }
 
     private static void putIfNonNull(

@@ -27,8 +27,7 @@ class CompositionShadowParitySmokeTest {
         MatchSimulator.SimulationResult shadowResult = shadow.simulateWithDiagnostics(
                 factory.createBlueTeam(), factory.createRedTeam(), 7L, assignments);
 
-        assertThat(new ObjectMapper().writeValueAsString(shadowResult.timeline()))
-                .isEqualTo(new ObjectMapper().writeValueAsString(offResult.timeline()));
+        assertTimelineParity(shadowResult.timeline(), offResult.timeline());
         assertThat(shadowResult.randomDrawCount()).isEqualTo(offResult.randomDrawCount());
         assertThat(shadowResult.compositionRuntimeDiagnostics().lineupBuildCount()).isEqualTo(2);
         assertThat(shadowResult.compositionRuntimeDiagnostics().teamCompositionAnalysisCount()).isEqualTo(2);
@@ -56,5 +55,23 @@ class CompositionShadowParitySmokeTest {
         return new MatchSimulator(new TeamfightResolver(), new EndGameEvaluator(), new SnapshotFactory(),
                 new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(),
                 new StructureResolver(), new PushResolver(), options);
+    }
+
+    private static void assertTimelineParity(MatchTimeline actual, MatchTimeline expected) throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        assertThat(actual.getDurationSeconds()).isEqualTo(expected.getDurationSeconds());
+        assertThat(actual.getWinner()).isEqualTo(expected.getWinner());
+        assertThat(actual.getEvents()).hasSameSizeAs(expected.getEvents());
+        for (int index = 0; index < actual.getEvents().size(); index++) {
+            assertThat(mapper.writeValueAsString(actual.getEvents().get(index)))
+                    .as("event[%s]", index)
+                    .isEqualTo(mapper.writeValueAsString(expected.getEvents().get(index)));
+        }
+        assertThat(actual.getSnapshots()).hasSameSizeAs(expected.getSnapshots());
+        for (int index = 0; index < actual.getSnapshots().size(); index++) {
+            assertThat(mapper.writeValueAsString(actual.getSnapshots().get(index)))
+                    .as("snapshot[%s]", index)
+                    .isEqualTo(mapper.writeValueAsString(expected.getSnapshots().get(index)));
+        }
     }
 }

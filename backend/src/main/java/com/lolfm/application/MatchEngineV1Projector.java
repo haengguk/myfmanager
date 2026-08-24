@@ -1,15 +1,24 @@
 package com.lolfm.application;
 
 import com.lolfm.champion.ChampionId;
+import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchSnapshot;
+import com.lolfm.domain.ChampionProficiencies;
+import com.lolfm.domain.PlayerRatings;
+import com.lolfm.domain.PlayerSkill;
 import com.lolfm.domain.PlayerSnapshot;
 import com.lolfm.player.PlayerId;
 import com.lolfm.simulator.GameEndReason;
 import com.lolfm.simulator.Lane;
+import com.lolfm.simulator.PlayerKey;
+import com.lolfm.simulator.PlayerMatchPerformanceSnapshot;
+import com.lolfm.simulator.PlayerRatingRuleConfig;
 import com.lolfm.simulator.StructuredMatchSimulationOutcome;
 import com.lolfm.simulator.TeamSide;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,11 +79,15 @@ final class MatchEngineV1Projector {
     ) {
         List<MatchEngineV1Output.TeamResultV1> teams = List.of(
                 result(last.blueTeam()), result(last.redTeam()));
+        Map<PlayerKey, PlayerMatchPerformanceSnapshot> performances =
+                playerMatchPerformances(outcome);
         List<MatchEngineV1Output.PlayerResultV1> players = last.players().stream()
                 .map(value -> new MatchEngineV1Output.PlayerResultV1(
                         value.playerId(), value.teamSide(), value.position(), value.championId(),
                         value.kills(), value.deaths(), value.assists(), value.cs(), value.gold(),
-                        value.totalExperience(), value.level())).toList();
+                        value.totalExperience(), value.level(), abilityProfile(
+                                input, performances.get(new PlayerKey(
+                                        value.teamSide(), value.position())), value))).toList();
         return new MatchEngineV1Output.MatchResultSummaryV1(
                 MatchEngineV1Output.MatchResultSummaryV1.SCHEMA,
                 outcome.winnerSide(), outcome.endReason(), outcome.endedAtSeconds(), teams, players,
@@ -82,6 +95,63 @@ final class MatchEngineV1Projector {
                 provenance.runtimeProfileId().name(), provenance.configurationHash(),
                 provenance.resourceProvenance().resourceProvenanceHash(),
                 provenance.replayProvenanceHash());
+    }
+
+    private static MatchEngineV1Output.PlayerAbilityProfileV1 abilityProfile(
+            MatchEngineV1Input input, PlayerMatchPerformanceSnapshot performance,
+            MatchEngineV1Output.PlayerStateV1 result
+    ) {
+        MatchEngineV1Input.PlayerInput source = input.player(result.teamSide(), result.position());
+        ChampionRoleKey roleKey = new ChampionRoleKey(result.championId(), result.position());
+        int proficiency = new ChampionProficiencies(source.proficiencies()).get(roleKey);
+        PlayerRatings base = new PlayerRatings(result.position(), source.ratings());
+        PlayerKey playerKey = new PlayerKey(result.teamSide(), result.position());
+        if (performance == null) {
+            throw new IllegalArgumentException(
+                    "MATCH_ENGINE_V1_PLAYER_PERFORMANCE_MISSING:" + playerKey.stableId());
+        }
+        if (performance.championProficiency() != proficiency) {
+            throw new IllegalArgumentException(
+                    "MATCH_ENGINE_V1_PLAYER_PROFICIENCY_MISMATCH:" + playerKey.stableId());
+        }
+        java.util.TreeMap<String, Integer> baseRatings = new java.util.TreeMap<>();
+        java.util.TreeMap<String, Double> realizedRatings = new java.util.TreeMap<>();
+        java.util.TreeMap<String, Double> deltas = new java.util.TreeMap<>();
+        for (PlayerSkill skill : PlayerSkill.orderedForPosition(result.position())) {
+            int baseValue = base.get(skill);
+            double realized = performance.realizedRatings().get(skill);
+            baseRatings.put(skill.name(), baseValue);
+            realizedRatings.put(skill.name(), realized);
+            deltas.put(skill.name(), realized - baseValue);
+        }
+        return new MatchEngineV1Output.PlayerAbilityProfileV1(
+                MatchEngineV1Output.PlayerAbilityProfileV1.SCHEMA,
+                baseRatings, realizedRatings, deltas, proficiency,
+                PlayerRatingRuleConfig.proficiencyAdjustment(proficiency));
+    }
+
+    private static Map<PlayerKey, PlayerMatchPerformanceSnapshot> playerMatchPerformances(
+            StructuredMatchSimulationOutcome outcome
+    ) {
+        HashMap<PlayerKey, PlayerMatchPerformanceSnapshot> indexed = new HashMap<>();
+        for (PlayerMatchPerformanceSnapshot performance : outcome.playerMatchPerformances()) {
+            if (indexed.putIfAbsent(performance.playerKey(), performance) != null) {
+                throw new IllegalArgumentException(
+                        "MATCH_ENGINE_V1_PLAYER_PERFORMANCE_DUPLICATE:"
+                                + performance.playerKey().stableId());
+            }
+        }
+        HashSet<PlayerKey> expected = new HashSet<>();
+        for (TeamSide side : TeamSide.values()) {
+            for (com.lolfm.domain.Position position : com.lolfm.domain.Position.values()) {
+                expected.add(new PlayerKey(side, position));
+            }
+        }
+        if (!indexed.keySet().equals(expected)) {
+            throw new IllegalArgumentException(
+                    "MATCH_ENGINE_V1_PLAYER_PERFORMANCE_COVERAGE_MISMATCH");
+        }
+        return Map.copyOf(indexed);
     }
 
     private static MatchEngineV1Output.TeamResultV1 result(
@@ -116,6 +186,7 @@ final class MatchEngineV1Projector {
         put(structured, "combatLane", source.getCombatLane());
         put(structured, "objectivePriorityDecision", source.getObjectivePriorityDecision());
         put(structured, "objectiveDecision", source.getObjectiveDecision());
+        put(structured, "objectiveFight", source.getObjectiveFight());
         put(structured, "midGameMacroDecision", source.getMidGameMacroDecision());
         put(structured, "midGameMacroAction", source.getMidGameMacroAction());
         put(structured, "outerTurretSiege", source.getOuterTurretSiege());
@@ -219,7 +290,7 @@ final class MatchEngineV1Projector {
         return input.assignment(player.teamSide(), player.position()).championId();
     }
 
-    private static TeamSide actorSide(
+    static TeamSide actorSide(
             MatchEvent event, PlayerId actor, MatchEngineV1Input input
     ) {
         if (actor != null) return input.player(actor).teamSide();
@@ -228,6 +299,10 @@ final class MatchEngineV1Projector {
         if (event.getJungleGank() != null) return event.getJungleGank().gankingSide();
         if (event.getCounterGank() != null) return event.getCounterGank().attackingSide();
         if (event.getRoam() != null) return event.getRoam().roamingSide();
+        if (event.getObjectiveFight() != null
+                && event.getType() == com.lolfm.domain.MatchEventType.TEAMFIGHT_RESULT) {
+            return event.getObjectiveFight().winningSide();
+        }
         if (event.getObjectiveDecision() != null) {
             return event.getObjectiveDecision().captureSide() != null
                     ? event.getObjectiveDecision().captureSide()

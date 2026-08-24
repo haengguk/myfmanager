@@ -109,9 +109,47 @@ public final class PlayerSkillEvaluator {
                 + p.execution(PlayerSkill.MECHANICS) * .25;
     }
 
+    /** Small-fight initiative while preserving the legacy aggression/mechanics/teamfight meaning. */
+    public double combatInitiative(PlayerState p) {
+        double aggressionWeight = PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_AGGRESSION_WEIGHT;
+        double mechanicsWeight = PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_MECHANICS_WEIGHT;
+        double teamfightingWeight = PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_TEAMFIGHTING_WEIGHT;
+        return (decisionQuality(p) * aggressionWeight
+                + p.execution(PlayerSkill.MECHANICS) * mechanicsWeight
+                + p.execution(PlayerSkill.COMBAT_EXECUTION) * teamfightingWeight)
+                / (aggressionWeight + mechanicsWeight + teamfightingWeight);
+    }
+
+    /** Converts a won combat into individual kill credit without collapsing all skills into one. */
+    public double killConversion(PlayerState p) {
+        double mechanicsWeight = PlayerImpactRuleConfig.KILLER_MECHANICS_WEIGHT;
+        double decisionWeight = PlayerImpactRuleConfig.KILLER_AGGRESSION_WEIGHT;
+        double combatWeight = PlayerImpactRuleConfig.KILLER_TEAMFIGHTING_WEIGHT;
+        return (p.execution(PlayerSkill.MECHANICS) * mechanicsWeight
+                + decisionQuality(p) * decisionWeight
+                + p.execution(PlayerSkill.COMBAT_EXECUTION) * combatWeight)
+                / (mechanicsWeight + decisionWeight + combatWeight);
+    }
+
     public double exposureSafety(PlayerState p) {
-        return p.execution(PlayerSkill.POSITIONING) * .80
-                + p.rating(PlayerSkill.MAP_AWARENESS) * .20;
+        return p.execution(PlayerSkill.POSITIONING)
+                * CombatParticipantRuleConfig.EXPOSURE_POSITIONING_WEIGHT
+                + p.rating(PlayerSkill.MAP_AWARENESS)
+                * CombatParticipantRuleConfig.EXPOSURE_MAP_AWARENESS_WEIGHT;
+    }
+
+    /** Awareness and role-specific joining skill determine who is credited with an assist. */
+    public double assistParticipation(PlayerState p) {
+        double roleJoin = switch (p.getPosition()) {
+            case TOP, MID, ADC -> p.rating(PlayerSkill.PRIORITY_CONVERSION);
+            case JUNGLE -> p.execution(PlayerSkill.LANE_INTERVENTION);
+            case SUPPORT -> p.rating(PlayerSkill.ROTATION_PLANNING);
+        };
+        return p.rating(PlayerSkill.MAP_AWARENESS)
+                * CombatParticipantRuleConfig.ASSIST_MAP_AWARENESS_WEIGHT
+                + p.rating(PlayerSkill.DECISION_MAKING)
+                * CombatParticipantRuleConfig.ASSIST_DECISION_MAKING_WEIGHT
+                + roleJoin * CombatParticipantRuleConfig.ASSIST_ROLE_JOIN_WEIGHT;
     }
 
     public double decisionQuality(PlayerState p) { return p.rating(PlayerSkill.DECISION_MAKING); }

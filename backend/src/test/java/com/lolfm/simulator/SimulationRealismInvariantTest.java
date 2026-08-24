@@ -2,6 +2,7 @@ package com.lolfm.simulator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.lolfm.domain.CombatSource;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchTimeline;
 import com.lolfm.domain.Player;
@@ -126,6 +127,99 @@ class SimulationRealismInvariantTest {
     }
 
     @Test
+    void aliveRoamerCannotSatisfyStandardTeamfightMinimumOrConsumeRandom() {
+        DummyDataFactory data = new DummyDataFactory();
+        Team blue = data.createBlueTeam();
+        Team red = data.createRedTeam();
+        GameState state = new GameState(teamState(blue, TeamSide.BLUE),
+                teamState(red, TeamSide.RED));
+        state.advanceTimeSeconds(900);
+        List<PlayerState> redPlayers = state.getRedTeamState().getPlayers();
+        redPlayers.get(3).markDead(900, 60);
+        redPlayers.get(4).markDead(900, 60);
+        redPlayers.getFirst().beginRoamActivity(Lane.TOP, Lane.MID, 900);
+        CountingRandom random = new CountingRandom();
+        java.util.ArrayList<MatchEvent> events = new java.util.ArrayList<>();
+
+        assertThat(new TeamfightResolver().maybeResolveTeamfight(
+                state, blue, red, random, events)).isEmpty();
+        assertThat(random.calls).isZero();
+        assertThat(events).isEmpty();
+        assertThat(state.getCompositionRuntimeState().lastActualAttemptId()).isNull();
+    }
+
+    @Test
+    void forcedTeamfightWithOnlyRoamingSurvivorCreatesNoZeroKillAttempt() {
+        DummyDataFactory data = new DummyDataFactory();
+        Team blue = data.createBlueTeam();
+        Team red = data.createRedTeam();
+        GameState state = new GameState(teamState(blue, TeamSide.BLUE),
+                teamState(red, TeamSide.RED));
+        state.advanceTimeSeconds(1_800);
+        List<PlayerState> bluePlayers = state.getBlueTeamState().getPlayers();
+        for (int index = 1; index < bluePlayers.size(); index++) {
+            bluePlayers.get(index).markDead(1_800, 60);
+        }
+        bluePlayers.getFirst().beginRoamActivity(Lane.TOP, Lane.MID, 1_800);
+        CountingRandom random = new CountingRandom();
+        java.util.ArrayList<MatchEvent> events = new java.util.ArrayList<>();
+
+        assertThat(new TeamfightResolver().resolveForcedTeamfight(
+                state, blue, red, random, events, CombatSource.LATE_GAME_SIEGE)).isEmpty();
+        assertThat(random.calls).isZero();
+        assertThat(events).isEmpty();
+        assertThat(state.getCompositionRuntimeState().lastActualAttemptId()).isNull();
+    }
+
+    @Test
+    void genericSkirmishWithoutAnyEligibleLaneConsumesNothing() {
+        DummyDataFactory data = new DummyDataFactory();
+        Team blue = data.createBlueTeam();
+        Team red = data.createRedTeam();
+        GameState state = new GameState(teamState(blue, TeamSide.BLUE),
+                teamState(red, TeamSide.RED));
+        state.advanceTimeSeconds(600);
+        for (PlayerState player : state.getBlueTeamState().getPlayers()) {
+            player.beginRoamActivity(Lane.TOP, Lane.MID, 600);
+        }
+        MatchSimulator simulator = simulator();
+        CountingRandom random = new CountingRandom();
+        java.util.ArrayList<MatchEvent> events = new java.util.ArrayList<>();
+
+        assertThat(simulator.eligibleLocalizedSkirmishLanes(state)).isEmpty();
+        assertThat(simulator.maybeCreateKillEvent(random, blue, red, state, events)).isFalse();
+        assertThat(random.calls).isZero();
+        assertThat(events).isEmpty();
+        assertThat(state.getCompositionRuntimeState().lastActualAttemptId()).isNull();
+    }
+
+    @Test
+    void genericSkirmishSelectsOnlyEligibleLaneWithoutRejectedLaneDraws() {
+        DummyDataFactory data = new DummyDataFactory();
+        Team blue = data.createBlueTeam();
+        Team red = data.createRedTeam();
+        GameState state = new GameState(teamState(blue, TeamSide.BLUE),
+                teamState(red, TeamSide.RED));
+        state.advanceTimeSeconds(600);
+        for (TeamSide side : TeamSide.values()) {
+            for (PlayerState player : state.getTeamState(side).getPlayers()) {
+                if (player.getPosition() != Position.TOP) {
+                    player.beginRoamActivity(Lane.TOP, Lane.MID, 600);
+                }
+            }
+        }
+        MatchSimulator simulator = simulator();
+        CountingRandom random = new CountingRandom();
+        java.util.ArrayList<MatchEvent> events = new java.util.ArrayList<>();
+
+        assertThat(simulator.eligibleLocalizedSkirmishLanes(state)).containsExactly(Lane.TOP);
+        assertThat(simulator.maybeCreateKillEvent(random, blue, red, state, events)).isTrue();
+        assertThat(events).filteredOn(event -> event.getType() == com.lolfm.domain.MatchEventType.KILL)
+                .singleElement().satisfies(event -> assertThat(event.getCombatLane()).isEqualTo(Lane.TOP));
+        assertThat(random.calls).isEqualTo(5);
+    }
+
+    @Test
     void completedTimelinesAreMonotonicAndContainNoPostGameEvents() {
         DummyDataFactory data = new DummyDataFactory();
         MatchSimulator simulator = new MatchSimulator(
@@ -162,5 +256,12 @@ class SimulationRealismInvariantTest {
                         player.requirePlayerId(), player.getName(), player.getPosition(),
                         player.getAttributes(), null, 500, true))
                 .toList());
+    }
+
+    private MatchSimulator simulator() {
+        return new MatchSimulator(
+                new TeamfightResolver(), new EndGameEvaluator(), new SnapshotFactory(),
+                new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(),
+                new StructureResolver(), new PushResolver());
     }
 }

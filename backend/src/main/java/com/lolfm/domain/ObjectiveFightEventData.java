@@ -1,17 +1,18 @@
-package com.lolfm.simulator;
+package com.lolfm.domain;
 
-import com.lolfm.domain.ObjectiveFightSkillImpactData;
+import com.lolfm.simulator.TeamSide;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
-public record ObjectiveFightOutcome(
+/** Structured association shared by an objective-fight summary and its result event. */
+public record ObjectiveFightEventData(
         TeamSide winningSide,
-        int kills,
         List<String> participantPlayerIds,
+        int kills,
         ObjectiveFightSkillImpactData skillImpact
 ) {
-    public ObjectiveFightOutcome {
+    public ObjectiveFightEventData {
         Objects.requireNonNull(winningSide, "winningSide");
         participantPlayerIds = List.copyOf(participantPlayerIds);
         if (participantPlayerIds.stream().anyMatch(id -> id == null || id.isBlank())
@@ -19,10 +20,6 @@ public record ObjectiveFightOutcome(
             throw new IllegalArgumentException("objective fight participant identities must be non-blank and unique");
         }
         if (kills < 0) throw new IllegalArgumentException("kills");
-    }
-
-    public ObjectiveFightOutcome(
-            TeamSide winningSide, int kills, List<String> participantPlayerIds) {
-        this(winningSide, kills, participantPlayerIds, null);
+        Objects.requireNonNull(skillImpact, "skillImpact");
     }
 }

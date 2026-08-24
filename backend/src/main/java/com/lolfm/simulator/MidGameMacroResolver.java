@@ -19,6 +19,7 @@ public final class MidGameMacroResolver {
     private static final List<Position> GROUP_POSITIONS = List.of(Position.JUNGLE, Position.MID, Position.ADC, Position.SUPPORT);
     private static final List<Position> DRAGON_SUPPORT_POSITIONS = List.of(Position.MID, Position.ADC, Position.SUPPORT);
     private static final List<Position> BARON_SUPPORT_POSITIONS = List.of(Position.TOP, Position.MID, Position.SUPPORT);
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
 
     public void expirePlans(GameState state) {
         if (!state.isMidGameMacroEnabled()) return;
@@ -217,11 +218,11 @@ public final class MidGameMacroResolver {
             attributeEdge = clamp(attributeEdge / MidGameMacroRuleConfig.ATTRIBUTE_EDGE_NORMALIZER, -1, 1);
             attributeContribution = attributeEdge * MidGameMacroRuleConfig.TEAMFIGHT_EDGE_WEIGHT;
         } else if (plan == TeamMacroPlan.SIDE_LANE_TOP) {
-            attributeEdge = farmingEdge(state, side, Position.TOP);
-            attributeContribution = attributeEdge * MidGameMacroRuleConfig.SIDE_FARMING_EDGE_WEIGHT;
+            attributeEdge = sideLaneEdge(state, side, Position.TOP);
+            attributeContribution = attributeEdge * MidGameMacroRuleConfig.SIDE_LANE_SKILL_EDGE_WEIGHT;
         } else if (plan == TeamMacroPlan.SIDE_LANE_BOT) {
-            attributeEdge = farmingEdge(state, side, Position.ADC);
-            attributeContribution = attributeEdge * MidGameMacroRuleConfig.SIDE_FARMING_EDGE_WEIGHT;
+            attributeEdge = sideLaneEdge(state, side, Position.ADC);
+            attributeContribution = attributeEdge * MidGameMacroRuleConfig.SIDE_LANE_SKILL_EDGE_WEIGHT;
         } else if (plan == TeamMacroPlan.OBJECTIVE_SETUP_DRAGON) {
             double signed = new ObjectivePriorityResolver().dragonSignedPriorityWithoutMacro(state);
             objectiveEdge = side == TeamSide.BLUE ? signed / 100.0 : -signed / 100.0;
@@ -346,7 +347,7 @@ public final class MidGameMacroResolver {
         double attributeEdge = planAttributeEdge(state, decision.side(), teamPlan(decision));
         double attributeBonus = teamPlan(decision) == TeamMacroPlan.GROUP_MID
                 ? attributeEdge * MidGameMacroRuleConfig.GROUP_TEAMFIGHT_EDGE_BONUS
-                : attributeEdge * MidGameMacroRuleConfig.SIDE_FARMING_EDGE_BONUS;
+                : attributeEdge * MidGameMacroRuleConfig.SIDE_LANE_SKILL_EDGE_BONUS;
         double baronBonus = state.getTeamState(decision.side()).hasActiveBaronBuff(state.getCurrentTimeSeconds())
                 ? MidGameMacroRuleConfig.BARON_PUSH_CHANCE_BONUS : 0;
         double base = teamPlan(decision) == TeamMacroPlan.GROUP_MID
@@ -470,12 +471,15 @@ public final class MidGameMacroResolver {
                     - averageAttribute(state.getTeamState(side.opposite()), GROUP_POSITIONS, true);
         }
         return plan == TeamMacroPlan.SIDE_LANE_TOP
-                ? farmingEdge(state, side, Position.TOP) : farmingEdge(state, side, Position.ADC);
+                ? sideLaneEdge(state, side, Position.TOP) : sideLaneEdge(state, side, Position.ADC);
     }
 
-    private double farmingEdge(GameState state, TeamSide side, Position position) {
-        return clamp((state.getTeamState(side).playerAt(position).getFarming()
-                - state.getTeamState(side.opposite()).playerAt(position).getFarming())
+    double sideLaneEdge(GameState state, TeamSide side, Position position) {
+        PlayerState own = state.getTeamState(side).playerAt(position);
+        PlayerState enemy = state.getTeamState(side.opposite()).playerAt(position);
+        double ownScore = own.hasMatchPerformance() ? playerSkills.sideLane(own) : own.getFarming();
+        double enemyScore = enemy.hasMatchPerformance() ? playerSkills.sideLane(enemy) : enemy.getFarming();
+        return clamp((ownScore - enemyScore)
                 / MidGameMacroRuleConfig.ATTRIBUTE_EDGE_NORMALIZER, -1, 1);
     }
 

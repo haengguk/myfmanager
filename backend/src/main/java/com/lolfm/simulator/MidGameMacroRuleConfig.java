@@ -22,7 +22,9 @@ public final class MidGameMacroRuleConfig {
 
     public static final double GOLD_EDGE_WEIGHT = 0.30;
     public static final double TEAMFIGHT_EDGE_WEIGHT = 0.45;
-    public static final double SIDE_FARMING_EDGE_WEIGHT = 0.45;
+    public static final double SIDE_LANE_SKILL_EDGE_WEIGHT = 0.45;
+    /** Compatibility alias for existing diagnostics; side plans now use SIDE_LANE skill. */
+    public static final double SIDE_FARMING_EDGE_WEIGHT = SIDE_LANE_SKILL_EDGE_WEIGHT;
     public static final double OBJECTIVE_PRIORITY_WEIGHT = 0.50;
     public static final double RESET_BEHIND_GOLD_WEIGHT = 0.35;
     public static final double RESET_MISSING_PLAYER_WEIGHT = 0.15;
@@ -34,7 +36,9 @@ public final class MidGameMacroRuleConfig {
     public static final double PUSH_GOLD_EDGE_BONUS_MAX = 0.08;
     public static final double PUSH_ALIVE_EDGE_BONUS_PER_PLAYER = 0.03;
     public static final double GROUP_TEAMFIGHT_EDGE_BONUS = 0.08;
-    public static final double SIDE_FARMING_EDGE_BONUS = 0.08;
+    public static final double SIDE_LANE_SKILL_EDGE_BONUS = 0.08;
+    /** Compatibility alias for existing diagnostics; side plans now use SIDE_LANE skill. */
+    public static final double SIDE_FARMING_EDGE_BONUS = SIDE_LANE_SKILL_EDGE_BONUS;
     public static final double BARON_PUSH_CHANCE_BONUS = 0.20;
     public static final double MIN_MACRO_PUSH_CHANCE = 0.08;
     public static final double MAX_MACRO_PUSH_CHANCE = 0.75;

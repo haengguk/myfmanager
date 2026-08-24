@@ -26,7 +26,11 @@ class ObjectiveDecisionTradeTest {
         assertThat(state.getMapState().getLaneState(TeamSide.BLUE, Lane.TOP).destroyedTowerCount()).isOne();
         assertThat(state.getMapState().getLaneState(TeamSide.BLUE, Lane.MID).destroyedTowerCount()).isZero();
         assertThat(state.wasStructureActionPerformedThisTick(TeamSide.RED)).isTrue();
-        assertThat(events.stream().filter(event -> event.getStructureActionSource() == StructureActionSource.OBJECTIVE_TRADE)).hasSize(1);
+        List<MatchEvent> structures = events.stream()
+                .filter(event -> event.getStructureActionSource() == StructureActionSource.OBJECTIVE_TRADE)
+                .toList();
+        assertThat(structures).hasSize(1);
+        assertThat(structures.getFirst().getParentActionId()).isEqualTo(capture.getActionId());
     }
 
     @Test
@@ -71,5 +75,28 @@ class ObjectiveDecisionTradeTest {
                 .filter(weight -> weight.action() == ObjectiveDecisionAction.TRADE_STRUCTURE).findFirst().orElseThrow();
         assertThat(trade.eligible()).isFalse();
         assertThat(trade.reason()).isEqualTo(ObjectiveDecisionIneligibleReason.STRUCTURE_ACTION_ALREADY_USED);
+    }
+
+    @Test
+    void roamingPushersCannotDoubleActAsObjectiveTradeAndExposeStructuredReason() {
+        GameState state = ObjectiveDecisionTestSupport.dragonState(true);
+        int time = state.getCurrentTimeSeconds();
+        state.getRedTeamState().playerAt(Position.TOP)
+                .beginRoamActivity(Lane.TOP, Lane.MID, time);
+        state.getRedTeamState().playerAt(Position.MID)
+                .beginRoamActivity(Lane.MID, Lane.BOT, time);
+        state.getRedTeamState().playerAt(Position.ADC)
+                .beginRoamActivity(Lane.BOT, Lane.MID, time);
+        ObjectiveDecisionContext context = resolver.buildContext(
+                state, ObjectiveType.DRAGON, TeamSide.BLUE, 0);
+
+        ObjectiveDecisionWeightBreakdown trade = resolver.responderWeights(state, context).stream()
+                .filter(weight -> weight.action() == ObjectiveDecisionAction.TRADE_STRUCTURE)
+                .findFirst().orElseThrow();
+
+        assertThat(context.tradeTarget(TeamSide.RED)).isNull();
+        assertThat(trade.eligible()).isFalse();
+        assertThat(trade.reason())
+                .isEqualTo(ObjectiveDecisionIneligibleReason.PUSHER_ACTIVITY_UNAVAILABLE);
     }
 }

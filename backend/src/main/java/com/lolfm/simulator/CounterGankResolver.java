@@ -12,6 +12,7 @@ import java.util.Random;
 /** Resolves a defender response after a real gank side and lane have already been selected. */
 public final class CounterGankResolver {
     private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
+    private final CombatParticipantSelector participantSelector = new CombatParticipantSelector();
     private final KillRewardResolver rewards = new KillRewardResolver();
 
     public ResponseDecision tryResolve(GameState state, TeamSide attackingSide, Lane lane,
@@ -231,19 +232,19 @@ public final class CounterGankResolver {
         PlayerState killer;
         PlayerState victim;
         if (lane == Lane.BOT) {
-            killer = weightedPlayer(winners, List.of(
+            killer = participantSelector.selectKiller(winners, List.of(
                     CounterGankRuleConfig.BOT_WINNER_JUNGLER_KILLER_WEIGHT,
                     CounterGankRuleConfig.BOT_WINNER_ADC_KILLER_WEIGHT,
                     CounterGankRuleConfig.BOT_WINNER_SUPPORT_KILLER_WEIGHT), random);
-            victim = weightedPlayer(losers, List.of(
+            victim = participantSelector.selectVictim(losers, List.of(
                     CounterGankRuleConfig.BOT_LOSER_JUNGLER_VICTIM_WEIGHT,
                     CounterGankRuleConfig.BOT_LOSER_ADC_VICTIM_WEIGHT,
                     CounterGankRuleConfig.BOT_LOSER_SUPPORT_VICTIM_WEIGHT), random);
         } else {
-            killer = weightedPlayer(winners, List.of(
+            killer = participantSelector.selectKiller(winners, List.of(
                     CounterGankRuleConfig.SOLO_WINNER_JUNGLER_KILLER_WEIGHT,
                     CounterGankRuleConfig.SOLO_WINNER_LANER_KILLER_WEIGHT), random);
-            victim = weightedPlayer(losers, List.of(
+            victim = participantSelector.selectVictim(losers, List.of(
                     CounterGankRuleConfig.SOLO_LOSER_JUNGLER_VICTIM_WEIGHT,
                     CounterGankRuleConfig.SOLO_LOSER_LANER_VICTIM_WEIGHT), random);
         }
@@ -282,7 +283,7 @@ public final class CounterGankResolver {
     }
 
     private double combatTendency(PlayerState player) {
-        return player.hasMatchPerformance() ? PlayerImpactRuleConfig.BASELINE_ATTRIBUTE : player.getAggression();
+        return playerSkills.decisionQuality(player);
     }
 
     private double laneTeamfighting(GameState state, TeamSide side, Lane lane) {
@@ -291,15 +292,6 @@ public final class CounterGankResolver {
                 ? players.get(0).getTeamfighting() * CounterGankRuleConfig.BOT_ADC_TEAMFIGHTING_CONTRIBUTION
                 + players.get(1).getTeamfighting() * CounterGankRuleConfig.BOT_SUPPORT_TEAMFIGHTING_CONTRIBUTION
                 : players.getFirst().getTeamfighting();
-    }
-
-    private PlayerState weightedPlayer(List<PlayerState> players, List<Double> weights, Random random) {
-        double roll = random.nextDouble() * weights.stream().mapToDouble(Double::doubleValue).sum();
-        for (int i = 0; i < players.size(); i++) {
-            roll -= weights.get(i);
-            if (roll <= 0) return players.get(i);
-        }
-        return players.getLast();
     }
 
     private List<String> ids(List<PlayerState> players) {

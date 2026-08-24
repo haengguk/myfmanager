@@ -177,10 +177,20 @@ public final class RealMatchApiV1ResponseMapper {
                         player.playerId().value(), player.teamSide(), player.position(),
                         player.championId().value(), player.kills(), player.deaths(),
                         player.assists(), player.cs(), player.gold(), player.totalExperience(),
-                        player.level())).toList(),
+                        player.level(), abilityProfile(player.abilityProfile()))).toList(),
                 source.finalDraftHash(), source.finalAssignmentHash(),
                 source.runtimeProfileId(), source.configurationHash(),
                 source.resourceProvenanceHash(), source.replayProvenanceHash());
+    }
+
+    private static RealMatchApiV1Dtos.PlayerAbilityProfile abilityProfile(
+            MatchEngineV1Output.PlayerAbilityProfileV1 source
+    ) {
+        if (source == null) return null;
+        return new RealMatchApiV1Dtos.PlayerAbilityProfile(
+                source.schemaVersion(), source.baseRatings(), source.realizedRatings(),
+                source.realizationDeltas(), source.selectedChampionProficiency(),
+                source.proficiencyExecutionAdjustment());
     }
 
     private static RealMatchApiV1Dtos.Timeline timeline(MatchEngineV1Output.TimelineV1 source) {

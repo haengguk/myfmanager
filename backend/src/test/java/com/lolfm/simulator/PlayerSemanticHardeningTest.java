@@ -75,7 +75,7 @@ class PlayerSemanticHardeningTest {
     }
 
     @Test
-    void decisionMakingIsNeutralForGenericFrequencyButChangesDecisionQuality() {
+    void decisionMakingChangesGenericCombatTendencyAndDecisionQuality() {
         PlayerRatings low = ratings(Position.JUNGLE)
                 .with(PlayerSkill.DECISION_MAKING, 5)
                 .with(PlayerSkill.OBJECTIVE_DECISION, 14);
@@ -84,11 +84,30 @@ class PlayerSemanticHardeningTest {
         GameState highState = stateWithBlueTarget(Position.JUNGLE, high);
         MatchSimulator simulator = simulator();
 
-        assertEquals(simulator.genericSkirmishChance(lowState),
-                simulator.genericSkirmishChance(highState), 0.0);
+        assertTrue(simulator.genericSkirmishChance(highState)
+                > simulator.genericSkirmishChance(lowState));
         PlayerSkillEvaluator evaluator = new PlayerSkillEvaluator();
         assertTrue(evaluator.objectiveDecision(highState.getBlueTeamState().playerAt(Position.JUNGLE))
                 > evaluator.objectiveDecision(lowState.getBlueTeamState().playerAt(Position.JUNGLE)));
+    }
+
+    @Test
+    void unavailablePlayerDecisionDoesNotAffectGenericSkirmishChance() {
+        PlayerRatings low = ratings(Position.JUNGLE)
+                .with(PlayerSkill.DECISION_MAKING, 5);
+        PlayerRatings high = low.with(PlayerSkill.DECISION_MAKING, 20);
+        GameState lowState = stateWithBlueTarget(Position.JUNGLE, low);
+        GameState highState = stateWithBlueTarget(Position.JUNGLE, high);
+        lowState.advanceTimeSeconds(600);
+        highState.advanceTimeSeconds(600);
+        lowState.getBlueTeamState().playerAt(Position.JUNGLE)
+                .beginRoamActivity(Lane.TOP, Lane.MID, 600);
+        highState.getBlueTeamState().playerAt(Position.JUNGLE)
+                .beginRoamActivity(Lane.TOP, Lane.MID, 600);
+        MatchSimulator simulator = simulator();
+
+        assertEquals(simulator.genericSkirmishChance(lowState),
+                simulator.genericSkirmishChance(highState), 0.0);
     }
 
     @Test

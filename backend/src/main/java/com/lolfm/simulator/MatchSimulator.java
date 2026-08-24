@@ -67,6 +67,7 @@ public class MatchSimulator {
     private final StructureResolver structureResolver;
     private final PushResolver pushResolver;
     private final PositionEconomyResolver positionEconomyResolver = new PositionEconomyResolver();
+    private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
     private final LanePressureResolver lanePressureResolver = new LanePressureResolver();
     private final ObjectivePriorityResolver objectivePriorityResolver = new ObjectivePriorityResolver();
     private final LanePhaseResolver lanePhaseResolver = new LanePhaseResolver();
@@ -368,7 +369,8 @@ public class MatchSimulator {
                 blueTeam, redTeam, assignments, random, seed);
         return new StructuredMatchSimulationOutcome(
                 result.timeline(), result.winnerSide(), result.endReason(),
-                result.timeline().getDurationSeconds(), random.fingerprint());
+                result.timeline().getDurationSeconds(), random.fingerprint(),
+                result.playerMatchPerformances());
     }
 
     SimulationResult simulateWithDiagnostics(Team blueTeam, Team redTeam, long seed) {
@@ -591,7 +593,8 @@ public class MatchSimulator {
                 random instanceof SideOrientationRandomTraceObserver observer
                         ? observer.traceHash() : null,
                 random instanceof SideOrientationRandomTraceObserver observer ? observer.trace() : List.of(),
-                gameState.getCompositionRuntimeState().snapshot()
+                gameState.getCompositionRuntimeState().snapshot(),
+                playerMatchPerformanceSnapshots(gameState)
         );
     }
 
@@ -631,8 +634,29 @@ public class MatchSimulator {
             long randomDrawCount,
             String randomTraceHash,
             List<SideOrientationRandomTraceObserver.Draw> randomTrace,
-            CompositionRuntimeDiagnostics compositionRuntimeDiagnostics
+            CompositionRuntimeDiagnostics compositionRuntimeDiagnostics,
+            List<PlayerMatchPerformanceSnapshot> playerMatchPerformances
     ) {
+        SimulationResult {
+            playerMatchPerformances = List.copyOf(playerMatchPerformances);
+        }
+    }
+
+    private List<PlayerMatchPerformanceSnapshot> playerMatchPerformanceSnapshots(GameState state) {
+        List<PlayerMatchPerformanceSnapshot> snapshots = new ArrayList<>();
+        for (TeamSide side : TeamSide.values()) {
+            for (PlayerState player : state.getTeamState(side).getPlayers()) {
+                if (!player.hasMatchPerformance()) continue;
+                if (player.getPlayerKey() == null || player.getPlayerKey().side() != side) {
+                    throw new IllegalStateException("Detailed player is missing match-scoped identity");
+                }
+                PlayerMatchPerformance performance = player.getMatchPerformance();
+                snapshots.add(new PlayerMatchPerformanceSnapshot(
+                        player.getPlayerKey(), performance.asMap(),
+                        performance.championProficiency()));
+            }
+        }
+        return List.copyOf(snapshots);
     }
 
     private void validateCompositionModeBeforeMatch() {
@@ -779,10 +803,19 @@ public class MatchSimulator {
         state.markEconomyResolvedAt(currentTime);
     }
 
-    private boolean maybeCreateKillEvent(Random random, Team blueTeam, Team redTeam, GameState state, List<MatchEvent> events) {
+    boolean maybeCreateKillEvent(
+            Random random,
+            Team blueTeam,
+            Team redTeam,
+            GameState state,
+            List<MatchEvent> events
+    ) {
+        List<Lane> eligibleLanes = eligibleLocalizedSkirmishLanes(state);
+        if (eligibleLanes.isEmpty()) return false;
         double chance = genericSkirmishChance(state);
         if (random.nextDouble() >= chance) return false;
         TeamSelection attacking = chooseTeamForSkirmish(random, blueTeam, redTeam, state);
+        Lane combatLane = eligibleLanes.get(random.nextInt(eligibleLanes.size()));
         state.getCompositionRuntimeState().recordActualAttempt(
                 CompositionActionType.SKIRMISH,
                 attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED,
@@ -829,7 +862,6 @@ public class MatchSimulator {
                     "HIGH".equals(band) && !attacking.localDecision().baselineDecision().equals(attacking.localDecision().candidateDecision()),
                     true, ""));
         }
-        Lane combatLane = Lane.values()[random.nextInt(Lane.values().length)];
         int eventStart = events.size();
         boolean resolved = teamfightResolver.resolveLocalizedSkirmishKill(
                 state.getCurrentTimeSeconds(), combatLane, random,
@@ -837,15 +869,29 @@ public class MatchSimulator {
                 attacking.opposingTeam(), attacking.opposingState(),
                 events, new HashSet<>()
         );
-        if (resolved) {
-            for (int i = eventStart; i < events.size(); i++) {
-                if (events.get(i).getType() == MatchEventType.KILL) {
-                    markStructuredParticipants(state, events.get(i));
-                    break;
-                }
+        if (!resolved) {
+            throw new IllegalStateException(
+                    "Eligible localized skirmish did not produce an actual attempt");
+        }
+        for (int i = eventStart; i < events.size(); i++) {
+            if (events.get(i).getType() == MatchEventType.KILL) {
+                markStructuredParticipants(state, events.get(i));
+                break;
             }
         }
-        return resolved;
+        return true;
+    }
+
+    List<Lane> eligibleLocalizedSkirmishLanes(GameState state) {
+        int currentTime = state.getCurrentTimeSeconds();
+        List<Lane> eligible = new ArrayList<>();
+        for (Lane lane : Lane.values()) {
+            if (teamfightResolver.canResolveLocalizedSkirmishKill(
+                    currentTime, lane, state.getBlueTeamState(), state.getRedTeamState())) {
+                eligible.add(lane);
+            }
+        }
+        return List.copyOf(eligible);
     }
 
     private void markStructuredParticipants(GameState state, MatchEvent event) {
@@ -926,9 +972,10 @@ public class MatchSimulator {
         for (PlayerState player : team.getPlayers()) {
             if (!player.canParticipateInMajorCombatAt(currentTime)) continue;
             alive++;
-            total += combatTendency(player) * PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_AGGRESSION_WEIGHT
-                    + player.getMechanics() * PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_MECHANICS_WEIGHT
-                    + player.getTeamfighting() * PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_TEAMFIGHTING_WEIGHT;
+            total += playerSkills.combatInitiative(player)
+                    * (PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_AGGRESSION_WEIGHT
+                    + PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_MECHANICS_WEIGHT
+                    + PlayerImpactRuleConfig.SKIRMISH_INITIATIVE_TEAMFIGHTING_WEIGHT);
         }
         if(alive==0)return .1;
         List<PlayerState> own=team.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
@@ -938,8 +985,10 @@ public class MatchSimulator {
     }
 
     double genericSkirmishChance(GameState state) {
-        double averageTendency = (averageSkirmishTendency(state.getBlueTeamState())
-                + averageSkirmishTendency(state.getRedTeamState())) / 2.0;
+        int currentTime = state.getCurrentTimeSeconds();
+        double averageTendency = (averageSkirmishTendency(
+                state.getBlueTeamState(), currentTime)
+                + averageSkirmishTendency(state.getRedTeamState(), currentTime)) / 2.0;
         double baseChance = state.getCurrentTimeSeconds() >= 900
                 ? CombatRealismRuleConfig.LATE_GENERIC_SKIRMISH_CHANCE
                 : CombatRealismRuleConfig.EARLY_GENERIC_SKIRMISH_CHANCE;
@@ -949,14 +998,15 @@ public class MatchSimulator {
                 CombatRealismRuleConfig.MAX_GENERIC_SKIRMISH_CHANCE);
     }
 
-    private double averageSkirmishTendency(TeamState team) {
-        if (team.getPlayers().isEmpty()) return PlayerImpactRuleConfig.BASELINE_ATTRIBUTE;
-        return team.getPlayers().stream().mapToDouble(this::combatTendency).average()
+    private double averageSkirmishTendency(TeamState team, int currentTime) {
+        return team.getPlayers().stream()
+                .filter(player -> player.canParticipateInMajorCombatAt(currentTime))
+                .mapToDouble(this::combatTendency).average()
                 .orElse(PlayerImpactRuleConfig.BASELINE_ATTRIBUTE);
     }
 
     private double combatTendency(PlayerState player) {
-        return player.hasMatchPerformance() ? PlayerImpactRuleConfig.BASELINE_ATTRIBUTE : player.getAggression();
+        return playerSkills.decisionQuality(player);
     }
 
     private double clamp(double value, double minimum, double maximum) {

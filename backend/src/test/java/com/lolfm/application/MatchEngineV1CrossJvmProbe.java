@@ -84,7 +84,8 @@ public final class MatchEngineV1CrossJvmProbe {
                 System.getProperty("os.name").toLowerCase(java.util.Locale.ROOT).contains("win")
                         ? "java.exe" : "java").toString();
         Process process = new ProcessBuilder(
-                javaExecutable, "-cp", System.getProperty("java.class.path"),
+                javaExecutable, "-Xms64m", "-Xmx512m", "-XX:MaxMetaspaceSize=192m",
+                "-XX:+UseSerialGC", "-cp", System.getProperty("java.class.path"),
                 MatchEngineV1CrossJvmProbe.class.getName(), output.toString())
                 .redirectErrorStream(true).start();
         String log = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);

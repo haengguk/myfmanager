@@ -5,7 +5,15 @@ public final class ObjectiveDecisionState {
  private final boolean enabled; private int sequence; private final Set<ObjectiveDecisionKey> resolved=new HashSet<>(); private final List<ObjectiveDecisionData> history=new ArrayList<>(); private final ObjectiveDecisionExecutionStats stats;
  ObjectiveDecisionState(boolean enabled,boolean diagnostics){this.enabled=enabled;stats=new ObjectiveDecisionExecutionStats(diagnostics);}
  public boolean isEnabled(){return enabled;} public int getDecisionSequence(){return sequence;} public List<ObjectiveDecisionData> getHistory(){return List.copyOf(history);} public Set<ObjectiveDecisionKey> getResolvedDecisionKeys(){return Set.copyOf(resolved);} public ObjectiveDecisionExecutionStats getStats(){return stats;}
- boolean reserve(ObjectiveDecisionKey key){if(!enabled)return false;if(!resolved.add(key)){stats.duplicate();return false;}return true;}
+ boolean reserve(ObjectiveDecisionKey key){
+  if(!enabled)return false;
+  boolean duplicateEvaluation=resolved.stream().anyMatch(existing->
+   existing.objectiveType()==key.objectiveType()
+    &&existing.evaluationTimeSeconds()==key.evaluationTimeSeconds()
+    &&existing.initiativeSide()==key.initiativeSide());
+  if(duplicateEvaluation||!resolved.add(key)){stats.duplicate();return false;}
+  return true;
+ }
  int nextSequence(){return ++sequence;}
  void record(ObjectiveDecisionData data){history.add(data);stats.record(data);}
  public ObjectiveDecisionSnapshot snapshot(){if(!enabled)return ObjectiveDecisionSnapshot.disabled();ObjectiveDecisionData overall=history.isEmpty()?null:history.getLast();return new ObjectiveDecisionSnapshot(true,overall,latest(ObjectiveType.DRAGON),latest(ObjectiveType.BARON),latest(ObjectiveType.ELDER),latest(TeamSide.BLUE),latest(TeamSide.RED));}

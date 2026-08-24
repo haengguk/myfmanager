@@ -29,6 +29,20 @@ class ObjectiveDecisionStateTest {
     }
 
     @Test
+    void mutableSpawnStateCannotCreateASecondIdentityForTheSameEvaluation() {
+        ObjectiveDecisionState state = ObjectiveDecisionTestSupport.dragonState(true)
+                .getObjectiveDecisionState();
+        ObjectiveDecisionKey beforeCapture = new ObjectiveDecisionKey(
+                ObjectiveType.DRAGON, 300, 340, TeamSide.BLUE);
+        ObjectiveDecisionKey afterCapture = new ObjectiveDecisionKey(
+                ObjectiveType.DRAGON, -1, 340, TeamSide.BLUE);
+
+        assertThat(state.reserve(beforeCapture)).isTrue();
+        assertThat(state.reserve(afterCapture)).isFalse();
+        assertThat(state.getResolvedDecisionKeys()).containsExactly(beforeCapture);
+    }
+
+    @Test
     void disabledStateDoesNotReserveOrExposeRecords() {
         ObjectiveDecisionState state = ObjectiveDecisionTestSupport.dragonState(false).getObjectiveDecisionState();
         assertThat(state.isEnabled()).isFalse();

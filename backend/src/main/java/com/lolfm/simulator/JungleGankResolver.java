@@ -17,6 +17,7 @@ import java.util.Random;
 /** Stateless jungle-gank resolver. All mutable clocks live in GameState. */
 public final class JungleGankResolver {
     private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
+    private final CombatParticipantSelector participantSelector = new CombatParticipantSelector();
     private final KillRewardResolver rewards = new KillRewardResolver();
     private final CounterGankResolver counterGankResolver = new CounterGankResolver();
     private final boolean counterGankEnabled;
@@ -296,17 +297,21 @@ public final class JungleGankResolver {
         PlayerState victim;
         List<PlayerState> assists;
         if (lane != Lane.BOT) {
-            killer = random.nextDouble() < JungleGankRuleConfig.SOLO_SUCCESS_JUNGLER_KILLER_WEIGHT ? jungler : laners.getFirst();
+            killer = participantSelector.selectKiller(List.of(jungler, laners.getFirst()),
+                    List.of(JungleGankRuleConfig.SOLO_SUCCESS_JUNGLER_KILLER_WEIGHT,
+                            JungleGankRuleConfig.SOLO_SUCCESS_LANER_KILLER_WEIGHT), random);
             assists = List.of(killer == jungler ? laners.getFirst() : jungler);
             victim = lanePlayers(losers, lane).getFirst();
         } else {
-            killer = weightedPlayer(List.of(jungler, laners.get(0), laners.get(1)),
+            killer = participantSelector.selectKiller(List.of(jungler, laners.get(0), laners.get(1)),
                     List.of(JungleGankRuleConfig.BOT_SUCCESS_JUNGLER_KILLER_WEIGHT,
                             JungleGankRuleConfig.BOT_SUCCESS_ADC_KILLER_WEIGHT,
                             JungleGankRuleConfig.BOT_SUCCESS_SUPPORT_KILLER_WEIGHT), random);
             assists = List.of(jungler, laners.get(0), laners.get(1)).stream().filter(p -> p != killer).toList();
-            victim = random.nextDouble() < JungleGankRuleConfig.BOT_SUCCESS_ADC_VICTIM_WEIGHT
-                    ? losers.playerAt(Position.ADC) : losers.playerAt(Position.SUPPORT);
+            victim = participantSelector.selectVictim(
+                    List.of(losers.playerAt(Position.ADC), losers.playerAt(Position.SUPPORT)),
+                    List.of(JungleGankRuleConfig.BOT_SUCCESS_ADC_VICTIM_WEIGHT,
+                            JungleGankRuleConfig.BOT_SUCCESS_SUPPORT_VICTIM_WEIGHT), random);
         }
         return new CombatParticipants(winners, losers, killer, victim, assists);
     }
@@ -316,15 +321,18 @@ public final class JungleGankResolver {
         PlayerState jungler = losers.playerAt(Position.JUNGLE);
         List<PlayerState> attackers = lanePlayers(losers, lane);
         if (lane != Lane.BOT) {
-            PlayerState victim = random.nextDouble() < JungleGankRuleConfig.SOLO_REVERSE_JUNGLER_VICTIM_WEIGHT
-                    ? jungler : attackers.getFirst();
+            PlayerState victim = participantSelector.selectVictim(List.of(jungler, attackers.getFirst()),
+                    List.of(JungleGankRuleConfig.SOLO_REVERSE_JUNGLER_VICTIM_WEIGHT,
+                            JungleGankRuleConfig.SOLO_REVERSE_LANER_VICTIM_WEIGHT), random);
             return new CombatParticipants(winners, losers, lanePlayers(winners, lane).getFirst(), victim, List.of());
         }
-        PlayerState killer = random.nextDouble() < JungleGankRuleConfig.BOT_REVERSE_ADC_KILLER_WEIGHT
-                ? winners.playerAt(Position.ADC) : winners.playerAt(Position.SUPPORT);
+        PlayerState killer = participantSelector.selectKiller(
+                List.of(winners.playerAt(Position.ADC), winners.playerAt(Position.SUPPORT)),
+                List.of(JungleGankRuleConfig.BOT_REVERSE_ADC_KILLER_WEIGHT,
+                        JungleGankRuleConfig.BOT_REVERSE_SUPPORT_KILLER_WEIGHT), random);
         PlayerState assistant = killer.getPosition() == Position.ADC
                 ? winners.playerAt(Position.SUPPORT) : winners.playerAt(Position.ADC);
-        PlayerState victim = weightedPlayer(List.of(jungler, attackers.get(0), attackers.get(1)),
+        PlayerState victim = participantSelector.selectVictim(List.of(jungler, attackers.get(0), attackers.get(1)),
                 List.of(JungleGankRuleConfig.BOT_REVERSE_JUNGLER_VICTIM_WEIGHT,
                         JungleGankRuleConfig.BOT_REVERSE_ADC_VICTIM_WEIGHT,
                         JungleGankRuleConfig.BOT_REVERSE_SUPPORT_VICTIM_WEIGHT), random);
@@ -389,7 +397,7 @@ public final class JungleGankResolver {
     }
 
     private double combatTendency(PlayerState player) {
-        return player.hasMatchPerformance() ? PlayerImpactRuleConfig.BASELINE_ATTRIBUTE : player.getAggression();
+        return playerSkills.decisionQuality(player);
     }
 
     private double laneGold(GameState state, TeamSide side, Lane lane) {
@@ -402,15 +410,6 @@ public final class JungleGankResolver {
             case MID -> List.of(team.playerAt(Position.MID));
             case BOT -> List.of(team.playerAt(Position.ADC), team.playerAt(Position.SUPPORT));
         };
-    }
-
-    private PlayerState weightedPlayer(List<PlayerState> players, List<Double> weights, Random random) {
-        double roll = random.nextDouble() * weights.stream().mapToDouble(Double::doubleValue).sum();
-        for (int i = 0; i < players.size(); i++) {
-            roll -= weights.get(i);
-            if (roll <= 0) return players.get(i);
-        }
-        return players.getLast();
     }
 
     private double averageGold(List<PlayerState> players) {

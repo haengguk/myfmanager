@@ -15,6 +15,7 @@ import java.util.Random;
 /** Stateless early lane combat; GameState and LaneState own all mutable timing. */
 public final class LaneCombatResolver {
     private final PlayerSkillEvaluator playerSkills = new PlayerSkillEvaluator();
+    private final CombatParticipantSelector participantSelector = new CombatParticipantSelector();
     private final KillRewardResolver rewards = new KillRewardResolver();
 
     public boolean resolve(GameState state, Random random, List<MatchEvent> events) {
@@ -233,9 +234,13 @@ public final class LaneCombatResolver {
     private PlayerState pickPlayer(TeamState team, Lane lane, boolean killer, Random random) {
         List<PlayerState> players = participants(team, lane);
         if (lane != Lane.BOT) return players.getFirst();
-        double adcWeight = killer ? LaneCombatRuleConfig.BOT_ADC_KILLER_BASE_WEIGHT
-                : LaneCombatRuleConfig.BOT_ADC_VICTIM_BASE_WEIGHT;
-        return random.nextDouble() < adcWeight ? players.get(0) : players.get(1);
+        return killer
+                ? participantSelector.selectKiller(players, List.of(
+                        LaneCombatRuleConfig.BOT_ADC_KILLER_BASE_WEIGHT,
+                        LaneCombatRuleConfig.BOT_SUPPORT_KILLER_BASE_WEIGHT), random)
+                : participantSelector.selectVictim(players, List.of(
+                        LaneCombatRuleConfig.BOT_ADC_VICTIM_BASE_WEIGHT,
+                        LaneCombatRuleConfig.BOT_SUPPORT_VICTIM_BASE_WEIGHT), random);
     }
 
     private PlayerState otherBotPlayer(TeamState team, PlayerState selected) {

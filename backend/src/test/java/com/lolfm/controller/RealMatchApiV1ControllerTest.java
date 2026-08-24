@@ -162,6 +162,13 @@ class RealMatchApiV1ControllerTest {
         assertThat(first.path("draft").path("decisions")).hasSize(20);
         assertThat(first.path("draft").path("finalAssignments")).hasSize(10);
         assertThat(first.path("result").path("players")).hasSize(10);
+        assertThat(first.path("result").path("players").get(0)
+                .path("abilityProfile").path("baseRatings")).hasSize(12);
+        assertThat(first.path("result").path("players").get(0)
+                .path("abilityProfile").path("realizedRatings")).hasSize(12);
+        assertThat(first.path("result").path("players").get(0)
+                .path("abilityProfile").path("selectedChampionProficiency").asInt())
+                .isBetween(1, 20);
         assertThat(first.path("timeline").path("events")).isNotEmpty();
         assertThat(first.path("timeline").path("snapshots")).isNotEmpty();
         assertThat(first.path("integrity").path("policyId").asText())
@@ -256,10 +263,14 @@ class RealMatchApiV1ControllerTest {
     }
 
     private JsonNode simulate(String request) throws Exception {
-        String body = mvc.perform(post("/api/v1/real-matches/simulate")
-                        .contentType(MediaType.APPLICATION_JSON).content(request))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+        org.springframework.test.web.servlet.MvcResult result = mvc.perform(
+                        post("/api/v1/real-matches/simulate")
+                                .contentType(MediaType.APPLICATION_JSON).content(request))
+                .andReturn();
+        String body = result.getResponse().getContentAsString();
+        assertThat(result.getResponse().getStatus())
+                .as("unexpected Real Match API response: %s", body)
+                .isEqualTo(200);
         return mapper.readTree(body);
     }
 

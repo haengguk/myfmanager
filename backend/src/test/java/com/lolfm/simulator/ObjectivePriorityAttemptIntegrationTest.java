@@ -36,10 +36,18 @@ class ObjectivePriorityAttemptIntegrationTest {
         GameState s=dragonDue(true,600); assertEquals(.45,attempts.dragonExistingBaseAttemptChance(s),D); assertEquals(.50,attempts.finalAttemptChance(.45,100,true),D);
     }
     @Test void randomBoundariesUseZeroOneOrTwoSelectionDoublesAsRequired(){
-        GameState neither=dragonDue(true,340); makeIneligible(neither,TeamSide.BLUE,3); makeIneligible(neither,TeamSide.RED,3); CountingRandom r=new CountingRandom(0); assertTrue(attempts.maybeAttemptObjective(neither,r,objectives).isEmpty()); assertEquals(0,r.doubleCalls);
+        GameState neither=dragonDue(true,340); makeIneligible(neither,TeamSide.BLUE,3); makeIneligible(neither,TeamSide.RED,3); int unchangedAttemptAt=neither.getObjectiveState().getNextDragonAttemptSeconds(); CountingRandom r=new CountingRandom(0); assertTrue(attempts.maybeAttemptObjective(neither,r,objectives).isEmpty()); assertEquals(0,r.doubleCalls); assertEquals(unchangedAttemptAt,neither.getObjectiveState().getNextDragonAttemptSeconds()); assertEquals(0,neither.getGeneralDragonAttemptCount());
         GameState fail=dragonDue(true,340); r=new CountingRandom(.99); assertTrue(attempts.maybeAttemptObjective(fail,r,objectives).isEmpty()); assertEquals(1,r.doubleCalls);
         GameState one=dragonDue(true,340); makeIneligible(one,TeamSide.RED,3); r=new CountingRandom(0); var e=attempts.maybeAttemptObjective(one,r,objectives).orElseThrow(); assertEquals(1,r.doubleCalls); assertEquals(TeamSide.BLUE,e.getObjectivePriorityDecision().selectedSide()); assertFalse(e.getObjectivePriorityDecision().sideSelectionRollExecuted());
         GameState both=dragonDue(true,340); r=new CountingRandom(0,0); assertTrue(attempts.maybeAttemptObjective(both,r,objectives).isPresent()); assertEquals(2,r.doubleCalls);
+    }
+    @Test void aliveButActivityUnavailableTeamsConsumeNoRandomCooldownOrCapture(){
+        GameState s=dragonDue(true,340); int time=s.getCurrentTimeSeconds();
+        for(TeamSide side:TeamSide.values())for(PlayerState player:s.getTeamState(side).getPlayers())player.beginRoamActivity(Lane.BOT,Lane.MID,time);
+        int attemptAt=s.getObjectiveState().getNextDragonAttemptSeconds(); CountingRandom r=new CountingRandom(0);
+        assertTrue(attempts.maybeAttemptObjective(s,r,objectives).isEmpty()); assertEquals(0,r.doubleCalls);
+        assertEquals(attemptAt,s.getObjectiveState().getNextDragonAttemptSeconds()); assertEquals(0,s.getGeneralDragonAttemptCount());
+        assertTrue(s.getObjectiveState().isDragonAlive()); assertEquals(0,s.getBlueTeamState().getDragons()); assertEquals(0,s.getRedTeamState().getDragons());
     }
     @Test void offPathKeepsLegacyChanceWeightsAndSeededSelectionOrder(){
         CountingRandom a=new CountingRandom(0,.75),b=new CountingRandom(0,.75); var on=attempts.maybeAttemptObjective(dragonDue(true,340),a,objectives).orElseThrow().getObjectivePriorityDecision(); var off=attempts.maybeAttemptObjective(dragonDue(false,340),b,objectives).orElseThrow().getObjectivePriorityDecision();

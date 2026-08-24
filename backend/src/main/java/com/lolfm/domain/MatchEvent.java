@@ -33,6 +33,7 @@ public class MatchEvent {
     private Lane combatLane;
     private ObjectivePriorityDecisionData objectivePriorityDecision;
     private ObjectiveDecisionData objectiveDecision;
+    private ObjectiveFightEventData objectiveFight;
     private StructureActionSource structureActionSource;
     private MidGameMacroDecisionData midGameMacroDecision;
     private MidGameMacroActionData midGameMacroAction;
@@ -112,6 +113,8 @@ public class MatchEvent {
     }
     public ObjectiveDecisionData getObjectiveDecision() { return objectiveDecision; }
     public void setObjectiveDecision(ObjectiveDecisionData value) { objectiveDecision = value; }
+    public ObjectiveFightEventData getObjectiveFight() { return objectiveFight; }
+    public void setObjectiveFight(ObjectiveFightEventData value) { objectiveFight = value; }
     public StructureActionSource getStructureActionSource() { return structureActionSource; }
     public MidGameMacroDecisionData getMidGameMacroDecision() { return midGameMacroDecision; }
     public void setMidGameMacroDecision(MidGameMacroDecisionData value) { midGameMacroDecision = value; }
