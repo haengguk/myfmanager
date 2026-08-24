@@ -154,6 +154,7 @@ function projectPlayerState(player) {
     level: player.level,
     alive: player.alive,
     respawnRemainingSeconds: player.respawnRemainingSeconds,
+    shutdownBountyGold: player.shutdownBountyGold,
     canFarm: player.canFarm,
     farmReturnSecondsRemaining: player.farmReturnSecondsRemaining,
     activityType: player.activityType,

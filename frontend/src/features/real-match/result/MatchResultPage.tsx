@@ -32,7 +32,7 @@ export function MatchResultPage({ result, championsById, onBack, onDraft, onPlay
     <div className="rm-result-app">
       <MatchResultHeader result={result} onBack={onBack} />
       <main className="rm-result-stage" aria-label="경기 결과 상세">
-        <TeamFinalStats result={result} />
+        <TeamFinalStats result={result} championsById={championsById} />
         <section className="rm-result-analytics" aria-label="선수 최종 기록과 시간대별 골드 격차">
           <PlayerResultComparison result={result} championsById={championsById} />
           <GoldDifferenceChart points={result.goldTimeline} blueCode={result.teams.BLUE.code} redCode={result.teams.RED.code} />

@@ -4,7 +4,7 @@ import type {
 } from './matchSession.types';
 import { realMatchV8ReferenceProjection } from './reference/realMatchReference.fixture';
 import type {
-  RealMatchV8ReferenceProjection, ReferencePlayerResult, ReferenceProjectedTeamState,
+  RealMatchV8ReferenceProjection, ReferencePlayerResult, ReferenceProjectedEvent, ReferenceProjectedTeamState,
   ReferenceTeamPresentation, ReferenceTeamResult,
 } from './reference/realMatchReference.contract';
 import type {
@@ -18,6 +18,7 @@ const MAJOR_EVENT_TYPES = new Set([
   'KILL', 'JUNGLE_GANK', 'COUNTER_GANK', 'LANE_COMBAT', 'DRAGON', 'BARON', 'ELDER',
   'TOWER', 'TEAMFIGHT', 'TEAMFIGHT_RESULT', 'ACE', 'GAME_END',
 ]);
+const HIDDEN_PLAYBACK_EVENT_TYPES = new Set(['ASSIST', 'MATCH_PHASE_CHANGE', 'MACRO_ACTION', 'LATE_GAME_ACTION']);
 
 const reference = realMatchV8ReferenceProjection;
 
@@ -113,9 +114,48 @@ function mapTeamSnapshot(source: ReferenceProjectedTeamState, side: TeamSide, pl
   };
 }
 
+function hasKoreanBatchim(value: string): boolean {
+  const trimmed = value.trim();
+  const last = trimmed.charAt(trimmed.length - 1);
+  if (!last) return false;
+  const code = last.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 !== 0;
+  return /[nml]$/i.test(last);
+}
+
+function objectHasKoreanBatchim(value: string): boolean {
+  const trimmed = value.trim();
+  const last = trimmed.charAt(trimmed.length - 1);
+  if (!last) return false;
+  const code = last.charCodeAt(0);
+  if (code >= 0xac00 && code <= 0xd7a3) return (code - 0xac00) % 28 !== 0;
+  return /[nm]$/i.test(last);
+}
+
+function killDisplayMessage(event: ReferenceProjectedEvent, playerNamesById: Readonly<Record<string, string>>): string {
+  const killer = event.killerPlayerId ? playerNamesById[event.killerPlayerId] ?? event.killerPlayerId : '킬 기록 선수';
+  const victim = event.victimPlayerId ? playerNamesById[event.victimPlayerId] ?? event.victimPlayerId : '상대 선수';
+  const assistants = event.assistantPlayerIds.map((playerId) => playerNamesById[playerId] ?? playerId);
+  const assistText = assistants.length > 0 ? ` (어시스트: ${assistants.join(', ')})` : '';
+  return `${killer}${hasKoreanBatchim(killer) ? '이' : '가'} ${victim}${objectHasKoreanBatchim(victim) ? '을' : '를'} 처치했습니다. +${event.goldAmount}G${assistText}`;
+}
+
+function structureDisplayMessage(event: ReferenceProjectedEvent, teams: Record<TeamSide, TeamViewModel>): string {
+  const side = event.structureAttackingSide ?? event.actorSide;
+  const teamCode = side ? teams[side].code : '공격 팀';
+  const lane = event.lane === 'TOP' ? '탑 ' : event.lane === 'MID' ? '미드 ' : event.lane === 'BOT' ? '바텀 ' : '';
+  const target = event.structureKind === 'INHIBITOR' ? `${lane}억제기`
+    : event.structureKind === 'NEXUS_TURRET' ? '넥서스 포탑'
+      : event.structureKind === 'NEXUS' ? '넥서스'
+        : `${lane}${event.structureTowerTier === 'OUTER' ? '외곽 ' : event.structureTowerTier === 'INNER' ? '내부 ' : event.structureTowerTier === 'INHIBITOR' ? '억제기 ' : ''}포탑`;
+  return `${teamCode} · ${target} 파괴.`;
+}
+
 function createPlayback(source: RealMatchV8ReferenceProjection, teams: Record<TeamSide, TeamViewModel>, championsById: Readonly<Record<string, ChampionViewModel>>): PlaybackViewModel {
   const playerNamesById = Object.fromEntries(source.match.teams.flatMap((team) => team.lineup.map((player) => [player.playerId, player.nickname])));
-  const events: readonly PlaybackEventViewModel[] = source.match.timeline.events.map((event) => ({
+  const events: readonly PlaybackEventViewModel[] = source.match.timeline.events
+    .filter((event) => !HIDDEN_PLAYBACK_EVENT_TYPES.has(event.eventType))
+    .map((event) => ({
     id: event.projectionId,
     occurredAtSeconds: event.timeSeconds,
     eventType: event.eventType,
@@ -132,9 +172,14 @@ function createPlayback(source: RealMatchV8ReferenceProjection, teams: Record<Te
     structureTowerTier: event.structureTowerTier,
     structureAttackingSide: event.structureAttackingSide,
     structureDefendingSide: event.structureDefendingSide,
+    goldAmount: event.goldAmount,
     actionId: event.actionId,
     parentActionId: event.parentActionId,
-    displayMessage: event.displayMessage ?? event.eventType,
+    displayMessage: event.eventType === 'KILL'
+      ? killDisplayMessage(event, playerNamesById)
+      : event.eventType === 'TOWER'
+        ? structureDisplayMessage(event, teams)
+        : event.displayMessage ?? event.eventType,
     isMajor: MAJOR_EVENT_TYPES.has(event.eventType),
   }));
   const snapshots: readonly MatchSnapshotViewModel[] = source.match.timeline.snapshots.map((snapshot) => {
@@ -152,6 +197,7 @@ function createPlayback(source: RealMatchV8ReferenceProjection, teams: Record<Te
       level: player.level,
       alive: player.alive,
       respawnSeconds: player.respawnRemainingSeconds,
+      shutdownBountyGold: player.shutdownBountyGold,
     }));
     return {
       atSeconds: snapshot.timeSeconds,

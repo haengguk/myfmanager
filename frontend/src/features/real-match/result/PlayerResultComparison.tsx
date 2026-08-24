@@ -23,7 +23,6 @@ function Metrics({ player }: { player: FinalPlayerViewModel }) {
       <span><small>CS</small><strong>{player.cs}</strong></span>
       <span><small>골드</small><strong>{formatGold(player.gold)}</strong></span>
       <span><small>골드 차</small><strong className={player.goldDifference > 0 ? 'is-positive' : player.goldDifference < 0 ? 'is-negative' : ''}>{formatDifference(player.goldDifference)}</strong></span>
-      <span><small>XP</small><strong>{player.totalExperience.toLocaleString('ko-KR')}</strong></span>
       <span><small>레벨</small><strong>{player.level}</strong></span>
     </div>
   );

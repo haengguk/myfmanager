@@ -55,6 +55,7 @@ function playerAt(snapshot: MatchSnapshotViewModel, side: TeamSide, position: Po
     gold: player.gold,
     totalExperience: player.totalExperience,
     level: player.level,
+    shutdownBountyGold: player.shutdownBountyGold,
   };
 }
 

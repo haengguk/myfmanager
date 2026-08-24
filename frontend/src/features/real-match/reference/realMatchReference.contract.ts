@@ -99,6 +99,7 @@ export interface ReferenceProjectedPlayerState {
   playerId: string; teamSide: TeamSide; position: Position; championId: string;
   kills: number; deaths: number; assists: number; cs: number; gold: number;
   totalExperience: number; level: number; alive: boolean; respawnRemainingSeconds: number;
+  shutdownBountyGold: number;
   canFarm: boolean; farmReturnSecondsRemaining: number; activityType: PlayerActivityType | null;
   activityOriginLane: Lane | null; activityTargetLane: Lane | null;
 }

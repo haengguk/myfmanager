@@ -1,10 +1,12 @@
+import { ChampionPortrait } from '../../../components/champion/ChampionPortrait';
 import type { MatchResultViewModel } from '../matchSession.types';
+import type { ChampionViewModel } from '../realMatch.types';
 
 const formatNumber = (value: number) => value.toLocaleString('ko-KR');
 const formatGold = (value: number) => `${(value / 1000).toFixed(1)}K`;
 const formatDifference = (value: number) => `${value > 0 ? '+' : ''}${formatNumber(value)}`;
 
-export function TeamFinalStats({ result }: { result: MatchResultViewModel }) {
+export function TeamFinalStats({ result, championsById }: { result: MatchResultViewModel; championsById: Readonly<Record<string, ChampionViewModel>> }) {
   const blue = result.teamStats.BLUE;
   const red = result.teamStats.RED;
   const rows = [
@@ -28,9 +30,19 @@ export function TeamFinalStats({ result }: { result: MatchResultViewModel }) {
         ))}
       </div>
       <div className="rm-result-bans">
-        <div>{result.bans.BLUE.map((ban, index) => <span key={`${ban}-${index}`}>{ban.slice(0, 2).toUpperCase()}</span>)}</div>
+        <div>{result.bans.BLUE.map((ban, index) => {
+          const champion = championsById[ban];
+          return <span key={`${ban}-${index}`} title={champion?.name ?? ban}>{champion
+            ? <ChampionPortrait name={champion.name} portraitUrl={champion.portraitUrl} />
+            : ban.slice(0, 2).toUpperCase()}</span>;
+        })}</div>
         <strong>밴</strong>
-        <div>{result.bans.RED.map((ban, index) => <span key={`${ban}-${index}`}>{ban.slice(0, 2).toUpperCase()}</span>)}</div>
+        <div>{result.bans.RED.map((ban, index) => {
+          const champion = championsById[ban];
+          return <span key={`${ban}-${index}`} title={champion?.name ?? ban}>{champion
+            ? <ChampionPortrait name={champion.name} portraitUrl={champion.portraitUrl} />
+            : ban.slice(0, 2).toUpperCase()}</span>;
+        })}</div>
       </div>
     </section>
   );

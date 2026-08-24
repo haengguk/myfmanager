@@ -9,11 +9,12 @@ interface PlaybackControlsProps {
   durationSeconds: number;
   speed: PlaybackSpeed;
   playing: boolean;
+  resultReady: boolean;
   onToggle: () => void;
   onSpeedChange: (speed: PlaybackSpeed) => void;
   onSeek: (seconds: number) => void;
   onReset: () => void;
-  onOpenResult: () => void;
+  onResult: () => void;
   resultButtonRef: RefObject<HTMLButtonElement>;
 }
 
@@ -27,7 +28,10 @@ export function PlaybackControls(props: PlaybackControlsProps) {
       <PlaybackTimeline currentSeconds={props.currentSeconds} durationSeconds={props.durationSeconds} onSeek={props.onSeek} />
       <span className="rm-control-status">x{props.speed} · {props.playing ? '재생 중' : '일시정지'}</span>
       <button className="rm-text-action" type="button" onClick={props.onReset}>처음으로</button>
-      <button className="rm-secondary-action" ref={props.resultButtonRef} type="button" onClick={props.onOpenResult}>경기 결과</button>
+      <button className="rm-secondary-action" ref={props.resultButtonRef} type="button"
+        aria-label={props.resultReady ? '경기 결과 창 열기' : '경기 종료 시점과 전체 로그 보기'}
+        title={props.resultReady ? '경기 결과 창을 엽니다.' : '경기 종료 시점으로 이동해 전체 로그를 표시합니다.'}
+        onClick={props.onResult}>경기 결과</button>
     </section>
   );
 }

@@ -18,7 +18,7 @@ export function TeamSelector({ side, teams, selectedTeamId, oppositeTeamId, disa
         <option value="">팀을 선택하세요</option>
         {teams.map((team) => (
           <option key={team.teamId} value={team.teamId} disabled={team.teamId === oppositeTeamId}>
-            {team.code} · {team.name}
+            {team.code === team.name ? team.name : `${team.code} · ${team.name}`}
           </option>
         ))}
       </select>

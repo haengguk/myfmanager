@@ -46,6 +46,9 @@ for (const assignment of fixture.match.draft.finalAssignments) {
 
 const finalSnapshot = fixture.match.timeline.snapshots.at(-1);
 invariant(finalSnapshot.timeSeconds === 3430, '마지막 projection snapshot이 57:10이 아닙니다.');
+const snapshotPlayers = fixture.match.timeline.snapshots.flatMap((snapshot) => snapshot.players);
+invariant(snapshotPlayers.every((player) => Number.isInteger(player.shutdownBountyGold) && player.shutdownBountyGold >= 0), 'snapshot 현재 현상금이 음수이거나 정수가 아닙니다.');
+invariant(snapshotPlayers.some((player) => player.shutdownBountyGold > 0), 'snapshot에 표시 가능한 현재 현상금이 없습니다.');
 for (const result of fixture.match.result.players) {
   const snapshot = finalSnapshot.players.find((player) => player.playerId === result.playerId);
   for (const key of ['teamSide', 'position', 'championId', 'kills', 'deaths', 'assists', 'cs', 'gold', 'totalExperience', 'level']) {

@@ -41,13 +41,13 @@ export interface PlaybackEventViewModel {
   structureActionSource: StructureActionSource | null; structureKind: StructureKind | null;
   structureTowerTier: TowerTier | null; structureAttackingSide: TeamSide | null;
   structureDefendingSide: TeamSide | null; actionId: string | null; parentActionId: string | null;
-  displayMessage: string; isMajor: boolean;
+  goldAmount: number; displayMessage: string; isMajor: boolean;
 }
 
 export interface LiveChampionStateViewModel {
   playerId: string; playerName: string; championId: string; position: Position;
   kills: number; deaths: number; assists: number; cs: number; gold: number;
-  totalExperience: number; level: number; alive: boolean; respawnSeconds: number;
+  totalExperience: number; level: number; alive: boolean; respawnSeconds: number; shutdownBountyGold: number;
 }
 
 export interface TeamSnapshotViewModel {
@@ -60,7 +60,7 @@ export interface MatchSnapshotViewModel { atSeconds: number; teams: Record<TeamS
 export interface PlayerComparisonViewModel {
   playerId: string; playerName: string; championId: string; position: Position;
   kills: number; deaths: number; assists: number; cs: number; gold: number;
-  totalExperience: number; level: number;
+  totalExperience: number; level: number; shutdownBountyGold: number;
 }
 
 export interface PositionComparisonViewModel { position: Position; blue: PlayerComparisonViewModel; red: PlayerComparisonViewModel; }
