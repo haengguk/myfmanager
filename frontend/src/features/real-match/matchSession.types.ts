@@ -32,6 +32,10 @@ export interface FinalPlayerViewModel {
 
 export interface FinalPlayerComparisonViewModel { position: Position; blue: FinalPlayerViewModel; red: FinalPlayerViewModel; }
 
+export interface GoldDifferencePointViewModel {
+  timeSeconds: number; blueGold: number; redGold: number; difference: number;
+}
+
 export interface MatchIntegrityViewModel {
   seed: string; referenceLabel: string; runtimeProfile: string; configurationHash: string;
   policyHash: string; engineImplementationVersion: string; resourceProvenanceHash: string;
@@ -44,6 +48,7 @@ export interface MatchResultViewModel {
   durationSeconds: number; winner: TeamSide | null; endReason: GameEndReason;
   teams: Record<TeamSide, TeamViewModel>; teamStats: Record<TeamSide, TeamFinalStatsViewModel>;
   players: readonly FinalPlayerComparisonViewModel[]; bans: Record<TeamSide, readonly string[]>;
+  goldTimeline: readonly GoldDifferencePointViewModel[];
   integrity: MatchIntegrityViewModel;
 }
 

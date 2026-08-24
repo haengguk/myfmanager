@@ -127,6 +127,7 @@ export interface RealMatchV8ReferenceProjection {
     sourceEventCount: number; includedEventCount: number; sourceSnapshotCount: number;
     includedSnapshotCount: number; eventSelectionPolicy: string; snapshotSelectionPolicy: string; referenceLabel: string;
   };
+  presentation: { draftChampions: readonly ReferenceChampionPresentation[]; };
   options: {
     schemaVersion: string; matchEngineContract: string; seedPolicy: { encoding: string; required: boolean };
     productionPolicy: Record<string, string | boolean>;

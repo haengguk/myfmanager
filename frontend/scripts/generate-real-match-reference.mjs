@@ -7,6 +7,7 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const FRONTEND_DIR = resolve(SCRIPT_DIR, '..');
 const REPORT_DIR = resolve(FRONTEND_DIR, '../backend/build/reports/real-match-api-v1');
 const OUTPUT_PATH = resolve(FRONTEND_DIR, 'src/features/real-match/reference/real-match-v8.reference.json');
+const CHAMPION_CATALOG_PATH = resolve(FRONTEND_DIR, '../backend/src/main/resources/champions/champion-pool-full-173-2026-08-v1.json');
 
 const EXPECTED_MANIFEST_SHA = 'fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525';
 const EXPECTED_OUTPUT_HASH = 'bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874';
@@ -161,7 +162,39 @@ function projectPlayerState(player) {
   };
 }
 
-function createProjection(options, request, response, handoff) {
+function projectDraftChampionCatalog(options, response, championCatalog) {
+  const expectedCatalogIdentity = `pool=${championCatalog.championPoolVersion};balance=${championCatalog.championBalanceVersion};riot=${championCatalog.riotDataVersion}`;
+  invariant(options.resourceVersions.versions.CHAMPION_CATALOG === expectedCatalogIdentity, 'Draft champion presentation catalog이 handoff resource version과 다릅니다.');
+
+  const catalogById = new Map(championCatalog.champions.map((champion) => [champion.id, champion]));
+  const championIds = [...new Set(response.draft.decisions.map((decision) => decision.championId))];
+  const presentations = championIds.map((championId) => {
+    const champion = catalogById.get(championId);
+    invariant(champion, `Draft champion catalog에 ${championId}가 없습니다.`);
+    return {
+      championId,
+      displayNameKo: champion.displayNameKo,
+      displayNameEn: champion.displayNameEn,
+      portraitUrl: `https://ddragon.leagueoflegends.com/cdn/${championCatalog.riotDataVersion}/img/champion/${champion.riotAssetId}.png`,
+    };
+  });
+
+  for (const team of response.teams) {
+    for (const player of team.lineup) {
+      const presentation = presentations.find((champion) => champion.championId === player.championId);
+      invariant(presentation, `${player.championId} final pick presentation이 없습니다.`);
+      invariant(
+        presentation.displayNameKo === player.champion.displayNameKo
+          && presentation.displayNameEn === player.champion.displayNameEn
+          && presentation.portraitUrl === player.champion.portraitUrl,
+        `${player.championId} catalog/response presentation이 다릅니다.`,
+      );
+    }
+  }
+  return presentations;
+}
+
+function createProjection(options, request, response, handoff, championCatalog) {
   const events = response.timeline.events.filter((event) => INCLUDED_EVENT_TYPES.has(event.eventType));
   const snapshots = response.timeline.snapshots.filter((snapshot, index, all) => (
     index === 0 || index === all.length - 1 || snapshot.timeSeconds % 60 === 0
@@ -182,6 +215,9 @@ function createProjection(options, request, response, handoff) {
       eventSelectionPolicy: 'ALL_STRUCTURED_GAMEPLAY_EVENTS_EXCEPT_LEVEL_UP_AND_ITEM_STAGE_REACHED_V1',
       snapshotSelectionPolicy: 'FIRST_LAST_AND_EXACT_60_SECOND_SNAPSHOTS_V1',
       referenceLabel: 'V8 Reference Fixture · 로컬 승인 응답 기준',
+    },
+    presentation: {
+      draftChampions: projectDraftChampionCatalog(options, response, championCatalog),
     },
     options: {
       schemaVersion: options.schemaVersion,
@@ -221,9 +257,10 @@ const options = readJson('real-match-api-v1-options-example.json');
 const request = readJson('real-match-api-v1-fixed-request.json');
 const response = readJson('real-match-api-v1-fixed-response.json');
 const handoff = readJson('real-match-api-v1-handoff.json');
+const championCatalog = JSON.parse(readFileSync(CHAMPION_CATALOG_PATH, 'utf8'));
 verifyOptions(options);
 verifyReferenceIdentity(request, response, handoff);
-const output = `${JSON.stringify(createProjection(options, request, response, handoff), null, 2)}\n`;
+const output = `${JSON.stringify(createProjection(options, request, response, handoff, championCatalog), null, 2)}\n`;
 
 if (process.argv.includes('--check')) {
   invariant(readFileSync(OUTPUT_PATH, 'utf8') === output, 'checked-in compact projection이 현재 승인 artifact와 byte-identical하지 않습니다.');

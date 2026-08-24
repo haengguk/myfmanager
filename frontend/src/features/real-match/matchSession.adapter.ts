@@ -66,20 +66,15 @@ function toTeamViewModel(team: ReferenceTeamPresentation): TeamViewModel {
 }
 
 function createChampionMap(source: RealMatchV8ReferenceProjection): Readonly<Record<string, ChampionViewModel>> {
-  const entries = source.match.teams.flatMap((team) => team.lineup.map((player) => [
-    player.championId,
+  const entries = source.presentation.draftChampions.map((champion) => [
+    champion.championId,
     {
-      id: player.championId,
-      name: player.champion.displayNameKo,
-      nameEn: player.champion.displayNameEn,
-      portraitUrl: player.champion.portraitUrl,
+      id: champion.championId,
+      name: champion.displayNameKo,
+      nameEn: champion.displayNameEn,
+      portraitUrl: champion.portraitUrl,
     } satisfies ChampionViewModel,
-  ] as const));
-  for (const championId of [...source.match.draft.blueBans, ...source.match.draft.redBans]) {
-    if (!entries.some(([id]) => id === championId)) {
-      entries.push([championId, { id: championId, name: championId, nameEn: championId, portraitUrl: '' }]);
-    }
-  }
+  ] as const);
   return Object.fromEntries(entries);
 }
 
@@ -245,6 +240,12 @@ function createResult(source: RealMatchV8ReferenceProjection, teams: Record<Team
     teamStats: { BLUE: teamStats(source, 'BLUE'), RED: teamStats(source, 'RED') },
     players: resultPlayers(source, names),
     bans: { BLUE: source.match.draft.blueBans, RED: source.match.draft.redBans },
+    goldTimeline: source.match.timeline.snapshots.map((snapshot) => ({
+      timeSeconds: snapshot.timeSeconds,
+      blueGold: snapshot.blueTeam.gold,
+      redGold: snapshot.redTeam.gold,
+      difference: snapshot.blueTeam.gold - snapshot.redTeam.gold,
+    })),
     integrity: {
       seed: source.match.seed,
       referenceLabel: source.provenance.referenceLabel,

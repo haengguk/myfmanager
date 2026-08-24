@@ -23,6 +23,13 @@ const players = fixture.options.teams.flatMap((team) => team.lineup);
 invariant(fixture.options.teams.length === 10 && players.length === 50 && new Set(players.map((player) => player.playerId)).size === 50, 'options 10팀/50명/stable ID 계약이 깨졌습니다.');
 invariant(fixture.request.blueTeamCode === 'GEN' && fixture.request.redTeamCode === 'T1' && fixture.request.seed === '73', 'fixed request identity가 다릅니다.');
 invariant(fixture.match.draft.decisions.length === 20 && fixture.match.draft.finalAssignments.length === 10, '자동 Draft cardinality가 다릅니다.');
+const draftChampionIds = [...new Set(fixture.match.draft.decisions.map((decision) => decision.championId))];
+invariant(fixture.presentation.draftChampions.length === draftChampionIds.length, 'Draft champion presentation cardinality가 다릅니다.');
+for (const championId of draftChampionIds) {
+  const champion = fixture.presentation.draftChampions.find((candidate) => candidate.championId === championId);
+  invariant(champion?.displayNameKo && champion?.displayNameEn && champion?.portraitUrl.startsWith('https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/'), `${championId} Draft 초상화 presentation이 완전하지 않습니다.`);
+}
+invariant([...fixture.match.draft.blueBans, ...fixture.match.draft.redBans].every((championId) => fixture.presentation.draftChampions.some((champion) => champion.championId === championId && champion.portraitUrl)), '밴 챔피언 초상화가 완전하지 않습니다.');
 invariant(fixture.match.timeline.winner === fixture.match.result.winner, 'playback/result winner가 다릅니다.');
 invariant(fixture.match.timeline.durationSeconds === fixture.match.result.durationSeconds, 'playback/result duration이 다릅니다.');
 invariant(fixture.match.timeline.endReason === fixture.match.result.endReason, 'playback/result end reason이 다릅니다.');

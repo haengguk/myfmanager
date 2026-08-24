@@ -15,6 +15,130 @@
     "snapshotSelectionPolicy": "FIRST_LAST_AND_EXACT_60_SECOND_SNAPSHOTS_V1",
     "referenceLabel": "V8 Reference Fixture · 로컬 승인 응답 기준"
   },
+  "presentation": {
+    "draftChampions": [
+      {
+        "championId": "vi",
+        "displayNameKo": "바이",
+        "displayNameEn": "Vi",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Vi.png"
+      },
+      {
+        "championId": "camille",
+        "displayNameKo": "카밀",
+        "displayNameEn": "Camille",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Camille.png"
+      },
+      {
+        "championId": "nautilus",
+        "displayNameKo": "노틸러스",
+        "displayNameEn": "Nautilus",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Nautilus.png"
+      },
+      {
+        "championId": "jarvan-iv",
+        "displayNameKo": "자르반 4세",
+        "displayNameEn": "Jarvan IV",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/JarvanIV.png"
+      },
+      {
+        "championId": "nocturne",
+        "displayNameKo": "녹턴",
+        "displayNameEn": "Nocturne",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Nocturne.png"
+      },
+      {
+        "championId": "ambessa",
+        "displayNameKo": "암베사",
+        "displayNameEn": "Ambessa",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Ambessa.png"
+      },
+      {
+        "championId": "varus",
+        "displayNameKo": "바루스",
+        "displayNameEn": "Varus",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Varus.png"
+      },
+      {
+        "championId": "gnar",
+        "displayNameKo": "나르",
+        "displayNameEn": "Gnar",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Gnar.png"
+      },
+      {
+        "championId": "orianna",
+        "displayNameKo": "오리아나",
+        "displayNameEn": "Orianna",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Orianna.png"
+      },
+      {
+        "championId": "neeko",
+        "displayNameKo": "니코",
+        "displayNameEn": "Neeko",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Neeko.png"
+      },
+      {
+        "championId": "jayce",
+        "displayNameKo": "제이스",
+        "displayNameEn": "Jayce",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Jayce.png"
+      },
+      {
+        "championId": "poppy",
+        "displayNameKo": "뽀삐",
+        "displayNameEn": "Poppy",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Poppy.png"
+      },
+      {
+        "championId": "azir",
+        "displayNameKo": "아지르",
+        "displayNameEn": "Azir",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Azir.png"
+      },
+      {
+        "championId": "rakan",
+        "displayNameKo": "라칸",
+        "displayNameEn": "Rakan",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Rakan.png"
+      },
+      {
+        "championId": "anivia",
+        "displayNameKo": "애니비아",
+        "displayNameEn": "Anivia",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Anivia.png"
+      },
+      {
+        "championId": "rell",
+        "displayNameKo": "렐",
+        "displayNameEn": "Rell",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Rell.png"
+      },
+      {
+        "championId": "ziggs",
+        "displayNameKo": "직스",
+        "displayNameEn": "Ziggs",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Ziggs.png"
+      },
+      {
+        "championId": "xin-zhao",
+        "displayNameKo": "신 짜오",
+        "displayNameEn": "Xin Zhao",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/XinZhao.png"
+      },
+      {
+        "championId": "ryze",
+        "displayNameKo": "라이즈",
+        "displayNameEn": "Ryze",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Ryze.png"
+      },
+      {
+        "championId": "bard",
+        "displayNameKo": "바드",
+        "displayNameEn": "Bard",
+        "portraitUrl": "https://ddragon.leagueoflegends.com/cdn/16.15.1/img/champion/Bard.png"
+      }
+    ]
+  },
   "options": {
     "schemaVersion": "REAL_MATCH_OPTIONS_V1",
     "matchEngineContract": "MATCH_ENGINE_CONTRACT_V1",

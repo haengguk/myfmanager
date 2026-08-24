@@ -3,6 +3,7 @@ import type { MatchResultViewModel } from '../matchSession.types';
 import type { ChampionViewModel } from '../realMatch.types';
 import { ConfirmModal, type ResultConfirmAction } from './ConfirmModal';
 import { CopyToast } from './CopyToast';
+import { GoldDifferenceChart } from './GoldDifferenceChart';
 import { IntegrityAccordion } from './IntegrityAccordion';
 import { MatchResultHeader } from './MatchResultHeader';
 import { PlayerResultComparison } from './PlayerResultComparison';
@@ -32,7 +33,10 @@ export function MatchResultPage({ result, championsById, onBack, onDraft, onPlay
       <MatchResultHeader result={result} onBack={onBack} />
       <main className="rm-result-stage" aria-label="경기 결과 상세">
         <TeamFinalStats result={result} />
-        <PlayerResultComparison result={result} championsById={championsById} />
+        <section className="rm-result-analytics" aria-label="선수 최종 기록과 시간대별 골드 격차">
+          <PlayerResultComparison result={result} championsById={championsById} />
+          <GoldDifferenceChart points={result.goldTimeline} blueCode={result.teams.BLUE.code} redCode={result.teams.RED.code} />
+        </section>
       </main>
       <ResultActions
         result={result}
