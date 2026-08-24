@@ -1,4 +1,4 @@
-import type { ReferenceAbilityProfile } from './reference/realMatchReference.contract';
+import type { MatchDataSource, PlayerAbilityProfileViewModel } from './realMatch.contract';
 import type { DraftViewModel, GameEndReason, PlaybackViewModel, Position, TeamSide, TeamViewModel } from './realMatch.types';
 
 export interface MatchRosterPlayerViewModel { playerId: string; playerName: string; position: Position; }
@@ -7,16 +7,15 @@ export interface MatchTeamOptionViewModel {
 }
 
 export interface MatchSetupOptionsViewModel {
-  seasonLabel: string; gameNumber: number; seriesType: string; draftRule: string; defaultSeed: string;
-  referenceBlueTeamCode: string; referenceRedTeamCode: string; referenceLabel: string;
+  source: MatchDataSource; sourceLabel: string; seasonLabel: string; gameNumber: number; seriesType: string;
+  draftRule: string; defaultSeed: string; defaultBlueTeamCode: string; defaultRedTeamCode: string;
+  engineImplementationVersion: string; runtimeProfile: string; configurationHash: string;
   teams: readonly MatchTeamOptionViewModel[];
 }
 
 export interface MatchSetupSelection {
   blueTeamId: string; redTeamId: string; seed: string; gameNumber: number; seriesType: string;
 }
-
-export type UiScenario = 'REFERENCE_SUCCESS' | 'REFERENCE_ERROR' | 'REFERENCE_TIMEOUT';
 
 export interface TeamFinalStatsViewModel {
   kills: number; deaths: number; assists: number; gold: number; goldDifference: number;
@@ -27,7 +26,7 @@ export interface FinalPlayerViewModel {
   playerId: string; playerName: string; championId: string; position: Position;
   kills: number; deaths: number; assists: number; cs: number; gold: number;
   totalExperience: number; level: number; goldDifference: number;
-  abilityProfile: ReferenceAbilityProfile;
+  abilityProfile: PlayerAbilityProfileViewModel;
 }
 
 export interface FinalPlayerComparisonViewModel { position: Position; blue: FinalPlayerViewModel; red: FinalPlayerViewModel; }
@@ -37,10 +36,10 @@ export interface GoldDifferencePointViewModel {
 }
 
 export interface MatchIntegrityViewModel {
-  seed: string; referenceLabel: string; runtimeProfile: string; configurationHash: string;
+  source: MatchDataSource; sourceLabel: string; seed: string; runtimeProfile: string; configurationHash: string;
   policyHash: string; engineImplementationVersion: string; resourceProvenanceHash: string;
   replayHash: string; simulatorTimelineHash: string; structuredTimelineHash: string; outputHash: string;
-  randomDrawCount: number; randomTraceHash: string; manifestRawSha256: string;
+  randomDrawCount: number; randomTraceHash: string; manifestRawSha256: string | null;
 }
 
 export interface MatchResultViewModel {
@@ -53,7 +52,13 @@ export interface MatchResultViewModel {
 }
 
 export interface MatchSessionViewModel {
-  sessionId: string; scenario: UiScenario; setup: MatchSetupSelection;
+  sessionId: string; source: MatchDataSource; setup: MatchSetupSelection;
   selectedTeams: Record<TeamSide, MatchTeamOptionViewModel>;
   draft: DraftViewModel; playback: PlaybackViewModel; result: MatchResultViewModel;
+  performance: MatchSessionPerformance;
+}
+
+export interface MatchSessionPerformance {
+  payloadBytes: number; requestAndDownloadMs: number; jsonParseMs: number;
+  runtimeValidationMs: number; normalizationMs: number; requestStartedAt: number;
 }

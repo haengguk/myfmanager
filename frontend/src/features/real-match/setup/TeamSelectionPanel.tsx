@@ -44,7 +44,7 @@ export function TeamRosterPreview({ team, loading, error }: { team: MatchTeamOpt
     <div className="rm-team-preview">
       <header>
         <div><h2>{team.code}</h2><p>LCK · {team.name}</p></div>
-        <div><strong>선발 5명</strong><span>승인 options</span></div>
+        <div><strong>선발 5명</strong><span>{team.sourceLabel}</span></div>
       </header>
       <div className="rm-setup-roster">
         {team.roster.map((player) => (
@@ -82,7 +82,7 @@ export function TeamSelectionPanel(props: TeamSelectionPanelProps) {
       {optionsLoading ? (
         <div className="rm-setup-panel-state" aria-live="polite"><span className="rm-spinner" aria-hidden="true" /><strong>팀 목록 불러오는 중</strong><p>선택 가능한 {teams.length}개 팀을 확인하고 있습니다.</p></div>
       ) : optionsError ? (
-        <div className="rm-setup-panel-state"><strong>팀 목록을 불러오지 못했습니다</strong><p>options API 연결 전 fixture 상태를 확인하세요.</p></div>
+        <div className="rm-setup-panel-state"><strong>팀 목록을 불러오지 못했습니다</strong><p>서버 연결 상태를 확인하고 다시 시도하세요.</p></div>
       ) : (
         <TeamRosterPreview team={selectedTeam} loading={rosterLoading} error={rosterError} />
       )}

@@ -9,8 +9,8 @@ import { PlaybackControls, type PlaybackSpeed } from './PlaybackControls';
 import { PlayerComparison } from './PlayerComparison';
 import { ResultModal } from './ResultModal';
 
-export function MatchPlaybackPage({ viewModel, onBack, onDraft, onComplete }: {
-  viewModel: PlaybackViewModel; onBack: () => void; onDraft: () => void; onComplete: () => void;
+export function MatchPlaybackPage({ viewModel, onBack, onDraft, onComplete, onFirstPaint }: {
+  viewModel: PlaybackViewModel; onBack: () => void; onDraft: () => void; onComplete: () => void; onFirstPaint?: () => void;
 }) {
   const [currentSeconds, setCurrentSeconds] = useState(viewModel.initialSeconds);
   const [speed, setSpeed] = useState<PlaybackSpeed>(1);
@@ -38,6 +38,10 @@ export function MatchPlaybackPage({ viewModel, onBack, onDraft, onComplete }: {
     return () => window.clearInterval(timer);
   }, [playing, speed, viewModel.durationSeconds]);
   useEffect(() => () => { if (toastTimer.current !== null) window.clearTimeout(toastTimer.current); }, []);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => onFirstPaint?.());
+    return () => window.cancelAnimationFrame(frame);
+  }, [onFirstPaint, viewModel.matchId]);
 
   const changeSpeed = (nextSpeed: PlaybackSpeed) => { setSpeed(nextSpeed); showToast('재생 속도 변경', `x${nextSpeed} 속도로 설정했습니다.`); };
   const applyResult = () => { setResultOpen(false); setCurrentSeconds(viewModel.durationSeconds); setPlaying(false); onComplete(); };
@@ -57,7 +61,7 @@ export function MatchPlaybackPage({ viewModel, onBack, onDraft, onComplete }: {
 
   return (
     <div className="rm-playback-app">
-      <MatchUtilityBar meta={`${viewModel.seasonLabel} · 핵심 이벤트 ${viewModel.events.length}개`} onBack={onBack} secondaryLabel="자동 Draft 다시 보기" onSecondary={onDraft} />
+      <MatchUtilityBar meta={`${viewModel.seasonLabel} · 전체 타임라인 ${viewModel.events.length}개`} onBack={onBack} secondaryLabel="자동 Draft 다시 보기" onSecondary={onDraft} />
       <MatchScoreboard viewModel={viewModel} snapshot={snapshot} currentSeconds={currentSeconds} playing={playing} />
       <main className="rm-match-core">
         <LiveChampionPanel side="BLUE" teamCode={viewModel.teams.BLUE.code} snapshot={snapshot.teams.BLUE} championsById={viewModel.championsById} />
@@ -71,7 +75,7 @@ export function MatchPlaybackPage({ viewModel, onBack, onDraft, onComplete }: {
         onReset={reset} onResult={handleResult} />
       <PlayerComparison rows={comparison} currentSeconds={snapshot.atSeconds} championsById={viewModel.championsById}
         blueTeamCode={viewModel.teams.BLUE.code} redTeamCode={viewModel.teams.RED.code} />
-      <ResultModal open={resultOpen} blueName={viewModel.teams.BLUE.code} redName={viewModel.teams.RED.code}
+      <ResultModal open={resultOpen} source={viewModel.source} sourceLabel={viewModel.sourceLabel} seed={viewModel.simulationSeed} blueName={viewModel.teams.BLUE.code} redName={viewModel.teams.RED.code}
         blueScore={viewModel.finalScore.BLUE} redScore={viewModel.finalScore.RED} outcomeLabel={outcomeLabel}
         returnFocusRef={resultButtonRef} onClose={() => setResultOpen(false)} onConfirm={applyResult} />
       <MatchToast {...toast} />

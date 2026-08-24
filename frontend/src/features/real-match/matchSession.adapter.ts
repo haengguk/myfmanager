@@ -23,14 +23,18 @@ const HIDDEN_PLAYBACK_EVENT_TYPES = new Set(['ASSIST', 'MATCH_PHASE_CHANGE', 'MA
 const reference = realMatchV8ReferenceProjection;
 
 export const referenceMatchSetupOptions: MatchSetupOptionsViewModel = {
-  seasonLabel: 'REAL_MATCH_API_V1 · V8 Reference',
+  source: 'REFERENCE',
+  sourceLabel: reference.provenance.referenceLabel,
+  seasonLabel: 'REAL_MATCH_API_V1 · Reference',
   gameNumber: reference.match.draft.seriesGameNumber,
   seriesType: '단판 · Fresh Game 1',
   draftRule: 'Professional Draft · 자동',
   defaultSeed: reference.request.seed,
-  referenceBlueTeamCode: reference.request.blueTeamCode,
-  referenceRedTeamCode: reference.request.redTeamCode,
-  referenceLabel: reference.provenance.referenceLabel,
+  defaultBlueTeamCode: reference.request.blueTeamCode,
+  defaultRedTeamCode: reference.request.redTeamCode,
+  engineImplementationVersion: reference.match.integrity.engineImplementationVersion,
+  runtimeProfile: reference.match.integrity.runtimeProfileId,
+  configurationHash: reference.match.integrity.configurationHash,
   teams: reference.options.teams.map((team): MatchTeamOptionViewModel => ({
     teamId: team.teamCode,
     code: team.teamCode,
@@ -86,7 +90,8 @@ function createDraft(source: RealMatchV8ReferenceProjection, teams: Record<TeamS
     seasonLabel: referenceMatchSetupOptions.seasonLabel,
     gameNumber: source.match.draft.seriesGameNumber,
     seriesType: referenceMatchSetupOptions.seriesType,
-    referenceLabel: source.provenance.referenceLabel,
+    source: 'REFERENCE',
+    sourceLabel: source.provenance.referenceLabel,
     teams,
     championsById,
     rosters: {
@@ -181,6 +186,7 @@ function createPlayback(source: RealMatchV8ReferenceProjection, teams: Record<Te
         ? structureDisplayMessage(event, teams)
         : event.displayMessage ?? event.eventType,
     isMajor: MAJOR_EVENT_TYPES.has(event.eventType),
+    showInLog: true,
   }));
   const snapshots: readonly MatchSnapshotViewModel[] = source.match.timeline.snapshots.map((snapshot) => {
     const playerState = (side: TeamSide) => snapshot.players.filter((player) => player.teamSide === side).map((player) => ({
@@ -213,7 +219,8 @@ function createPlayback(source: RealMatchV8ReferenceProjection, teams: Record<Te
     seasonLabel: referenceMatchSetupOptions.seasonLabel,
     gameNumber: source.match.draft.seriesGameNumber,
     seriesType: referenceMatchSetupOptions.seriesType,
-    referenceLabel: source.provenance.referenceLabel,
+    source: 'REFERENCE',
+    sourceLabel: source.provenance.referenceLabel,
     durationSeconds: source.match.timeline.durationSeconds,
     initialSeconds: 0,
     teams,
@@ -293,8 +300,9 @@ function createResult(source: RealMatchV8ReferenceProjection, teams: Record<Team
       difference: snapshot.blueTeam.gold - snapshot.redTeam.gold,
     })),
     integrity: {
+      source: 'REFERENCE',
+      sourceLabel: source.provenance.referenceLabel,
       seed: source.match.seed,
-      referenceLabel: source.provenance.referenceLabel,
       runtimeProfile: integrity.runtimeProfileId,
       configurationHash: integrity.configurationHash,
       policyHash: integrity.policyHash,
@@ -326,12 +334,20 @@ export function createReferenceMatchSession(selection: MatchSetupSelection): Mat
   const playback = createPlayback(reference, teams, championsById);
   return {
     sessionId: reference.match.matchIdentity,
-    scenario: 'REFERENCE_SUCCESS',
+    source: 'REFERENCE',
     setup: selection,
     selectedTeams: { BLUE: selectedTeams.BLUE, RED: selectedTeams.RED },
     draft: createDraft(reference, teams, championsById),
     playback,
     result: createResult(reference, teams, playback.playerNamesById),
+    performance: {
+      payloadBytes: reference.provenance.sourceFullResponseBytes,
+      requestAndDownloadMs: 0,
+      jsonParseMs: 0,
+      runtimeValidationMs: 0,
+      normalizationMs: 0,
+      requestStartedAt: 0,
+    },
   };
 }
 

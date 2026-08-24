@@ -211,7 +211,7 @@ Current V8 fixed `GEN` 대 `T1`, seed `"73"`는 독립 요청 2회와 fresh JVM 
 
 Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`의 contract/options/fixed request/full response/error/handoff JSON 6개와 `SHA256SUMS.txt`다. 두 fresh JVM candidate의 7개 파일은 byte-for-byte exact였고 V8 semantic audit 뒤 공식 local artifact로 승격했다. Manifest 6/6 raw SHA가 통과했고 raw SHA-256은 `fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525`다. Full XML은 필수 8개 suite 및 skipped 0뿐 아니라 production 502 files / `e23f2d2149edd3a7478b5333f126e876d969b5a3c71c20b670447cc9cbd71817`과 API verification 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`의 dynamic source-binding과 exact여야 artifact를 만들 수 있다. Historical Match Engine freeze는 재생성하지 않고 기존 manifest 7/7과 SHA를 읽기 검증해 결속했다.
 
-Frontend V1-A는 이 handoff를 검증하는 deterministic extractor로 33,617,922-byte 전체 응답에서 767,407-byte presentation projection을 생성한다. Checked-in fixture는 실제 options 10팀/50명, `GEN` 대 `T1` seed `"73"`의 20개 자동 Draft 결정과 10개 final assignment, structured event 287/517개, 60초 간격을 포함한 실제 snapshot 59/344개, 최종 result/integrity와 선수 10명의 `PLAYER_ABILITY_PROFILE_V1`을 보존한다. 대시보드/수신함→경기 설정→읽기 전용 자동 Draft→57:10 재생→결과의 다섯 OpenDesign 화면은 하나의 normalized reference session에서 파생된다. 아직 `/api/v1/real-matches/options`와 `/simulate`를 호출하지 않으며 V1-B live HTTP 공급자는 시작하지 않았다.
+Frontend V1-A reference extractor는 계속 33,617,922-byte handoff에서 deterministic presentation projection을 검증한다. Frontend V1-B는 LIVE를 기본 공급자로 만들고 실제 `/api/v1/real-matches/options`와 `/simulate`를 strict validation/normalization 경계로 연결했다. 임의의 서로 다른 두 팀과 signed-long seed, loading/cancel/retry/stale-response 격리, Draft→Playback→Result 일관성을 제공하며 오류 때 reference로 자동 fallback하지 않는다. Fixed GEN/T1/73과 non-reference HLE/DK/-73 실제 E2E, 1440×900/1280×720, full payload timing/heap과 lazy reference chunk를 검증했다. 세부 근거는 [Real Match Frontend V1-B](development/real-match-frontend-v1-b.md)에 있다.
 
 ### Pre-Jungle baseline
 
@@ -291,7 +291,9 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Partial / Disabled
 
-- Real LCK Draft→Match flow와 Match Engine V1은 additive Real Match API V1으로 HTTP에 노출됐다. Frontend V1-A는 승인된 V8 reference projection만 사용하며 live options/simulate HTTP 공급자는 아직 연결하지 않았다.
+- Real LCK Draft→Match flow는 Frontend V1-B의 기본 LIVE 공급자와 연결됐다. Reference는 명시적 회귀 모드로만 남고 자동 fallback하지 않는다.
+- Full response는 현재 20–34MB이며 local simulation/전송에 35–54초가 걸린다. 압축/projection/streaming/worker parsing과 정확한 progress는 후속 hardening 범위다.
+- Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
 - 기존 `POST /api/matches/simulate`는 호환성을 위해 Dummy roster와 legacy timeline 경로를 계속 사용한다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
 - Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
@@ -302,10 +304,11 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Pending
 
-1. `REAL_MATCH_FRONTEND_V1_B`에서 현재 fixture 공급자 경계를 live options/simulate HTTP 공급자로 교체하고 loading/error/timeout, 33MB급 응답 처리와 backend/frontend E2E를 검증한다.
+1. Real Match payload 압축/projection/streaming 또는 worker parsing을 별도 frontend/backend hardening 계약으로 설계한다.
 2. `SERIES_LIFECYCLE_V1`에서 BO3/BO5와 누적 Hard Fearless history를 caller-owned series context로 설계한다. Save/Career/Season persistence는 그 이후 별도 범위다.
-3. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
-4. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
+3. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
+4. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
+5. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
 
 ## Test Snapshot
 

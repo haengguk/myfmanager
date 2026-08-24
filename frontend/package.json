@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "reference:generate": "node scripts/generate-real-match-reference.mjs",
     "reference:check": "node scripts/generate-real-match-reference.mjs --check",
-    "reference:verify": "node scripts/verify-real-match-ui-contract.mjs"
+    "reference:verify": "node scripts/verify-real-match-ui-contract.mjs",
+    "live:verify": "node scripts/verify-real-match-live-contract.mjs",
+    "bundle:verify": "node scripts/verify-real-match-bundle.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

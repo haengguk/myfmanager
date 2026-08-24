@@ -13,8 +13,8 @@ export function AutomaticDraftBoard({ viewModel, onContinue }: { viewModel: Draf
         <span className="rm-state-badge is-confirmed">완료 · 읽기 전용</span>
       </header>
       <div className="rm-auto-draft-summary">
-        <span><small>경기</small><strong>GEN vs T1</strong></span>
-        <span><small>게임</small><strong>Fresh Game 1</strong></span>
+        <span><small>경기</small><strong>{viewModel.teams.BLUE.code} vs {viewModel.teams.RED.code}</strong></span>
+        <span><small>게임</small><strong>Game {viewModel.gameNumber}</strong></span>
         <span><small>seed</small><strong className="rm-tech">{viewModel.simulationSeed}</strong></span>
       </div>
       <ol className="rm-draft-decision-list rm-scroll-area" aria-label="자동 Draft 결정 순서 20개">

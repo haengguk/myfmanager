@@ -24,10 +24,12 @@ cd backend
 gradlew.bat bootRun
 ```
 
-Spring Boot 기본 port는 `8080`이다. 현재 API는 다음 두 endpoint를 제공한다.
+Spring Boot 기본 port는 `8080`이다. Frontend가 사용하는 주요 API는 다음과 같다.
 
 - `GET http://localhost:8080/api/champions`
 - `POST http://localhost:8080/api/matches/simulate`
+- `GET http://localhost:8080/api/v1/real-matches/options`
+- `POST http://localhost:8080/api/v1/real-matches/simulate`
 
 `MatchController`와 `ChampionController`의 CORS origin은 `http://localhost:5173`으로 고정되어 있다.
 
@@ -41,15 +43,16 @@ npm ci
 npm run dev
 ```
 
-`frontend/vite.config.ts`가 dev server port를 `5173`으로 지정한다. `frontend/src/App.tsx`는 backend를 `http://localhost:8080`으로 직접 호출하므로 두 process를 함께 실행한다.
+`frontend/vite.config.ts`가 dev server port를 `5173`으로 지정한다. Real Match는 LIVE가 기본이며 backend `http://localhost:8080`을 사용하므로 두 process를 함께 실행한다. URL과 timeout은 `.env.example`의 `VITE_REAL_MATCH_*` 변수로 변경할 수 있다. Reference fixture만 확인하려면 frontend process 시작 전에 `VITE_REAL_MATCH_DATA_SOURCE=reference`를 명시한다. LIVE 실패 시 reference로 자동 fallback하지 않는다.
 
 ## 기본 확인 흐름
 
 1. backend를 실행한다.
 2. frontend를 실행한다.
 3. browser에서 `http://localhost:5173`을 연다.
-4. champion selection과 seed를 확인하고 simulation을 시작한다.
-5. 같은 seed와 selection을 다시 보내 timeline이 재현되는지 확인할 수 있다.
+4. 경기 센터에서 서로 다른 BLUE/RED 팀과 canonical signed-long seed를 정하고 실행한다.
+5. 자동 Draft, 재생과 결과가 동일한 실제 session을 표시하는지 확인한다.
+6. 기존 legacy 경기 화면에서는 champion selection과 seed 기반 simulation도 계속 확인할 수 있다.
 
 Seed 입력을 비우면 frontend가 `Date.now()`로 seed를 만들어 request에 포함한다. API를 직접 호출하면서 seed까지 생략하면 backend controller가 `System.currentTimeMillis()`를 사용한다. 재현에는 response의 seed를 보존해야 한다.
 
@@ -69,7 +72,7 @@ cd frontend
 npm run build
 ```
 
-Frontend `package.json`에는 현재 test script가 없다. test 종류와 diagnostic 실행 경계는 [Testing](testing.md)에 있다.
+Frontend contract 검증은 `npm run reference:check`, `npm run reference:verify`, `npm run live:verify`, `npm run bundle:verify`를 사용한다. 상세 E2E와 성능 근거는 [Real Match Frontend V1-B](real-match-frontend-v1-b.md), test 종류와 diagnostic 실행 경계는 [Testing](testing.md)에 있다.
 
 ## Resource 위치
 

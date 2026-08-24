@@ -7,8 +7,10 @@ import { InboxPage } from './features/inbox/InboxPage';
 import type { ToastMessage } from './features/inbox/inbox.types';
 import { DraftRoomPage } from './features/real-match/draft/DraftRoomPage';
 import { MatchPlaybackPage } from './features/real-match/playback/MatchPlaybackPage';
-import { createReferenceMatchSession, referenceMatchSetupOptions } from './features/real-match/matchSession.adapter';
-import type { MatchSessionViewModel, MatchSetupSelection } from './features/real-match/matchSession.types';
+import { createMatchSession } from './features/real-match/matchDataSource';
+import type { MatchRequestStage } from './features/real-match/api/realMatchApi.types';
+import type { MatchSessionViewModel, MatchSetupOptionsViewModel, MatchSetupSelection } from './features/real-match/matchSession.types';
+import { realMatchConfig } from './features/real-match/realMatch.config';
 import { MatchSetupPage } from './features/real-match/setup/MatchSetupPage';
 import { MatchResultPage } from './features/real-match/result/MatchResultPage';
 import { AppShell } from './layout/AppShell';
@@ -25,6 +27,10 @@ function RootApp() {
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const toastTimerRef = useRef<number | null>(null);
+  const matchRequestRef = useRef<AbortController | null>(null);
+  const matchRequestSequenceRef = useRef(0);
+  const measuredPlaybackSessionsRef = useRef<Set<string>>(new Set());
+  const playbackNavigationStartedAtRef = useRef<number | null>(null);
   const [unreadIds, setUnreadIds] = useState<Set<string>>(
     () => new Set(inboxMessages.filter((message) => message.initiallyUnread).map((message) => message.id)),
   );
@@ -41,6 +47,7 @@ function RootApp() {
 
   useEffect(() => () => {
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
+    matchRequestRef.current?.abort();
   }, []);
 
   useEffect(() => {
@@ -73,22 +80,61 @@ function RootApp() {
     showToast('시간 진행 완료', '게임 시간이 오후 2:00로 진행되었습니다.');
   }, [showToast]);
 
-  const startMatch = (selection: MatchSetupSelection) => {
-    setMatchSession(createReferenceMatchSession(selection));
+  const cancelMatchRequest = useCallback(() => {
+    matchRequestSequenceRef.current += 1;
+    matchRequestRef.current?.abort();
+    matchRequestRef.current = null;
+  }, []);
+
+  const startMatch = async (selection: MatchSetupSelection, options: MatchSetupOptionsViewModel, onStage: (stage: MatchRequestStage) => void) => {
+    cancelMatchRequest();
+    const requestId = ++matchRequestSequenceRef.current;
+    const controller = new AbortController();
+    matchRequestRef.current = controller;
+    setMatchSession(null);
+    const session = await createMatchSession(options.source, options, selection, controller.signal, onStage);
+    if (controller.signal.aborted || requestId !== matchRequestSequenceRef.current) throw new DOMException('Stale match response', 'AbortError');
+    matchRequestRef.current = null;
+    setMatchSession(session);
+    console.info('[real-match-performance]', JSON.stringify({
+      source: session.source,
+      matchIdentity: session.sessionId,
+      payloadBytes: session.performance.payloadBytes,
+      requestAndDownloadMs: Number(session.performance.requestAndDownloadMs.toFixed(1)),
+      jsonParseMs: Number(session.performance.jsonParseMs.toFixed(1)),
+      runtimeValidationMs: Number(session.performance.runtimeValidationMs.toFixed(1)),
+      normalizationMs: Number(session.performance.normalizationMs.toFixed(1)),
+      rawPayloadRetained: false,
+    }));
     setDraftReturnScreen('setup');
     setActiveScreen('draft');
   };
 
   if (activeScreen === 'setup') {
-    return <MatchSetupPage options={referenceMatchSetupOptions} onBack={() => setActiveScreen('inbox')} onLegacy={() => setActiveScreen('match')} onStart={startMatch} />;
+    return <MatchSetupPage dataSource={realMatchConfig.dataSource} onBack={() => { cancelMatchRequest(); setActiveScreen('inbox'); }} onLegacy={() => { cancelMatchRequest(); setActiveScreen('match'); }} onStart={startMatch} onCancelStart={cancelMatchRequest} />;
   }
 
   if (activeScreen === 'draft' && matchSession) {
-    return <DraftRoomPage viewModel={matchSession.draft} onBack={() => setActiveScreen(draftReturnScreen)} onContinue={() => setActiveScreen('playback')} />;
+    return <DraftRoomPage viewModel={matchSession.draft} onBack={() => setActiveScreen(draftReturnScreen)} onContinue={() => {
+      playbackNavigationStartedAtRef.current = performance.now();
+      setActiveScreen('playback');
+    }} />;
   }
 
   if (activeScreen === 'playback' && matchSession) {
-    return <MatchPlaybackPage viewModel={matchSession.playback} onBack={() => setActiveScreen('setup')} onDraft={() => { setDraftReturnScreen('playback'); setActiveScreen('draft'); }} onComplete={() => setActiveScreen('result')} />;
+    return <MatchPlaybackPage viewModel={matchSession.playback} onBack={() => setActiveScreen('setup')} onDraft={() => { setDraftReturnScreen('playback'); setActiveScreen('draft'); }} onComplete={() => setActiveScreen('result')}
+      onFirstPaint={() => {
+        if (measuredPlaybackSessionsRef.current.has(matchSession.sessionId)) return;
+        measuredPlaybackSessionsRef.current.add(matchSession.sessionId);
+        const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
+        console.info('[real-match-first-playback]', JSON.stringify({
+          matchIdentity: matchSession.sessionId,
+          navigationToFirstPaintMs: playbackNavigationStartedAtRef.current === null
+            ? null : Number((performance.now() - playbackNavigationStartedAtRef.current).toFixed(1)),
+          usedJsHeapBytes: memory?.usedJSHeapSize ?? null,
+          totalJsHeapBytes: memory?.totalJSHeapSize ?? null,
+        }));
+      }} />;
   }
 
   if (activeScreen === 'result' && matchSession) {
@@ -96,7 +142,7 @@ function RootApp() {
   }
 
   if (activeScreen === 'draft' || activeScreen === 'playback' || activeScreen === 'result') {
-    return <MatchSetupPage options={referenceMatchSetupOptions} onBack={() => setActiveScreen('inbox')} onLegacy={() => setActiveScreen('match')} onStart={startMatch} />;
+    return <MatchSetupPage dataSource={realMatchConfig.dataSource} onBack={() => setActiveScreen('inbox')} onLegacy={() => setActiveScreen('match')} onStart={startMatch} onCancelStart={cancelMatchRequest} />;
   }
 
   const activeSection: AppSection = activeScreen;

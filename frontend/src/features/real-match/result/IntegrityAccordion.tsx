@@ -24,13 +24,13 @@ export function IntegrityAccordion({ integrity, onCopied }: { integrity: MatchIn
     ['configuration', 'configuration hash', integrity.configurationHash],
     ['policy', 'policy hash', integrity.policyHash],
     ['random', `Random trace · ${integrity.randomDrawCount.toLocaleString('ko-KR')} draws`, integrity.randomTraceHash],
-    ['manifest', 'source manifest raw SHA', integrity.manifestRawSha256],
+    ...(integrity.manifestRawSha256 ? [['manifest', 'source manifest raw SHA', integrity.manifestRawSha256] as const] : []),
   ] as const;
   const toggle = (id: string) => setExpanded((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   const copy = async (label: string, value: string) => { await copyText(value); onCopied(label); };
   return (
     <details className="rm-integrity">
-      <summary>재현 및 무결성 정보 <span>{integrity.referenceLabel}</span></summary>
+      <summary>재현 및 무결성 정보 <span>{integrity.source} · {integrity.sourceLabel}</span></summary>
       <div className="rm-integrity-body">
         <div className="rm-integrity-meta">
           <span><small>seed</small><strong className="rm-tech">{integrity.seed}</strong></span>

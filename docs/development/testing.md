@@ -385,6 +385,12 @@ npm run build
 
 `reference:check`는 현재 handoff에서 다시 만든 projection과 checked-in JSON의 byte equality를 확인한다. `reference:verify`는 10팀/50명 stable ID, GEN/T1/73/Game 1, Draft 20개와 assignment 10개, cross-screen final state, engine/output hash, 10명×12 ability rating과 canonical signed-int64 seed 경계를 확인한다. Browser smoke는 대시보드/수신함, 경기 설정, 자동 Draft, 재생, 결과를 1440×900과 1280×720에서 클릭하고 가로 overflow, 57:10 seek, 재생/일시정지/속도/event 선택, modal/ability/integrity, console과 비정적 network 요청을 확인한다. 이 검증은 live API를 호출하지 않는다.
 
+### Real Match Frontend V1-B
+
+V1-B는 `npm run live:verify`로 options/full response strict runtime validation, canonical signed-long client 경계, 10팀/50명과 Draft/result/timeline/integrity 정규화를 확인한다. `npm run bundle:verify`는 LIVE 초기 entry가 checked-in reference payload를 포함하지 않고 reference adapter가 lazy chunk로 분리되는지 검사한다. `reference:check`, `reference:verify`, `npx tsc -b`, production build도 함께 실행한다.
+
+Browser E2E는 실제 backend와 LIVE frontend를 동시에 켜고 고정 GEN/T1/73, 비고정 HLE/DK/-73, cancel/late response/retry, double click 1 POST, options network 오류/retry/no fallback, Draft→Playback→Result와 결과→Playback no-refetch를 검증했다. 1440×900과 1280×720에서 레이아웃과 console error 0을 확인했다. 전체 결과와 성능 수치는 [Real Match Frontend V1-B](real-match-frontend-v1-b.md)에 기록한다. Backend production을 바꾸지 않은 frontend-only milestone이므로 backend full regression은 실행하지 않는다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.

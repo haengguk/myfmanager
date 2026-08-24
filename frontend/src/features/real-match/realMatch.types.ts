@@ -1,9 +1,9 @@
 import type {
-  CombatSource, GameEndReason, Lane, MatchEventType, Position, ReferenceAbilityProfile,
+  CombatSource, GameEndReason, Lane, MatchDataSource, MatchEventType, PlayerAbilityProfileViewModel, Position,
   StructureActionSource, StructureKind, TeamSide, TowerTier,
-} from './reference/realMatchReference.contract';
+} from './realMatch.contract';
 
-export type { CombatSource, GameEndReason, Lane, MatchEventType, Position, TeamSide };
+export type { CombatSource, GameEndReason, Lane, MatchDataSource, MatchEventType, Position, TeamSide };
 
 export interface ChampionViewModel { id: string; name: string; nameEn: string; portraitUrl: string; }
 export interface TeamViewModel { side: TeamSide; code: string; displayName: string; detail: string; }
@@ -21,7 +21,8 @@ export interface DraftViewModel {
   seasonLabel: string;
   gameNumber: number;
   seriesType: string;
-  referenceLabel: string;
+  source: MatchDataSource;
+  sourceLabel: string;
   teams: Record<TeamSide, TeamViewModel>;
   championsById: Readonly<Record<string, ChampionViewModel>>;
   rosters: Record<TeamSide, readonly DraftRosterSlotViewModel[]>;
@@ -41,7 +42,7 @@ export interface PlaybackEventViewModel {
   structureActionSource: StructureActionSource | null; structureKind: StructureKind | null;
   structureTowerTier: TowerTier | null; structureAttackingSide: TeamSide | null;
   structureDefendingSide: TeamSide | null; actionId: string | null; parentActionId: string | null;
-  goldAmount: number; displayMessage: string; isMajor: boolean;
+  goldAmount: number; displayMessage: string; isMajor: boolean; showInLog: boolean;
 }
 
 export interface LiveChampionStateViewModel {
@@ -67,7 +68,7 @@ export interface PositionComparisonViewModel { position: Position; blue: PlayerC
 
 export interface PlaybackViewModel {
   matchId: string; simulationSeed: string; seasonLabel: string; gameNumber: number; seriesType: string;
-  referenceLabel: string; durationSeconds: number; initialSeconds: number;
+  source: MatchDataSource; sourceLabel: string; durationSeconds: number; initialSeconds: number;
   teams: Record<TeamSide, TeamViewModel>;
   championsById: Readonly<Record<string, ChampionViewModel>>;
   playerNamesById: Readonly<Record<string, string>>;
@@ -81,5 +82,5 @@ export interface PlaybackViewModel {
 
 export interface PlayerAbilityViewModel {
   playerId: string; playerName: string; championId: string; championName: string; position: Position;
-  profile: ReferenceAbilityProfile;
+  profile: PlayerAbilityProfileViewModel;
 }

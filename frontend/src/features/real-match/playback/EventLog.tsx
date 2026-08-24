@@ -9,7 +9,7 @@ export function EventLog({ events, currentSeconds, selectedEventId, onSelect }: 
   onSelect: (event: PlaybackEventViewModel) => void;
 }) {
   const logRef = useRef<HTMLDivElement>(null);
-  const visibleEvents = events.filter((event) => event.occurredAtSeconds <= currentSeconds);
+  const visibleEvents = events.filter((event) => event.showInLog && event.occurredAtSeconds <= currentSeconds);
   const currentIndex = visibleEvents.length - 1;
   useEffect(() => {
     const row = logRef.current?.querySelector<HTMLElement>('[data-current="true"]');

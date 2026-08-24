@@ -1,9 +1,13 @@
 import { useEffect, useRef } from 'react';
-import type { AbilityRatingKey } from '../reference/realMatchReference.contract';
+import type { AbilityRatingKey } from '../realMatch.contract';
 import type { FinalPlayerViewModel } from '../matchSession.types';
 import type { ChampionViewModel } from '../realMatch.types';
 
 const RATING_LABELS: Readonly<Record<AbilityRatingKey, string>> = {
+  ALLY_PROTECTION: '아군 보호', AREA_SETUP: '지역 설계', ENEMY_JUNGLE_TRACKING: '상대 정글 추적',
+  ENGAGE_EXECUTION: '교전 개시', JUNGLE_RESOURCE_MANAGEMENT: '정글 자원 관리', LANE_INTERVENTION: '라인 개입',
+  LANE_SUPPORT: '라인 지원', OBJECTIVE_DECISION: '오브젝트 판단', OBJECTIVE_SECURE: '오브젝트 확보',
+  PATHING: '동선 설계', ROTATION_PLANNING: '로테이션 설계', VISION_CONTROL: '시야 장악',
   COMBAT_EXECUTION: '전투 수행', CONSISTENCY: '일관성', DECISION_MAKING: '판단', FARMING: '파밍',
   LANE_PRESSURE: '라인 압박', MAP_AWARENESS: '맵 인지', MECHANICS: '메카닉', POSITIONING: '포지셔닝',
   PRIORITY_CONVERSION: '우선권 전환', SIDE_LANE: '사이드 운영', TRADING: '딜 교환', WAVE_MANAGEMENT: '웨이브 관리',

@@ -500,6 +500,8 @@
 .rm-setup-actions > div strong { font-size: 13px; }
 .rm-setup-actions > div span { margin-top: 3px; overflow: hidden; color: var(--rm-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .rm-setup-actions .rm-primary-action { min-width: 184px; min-height: 44px; gap: 8px; }
+.rm-setup-action-buttons { display: flex; align-items: center; gap: 8px; }
+.rm-options-retry { min-height: 34px; justify-self: start; }
 
 /* Match result */
 .rm-result-app { min-width: 1180px; display: grid; grid-template-rows: 46px 94px minmax(0, 1fr) 54px 38px; }
@@ -727,8 +729,9 @@
   .rm-side-red .rm-slot-portrait { justify-self: end; }
   .rm-slot-copy h3 { margin-top: 3px; font-size: 17px; }
   .rm-slot-meta { align-items: flex-start; }
-  .rm-bans { padding-top: 5px; padding-bottom: 5px; }
-  .rm-ban-slot { height: 34px; }
+  .rm-bans { padding: 3px 8px; }
+  .rm-bans header { margin-bottom: 2px; line-height: 1.1; }
+  .rm-ban-slot { height: 32px; }
   .rm-draft-board { grid-template-rows: 39px 36px minmax(0, 1fr) 74px; }
   .rm-role-filters button { height: 36px; }
   .rm-champion-grid { grid-auto-rows: 70px; }

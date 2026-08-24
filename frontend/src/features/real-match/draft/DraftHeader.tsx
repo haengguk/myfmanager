@@ -15,7 +15,7 @@ export function DraftHeader({ viewModel }: { viewModel: DraftViewModel }) {
       <div className="rm-draft-clock rm-auto-draft-clock">
         <div className="rm-clock-meta"><strong>Game {viewModel.gameNumber}</strong><span>·</span><span>seed {viewModel.simulationSeed}</span><span>·</span><span>읽기 전용</span></div>
         <div className="rm-auto-draft-status" aria-label="자동 Draft 완료"><strong>20 / 20</strong><span>자동 Draft 완료</span></div>
-        <div className="rm-reference-badge">V8 Reference Fixture</div>
+        <div className="rm-reference-badge">{viewModel.source} · {viewModel.sourceLabel}</div>
       </div>
     </section>
   );

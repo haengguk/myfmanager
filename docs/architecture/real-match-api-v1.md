@@ -2,7 +2,7 @@
 
 ## 목적과 범위
 
-Real Match API V1은 실제 LCK roster, Professional Draft와 동결된 `MatchEngineV1`을 외부 HTTP client가 사용할 수 있게 하는 additive backend 경계다. 기존 `POST /api/matches/simulate`의 Dummy roster, champion selection과 timeline 응답은 그대로 유지한다. Frontend V1-A는 아래 승인 reference의 compact projection을 사용하며 새 API를 live HTTP로 호출하지 않는다.
+Real Match API V1은 실제 LCK roster, Professional Draft와 동결된 `MatchEngineV1`을 외부 HTTP client가 사용할 수 있게 하는 additive backend 경계다. 기존 `POST /api/matches/simulate`의 Dummy roster, champion selection과 timeline 응답은 그대로 유지한다. Frontend V1-A의 compact reference 경계 위에 V1-B가 strict live HTTP provider를 추가했으며, 기본 진입 모드는 LIVE다.
 
 한 요청은 항상 독립된 단판 Game 1이다. `RealDraftMatchOrchestrator.orchestrateV1(blueTeamCode, redTeamCode, seed)`가 fresh `SeriesDraftHistory`를 만들므로 HTTP 요청 사이에 Hard Fearless exclusion이나 mutable match state가 공유되지 않는다. BO3/BO5와 지속되는 series lifecycle은 이 계약에 포함되지 않는다.
 
@@ -147,8 +147,12 @@ Artifact writer는 전체 XML의 단순 개수만 신뢰하지 않는다. 필수
 
 Historical Match Engine V1 freeze artifact는 V6 당시 evidence로 재생성하지 않았다. 기존 7-entry manifest SHA-256 `1f5bc20c347d25d833e822325de1fa294dc61d38c55da121ea30d15ab70a0728`을 raw SHA로 다시 검증해 현재 V8 handoff에 결속했다. Historical freeze, 현재 production implementation V8, 현재 frontend handoff는 서로 다른 evidence 범위다.
 
-## Frontend V1-A reference 경계
+## Frontend V1-A reference와 V1-B live 경계
 
 Frontend V1-A는 backend wire 응답을 full response 타입으로 가장하지 않는다. Node 기본 모듈 기반 extractor가 handoff manifest 6/6, manifest raw SHA, fixed request identity, engine V8와 output hash를 먼저 검증한 뒤 `REAL_MATCH_FRONTEND_REFERENCE_PROJECTION_V1`을 결정적으로 생성한다. 원본 33,617,922 bytes에서 선택한 767,407-byte projection은 실제 options 10팀/50명, ordered Draft 20개와 final assignment 10개, structured event 287/517개, 실제 snapshot 59/344개, final result/integrity와 10개 ability profile을 포함한다. Event는 `LEVEL_UP`과 `ITEM_STAGE_REACHED`를 제외한 structured gameplay event를 보존하고 snapshot은 첫/마지막과 정확한 60초 지점을 선택한다.
 
-화면은 `checked-in reference fixture → contract adapter → normalized match session → Draft/Playback/Result view model` 경계를 따른다. 중간 상태는 현재 시각 이하의 가장 가까운 실제 snapshot을 사용하고, event 의미는 backend enum과 structured field로만 분류한다. V1-A가 실행하는 공식 조합은 `GEN` BLUE 대 `T1` RED, seed `"73"`, fresh Game 1 하나이며 다른 조합은 live API가 필요한 상태로 정직하게 차단한다. 실제 options/simulate 요청, 임의 팀·seed 실행, HTTP loading/error/timeout, full 33MB response 최적화와 backend/frontend E2E는 `REAL_MATCH_FRONTEND_V1_B` 범위다. 그 뒤 `SERIES_LIFECYCLE_V1`이 BO3/BO5와 누적 Hard Fearless history를 별도 계약으로 다룬다. Save/Load, Career/Season도 아직 구현되지 않았다.
+두 공급자는 `provider → normalized match session → Draft/Playback/Result view model` 이후 경계를 공유한다. LIVE는 `GET /options`와 `POST /simulate`의 전체 JSON을 strict runtime validator로 검증하고, structured event/snapshot/identity만 정규화한다. Event 의미는 backend enum과 structured field로만 분류하며 `displayMessage`를 gameplay identity로 파싱하지 않는다. 원본 응답 문자열과 DTO graph는 정규화 뒤 session에 보존하지 않는다.
+
+LIVE가 기본값이다. `VITE_REAL_MATCH_DATA_SOURCE=reference`를 명시한 빌드만 checked-in fixture를 dynamic import하며, LIVE 실패 시 REFERENCE로 자동 전환하지 않는다. API base와 options/simulate timeout은 각각 `VITE_REAL_MATCH_API_BASE_URL`, `VITE_REAL_MATCH_OPTIONS_TIMEOUT_MS`, `VITE_REAL_MATCH_SIMULATE_TIMEOUT_MS`로 중앙 설정한다. UI는 options loading/retry, 요청 단계와 경과 시간, 취소, retry, stale response 격리와 중복 submit 방지를 제공한다.
+
+V1-B는 임의의 서로 다른 두 팀과 canonical signed-long seed를 실제 API로 실행한다. V1-A reference 조합은 계속 `GEN` BLUE 대 `T1` RED, seed `"73"`, fresh Game 1 하나로 고정한다. 그 뒤 `SERIES_LIFECYCLE_V1`이 BO3/BO5와 누적 Hard Fearless history를 별도 계약으로 다룬다. Save/Load, Career/Season도 아직 구현되지 않았다. 상세 실행·성능·E2E 근거는 [Real Match Frontend V1-B](../development/real-match-frontend-v1-b.md)에 기록한다.
