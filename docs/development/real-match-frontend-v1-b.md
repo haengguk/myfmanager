@@ -66,6 +66,24 @@ frontend> npm.cmd run dev -- --host 0.0.0.0
 
 Checked-in reference 응답 artifact는 개행 차이를 포함해 33,617,922 B다. LIVE session은 정규화 뒤 raw response text/DTO를 보존하지 않지만, fetch text와 JSON parse가 동시에 존재하는 순간의 transient peak는 브라우저 heap 수치에 완전히 반영되지 않을 수 있다. Production bundle에서 reference fixture는 초기 chunk가 아닌 별도 dynamic chunk다.
 
+### Backend phase baseline 후속 측정
+
+같은 두 fixture를 Windows 10 / OpenJDK 21.0.9 / Gradle 9.5.1 환경의 한 fresh JVM에서 fixture별 warmup 1회 + measured 3회로 다시 측정했다. Test-side phase decomposition과 실제 Spring random-port HTTP replay는 모든 반복에서 result/output/replay/timeline/Random이 exact였다.
+
+| 항목 (measured min / median / max) | GEN–T1/73 | HLE–DK/-73 |
+| --- | ---: | ---: |
+| 앱 경계 | 14,182.029 / 14,226.442 / 17,936.049 ms | 9,704.642 / 9,879.504 / 10,019.691 ms |
+| roster + Draft + engine input 준비 | 12,630.534 / 12,704.045 / 14,844.768 ms | 8,871.728 / 8,980.335 / 9,243.848 ms |
+| MatchEngine execution | 1,012.078 / 1,078.131 / 1,678.933 ms | 521.332 / 547.898 / 594.714 ms |
+| output integrity validation | 375.230 / 444.368 / 1,331.823 ms | 215.980 / 248.830 / 256.986 ms |
+| response mapping | 68.291 / 79.443 / 94.220 ms | 35.446 / 37.934 / 46.727 ms |
+| JSON serialization | 273.764 / 291.712 / 329.451 ms | 103.395 / 118.587 / 121.649 ms |
+| 실제 local HTTP end-to-end | 14,085.725 / 14,555.977 / 15,431.567 ms | 9,816.261 / 10,197.495 / 10,209.176 ms |
+
+가장 큰 관찰 phase는 roster/Draft/input 준비 묶음으로 앱 경계 median의 89.299%와 90.899%였다. 이 묶음 내부를 더 쪼개지 않았으므로 roster lookup, Draft scoring, input projection 중 어느 하나가 단독 원인이라고 해석하지 않는다. Actual HTTP raw body는 기존 E2E와 같은 33,617,921 B / 20,315,047 B이고 거의 전부가 timeline 독립 직렬화 크기 33,595,402 B / 20,291,837 B다. Offline gzip은 2,789,989 B(8.299%) / 1,875,877 B(9.234%)였지만 압축은 활성화하지 않았다.
+
+따라서 기존 Chromium `요청+다운로드` 54.4초/35.5초는 backend local HTTP median만의 값이 아니며, 반대로 MatchEngine execution만으로도 설명되지 않는다. 두 측정은 서로 다른 관찰 경계를 가진다. Backend 상세 raw run과 환경은 `backend/build/reports/real-match-performance-baseline-v1/`에 있고 status는 `REAL_MATCH_PERFORMANCE_BASELINE_CAPTURED`다.
+
 ## 검증 명령
 
 ```text
@@ -81,7 +99,7 @@ npm run bundle:verify
 
 ## 남은 제한과 다음 단계
 
-- Full response는 20–34MB이며 local simulation까지 포함한 응답에 35–54초가 걸렸다. 압축, projection endpoint, streaming/worker parsing과 정확한 progress는 별도 hardening 대상이다.
+- Full response는 20–34MB이며 Chromium 전체 요청 경계는 35–54초였다. Backend baseline에서는 roster/Draft/input 준비 묶음과 timeline payload가 각각 가장 큰 실행 phase와 byte 영역으로 관찰됐다. 두 영역의 추가 분해와 압축, projection endpoint, streaming/worker parsing, 정확한 progress는 별도 hardening 대상이다.
 - Ban entry에는 display name/portrait가 없어 frontend가 structured ChampionId에서 asset을 보완한다. API champion presentation/catalog를 추가하면 fallback과 영문 표시를 제거할 수 있다.
 - 현재 API는 fresh single Game 1이다. BO3/BO5와 누적 Hard Fearless는 `SERIES_LIFECYCLE_V1` 범위다.
 - Save/Load, Career/Season persistence는 아직 없다.

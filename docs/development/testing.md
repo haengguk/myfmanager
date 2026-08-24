@@ -391,6 +391,42 @@ V1-B는 `npm run live:verify`로 options/full response strict runtime validation
 
 Browser E2E는 실제 backend와 LIVE frontend를 동시에 켜고 고정 GEN/T1/73, 비고정 HLE/DK/-73, cancel/late response/retry, double click 1 POST, options network 오류/retry/no fallback, Draft→Playback→Result와 결과→Playback no-refetch를 검증했다. 1440×900과 1280×720에서 레이아웃과 console error 0을 확인했다. 전체 결과와 성능 수치는 [Real Match Frontend V1-B](real-match-frontend-v1-b.md)에 기록한다. Backend production을 바꾸지 않은 frontend-only milestone이므로 backend full regression은 실행하지 않는다.
 
+### Real Match Performance Baseline V1
+
+공식 성능 capture는 default `test`에서 제외된 `diagnostic` tag와 전용 single-fork task로만 실행한다. 한 fresh JVM에서 GEN/T1/73을 먼저, HLE/DK/-73을 다음에 실행하며 fixture마다 warmup 1회와 measured 3회를 병렬 없이 수행한다.
+
+```text
+gradlew.bat runRealMatchPerformanceBaselineV1 --console=plain --no-daemon
+```
+
+각 iteration은 요청 validation/preflight, roster/Draft/input 준비, MatchEngine, series finalization, output integrity, response mapping, JSON serialization을 test-side에서 분해하고, 별도의 실제 random-port HTTP replay를 수행한다. 두 경로의 typed response와 result/output/replay/timeline/Random이 exact여야 run이 유효하다. HTTP body byte와 그 body의 offline gzip도 기록하지만 서버 압축은 켜지 않는다. Section byte는 top-level value를 각각 독립 직렬화한 값이라 합산하지 않는다.
+
+빠른 contract 검증은 다음 class로 실행한다.
+
+```text
+gradlew.bat test \
+  --tests com.lolfm.controller.RealMatchPerformanceBaselineV1ArtifactsTest \
+  --console=plain --no-daemon
+
+gradlew.bat test \
+  --tests com.lolfm.application.RealMatchPerformanceBaselineV1HarnessTest \
+  --console=plain --no-daemon
+```
+
+Contract test는 incomplete schedule, Fixture A drift, output/result/Random/HTTP tamper, warmup 제외 min/median/max, gzip, manifest와 default diagnostic 제외를 검증한다. Harness test는 Fixture A 계측 ON/OFF의 complete response와 output/replay/timeline/Random exact parity를 확인했다. Build task가 추가된 최종 executable tree의 complete backend regression은 198 suites / 2,097 tests / failures 0 / errors 0 / skipped 0, Gradle wall 15분 21초로 한 번에 clean pass했다.
+
+공식 capture 첫 시도는 HTTP raw `JsonNode` field order와 typed response canonical order를 직접 비교해 의미가 같은 응답을 mismatch로 분류했고, finalizer가 `Invalid or partial HTTP observation`으로 거부해 공식 파일을 쓰지 않았다. HTTP body를 공식 typed `REAL_MATCH_RESPONSE_V1`으로 역직렬화한 뒤 비교하도록 test-only 코드를 고치고 round-trip 집중 테스트를 통과한 다음 fresh output에서 capture가 성공했다. Production Java/resource/Gradle wiring은 이 교정으로 바뀌지 않아 complete regression은 반복하지 않았다.
+
+성공한 결과는 `backend/build/reports/real-match-performance-baseline-v1/`에 다음 다섯 파일로 남는다.
+
+- `real-match-performance-baseline-v1-contract.json`
+- `real-match-performance-baseline-v1-runs.csv`
+- `real-match-performance-baseline-v1-summary.json`
+- `real-match-performance-baseline-v1-analysis.md`
+- `SHA256SUMS.txt`
+
+Status는 `REAL_MATCH_PERFORMANCE_BASELINE_CAPTURED`, run은 warmup 2 + measured 6으로 완전하며 manifest 4/4 raw SHA가 통과했다. Manifest raw SHA-256은 `c9b4659c4d602fb33c7295885cdc2685a4991469cc4cc0b097ca2d1a20cb26ee`다. 이 timing은 현재 측정 환경의 관찰값이며 correctness 또는 brittle latency gate가 아니다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.

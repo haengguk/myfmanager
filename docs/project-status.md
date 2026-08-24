@@ -213,6 +213,19 @@ Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`의 contr
 
 Frontend V1-A reference extractor는 계속 33,617,922-byte handoff에서 deterministic presentation projection을 검증한다. Frontend V1-B는 LIVE를 기본 공급자로 만들고 실제 `/api/v1/real-matches/options`와 `/simulate`를 strict validation/normalization 경계로 연결했다. 임의의 서로 다른 두 팀과 signed-long seed, loading/cancel/retry/stale-response 격리, Draft→Playback→Result 일관성을 제공하며 오류 때 reference로 자동 fallback하지 않는다. Fixed GEN/T1/73과 non-reference HLE/DK/-73 실제 E2E, 1440×900/1280×720, full payload timing/heap과 lazy reference chunk를 검증했다. 세부 근거는 [Real Match Frontend V1-B](development/real-match-frontend-v1-b.md)에 있다.
 
+### Real Match Performance Baseline V1
+
+`REAL_MATCH_PERFORMANCE_BASELINE_V1`은 현재 Real Match V1을 바꾸지 않고 실제 지연과 payload를 phase별로 관찰한 measurement-only milestone이다. Windows 10, OpenJDK 21.0.9, Gradle 9.5.1, 12 logical processors, test JVM max heap 3 GiB의 한 fresh JVM에서 fixture마다 warmup 1회 뒤 measured 3회를 순차 실행했다. 각 iteration은 test-side production-equivalent decomposition과 실제 Spring random-port HTTP replay의 response/result/output/replay/timeline/Random exact parity를 요구한다. Timing은 gameplay와 hash에 들어가지 않으며 default `test`에서는 공식 diagnostic을 제외한다.
+
+| Fixture | 결과 | 앱 경계 median | 실제 local HTTP median | 최대 phase median | raw HTTP JSON | offline gzip |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| GEN–T1 / `73` | BLUE, 3,430초, event 517, snapshot 344 | 14,226.442 ms | 14,555.977 ms | roster/Draft/input 12,704.045 ms (89.299%) | 33,617,921 B | 2,789,989 B (8.299%) |
+| HLE–DK / `-73` | RED, 2,840초, event 519, snapshot 285 | 9,879.504 ms | 10,197.495 ms | roster/Draft/input 8,980.335 ms (90.899%) | 20,315,047 B | 1,875,877 B (9.234%) |
+
+Fixture A는 V8 handoff output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`와 exact다. Fixture B의 첫 measured 결과는 output hash `fef2dfd3c522a69f7393bf46196ac9319cb4b6981e9131c694a01239d7aaabb0`인 authoritative 반복 기준이 되었고 모든 반복이 exact였다. MatchEngine execution median은 각각 1,078.131 ms와 547.898 ms, JSON serialization median은 291.712 ms와 118.587 ms다. roster/Draft/input phase 안에서 roster assembly, Draft scoring, input projection 중 어느 하나를 더 세분한 값은 아니므로 그 내부 원인을 단정하지 않는다.
+
+공식 local artifact는 `backend/build/reports/real-match-performance-baseline-v1/`의 contract, raw runs CSV, summary, analysis와 `SHA256SUMS.txt`다. Manifest 4/4 raw SHA가 통과했고 manifest raw SHA-256은 `c9b4659c4d602fb33c7295885cdc2685a4991469cc4cc0b097ca2d1a20cb26ee`다. 이 milestone은 gameplay/tuning/schema/frontend/async/streaming/compression activation을 변경하지 않았고 기존 Real Match handoff도 재생성하지 않았다. 다음 권장 단계는 가장 큰 roster/Draft/input 준비 묶음을 더 세분하는 별도 최적화 계약과, 20–34MB 중 거의 전부를 차지하는 timeline payload 전달 계약을 분리해 설계하는 것이다.
+
 ### Pre-Jungle baseline
 
 공식 oracle은 `PRE_JUNGLE_RUNTIME_BASELINE_V2`다. Focused tests와 final full regression이 clean pass하고 production source guard가 동일한 tree에서만 `generatePreJungleRuntimeBaselineV2`를 실행했다. 새 JVM 재생성도 source artifact와 byte-identical하게 성공했다.
@@ -304,7 +317,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Pending
 
-1. Real Match payload 압축/projection/streaming 또는 worker parsing을 별도 frontend/backend hardening 계약으로 설계한다.
+1. Real Match roster/Draft/input 준비 묶음의 내부 phase를 더 세분하는 backend 최적화 계약과 timeline payload 압축/projection/streaming 또는 worker parsing 계약을 분리해 설계한다.
 2. `SERIES_LIFECYCLE_V1`에서 BO3/BO5와 누적 Hard Fearless history를 caller-owned series context로 설계한다. Save/Career/Season persistence는 그 이후 별도 범위다.
 3. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 4. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.

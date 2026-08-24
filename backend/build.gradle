@@ -31,6 +31,25 @@ tasks.named('test') {
     maxHeapSize = '2g'
 }
 
+tasks.register("runRealMatchPerformanceBaselineV1", Test) {
+    group = "verification"
+    description = "Captures the two-fixture Real Match V1 performance baseline in one fresh JVM."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "real-match-performance-baseline-v1"
+    }
+    maxHeapSize = "3g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    systemProperty "lolfm.gradleVersion", gradle.gradleVersion
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/realMatchPerformanceBaselineV1")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/realMatchPerformanceBaselineV1")
+}
+
 tasks.register('runBountyDiagnostics', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'com.lolfm.simulator.BountyDiagnosticRunner'
