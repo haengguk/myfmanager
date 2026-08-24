@@ -5,11 +5,19 @@ import { Toast } from './components/Toast';
 import { inboxMessages } from './features/inbox/inbox.fixtures';
 import { InboxPage } from './features/inbox/InboxPage';
 import type { ToastMessage } from './features/inbox/inbox.types';
+import { draftFixture, playbackFixture } from './features/real-match/realMatch.fixtures';
+import { applyDraftResult } from './features/real-match/realMatch.adapter';
+import { DraftRoomPage } from './features/real-match/draft/DraftRoomPage';
+import { MatchPlaybackPage } from './features/real-match/playback/MatchPlaybackPage';
+import type { DraftResultViewModel } from './features/real-match/realMatch.types';
 import { AppShell } from './layout/AppShell';
 import type { AppSection } from './layout/Sidebar';
 
+type ActiveScreen = AppSection | 'draft' | 'playback';
+
 function RootApp() {
-  const [activeSection, setActiveSection] = useState<AppSection>('inbox');
+  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('inbox');
+  const [draftResult, setDraftResult] = useState<DraftResultViewModel | null>(null);
   const [searchValue, setSearchValue] = useState('');
   const [gameTime, setGameTime] = useState('오후 1:42');
   const [progressModalOpen, setProgressModalOpen] = useState(false);
@@ -23,6 +31,10 @@ function RootApp() {
     () => inboxMessages.filter((message) => message.important && unreadIds.has(message.id)).length,
     [unreadIds],
   );
+  const playbackViewModel = useMemo(
+    () => draftResult ? applyDraftResult(playbackFixture, draftResult) : playbackFixture,
+    [draftResult],
+  );
 
   const showToast = useCallback((title: string, message: string) => {
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
@@ -33,6 +45,16 @@ function RootApp() {
   useEffect(() => () => {
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
   }, []);
+
+  useEffect(() => {
+    document.title = activeScreen === 'draft'
+      ? 'lolmanager — Draft Room'
+      : activeScreen === 'playback'
+        ? 'lolmanager — Match Playback'
+        : activeScreen === 'match'
+          ? 'lolmanager — 경기 센터'
+          : 'lolmanager — 홈·수신함';
+  }, [activeScreen]);
 
   const markRead = useCallback((messageId: string) => {
     setUnreadIds((current) => {
@@ -50,6 +72,16 @@ function RootApp() {
     showToast('시간 진행 완료', '게임 시간이 오후 2:00로 진행되었습니다.');
   }, [showToast]);
 
+  if (activeScreen === 'draft') {
+    return <DraftRoomPage viewModel={draftFixture} onBack={() => setActiveScreen('match')} onComplete={(result) => { setDraftResult(result); setActiveScreen('playback'); }} />;
+  }
+
+  if (activeScreen === 'playback') {
+    return <MatchPlaybackPage viewModel={playbackViewModel} onBack={() => setActiveScreen('match')} onDraft={() => { setDraftResult(null); setActiveScreen('draft'); }} />;
+  }
+
+  const activeSection: AppSection = activeScreen;
+
   return (
     <>
       <AppShell
@@ -57,9 +89,10 @@ function RootApp() {
         screenTitle={activeSection === 'inbox' ? '수신함' : '경기 센터'}
         searchValue={searchValue}
         gameTime={gameTime}
-        onNavigate={setActiveSection}
+        primaryActionLabel={activeSection === 'match' ? '드래프트 룸' : '다음 진행'}
+        onNavigate={setActiveScreen}
         onSearchChange={setSearchValue}
-        onContinue={() => setProgressModalOpen(true)}
+        onContinue={() => activeSection === 'match' ? setActiveScreen('draft') : setProgressModalOpen(true)}
         onNotify={showToast}
       >
         {activeSection === 'inbox' ? (

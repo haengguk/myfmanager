@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChampionPortrait } from './components/champion/ChampionPortrait';
 import type { ChampionCatalogResponse, ChampionDefinitionDto, ChampionLineupRequest, ChampionSelectionRequest, MatchEvent, MatchSimulateResponse, MatchSnapshot, MidGameMacroSnapshot, PlayerSnapshot, Position, TeamMacroSnapshot, LateGameSnapshot } from './types/match';
 
 const API_URL = 'http://localhost:8080/api/matches/simulate';
@@ -18,14 +19,6 @@ const CHAMPION_SLOTS = [
   { key: 'adc', label: 'ADC', position: 'ADC' },
   { key: 'sup', label: 'SUP', position: 'SUPPORT' }
 ] as const satisfies ReadonlyArray<{ key: keyof ChampionLineupRequest; label: string; position: Position }>;
-
-function ChampionPortrait({ champion, className = '' }: { champion: Pick<ChampionDefinitionDto, 'displayNameKo' | 'portraitUrl'>; className?: string }) {
-  const [failed, setFailed] = useState(false);
-  const initials = champion.displayNameKo.replace(/\s/g, '').slice(0, 2);
-  return failed ? <span className={`champion-fallback ${className}`} aria-label={`${champion.displayNameKo} 이미지 대체`}>{initials}</span> : (
-    <img className={`champion-portrait ${className}`} src={champion.portraitUrl} alt="" onError={() => setFailed(true)} />
-  );
-}
 
 function formatTime(seconds: number): string {
   const safeSeconds = Math.max(0, Math.floor(seconds));
@@ -490,7 +483,7 @@ function App() {
                     return (
                       <label className="champion-slot" key={`${side}-${slot.key}`}>
                         <span className="champion-slot-position">{slot.label}</span>
-                        <ChampionPortrait champion={selected} />
+                        <ChampionPortrait name={selected.displayNameKo} portraitUrl={selected.portraitUrl} />
                         <span className="champion-slot-copy"><b>{selected.displayNameKo}</b><small>{selected.displayNameEn}</small><em>{selected.profileSummary}</em></span>
                         <select value={selectedId} onChange={(event) => updateChampion(side, slot.key, event.target.value)} disabled={loading} aria-label={`${side} ${slot.label} 챔피언`}>
                           {options.map((champion) => (
@@ -843,7 +836,7 @@ function App() {
                           <td>{player.position}</td>
                           <td>
                             <div className="player-cell">
-                              <div className="player-identity"><ChampionPortrait champion={player.champion} className="roster-portrait" /><span><b>{player.playerName}</b><small>{player.champion.displayNameKo} · {player.position}</small></span></div>
+                              <div className="player-identity"><ChampionPortrait name={player.champion.displayNameKo} portraitUrl={player.champion.portraitUrl} className="roster-portrait" /><span><b>{player.playerName}</b><small>{player.champion.displayNameKo} · {player.position}</small></span></div>
                               <span className="progression-badge">Lv. {player.level} · {itemStageLabel(player.itemStage)}</span>
                               {!player.alive ? (
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
@@ -888,7 +881,7 @@ function App() {
                           <td>{player.position}</td>
                           <td>
                             <div className="player-cell">
-                              <div className="player-identity"><ChampionPortrait champion={player.champion} className="roster-portrait" /><span><b>{player.playerName}</b><small>{player.champion.displayNameKo} · {player.position}</small></span></div>
+                              <div className="player-identity"><ChampionPortrait name={player.champion.displayNameKo} portraitUrl={player.champion.portraitUrl} className="roster-portrait" /><span><b>{player.playerName}</b><small>{player.champion.displayNameKo} · {player.position}</small></span></div>
                               <span className="progression-badge">Lv. {player.level} · {itemStageLabel(player.itemStage)}</span>
                               {!player.alive ? (
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>

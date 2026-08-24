@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Pretendard Variable';
+  src: url('../assets/fonts/PretendardVariable.woff2') format('woff2-variations');
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: swap;
+}
+
 :root {
   --lm-bg: oklch(12.5% 0.012 250);
   --lm-surface: oklch(16.5% 0.014 250);
@@ -18,8 +26,8 @@
   --lm-on-accent: oklch(14% 0.025 185);
   --lm-focus: oklch(78% 0.14 185);
   --lm-overlay: oklch(6% 0.01 250 / 0.78);
-  --lm-font-display: 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  --lm-font-body: 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --lm-font-display: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --lm-font-body: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --lm-font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   --lm-radius-sm: 4px;
   --lm-radius-md: 7px;

@@ -4,6 +4,7 @@ import './App.css';
 import './styles/tokens.css';
 import './styles/shell.css';
 import './styles/inbox.css';
+import './styles/real-match.css';
 import RootApp from './RootApp';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

@@ -4,12 +4,13 @@ interface GlobalHeaderProps {
   screenTitle: string;
   searchValue: string;
   gameTime: string;
+  primaryActionLabel?: string;
   onSearchChange: (value: string) => void;
   onContinue: () => void;
   onNotify: (title: string, message: string) => void;
 }
 
-export function GlobalHeader({ screenTitle, searchValue, gameTime, onSearchChange, onContinue, onNotify }: GlobalHeaderProps) {
+export function GlobalHeader({ screenTitle, searchValue, gameTime, primaryActionLabel = '다음 진행', onSearchChange, onContinue, onNotify }: GlobalHeaderProps) {
   return (
     <header className="lm-global-header">
       <button className="lm-icon-button" type="button" aria-label="이전 화면" title="이전 화면" onClick={() => onNotify('이전 화면', '이전 화면 기록이 없습니다.')}>
@@ -54,7 +55,7 @@ export function GlobalHeader({ screenTitle, searchValue, gameTime, onSearchChang
       <button className="lm-icon-button" type="button" aria-label="설정 열기" title="설정" onClick={() => onNotify('설정', '환경 설정은 아직 준비 중입니다.')}>
         <Icon name="settings" />
       </button>
-      <button className="lm-primary-button lm-continue-button" type="button" onClick={onContinue}>다음 진행</button>
+      <button className="lm-primary-button lm-continue-button" type="button" onClick={onContinue}>{primaryActionLabel}</button>
     </header>
   );
 }
