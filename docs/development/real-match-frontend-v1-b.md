@@ -84,6 +84,28 @@ Checked-in reference 응답 artifact는 개행 차이를 포함해 33,617,922 B�
 
 따라서 기존 Chromium `요청+다운로드` 54.4초/35.5초는 backend local HTTP median만의 값이 아니며, 반대로 MatchEngine execution만으로도 설명되지 않는다. 두 측정은 서로 다른 관찰 경계를 가진다. Backend 상세 raw run과 환경은 `backend/build/reports/real-match-performance-baseline-v1/`에 있고 status는 `REAL_MATCH_PERFORMANCE_BASELINE_CAPTURED`다.
 
+### Runtime hardening 및 Auto Draft 분해
+
+후속 감사에서 과거 개발용 `bootRun`이 Spring Boot optimized launch의 `-XX:TieredStopAtLevel=1` 때문에 C1-only로 실행됐음을 실제 JVM flag로 확인했다. `bootRun.optimizedLaunch=false`로 개발 실행 경로를 정상 tiered/C2 경계로 되돌린 뒤, fixture별 fresh JVM의 결과는 다음과 같다.
+
+| 실행 경계 | GEN–T1/73 first / warm | HLE–DK/-73 first / warm |
+| --- | ---: | ---: |
+| hardened `bootRun` | 15.750 / 13.933초 | 12.166 / 10.612초 |
+| packaged JAR | 16.878 / 13.682초 | 12.554 / 9.655초 |
+
+네 JVM 모두 `TieredStopAtLevel=4 {default}`와 C2용 profiled/non-profiled code heap을 노출했고, HTTP response/output/replay/timeline/Random identity는 기존 frozen 결과와 exact였다. 따라서 층위는 다음처럼 구분한다.
+
+1. 과거 C1-only optimized-launch `bootRun`
+2. 현재 hardened `bootRun` first/warm
+3. 일반 packaged JAR first/warm
+4. 기존 performance baseline test JVM
+5. 브라우저 다운로드/JSON parse/runtime validation/normalization/render
+6. 정상 JVM의 automatic Draft 자체
+
+정상 JVM 12-fixture×2 측정에서 automatic Draft median/p90/max는 11.173/13.420/15.412초였고, roster/context/fresh history/Draft/input 준비 구간의 run별 Draft 비중 median은 99.9901%였다. BAN/PICK turn median은 733.136/487.298ms다. 즉 backend의 남은 주 CPU 비용은 자동 Draft이며 frontend parse/validation은 별도 경계다. JFR은 `DraftAvailability`, `PreDraftPlanner`, `RoleAssignmentSolver` 경로를 hotspot으로 가리키지만 sampling evidence이므로 절대 비율로 해석하지 않는다.
+
+이 hardening은 gameplay나 화면 기능을 바꾸지 않는다. 세부 raw evidence는 `backend/build/reports/real-match-runtime-auto-draft-scalability-v1/`에 있고 다음 단계는 `DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`이다. Payload 전달/파싱 hardening은 이 Draft 최적화와 분리한다.
+
 ## 검증 명령
 
 ```text
@@ -99,10 +121,10 @@ npm run bundle:verify
 
 ## 남은 제한과 다음 단계
 
-- Full response는 20–34MB이며 Chromium 전체 요청 경계는 35–54초였다. Backend baseline에서는 roster/Draft/input 준비 묶음과 timeline payload가 각각 가장 큰 실행 phase와 byte 영역으로 관찰됐다. 두 영역의 추가 분해와 압축, projection endpoint, streaming/worker parsing, 정확한 progress는 별도 hardening 대상이다.
+- Full response는 20–34MB이며 과거 Chromium 전체 요청 경계는 35–54초였다. 이는 옛 C1-only `bootRun`을 포함한 값이다. Hardened `bootRun`/JAR은 fixture별 first/warm 9.7–16.9초였고 정상 JVM에서도 automatic Draft median 11.173초가 남는다. Draft 최적화와 압축/projection/streaming/worker parsing은 별도 hardening 대상이다.
 - Ban entry에는 display name/portrait가 없어 frontend가 structured ChampionId에서 asset을 보완한다. API champion presentation/catalog를 추가하면 fallback과 영문 표시를 제거할 수 있다.
 - 현재 API는 fresh single Game 1이다. BO3/BO5와 누적 Hard Fearless는 `SERIES_LIFECYCLE_V1` 범위다.
 - Save/Load, Career/Season persistence는 아직 없다.
 - CORS 개발 origin은 `http://localhost:5173` 경계를 따른다.
 
-다음 제품 단계는 payload 전달/파싱 hardening과 `SERIES_LIFECYCLE_V1` 설계를 분리해 진행한다. Gameplay engine, balance와 backend 응답 의미를 frontend 최적화 과정에서 재정의하지 않는다.
+다음 backend 단계는 `DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`이며, payload 전달/파싱 hardening과 `SERIES_LIFECYCLE_V1`은 서로 분리해 진행한다. Gameplay engine, balance와 backend 응답 의미를 frontend 최적화 과정에서 재정의하지 않는다.

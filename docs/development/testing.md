@@ -427,6 +427,41 @@ Contract test는 incomplete schedule, Fixture A drift, output/result/Random/HTTP
 
 Status는 `REAL_MATCH_PERFORMANCE_BASELINE_CAPTURED`, run은 warmup 2 + measured 6으로 완전하며 manifest 4/4 raw SHA가 통과했다. Manifest raw SHA-256은 `c9b4659c4d602fb33c7295885cdc2685a4991469cc4cc0b097ca2d1a20cb26ee`다. 이 timing은 현재 측정 환경의 관찰값이며 correctness 또는 brittle latency gate가 아니다.
 
+### Real Match runtime hardening / Auto Draft scalability V1
+
+`bootRun`은 CPU 집약 Real Match 서버에서 Spring Boot C1-only optimized launch를 사용하지 않는다. 빠른 설정 및 Draft contract 검증은 다음 순서로 실행한다.
+
+```text
+gradlew.bat verifyRealMatchBootRunRuntimeHardeningV1 --console=plain --no-daemon
+gradlew.bat test \
+  --tests com.lolfm.draft.AutoDraftScalabilityScheduleV1Test \
+  --tests com.lolfm.controller.RealMatchRuntimeAutoDraftScalabilityV1ArtifactsTest \
+  --console=plain --no-daemon
+gradlew.bat test \
+  --tests com.lolfm.draft.AutoDraftObservationHarnessV1Test \
+  --console=plain --no-daemon
+gradlew.bat verifyRealMatchAutoDraftCrossJvmV1 --console=plain --no-daemon
+```
+
+Contract는 `bootRun.optimizedLaunch=false`와 `TieredStopAtLevel` JVM arg 부재, 기존 performance manifest raw SHA와 4/4 entry, 12-fixture/양 side 10팀, canonical JSON/CSV, manifest one-byte tamper 거부와 default diagnostic 제외를 검사한다. Draft harness는 production implementation과 결정/점수/alternatives/bans/picks/final role/Match assignment를 비교하고 JFR ON/OFF, same-JVM counter, 20턴 BAN/PICK coverage를 검증한다. Cross-JVM task는 GEN–T1 production Draft/final-assignment/input identity를 두 fresh JVM에서 byte 비교한다. Timing 숫자는 assertion gate가 아니다.
+
+Final executable tree에서는 `gradlew.bat test --console=plain --no-daemon`을 한 번 실행했고 201 suites / 2,106 tests / failures 0 / errors 0 / skipped 0, JUnit XML 1,125.077초, Gradle wall 19분 2초로 통과했다. 이후 production Java/resource/build wiring을 바꾸지 않았다.
+
+공식 runtime evidence는 fixture마다 별도 fresh `bootRun`/JAR JVM과 전용 임시 port를 사용한다. `runRealMatchExternalRuntimeProbeV1`에 base URL, launch mode, 소유 PID와 frozen fixture/output path를 전달하면 options만 preflight한 뒤 first/warm simulation을 실행한다. Probe는 실제 `jcmd VM.flags -all`/`Compiler.codecache`, HTTP status/body/encoding, output/replay/timeline/Random identity를 검증한다. 다른 서버를 broad kill하지 말고 자신이 시작한 PID만 종료한다.
+
+네 runtime JSON이 `build/reports/real-match-runtime-auto-draft-scalability-v1-inputs/`에 있으면 다음 diagnostic이 global warmup 1회 후 12 fixture×2 measured Draft를 순차 실행한다.
+
+```text
+gradlew.bat runRealMatchRuntimeAutoDraftScalabilityAuditV1 \
+  --console=plain --no-daemon
+cd build/reports/real-match-runtime-auto-draft-scalability-v1
+sha256sum -c SHA256SUMS.txt
+```
+
+공식 결과는 full Draft median/p90/max 11.173/13.420/15.412초, BAN median 733.136ms, PICK median 487.298ms, 준비 구간 내 Draft median share 99.9901%다. Exact counter는 Draft당 replan 1,362회, candidate generation 680회/8,160개, action evaluation 1,560회다. JFR CPU/allocation 상위는 `DraftAvailability`, `PreDraftPlanner.candidatePlanValue`, `RoleAssignmentSolver`였지만 sample/profiler evidence일 뿐 exact byte나 인과 비율은 아니다.
+
+Artifact status는 `REAL_MATCH_RUNTIME_HARDENED_AND_AUTO_DRAFT_SCALABILITY_AUDIT_CAPTURED`, manifest 7/7과 raw SHA-256 `751cb19ccf55b34cc0bf4a410a292ba66df4e84d566dd1e217b4a68712d3be8b`다. 이 report는 correctness input이나 production source of truth가 아니며, search/scoring/tuning/cache 변경 없이 다음 `DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`의 기준선으로만 사용한다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.

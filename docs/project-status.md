@@ -226,6 +226,35 @@ Fixture A는 V8 handoff output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b18
 
 공식 local artifact는 `backend/build/reports/real-match-performance-baseline-v1/`의 contract, raw runs CSV, summary, analysis와 `SHA256SUMS.txt`다. Manifest 4/4 raw SHA가 통과했고 manifest raw SHA-256은 `c9b4659c4d602fb33c7295885cdc2685a4991469cc4cc0b097ca2d1a20cb26ee`다. 이 milestone은 gameplay/tuning/schema/frontend/async/streaming/compression activation을 변경하지 않았고 기존 Real Match handoff도 재생성하지 않았다. 다음 권장 단계는 가장 큰 roster/Draft/input 준비 묶음을 더 세분하는 별도 최적화 계약과, 20–34MB 중 거의 전부를 차지하는 timeline payload 전달 계약을 분리해 설계하는 것이다.
 
+### Real Match runtime hardening and Auto Draft scalability audit V1
+
+기존 Spring Boot Gradle `bootRun`의 optimized launch는 실제 JVM에 `-XX:TieredStopAtLevel=1`을 넣어 CPU 집약적인 Real Match Draft를 C1-only로 실행했다. `bootRun.optimizedLaunch=false`를 명시해 이 개발 실행 경로만 정상 tiered compilation으로 되돌렸다. Packaged JAR과 test JVM 설정은 바꾸지 않았다. 변경 뒤 네 fresh JVM의 `TieredStopAtLevel`은 모두 `4 {default}`였고 profiled/non-profiled nmethods code heap이 존재했다.
+
+| 실행 경계 | GEN–T1/73 first / warm | HLE–DK/-73 first / warm |
+| --- | ---: | ---: |
+| hardened `bootRun` | 15.750 / 13.933초 | 12.166 / 10.612초 |
+| packaged JAR | 16.878 / 13.682초 | 12.554 / 9.655초 |
+
+모든 first/warm 응답은 HTTP 200, 무압축 body와 frozen winner/duration/event/snapshot을 유지했다. GEN–T1 output `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`, HLE–DK output `fef2dfd3c522a69f7393bf46196ac9319cb4b6981e9131c694a01239d7aaabb0`뿐 아니라 response/output/replay/simulator timeline/structured timeline/Random fingerprint가 각 fixture의 first/warm에서 exact였다. 따라서 이전 Chromium 54.4초/35.5초는 정상화된 backend 실행시간의 일반값이 아니다. 옛 C1-only `bootRun`, hardened `bootRun`, JAR, 기존 baseline test JVM, 브라우저 다운로드/parse/validation/render는 서로 다른 관찰 경계다.
+
+정상 JVM의 12-fixture performance coverage는 모든 실제 10팀을 BLUE/RED에 각각 포함하고, global warmup 1회 뒤 fresh Game 1을 fixture당 2회씩 순차 측정했다. Schedule hash는 `8888526d5085a5bfcc75b1495223e4babeba0c69fa63dd8c9a8adda9e2315b00`이다. Test-side decomposition 24/24는 production `DraftEngine.draft()`의 20 decisions, 점수/alternatives, bans/picks, final role와 Match assignment, final Draft/assignment/input identity에 exact였다.
+
+| Auto Draft 관측 | median | p90 | max |
+| --- | ---: | ---: | ---: |
+| full automatic Draft | 11.173초 | 13.420초 | 15.412초 |
+| roster + context + fresh history + Draft + input | 11.177초 | 13.422초 | 15.413초 |
+| 전체 turn | 549.954ms | 973.463ms | 1,858.374ms |
+| BAN turn | 733.136ms | 1,017.033ms | 1,858.374ms |
+| PICK turn | 487.298ms | 665.639ms | 1,054.154ms |
+
+Run별 Draft 비중 median은 준비 구간의 99.9901%였다. Roster assembly median 0.192ms, `DraftTeamContext` 0.022ms, Match Engine input projection 0.943ms로 관찰돼 기존 묶음의 주 비용은 자동 Draft로 좁혀졌다. 초반 BAN 1~4턴 평균은 949~995ms였고 마지막 PICK 19/20턴은 62.167/5.624ms였다. Draft당 exact counter는 initial plan 2, replan 1,362, candidate generation 680회/8,160개, action evaluation 1,560회, continuation node 1,560개다.
+
+10ms JFR sampling의 CPU 상위 경로는 `DraftAvailability.poolHealth/available`, `PreDraftPlanner.candidatePlanValue`, `RoleAssignmentSolver.enumerate/feasibleAssignments`였다. Allocation sample도 `candidatePlanValue`, `poolHealth`, role assignment enumeration이 상위였다. 이는 profiler overhead가 있는 sample evidence이며 exact 인과관계나 실제 할당 byte 총량으로 해석하지 않는다. Exact한 것은 별도 deterministic counter다.
+
+직렬 projection은 median/p90 기준 100게임 18.62/22.37분, 250게임 46.55/55.92분, 1,000게임 3.10/3.73시간이다. worker 수로 단순 나눈 병렬 보장은 아니며 CPU contention, GC, 메모리, scheduling overhead를 포함하지 않는다. 다음 별도 milestone `DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`은 위 planner/availability/role-feasibility 반복 경로를 우선 대상으로 삼는다. 이번 작업은 search depth/beam/candidate/scoring/order, cache, gameplay, Random, API, frontend를 바꾸거나 Draft를 최적화하지 않았다.
+
+공식 artifact는 `backend/build/reports/real-match-runtime-auto-draft-scalability-v1/`의 contract, runtime/fixture/turn raw CSV, hotspot/summary JSON, analysis와 `SHA256SUMS.txt`다. Status는 `REAL_MATCH_RUNTIME_HARDENED_AND_AUTO_DRAFT_SCALABILITY_AUDIT_CAPTURED`, 7/7 entry가 통과했으며 manifest raw SHA-256은 `751cb19ccf55b34cc0bf4a410a292ba66df4e84d566dd1e217b4a68712d3be8b`다. 기존 performance manifest `c9b4659c4d602fb33c7295885cdc2685a4991469cc4cc0b097ca2d1a20cb26ee`와 4/4 entry는 재생성 없이 다시 검증했다.
+
 ### Pre-Jungle baseline
 
 공식 oracle은 `PRE_JUNGLE_RUNTIME_BASELINE_V2`다. Focused tests와 final full regression이 clean pass하고 production source guard가 동일한 tree에서만 `generatePreJungleRuntimeBaselineV2`를 실행했다. 새 JVM 재생성도 source artifact와 byte-identical하게 성공했다.
@@ -294,6 +323,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - B2/B3 manifest를 다시 검증하고 player/champion/team/fixture 민감도를 분리해 현재 runtime 유지와 Match Engine V1 freeze readiness를 고정한 Final 13G-B production decision
 - `BASELINE_V1` production policy, complete immutable roster/Draft input, final-snapshot summary, immutable structured timeline, mandatory provenance와 cross-JVM hash를 하나의 additive application facade로 고정한 Match Engine V1
 - 실제 LCK 10팀/50명 options, explicit seed, automatic Draft, frozen result/timeline/provenance와 strict 오류 계약을 제공하는 additive Real Match API V1
+- C1-only 개발 실행을 제거한 hardened `bootRun`과 production-equivalent Auto Draft/JFR/counter scalability 기준선
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -305,7 +335,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 ## Partial / Disabled
 
 - Real LCK Draft→Match flow는 Frontend V1-B의 기본 LIVE 공급자와 연결됐다. Reference는 명시적 회귀 모드로만 남고 자동 fallback하지 않는다.
-- Full response는 현재 20–34MB이며 local simulation/전송에 35–54초가 걸린다. 압축/projection/streaming/worker parsing과 정확한 progress는 후속 hardening 범위다.
+- Full response는 현재 20–34MB다. 과거 Chromium 35–54초는 옛 C1-only `bootRun`을 포함한 브라우저 전체 경계이고, hardened `bootRun`/JAR first-warm은 fixture별 9.7–16.9초였다. payload 압축/projection/streaming/worker parsing과 정확한 progress는 별도 후속 범위다.
 - Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
 - 기존 `POST /api/matches/simulate`는 호환성을 위해 Dummy roster와 legacy timeline 경로를 계속 사용한다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
@@ -317,7 +347,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Pending
 
-1. Real Match roster/Draft/input 준비 묶음의 내부 phase를 더 세분하는 backend 최적화 계약과 timeline payload 압축/projection/streaming 또는 worker parsing 계약을 분리해 설계한다.
+1. `DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`에서 `DraftAvailability.poolHealth/available`, `PreDraftPlanner.candidatePlanValue`, `RoleAssignmentSolver` feasibility/enumeration 반복 비용을 결정성·결과 identity를 보존하며 최적화한다. Timeline payload 압축/projection/streaming 또는 worker parsing 계약은 별도로 설계한다.
 2. `SERIES_LIFECYCLE_V1`에서 BO3/BO5와 누적 Hard Fearless history를 caller-owned series context로 설계한다. Save/Career/Season persistence는 그 이후 별도 범위다.
 3. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 4. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
@@ -370,6 +400,8 @@ Match Engine V1 focused/cross-JVM/affected regression은 8 suites / 42 tests, fa
 Historical Real Match API V1 최초 hardening은 8 suites / 50 tests와 complete backend 180 suites / 2,016 tests를 clean pass해 당시 V6 handoff를 만들었다. 이후 production이 V7과 player-rating runtime V8로 진화했지만 generated local handoff와 문서가 자동 갱신되지 않아 V7/V6 evidence가 남아 있었다.
 
 Current V8 handoff refresh에서는 binary font를 UTF-8 text로 읽던 backend test scanner를 명시적 text-source 경계로 고쳐 영향 focused 6 suites / 214 tests를 clean pass했다. API focused는 V8 ability profile projection을 포함해 9 suites / 55 tests, failures/errors/skipped 0으로 통과했다. Final executable tree의 complete backend regression은 첫 실행에서 196 suites / 2,091 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 810.092초, Gradle wall 13분 43초로 clean pass했다. Clean XML과 current source binding을 검증한 두 fresh JVM candidate는 7/7 byte-identical이었고 V8 semantic audit 및 official manifest 6/6을 통과했다. 이후에는 generated artifact와 문서만 갱신했으므로 full을 반복하지 않았다. Frontend/npm/Playwright, B2/B3/Final 13G-B, 대규모 diagnostics와 baseline generator는 범위 밖이라 실행하지 않았다.
+
+Real Match runtime hardening final executable tree는 focused Draft decomposition/JFR ON-OFF/same-JVM counter, 20-turn/BAN-PICK schedule, 기존 performance manifest 4/4, artifact tamper, bootRun contract와 두 fresh JVM cross-process identity를 통과했다. Complete backend regression은 단 한 번 실행해 201 suites / 2,106 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 1,125.077초, Gradle wall 19분 2초로 clean pass했다. 그 뒤 executable source를 바꾸지 않고 네 fresh runtime HTTP observation과 12-fixture×2 measured Draft audit만 생성했다.
 
 Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 

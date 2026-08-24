@@ -1,3 +1,6 @@
+import java.nio.file.Files
+import java.util.Arrays
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.3'
@@ -29,6 +32,106 @@ tasks.named('test') {
         excludeTags 'diagnostic'
     }
     maxHeapSize = '2g'
+}
+
+tasks.named('bootRun') {
+    // Real Match Draft/search is CPU intensive and must not be restricted to C1-only code.
+    optimizedLaunch = false
+}
+
+tasks.register("verifyRealMatchBootRunRuntimeHardeningV1") {
+    group = "verification"
+    description = "Verifies bootRun keeps the normal tiered C2-capable JVM launch semantics."
+    doLast {
+        def configuredBootRun = tasks.named("bootRun").get()
+        if (configuredBootRun.optimizedLaunch.get()) {
+            throw new GradleException("bootRun optimized launch must be disabled")
+        }
+        if (configuredBootRun.jvmArgs.any { String value ->
+            value.contains("TieredStopAtLevel")
+        }) {
+            throw new GradleException("bootRun must not force TieredStopAtLevel")
+        }
+    }
+}
+
+tasks.register("runRealMatchExternalRuntimeProbeV1", JavaExec) {
+    group = "verification"
+    description = "Captures JVM flags and first/warm Real Match HTTP observations from a caller-owned server."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.controller.RealMatchExternalRuntimeProbeV1"
+    dependsOn(testClasses)
+    doFirst {
+        List<String> requiredProperties = [
+                "probeBaseUrl", "probeLaunchMode", "probePid", "probeFixtureId",
+                "probeBlueTeam", "probeRedTeam", "probeSeed", "probeOutput"]
+        List<String> missing = requiredProperties.findAll { String name ->
+            !project.hasProperty(name)
+        }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing runtime probe properties: ${missing}")
+        }
+        args requiredProperties.collect { String name -> project.property(name).toString() }
+    }
+    outputs.upToDateWhen { false }
+}
+
+["A", "B"].each { String suffix ->
+    tasks.register("runRealMatchAutoDraftCrossJvmProbe${suffix}", Test) {
+        group = "verification"
+        description = "Captures representative Auto Draft identity in fresh JVM ${suffix}."
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        useJUnitPlatform {
+            includeTags "auto-draft-cross-jvm-v1"
+        }
+        maxHeapSize = "3g"
+        maxParallelForks = 1
+        failFast = true
+        outputs.upToDateWhen { false }
+        systemProperty "autoDraftProbeOutput", layout.buildDirectory.file(
+                "reports/real-match-runtime-auto-draft-scalability-v1-inputs/"
+                        + "cross-jvm-${suffix.toLowerCase()}.json").get().asFile.absolutePath
+        reports.html.outputLocation = layout.buildDirectory.dir(
+                "reports/tests/realMatchAutoDraftCrossJvm${suffix}")
+        reports.junitXml.outputLocation = layout.buildDirectory.dir(
+                "test-results/realMatchAutoDraftCrossJvm${suffix}")
+    }
+}
+
+tasks.register("verifyRealMatchAutoDraftCrossJvmV1") {
+    group = "verification"
+    description = "Byte-verifies representative Draft/final-assignment/input identity across fresh JVMs."
+    dependsOn("runRealMatchAutoDraftCrossJvmProbeA",
+            "runRealMatchAutoDraftCrossJvmProbeB")
+    doLast {
+        def directory = layout.buildDirectory.dir(
+                "reports/real-match-runtime-auto-draft-scalability-v1-inputs").get().asFile.toPath()
+        byte[] first = Files.readAllBytes(directory.resolve("cross-jvm-a.json"))
+        byte[] second = Files.readAllBytes(directory.resolve("cross-jvm-b.json"))
+        if (!Arrays.equals(first, second)) {
+            throw new GradleException("Cross-JVM Auto Draft identity mismatch")
+        }
+    }
+}
+
+tasks.register("runRealMatchRuntimeAutoDraftScalabilityAuditV1", Test) {
+    group = "verification"
+    description = "Captures the official hardened-runtime and sequential Auto Draft scalability audit."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "real-match-runtime-auto-draft-scalability-v1"
+    }
+    maxHeapSize = "3g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    systemProperty "lolfm.gradleVersion", gradle.gradleVersion
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/realMatchRuntimeAutoDraftScalabilityV1")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/realMatchRuntimeAutoDraftScalabilityV1")
 }
 
 tasks.register("runRealMatchPerformanceBaselineV1", Test) {
