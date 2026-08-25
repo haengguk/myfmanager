@@ -12,14 +12,14 @@ class StructureActionAttemptAuditTest {
     private final StructureResolver structures = new StructureResolver();
     private final PushResolver pushes = new PushResolver();
 
-    @Test void failedObjectiveTradeBlocksSameSideLateGameAttempt() {
+    @Test void failedObjectiveTradeDoesNotConsumeStructureSlot() {
         GameState state = ObjectiveDecisionTestSupport.dragonState(true);
         MatchEvent capture = new ObjectiveDecisionResolver().resolve(state, ObjectiveType.DRAGON, TeamSide.BLUE, 0,
                 new ObjectiveDecisionTestSupport.SequenceRandom(0, .999, .999), new ObjectiveResolver(), structures,
                 new ArrayList<>(), null).orElseThrow();
         assertThat(capture.getObjectiveDecision().tradeRollExecuted()).isTrue();
         assertThat(capture.getObjectiveDecision().tradeSucceeded()).isFalse();
-        assertThat(state.wasStructureActionAttemptedThisTick(TeamSide.RED)).isTrue();
+        assertThat(state.wasStructureActionAttemptedThisTick(TeamSide.RED)).isFalse();
         assertThat(state.wasStructureMutationPerformedThisTick(TeamSide.RED)).isFalse();
     }
 
@@ -30,7 +30,11 @@ class StructureActionAttemptAuditTest {
         GameState state = macroState();
         assertThat(new BaseThreatEvaluator().evaluate(state, TeamSide.RED)).isNotNull();
         state.getMapState().markPushAttempted(TeamSide.RED, state.getCurrentTimeSeconds(), 10_000);
-        assertThat(pushes.maybeResolveMacroPush(state, new CountingRandom(0), structures)).isPresent();
+        double before = state.getMapState().getLaneState(TeamSide.RED, Lane.TOP)
+                .getTowerCurrentHealth(TowerTier.OUTER);
+        assertThat(pushes.maybeResolveMacroPush(state, new CountingRandom(0), structures)).isEmpty();
+        assertThat(state.getMapState().getLaneState(TeamSide.RED, Lane.TOP)
+                .getTowerCurrentHealth(TowerTier.OUTER)).isLessThan(before);
         assertThat(state.wasStructureMutationPerformedThisTick(TeamSide.BLUE)).isTrue();
     }
 
@@ -40,14 +44,18 @@ class StructureActionAttemptAuditTest {
                 LateGameStructureTarget.NEXUS, PushReason.NEXUS_FINISH)).isEmpty();
         assertThat(state.wasStructureActionAttemptedThisTick(TeamSide.BLUE)).isFalse();
         state.getMapState().markPushAttempted(TeamSide.RED, state.getCurrentTimeSeconds(), 10_000);
-        assertThat(pushes.maybeResolveMacroPush(state, new CountingRandom(0), structures)).isPresent();
+        double before = state.getMapState().getLaneState(TeamSide.RED, Lane.TOP)
+                .getTowerCurrentHealth(TowerTier.OUTER);
+        assertThat(pushes.maybeResolveMacroPush(state, new CountingRandom(0), structures)).isEmpty();
+        assertThat(state.getMapState().getLaneState(TeamSide.RED, Lane.TOP)
+                .getTowerCurrentHealth(TowerTier.OUTER)).isLessThan(before);
     }
 
     @Test void failedBlueAttemptDoesNotBlockRedStructureAttempt() {
         GameState state = macroState();
         state.markStructureActionAttempted(TeamSide.BLUE);
         Optional<StructureOutcome> red = pushes.maybeResolveMacroPush(state, new CountingRandom(0), structures);
-        assertThat(red).get().extracting(StructureOutcome::attackingSide).isEqualTo(TeamSide.RED);
+        assertThat(red).isEmpty();
         assertThat(state.wasStructureMutationPerformedThisTick(TeamSide.BLUE)).isFalse();
         assertThat(state.wasStructureMutationPerformedThisTick(TeamSide.RED)).isTrue();
     }
@@ -58,7 +66,8 @@ class StructureActionAttemptAuditTest {
         java.util.List<StructureOutcome> outcomes = pushes.resolvePostFightWindow(
                 state, Optional.of(fight), Optional.empty(), new CountingRandom(0), structures);
         StructureActionExecutionStatsSnapshot stats = state.getStructureActionExecutionStats().snapshot();
-        assertThat(outcomes).hasSize(1);
+        assertThat(outcomes).isEmpty();
+        assertThat(state.getBaseSiegeState(TeamSide.BLUE).isActive()).isTrue();
         assertThat(stats.structureAttempted()).isOne();
         assertThat(stats.structureMutationPerformed()).isOne();
         assertThat(stats.postFightMultiStructureActions()).isZero();
@@ -70,7 +79,8 @@ class StructureActionAttemptAuditTest {
         GameState state = postFightWindowState();
         TeamfightOutcome fight = new TeamfightOutcome(TeamSide.BLUE, FightGrade.BIG_WIN, 4, 0, 2_700, java.util.List.of());
         assertThat(pushes.resolvePostFightWindow(state, Optional.of(fight), Optional.empty(),
-                new CountingRandom(0), structures)).hasSize(1);
+                new CountingRandom(0), structures)).isEmpty();
+        assertThat(state.getBaseSiegeState(TeamSide.BLUE).isActive()).isTrue();
         state.getMapState().markPushAttempted(TeamSide.RED, state.getCurrentTimeSeconds(), 10_000);
         CountingRandom lowerPriorityRandom = new CountingRandom(0);
         assertThat(pushes.maybeResolveMacroPush(state, lowerPriorityRandom, structures)).isEmpty();

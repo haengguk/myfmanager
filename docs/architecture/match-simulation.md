@@ -34,7 +34,7 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
 
-기존 세 profile은 계속 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`을 사용한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
+기존 세 profile은 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2`를 사용한다. V3/V2 갱신은 V9 구조물 내구도·지속 공성 규칙이 모든 profile에 공통으로 적용된 사실을 식별한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
 
 ## Match Engine V1 Policy Boundary
 
@@ -48,8 +48,8 @@ V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal ch
 
 - `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
-- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6`다. Batch C V4는 structured eligibility diagnostics와 invariant gate를 추가했고, V5 follow-up은 Counter Gank의 death/activity reason을 분리하고 같은 종류의 중복 major-combat attempt도 검출하도록 gate를 강화했다. V6는 Champion Power 참가자 map과 부동소수점 평균을 명시적 `PlayerKey(TeamSide, Position)` 순서로 계산해 JVM별 iteration order 차이를 제거했다. Gameplay tuning과 profile별 active rules version은 그대로다.
-- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`이다.
+- `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`다. V8은 authoritative player rating/proficiency 실행을 추가했고, V9은 명시적 구조물 target, 전체 구조물 HP, match-scoped 지속 공성/웨이브, 구조화된 중복 방어와 넥서스 포탑 재생성을 통합했다.
+- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2`다.
 - `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다. Match Engine V1은 이 legacy identity와 전체 `MatchEngineV1Input.inputHash`를 별도 V1 replay binding으로 다시 묶어 명시적 rating/proficiency snapshot도 재현 입력에 포함한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
 - `randomFingerprint`: match의 seeded `Random.next(bits)` draw count와 resolver context/value의 ordered SHA-256을 기록한다. Gameplay input이 아닌 observational output이므로 configuration/replay hash에는 넣지 않는다.
@@ -136,6 +136,25 @@ actual attempt는 `NO_KILL` 결과여도 action state, FARM block, pressure cost
 | Structure | lane siege, post-fight push, macro push, tower/inhibitor/base/Nexus mutation |
 | Mid/Late Macro | phase transition, plan lifecycle, objective setup, siege/base-defense decisions |
 | End Game | Nexus destruction 또는 simulation safety timeout |
+
+### Structure V9
+
+구조물 판정은 stateless `StructureResolver` 하나가 담당하고 mutable 상태는 현재 match의 `GameState`, `MapState`, `LaneStructureState`, `BaseState`, `BaseSiegeState`, `LaneWaveState`에만 둔다. Base 목표를 `Lane.MID` 같은 sentinel로 표현하지 않고 `StructureTargetId`의 defending side, lane, tier, nexus turret index로 식별한다. 동일 행동은 `(simulation time, attacking side, siege action ID, attack sequence)`로 예약·commit하므로 중복 호출이 다음 구조물로 retarget되거나 보상·이벤트·Random을 두 번 만들 수 없다. 종료된 match의 모든 구조물 mutation은 거부한다.
+
+| 구조물 | 최대 체력 |
+| --- | ---: |
+| 외곽 포탑 | 9,000 |
+| 내부 포탑 | 5,000 |
+| 억제기 포탑 | 4,750 |
+| 억제기 | 4,000 |
+| 넥서스 포탑 | 3,500 |
+| 넥서스 | 5,500 |
+
+모든 공격 경로는 살아 있음/파괴됨 boolean 대신 공통 부분 피해를 사용한다. 포탑은 영구 plate threshold와 local plate gold, first-turret local bonus, global tower gold를 공통 보상 경로에서 한 번만 지급한다. 넥서스 포탑 두 개는 개별 HP와 파괴 시각을 가지며 정확히 180초 뒤 40% HP로 재생성된다. 억제기는 300초 뒤 full HP로 복구된다.
+
+공성은 eligibility를 모두 통과한 뒤에만 시작하고 그 전에는 Random, activity, FARM block, 구조물 slot을 소비하지 않는다. 일반/Baron/post-fight 공성은 해당 lane의 준비된 wave와 실제 생존 참가자를 요구하며 local defender 수에 따라 피해가 감소한다. Base 목표는 최소 3명이 필요하고, 미달이면 일반 lane 경로로 fallthrough하지 않는다. Wave가 없는 backdoor는 별도 mode로 10% 피해와 한 번의 공격 기회만 허용한다.
+
+`BaseSiegeState`는 한타 승리당 구조물 하나로 끊지 않고 10초 간격의 다음 공격으로 이어진다. 공격자 사망, 수비자 복귀, wave 소멸, 공격 기회/기간 만료, 보호된 target 또는 match 종료가 공성을 중단한다. 마지막 넥서스 포탑을 파괴한 wave에는 제한된 nexus commit 기회가 생겨 현실적인 `억제기 → 쌍둥이 → 넥서스` 전환을 허용한다. 한 tick에는 한 구조물 mutation만 발생한다.
 
 Counter-gank는 독립적인 parallel combat이 아니라 selected Jungle Gank attempt 안에서 resolver response로 실행된다. Objective fight와 late-game siege도 기존 teamfight/common kill path를 재사용한다.
 

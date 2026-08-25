@@ -36,9 +36,9 @@ class RealJungleTempoCandidateIntegrationTest {
         assertThat(candidate.executionProvenance().activeGameplayRulesVersion())
                 .isEqualTo(SimulationRuntimeProfiles
                         .JUNGLE_TEMPO_ACTIVE_GAMEPLAY_RULES_VERSION)
-                .isEqualTo("MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1");
+                .isEqualTo("MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2");
         assertThat(candidate.executionProvenance().engineImplementationVersion())
-                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8");
+                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
         assertThat(candidate.executionProvenance().resourceProvenance()
                 .jungleClearGameplayEnabledProfileCount()).isEqualTo(51);
 

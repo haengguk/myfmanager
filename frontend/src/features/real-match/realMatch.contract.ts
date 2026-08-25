@@ -7,6 +7,7 @@ export type GameEndReason = 'NEXUS_DESTROYED' | 'SIMULATION_TIMEOUT';
 export type MatchEventType =
   | 'GAME_START' | 'KILL' | 'ASSIST' | 'JUNGLE_GANK' | 'COUNTER_GANK' | 'LANE_COMBAT'
   | 'ROAM' | 'SHUTDOWN' | 'DRAGON' | 'BARON' | 'ELDER' | 'TOWER' | 'TEAMFIGHT'
+  | 'STRUCTURE_ACTION'
   | 'TEAMFIGHT_RESULT' | 'ACE' | 'MATCH_PHASE_CHANGE' | 'MACRO_ACTION' | 'LATE_GAME_ACTION'
   | 'LEVEL_UP' | 'ITEM_STAGE_REACHED' | 'GAME_END';
 export type CombatSource =
@@ -17,7 +18,7 @@ export type StructureActionSource =
   | 'OBJECTIVE_TRADE' | 'LATE_GAME_SIEGE' | 'LATE_GAME_CROSS_MAP' | 'NEXUS_FINISH';
 export type StructureKind = 'TOWER' | 'INHIBITOR' | 'NEXUS_TURRET' | 'NEXUS';
 export type TowerTier = 'OUTER' | 'INNER' | 'INHIBITOR';
-export type PlayerActivityType = 'DEFAULT_ROLE' | 'ROAMING';
+export type PlayerActivityType = 'DEFAULT_ROLE' | 'ROAMING' | 'SIEGING';
 
 export type AbilityRatingKey =
   | 'ALLY_PROTECTION' | 'AREA_SETUP' | 'COMBAT_EXECUTION' | 'CONSISTENCY' | 'DECISION_MAKING'

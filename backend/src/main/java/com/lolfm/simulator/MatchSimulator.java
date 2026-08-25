@@ -438,6 +438,7 @@ public class MatchSimulator {
             lateGameMacroResolver.expirePlans(gameState);
             gameState.clearMajorCombatParticipantsThisTick();
             gameState.clearStructureActionRegistryThisTick();
+            structureResolver.addLifecycleEvents(gameState, events);
             objectivePriorityResolver.decayRecentControl(gameState, gameState.getCurrentTimeSeconds());
             boolean blueEconomy = awardPassiveForTick(gameState.getBlueTeamState(), gameState.getCurrentTimeSeconds());
             boolean redEconomy = awardPassiveForTick(gameState.getRedTeamState(), gameState.getCurrentTimeSeconds());
@@ -486,9 +487,9 @@ public class MatchSimulator {
             outcome.ifPresent(result -> objectivePriorityResolver.applyTeamfightWin(
                     gameState, gameState.getCurrentTimeSeconds(), result));
             randomContext(random, SideOrientationRandomTraceObserver.Source.STRUCTURE_PUSH, null, gameState);
-            List<StructureOutcome> siegeStructures = lanePhaseResolver.resolveOuterSieges(
-                    gameState, gameState.getCurrentTimeSeconds(), random, structureResolver);
-            for (StructureOutcome structure : siegeStructures) events.add(structureResolver.createStructureEvent(gameState, structure));
+            structureResolver.resolveActiveSieges(gameState, events);
+            lanePhaseResolver.resolveOuterSieges(
+                    gameState, gameState.getCurrentTimeSeconds(), random, structureResolver, events);
             randomContext(random, SideOrientationRandomTraceObserver.Source.OBJECTIVE_CAPTURE, null, gameState);
             Optional<MatchEvent> postFightObjective = outcome.flatMap(result -> postFightResolver.resolve(
                     gameState, result, random, objectiveResolver));
@@ -499,12 +500,8 @@ public class MatchSimulator {
             randomContext(random, SideOrientationRandomTraceObserver.Source.STRUCTURE_PUSH, null, gameState);
             List<StructureOutcome> postFightStructures = postFightSideAlreadyActed
                     ? List.of()
-                    : pushResolver.resolvePostFightWindow(gameState, outcome, postFightObjective, random, structureResolver);
-            for (StructureOutcome structure : postFightStructures) {
-                MatchEvent structureEvent = structureResolver.createStructureEvent(gameState, structure);
-                outcome.map(TeamfightOutcome::actionId).ifPresent(structureEvent::setParentActionId);
-                events.add(structureEvent);
-            }
+                    : pushResolver.resolvePostFightWindow(
+                            gameState, outcome, postFightObjective, random, structureResolver, events);
             if (!gameState.isFinished() && postFightObjective.isEmpty()) {
                 randomContext(random, SideOrientationRandomTraceObserver.Source.OBJECTIVE_FIGHT, null, gameState);
                 Optional<MatchEvent> generalObjective = objectiveAttemptResolver.maybeAttemptObjective(gameState, random, objectiveResolver, structureResolver, events);
@@ -521,8 +518,7 @@ public class MatchSimulator {
             lateGameMacroResolver.resolveDue(gameState, blueTeam, redTeam, random, events, structureResolver, teamfightResolver);
             if (!gameState.isFinished()) {
                 randomContext(random, SideOrientationRandomTraceObserver.Source.STRUCTURE_PUSH, null, gameState);
-                pushResolver.maybeResolveMacroPush(gameState, random, structureResolver)
-                        .ifPresent(push -> events.add(structureResolver.createStructureEvent(gameState, push)));
+                pushResolver.maybeResolveMacroPush(gameState, random, structureResolver, events);
             }
             endGameDecision = endGameEvaluator.evaluateAfterTick(gameState);
             if (endGameDecision.isFinished()) { midGameMacroResolver.onMatchFinished(gameState); lateGameMacroResolver.onMatchFinished(gameState); }

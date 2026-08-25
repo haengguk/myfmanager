@@ -464,7 +464,7 @@ public final class RealMatchApiV1ArtifactWriter {
                         policy.engineImplementationVersion())
                         && "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8".equals(
                         integrity.engineImplementationVersion()),
-                "Current V8 production policy differs");
+                "Historical V8 artifact writer cannot consume another engine version");
         require(policy.policyId().equals(integrity.policyId())
                         && policy.policyHash().equals(integrity.policyHash())
                         && policy.runtimeProfileId().equals(integrity.runtimeProfileId())

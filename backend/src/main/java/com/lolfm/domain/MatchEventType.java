@@ -13,6 +13,7 @@ public enum MatchEventType {
     BARON,
     ELDER,
     TOWER,
+    STRUCTURE_ACTION,
     TEAMFIGHT,
     TEAMFIGHT_RESULT,
     ACE,

@@ -842,6 +842,8 @@ function App() {
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
                               ) : player.activityType === 'ROAMING' ? (
                                 <span className="farm-return-timer">로밍 복귀 {player.activitySecondsRemaining}초</span>
+                              ) : player.activityType === 'SIEGING' ? (
+                                <span className="farm-return-timer">공성 중 · {player.activitySecondsRemaining}초</span>
                               ) : !player.canFarm && player.position !== 'SUPPORT' ? (
                                 <span className="farm-return-timer">복귀 {player.farmReturnSecondsRemaining}초</span>
                               ) : player.hasShutdownBounty ? (
@@ -887,6 +889,8 @@ function App() {
                                 <span className="respawn-timer">부활 {player.respawnRemainingSeconds}초</span>
                               ) : player.activityType === 'ROAMING' ? (
                                 <span className="farm-return-timer">로밍 복귀 {player.activitySecondsRemaining}초</span>
+                              ) : player.activityType === 'SIEGING' ? (
+                                <span className="farm-return-timer">공성 중 · {player.activitySecondsRemaining}초</span>
                               ) : !player.canFarm && player.position !== 'SUPPORT' ? (
                                 <span className="farm-return-timer">복귀 {player.farmReturnSecondsRemaining}초</span>
                               ) : player.hasShutdownBounty ? (

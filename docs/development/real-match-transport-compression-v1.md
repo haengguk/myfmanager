@@ -4,6 +4,8 @@
 
 최종 상태는 `REAL_MATCH_TRANSPORT_COMPRESSION_AND_LIVE_E2E_ACCEPTED`다.
 
+이 문서의 HTTP byte, wall time, Chrome E2E와 두 fixture 결과는 V8 당시의 historical 측정이다. 현재 production은 V9이며 압축 설정과 negotiation 계약은 유지되지만 V8 payload 크기·winner·duration·output hash를 현재 gameplay 기준으로 재사용하지 않는다. V9의 focused transport 계약은 gzip/identity/무헤더가 동일한 current response를 전달하는지 별도로 검증한다.
+
 이 작업은 20~34MB Real Match JSON의 HTTP wire transfer를 gzip으로 줄인다. Match Engine, Draft scoring/search, gameplay, response schema와 frontend 화면 의미는 바꾸지 않는다. 동일 요청의 Draft 20 decisions, final assignment, winner/duration, 모든 event/snapshot, output/replay/simulator timeline/structured timeline/Random fingerprint가 압축 전 identity, 압축 후 identity, gzip 해제 결과에서 exact다.
 
 ## Production 설정
@@ -60,7 +62,7 @@ Test-side phase 관측 median은 다음과 같다. `Draft`와 `roster/Draft/inpu
 
 ## 결과 무결성과 검증
 
-GEN–T1/73은 BLUE 승, 3,430초, output `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`를 유지한다. HLE–DK/-73은 RED 승, 2,840초, output `fef2dfd3c522a69f7393bf46196ac9319cb4b6981e9131c694a01239d7aaabb0`를 유지한다. BootRun과 packaged JAR에서 gzip first/warm, identity, 무헤더를 각각 검증했다.
+V8 측정 당시 GEN–T1/73은 BLUE 승, 3,430초, output `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`였고 HLE–DK/-73은 RED 승, 2,840초였다. 현재 V9 GEN–T1/73 계약은 RED 승, 1,750초, output `86a8a09be83d20d6ac90a584888237762909f35f107de6ba3bffcafaf7a77b04`다. 아래 BootRun/JAR/Chrome 수치는 V8 실행 기록이며 V9 외부 성능 실측으로 해석하지 않는다.
 
 Backend focused는 compression negotiation, fixed API, service/orchestration, Draft parity, same-seed Random과 Draft hardening artifact를 포함한다. Candidate가 clean한 뒤 production/runtime tree를 동결했고 complete backend regression을 한 번 실행했다.
 

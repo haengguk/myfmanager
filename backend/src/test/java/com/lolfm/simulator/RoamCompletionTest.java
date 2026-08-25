@@ -343,7 +343,7 @@ class RoamCompletionTest {
         assertTrue(result.timeline().getEvents().stream().anyMatch(e -> e.getType() == MatchEventType.JUNGLE_GANK
                 || e.getType() == MatchEventType.LANE_COMBAT || e.getCombatSource() == CombatSource.SKIRMISH));
         assertTrue(result.timeline().getSnapshots().stream().flatMap(s -> s.getPlayerSnapshots().stream())
-                .allMatch(p -> p.getActivityType() == PlayerActivityType.DEFAULT_ROLE));
+                .noneMatch(p -> p.getActivityType() == PlayerActivityType.ROAMING));
     }
 
     @Test void diagnosticsInstrumentationDoesNotChangeTimeline() {

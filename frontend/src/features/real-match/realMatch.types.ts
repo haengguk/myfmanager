@@ -42,7 +42,15 @@ export interface PlaybackEventViewModel {
   structureActionSource: StructureActionSource | null; structureKind: StructureKind | null;
   structureTowerTier: TowerTier | null; structureAttackingSide: TeamSide | null;
   structureDefendingSide: TeamSide | null; actionId: string | null; parentActionId: string | null;
+  structureAction: StructureActionViewModel | null;
   goldAmount: number; displayMessage: string; isMajor: boolean; showInLog: boolean;
+}
+
+export type StructureActionPhase = 'STARTED' | 'DAMAGE' | 'DESTROYED' | 'REPELLED' | 'ABORTED' | 'RESPAWNED';
+export interface StructureActionViewModel {
+  phase: StructureActionPhase; targetId: string; healthBefore: number; damage: number;
+  healthAfter: number; maxHealth: number; platesClaimed: number; wavePresent: boolean;
+  backdoorProtection: boolean; siegeContinues: boolean; stopReason: string | null;
 }
 
 export interface LiveChampionStateViewModel {
@@ -53,7 +61,8 @@ export interface LiveChampionStateViewModel {
 
 export interface TeamSnapshotViewModel {
   side: TeamSide; kills: number; gold: number; towersDestroyed: number; dragons: number;
-  inhibitorsRemaining: number; champions: readonly LiveChampionStateViewModel[];
+  inhibitorsRemaining: number; nexusTurretsRemaining: number; nexusAlive: boolean;
+  champions: readonly LiveChampionStateViewModel[];
 }
 
 export interface MatchSnapshotViewModel { atSeconds: number; teams: Record<TeamSide, TeamSnapshotViewModel>; }

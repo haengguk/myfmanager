@@ -11,9 +11,11 @@ import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.MatchTimeline;
 import com.lolfm.domain.Player;
+import com.lolfm.domain.Position;
 import com.lolfm.domain.Team;
 import com.lolfm.factory.DummyDataFactory;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -278,29 +280,36 @@ class MatchSimulatorSmokeTest {
     @Test
     void inhibitorAndBaseStructuresFollowTheRequiredOrder() {
         GameState state = createGameState();
-        StructureResolver resolver = new StructureResolver();
-        assertTrue(resolver.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY).isPresent());
-        assertTrue(resolver.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY).isPresent());
-        assertTrue(resolver.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY).isPresent());
+        assertEquals(TowerTier.OUTER, destroyDistinct(
+                state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY).towerTier());
+        assertEquals(TowerTier.INNER, destroyDistinct(
+                state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY).towerTier());
+        assertEquals(TowerTier.INHIBITOR, destroyDistinct(
+                state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY).towerTier());
         assertTrue(state.getMapState().getLaneState(TeamSide.RED, Lane.MID).isInhibitorAlive());
-        StructureOutcome inhibitor = resolver.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT).orElseThrow();
+        StructureOutcome inhibitor = destroyDistinct(
+                state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT);
         assertEquals(StructureKind.INHIBITOR, inhibitor.structureKind());
         assertTrue(state.getMapState().hasDestroyedInhibitor(TeamSide.RED));
         assertEquals(2, state.getMapState().getBaseState(TeamSide.RED).getNexusTurretsRemaining());
 
-        StructureOutcome firstTurret = resolver.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT).orElseThrow();
+        StructureOutcome firstTurret = destroyDistinct(
+                state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT);
         assertEquals(StructureKind.NEXUS_TURRET, firstTurret.structureKind());
         assertEquals(1, state.getMapState().getBaseState(TeamSide.RED).getNexusTurretsRemaining());
-        StructureOutcome secondTurret = resolver.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT).orElseThrow();
+        StructureOutcome secondTurret = destroyDistinct(
+                state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT);
         assertEquals(StructureKind.NEXUS_TURRET, secondTurret.structureKind());
         assertEquals(0, state.getMapState().getBaseState(TeamSide.RED).getNexusTurretsRemaining());
-        StructureOutcome nexus = resolver.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT).orElseThrow();
+        StructureOutcome nexus = destroyDistinct(
+                state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT);
         assertEquals(StructureKind.NEXUS, nexus.structureKind());
         assertTrue(nexus.gameEnded());
         assertTrue(state.isFinished());
         assertEquals(TeamSide.BLUE, state.getWinnerSide());
         assertFalse(state.getMapState().getBaseState(TeamSide.RED).isNexusAlive());
-        assertTrue(resolver.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT).isEmpty());
+        assertTrue(new StructureResolver().destroyNextStructure(
+                state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT).isEmpty());
     }
 
     @Test
@@ -344,9 +353,8 @@ class MatchSimulatorSmokeTest {
     void nexusDestructionAfterFortyMinutesEndsImmediately() {
         GameState state = createGameState();
         state.advanceTimeSeconds(2_410);
-        StructureResolver structures = new StructureResolver();
         for (int index = 0; index < 7; index++) {
-            structures.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT);
+            destroyDistinct(state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT);
         }
 
         EndGameEvaluator.EndGameDecision decision = new EndGameEvaluator().evaluateAfterTick(state);
@@ -392,8 +400,9 @@ class MatchSimulatorSmokeTest {
     void nexusDestructionWinnerCannotBeOverturnedByScore() {
         GameState state = createGameState();
         for (int index = 0; index < 50; index++) state.getRedTeamState().addKill();
-        StructureResolver resolver = new StructureResolver();
-        for (int index = 0; index < 7; index++) resolver.destroyNextStructure(state, TeamSide.BLUE, Lane.TOP, PushReason.POST_FIGHT);
+        for (int index = 0; index < 7; index++) {
+            destroyDistinct(state, TeamSide.BLUE, Lane.TOP, PushReason.POST_FIGHT);
+        }
         EndGameEvaluator.EndGameDecision decision = new EndGameEvaluator().evaluateAfterTick(state);
         assertTrue(decision.isFinished());
         assertEquals(state.getBlueTeamState().getTeamName(), decision.getWinner());
@@ -403,8 +412,9 @@ class MatchSimulatorSmokeTest {
     @Test
     void finalSnapshotReflectsDestroyedNexus() {
         GameState state = createGameState();
-        StructureResolver resolver = new StructureResolver();
-        for (int index = 0; index < 7; index++) resolver.destroyNextStructure(state, TeamSide.RED, Lane.BOT, PushReason.POST_FIGHT);
+        for (int index = 0; index < 7; index++) {
+            destroyDistinct(state, TeamSide.RED, Lane.BOT, PushReason.POST_FIGHT);
+        }
         com.lolfm.domain.MatchSnapshot snapshot = new SnapshotFactory().create(state);
         assertEquals(2, snapshot.getBlueInhibitorsRemaining());
         assertEquals(0, snapshot.getBlueNexusTurretsRemaining());
@@ -433,7 +443,12 @@ class MatchSimulatorSmokeTest {
         assertEquals(TowerTier.OUTER, first.destroyedTowerTier());
         assertEquals(1, state.getBlueTeamState().getTowersDestroyed());
         assertEquals(1, state.getMapState().getDestroyedTowerCountByAttackingSide(TeamSide.BLUE));
-        assertTrue(resolver.destroyNextTower(state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY).isPresent());
+        assertTrue(resolver.destroyNextTower(
+                state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY).isEmpty());
+        state.advanceTimeSeconds(1);
+        state.clearStructureActionRegistryThisTick();
+        assertTrue(resolver.destroyNextTower(
+                state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY).isPresent());
         assertEquals(2, state.getBlueTeamState().getTowersDestroyed());
     }
 
@@ -478,19 +493,21 @@ class MatchSimulatorSmokeTest {
     }
 
     @Test
-    void acePushDestroysExactlyOneStructureWhenConditionsAreMet() {
+    void acePushStartsPartialSiegeWithoutDeletingAFullOuterTower() {
         GameState state = createGameState();
         state.advanceTimeSeconds(1_200);
         TeamfightOutcome ace = new TeamfightOutcome(TeamSide.BLUE, FightGrade.ACE, 5, 0, 1_200, List.of());
 
-        StructureOutcome outcome = new PushResolver().maybeResolvePostFightPush(
+        java.util.Optional<StructureOutcome> outcome = new PushResolver().maybeResolvePostFightPush(
                 state, java.util.Optional.of(ace), forceSuccessfulRandom(9L), new StructureResolver()
-        ).orElseThrow();
+        );
 
-        assertEquals(StructureKind.TOWER, outcome.structureKind());
-        assertEquals(TowerTier.OUTER, outcome.towerTier());
-        assertEquals(1, state.getMapState().getDestroyedTowerCountByAttackingSide(TeamSide.BLUE));
-        assertTrue(state.getMapState().getLaneState(TeamSide.RED, outcome.lane()).isInnerTowerAlive());
+        assertTrue(outcome.isEmpty());
+        assertEquals(0, state.getMapState().getDestroyedTowerCountByAttackingSide(TeamSide.BLUE));
+        Lane route = state.getBaseSiegeState(TeamSide.BLUE).getRouteLane();
+        assertTrue(state.getMapState().getLaneState(TeamSide.RED, route)
+                .getTowerCurrentHealth(TowerTier.OUTER) < StructureRuleConfig.OUTER_TURRET_MAX_HEALTH);
+        assertTrue(state.getMapState().getLaneState(TeamSide.RED, route).isInnerTowerAlive());
     }
 
     @Test
@@ -516,8 +533,10 @@ class MatchSimulatorSmokeTest {
                 state, java.util.Optional.of(bigWin), java.util.Optional.empty(), forceSuccessfulRandom(1L), structures
         );
 
-        assertEquals(1, outcomes.size());
-        assertEquals(Lane.MID, outcomes.get(0).lane());
+        assertTrue(outcomes.isEmpty());
+        assertEquals(1, state.getMapState().getDestroyedTowerCountByAttackingSide(TeamSide.BLUE));
+        assertEquals(1, state.getStructureActionExecutionStats().snapshot()
+                .structureMutationPerformed());
         assertEquals(2_700, state.getCurrentTimeSeconds());
     }
 
@@ -527,8 +546,9 @@ class MatchSimulatorSmokeTest {
         state.advanceTimeSeconds(2_700);
         StructureResolver structures = new StructureResolver();
         for (int index = 0; index < 3; index++) {
-            structures.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT);
+            destroyDistinct(state, TeamSide.BLUE, Lane.MID, PushReason.POST_FIGHT);
         }
+        state.clearStructureActionRegistryThisTick();
         markAllPlayersDead(state.getRedTeamState(), 2_700, 70);
         TeamfightOutcome ace = new TeamfightOutcome(TeamSide.BLUE, FightGrade.ACE, 5, 0, 2_700, List.of());
 
@@ -562,9 +582,8 @@ class MatchSimulatorSmokeTest {
     @Test
     void deeperLanesArePreferredAndInhibitorTargetsRemainPressureCandidates() {
         GameState state = createGameState();
-        StructureResolver structures = new StructureResolver();
         for (int index = 0; index < 3; index++) {
-            structures.destroyNextStructure(state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY);
+            destroyDistinct(state, TeamSide.BLUE, Lane.MID, PushReason.MACRO_PLAY);
         }
 
         MapState map = state.getMapState();
@@ -579,9 +598,8 @@ class MatchSimulatorSmokeTest {
     void inhibitorDestructionActivatesBasePressureAndShortensMacroInterval() {
         GameState state = createGameState();
         state.advanceTimeSeconds(1_200);
-        StructureResolver structures = new StructureResolver();
         for (int index = 0; index < 4; index++) {
-            structures.destroyNextStructure(state, TeamSide.BLUE, Lane.BOT, PushReason.POST_FIGHT);
+            destroyDistinct(state, TeamSide.BLUE, Lane.BOT, PushReason.POST_FIGHT);
         }
 
         PushResolver pushes = new PushResolver();
@@ -596,6 +614,8 @@ class MatchSimulatorSmokeTest {
         GameState state = createGameState();
         TowerResolver resolver = new TowerResolver();
         resolver.destroyNextTower(state, TeamSide.RED, Lane.TOP, PushReason.MACRO_PLAY);
+        state.advanceTimeSeconds(1);
+        state.clearStructureActionRegistryThisTick();
         resolver.destroyNextTower(state, TeamSide.RED, Lane.TOP, PushReason.MACRO_PLAY);
         assertEquals(2, new SnapshotFactory().create(state).getRedTowersDestroyed());
     }
@@ -1167,6 +1187,22 @@ class MatchSimulatorSmokeTest {
 
     private GameState createGameState(Team blueTeam, Team redTeam) {
         return new GameState(createTeamState(blueTeam), createTeamState(redTeam));
+    }
+
+    private StructureOutcome destroyDistinct(
+            GameState state, TeamSide attackingSide, Lane lane, PushReason reason) {
+        state.clearStructureActionRegistryThisTick();
+        LateGameStructureTarget target = new BaseThreatEvaluator()
+                .nextTarget(state, attackingSide, lane);
+        String actionId = "TEST_SETUP:" + state.getCurrentTimeSeconds() + ":"
+                + attackingSide + ":" + state.getProcessedStructureActionCount();
+        StructureResolver resolver = new StructureResolver();
+        return resolver.attemptSiege(state, StructureAttackRequest.fixed(
+                        attackingSide, lane, target, reason,
+                        EnumSet.allOf(Position.class), Double.MAX_VALUE,
+                        resolver.source(reason), actionId))
+                .map(StructureAttackResult::destruction)
+                .orElseThrow();
     }
 
     private Set<String> namesFor(Team team) {

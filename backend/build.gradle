@@ -413,6 +413,14 @@ tasks.register("runLateGameMacroDiagnostics", JavaExec) {
     mainClass = "com.lolfm.simulator.LateGameMacroDiagnostics"
 }
 
+tasks.register("runStructureRealismDiagnostics", JavaExec) {
+    group = "verification"
+    description = "Runs the read-only structured-event structure realism sample."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.simulator.StructureRealismDiagnostics"
+    args providers.gradleProperty("structureDiagnosticSeeds").getOrElse("200")
+}
+
 
 tasks.register("runProgressionDiagnostics", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath

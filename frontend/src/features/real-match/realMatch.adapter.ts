@@ -17,6 +17,7 @@ export const eventPresentation: Record<MatchEventType, { label: string; tone: st
   BARON: { label: '바론', tone: 'objective' },
   ELDER: { label: '장로', tone: 'objective' },
   TOWER: { label: '구조물', tone: 'phase' },
+  STRUCTURE_ACTION: { label: '공성', tone: 'objective' },
   TEAMFIGHT: { label: '한타', tone: 'teamfight' },
   TEAMFIGHT_RESULT: { label: '한타 결과', tone: 'teamfight' },
   ACE: { label: '에이스', tone: 'teamfight' },

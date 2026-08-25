@@ -83,7 +83,11 @@ class OuterTurretSiegeTest {
         var outcomes=resolver.resolveOuterSieges(s,300,new LanePhaseTestSupport.CountingRandom(.5),structures);
         assertEquals(1,outcomes.size());assertEquals(StructureActionSource.LANE_PRESSURE,outcomes.getFirst().source());
         assertFalse(tower.isOuterTowerAlive());assertEquals(0,tower.getOuterRemainingIntegrity());assertEquals(1,s.getBlueTeamState().getTowersDestroyed());
-        assertEquals(gold+625,s.getBlueTeamState().getGold());assertEquals(LanePhase.OPEN,s.getLanePhaseState().getLanePhase(Lane.TOP));
+        int expectedReward = StructureRuleConfig.TURRET_GLOBAL_GOLD_PER_PLAYER * 5
+                + StructureRuleConfig.TURRET_PLATE_LOCAL_GOLD
+                * StructureRuleConfig.TURRET_PLATE_COUNT
+                + StructureRuleConfig.FIRST_TURRET_LOCAL_GOLD;
+        assertEquals(gold+expectedReward,s.getBlueTeamState().getGold());assertEquals(LanePhase.OPEN,s.getLanePhaseState().getLanePhase(Lane.TOP));
         assertNotNull(structures.createStructureEvent(s,outcomes.getFirst()).getOuterTurretSiege());
         resolver.resolveOuterSieges(s,300,new LanePhaseTestSupport.CountingRandom(.5),structures);
         assertEquals(1,s.getBlueTeamState().getTowersDestroyed());

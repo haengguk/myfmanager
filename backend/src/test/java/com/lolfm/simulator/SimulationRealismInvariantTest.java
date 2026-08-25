@@ -40,10 +40,13 @@ class SimulationRealismInvariantTest {
         assertThat(base.refreshAt(1_179)).isZero();
         assertThat(base.refreshAt(1_180)).isOne();
         assertThat(base.getNexusTurretsRemaining()).isEqualTo(2);
+        assertThat(base.getNexusTurretCurrentHealth(0)).isEqualTo(
+                StructureRuleConfig.NEXUS_TURRET_MAX_HEALTH
+                        * StructureRuleConfig.NEXUS_TURRET_RESPAWN_HEALTH_RATIO);
     }
 
     @Test
-    void postFightPushDoesNotAdvanceTheSimulationClock() {
+    void postFightPartialSiegeDoesNotAdvanceTheSimulationClock() {
         GameState state = LateGameTestSupport.state();
         state.advanceTimeSeconds(2_100);
         for (PlayerState player : state.getRedTeamState().getPlayers()) {
@@ -51,13 +54,18 @@ class SimulationRealismInvariantTest {
         }
         TeamfightOutcome fight = new TeamfightOutcome(
                 TeamSide.BLUE, FightGrade.ACE, 5, 0, 2_100, List.of());
+        double before = state.getMapState().getLaneState(TeamSide.RED, Lane.TOP)
+                .getTowerCurrentHealth(TowerTier.OUTER);
         List<StructureOutcome> outcomes = new PushResolver().resolvePostFightWindow(
                 state, Optional.of(fight), Optional.empty(), new ZeroRandom(),
                 new StructureResolver());
 
-        assertThat(outcomes).hasSize(1);
+        assertThat(outcomes).isEmpty();
         assertThat(state.getCurrentTimeSeconds()).isEqualTo(2_100);
-        assertThat(outcomes.getFirst().occurredAtSeconds()).isEqualTo(2_100);
+        assertThat(state.getMapState().getLaneState(TeamSide.RED, Lane.TOP)
+                .getTowerCurrentHealth(TowerTier.OUTER)).isLessThan(before);
+        assertThat(state.getBaseSiegeState(TeamSide.BLUE).getStartedAtSeconds())
+                .isEqualTo(2_100);
     }
 
     @Test

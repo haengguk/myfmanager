@@ -82,9 +82,9 @@ class MatchEngineV1ContractTest {
         assertThat(policy.configurationHash())
                 .isEqualTo("c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215");
         assertThat(policy.activeGameplayRulesVersion())
-                .isEqualTo("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2");
+                .isEqualTo("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3");
         assertThat(policy.engineImplementationVersion())
-                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8");
+                .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
         assertThat(policy.gameplayConfiguration().championMatchupMode())
                 .isEqualTo(ChampionMatchupMode.OFF);
         assertThat(policy.gameplayConfiguration().teamCompositionGameplayMode())

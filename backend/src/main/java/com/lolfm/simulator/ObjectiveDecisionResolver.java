@@ -109,23 +109,21 @@ public final class ObjectiveDecisionResolver {
         if (contested) capture.get().setParentActionId(fightActionId);
 
         if (responderAction == ObjectiveDecisionAction.TRADE_STRUCTURE) {
-            state.markStructureActionAttempted(context.responderSide());
-            tradeRoll = true;
-            tradeSuccess = random.nextDouble() < tradeChance;
-            result = tradeSuccess ? ObjectiveDecisionResult.TRADE_SUCCEEDED : ObjectiveDecisionResult.TRADE_FAILED;
-        }
-
-        if (responderAction == ObjectiveDecisionAction.TRADE_STRUCTURE && tradeSuccess) {
-            Optional<StructureOutcome> structure = structures.destroyNextTower(
-                    state, context.responderSide(), tradeTarget.lane(), PushReason.OBJECTIVE_TRADE);
-            structureConsumed = structure.isPresent();
-            tradeSuccess = structure.isPresent();
-            result = tradeSuccess ? ObjectiveDecisionResult.TRADE_SUCCEEDED : ObjectiveDecisionResult.TRADE_FAILED;
-            structure.ifPresent(outcome -> {
-                MatchEvent structureEvent = structures.createStructureEvent(state, outcome);
-                structureEvent.setParentActionId(decisionActionId);
-                events.add(structureEvent);
-            });
+            Optional<StructureAttackRequest> tradeRequest = tradeRequest(
+                    context.responderSide(), tradeTarget, decisionActionId);
+            if (tradeRequest.isPresent() && structures.canAttemptSiege(state, tradeRequest.get())) {
+                tradeRoll = true;
+                if (random.nextDouble() < tradeChance) {
+                    Optional<StructureAttackResult> attack = structures.attemptSiege(
+                            state, tradeRequest.get());
+                    structureConsumed = attack.isPresent();
+                    tradeSuccess = attack.isPresent();
+                    attack.ifPresent(value -> structures.addAttackEvents(state, value, events));
+                }
+            }
+            result = tradeSuccess
+                    ? ObjectiveDecisionResult.TRADE_SUCCEEDED
+                    : ObjectiveDecisionResult.TRADE_FAILED;
         }
 
         ObjectiveDecisionData data = data(state, context, initiativeWeights, initiativeSelection,
@@ -154,8 +152,10 @@ public final class ObjectiveDecisionResolver {
                 state.getBlueTeamState().hasActiveBaronBuff(time), state.getRedTeamState().hasActiveBaronBuff(time),
                 type == ObjectiveType.ELDER ? 0 : signedPriority, type != ObjectiveType.ELDER,
                 !state.wasMajorCombatAttemptedThisTick(),
-                !state.wasStructureActionPerformedThisTick(TeamSide.BLUE),
-                !state.wasStructureActionPerformedThisTick(TeamSide.RED),
+                !state.wasStructureActionPerformedThisTick(TeamSide.BLUE)
+                        && !state.getBaseSiegeState(TeamSide.BLUE).isActive(),
+                !state.wasStructureActionPerformedThisTick(TeamSide.RED)
+                        && !state.getBaseSiegeState(TeamSide.RED).isActive(),
                 blueTrade, redTrade);
     }
 
@@ -346,7 +346,8 @@ public final class ObjectiveDecisionResolver {
     }
 
     private ObjectiveDecisionContext.TradeTarget findTradeTarget(GameState state, ObjectiveType type, TeamSide side) {
-        if (state.wasStructureActionPerformedThisTick(side) || state.isFinished()) return null;
+        if (state.wasStructureActionPerformedThisTick(side) || state.isFinished()
+                || state.getBaseSiegeState(side).isActive()) return null;
         Lane[] order = type == ObjectiveType.BARON
                 ? new Lane[]{Lane.BOT, Lane.MID, Lane.TOP}
                 : new Lane[]{Lane.TOP, Lane.MID, Lane.BOT};
@@ -355,9 +356,11 @@ public final class ObjectiveDecisionResolver {
             Position position = switch (lane) { case TOP -> Position.TOP; case MID -> Position.MID; case BOT -> Position.ADC; };
             Optional<PlayerState> pusher = state.getTeamState(side).findPlayerAt(position);
             Optional<TowerTier> target = state.getMapState().getLaneState(side.opposite(), lane).nextAliveTower();
+            LaneWaveState wave = state.getMapState().getWaveState(side, lane);
             if (target.isPresent() && pusher.isPresent() && pusher.get().isAlive(time)
                     && pusher.get().canParticipateInMajorCombatAt(time)
-                    && !state.wasMajorCombatParticipantThisTick(pusher.get())) {
+                    && !state.wasMajorCombatParticipantThisTick(pusher.get())
+                    && (wave.hasActiveWaveAt(time) || wave.canPrepareAt(time))) {
                 return new ObjectiveDecisionContext.TradeTarget(lane, target.get(), pusher.get());
             }
         }
@@ -366,6 +369,10 @@ public final class ObjectiveDecisionResolver {
 
     private ObjectiveDecisionIneligibleReason tradeTargetIneligibleReason(
             GameState state, ObjectiveType type, TeamSide side) {
+        if (state.wasStructureActionPerformedThisTick(side)
+                || state.getBaseSiegeState(side).isActive()) {
+            return ObjectiveDecisionIneligibleReason.STRUCTURE_ACTION_ALREADY_USED;
+        }
         Lane[] order = type == ObjectiveType.BARON
                 ? new Lane[]{Lane.BOT, Lane.MID, Lane.TOP}
                 : new Lane[]{Lane.TOP, Lane.MID, Lane.BOT};
@@ -387,12 +394,29 @@ public final class ObjectiveDecisionResolver {
             if (!pusher.get().isAlive(time)) dead = true;
             else if (!pusher.get().canParticipateInMajorCombatAt(time)) activityUnavailable = true;
             else if (state.wasMajorCombatParticipantThisTick(pusher.get())) combatParticipant = true;
-            else return null;
+            else {
+                LaneWaveState wave = state.getMapState().getWaveState(side, lane);
+                if (wave.hasActiveWaveAt(time) || wave.canPrepareAt(time)) return null;
+            }
         }
         if (activityUnavailable) return ObjectiveDecisionIneligibleReason.PUSHER_ACTIVITY_UNAVAILABLE;
         if (combatParticipant) return ObjectiveDecisionIneligibleReason.PUSHER_COMBAT_PARTICIPANT;
         if (dead) return ObjectiveDecisionIneligibleReason.PUSHER_DEAD;
         return ObjectiveDecisionIneligibleReason.NO_TRADE_TARGET;
+    }
+
+    private Optional<StructureAttackRequest> tradeRequest(
+            TeamSide side, ObjectiveDecisionContext.TradeTarget target,
+            String parentActionId) {
+        if (target == null) return Optional.empty();
+        LateGameStructureTarget requested = switch (target.towerTier()) {
+            case OUTER -> LateGameStructureTarget.OUTER;
+            case INNER -> LateGameStructureTarget.INNER;
+            case INHIBITOR -> LateGameStructureTarget.INHIBITOR_TOWER;
+        };
+        return Optional.of(StructureAttackRequest.siege(
+                side, target.lane(), requested, PushReason.OBJECTIVE_TRADE,
+                java.util.Set.of(target.primaryPusher().getPosition()), parentActionId));
     }
 
     private double tradeChance(GameState state, ObjectiveDecisionContext context, ObjectiveDecisionContext.TradeTarget target) {

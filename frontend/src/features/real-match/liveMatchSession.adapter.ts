@@ -9,7 +9,7 @@ import type {
 } from './api/realMatchApi.types';
 import type {
   ChampionViewModel, DraftViewModel, MatchSnapshotViewModel, PlaybackEventViewModel, PlaybackViewModel,
-  Position, TeamSide, TeamViewModel,
+  Position, StructureActionPhase, StructureActionViewModel, TeamSide, TeamViewModel,
 } from './realMatch.types';
 
 const POSITIONS: readonly Position[] = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'];
@@ -18,8 +18,14 @@ const MAJOR_EVENT_TYPES = new Set([
   'TOWER', 'TEAMFIGHT', 'TEAMFIGHT_RESULT', 'ACE', 'GAME_END',
 ]);
 const HIDDEN_LOG_EVENT_TYPES = new Set([
-  'ASSIST', 'MATCH_PHASE_CHANGE', 'MACRO_ACTION', 'LATE_GAME_ACTION', 'LEVEL_UP', 'ITEM_STAGE_REACHED',
+  'ASSIST', 'MATCH_PHASE_CHANGE', 'LEVEL_UP', 'ITEM_STAGE_REACHED',
 ]);
+
+const STRUCTURE_SOURCE_LABELS = {
+  LANE_PRESSURE: '라인 압박', POST_FIGHT: '한타 후 공성', BARON_PRESSURE: '바론 압박',
+  MACRO_PLAY: '일반 운영', MID_GAME_MACRO: '미드게임 운영', OBJECTIVE_TRADE: '오브젝트 교환',
+  LATE_GAME_SIEGE: '후반 공성', LATE_GAME_CROSS_MAP: '교차 맵 운영', NEXUS_FINISH: '넥서스 마무리',
+} as const;
 
 function sourceLabel(options: RealMatchOptionsDto): string {
   return `${options.productionPolicy.engineImplementationVersion} · ${options.productionPolicy.runtimeProfileId}`;
@@ -136,7 +142,25 @@ function killDisplayMessage(event: RealMatchEventDto, playerNamesById: Readonly<
   const assistText = assistants.length > 0 ? ` (어시스트: ${assistants.join(', ')})` : '';
   return `${killer}${hasKoreanBatchim(killer) ? '이' : '가'} ${victim}${objectHasKoreanBatchim(victim) ? '을' : '를'} 처치했습니다. +${event.goldAmount}G${assistText}`;
 }
-function structureDisplayMessage(event: RealMatchEventDto, teams: Record<TeamSide, TeamViewModel>): string {
+function recordValue(value: unknown): Readonly<Record<string, unknown>> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Readonly<Record<string, unknown>> : null;
+}
+function numberValue(value: unknown): number { return typeof value === 'number' && Number.isFinite(value) ? value : 0; }
+function structureAction(event: RealMatchEventDto): StructureActionViewModel | null {
+  const value = recordValue(event.structuredData.structureAction);
+  if (!value || typeof value.phase !== 'string' || typeof value.targetId !== 'string') return null;
+  return {
+    phase: value.phase as StructureActionPhase,
+    targetId: value.targetId,
+    healthBefore: numberValue(value.healthBefore), damage: numberValue(value.damage),
+    healthAfter: numberValue(value.healthAfter), maxHealth: numberValue(value.maxHealth),
+    platesClaimed: numberValue(value.platesClaimed), wavePresent: value.wavePresent === true,
+    backdoorProtection: value.backdoorProtected === true, siegeContinues: value.siegeContinues === true,
+    stopReason: typeof value.stopReason === 'string' ? value.stopReason : null,
+  };
+}
+function structureDisplayMessage(event: RealMatchEventDto, teams: Record<TeamSide, TeamViewModel>, action: StructureActionViewModel | null): string {
   const side = event.structureAttackingSide ?? event.actorSide;
   const teamCode = side ? teams[side].code : '공격 팀';
   const lane = event.lane === 'TOP' ? '탑 ' : event.lane === 'MID' ? '미드 ' : event.lane === 'BOT' ? '바텀 ' : '';
@@ -144,12 +168,22 @@ function structureDisplayMessage(event: RealMatchEventDto, teams: Record<TeamSid
     : event.structureKind === 'NEXUS_TURRET' ? '넥서스 포탑'
       : event.structureKind === 'NEXUS' ? '넥서스'
         : `${lane}${event.structureTowerTier === 'OUTER' ? '외곽 ' : event.structureTowerTier === 'INNER' ? '내부 ' : event.structureTowerTier === 'INHIBITOR' ? '억제기 ' : ''}포탑`;
-  return `${teamCode} · ${target} 파괴.`;
+  const source = event.structureActionSource ? STRUCTURE_SOURCE_LABELS[event.structureActionSource] : null;
+  const sourceText = source ? ` · ${source}` : '';
+  if (action && (action.phase === 'STARTED' || action.phase === 'DAMAGE')) {
+    const protection = action.backdoorProtection ? ' · 백도어 보호 적용' : action.wavePresent ? ' · 미니언 웨이브' : '';
+    return `${teamCode} · ${target} ${Math.round(action.damage)} 피해 · HP ${Math.round(action.healthAfter)}/${Math.round(action.maxHealth)}${sourceText}${protection}`;
+  }
+  if (action?.phase === 'RESPAWNED') return event.displayMessage ?? `넥서스 포탑이 HP ${Math.round(action.healthAfter)}/${Math.round(action.maxHealth)}로 재생성됐습니다.`;
+  if (action?.phase === 'REPELLED' || action?.phase === 'ABORTED') return `${event.displayMessage ?? `${teamCode}의 공성이 종료됐습니다.`}${sourceText}`;
+  return `${event.displayMessage ?? `${teamCode} · ${target} 파괴.`}${sourceText}`;
 }
 
 function createPlayback(source: RealMatchResponseDto, options: MatchSetupOptionsViewModel, teams: Record<TeamSide, TeamViewModel>, championsById: Readonly<Record<string, ChampionViewModel>>): PlaybackViewModel {
   const playerNamesById = Object.fromEntries(source.teams.flatMap((team) => team.lineup.map((player) => [player.playerId, player.nickname])));
-  const events: readonly PlaybackEventViewModel[] = source.timeline.events.map((event, index) => ({
+  const events: readonly PlaybackEventViewModel[] = source.timeline.events.map((event, index) => {
+    const action = structureAction(event);
+    return ({
     id: `${event.timeSeconds}:${event.eventType}:${event.actionId ?? 'event'}:${index}`,
     occurredAtSeconds: event.timeSeconds,
     eventType: event.eventType,
@@ -166,15 +200,17 @@ function createPlayback(source: RealMatchResponseDto, options: MatchSetupOptions
     structureTowerTier: event.structureTowerTier,
     structureAttackingSide: event.structureAttackingSide,
     structureDefendingSide: event.structureDefendingSide,
+    structureAction: action,
     goldAmount: event.goldAmount,
     actionId: event.actionId,
     parentActionId: event.parentActionId,
     displayMessage: event.eventType === 'KILL' ? killDisplayMessage(event, playerNamesById)
-      : event.eventType === 'TOWER' ? structureDisplayMessage(event, teams)
+      : event.eventType === 'TOWER' || event.eventType === 'STRUCTURE_ACTION' ? structureDisplayMessage(event, teams, action)
         : event.displayMessage ?? event.eventType,
     isMajor: MAJOR_EVENT_TYPES.has(event.eventType),
     showInLog: !HIDDEN_LOG_EVENT_TYPES.has(event.eventType),
-  }));
+    });
+  });
   const snapshots: readonly MatchSnapshotViewModel[] = source.timeline.snapshots.map((snapshot) => {
     const playerState = (side: TeamSide) => snapshot.players.filter((player) => player.teamSide === side).map((player) => ({
       playerId: player.playerId, playerName: playerNamesById[player.playerId] ?? player.playerId,
@@ -186,8 +222,8 @@ function createPlayback(source: RealMatchResponseDto, options: MatchSetupOptions
     return {
       atSeconds: snapshot.timeSeconds,
       teams: {
-        BLUE: { side: 'BLUE', kills: snapshot.blueTeam.kills, gold: snapshot.blueTeam.gold, towersDestroyed: snapshot.blueTeam.towersDestroyed, dragons: snapshot.blueTeam.dragons, inhibitorsRemaining: snapshot.blueTeam.inhibitorsRemaining, champions: playerState('BLUE') },
-        RED: { side: 'RED', kills: snapshot.redTeam.kills, gold: snapshot.redTeam.gold, towersDestroyed: snapshot.redTeam.towersDestroyed, dragons: snapshot.redTeam.dragons, inhibitorsRemaining: snapshot.redTeam.inhibitorsRemaining, champions: playerState('RED') },
+        BLUE: { side: 'BLUE', kills: snapshot.blueTeam.kills, gold: snapshot.blueTeam.gold, towersDestroyed: snapshot.blueTeam.towersDestroyed, dragons: snapshot.blueTeam.dragons, inhibitorsRemaining: snapshot.blueTeam.inhibitorsRemaining, nexusTurretsRemaining: snapshot.blueTeam.nexusTurretsRemaining, nexusAlive: snapshot.blueTeam.nexusAlive, champions: playerState('BLUE') },
+        RED: { side: 'RED', kills: snapshot.redTeam.kills, gold: snapshot.redTeam.gold, towersDestroyed: snapshot.redTeam.towersDestroyed, dragons: snapshot.redTeam.dragons, inhibitorsRemaining: snapshot.redTeam.inhibitorsRemaining, nexusTurretsRemaining: snapshot.redTeam.nexusTurretsRemaining, nexusAlive: snapshot.redTeam.nexusAlive, champions: playerState('RED') },
       },
     };
   });

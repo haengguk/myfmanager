@@ -24,7 +24,7 @@ import org.springframework.core.env.Environment;
         properties = {"spring.main.banner-mode=off", "logging.level.root=ERROR"})
 class RealMatchTransportCompressionV1IntegrationTest {
     private static final String FIXED_OUTPUT_HASH =
-            "bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874";
+            "86a8a09be83d20d6ac90a584888237762909f35f107de6ba3bffcafaf7a77b04";
 
     @LocalServerPort int port;
     @Autowired ObjectMapper mapper;
@@ -145,10 +145,10 @@ class RealMatchTransportCompressionV1IntegrationTest {
 
     private static void assertFixedIdentity(JsonNode response) {
         assertThat(response.path("draft").path("decisions")).hasSize(20);
-        assertThat(response.path("result").path("winner").asText()).isEqualTo("BLUE");
-        assertThat(response.path("result").path("durationSeconds").asInt()).isEqualTo(3_430);
-        assertThat(response.path("timeline").path("events")).hasSize(517);
-        assertThat(response.path("timeline").path("snapshots")).hasSize(344);
+        assertThat(response.path("result").path("winner").asText()).isEqualTo("RED");
+        assertThat(response.path("result").path("durationSeconds").asInt()).isEqualTo(1_750);
+        assertThat(response.path("timeline").path("events")).hasSize(350);
+        assertThat(response.path("timeline").path("snapshots")).hasSize(176);
         assertThat(response.path("integrity").path("outputHash").asText())
                 .isEqualTo(FIXED_OUTPUT_HASH);
         assertThat(response.path("integrity").path("replayProvenanceHash").asText())

@@ -51,6 +51,8 @@ class LanePhaseIntegrationTest {
         StructureOutcome outer=structures.destroyNextStructure(s,TeamSide.BLUE,Lane.TOP,PushReason.MACRO_PLAY).orElseThrow();
         assertEquals(TowerTier.OUTER,outer.towerTier());assertEquals(StructureActionSource.MACRO_PLAY,outer.source());
         assertEquals(LanePhase.OPEN,s.getLanePhaseState().getLanePhase(Lane.TOP));assertTrue(s.getMapState().getLaneState(TeamSide.BLUE,Lane.TOP).isOuterTowerAlive());
+        assertTrue(structures.destroyNextStructure(s,TeamSide.BLUE,Lane.TOP,PushReason.MACRO_PLAY).isEmpty());
+        s.advanceTimeSeconds(1);s.clearStructureActionRegistryThisTick();
         assertEquals(TowerTier.INNER,structures.destroyNextStructure(s,TeamSide.BLUE,Lane.TOP,PushReason.MACRO_PLAY).orElseThrow().towerTier());
     }
     @Test void openPressureDecayFeedsObjectivePriorityWithoutMutatingPastSnapshot(){

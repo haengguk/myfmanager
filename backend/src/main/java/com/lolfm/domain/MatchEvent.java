@@ -43,6 +43,7 @@ public class MatchEvent {
     private TeamSide structureAttackingSide;
     private TeamSide structureDefendingSide;
     private OuterTurretSiegeData outerTurretSiege;
+    private StructureActionData structureAction;
     private MatchPhaseChangeData matchPhaseChange;
     private LateGameDecisionData lateGameDecision;
     private ProgressionEventData progressionEvent;
@@ -133,6 +134,8 @@ public class MatchEvent {
     public void setStructureDefendingSide(TeamSide value) { structureDefendingSide = value; }
     public OuterTurretSiegeData getOuterTurretSiege() { return outerTurretSiege; }
     public void setOuterTurretSiege(OuterTurretSiegeData value) { outerTurretSiege = value; }
+    public StructureActionData getStructureAction() { return structureAction; }
+    public void setStructureAction(StructureActionData value) { structureAction = value; }
     public MatchPhaseChangeData getMatchPhaseChange() { return matchPhaseChange; }
     public void setMatchPhaseChange(MatchPhaseChangeData value) { matchPhaseChange = value; }
     public LateGameDecisionData getLateGameDecision() { return lateGameDecision; }

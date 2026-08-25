@@ -185,6 +185,16 @@ public class PlayerState {
         activityState.beginRoam(originLane, targetLane, currentTimeSeconds,
                 currentTimeSeconds + RoamRuleConfig.ROAM_ACTIVITY_SECONDS);
     }
+    public void beginSiegeActivity(Lane routeLane, String actionId,
+                                   int currentTimeSeconds, int untilSeconds) {
+        activityState.beginSiege(routeLane, actionId, currentTimeSeconds, untilSeconds);
+        blockFarmUntil(untilSeconds);
+    }
+    public void extendSiegeActivity(String actionId, int untilSeconds) {
+        activityState.extendSiege(actionId, untilSeconds);
+        if (activityState.isSiegingAction(actionId)) blockFarmUntil(untilSeconds);
+    }
+    public void endSiegeActivity(String actionId) { activityState.clearSiege(actionId); }
     public int farmReturnSecondsRemaining(int currentTimeSeconds) {
         return Math.max(0, farmResumeAtSeconds - currentTimeSeconds);
     }

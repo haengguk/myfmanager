@@ -62,6 +62,12 @@ public class GameState {
     private final EnumMap<TeamSide, Boolean> structureActionAttemptedThisTick = new EnumMap<>(TeamSide.class);
     private final EnumMap<TeamSide, Boolean> structureMutationPerformedThisTick = new EnumMap<>(TeamSide.class);
     private final EnumMap<TeamSide, Boolean> duplicateStructureAttemptPendingBySide = new EnumMap<>(TeamSide.class);
+    private final EnumMap<TeamSide, StructureActionKey> structureMutationReservations = new EnumMap<>(TeamSide.class);
+    private final Set<StructureActionKey> processedStructureActions = new java.util.HashSet<>();
+    private final EnumMap<TeamSide, BaseSiegeState> baseSiegeStates = new EnumMap<>(TeamSide.class);
+    private final List<StructureRespawnFact> pendingStructureRespawns = new ArrayList<>();
+    private long structureActionSequence;
+    private boolean firstTurretClaimed;
     private final EnumMap<TeamSide, Integer> structurePushBlockedUntilSeconds = new EnumMap<>(TeamSide.class);
     private final StructureActionExecutionStats structureActionExecutionStats = new StructureActionExecutionStats();
     private final ProgressionExecutionStats progressionExecutionStats = new ProgressionExecutionStats();
@@ -148,6 +154,7 @@ public class GameState {
             structureMutationPerformedThisTick.put(side, false);
             duplicateStructureAttemptPendingBySide.put(side, false);
             structurePushBlockedUntilSeconds.put(side, 0);
+            baseSiegeStates.put(side, new BaseSiegeState(side));
         }
         for (Lane lane : Lane.values()) laneStates.put(lane, new LaneState(lane));
         for (TeamSide side : TeamSide.values()) {
@@ -322,6 +329,19 @@ public class GameState {
     public MapState getMapState() {
         return mapState;
     }
+    public BaseSiegeState getBaseSiegeState(TeamSide attackingSide) {
+        return baseSiegeStates.get(attackingSide);
+    }
+    public String nextStructureActionId(TeamSide side, StructureActionSource source) {
+        structureActionSequence++;
+        return "SIEGE:" + structureActionSequence + ":" + side + ":" + source;
+    }
+    public boolean claimFirstTurret() {
+        if (firstTurretClaimed) return false;
+        firstTurretClaimed = true;
+        return true;
+    }
+    public boolean isFirstTurretClaimed() { return firstTurretClaimed; }
 
     public LaneState laneState(Lane lane) { return laneStates.get(lane); }
     public Map<Lane, LaneState> getLaneStates() { return Map.copyOf(laneStates); }
@@ -331,6 +351,40 @@ public class GameState {
             structureMutationPerformedThisTick.put(side, false);
             duplicateStructureAttemptPendingBySide.put(side, false);
         }
+        structureMutationReservations.clear();
+    }
+    public StructureActionReservation reserveStructureMutation(StructureActionKey key) {
+        if (finished) return StructureActionReservation.MATCH_FINISHED;
+        if (processedStructureActions.contains(key)
+                || key.equals(structureMutationReservations.get(key.attackingSide()))) {
+            return StructureActionReservation.DUPLICATE;
+        }
+        if (wasStructureMutationPerformedThisTick(key.attackingSide())
+                || structureMutationReservations.containsKey(key.attackingSide())) {
+            return StructureActionReservation.SIDE_SLOT_USED;
+        }
+        structureMutationReservations.put(key.attackingSide(), key);
+        if (!wasStructureActionAttemptedThisTick(key.attackingSide())) {
+            markStructureActionAttempted(key.attackingSide());
+        }
+        return StructureActionReservation.RESERVED;
+    }
+    public void commitStructureMutation(StructureActionKey key) {
+        if (!key.equals(structureMutationReservations.get(key.attackingSide()))) {
+            throw new IllegalStateException("Structure mutation was not reserved: " + key);
+        }
+        structureMutationReservations.remove(key.attackingSide());
+        processedStructureActions.add(key);
+        markStructureMutationPerformed(key.attackingSide());
+    }
+    public void cancelStructureMutation(StructureActionKey key) {
+        structureMutationReservations.remove(key.attackingSide(), key);
+    }
+    public int getProcessedStructureActionCount() { return processedStructureActions.size(); }
+    public List<StructureRespawnFact> drainStructureRespawnFacts() {
+        List<StructureRespawnFact> result = List.copyOf(pendingStructureRespawns);
+        pendingStructureRespawns.clear();
+        return result;
     }
     public boolean markStructureActionAttempted(TeamSide side) {
         if (wasStructureActionAttemptedThisTick(side)) {
@@ -467,6 +521,9 @@ public class GameState {
         winnerSide = winningSide;
         endReason = reason;
         endedAtSeconds = currentTimeSeconds;
+        for (BaseSiegeState siege : baseSiegeStates.values()) {
+            if (siege.isActive()) siege.stop(SiegeStopReason.MATCH_FINISHED);
+        }
     }
 
     public void timeout() {
@@ -475,6 +532,9 @@ public class GameState {
         winnerSide = null;
         endReason = GameEndReason.SIMULATION_TIMEOUT;
         endedAtSeconds = currentTimeSeconds;
+        for (BaseSiegeState siege : baseSiegeStates.values()) {
+            if (siege.isActive()) siege.stop(SiegeStopReason.MATCH_FINISHED);
+        }
     }
 
     public void advanceTimeSeconds(int amount) {
@@ -482,6 +542,17 @@ public class GameState {
         if (finished) return;
         currentTimeSeconds += amount;
         mapState.refreshAt(currentTimeSeconds);
+        for (TeamSide defendingSide : TeamSide.values()) {
+            BaseState base = mapState.getBaseState(defendingSide);
+            for (int index : base.drainRespawnedNexusTurretIndices()) {
+                pendingStructureRespawns.add(new StructureRespawnFact(
+                        currentTimeSeconds,
+                        defendingSide,
+                        StructureTargetId.nexusTurret(defendingSide, index),
+                        base.getNexusTurretCurrentHealth(index),
+                        base.getNexusTurretMaxHealth(index)));
+            }
+        }
     }
 
     public TeamState getTeamState(TeamSide side) {

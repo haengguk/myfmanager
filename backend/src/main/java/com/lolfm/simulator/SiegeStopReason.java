@@ -1,0 +1,15 @@
+package com.lolfm.simulator;
+
+public enum SiegeStopReason {
+    MATCH_FINISHED,
+    EXPIRED,
+    ATTACK_WINDOW_COMPLETE,
+    ATTACKER_KILLED,
+    ATTACKERS_DISENGAGED,
+    INSUFFICIENT_ATTACKERS,
+    DEFENDERS_RETURNED,
+    WAVE_LOST,
+    TARGET_PROTECTED,
+    NO_TARGET,
+    REPLACED
+}

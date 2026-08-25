@@ -376,7 +376,7 @@ final class RealMatchPerformanceBaselineV1Artifacts {
                         MatchEngineV1Policy.authoritative().configurationHash())
                         && run.resourceProvenanceHash().equals(
                         MatchEngineV1Policy.APPROVED_RESOURCE_PROVENANCE_SHA256),
-                "Production policy/configuration/resource identity drift");
+                "Historical V8 policy/configuration/resource identity drift");
         require(run.outputHash().matches("[0-9a-f]{64}")
                         && run.replayProvenanceHash().matches("[0-9a-f]{64}")
                         && run.simulatorTimelineHash().matches("[0-9a-f]{64}")

@@ -22,6 +22,10 @@ public record StructureOutcome(
         if (structureKind == StructureKind.INHIBITOR && lane == null) throw new IllegalArgumentException("Inhibitor outcome requires lane.");
         if (structureKind == StructureKind.NEXUS && !gameEnded) throw new IllegalArgumentException("Nexus destruction must end the game.");
     }
+    public StructureOutcome withOuterTurretSiege(OuterTurretSiegeData siege) {
+        return new StructureOutcome(attackingSide, defendingSide, structureKind, lane, towerTier,
+                occurredAtSeconds, reason, gameEnded, source, siege);
+    }
     private static StructureActionSource source(PushReason reason){
         return switch(reason){case POST_FIGHT->StructureActionSource.POST_FIGHT;case BARON_PRESSURE->StructureActionSource.BARON_PRESSURE;case MACRO_PLAY->StructureActionSource.MACRO_PLAY;case MID_GAME_MACRO->StructureActionSource.MID_GAME_MACRO;case OBJECTIVE_TRADE->StructureActionSource.OBJECTIVE_TRADE;case LATE_GAME_SIEGE->StructureActionSource.LATE_GAME_SIEGE;case LATE_GAME_CROSS_MAP->StructureActionSource.LATE_GAME_CROSS_MAP;case NEXUS_FINISH->StructureActionSource.NEXUS_FINISH;};
     }

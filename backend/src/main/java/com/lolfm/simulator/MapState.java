@@ -7,8 +7,9 @@ import java.util.List;
 public class MapState {
     private final EnumMap<TeamSide, EnumMap<Lane, LaneStructureState>> laneStates = new EnumMap<>(TeamSide.class);
     private final EnumMap<TeamSide, BaseState> baseStates = new EnumMap<>(TeamSide.class);
-    private int nextBluePushAttemptSeconds = 480;
-    private int nextRedPushAttemptSeconds = 480;
+    private final EnumMap<TeamSide, EnumMap<Lane, LaneWaveState>> waveStates = new EnumMap<>(TeamSide.class);
+    private int nextBluePushAttemptSeconds = PushRuleConfig.MACRO_START_SECONDS;
+    private int nextRedPushAttemptSeconds = PushRuleConfig.MACRO_START_SECONDS;
     private int blueBasePressureUntilSeconds = -1;
     private int redBasePressureUntilSeconds = -1;
 
@@ -18,6 +19,9 @@ public class MapState {
             for (Lane lane : Lane.values()) lanes.put(lane, new LaneStructureState());
             laneStates.put(side, lanes);
             baseStates.put(side, new BaseState());
+            EnumMap<Lane, LaneWaveState> waves = new EnumMap<>(Lane.class);
+            for (Lane lane : Lane.values()) waves.put(lane, new LaneWaveState());
+            waveStates.put(side, waves);
         }
     }
     public void refreshAt(int currentTimeSeconds) {
@@ -28,6 +32,9 @@ public class MapState {
     }
     public LaneStructureState getLaneState(TeamSide defendingSide, Lane lane) { return laneStates.get(defendingSide).get(lane); }
     public BaseState getBaseState(TeamSide defendingSide) { return baseStates.get(defendingSide); }
+    public LaneWaveState getWaveState(TeamSide attackingSide, Lane lane) {
+        return waveStates.get(attackingSide).get(lane);
+    }
     public List<Lane> getAttackableLanes(TeamSide defendingSide) {
         List<Lane> lanes=new ArrayList<>();
         for(Lane lane:Lane.values()) if(getLaneState(defendingSide,lane).nextAliveTower().isPresent()) lanes.add(lane);

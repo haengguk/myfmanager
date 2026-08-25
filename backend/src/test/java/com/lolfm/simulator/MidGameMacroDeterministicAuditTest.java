@@ -141,8 +141,10 @@ class MidGameMacroDeterministicAuditTest {
 
         GameState blocked = stateAt(870);
         blocked.markStructureActionPerformed(TeamSide.BLUE);
-        Resolution result = resolveSelected(blocked, TeamSide.BLUE, TeamMacroPlan.GROUP_MID, 0);
-        assertNull(result.action());
+        List<MatchEvent> blockedEvents = new ArrayList<>();
+        resolver().resolveDueEvaluation(blocked, new SequenceRandom(0, 0, 0, 0),
+                blockedEvents, new StructureResolver());
+        assertTrue(blockedEvents.stream().noneMatch(event -> event.getStructureAttackingSide() == TeamSide.BLUE));
         assertEquals(1, blocked.getMidGameMacroState().getExecutionStats().snapshot()
                 .existingStructureActionBlocked());
     }
@@ -192,16 +194,20 @@ class MidGameMacroDeterministicAuditTest {
         List<Integer> playerGold = success.getBlueTeamState().getPlayers().stream()
                 .map(PlayerState::getGold).toList();
         Resolution win = resolveSelected(success, TeamSide.BLUE, TeamMacroPlan.GROUP_MID, 0);
-        assertEquals(MacroActionResult.STRUCTURE_DESTROYED, win.action().result());
-        assertEquals(teamGold + 625, success.getBlueTeamState().getGold());
+        assertEquals(MacroActionResult.STRUCTURE_DAMAGED, win.action().result());
+        assertEquals(teamGold + 240, success.getBlueTeamState().getGold());
         for (int i = 0; i < playerGold.size(); i++) {
-            assertEquals(playerGold.get(i) + 125, success.getBlueTeamState().getPlayers().get(i).getGold());
+            Position position = success.getBlueTeamState().getPlayers().get(i).getPosition();
+            int expected = playerGold.get(i) + (position == Position.TOP ? 0 : 60);
+            assertEquals(expected, success.getBlueTeamState().getPlayers().get(i).getGold());
         }
         assertEquals(1, win.events().stream()
                 .filter(e -> e.getStructureActionSource() == StructureActionSource.MID_GAME_MACRO).count());
         GameState failure = stateAt(870);
         Resolution lose = resolveSelected(failure, TeamSide.BLUE, TeamMacroPlan.GROUP_MID, .999);
-        assertEquals(MacroActionResult.PUSH_FAILED, lose.action().result());
+        assertNull(lose.action());
+        assertEquals(MacroActionResult.PUSH_FAILED, failure.getMidGameMacroState()
+                .teamState(TeamSide.BLUE).getLastActionResult());
         assertTrue(lose.events().stream().noneMatch(
                 e -> e.getStructureActionSource() == StructureActionSource.MID_GAME_MACRO));
     }
@@ -402,12 +408,13 @@ class MidGameMacroDeterministicAuditTest {
                 .append(event.getStructureActionSource()).append(':').append(event.getStructureKind()).append(':')
                 .append(event.getStructureTowerTier()).append(':').append(event.getStructureLane()).append(':')
                 .append(event.getStructureAttackingSide()).append(':').append(event.getMidGameMacroDecision()).append(':')
-                .append(event.getMidGameMacroAction()).append(';');
+                .append(event.getMidGameMacroAction()).append(':').append(event.getStructureAction()).append(';');
         for (MatchSnapshot snapshot : timeline.getSnapshots()) {
             value.append(snapshot.getTimeSeconds()).append(':').append(snapshot.getBlueKills()).append(':')
                     .append(snapshot.getRedKills()).append(':').append(snapshot.getBlueGold()).append(':')
                     .append(snapshot.getRedGold()).append(':').append(snapshot.getBlueDragons()).append(':')
                     .append(snapshot.getRedDragons()).append(':').append(snapshot.getMidGameMacro()).append(':')
+                    .append(snapshot.getStructureState()).append(':')
                     .append(snapshot.getObjectivePriority()).append(':');
             snapshot.getPlayerSnapshots().forEach(p -> value.append(p.getTeamSide()).append('/')
                     .append(p.getPosition()).append('/').append(p.getKills()).append('/').append(p.getDeaths())

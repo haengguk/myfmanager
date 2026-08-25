@@ -85,8 +85,8 @@ REAL_MATCH_RESPONSE_V1
 - `TeamSide`, `Position`, Draft action, end reason, event type, lane, combat/structure/activity 값은 enum string이다.
 - `teams`는 최종 champion assignment와 catalog 기반 display name/portrait를 함께 제공한다.
 - `draft`는 rules identity/hash, Game 1, Draft 전 exclusion, ordered ban/pick decision, 양 팀 ban/pick, final player-position-champion assignment와 final hash를 제공한다.
-- `result`는 `MATCH_RESULT_SUMMARY_V1`의 winner/end reason/duration, 팀 최종 상태, 10명 KDA/CS/gold/XP/level과 V8의 `PLAYER_ABILITY_PROFILE_V1`을 그대로 투영한다. 선수별 profile은 12개 base/realized/delta rating과 선택 champion proficiency 및 실행 보정을 stable `PlayerId`/position/champion assignment에 결속한다.
-- `timeline`은 모든 immutable structured event와 snapshot을 투영한다. Stable participant ID, champion ID, `CombatSource`, objective/structure field, structured data와 player progression을 보존한다. `displayMessage`는 표시용이다.
+- `result`는 `MATCH_RESULT_SUMMARY_V1`의 winner/end reason/duration, 팀 최종 상태, 10명 KDA/CS/gold/XP/level과 `PLAYER_ABILITY_PROFILE_V1`을 그대로 투영한다. 선수별 profile은 12개 base/realized/delta rating과 선택 champion proficiency 및 실행 보정을 stable `PlayerId`/position/champion assignment에 결속한다.
+- `timeline`은 모든 immutable structured event와 snapshot을 투영한다. Stable participant ID, champion ID, `CombatSource`, objective/structure field, structured data와 player progression을 보존한다. V9의 `STRUCTURE_ACTION`은 `STARTED`, `DAMAGE`, `DESTROYED`, `REPELLED`, `ABORTED`, `RESPAWNED` phase, target/tier/index, 양 side, source, HP 전후/최대치, 피해량, plate, 참가자, wave/backdoor, 지속 여부와 종료 사유를 제공한다. Snapshot의 `structureState`는 lane별 구조물 HP, 개별 넥서스 포탑 HP/남은 개수, 넥서스 HP와 active siege를 제공하고 player activity에는 `SIEGING`이 추가된다. `displayMessage`는 표시용이다.
 - `integrity`는 contract/policy/configuration/rules/engine identity, input/resource/replay/timeline/output hash와 Random fingerprint를 제공한다.
 
 Safety timeout에서는 `result.winner`와 `timeline.winner`가 `null`일 수 있다. Event의 actor, lane, participant, combat/structure field도 해당 event 의미에 없으면 `null`이다. 전체 enum 값과 nullable field 목록은 generated contract와 handoff artifact에 고정한다.
@@ -101,16 +101,16 @@ V1은 다음 runtime만 허용한다.
 | --- | --- |
 | Contract | `MATCH_ENGINE_CONTRACT_V1` |
 | Policy | `MATCH_ENGINE_V1_BASELINE_PRODUCTION_POLICY` |
-| Policy hash | `cd5512dcfeae92ff3222367d4aa8a9fc352cc1bf57f9e3ea20382e6a5959bf0a` |
+| Policy hash | `fb6b37ba770af03c176ff00bdbe683afb1e2701473461ceef6cd808bf5e970e5` |
 | Runtime profile | `BASELINE_V1` |
 | Configuration hash | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
-| Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2` |
-| Engine | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8` |
+| Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3` |
+| Engine | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9` |
 | Matchup / Composition | `OFF` / `OFF` |
 | Jungle contribution | `DISABLED_NOT_INTEGRATED` |
 | Economy / Tempo candidate | `false` / `false` |
 
-이번 API는 engine input/output, gameplay 공식, Draft, resource와 Random 순서를 변경하지 않는다. Presentation metadata도 동결된 engine output hash를 재정의하지 않는다.
+V9 구조물 규칙과 additive timeline/snapshot field는 현재 engine output과 provenance에 포함된다. Presentation metadata는 engine output hash를 재정의하지 않으며 기존 response field의 이름이나 의미는 제거하지 않았다.
 
 ## Error contract
 
@@ -141,15 +141,15 @@ Real Match API focused 검증은 V8 `PlayerAbilityProfileContractTest`를 포함
 
 최종 complete backend regression은 메모리 한도에 맞춘 일회성 JVM/worker 제한 아래 default `test` 전체를 첫 실행에서 수행했고 196 suites / 2,091 tests, failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 810.092초, Gradle wall time은 13분 43초다. 테스트 선택이나 default diagnostic 제외 경계는 바꾸지 않았으며, 이후 executable production source, resource, Gradle과 shared fixture는 변경하지 않았다.
 
-Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`에 있다. Contract, options example, 고정 `GEN` 대 `T1` seed `"73"` 요청/전체 응답, error contract, handoff 6개 JSON과 `SHA256SUMS.txt`를 제공한다. 현재 V8 고정 결과는 GEN(BLUE) 승리, `NEXUS_DESTROYED`, 3,430초(57분 10초), output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. Transport compression final source에 결속한 manifest는 6/6 raw SHA가 통과했고 raw SHA-256은 `9767356ce01243ff67441354a24d2d54df86fd30ed69cb57397ed36629876fad`다.
+`backend/build/reports/real-match-api-v1/`의 handoff 6개 JSON과 `SHA256SUMS.txt`는 V8 당시 생성한 historical frontend reference다. 그 fixture는 GEN(BLUE) 승리, 3,430초와 output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`를 보존하지만 현재 V9 gameplay/provenance oracle로 사용하지 않는다. 현재 LIVE `GEN` 대 `T1`, seed `"73"` 결과는 T1(RED) 승리, 1,750초, event 350개, snapshot 176개와 output hash `86a8a09be83d20d6ac90a584888237762909f35f107de6ba3bffcafaf7a77b04`다. V9 handoff를 공식 승격할 때는 현재 source binding과 fresh-JVM candidate A/B를 새로 검증해야 한다.
 
 Artifact writer는 전체 XML의 단순 개수만 신뢰하지 않는다. 필수 8개 suite와 최소 test 수, failures/errors/skipped 0을 확인하고, 전용 dynamic test가 기록한 production source 502 files / `e23f2d2149edd3a7478b5333f126e876d969b5a3c71c20b670447cc9cbd71817` 및 API verification source 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`를 현재 tree와 exact 비교한다. 생성 전에는 options/roster/Draft/result/final snapshot/structured participant/hash/Random/선수 ability profile의 V8 semantic audit와 same-request replay도 수행한다. 두 fresh JVM candidate A/B의 JSON 6개와 manifest는 7/7 byte-for-byte exact였고, 감사 통과 뒤에만 공식 local artifact로 승격했다. 따라서 이전 V6/V7 handoff, 이전 clean XML이나 고정 base commit/run-count 표시는 새 evidence로 재사용할 수 없다.
 
-Historical Match Engine V1 freeze artifact는 V6 당시 evidence로 재생성하지 않았다. 기존 7-entry manifest SHA-256 `1f5bc20c347d25d833e822325de1fa294dc61d38c55da121ea30d15ab70a0728`을 raw SHA로 다시 검증해 현재 V8 handoff에 결속했다. Historical freeze, 현재 production implementation V8, 현재 frontend handoff는 서로 다른 evidence 범위다.
+Historical Match Engine V1 freeze artifact는 V6 당시 evidence로 재생성하지 않았다. 기존 7-entry manifest SHA-256 `1f5bc20c347d25d833e822325de1fa294dc61d38c55da121ea30d15ab70a0728`과 V8 frontend handoff도 과거 evidence로 보존한다. Historical V6 freeze, V8 reference handoff와 현재 production V9은 서로 다른 evidence 범위다.
 
 ## Frontend V1-A reference와 V1-B live 경계
 
-Frontend V1-A는 backend wire 응답을 full response 타입으로 가장하지 않는다. Node 기본 모듈 기반 extractor가 handoff manifest 6/6, manifest raw SHA, fixed request identity, engine V8와 output hash를 먼저 검증한 뒤 `REAL_MATCH_FRONTEND_REFERENCE_PROJECTION_V1`을 결정적으로 생성한다. 원본 33,617,922 bytes에서 선택한 767,407-byte projection은 실제 options 10팀/50명, ordered Draft 20개와 final assignment 10개, structured event 287/517개, 실제 snapshot 59/344개, final result/integrity와 10개 ability profile을 포함한다. Event는 `LEVEL_UP`과 `ITEM_STAGE_REACHED`를 제외한 structured gameplay event를 보존하고 snapshot은 첫/마지막과 정확한 60초 지점을 선택한다.
+Frontend V1-A는 V8 historical handoff를 full response 타입으로 가장하지 않는다. Node 기본 모듈 기반 extractor가 그 manifest와 fixed V8 identity를 검증한 뒤 `REAL_MATCH_FRONTEND_REFERENCE_PROJECTION_V1`을 결정적으로 생성한다. 이 projection은 명시적 `reference` 모드 전용이며 현재 V9 LIVE gameplay oracle이 아니다. LIVE adapter는 현재 V9의 additive `STRUCTURE_ACTION`, `structureState`, `SIEGING`을 직접 정규화한다.
 
 두 공급자는 `provider → normalized match session → Draft/Playback/Result view model` 이후 경계를 공유한다. LIVE는 `GET /options`와 `POST /simulate`의 전체 JSON을 strict runtime validator로 검증하고, structured event/snapshot/identity만 정규화한다. Event 의미는 backend enum과 structured field로만 분류하며 `displayMessage`를 gameplay identity로 파싱하지 않는다. 원본 응답 문자열과 DTO graph는 정규화 뒤 session에 보존하지 않는다.
 

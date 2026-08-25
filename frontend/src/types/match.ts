@@ -365,7 +365,7 @@ export interface PlayerSnapshot {
   hasElderBuff: boolean;
   elderBuffRemainingSeconds: number;
   shutdownBountyGold: number;
-  activityType: 'DEFAULT_ROLE' | 'ROAMING';
+  activityType: 'DEFAULT_ROLE' | 'ROAMING' | 'SIEGING';
   activityOriginLane: 'TOP' | 'MID' | 'BOT' | null;
   activityTargetLane: 'TOP' | 'MID' | 'BOT' | null;
   activityUntilSeconds: number;
@@ -391,7 +391,7 @@ export interface PlayerSnapshot {
 
 export type TeamMacroPlan = 'GROUP_MID' | 'SIDE_LANE_TOP' | 'SIDE_LANE_BOT' | 'OBJECTIVE_SETUP_DRAGON' | 'OBJECTIVE_SETUP_BARON' | 'RESET_AND_FARM';
 export type MacroActionType = 'STRUCTURE_PUSH' | 'OBJECTIVE_SETUP' | 'RESET';
-export type MacroActionResult = 'NOT_ATTEMPTED' | 'INELIGIBLE' | 'PUSH_FAILED' | 'STRUCTURE_DESTROYED' | 'SETUP_STARTED' | 'RESET_STARTED';
+export type MacroActionResult = 'NOT_ATTEMPTED' | 'INELIGIBLE' | 'PUSH_FAILED' | 'STRUCTURE_DAMAGED' | 'STRUCTURE_DESTROYED' | 'SETUP_STARTED' | 'RESET_STARTED';
 export type MacroPlanStatus = 'DISABLED' | 'NOT_STARTED' | 'WAITING_FOR_EVALUATION' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'MATCH_ENDED';
 export type MacroPlanEndReason = 'EXPIRED' | 'REPLACED' | 'OBJECTIVE_CAPTURED' | 'OBJECTIVE_UNAVAILABLE' | 'LATE_GAME_TRANSITION' | 'FEATURE_DISABLED' | 'MATCH_ENDED';
 
@@ -581,7 +581,7 @@ export interface ObjectiveDecisionSnapshot {
 
 export type LateGameAttackPlan = 'SIEGE_TOP' | 'SIEGE_MID' | 'SIEGE_BOT' | 'NEXUS_FINISH' | 'RESET_AND_REGROUP';
 export type LateGameDefenseResponse = 'DEFEND' | 'GIVE_STRUCTURE' | 'CROSS_MAP_PUSH';
-export type LateGameActionResult = 'NOT_EVALUATED' | 'NO_INITIATIVE' | 'ATTACKER_RESET' | 'SIEGE_REPELLED' | 'STRUCTURE_DESTROYED' | 'SIEGE_FIGHT_ATTACKER_WIN' | 'SIEGE_FIGHT_DEFENDER_WIN' | 'CROSS_MAP_SUCCEEDED' | 'CROSS_MAP_FAILED' | 'NEXUS_FINISH_ADVANCED' | 'NEXUS_DESTROYED' | 'STALE_TARGET' | 'INELIGIBLE' | 'GAME_FINISHED';
+export type LateGameActionResult = 'NOT_EVALUATED' | 'NO_INITIATIVE' | 'ATTACKER_RESET' | 'SIEGE_REPELLED' | 'STRUCTURE_DAMAGED' | 'STRUCTURE_DESTROYED' | 'SIEGE_FIGHT_ATTACKER_WIN' | 'SIEGE_FIGHT_DEFENDER_WIN' | 'CROSS_MAP_SUCCEEDED' | 'CROSS_MAP_FAILED' | 'NEXUS_FINISH_ADVANCED' | 'NEXUS_DESTROYED' | 'STALE_TARGET' | 'INELIGIBLE' | 'GAME_FINISHED';
 export type LateGameTransitionReason = 'TIME_LIMIT' | 'INHIBITOR_TOWER_DESTROYED' | 'INHIBITOR_DESTROYED';
 export type BaseThreatLevel = 'NONE' | 'INHIBITOR_TOWER_THREAT' | 'INHIBITOR_THREAT' | 'NEXUS_TURRET_THREAT' | 'NEXUS_THREAT' | 'MATCH_ENDED';
 export type LateGameStructureTarget = 'OUTER' | 'INNER' | 'INHIBITOR_TOWER' | 'INHIBITOR' | 'NEXUS_TURRET' | 'NEXUS';

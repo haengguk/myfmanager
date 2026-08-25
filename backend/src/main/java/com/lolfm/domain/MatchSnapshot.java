@@ -39,6 +39,7 @@ public class MatchSnapshot {
     private ObjectiveDecisionSnapshot objectiveDecision;
     private LateGameSnapshot lateGame;
     private ProgressionSnapshot progression;
+    private StructureStateSnapshot structureState;
 
     public MatchSnapshot(
             int timeSeconds,
@@ -106,6 +107,7 @@ public class MatchSnapshot {
         this.objectiveDecision = ObjectiveDecisionSnapshot.disabled();
         this.lateGame = new LateGameSnapshot(false, lanePhase.matchPhase(), -1, null, -1, null, null, null, null, null, new StructureActionExecutionStatsSnapshot(0, 0, 0, 0, 0, 0, 0, 0));
         this.progression = new ProgressionSnapshot(false, false, null, null);
+        this.structureState = StructureStateSnapshot.empty();
     }
 
     public MatchSnapshot(
@@ -178,6 +180,8 @@ public class MatchSnapshot {
     public LateGameSnapshot getLateGame() { return lateGame; }
     public ProgressionSnapshot getProgression() { return progression; }
     public void setProgression(ProgressionSnapshot value) { progression=value; }
+    public StructureStateSnapshot getStructureState() { return structureState; }
+    public void setStructureState(StructureStateSnapshot value) { structureState=value; }
     public int getBlueKills() { return blueKills; }
     public int getRedKills() { return redKills; }
     public int getBlueGold() { return blueGold; }

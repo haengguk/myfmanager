@@ -10,17 +10,17 @@
 | --- | --- |
 | Contract schema | `MATCH_ENGINE_CONTRACT_V1` |
 | Policy | `MATCH_ENGINE_V1_BASELINE_PRODUCTION_POLICY` |
-| Policy hash | `cd5512dcfeae92ff3222367d4aa8a9fc352cc1bf57f9e3ea20382e6a5959bf0a` |
+| Policy hash | `fb6b37ba770af03c176ff00bdbe683afb1e2701473461ceef6cd808bf5e970e5` |
 | Runtime profile | `BASELINE_V1` |
 | Configuration hash | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
-| Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2` |
-| Current engine implementation | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8` |
+| Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3` |
+| Current engine implementation | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9` |
 | Matchup / Composition / Jungle contribution | `OFF` / `OFF` / `DISABLED_NOT_INTEGRATED` |
 | Economy / Tempo candidate activation | `false` / `false` |
 
 `SimulationOptions.productionDefaults()`는 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`를 사용하는 저수준 constructor default다. 이름이 비슷하더라도 Match Engine V1의 authoritative application policy가 아니며 V1 facade는 이를 선택하지 않는다.
 
-이 표는 현재 application policy를 설명한다. 아래 Freeze Evidence는 Match Engine V1 경계를 처음 고정했을 때의 historical V6 artifact이며 재생성하지 않는다. 이후 production implementation은 player ratings의 전투·오브젝트·운영 반영과 ability profile projection을 포함한 V8로 진화했지만, retained `BASELINE_V1`, configuration/policy, candidate 비활성화와 HTTP 경계 의미는 유지된다. 현재 V8 실행 증거는 별도의 Real Match API frontend handoff에 결속한다.
+이 표는 현재 application policy를 설명한다. 아래 Freeze Evidence는 Match Engine V1 경계를 처음 고정했을 때의 historical V6 artifact이며 재생성하지 않는다. 이후 production implementation은 player ratings/ability profile의 V8과 구조물 HP·지속 공성·구조화 이벤트의 V9로 진화했다. Retained `BASELINE_V1`, configuration hash, candidate 비활성화와 HTTP 경계 의미는 유지되며 engine/rules/policy/output hash는 V9 의미를 식별하도록 갱신됐다. 기존 V8 frontend handoff는 historical reference이고 현재 V9 실행 oracle이 아니다.
 
 ## Immutable Input
 

@@ -190,6 +190,7 @@ final class MatchEngineV1Projector {
         put(structured, "midGameMacroDecision", source.getMidGameMacroDecision());
         put(structured, "midGameMacroAction", source.getMidGameMacroAction());
         put(structured, "outerTurretSiege", source.getOuterTurretSiege());
+        put(structured, "structureAction", source.getStructureAction());
         put(structured, "matchPhaseChange", source.getMatchPhaseChange());
         put(structured, "lateGameDecision", source.getLateGameDecision());
         put(structured, "progressionEvent", source.getProgressionEvent());
@@ -224,6 +225,7 @@ final class MatchEngineV1Projector {
         put(state, "objectiveDecision", source.getObjectiveDecision());
         put(state, "lateGame", source.getLateGame());
         put(state, "progression", source.getProgression());
+        put(state, "structures", source.getStructureState());
         return new MatchEngineV1Output.SnapshotV1(
                 source.getTimeSeconds(), team(input, source, TeamSide.BLUE),
                 team(input, source, TeamSide.RED), players,

@@ -18,7 +18,7 @@ const MAJOR_EVENT_TYPES = new Set([
   'KILL', 'JUNGLE_GANK', 'COUNTER_GANK', 'LANE_COMBAT', 'DRAGON', 'BARON', 'ELDER',
   'TOWER', 'TEAMFIGHT', 'TEAMFIGHT_RESULT', 'ACE', 'GAME_END',
 ]);
-const HIDDEN_PLAYBACK_EVENT_TYPES = new Set(['ASSIST', 'MATCH_PHASE_CHANGE', 'MACRO_ACTION', 'LATE_GAME_ACTION']);
+const HIDDEN_PLAYBACK_EVENT_TYPES = new Set(['ASSIST', 'MATCH_PHASE_CHANGE']);
 
 const reference = realMatchV8ReferenceProjection;
 
@@ -115,6 +115,8 @@ function mapTeamSnapshot(source: ReferenceProjectedTeamState, side: TeamSide, pl
     towersDestroyed: source.towersDestroyed,
     dragons: source.dragons,
     inhibitorsRemaining: source.inhibitorsRemaining,
+    nexusTurretsRemaining: source.nexusTurretsRemaining,
+    nexusAlive: source.nexusAlive,
     champions: players,
   };
 }
@@ -177,6 +179,7 @@ function createPlayback(source: RealMatchV8ReferenceProjection, teams: Record<Te
     structureTowerTier: event.structureTowerTier,
     structureAttackingSide: event.structureAttackingSide,
     structureDefendingSide: event.structureDefendingSide,
+    structureAction: null,
     goldAmount: event.goldAmount,
     actionId: event.actionId,
     parentActionId: event.parentActionId,

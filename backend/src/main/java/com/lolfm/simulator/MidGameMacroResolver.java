@@ -75,8 +75,8 @@ public final class MidGameMacroResolver {
         MacroPlanEndReason redPreviousEndReason = redState.getEndReason();
 
         // Both candidate sets and both selections are completed against the same pre-action state.
-        Evaluation blue = blueDue ? evaluate(state, TeamSide.BLUE) : null;
-        Evaluation red = redDue ? evaluate(state, TeamSide.RED) : null;
+        Evaluation blue = blueDue ? evaluate(state, TeamSide.BLUE, structureResolver) : null;
+        Evaluation red = redDue ? evaluate(state, TeamSide.RED, structureResolver) : null;
         Selection blueSelection = blue == null ? null : select(state, blue, random);
         Selection redSelection = red == null ? null : select(state, red, random);
 
@@ -117,35 +117,49 @@ public final class MidGameMacroResolver {
         }
     }
 
-    private Evaluation evaluate(GameState state, TeamSide side) {
+    private Evaluation evaluate(GameState state, TeamSide side,
+                                StructureResolver structures) {
+        if (state.wasStructureActionPerformedThisTick(side)) {
+            state.getMidGameMacroState().getExecutionStats()
+                    .recordExistingStructureActionBlocked();
+        }
         List<Candidate> candidates = new ArrayList<>();
-        for (TeamMacroPlan plan : TeamMacroPlan.values()) candidates.add(candidate(state, side, plan, true));
+        for (TeamMacroPlan plan : TeamMacroPlan.values()) {
+            candidates.add(candidate(state, side, plan, true, structures));
+        }
         return new Evaluation(side, List.copyOf(candidates));
     }
 
     List<MacroPlanWeightBreakdown> inspectCandidates(GameState state, TeamSide side) {
         List<MacroPlanWeightBreakdown> result = new ArrayList<>();
-        for (TeamMacroPlan plan : TeamMacroPlan.values()) result.add(candidate(state, side, plan, false).breakdown());
+        for (TeamMacroPlan plan : TeamMacroPlan.values()) {
+            result.add(candidate(state, side, plan, false, new StructureResolver()).breakdown());
+        }
         return List.copyOf(result);
     }
 
-    private Candidate candidate(GameState state, TeamSide side, TeamMacroPlan plan, boolean recordDiagnostics) {
-        Eligibility eligibility = eligibility(state, side, plan);
+    private Candidate candidate(GameState state, TeamSide side, TeamMacroPlan plan,
+                                boolean recordDiagnostics, StructureResolver structures) {
+        Eligibility eligibility = eligibility(state, side, plan, structures);
         MacroPlanWeightBreakdown breakdown = weight(state, side, plan, eligibility);
         if (recordDiagnostics) state.getMidGameMacroState().getExecutionStats().recordCandidate(plan, eligibility.eligible());
         return new Candidate(plan, eligibility, breakdown);
     }
 
-    private Eligibility eligibility(GameState state, TeamSide side, TeamMacroPlan plan) {
+    private Eligibility eligibility(GameState state, TeamSide side, TeamMacroPlan plan,
+                                    StructureResolver structures) {
         return switch (plan) {
             case GROUP_MID -> {
                 Set<Position> positions = availablePositions(state, side, GROUP_POSITIONS);
-                yield positions.size() >= 3 && hasTowerTarget(state, side, Lane.MID)
+                yield positions.size() >= 3
+                        && canStartStructurePush(state, side, Lane.MID, positions, structures)
                         ? Eligibility.ok(positions, Lane.MID, null)
                         : Eligibility.no(positions.size() < 3 ? "INSUFFICIENT_PARTICIPANTS" : "NO_STRUCTURE_TARGET", Lane.MID, null);
             }
-            case SIDE_LANE_TOP -> singleLaneEligibility(state, side, Position.TOP, Lane.TOP);
-            case SIDE_LANE_BOT -> singleLaneEligibility(state, side, Position.ADC, Lane.BOT);
+            case SIDE_LANE_TOP -> singleLaneEligibility(
+                    state, side, Position.TOP, Lane.TOP, structures);
+            case SIDE_LANE_BOT -> singleLaneEligibility(
+                    state, side, Position.ADC, Lane.BOT, structures);
             case OBJECTIVE_SETUP_DRAGON -> objectiveEligibility(state, side, ObjectiveType.DRAGON,
                     Position.JUNGLE, DRAGON_SUPPORT_POSITIONS);
             case OBJECTIVE_SETUP_BARON -> objectiveEligibility(state, side, ObjectiveType.BARON,
@@ -154,9 +168,12 @@ public final class MidGameMacroResolver {
         };
     }
 
-    private Eligibility singleLaneEligibility(GameState state, TeamSide side, Position position, Lane lane) {
+    private Eligibility singleLaneEligibility(GameState state, TeamSide side,
+                                              Position position, Lane lane,
+                                              StructureResolver structures) {
         Set<Position> positions = availablePositions(state, side, List.of(position));
-        return positions.size() == 1 && hasTowerTarget(state, side, lane)
+        return positions.size() == 1
+                && canStartStructurePush(state, side, lane, positions, structures)
                 ? Eligibility.ok(positions, lane, null)
                 : Eligibility.no(positions.isEmpty() ? "REQUIRED_PLAYER_UNAVAILABLE" : "NO_STRUCTURE_TARGET", lane, null);
     }
@@ -197,6 +214,15 @@ public final class MidGameMacroResolver {
 
     private boolean hasTowerTarget(GameState state, TeamSide side, Lane lane) {
         return state.getMapState().getLaneState(side.opposite(), lane).nextAliveTower().isPresent();
+    }
+
+    private boolean canStartStructurePush(GameState state, TeamSide side, Lane lane,
+                                          Set<Position> participants,
+                                          StructureResolver structures) {
+        if (!hasTowerTarget(state, side, lane)) return false;
+        if (structures == null) return true;
+        return structures.canAttemptSiege(state, StructureAttackRequest.siege(
+                side, lane, null, PushReason.MID_GAME_MACRO, participants, null));
     }
 
     private MacroPlanWeightBreakdown weight(GameState state, TeamSide side, TeamMacroPlan plan,
@@ -315,9 +341,17 @@ public final class MidGameMacroResolver {
         TeamMacroTeamState team = state.getMidGameMacroState().teamState(decision.side());
         Lane lane = team.getTargetLane();
         Set<Position> participants = team.getAssignedPositions();
+        StructureAttackRequest request = StructureAttackRequest.siege(
+                decision.side(), lane, null, PushReason.MID_GAME_MACRO, participants,
+                macroActionId(state, decision));
         if (!participantsAvailable(state, decision.side(), participants)
-                || lane == null || !hasTowerTarget(state, decision.side(), lane)) {
+                || lane == null || !structures.canAttemptSiege(state, request)) {
             team.setLastActionResult(MacroActionResult.INELIGIBLE);
+            if (state.wasStructureActionPerformedThisTick(decision.side())) {
+                state.recordLaterStructureResolverBlockedByAttempt();
+                state.getMidGameMacroState().getExecutionStats()
+                        .recordExistingStructureActionBlocked();
+            }
             if (state.getMapState().getLaneState(decision.side().opposite(), lane == null ? Lane.MID : lane)
                     .nextAliveTower().isEmpty()) {
                 state.getMidGameMacroState().getExecutionStats().recordTargetMissingAfterSelection();
@@ -325,19 +359,6 @@ public final class MidGameMacroResolver {
             state.getMidGameMacroState().getExecutionStats().recordActionIneligible();
             return;
         }
-        if (state.wasStructureActionPerformedThisTick(decision.side())) {
-            state.recordLaterStructureResolverBlockedByAttempt();
-            team.setLastActionResult(MacroActionResult.INELIGIBLE);
-            state.getMidGameMacroState().getExecutionStats().recordExistingStructureActionBlocked();
-            state.getMidGameMacroState().getExecutionStats().recordActionIneligible();
-            return;
-        }
-        state.getMidGameMacroState().getExecutionStats().recordActionAttempt();
-        state.recordPushAttempt();
-        state.getCompositionRuntimeState().recordActualAttempt(
-                com.lolfm.composition.CompositionActionType.SIEGE, decision.side(), decision.side(), decision.side().opposite(),
-                com.lolfm.composition.FightScale.NONE, null, false, null, lane, state.getCurrentTimeSeconds(),
-                com.lolfm.composition.CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
         double goldEdge = edge(state.getTeamState(decision.side()).getGold(),
                 state.getTeamState(decision.side().opposite()).getGold(), MidGameMacroRuleConfig.GOLD_EDGE_NORMALIZER);
         double aliveBonus = (countAlive(state.getTeamState(decision.side()), state.getCurrentTimeSeconds())
@@ -355,43 +376,60 @@ public final class MidGameMacroResolver {
                 : MidGameMacroRuleConfig.SIDE_LANE_PUSH_BASE_CHANCE;
         double chance = clamp(base + goldBonus + aliveBonus + attributeBonus + baronBonus,
                 MidGameMacroRuleConfig.MIN_MACRO_PUSH_CHANCE, MidGameMacroRuleConfig.MAX_MACRO_PUSH_CHANCE);
-        state.markStructureActionAttempted(decision.side());
         double roll = random.nextDouble();
-        executeStructurePushWithRoll(state, decision, events, structures, roll, base,
+        executeStructurePushWithRoll(state, decision, events, structures, request, roll, base,
                 goldBonus, aliveBonus, attributeBonus, baronBonus, chance);
     }
 
     private void executeStructurePushWithRoll(GameState state, Decision decision, List<MatchEvent> events,
-                                              StructureResolver structures, double roll, double base,
+                                              StructureResolver structures,
+                                              StructureAttackRequest request,
+                                              double roll, double base,
                                               double goldBonus, double aliveBonus, double attributeBonus,
                                               double baronBonus, double chance) {
         TeamMacroTeamState team = state.getMidGameMacroState().teamState(decision.side());
         state.getMidGameMacroState().getExecutionStats().recordPushRoll();
         boolean success = roll < chance;
-        int farmSeconds = applyFarmBlock(state, decision.side(), team.getAssignedPositions(), teamPlan(decision));
-        StructureOutcome outcome = success
-                ? structures.destroyNextTower(state, decision.side(), team.getTargetLane(), PushReason.MID_GAME_MACRO).orElse(null)
-                : null;
-        MacroActionResult result = outcome == null
-                ? MacroActionResult.PUSH_FAILED : MacroActionResult.STRUCTURE_DESTROYED;
-        team.setLastActionResult(result);
-        if (outcome != null) {
-            state.recordPushSuccess();
-            state.getMidGameMacroState().getExecutionStats().recordPushSuccess();
-            team.recordStructure(outcome);
-        } else {
-            state.recordPushFailure(success
-                    ? PushFailureReason.TARGET_UNAVAILABLE : PushFailureReason.CHANCE_ROLL_FAILED);
+        if (!success) {
+            team.setLastActionResult(MacroActionResult.PUSH_FAILED);
+            state.recordPushFailure(PushFailureReason.CHANCE_ROLL_FAILED);
             state.getMidGameMacroState().getExecutionStats().recordPushFailure();
+            return;
         }
+        Optional<StructureAttackResult> resolved = structures.attemptSiege(state, request);
+        if (resolved.isEmpty()) {
+            team.setLastActionResult(MacroActionResult.INELIGIBLE);
+            state.recordPushFailure(PushFailureReason.TARGET_UNAVAILABLE);
+            state.getMidGameMacroState().getExecutionStats().recordActionIneligible();
+            return;
+        }
+        StructureAttackResult attack = resolved.get();
+        StructureOutcome outcome = attack.destruction();
+        MacroActionResult result = outcome == null
+                ? MacroActionResult.STRUCTURE_DAMAGED : MacroActionResult.STRUCTURE_DESTROYED;
+        team.setLastActionResult(result);
+        state.getMidGameMacroState().getExecutionStats().recordActionAttempt();
+        state.recordPushAttempt();
+        state.getCompositionRuntimeState().recordActualAttempt(
+                com.lolfm.composition.CompositionActionType.SIEGE, decision.side(), decision.side(),
+                decision.side().opposite(), com.lolfm.composition.FightScale.NONE,
+                null, false, null, team.getTargetLane(), state.getCurrentTimeSeconds(),
+                com.lolfm.composition.CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
+        int farmSeconds = applyFarmBlock(
+                state, decision.side(), team.getAssignedPositions(), teamPlan(decision));
+        state.recordPushSuccess();
+        state.getMidGameMacroState().getExecutionStats().recordPushSuccess();
+        if (outcome != null) team.recordStructure(outcome);
         MidGameMacroActionData action = new MidGameMacroActionData(
                 decision.side(), teamPlan(decision), MacroActionType.STRUCTURE_PUSH,
                 result, team.getTargetLane(), null, team.getAssignedPositions(),
-                outcome == null ? null : outcome.towerTier(), base, goldBonus, aliveBonus,
+                attack.target().towerTier(), base, goldBonus, aliveBonus,
                 attributeBonus, baronBonus, chance, true, success,
-                outcome == null ? null : outcome.structureKind(), 0, -1, farmSeconds);
-        events.add(macroEvent(state, decision.decision(), action));
-        if (outcome != null) events.add(structures.createStructureEvent(state, outcome));
+                attack.target().kind(), 0, -1, farmSeconds);
+        MatchEvent macroEvent = macroEvent(state, decision.decision(), action);
+        macroEvent.setActionId(macroActionId(state, decision));
+        events.add(macroEvent);
+        structures.addAttackEvents(state, attack, events);
     }
 
     private void executeObjectiveSetup(GameState state, Decision decision, List<MatchEvent> events) {
@@ -433,6 +471,11 @@ public final class MidGameMacroResolver {
         event.setMidGameMacroDecision(decision);
         event.setMidGameMacroAction(action);
         return event;
+    }
+
+    private String macroActionId(GameState state, Decision decision) {
+        return "MID_GAME_MACRO:" + state.getCurrentTimeSeconds() + ":"
+                + decision.side() + ":" + teamPlan(decision);
     }
 
     private int applyFarmBlock(GameState state, TeamSide side, Set<Position> positions,

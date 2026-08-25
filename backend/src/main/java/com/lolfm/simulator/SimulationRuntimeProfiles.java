@@ -14,11 +14,11 @@ import java.util.Objects;
 /** Closed registry of versioned, application-selectable runtime profiles. */
 public final class SimulationRuntimeProfiles {
     public static final String PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION =
-            "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2";
+            "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3";
     public static final String JUNGLE_ECONOMY_ACTIVE_GAMEPLAY_RULES_VERSION =
-            "MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V2";
+            "MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3";
     public static final String JUNGLE_TEMPO_ACTIVE_GAMEPLAY_RULES_VERSION =
-            "MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1";
+            "MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2";
     public static final String CONFIGURATION_HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_FIELD_LINES_TRAILING_NEWLINE_V1";
 

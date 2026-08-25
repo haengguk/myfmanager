@@ -70,7 +70,52 @@ public class SnapshotFactory {
                 lateGameSnapshot(gameState)
         );
         snapshot.setProgression(progressionSnapshot(gameState));
+        snapshot.setStructureState(structureStateSnapshot(gameState));
         return snapshot;
+    }
+
+    private com.lolfm.domain.StructureStateSnapshot structureStateSnapshot(GameState state) {
+        java.util.EnumMap<TeamSide, com.lolfm.domain.StructureStateSnapshot.TeamStructures> teams =
+                new java.util.EnumMap<>(TeamSide.class);
+        for (TeamSide defending : TeamSide.values()) {
+            java.util.EnumMap<Lane, com.lolfm.domain.StructureStateSnapshot.LaneStructures> lanes =
+                    new java.util.EnumMap<>(Lane.class);
+            for (Lane lane : Lane.values()) {
+                LaneStructureState structures = state.getMapState().getLaneState(defending, lane);
+                lanes.put(lane, new com.lolfm.domain.StructureStateSnapshot.LaneStructures(
+                        lane,
+                        health(structures.getTowerCurrentHealth(TowerTier.OUTER),
+                                structures.getTowerMaxHealth(TowerTier.OUTER)),
+                        health(structures.getTowerCurrentHealth(TowerTier.INNER),
+                                structures.getTowerMaxHealth(TowerTier.INNER)),
+                        health(structures.getTowerCurrentHealth(TowerTier.INHIBITOR),
+                                structures.getTowerMaxHealth(TowerTier.INHIBITOR)),
+                        health(structures.getInhibitorCurrentHealth(),
+                                structures.getInhibitorMaxHealth())));
+            }
+            BaseState base = state.getMapState().getBaseState(defending);
+            teams.put(defending, new com.lolfm.domain.StructureStateSnapshot.TeamStructures(
+                    defending, lanes, base.getNexusTurretCurrentHealths(),
+                    StructureRuleConfig.NEXUS_TURRET_MAX_HEALTH,
+                    base.getNexusCurrentHealth(), base.getNexusMaxHealth(),
+                    base.getNexusTurretsRemaining(), base.isNexusAlive()));
+        }
+        java.util.EnumMap<TeamSide, com.lolfm.domain.StructureStateSnapshot.Siege> sieges =
+                new java.util.EnumMap<>(TeamSide.class);
+        for (TeamSide attacking : TeamSide.values()) {
+            BaseSiegeState siege = state.getBaseSiegeState(attacking);
+            sieges.put(attacking, new com.lolfm.domain.StructureStateSnapshot.Siege(
+                    attacking, siege.isActive(), siege.getActionId(), siege.getRouteLane(),
+                    siege.getCurrentTarget() == null ? null : siege.getCurrentTarget().stableId(),
+                    siege.getSource(), siege.getParticipants(), siege.getNextAttackAtSeconds(),
+                    siege.getExpiresAtSeconds(), siege.getStopReason()));
+        }
+        return new com.lolfm.domain.StructureStateSnapshot(teams, sieges);
+    }
+
+    private com.lolfm.domain.StructureStateSnapshot.Health health(double current, double maximum) {
+        return new com.lolfm.domain.StructureStateSnapshot.Health(
+                current, maximum, current > 0);
     }
 
     private com.lolfm.domain.ProgressionSnapshot progressionSnapshot(GameState state) {

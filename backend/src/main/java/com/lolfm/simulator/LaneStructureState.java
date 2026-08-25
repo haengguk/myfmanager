@@ -7,7 +7,14 @@ public class LaneStructureState {
     private boolean innerTowerAlive = true;
     private boolean inhibitorTowerAlive = true;
     private boolean inhibitorAlive = true;
-    private double outerRemainingIntegrity = LanePhaseRuleConfig.OUTER_TURRET_MAX_INTEGRITY;
+    private final StructureHealthState outerTowerHealth =
+            new StructureHealthState(StructureRuleConfig.OUTER_TURRET_MAX_HEALTH);
+    private final StructureHealthState innerTowerHealth =
+            new StructureHealthState(StructureRuleConfig.INNER_TURRET_MAX_HEALTH);
+    private final StructureHealthState inhibitorTowerHealth =
+            new StructureHealthState(StructureRuleConfig.INHIBITOR_TURRET_MAX_HEALTH);
+    private final StructureHealthState inhibitorHealth =
+            new StructureHealthState(StructureRuleConfig.INHIBITOR_MAX_HEALTH);
     private int outerDestroyedAtSeconds = -1;
     private TeamSide outerDestroyedBySide;
     private StructureActionSource outerDestroyedBySource;
@@ -17,7 +24,14 @@ public class LaneStructureState {
     public boolean isInnerTowerAlive() { return innerTowerAlive; }
     public boolean isInhibitorTowerAlive() { return inhibitorTowerAlive; }
     public boolean isInhibitorAlive() { return inhibitorAlive; }
-    public double getOuterRemainingIntegrity() { return outerRemainingIntegrity; }
+    public double getOuterRemainingIntegrity() {
+        return outerTowerHealth.getCurrentHealth() / outerTowerHealth.getMaxHealth()
+                * LanePhaseRuleConfig.OUTER_TURRET_MAX_INTEGRITY;
+    }
+    public double getTowerCurrentHealth(TowerTier tier) { return health(tier).getCurrentHealth(); }
+    public double getTowerMaxHealth(TowerTier tier) { return health(tier).getMaxHealth(); }
+    public double getInhibitorCurrentHealth() { return inhibitorHealth.getCurrentHealth(); }
+    public double getInhibitorMaxHealth() { return inhibitorHealth.getMaxHealth(); }
     public int getOuterDestroyedAtSeconds() { return outerDestroyedAtSeconds; }
     public TeamSide getOuterDestroyedBySide() { return outerDestroyedBySide; }
     public StructureActionSource getOuterDestroyedBySource() { return outerDestroyedBySource; }
@@ -25,9 +39,20 @@ public class LaneStructureState {
     public boolean isInhibitorDestroyed() { return !inhibitorAlive; }
 
     public double applyOuterDamage(double damage) {
-        if (!outerTowerAlive || damage <= 0) return outerRemainingIntegrity;
-        outerRemainingIntegrity = Math.max(0, outerRemainingIntegrity - damage);
-        return outerRemainingIntegrity;
+        if (!outerTowerAlive || damage <= 0) return getOuterRemainingIntegrity();
+        double rawDamage = damage / LanePhaseRuleConfig.OUTER_TURRET_MAX_INTEGRITY
+                * outerTowerHealth.getMaxHealth();
+        outerTowerHealth.applyDamage(rawDamage);
+        return getOuterRemainingIntegrity();
+    }
+    public double applyTowerDamage(TowerTier tier, double damage) {
+        if (!canDestroy(tier)) return health(tier).getCurrentHealth();
+        return health(tier).applyDamage(damage);
+    }
+    public int claimReachedTowerPlates(TowerTier tier) { return health(tier).claimReachedPlates(); }
+    public double applyInhibitorDamage(double damage) {
+        if (!isInhibitorVulnerable()) return inhibitorHealth.getCurrentHealth();
+        return inhibitorHealth.applyDamage(damage);
     }
     public Optional<TowerTier> nextAliveTower() {
         if (outerTowerAlive) return Optional.of(TowerTier.OUTER);
@@ -42,27 +67,45 @@ public class LaneStructureState {
         switch (tier) {
             case OUTER -> {
                 outerTowerAlive=false;
-                outerRemainingIntegrity=0;
+                outerTowerHealth.forceDestroy();
                 outerDestroyedAtSeconds=time;
                 outerDestroyedBySide=destroyingSide;
                 outerDestroyedBySource=source;
             }
-            case INNER -> innerTowerAlive=false;
-            case INHIBITOR -> inhibitorTowerAlive=false;
+            case INNER -> {
+                innerTowerAlive=false;
+                innerTowerHealth.forceDestroy();
+            }
+            case INHIBITOR -> {
+                inhibitorTowerAlive=false;
+                inhibitorTowerHealth.forceDestroy();
+            }
         }
     }
     public boolean isInhibitorVulnerable() { return nextAliveTower().isEmpty() && inhibitorAlive; }
     public boolean destroyInhibitor(int currentTimeSeconds) {
         if (!isInhibitorVulnerable()) return false;
-        inhibitorAlive=false; inhibitorDestroyedAtSeconds=currentTimeSeconds; return true;
+        inhibitorAlive=false;
+        inhibitorHealth.forceDestroy();
+        inhibitorDestroyedAtSeconds=currentTimeSeconds;
+        return true;
     }
     public boolean refreshAt(int currentTimeSeconds) {
         if (inhibitorAlive || inhibitorDestroyedAtSeconds < 0
                 || currentTimeSeconds < inhibitorDestroyedAtSeconds
                 + StructureRuleConfig.INHIBITOR_RESPAWN_SECONDS) return false;
         inhibitorAlive = true;
+        inhibitorHealth.restoreFull();
         inhibitorDestroyedAtSeconds = -1;
         return true;
     }
     public int destroyedTowerCount() { int value=0; if(!outerTowerAlive)value++; if(!innerTowerAlive)value++; if(!inhibitorTowerAlive)value++; return value; }
+
+    private StructureHealthState health(TowerTier tier) {
+        return switch (tier) {
+            case OUTER -> outerTowerHealth;
+            case INNER -> innerTowerHealth;
+            case INHIBITOR -> inhibitorTowerHealth;
+        };
+    }
 }

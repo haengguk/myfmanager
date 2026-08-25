@@ -13,7 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class RealMatchPerformanceBaselineV1HarnessTest {
     private static final String FIXTURE_A_OUTPUT_HASH =
-            "bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874";
+            "86a8a09be83d20d6ac90a584888237762909f35f107de6ba3bffcafaf7a77b04";
 
     @Autowired ObjectMapper mapper;
     @Autowired RealMatchApiV1RequestParser requests;
@@ -41,10 +41,10 @@ class RealMatchPerformanceBaselineV1HarnessTest {
                 .isEqualTo(canonicalizer.canonicalJson(unobserved.response()));
         assertThat(observed.response().integrity().outputHash())
                 .isEqualTo(FIXTURE_A_OUTPUT_HASH);
-        assertThat(observed.response().result().winner()).hasToString("BLUE");
-        assertThat(observed.response().result().durationSeconds()).isEqualTo(3_430);
-        assertThat(observed.response().timeline().events()).hasSize(517);
-        assertThat(observed.response().timeline().snapshots()).hasSize(344);
+        assertThat(observed.response().result().winner()).hasToString("RED");
+        assertThat(observed.response().result().durationSeconds()).isEqualTo(1_750);
+        assertThat(observed.response().timeline().events()).hasSize(350);
+        assertThat(observed.response().timeline().snapshots()).hasSize(176);
         assertThat(observed.response().integrity().replayProvenanceHash())
                 .isEqualTo(unobserved.response().integrity().replayProvenanceHash());
         assertThat(observed.response().integrity().simulatorTimelineHash())

@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 class JungleV1FocusedHardeningIntegrationTest {
     private static final ChampionResourceSet RESOURCES = ChampionResourceSet.loadDefault();
     private static final long GANK_SEED = 2026082201L;
-    private static final long COUNTER_GANK_SEED = 2026082203L;
+    private static final long COUNTER_GANK_SEED = 2026082213L;
 
     @Test
     void runtimeGateKeepsEligibilityPriorityConsumptionRewardsAndReplayConsistent() {

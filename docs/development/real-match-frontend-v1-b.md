@@ -6,6 +6,8 @@
 
 REFERENCE는 회귀 확인을 위한 명시적 build-time 모드다. LIVE 오류·timeout·취소 때 reference fixture로 자동 fallback하지 않는다. 기존 legacy 경기 화면과 `POST /api/matches/simulate` 호출은 삭제하거나 변경하지 않았다. Backend production source와 계약도 이 milestone에서 변경하지 않았다.
 
+아래 browser E2E와 성능 수치는 V8 handoff 당시의 historical 기록이다. 현재 V9 LIVE 응답은 additive `STRUCTURE_ACTION`, 구조물 HP snapshot, `SIEGING` activity와 남은 넥서스 포탑 수를 정규화·표시한다. V8 REFERENCE fixture는 명시적 reference 모드에서만 유지되며 현재 LIVE 결과와 같다고 가정하지 않는다.
+
 ## 환경 설정과 동시 실행
 
 기본값은 다음과 같다.
@@ -37,11 +39,11 @@ frontend> npm.cmd run dev -- --host 0.0.0.0
 
 ## E2E 결과
 
-2026-08-24 local backend/frontend 동시 실행에서 다음을 확인했다.
+2026-08-24 V8 local backend/frontend 동시 실행에서 다음을 확인했다.
 
 | 시나리오 | 실제 결과 |
 | --- | --- |
-| 고정 `GEN` BLUE / `T1` RED / `73` | GEN/BLUE 승, 25–20, 3,430초, event 517, snapshot 344 |
+| 고정 `GEN` BLUE / `T1` RED / `73` | V8 reference: GEN/BLUE 승, 25–20, 3,430초, event 517, snapshot 344 |
 | 비고정 `HLE` BLUE / `DK` RED / `-73` | DK/RED 승, 28–26, 2,840초, event 519 |
 | 취소 후 late response | 첫 요청 abort, 설정 HLE/DK/-73 유지, stale 화면 전환 없음 |
 | 명시적 retry | 두 번째 POST 성공, Draft→Playback→Result 일관성 유지 |

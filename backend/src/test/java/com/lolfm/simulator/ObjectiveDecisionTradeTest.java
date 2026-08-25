@@ -13,19 +13,24 @@ class ObjectiveDecisionTradeTest {
     private final ObjectiveDecisionResolver resolver = new ObjectiveDecisionResolver();
 
     @Test
-    void successfulTradeCapturesObjectiveAndDestroysExactlyOneTower() {
+    void successfulTradeCapturesObjectiveAndStartsPartialStructureSiege() {
         GameState state = ObjectiveDecisionTestSupport.dragonState(true);
         List<MatchEvent> events = new ArrayList<>();
         ObjectiveDecisionTestSupport.SequenceRandom random = new ObjectiveDecisionTestSupport.SequenceRandom(0, .999, 0);
+        double before = state.getMapState().getLaneState(TeamSide.BLUE, Lane.TOP)
+                .getTowerCurrentHealth(TowerTier.OUTER);
 
         MatchEvent capture = resolver.resolve(state, ObjectiveType.DRAGON, TeamSide.BLUE, 0, random,
                 new ObjectiveResolver(), new StructureResolver(), events, null).orElseThrow();
 
         assertThat(capture.getObjectiveDecision().result()).isEqualTo(ObjectiveDecisionResult.TRADE_SUCCEEDED);
         assertThat(capture.getObjectiveDecision().tradeTargetLane()).isEqualTo(Lane.TOP);
-        assertThat(state.getMapState().getLaneState(TeamSide.BLUE, Lane.TOP).destroyedTowerCount()).isOne();
+        assertThat(state.getMapState().getLaneState(TeamSide.BLUE, Lane.TOP).destroyedTowerCount()).isZero();
+        assertThat(state.getMapState().getLaneState(TeamSide.BLUE, Lane.TOP)
+                .getTowerCurrentHealth(TowerTier.OUTER)).isLessThan(before);
         assertThat(state.getMapState().getLaneState(TeamSide.BLUE, Lane.MID).destroyedTowerCount()).isZero();
         assertThat(state.wasStructureActionPerformedThisTick(TeamSide.RED)).isTrue();
+        assertThat(state.getBaseSiegeState(TeamSide.RED).isActive()).isTrue();
         List<MatchEvent> structures = events.stream()
                 .filter(event -> event.getStructureActionSource() == StructureActionSource.OBJECTIVE_TRADE)
                 .toList();
@@ -45,7 +50,7 @@ class ObjectiveDecisionTradeTest {
         assertThat(capture.getObjectiveDecision().result()).isEqualTo(ObjectiveDecisionResult.TRADE_FAILED);
         assertThat(state.getMapState().getLaneState(TeamSide.BLUE, Lane.TOP).destroyedTowerCount()).isZero();
         assertThat(state.getRedTeamState().getTowersDestroyed()).isEqualTo(towers);
-        assertThat(state.wasStructureActionAttemptedThisTick(TeamSide.RED)).isTrue();
+        assertThat(state.wasStructureActionAttemptedThisTick(TeamSide.RED)).isFalse();
         assertThat(state.wasStructureMutationPerformedThisTick(TeamSide.RED)).isFalse();
     }
 
