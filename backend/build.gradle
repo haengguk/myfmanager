@@ -1131,3 +1131,70 @@ tasks.register("runPhase13GB3FrozenHoldout") {
     dependsOn("finalizePhase13GB3FrozenHoldout")
 }
 // PHASE_13G_B3_BUILD_CONTRACT_END
+
+// MATCH_ENGINE_V9_REQUALIFICATION_BUILD_CONTRACT_START
+def registerV9RequalificationTest = { String taskName, String tag, int forks ->
+    tasks.register(taskName, Test) {
+        group = "verification"
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        useJUnitPlatform { includeTags tag }
+        maxHeapSize = "2g"
+        maxParallelForks = forks
+        if (forks > 1) forkEvery = 1
+        failFast = true
+        outputs.upToDateWhen { false }
+        reports.html.outputLocation = layout.buildDirectory.dir(
+                "reports/tests/${taskName}")
+        reports.junitXml.outputLocation = layout.buildDirectory.dir(
+                "test-results/${taskName}")
+    }
+}
+
+registerV9RequalificationTest(
+        "freezeMatchEngineV9Requalification",
+        "match-engine-v9-requalification-freeze", 1)
+registerV9RequalificationTest(
+        "smokeMatchEngineV9Requalification",
+        "match-engine-v9-requalification-smoke", 1)
+registerV9RequalificationTest(
+        "runMatchEngineV9CalibrationWorkers",
+        "match-engine-v9-requalification-calibration-shard", 4)
+registerV9RequalificationTest(
+        "finalizeMatchEngineV9Calibration",
+        "match-engine-v9-requalification-calibration-finalize", 1)
+registerV9RequalificationTest(
+        "runMatchEngineV9HoldoutWorkers",
+        "match-engine-v9-requalification-holdout-shard", 4)
+registerV9RequalificationTest(
+        "writeMatchEngineV9FreshJvmArtifacts",
+        "match-engine-v9-requalification-fresh-jvm-artifact", 2)
+registerV9RequalificationTest(
+        "promoteMatchEngineV9OfficialArtifacts",
+        "match-engine-v9-requalification-promote", 1)
+
+tasks.named("smokeMatchEngineV9Requalification") {
+    dependsOn("freezeMatchEngineV9Requalification")
+}
+tasks.named("runMatchEngineV9CalibrationWorkers") {
+    dependsOn("smokeMatchEngineV9Requalification")
+}
+tasks.named("finalizeMatchEngineV9Calibration") {
+    dependsOn("runMatchEngineV9CalibrationWorkers")
+}
+tasks.named("runMatchEngineV9HoldoutWorkers") {
+    dependsOn("finalizeMatchEngineV9Calibration")
+}
+tasks.named("writeMatchEngineV9FreshJvmArtifacts") {
+    dependsOn("runMatchEngineV9HoldoutWorkers")
+}
+tasks.named("promoteMatchEngineV9OfficialArtifacts") {
+    dependsOn("writeMatchEngineV9FreshJvmArtifacts")
+}
+
+tasks.register("runMatchEngineV9Requalification") {
+    group = "verification"
+    description = "Runs the frozen 3,600-row Match Engine V9 paired requalification."
+    dependsOn("promoteMatchEngineV9OfficialArtifacts")
+}
+// MATCH_ENGINE_V9_REQUALIFICATION_BUILD_CONTRACT_END

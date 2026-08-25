@@ -369,6 +369,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
 - Dragon/Baron/Elder, objective decision/contest/trade, structure/Nexus end game
 - Champion Power, `GEOMETRIC_V2` Matchup, full Composition analysis와 `PRODUCTION_V2` decision channel
+- current V9에서 90 G1 + 10 Hard Fearless G2, fresh 8 calibration/4 holdout seed, 고정 Draft와 세 profile 3,600-row paired evidence를 생성한 Matchup/Composition 재검증 pipeline
 - Draft planning, candidate generation, bounded search, final flex-role assignment와 Hard Fearless history
 - champion catalog/match simulation API와 React timeline UI
 
@@ -379,6 +380,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
 - 기존 `POST /api/matches/simulate`는 호환성을 위해 Dummy roster와 legacy timeline 경로를 계속 사용한다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
+- V9 fresh holdout에서 Matchup은 Blue WR +2.0pp와 structure changed 31.5%로 macro gate를 넘었고, Composition은 승인 application 0회/local-cause 위반 60회 및 incremental macro gate 실패로 둘 다 production 부적격이다. Machine-readable 권장은 `RECOMMEND_BASELINE_V1`이며 production은 변경하지 않았다.
 - Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
 - Final 13G-B는 Economy `FAIL`과 Tempo `REVIEW_REQUIRED`를 보존한 채 Production V1을 `KEEP_CURRENT_RUNTIME_DEFAULT`로 결정했다. 두 candidate profile은 감사/향후 설계용으로 남지만 runtime 기본값에는 활성화하지 않는다.
 - Jungle Economy V1-A는 economy-only candidate profile에서 계속 CS/gold/XP에만 연결된다. V1-B Tempo candidate는 별도 profile에서 bounded readiness를 gank와 counter-gank eligibility에만 연결한다. Objective eligibility/확률/reward에는 직접 연결하지 않았고 Production V1 tuning은 수행하지 않았다.
@@ -392,6 +394,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 3. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 4. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 5. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
+6. Matchup의 V9 structure sensitivity와 Composition application/local-cause accounting을 수정하려면 이번 consumed holdout을 재사용하지 말고 새 contract와 fresh seed를 사용한다.
 
 ## Test Snapshot
 
@@ -441,6 +444,8 @@ Historical Real Match API V1 최초 hardening은 8 suites / 50 tests와 complete
 당시 V8 handoff refresh에서는 binary font를 UTF-8 text로 읽던 backend test scanner를 명시적 text-source 경계로 고쳐 영향 focused 6 suites / 214 tests를 clean pass했다. API focused는 V8 ability profile projection을 포함해 9 suites / 55 tests, failures/errors/skipped 0으로 통과했다. Final executable tree의 complete backend regression은 첫 실행에서 196 suites / 2,091 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 810.092초, Gradle wall 13분 43초로 clean pass했다. Clean XML과 당시 source binding을 검증한 두 fresh JVM candidate는 7/7 byte-identical이었고 V8 semantic audit 및 official manifest 6/6을 통과했다. 이후에는 generated artifact와 문서만 갱신했으므로 full을 반복하지 않았다. Frontend/npm/Playwright, B2/B3/Final 13G-B, 대규모 diagnostics와 baseline generator는 범위 밖이라 실행하지 않았다.
 
 Real Match runtime hardening final executable tree는 focused Draft decomposition/JFR ON-OFF/same-JVM counter, 20-turn/BAN-PICK schedule, 기존 performance manifest 4/4, artifact tamper, bootRun contract와 두 fresh JVM cross-process identity를 통과했다. Complete backend regression은 단 한 번 실행해 201 suites / 2,106 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 1,125.077초, Gradle wall 19분 2초로 clean pass했다. 그 뒤 executable source를 바꾸지 않고 네 fresh runtime HTTP observation과 12-fixture×2 measured Draft audit만 생성했다.
+
+Match Engine V9 Matchup/Composition 재검증은 focused contract 3 tests와 G1/G2 three-profile smoke를 clean pass한 뒤, build/test configuration이 추가된 final executable tree에서 complete backend regression을 206 suites / 2,135 tests / failures 0 / errors 0 / skipped 0, Gradle wall 15분 11초로 한 번 실행했다. 4 fresh-JVM shard의 calibration 2,400 rows와 one-time frozen holdout 1,200 rows는 각각 authenticated checkpoint 100/100과 receipt 4/4를 만들었다. 3,600 rows 전체 exact integrity는 timeout/structure/Nexus/post-finish/Random/SUPPORT CS 오류 0이다. Fresh JVM A/B가 생성한 19개 official file은 byte-identical이고 manifest raw SHA는 `0cdcfa002882c57eaa13b5f5cee160eccc0d2ae49aa773267b81ef37ac2a6b5f`다. 최종 권장은 `RECOMMEND_BASELINE_V1`이며 executable production Java/resource/API/frontend는 바꾸지 않았다. 자세한 결과는 [V9 Matchup/Composition 재검증](development/match-engine-v9-matchup-composition-requalification-v1.md)을 따른다.
 
 Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 
