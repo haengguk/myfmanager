@@ -1,6 +1,6 @@
 # Project Status
 
-이 문서는 2026-08-25 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-08-26 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
 ## Current Production Snapshot
 
@@ -140,6 +140,27 @@ GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history 
 Structure/resolver focused, profile/provenance, Real Match API/transport, historical artifact 격리와 fresh-JVM 결정성 검증이 clean pass했다. 최종 complete backend regression은 205 suites / 2,132 tests / failures 0 / errors 0 / skipped 0, Gradle wall 11분 11초로 통과했다. 앞선 clean full 뒤 발견된 production provenance version 누락을 V9/rules V3·V2로 고쳤기 때문에 profile 전체 replay/output identity 확인에는 focused test만으로 충분하지 않아 예외적으로 세 번째 full을 실행했다. 그 뒤 executable source/resource/Gradle/shared fixture는 바꾸지 않고 문서만 갱신했다. Frontend는 production build와 TypeScript project build가 clean pass했다.
 
 `BASELINE_V1`과 기존 autowired simulator의 same teams/assignments/seed complete timeline은 exact parity다. 기존 Spring `MatchController`는 계속 direct autowired simulator와 DummyDataFactory를 사용하고 HTTP profile 선택은 추가하지 않았다.
+
+### Matchup V9 structure-effect attribution
+
+선행 V9 requalification의 `structure changed 31.5%`는 consumed holdout 400쌍 중 최종 canonical structure signature가 다른 126쌍을 뜻한다. 잔여 HP 한 곳의 차이도 포함하므로 구조물이 31.5% 더 파괴됐거나 버그가 31.5% 발생했다는 의미가 아니다. 선행 manifest 18/18, 200 checkpoint/sidecar, canonical raw 3,600행, consumed holdout 1,200행과 fresh-JVM evidence를 read-only로 재검증했고 `RECOMMEND_BASELINE_V1`을 보존했다.
+
+새 attribution-only contract는 90 G1 + 10 Hard Fearless G2 fixture, fixture당 별도 diagnostic seed 4개, `BASELINE_V1`/`MATCHUP_ONLY_CANDIDATE_V1` 두 profile을 고정했다. Core는 800 match rows / 400 pairs이며 seed는 historical Final 13G-B, V9 calibration과 consumed holdout에 overlap 0인 `CONSUMED_AS_DIAGNOSTIC_NOT_HOLDOUT`이다. Fixture별 frozen Draft를 profile/seed 전체가 공유한다. 4개 JVM shard에서 core 800, baseline replay 100, diagnostics OFF parity 200으로 총 1,100 simulations을 실행했고 paired identity 400/400, replay 100/100, instrumentation timeline·Random 200/200이 exact였다.
+
+| Final-state primary severity | Pair | 비율 |
+| --- | ---: | ---: |
+| EXACT | 269 | 67.25% |
+| HP_ONLY | 104 | 26.00% |
+| LANE_TOWER_PROGRESSION | 1 | 0.25% |
+| INHIBITOR_PROGRESSION | 15 | 3.75% |
+| NEXUS_TURRET_PROGRESSION | 1 | 0.25% |
+| NEXUS_OR_ENDING | 10 | 2.50% |
+
+Any final state difference는 131/400(32.75%)였지만 실제 파괴·진행 component difference는 27/400(6.75%)였다. First tower 차이는 21쌍, first inhibitor/base-open과 first Nexus turret 및 Nexus destruction 차이는 각각 28쌍이었다. Aggregate structure damage/destruction은 `12,350→12,392`/`5,550→5,558`, persistent siege start/stop은 `6,499→6,530`/`8,131→8,158`이었다. Winner changed 10/400은 BLUE→RED 5와 RED→BLUE 5, objective changed 28/400, Blue WR delta 0.0pp, 평균/P95 duration delta `+5.825s`/`0s`였다. Defending-side progression component는 BLUE 27, RED 26으로 관측됐다.
+
+Invalid HP/state, duplicate structured action, impossible respawn, Nexus ordering, post-finish mutation, ineligible/duplicate Random, display identity, Matchup direct Random/OFF contribution/perspective mismatch는 모두 0이다. Matchup non-zero application 132,135회와 이후 pressure/combat/economy/structure divergence는 관측했지만 application의 시각·position·context가 남지 않아 시간 순서를 인과로 승격하지 않았다. 최종 판정은 `MATCHUP_V9_STRUCTURE_ATTRIBUTION_BLOCKED_BY_DIAGNOSTIC_GAP`이며 production/tuning은 바꾸지 않았다.
+
+새 acceptance proposal은 correctness exact gate, observational sensitivity, gameplay-critical macro safety, causal/reachability를 분리한다. Phase 13D Composition fallback 12%를 V9 hard gate로 복사하지 않고, macro 수치는 `THRESHOLD_REQUIRES_PRODUCT_DECISION`으로 남겼다. 공식 eligibility는 local application provenance와 제품 tolerance를 먼저 정의한 별도 contract 및 non-overlapping fresh seed에서만 판단한다. 세부 결과는 [Matchup V9 구조물 영향 Attribution](development/matchup-v9-structure-effect-attribution-v1.md)을 따른다.
 
 ### Final 13G-B1 audit contract and real-match harness
 
@@ -370,6 +391,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - Dragon/Baron/Elder, objective decision/contest/trade, structure/Nexus end game
 - Champion Power, `GEOMETRIC_V2` Matchup, full Composition analysis와 `PRODUCTION_V2` decision channel
 - current V9에서 90 G1 + 10 Hard Fearless G2, fresh 8 calibration/4 holdout seed, 고정 Draft와 세 profile 3,600-row paired evidence를 생성한 Matchup/Composition 재검증 pipeline
+- V9 Matchup final structure 차이를 HP-only와 lane/inhibitor/Nexus progression으로 분리하고 side/timing/source/local reachability 및 four-layer acceptance proposal을 생성한 800-row attribution diagnostic
 - Draft planning, candidate generation, bounded search, final flex-role assignment와 Hard Fearless history
 - champion catalog/match simulation API와 React timeline UI
 
@@ -380,7 +402,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
 - 기존 `POST /api/matches/simulate`는 호환성을 위해 Dummy roster와 legacy timeline 경로를 계속 사용한다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
-- V9 fresh holdout에서 Matchup은 Blue WR +2.0pp와 structure changed 31.5%로 macro gate를 넘었고, Composition은 승인 application 0회/local-cause 위반 60회 및 incremental macro gate 실패로 둘 다 production 부적격이다. Machine-readable 권장은 `RECOMMEND_BASELINE_V1`이며 production은 변경하지 않았다.
+- V9 fresh holdout에서 Matchup은 Blue WR +2.0pp와 legacy structure changed 31.5%로 당시 fallback macro gate를 넘었고, Composition은 승인 application 0회/local-cause 위반 60회 및 incremental macro gate 실패로 둘 다 production 부적격이다. 후속 Matchup attribution은 새 표본에서 any final state 32.75% 중 HP-only 26.0%, 실제 destruction/progression 6.75%로 분해했지만 local application provenance가 없어 `MATCHUP_V9_STRUCTURE_ATTRIBUTION_BLOCKED_BY_DIAGNOSTIC_GAP`이다. Machine-readable 권장은 계속 `RECOMMEND_BASELINE_V1`이며 production은 변경하지 않았다.
 - Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
 - Final 13G-B는 Economy `FAIL`과 Tempo `REVIEW_REQUIRED`를 보존한 채 Production V1을 `KEEP_CURRENT_RUNTIME_DEFAULT`로 결정했다. 두 candidate profile은 감사/향후 설계용으로 남지만 runtime 기본값에는 활성화하지 않는다.
 - Jungle Economy V1-A는 economy-only candidate profile에서 계속 CS/gold/XP에만 연결된다. V1-B Tempo candidate는 별도 profile에서 bounded readiness를 gank와 counter-gank eligibility에만 연결한다. Objective eligibility/확률/reward에는 직접 연결하지 않았고 Production V1 tuning은 수행하지 않았다.
@@ -394,7 +416,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 3. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 4. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 5. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
-6. Matchup의 V9 structure sensitivity와 Composition application/local-cause accounting을 수정하려면 이번 consumed holdout을 재사용하지 말고 새 contract와 fresh seed를 사용한다.
+6. Matchup application의 time/side/position/player/champion/context/sign을 observational structured diagnostic으로 추가해 critical structure divergence의 local attribution을 먼저 완성한다. 이후 product-owned macro tolerance를 사전 고정한 별도 contract와, consumed holdout 및 이번 diagnostic과 겹치지 않는 fresh seed로만 requalification한다.
 
 ## Test Snapshot
 
@@ -408,13 +430,13 @@ gradlew.bat test --console=plain --no-daemon
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 204 |
-| Tests | 2,118 |
+| JUnit suites | 207 |
+| Tests | 2,140 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 622.904 seconds |
-| Gradle wall duration | 10m 37s |
+| Aggregate JUnit XML time | 754.243 seconds |
+| Gradle wall duration | 13m 8s |
 | Build | `BUILD SUCCESSFUL` |
 
 Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
@@ -447,6 +469,8 @@ Real Match runtime hardening final executable tree는 focused Draft decompositio
 
 Match Engine V9 Matchup/Composition 재검증은 focused contract 3 tests와 G1/G2 three-profile smoke를 clean pass한 뒤, build/test configuration이 추가된 final executable tree에서 complete backend regression을 206 suites / 2,135 tests / failures 0 / errors 0 / skipped 0, Gradle wall 15분 11초로 한 번 실행했다. 4 fresh-JVM shard의 calibration 2,400 rows와 one-time frozen holdout 1,200 rows는 각각 authenticated checkpoint 100/100과 receipt 4/4를 만들었다. 3,600 rows 전체 exact integrity는 timeout/structure/Nexus/post-finish/Random/SUPPORT CS 오류 0이다. Fresh JVM A/B가 생성한 19개 official file은 byte-identical이고 manifest raw SHA는 `0cdcfa002882c57eaa13b5f5cee160eccc0d2ae49aa773267b81ef37ac2a6b5f`다. 최종 권장은 `RECOMMEND_BASELINE_V1`이며 executable production Java/resource/API/frontend는 바꾸지 않았다. 자세한 결과는 [V9 Matchup/Composition 재검증](development/match-engine-v9-matchup-composition-requalification-v1.md)을 따른다.
 
+Matchup V9 structure-effect attribution은 contract/classifier/source/checkpoint/artifact focused 6 tests와 Structure/Match Engine/Matchup affected focused regression을 clean pass했다. 최종 current-source 4-JVM aggregate task는 13분 17초에 core 800 rows, baseline replay 100, diagnostics parity 200을 clean pass했고 400 paired input exact, Random/timeline parity, correctness exact-zero gate를 최종화했다. Contract/harness SHA는 `84d96de3bbcf0460481593eae6d7909b4ebd8fc0ae8ccf4b44a63d6240c4b477` / `6db556133c8102e1905d3d0645af0a7ec61d68fa810fa7f42c905aa627f48e4a`, artifact manifest raw SHA는 `5ee0cec10b464117421ce347235ec651b94daaaadb8e6d94b6ca39daf660410c`다. Build/test configuration과 shared source-identity helper가 추가된 최종 executable tree의 complete backend regression은 첫 실행에서 207 suites / 2,140 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 754.243초, Gradle wall 13분 8초로 clean pass했다. 이후에는 diagnostic 재현과 문서 수치만 갱신했으므로 full을 반복하지 않았다.
+
 Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 
 Pre-Jungle V2 생성 당시 production source/resource/build guard는 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`으로 동일했다. 당시 공식 V2를 새 JVM에서 같은 SHA로 재생성한 기록은 historical baseline provenance로 계속 보존한다.
@@ -455,4 +479,4 @@ Pre-Jungle V2 생성 당시 production source/resource/build guard는 456 files 
 
 ## Last Updated
 
-2026-08-25 (Asia/Seoul)
+2026-08-26 (Asia/Seoul)

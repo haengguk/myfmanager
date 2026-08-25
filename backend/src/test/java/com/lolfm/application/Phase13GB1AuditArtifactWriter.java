@@ -464,6 +464,9 @@ public final class Phase13GB1AuditArtifactWriter {
         for (String phase : List.of("B1", "B2", "B3")) {
             build = removeMarkedSection(build, phase);
         }
+        build = removeNamedSection(build,
+                "// MATCHUP_V9_STRUCTURE_ATTRIBUTION_BUILD_CONTRACT_START",
+                "// MATCHUP_V9_STRUCTURE_ATTRIBUTION_BUILD_CONTRACT_END");
         return build.getBytes(StandardCharsets.UTF_8);
     }
 
@@ -487,13 +490,16 @@ public final class Phase13GB1AuditArtifactWriter {
     private static String removeMarkedSection(String build, String phase) {
         String start = "// PHASE_13G_" + phase + "_BUILD_CONTRACT_START";
         String end = "// PHASE_13G_" + phase + "_BUILD_CONTRACT_END";
+        return removeNamedSection(build, start, end);
+    }
+
+    private static String removeNamedSection(String build, String start, String end) {
         int from = build.indexOf(start);
         if (from < 0) return build;
         int to = build.indexOf(end, from);
         if (to < 0 || build.indexOf(start, from + 1) >= 0
                 || build.indexOf(end, to + 1) >= 0) {
-            throw new IllegalStateException("Invalid " + phase
-                    + " Gradle build contract markers");
+            throw new IllegalStateException("Invalid Gradle build contract markers: " + start);
         }
         int after = to + end.length();
         if (after < build.length() && build.charAt(after) == '\n') after++;
