@@ -76,6 +76,70 @@ tasks.register("runRealMatchExternalRuntimeProbeV1", JavaExec) {
     outputs.upToDateWhen { false }
 }
 
+tasks.register("runRealMatchTransportCompressionV1ExternalProbe", JavaExec) {
+    group = "verification"
+    description = "Captures gzip, identity and unspecified Real Match HTTP evidence from a caller-owned server."
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "com.lolfm.controller.RealMatchTransportCompressionV1ExternalProbe"
+    dependsOn(testClasses)
+    doFirst {
+        List<String> requiredProperties = [
+                "transportProbeBaseUrl", "transportProbeLaunchMode", "transportProbePid",
+                "transportProbeFixtureId", "transportProbeBlueTeam", "transportProbeRedTeam",
+                "transportProbeSeed", "transportProbeOutput"]
+        List<String> missing = requiredProperties.findAll { String name ->
+            !project.hasProperty(name)
+        }
+        if (!missing.isEmpty()) {
+            throw new GradleException("Missing transport probe properties: ${missing}")
+        }
+        args requiredProperties.collect { String name -> project.property(name).toString() }
+    }
+    outputs.upToDateWhen { false }
+}
+
+tasks.register("runRealMatchTransportCompressionV1PhaseDiagnostic", Test) {
+    group = "verification"
+    description = "Captures current-tree Real Match Draft, engine, projection and serialization phase timings."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "real-match-transport-compression-v1-phase"
+    }
+    maxHeapSize = "3g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/realMatchTransportCompressionV1Phase")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/realMatchTransportCompressionV1Phase")
+}
+
+def registerRealMatchTransportCompressionArtifact = { String taskName, String outputName,
+                                                       String mode ->
+    tasks.register(taskName, JavaExec) {
+        group = "verification"
+        description = "Writes and verifies the ${mode.toLowerCase()} Real Match transport compression artifact."
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = "com.lolfm.controller.RealMatchTransportCompressionV1ArtifactWriter"
+        dependsOn(testClasses)
+        args projectDir.absolutePath,
+                layout.buildDirectory.dir("reports/${outputName}").get().asFile.absolutePath,
+                mode
+        outputs.upToDateWhen { false }
+    }
+}
+
+registerRealMatchTransportCompressionArtifact(
+        "generateRealMatchTransportCompressionV1Candidate",
+        "real-match-transport-compression-v1-candidate",
+        "CANDIDATE")
+registerRealMatchTransportCompressionArtifact(
+        "generateRealMatchTransportCompressionV1Official",
+        "real-match-transport-compression-v1",
+        "OFFICIAL")
+
 ["A", "B"].each { String suffix ->
     tasks.register("runRealMatchAutoDraftCrossJvmProbe${suffix}", Test) {
         group = "verification"

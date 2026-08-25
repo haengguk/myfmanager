@@ -363,11 +363,11 @@ Draft Engine performance hardening 뒤 current V8 source에 새 clean full evide
 gradlew.bat test --console=plain --no-daemon
 ```
 
-결과는 203 suites / 2,117 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 679.103초, Gradle wall 11분 33초로 첫 실행에서 clean pass했다. 이후 production Java, resource, Gradle/shared fixture를 바꾸지 않고 artifact 실행과 문서만 갱신했으므로 full regression을 반복하지 않았다.
+Transport compression final tree의 결과는 204 suites / 2,118 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 622.904초, Gradle wall 10분 37초로 첫 실행에서 clean pass했다. 이후 backend production Java, resource, Gradle/shared fixture를 바꾸지 않고 artifact 실행과 문서만 갱신했으므로 full regression을 반복하지 않았다.
 
-`RealMatchApiV1ArtifactWriter`는 clean full XML이 최소 180 suites / 2,016 tests인지, 필수 API/Real Draft/Champion/Match Engine 8개 suite가 각 최소 test 수를 만족하는지, failures/errors/skipped가 모두 0인지 확인한다. `RealMatchApiV1VerificationBindingTest`의 dynamic testcase 이름에 기록된 current production source 503 files / `cfcc138fbaffc914c8521ad11e4d7b835d56a178453c10a2f2fa956149e24df9`과 API verification source 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`도 현재 tree와 exact여야 한다. 그 뒤 historical Match Engine V1 freeze manifest SHA와 7/7 raw SHA, V8 options/roster/Draft/result/final snapshot/structured participant/hash/Random/ability profile semantic consistency와 same-request replay를 검증한다.
+`RealMatchApiV1ArtifactWriter`는 clean full XML이 최소 180 suites / 2,016 tests인지, 필수 API/Real Draft/Champion/Match Engine 8개 suite가 각 최소 test 수를 만족하는지, failures/errors/skipped가 모두 0인지 확인한다. `RealMatchApiV1VerificationBindingTest`의 dynamic testcase 이름에 기록된 current production source 503 files / `eb54c41b515703d571eed744bbe06975ca0a71c1bd48d819da1c3afa1e24985a`과 API verification source 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`도 현재 tree와 exact여야 한다. 그 뒤 historical Match Engine V1 freeze manifest SHA와 7/7 raw SHA, V8 options/roster/Draft/result/final snapshot/structured participant/hash/Random/ability profile semantic consistency와 same-request replay를 검증한다.
 
-Writer는 공식 폴더를 바로 덮지 않고 두 fresh JVM에서 candidate A/B를 생성했다. JSON 6개와 `SHA256SUMS.txt`가 byte-for-byte exact였고 semantic audit가 통과한 뒤 `build/reports/real-match-api-v1/`로 승격했다. 고정 V8 결과는 GEN(BLUE) 승, `NEXUS_DESTROYED`, 3,430초, output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. 생성 manifest 6/6 raw SHA가 통과했고 manifest raw SHA-256은 `0a9da8e91bf5426ef374fd5487dea86b6534b07217a1b96329e23446f37a844d`다. Runtime은 이 report를 읽지 않는다.
+Writer는 공식 폴더를 바로 덮지 않고 두 fresh JVM에서 candidate A/B를 생성했다. JSON 6개와 `SHA256SUMS.txt`가 byte-for-byte exact였고 semantic audit가 통과한 뒤 `build/reports/real-match-api-v1/`로 승격했다. 고정 V8 결과는 GEN(BLUE) 승, `NEXUS_DESTROYED`, 3,430초, output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. Transport compression resource binding까지 반영한 manifest 6/6 raw SHA가 통과했고 manifest raw SHA-256은 `9767356ce01243ff67441354a24d2d54df86fd30ed69cb57397ed36629876fad`다. Fixed response JSON 의미는 이전 handoff와 exact이며 runtime은 이 report를 읽지 않는다.
 
 이 backend V8 handoff milestone 당시에는 frontend 파일을 바꾸지 않아 npm build와 Playwright를 실행하지 않았다. Balance 변경이 없으므로 B2 calibration, B3 holdout, Final 13G-B, 대규모 diagnostics와 baseline generator도 실행하지 않았다.
 
@@ -490,6 +490,36 @@ sha256sum -c SHA256SUMS.txt
 Candidate/official diagnostic은 global warmup 1회, 12 fixtures × 2 cached measured Draft와 fixture별 uncached reference 1회를 순차 실행한다. Acceptance는 upstream 24개 final Draft/API identity와 동일 JVM uncached reference의 480개 turn decision/component/alternative/root score/counter exact equality다. 과거 timing JVM의 비선택 후보 double bit 비교는 observational field로만 기록한다. Timing gate는 frozen median 11.173초 대비 40% 이상, p90 13.420초 대비 30% 이상 단축이다.
 
 최종 full regression은 203 suites / 2,117 tests / failures 0 / errors 0 / skipped 0, Gradle wall 11분 33초로 첫 실행에서 clean pass했다. Official full Draft median/p90/max는 4.032/4.314/5.854초이고 status는 `DRAFT_ENGINE_PERFORMANCE_HARDENED`다. Manifest 7/7 raw SHA-256은 `ae11f4eb368a8b796a113b32963048a764509b0bb98e27ebce313b7ec645d694`다. Full pass 뒤 실행 코드 변경은 없으므로 official report와 문서 갱신 때문에 full regression을 반복하지 않는다.
+
+### Real Match transport compression V1
+
+압축 계약은 actual random-port Spring server의 `RealMatchTransportCompressionV1IntegrationTest`로 검증한다. `Accept-Encoding: gzip`은 HTTP 200, JSON content type, gzip magic/stream, `Content-Encoding`, `Vary: Accept-Encoding`, 단일 압축과 해제 후 fixed result exact를 확인한다. `identity`와 무헤더 요청은 uncompressed JSON이며 gzip 해제 결과와 output/replay/simulator timeline/structured timeline/Random fingerprint가 exact다. CORS와 validation error 의미도 유지한다.
+
+`server.compression.min-response-size=8KB`는 Content-Length가 알려진 응답의 합리적 하한이다. 다만 현재 Tomcat MVC의 negotiated streaming/unknown-length 작은 응답은 gzip될 수 있다. 작은 응답을 controller에서 강제로 압축하거나 해제하지 않으며 identity/무헤더 요청은 계속 uncompressed다.
+
+Focused 및 artifact 흐름은 다음과 같다.
+
+```text
+gradlew.bat test \
+  --tests com.lolfm.controller.RealMatchTransportCompressionV1IntegrationTest \
+  --tests com.lolfm.controller.RealMatchApiV1ControllerTest \
+  --tests com.lolfm.application.RealMatchApiV1ServiceTest \
+  --tests com.lolfm.application.RealDraftMatchOrchestratorTest \
+  --tests com.lolfm.application.RealDraftRandomObservationParityTest \
+  --tests com.lolfm.simulator.SimulationRandomFingerprintTest \
+  --tests com.lolfm.draft.AutoDraftObservationHarnessV1Test \
+  --tests com.lolfm.controller.DraftEnginePerformanceHardeningV1ArtifactsTest \
+  --console=plain --no-daemon
+
+gradlew.bat generateRealMatchTransportCompressionV1Candidate --console=plain --no-daemon
+gradlew.bat test --console=plain --no-daemon
+gradlew.bat generateRealMatchApiV1HandoffRefreshOfficialV1 --console=plain --no-daemon
+gradlew.bat generateRealMatchTransportCompressionV1Official --console=plain --no-daemon
+```
+
+외부 probe는 caller-owned bootRun/JAR PID, base URL과 fixture를 받아 gzip first/warm, identity, 무헤더 요청을 실행한다. 각 요청에서 raw compressed/decompressed bytes, header, frozen response canonical hash와 output/replay/timeline/Random identity를 검증한다. Fixture별 first는 별도 fresh JVM에서 측정하고 자신이 시작한 PID만 종료한다. 실제 Chrome은 CDP `Network.loadingFinished.encodedDataLength`와 response header를 사용하며 `response.text()`/Blob decoded bytes를 wire bytes로 잘못 보고하지 않는다.
+
+최종 full은 204 suites / 2,118 tests / failures 0 / errors 0 / skipped 0, aggregate XML 622.904초, Gradle 10분 37초로 첫 실행에서 clean pass했다. 두 fixture의 외부 HTTP wire 감소율은 91.701%와 90.766%이고, setup→Draft→playback→result의 Chrome first/warm은 console/page error 및 reference fallback 0이다. Official artifact는 `build/reports/real-match-transport-compression-v1/`의 JSON/CSV/Markdown 5개와 manifest이며 status는 `REAL_MATCH_TRANSPORT_COMPRESSION_AND_LIVE_E2E_ACCEPTED`, manifest raw SHA-256은 `860f6cea4e8dfc42e1a38148dc5c2763331bcd899d784670af4e3222d89a068f`다.
 
 ## Generated Reports
 

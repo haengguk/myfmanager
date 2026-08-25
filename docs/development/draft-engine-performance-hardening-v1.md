@@ -64,4 +64,4 @@ gradlew.bat runDraftEnginePerformanceHardeningV1 --console=plain --no-daemon
 
 Focused Draft 묶음은 58 tests, full backend regression은 첫 실행에서 203 suites / 2,117 tests / failures 0 / errors 0 / skipped 0, Gradle wall 11분 33초로 통과했다. Full pass 뒤 executable source는 바꾸지 않았다.
 
-공식 디렉터리는 `backend/build/reports/draft-engine-performance-hardening-v1/`이며 contract, fixture/turn CSV, cache statistics, before/after JFR hotspot, summary, analysis와 manifest를 포함한다. `SHA256SUMS.txt`는 7/7 통과했고 raw SHA-256은 `ae11f4eb368a8b796a113b32963048a764509b0bb98e27ebce313b7ec645d694`다. 현재 source-bound Real Match API handoff manifest도 6/6 통과했고 raw SHA-256은 `0a9da8e91bf5426ef374fd5487dea86b6534b07217a1b96329e23446f37a844d`다.
+공식 디렉터리는 `backend/build/reports/draft-engine-performance-hardening-v1/`이며 contract, fixture/turn CSV, cache statistics, before/after JFR hotspot, summary, analysis와 manifest를 포함한다. `SHA256SUMS.txt`는 7/7 통과했고 raw SHA-256은 `ae11f4eb368a8b796a113b32963048a764509b0bb98e27ebce313b7ec645d694`다. 이후 transport compression final source에 결속한 현재 Real Match API handoff manifest도 6/6 통과했고 raw SHA-256은 `9767356ce01243ff67441354a24d2d54df86fd30ed69cb57397ed36629876fad`다.

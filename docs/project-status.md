@@ -1,6 +1,6 @@
 # Project Status
 
-이 문서는 2026-08-24 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-08-25 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
 ## Current Production Snapshot
 
@@ -207,9 +207,9 @@ Freeze artifact는 `backend/build/reports/match-engine-v1-freeze/`에 있으며 
 
 요청마다 `RealDraftMatchOrchestrator.orchestrateV1` fresh-history overload를 호출해 단판 Game 1 Professional Draft와 Match Engine V1 current implementation을 실행한다. Service는 authoritative `BASELINE_V1` policy/configuration, 현재 요청의 BLUE/RED/seed, fresh Game 1/history, mandatory provenance와 실제 structured timeline output hash가 모두 exact일 때만 immutable `REAL_MATCH_RESPONSE_V1`을 반환한다. Typed preflight 실패만 422이며 엔진/오케스트레이션 내부 실패는 500과 구분된다. Team code는 display name과 별도 identity로 유지한다. 응답은 presentation roster, ordered Draft/final assignment, final result, 선수별 base/realized rating과 champion proficiency ability profile, 모든 structured event/snapshot과 policy/input/resource/replay/timeline/output hash 및 Random fingerprint를 포함한다. Error는 controller-scoped `REAL_MATCH_API_ERROR_V1`이며 legacy endpoint와 Champion API error 의미는 그대로다. 세부 계약은 [Real Match API V1](architecture/real-match-api-v1.md)에 있다.
 
-Current V8 fixed `GEN` 대 `T1`, seed `"73"`는 독립 요청 2회와 fresh JVM candidate A/B에서 Draft/result/structured timeline/output hash/Random fingerprint가 exact하고 두 요청 모두 Game 1이다. 결과는 GEN(BLUE) 승리, `NEXUS_DESTROYED`, 3,430초(57분 10초)이며 output hash는 `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. Scanner focused 6 suites / 214 tests, API focused 9 suites / 55 tests와 현재 complete backend 203 suites / 2,117 tests가 failures/errors/skipped 0으로 통과했다.
+Current V8 fixed `GEN` 대 `T1`, seed `"73"`는 독립 요청 2회와 fresh JVM candidate A/B에서 Draft/result/structured timeline/output hash/Random fingerprint가 exact하고 두 요청 모두 Game 1이다. 결과는 GEN(BLUE) 승리, `NEXUS_DESTROYED`, 3,430초(57분 10초)이며 output hash는 `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`다. Scanner focused 6 suites / 214 tests, API focused 9 suites / 55 tests와 현재 complete backend 204 suites / 2,118 tests가 failures/errors/skipped 0으로 통과했다.
 
-Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`의 contract/options/fixed request/full response/error/handoff JSON 6개와 `SHA256SUMS.txt`다. Draft Engine performance hardening 최종 tree에서 두 fresh JVM candidate의 7개 파일은 byte-for-byte exact였고 V8 semantic audit 뒤 공식 local artifact로 다시 승격했다. Manifest 6/6 raw SHA가 통과했고 raw SHA-256은 `0a9da8e91bf5426ef374fd5487dea86b6534b07217a1b96329e23446f37a844d`다. Full XML은 필수 8개 suite 및 skipped 0뿐 아니라 production 503 files / `cfcc138fbaffc914c8521ad11e4d7b835d56a178453c10a2f2fa956149e24df9`과 API verification 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`의 dynamic source-binding과 exact여야 artifact를 만들 수 있다. Historical Match Engine freeze는 재생성하지 않고 기존 manifest 7/7과 SHA를 읽기 검증해 결속했다.
+Frontend handoff artifact는 `backend/build/reports/real-match-api-v1/`의 contract/options/fixed request/full response/error/handoff JSON 6개와 `SHA256SUMS.txt`다. Transport compression 설정까지 포함한 최종 source에서 두 fresh JVM candidate의 7개 파일은 byte-for-byte exact였고 V8 semantic audit 뒤 공식 local artifact로 승격했다. Manifest 6/6 raw SHA가 통과했고 raw SHA-256은 `9767356ce01243ff67441354a24d2d54df86fd30ed69cb57397ed36629876fad`다. Full XML은 필수 8개 suite 및 skipped 0뿐 아니라 production 503 files / `eb54c41b515703d571eed744bbe06975ca0a71c1bd48d819da1c3afa1e24985a`과 API verification 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`의 dynamic source-binding과 exact여야 artifact를 만들 수 있다. Fixed response의 JSON 의미와 output/replay/timeline/Random identity는 이전 handoff와 exact다. Historical Match Engine freeze는 재생성하지 않고 기존 manifest 7/7과 SHA를 읽기 검증해 결속했다.
 
 Frontend V1-A reference extractor는 계속 33,617,922-byte handoff에서 deterministic presentation projection을 검증한다. Frontend V1-B는 LIVE를 기본 공급자로 만들고 실제 `/api/v1/real-matches/options`와 `/simulate`를 strict validation/normalization 경계로 연결했다. 임의의 서로 다른 두 팀과 signed-long seed, loading/cancel/retry/stale-response 격리, Draft→Playback→Result 일관성을 제공하며 오류 때 reference로 자동 fallback하지 않는다. Fixed GEN/T1/73과 non-reference HLE/DK/-73 실제 E2E, 1440×900/1280×720, full payload timing/heap과 lazy reference chunk를 검증했다. 세부 근거는 [Real Match Frontend V1-B](development/real-match-frontend-v1-b.md)에 있다.
 
@@ -270,6 +270,19 @@ Run별 Draft 비중 median은 준비 구간의 99.9901%였다. Roster assembly m
 24 Draft 합계 physical computation은 role assignment 24,172,180→591,296(97.554% 감소), planner candidate 184,948,920→16,269,480(91.203% 감소), completion 2,609,860→2,196,552(15.836% 감소), pool-health 1,075,962→957,308(11.028% 감소)였다. 이 counter는 deterministic work evidence이고 JFR CPU/allocation은 sampling evidence다. 공식 status는 `DRAFT_ENGINE_PERFORMANCE_HARDENED`이며 요구한 median 40%와 p90 30% 단축 gate를 모두 통과했다.
 
 최종 executable tree의 focused Draft 묶음은 58 tests, Real Match focused 묶음과 fresh JVM A/B도 clean pass했다. Complete backend regression은 첫 실행에서 203 suites / 2,117 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 679.103초, Gradle wall 11분 33초였다. 공식 artifact는 `backend/build/reports/draft-engine-performance-hardening-v1/`의 contract, fixture/turn CSV, cache/JFR/summary JSON, analysis와 `SHA256SUMS.txt`이며 manifest 7/7 raw SHA가 통과했다. Manifest raw SHA-256은 `ae11f4eb368a8b796a113b32963048a764509b0bb98e27ebce313b7ec645d694`다. 자세한 계약과 명령은 [Draft Engine Performance Hardening V1](development/draft-engine-performance-hardening-v1.md)에 있다.
+
+### Real Match transport compression and live E2E V1
+
+Real Match `application/json`에는 Spring Boot 표준 HTTP compression을 사용한다. Production 설정은 compression 활성화, MIME type `application/json`, 최소 크기 `8KB`이며 `Accept-Encoding` 협상을 따른다. Controller/DTO/API schema와 frontend에는 수동 gzip/gunzip 경로가 없다. `identity`와 무헤더 요청은 기존 JSON을 그대로 받고 gzip 해제 결과는 동일한 `REAL_MATCH_RESPONSE_V1`이다.
+
+| Fixture | decoded JSON | 외부 HTTP gzip body | 압축률 / 감소율 | 공식 HTTP first / warm | Chromium encoded bytes | Chromium request+download first / warm |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| GEN–T1 / `73` | 33,617,921 B | 2,789,995 B | 8.299% / 91.701% | 9.600 / 6.399초 | 2,828,788 B | 9,819.5 / 7,033.5 ms |
+| HLE–DK / `-73` | 20,315,047 B | 1,875,883 B | 9.234% / 90.766% | 8.036 / 5.283초 | 1,902,063 B | 8,653.8 / 5,471.0 ms |
+
+두 fixture 모두 bootRun/JAR의 gzip first/warm, identity, 무헤더 응답이 HTTP 200과 exact output/replay/simulator timeline/structured timeline/Random fingerprint를 유지했다. 실제 Chrome은 설정→자동 Draft→재생→결과를 first/warm으로 완료했고 `Content-Encoding: gzip`, LIVE source, console/page error 0, reference fallback 0이었다. Parse/validation/normalization은 GEN first 115.2/13.3/2.8ms, HLE first 78.4/12.0/3.8ms였다. gzip은 wire 전송량만 줄이며 decoded JSON 20~34MB, parse/validation/heap 비용은 남는다. Localhost wall time도 gzip CPU/JIT 영향 때문에 correctness gate로 사용하지 않는다.
+
+최종 backend full regression은 첫 실행에서 204 suites / 2,118 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 622.904초, Gradle wall 10분 37초로 통과했다. 공식 status는 `REAL_MATCH_TRANSPORT_COMPRESSION_AND_LIVE_E2E_ACCEPTED`, artifact manifest 5/5 raw SHA-256은 `860f6cea4e8dfc42e1a38148dc5c2763331bcd899d784670af4e3222d89a068f`다. 자세한 계약과 수치는 [Real Match Transport Compression V1](development/real-match-transport-compression-v1.md)에 있다.
 
 ### Pre-Jungle baseline
 
@@ -340,6 +353,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 - `BASELINE_V1` production policy, complete immutable roster/Draft input, final-snapshot summary, immutable structured timeline, mandatory provenance와 cross-JVM hash를 하나의 additive application facade로 고정한 Match Engine V1
 - 실제 LCK 10팀/50명 options, explicit seed, automatic Draft, frozen result/timeline/provenance와 strict 오류 계약을 제공하는 additive Real Match API V1
 - C1-only 개발 실행을 제거한 hardened `bootRun`과 production-equivalent Auto Draft/JFR/counter scalability 기준선
+- 표준 gzip 협상, identity fallback, 실제 wire byte/CDP 측정과 live Chrome first/warm E2E를 통과한 Real Match transport compression V1
 - explicit team-code/roster/rating/final-role/assignment/Hard Fearless preflight와 caller-owned series commit
 - seed 기반 Match Simulation, event/snapshot timeline, common kill/reward/death path
 - lane pressure/combat, gank/counter-gank, roam, position economy, progression
@@ -351,7 +365,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 ## Partial / Disabled
 
 - Real LCK Draft→Match flow는 Frontend V1-B의 기본 LIVE 공급자와 연결됐다. Reference는 명시적 회귀 모드로만 남고 자동 fallback하지 않는다.
-- Full response는 현재 20–34MB다. 과거 Chromium 35–54초는 옛 C1-only `bootRun`을 포함한 브라우저 전체 경계이고, hardened `bootRun`/JAR first-warm은 fixture별 9.7–16.9초였다. payload 압축/projection/streaming/worker parsing과 정확한 progress는 별도 후속 범위다.
+- Full response의 decoded JSON은 현재도 20–34MB지만 gzip wire body는 공식 외부 HTTP에서 약 1.88–2.79MB로 줄었다. JSON projection/streaming, parse·validation·heap을 분리하는 worker, 정확한 progress는 별도 후속 범위다.
 - Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
 - 기존 `POST /api/matches/simulate`는 호환성을 위해 Dummy roster와 legacy timeline 경로를 계속 사용한다.
 - Active Matchup/Composition resource는 완전하지만 현재 HTTP MatchSimulator mode는 둘 다 `OFF`다.
@@ -363,7 +377,7 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 
 ## Pending
 
-1. `DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`에서 `DraftAvailability.poolHealth/available`, `PreDraftPlanner.candidatePlanValue`, `RoleAssignmentSolver` feasibility/enumeration 반복 비용을 결정성·결과 identity를 보존하며 최적화한다. Timeline payload 압축/projection/streaming 또는 worker parsing 계약은 별도로 설계한다.
+1. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
 2. `SERIES_LIFECYCLE_V1`에서 BO3/BO5와 누적 Hard Fearless history를 caller-owned series context로 설계한다. Save/Career/Season persistence는 그 이후 별도 범위다.
 3. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 4. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
@@ -374,21 +388,20 @@ Spring `MatchController`에 실제 주입되는 기본 roster는 계속 `DummyDa
 Final command:
 
 ```text
-set GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx256m -Dfile.encoding=UTF-8
-gradlew.bat -I build\tmp\real-match-api-v1-memory.init.gradle test --console=plain --no-daemon --max-workers=1
+gradlew.bat test --console=plain --no-daemon
 ```
 
-일회성 local init script는 Windows paging 한도에 맞춰 test JVM만 768MB/single worker/Serial GC로 제한했다. Test selection, default `diagnostic` tag 제외, production runtime과 authored Gradle 설정은 바꾸지 않았다.
+기본 `diagnostic` tag 제외 정책을 유지한 최종 production/runtime tree의 complete backend regression이다.
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 196 |
-| Tests | 2,091 |
+| JUnit suites | 204 |
+| Tests | 2,118 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 810.092 seconds |
-| Gradle wall duration | 13m 43s |
+| Aggregate JUnit XML time | 622.904 seconds |
+| Gradle wall duration | 10m 37s |
 | Build | `BUILD SUCCESSFUL` |
 
 Verification performance hardening은 complete timeline 재귀 reflection 비교를 canonical SHA-256 + mismatch structural diff로 교체하고 독립 mutation contract를 추가했다. Full-population composition 검사는 `compositionHoldoutAudit`로, large-seed 통계는 `simulationDistributionAudit`로 분리했다. 기본 regression에는 bounded selection/schedule 계약과 다중-seed gameplay invariant가 남아 있다. 최종 full은 single fork로 실행했으며 병렬화는 적용하지 않았다.
@@ -427,4 +440,4 @@ Pre-Jungle V2 생성 당시 production source/resource/build guard는 456 files 
 
 ## Last Updated
 
-2026-08-24 (Asia/Seoul)
+2026-08-25 (Asia/Seoul)

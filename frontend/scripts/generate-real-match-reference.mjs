@@ -9,7 +9,7 @@ const REPORT_DIR = resolve(FRONTEND_DIR, '../backend/build/reports/real-match-ap
 const OUTPUT_PATH = resolve(FRONTEND_DIR, 'src/features/real-match/reference/real-match-v8.reference.json');
 const CHAMPION_CATALOG_PATH = resolve(FRONTEND_DIR, '../backend/src/main/resources/champions/champion-pool-full-173-2026-08-v1.json');
 
-const EXPECTED_MANIFEST_SHA = 'fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525';
+const EXPECTED_MANIFEST_SHA = '9767356ce01243ff67441354a24d2d54df86fd30ed69cb57397ed36629876fad';
 const EXPECTED_OUTPUT_HASH = 'bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874';
 const EXPECTED_ENGINE = 'MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8';
 const EXPECTED_CONFIGURATION = 'c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215';

@@ -112,7 +112,25 @@ Checked-in reference 응답 artifact는 개행 차이를 포함해 33,617,922 B�
 
 동일한 12 fixtures × 2 공식 측정에서 full automatic Draft median/p90/max는 4.032/4.314/5.854초였다. frozen 기준선 11.173/13.420/15.412초 대비 median 63.911%, p90 67.852% 감소해 status `DRAFT_ENGINE_PERFORMANCE_HARDENED`를 받았다. 24/24 final Draft와 480/480 turn은 동일 JVM uncached reference에 exact였고 GEN–T1/73 및 HLE–DK/-73 API response/output/replay/timeline/Random도 exact였다. 이는 backend Draft phase 측정이며 과거 Chromium 요청+다운로드 54.4/35.5초나 20–34MB payload 전송 시간을 다시 측정한 값은 아니다.
 
-공식 evidence는 `backend/build/reports/draft-engine-performance-hardening-v1/`에 있고 manifest 7/7 raw SHA-256은 `ae11f4eb368a8b796a113b32963048a764509b0bb98e27ebce313b7ec645d694`다. 현재 source-bound Real Match API handoff도 fresh candidate A/B byte equality 뒤 갱신했으며 manifest 6/6 raw SHA-256은 `0a9da8e91bf5426ef374fd5487dea86b6534b07217a1b96329e23446f37a844d`다.
+공식 evidence는 `backend/build/reports/draft-engine-performance-hardening-v1/`에 있고 manifest 7/7 raw SHA-256은 `ae11f4eb368a8b796a113b32963048a764509b0bb98e27ebce313b7ec645d694`다. Transport compression final source에 결속한 Real Match API handoff도 fresh candidate A/B byte equality 뒤 갱신했으며 manifest 6/6 raw SHA-256은 `9767356ce01243ff67441354a24d2d54df86fd30ed69cb57397ed36629876fad`다.
+
+### Transport compression 및 live E2E 재측정
+
+Backend는 Spring Boot 표준 gzip 협상을 사용하며 frontend는 기존 `fetch`/`response.text()` 경계를 그대로 쓴다. 수동 gunzip, 압축 전용 DTO, reference fallback은 없다. 실제 Chrome의 wire byte는 Blob size가 아니라 CDP `Network.loadingFinished.encodedDataLength`로 측정했다.
+
+| 항목 | GEN–T1/73 first / warm | HLE–DK/-73 first / warm |
+| --- | ---: | ---: |
+| decoded JSON | 33,617,921 B | 20,315,047 B |
+| 외부 HTTP gzip body | 2,789,995 B (8.299%) | 1,875,883 B (9.234%) |
+| Chromium encoded bytes | 2,828,788 B | 1,902,063 B |
+| request+download | 9,819.5 / 7,033.5 ms | 8,653.8 / 5,471.0 ms |
+| JSON parse | 115.2 / 127.8 ms | 78.4 / 69.2 ms |
+| runtime validation | 13.3 / 11.4 ms | 12.0 / 9.5 ms |
+| normalization | 2.8 / 1.8 ms | 3.8 / 1.3 ms |
+| request→Draft | 10,153 / 7,503 ms | 8,999 / 5,950 ms |
+| playback first paint | 26.5 / 21.1 ms | 23.3 / 13.2 ms |
+
+두 fixture 모두 fresh backend의 first와 같은 backend의 warm 흐름에서 설정→Draft→Playback→Result를 완료했다. HTTP 200, `Content-Encoding: gzip`, LIVE source, console/page error 0, result 화면 visible을 확인했다. 압축은 실제 wire transfer를 약 91% 줄였지만 decoded JSON, parse/validation, transient heap 비용을 없애지 않는다. Localhost request wall time은 gzip CPU, JVM/JIT와 측정 환경 영향을 받으므로 correctness threshold가 아니다.
 
 ## 검증 명령
 
@@ -129,10 +147,10 @@ npm run bundle:verify
 
 ## 남은 제한과 다음 단계
 
-- Full response는 20–34MB이며 과거 Chromium 전체 요청 경계는 35–54초였다. 이는 옛 C1-only `bootRun`을 포함한 값이다. Automatic Draft는 별도 공식 측정에서 median 4.032초까지 줄었지만 전체 HTTP/Chromium E2E는 재측정하지 않았다. 압축/projection/streaming/worker parsing은 별도 hardening 대상이다.
+- Gzip 적용 뒤 wire body는 약 1.88–2.79MB지만 decoded response는 여전히 20–34MB다. Compact projection/streaming과 worker parsing은 JSON parse·validation·heap 비용을 다루는 별도 hardening 대상이다.
 - Ban entry에는 display name/portrait가 없어 frontend가 structured ChampionId에서 asset을 보완한다. API champion presentation/catalog를 추가하면 fallback과 영문 표시를 제거할 수 있다.
 - 현재 API는 fresh single Game 1이다. BO3/BO5와 누적 Hard Fearless는 `SERIES_LIFECYCLE_V1` 범위다.
 - Save/Load, Career/Season persistence는 아직 없다.
 - CORS 개발 origin은 `http://localhost:5173` 경계를 따른다.
 
-`DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`은 완료됐다. 다음 backend 후보인 payload 전달/파싱 hardening과 `SERIES_LIFECYCLE_V1`은 서로 분리해 진행한다. Gameplay engine, balance와 backend 응답 의미를 frontend 최적화 과정에서 재정의하지 않는다.
+`DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`과 `REAL_MATCH_TRANSPORT_COMPRESSION_V1`은 완료됐다. 다음 후보인 decoded payload/파싱 hardening과 `SERIES_LIFECYCLE_V1`은 서로 분리해 진행한다. Gameplay engine, balance와 backend 응답 의미를 frontend 최적화 과정에서 재정의하지 않는다.

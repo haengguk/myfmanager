@@ -3,7 +3,7 @@
   "provenance": {
     "sourceHandoffSchemaVersion": "REAL_MATCH_API_V1_FRONTEND_HANDOFF_V1",
     "sourceResponseSchemaVersion": "REAL_MATCH_RESPONSE_V1",
-    "sourceManifestRawSha256": "fc4f96158d6c6b1d6e9b30d8441da89a2643f9d25faa8e7218434b49b4909525",
+    "sourceManifestRawSha256": "9767356ce01243ff67441354a24d2d54df86fd30ed69cb57397ed36629876fad",
     "sourceOutputHash": "bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874",
     "engineImplementationVersion": "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V8",
     "sourceFullResponseBytes": 33617922,
