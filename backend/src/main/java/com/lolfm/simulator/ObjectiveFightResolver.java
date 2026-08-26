@@ -62,12 +62,14 @@ public final class ObjectiveFightResolver {
                     .finalContribution();
             runtimeProgression = progression.evaluateAndRecord(state,
                     ProgressionCombatContext.OBJECTIVE_FIGHT, blueAlive, redAlive,
-                    runtimeExisting, goldContribution, ProgressionApplicationStage.COMBAT_SCORE)
+                    runtimeExisting, goldContribution, ProgressionApplicationStage.COMBAT_SCORE,
+                    actionId)
                     .finalContribution();
         } else {
             runtimeProgression = progression.evaluateAndRecord(state,
                     ProgressionCombatContext.OBJECTIVE_FIGHT, blueAlive, redAlive,
-                    runtimeExisting, goldContribution, ProgressionApplicationStage.COMBAT_SCORE)
+                    runtimeExisting, goldContribution, ProgressionApplicationStage.COMBAT_SCORE,
+                    actionId)
                     .finalContribution();
             baselineProgression = runtimeProgression;
         }

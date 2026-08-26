@@ -11,10 +11,16 @@ public final class LaneOpportunityEvaluator {
     private final ChampionMatchupResolver matchup = new ChampionMatchupResolver();
 
     public double attributeDifference(GameState state, Lane lane) {
+        return evaluate(state, lane).afterMatchup();
+    }
+
+    LaneOpportunityBreakdown evaluate(GameState state, Lane lane) {
         List<PlayerState> blue = participants(state.getBlueTeamState(), lane);
         List<PlayerState> red = participants(state.getRedTeamState(), lane);
         if (blue.stream().noneMatch(PlayerState::hasMatchPerformance)
-                && red.stream().noneMatch(PlayerState::hasMatchPerformance)) return 0.0;
+                && red.stream().noneMatch(PlayerState::hasMatchPerformance)) {
+            return new LaneOpportunityBreakdown(0.0, 0.0, null);
+        }
 
         double power = championPower.evaluate(state, blue, red,
                 ProgressionCombatContext.LANE_COMBAT, ProgressionApplicationStage.INITIATIVE)
@@ -29,18 +35,7 @@ public final class LaneOpportunityEvaluator {
                         * LanePressureRuleConfig.CHAMPION_LANE_OPPORTUNITY_SCALE,
                 -LanePressureRuleConfig.MAX_CHAMPION_LANE_OPPORTUNITY_ATTRIBUTE,
                 LanePressureRuleConfig.MAX_CHAMPION_LANE_OPPORTUNITY_ATTRIBUTE);
-        state.getChampionMatchupExecutionStats().recordConsumedApplication(
-                state, matchupResult, ProgressionCombatContext.LANE_COMBAT,
-                ProgressionApplicationStage.INITIATIVE,
-                com.lolfm.champion.ChampionMatchupApplicationPoint
-                        .LANE_OPPORTUNITY_PRESSURE,
-                switch (lane) {
-                    case TOP -> com.lolfm.champion.ChampionMatchupLaneScope.TOP;
-                    case MID -> com.lolfm.champion.ChampionMatchupLaneScope.MID;
-                    case BOT -> com.lolfm.champion.ChampionMatchupLaneScope.BOT;
-                },
-                before, after, null);
-        return after;
+        return new LaneOpportunityBreakdown(before, after, matchupResult);
     }
 
     private List<PlayerState> participants(TeamState team, Lane lane) {
@@ -54,4 +49,10 @@ public final class LaneOpportunityEvaluator {
     private double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
+
+    record LaneOpportunityBreakdown(
+            double beforeMatchup,
+            double afterMatchup,
+            com.lolfm.champion.ChampionMatchupResult matchupResult
+    ) { }
 }

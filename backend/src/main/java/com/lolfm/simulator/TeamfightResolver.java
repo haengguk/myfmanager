@@ -62,7 +62,9 @@ public class TeamfightResolver {
         if (random.nextDouble() >= triggerChance) return Optional.empty();
 
         int eventStart = events.size();
-        TeamfightSides sides = determineTeamfightSides(gameState, blueTeam, redTeam, random, progressionContext, structuredAttackingSide);
+        String actionId = CombatActionIdentity.actualAt(currentTime);
+        TeamfightSides sides = determineTeamfightSides(gameState, blueTeam, redTeam, random,
+                progressionContext, structuredAttackingSide, actionId);
         CompositionActionType compositionAction = progressionContext == ProgressionCombatContext.BASE_DEFENSE
                 ? CompositionActionType.BASE_DEFENSE
                 : progressionContext == ProgressionCombatContext.LATE_GAME_SIEGE
@@ -102,7 +104,8 @@ public class TeamfightResolver {
                             : compositionAction == CompositionActionType.SIEGE_COMBAT ? CompositionBaselineScoreDomain.SIEGE_PUSH_SCORE
                             : CompositionBaselineScoreDomain.BASE_DEFENSE_SCORE);
         }
-        GradeDecision gradeDecision = determineFightGrade(gameState, sides, random, progressionContext, compositionAttemptId);
+        GradeDecision gradeDecision = determineFightGrade(gameState, sides, random,
+                progressionContext, compositionAttemptId, actionId);
         gameState.getCompositionRuntimeState().recordProductionFightGradeDecision(
                 compositionAttemptId, gradeDecision.baselineDecision(),
                 gradeDecision.candidateDecision(), gradeDecision.changed());
@@ -235,7 +238,6 @@ public class TeamfightResolver {
                 List.of()
         ));
 
-        String actionId = "COMBAT_AT:" + currentTime;
         for (int i = eventStart; i < events.size(); i++) events.get(i).setActionId(actionId);
         for (int i = eventStart; i < events.size(); i++) {
             gameState.getCompositionRuntimeState().bindPublicAction(
@@ -452,7 +454,8 @@ public class TeamfightResolver {
     }
 
     private TeamfightSides determineTeamfightSides(GameState state, Team blueTeam, Team redTeam, Random random,
-                                                       ProgressionCombatContext context, TeamSide structuredAttackingSide) {
+                                                       ProgressionCombatContext context, TeamSide structuredAttackingSide,
+                                                       String actionId) {
         TeamState blue = state.getBlueTeamState();
         TeamState red = state.getRedTeamState();
         double goldContribution = (blue.getGold() - red.getGold())
@@ -486,10 +489,12 @@ public class TeamfightResolver {
             baselineBreakdown = progression.evaluatePure(state, context, blueEligible, redEligible,
                     baselineExisting, goldContribution, ProgressionApplicationStage.COMBAT_SCORE);
             historicalBreakdown = progression.evaluateAndRecord(state, context, blueEligible, redEligible,
-                    existing, goldContribution, ProgressionApplicationStage.COMBAT_SCORE);
+                    existing, goldContribution, ProgressionApplicationStage.COMBAT_SCORE,
+                    actionId);
         } else {
             historicalBreakdown = progression.evaluateAndRecord(state, context, blueEligible, redEligible,
-                    existing, goldContribution, ProgressionApplicationStage.COMBAT_SCORE);
+                    existing, goldContribution, ProgressionApplicationStage.COMBAT_SCORE,
+                    actionId);
             baselineBreakdown = historicalBreakdown;
         }
         ProgressionCombatSample runtimeProgressionSample = state.getProgressionExecutionStats()
@@ -675,7 +680,8 @@ public class TeamfightResolver {
     }
 
     private GradeDecision determineFightGrade(GameState state, TeamfightSides sides, Random random,
-                                               ProgressionCombatContext context, GameplayAttemptId compositionAttemptId) {
+                                               ProgressionCombatContext context, GameplayAttemptId compositionAttemptId,
+                                               String actionId) {
         int currentTime = state.getCurrentTimeSeconds();
         int goldLead = Math.max(0, sides.winningTeamState().getGold() - sides.losingTeamState().getGold());
         boolean productionCounterfactual = state.getCompositionRuntimeState().isProductionV2();
@@ -700,11 +706,13 @@ public class TeamfightResolver {
                     losingEligible, baselineGap, 0, ProgressionApplicationStage.FIGHT_GRADE)
                     .finalContribution();
             historicalProgression = progression.evaluateAndRecord(state, context, winningEligible,
-                    losingEligible, historicalCandidateGap, 0, ProgressionApplicationStage.FIGHT_GRADE)
+                    losingEligible, historicalCandidateGap, 0,
+                    ProgressionApplicationStage.FIGHT_GRADE, actionId)
                     .finalContribution();
         } else {
             historicalProgression = progression.evaluateAndRecord(state, context, winningEligible,
-                    losingEligible, historicalCandidateGap, 0, ProgressionApplicationStage.FIGHT_GRADE)
+                    losingEligible, historicalCandidateGap, 0,
+                    ProgressionApplicationStage.FIGHT_GRADE, actionId)
                     .finalContribution();
             baselineProgression = historicalProgression;
         }

@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class MatchEngineV9FreshRequalificationContractTest {
@@ -30,6 +31,14 @@ class MatchEngineV9FreshRequalificationContractTest {
                 SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1);
         assertThat(schedule.draftReusePolicy()).isEqualTo(
                 "ONE_PRODUCTION_AUTO_DRAFT_PER_FIXTURE_AND_SEED_SHARED_BY_ALL_PROFILES");
+        assertThat(MatchEngineV9FreshRequalificationV2Contract.CONTRACT_SCHEMA)
+                .isEqualTo("MATCH_ENGINE_V9_AUTO_DRAFT_MATCHUP_COMPOSITION_"
+                        + "FRESH_REQUALIFICATION_CONTRACT_V2");
+        assertThat(schedule.scheduleVersion()).isEqualTo(
+                "MATCH_ENGINE_V9_REAL_LCK_AUTO_DRAFT_PAIRED_100_FIXTURE_4_4_V2");
+        assertThat(schedule.seedNamespace()).isEqualTo(
+                "MATCH_ENGINE_V9_AUTO_DRAFT_FRESH_REQUALIFICATION_SEEDS_V2_"
+                        + "AFTER_CAUSALITY_EVIDENCE_HARDENING");
     }
 
     @Test
@@ -40,6 +49,18 @@ class MatchEngineV9FreshRequalificationContractTest {
         assertThat(ledger.sources()).anySatisfy(value -> {
             assertThat(value.sourceId()).isEqualTo("COMPOSITION_V9_V6");
             assertThat(value.relationship()).contains("REUSES_COMPOSITION_V9_V5");
+        });
+        assertThat(ledger.sources()).anySatisfy(value -> {
+            assertThat(value.sourceId()).isEqualTo(
+                    "MATCH_ENGINE_V9_FRESH_V1_CALIBRATION");
+            assertThat(value.relationship()).isEqualTo("CONSUMED_BLOCKED_EVIDENCE");
+            assertThat(value.uniqueSeedCount()).isEqualTo(400);
+        });
+        assertThat(ledger.sources()).anySatisfy(value -> {
+            assertThat(value.sourceId()).isEqualTo("MATCH_ENGINE_V9_FRESH_V1_HOLDOUT");
+            assertThat(value.relationship()).isEqualTo(
+                    "RETIRED_UNCONSUMED_SOURCE_CONTRACT_CHANGED");
+            assertThat(value.uniqueSeedCount()).isEqualTo(400);
         });
         var audit = MatchEngineV9FreshRequalificationContract.requireNoSeedOverlap(
                 MatchEngineV9FreshRequalificationContract.schedule(), ledger.seedSet());
@@ -101,5 +122,43 @@ class MatchEngineV9FreshRequalificationContractTest {
                         .structuredValueHash(reversed));
         assertThat(com.lolfm.simulator.Phase13GB1SimulationExecutor
                 .structuredValueHash(null)).matches("[0-9a-f]{64}");
+    }
+
+    @Test
+    void signedActionIdsRejectMissingOrBlankAndCanonicalizeDuplicates() throws Exception {
+        assertThat(MatchEngineV9FreshRequalificationRunner.canonicalActionIds(
+                List.of("ACTION:Z", "ACTION:A", "ACTION:Z")))
+                .containsExactly("ACTION:A", "ACTION:Z");
+        assertThatThrownBy(() -> MatchEngineV9FreshRequalificationRunner
+                .canonicalActionIds(java.util.Arrays.asList("ACTION:A", null)))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> MatchEngineV9FreshRequalificationRunner
+                .canonicalActionIds(List.of("ACTION:A", " ")))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        var preflight = new MatchEngineV9FreshSerializationPreflight();
+        assertThat(preflight.bytes(false)).isEqualTo(preflight.bytes(true));
+        byte[] original = preflight.bytes(false);
+        byte[] mutated = original.clone();
+        mutated[mutated.length / 2] ^= 1;
+        assertThat(MatchEngineV9FreshRequalificationContract.sha256(mutated))
+                .isNotEqualTo(MatchEngineV9FreshRequalificationContract.sha256(original));
+    }
+
+    @Test
+    void gradleKeepsHistoricalFreshJvmsAndStandaloneFinalizersWorkerFree()
+            throws Exception {
+        String build = java.nio.file.Files.readString(Path.of("build.gradle"));
+        int historical = build.indexOf("def registerV9RequalificationTest");
+        int historicalEnd = build.indexOf(
+                "// MATCH_ENGINE_V9_REQUALIFICATION_BUILD_CONTRACT_END", historical);
+        assertThat(build.substring(historical, historicalEnd)).contains("forkEvery = 1");
+        assertThat(build).doesNotContain(
+                "tasks.named(\"finalizeMatchEngineV9FreshCalibration\") {\n"
+                        + "    dependsOn(\"runMatchEngineV9FreshCalibrationWorkers\")");
+        assertThat(build).contains(
+                "tasks.register(\"runMatchEngineV9FreshRequalification\")");
+        assertThat(build).contains(
+                "dependsOn(\"runMatchEngineV9FreshSerializationPreflight\"");
     }
 }

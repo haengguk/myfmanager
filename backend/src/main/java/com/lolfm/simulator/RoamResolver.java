@@ -44,6 +44,12 @@ public final class RoamResolver {
         Candidate selected = weightedCandidate(triggered, random);
         stats.recordUnselectedTriggers(triggered.size() - 1);
         Lane target = selected.position() == Position.SUPPORT ? Lane.MID : weightedTarget(state, selected, time, random);
+        String actionId = CombatActionIdentity.actualAt(time);
+        for (Lane evaluatedLane : Lane.values()) {
+            state.recordLanePressureConsumer(evaluatedLane,
+                    ProgressionCombatContext.ROAM,
+                    ProgressionApplicationStage.INITIATIVE, actionId);
+        }
         state.getCompositionRuntimeState().recordActualAttempt(
                 CompositionActionType.ROAM, selected.side(), selected.side(), selected.side().opposite(), FightScale.SMALL,
                 null, false, null, target, time, CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
@@ -68,7 +74,8 @@ public final class RoamResolver {
         state.laneState(origin(selected.position())).setPressure(originAfter);
         double targetBefore = state.laneState(target).getPressure();
         double overextension = enemyOverextension(state, selected.side(), target);
-        RoamCombatEdgeBreakdown edgeBreakdown = combatEdgeBreakdown(state, selected, target, overextension);
+        RoamCombatEdgeBreakdown edgeBreakdown = combatEdgeBreakdown(
+                state, selected, target, overextension, actionId);
         double edge = edgeBreakdown.combatEdge();
         double decisive = decisiveChance(roamer, edge, overextension);
         RoamOutcome outcome = random.nextDouble() >= decisive ? RoamOutcome.NO_KILL
@@ -91,6 +98,7 @@ public final class RoamResolver {
             for (int i = start; i < events.size(); i++) {
                 events.get(i).setCombatSource(CombatSource.ROAM);
                 events.get(i).setCombatLane(target);
+                events.get(i).setActionId(actionId);
             }
             double shock = target == Lane.BOT ? RoamRuleConfig.BOT_TARGET_PRESSURE_SHOCK : RoamRuleConfig.SOLO_TARGET_PRESSURE_SHOCK;
             targetAfter = clamp(targetBefore + (winning == TeamSide.BLUE ? shock : -shock), -100, 100);
@@ -105,6 +113,7 @@ public final class RoamResolver {
                 killer == null ? null : killer.getStructuredPlayerId(),
                 victim == null ? null : victim.getStructuredPlayerId(), ids(assistants));
         event.setCombatSource(CombatSource.ROAM);
+        event.setActionId(actionId);
         event.setRoam(new RoamData(selected.side(), roamer.getStructuredPlayerId(), selected.position(), origin(selected.position()), target,
                 outcome, winning, killer == null ? null : killer.getStructuredPlayerId(),
                 victim == null ? null : victim.getStructuredPlayerId(), ids(assistants),
@@ -185,6 +194,10 @@ public final class RoamResolver {
     private List<Double> reverseWeights(Position p,Lane lane){ if(lane==Lane.BOT)return List.of(RoamRuleConfig.BOT_REVERSE_ROAMER_VICTIM_WEIGHT,RoamRuleConfig.BOT_REVERSE_ADC_VICTIM_WEIGHT,RoamRuleConfig.BOT_REVERSE_SUPPORT_VICTIM_WEIGHT); return List.of(RoamRuleConfig.SOLO_REVERSE_ROAMER_VICTIM_WEIGHT,RoamRuleConfig.SOLO_REVERSE_TARGET_LANER_VICTIM_WEIGHT); }
     double combatEdge(GameState s, Candidate c, Lane l, double over) { return combatEdgeBreakdown(s, c, l, over).combatEdge(); }
     RoamCombatEdgeBreakdown combatEdgeBreakdown(GameState s, Candidate c, Lane l, double over) {
+        return combatEdgeBreakdown(s, c, l, over, null);
+    }
+    RoamCombatEdgeBreakdown combatEdgeBreakdown(GameState s, Candidate c, Lane l, double over,
+                                                 String actionId) {
         PlayerState roamer = player(s, c); TeamSide defender = c.side().opposite();
         double attackerMechanics = roamer.getMechanics() * .45 + group(s, c.side(), l, PlayerState::getMechanics) * .55;
         double attackerAggression = combatTendency(roamer) * .55 + group(s, c.side(), l, this::combatTendency) * .45;
@@ -198,7 +211,7 @@ public final class RoamResolver {
         double numbersEdge = l == Lane.BOT ? RoamRuleConfig.BOT_ROAM_NUMBERS_EDGE : RoamRuleConfig.SOLO_ROAM_NUMBERS_EDGE;
         List<PlayerState> own=new ArrayList<>();own.add(roamer);own.addAll(lanePlayers(s.getTeamState(c.side()),l));
         double existing=numbersEdge+mechanicsEdge+aggressionEdge+teamfightingEdge+goldEdge+vulnerabilityEdge;
-        double progression=new CombatProgressionEvaluator().contribution(s,ProgressionCombatContext.ROAM,own,lanePlayers(s.getTeamState(defender),l),existing,goldEdge);
+        double progression=new CombatProgressionEvaluator().contribution(s,ProgressionCombatContext.ROAM,own,lanePlayers(s.getTeamState(defender),l),existing,goldEdge,actionId);
         return new RoamCombatEdgeBreakdown(attackerMechanics,defenderMechanics,attackerAggression,defenderAggression,attackerTeamfighting,defenderTeamfighting,mechanicsEdge,aggressionEdge,teamfightingEdge,goldEdge,vulnerabilityEdge,numbersEdge,existing+progression);
     }
     double decisiveChance(PlayerState p,double edge,double over){return clamp(RoamRuleConfig.BASE_ROAM_DECISIVE_CHANCE+((p.hasMatchPerformance()?playerSkills.combatExecution(p):p.getAggression())-14)*RoamRuleConfig.ROAMER_AGGRESSION_DECISIVE_FACTOR+Math.abs(edge)*RoamRuleConfig.ROAM_DECISIVE_EDGE_FACTOR+over/100*RoamRuleConfig.ROAM_DECISIVE_OVEREXTENSION_MAX_BONUS,RoamRuleConfig.MIN_ROAM_DECISIVE_CHANCE,RoamRuleConfig.MAX_ROAM_DECISIVE_CHANCE);}

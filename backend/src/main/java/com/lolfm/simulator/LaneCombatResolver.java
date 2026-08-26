@@ -39,17 +39,23 @@ public final class LaneCombatResolver {
 
         Lane lane = pickLane(triggered, chances, random);
         state.getCombatExecutionStats().recordLaneCombatAttempt();
+        String actionId = CombatActionIdentity.actualAt(time);
+        for (Lane evaluatedLane : Lane.values()) {
+            state.recordLanePressureConsumer(evaluatedLane,
+                    ProgressionCombatContext.LANE_COMBAT,
+                    ProgressionApplicationStage.INITIATIVE, actionId);
+        }
         for (TeamSide participantSide : TeamSide.values()) {
             for (PlayerState participant : participants(state.getTeamState(participantSide), lane)) state.markMajorCombatParticipant(participant);
         }
         state.laneState(lane).markCombatAttemptAt(time);
         TeamSide initiator = chooseInitiator(state, lane, random);
-        double combatEdge = combatEdge(state, lane, initiator);
+        double combatEdge = combatEdge(state, lane, initiator, actionId);
         state.getCompositionRuntimeState().recordActualAttempt(
                 CompositionActionType.LANE_COMBAT, initiator, initiator, initiator.opposite(), FightScale.SMALL,
                 null, false, null, lane, time, CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
         LaneCombatOutcome outcome;
-        if (random.nextDouble() >= decisiveChance(state, lane, initiator)) {
+        if (random.nextDouble() >= decisiveChance(state, lane, initiator, actionId)) {
             outcome = LaneCombatOutcome.NO_KILL;
         } else {
             outcome = random.nextDouble() < attackerWinChance(combatEdge)
@@ -59,7 +65,8 @@ public final class LaneCombatResolver {
 
         double pressureBefore = state.laneState(lane).getPressure();
         if (outcome == LaneCombatOutcome.NO_KILL) {
-            events.add(laneEvent(time, lane, initiator, outcome, null, null, null, List.of(), pressureBefore, pressureBefore));
+            events.add(laneEvent(time, lane, initiator, outcome, null, null, null,
+                    List.of(), pressureBefore, pressureBefore, actionId));
             return true;
         }
 
@@ -74,6 +81,7 @@ public final class LaneCombatResolver {
         for (int i = eventStart; i < events.size(); i++) {
             events.get(i).setCombatSource(CombatSource.LANE_COMBAT);
             events.get(i).setCombatLane(lane);
+            events.get(i).setActionId(actionId);
         }
         state.getCombatExecutionStats().recordLaneCombatKill();
 
@@ -83,7 +91,8 @@ public final class LaneCombatResolver {
         double pressureAfter = clamp(pressureBefore + (winningSide == TeamSide.BLUE ? shock : -shock), -100, 100);
         state.laneState(lane).setPressure(pressureAfter);
         new ObjectivePriorityResolver().applyLaneCombatKill(state, time, lane, winningSide);
-        events.add(laneEvent(time, lane, initiator, outcome, winningSide, killer, victim, assistants, pressureBefore, pressureAfter));
+        events.add(laneEvent(time, lane, initiator, outcome, winningSide, killer, victim,
+                assistants, pressureBefore, pressureAfter, actionId));
         state.getCombatOutcomeExecutionStats().record(ProgressionCombatContext.LANE_COMBAT,time,true,winningSide,
                 participants(state.getBlueTeamState(), lane), participants(state.getRedTeamState(), lane));
         return true;
@@ -133,6 +142,10 @@ public final class LaneCombatResolver {
     }
 
     double combatEdge(GameState state, Lane lane, TeamSide attacker) {
+        return combatEdge(state, lane, attacker, null);
+    }
+
+    double combatEdge(GameState state, Lane lane, TeamSide attacker, String actionId) {
         TeamSide defender = attacker.opposite();
         double attackerPressure = attacker == TeamSide.BLUE
                 ? state.laneState(lane).getPressure() : -state.laneState(lane).getPressure();
@@ -141,11 +154,15 @@ public final class LaneCombatResolver {
         double gold=clamp((laneGold(state,lane,attacker)-laneGold(state,lane,defender))/LaneCombatRuleConfig.COMBAT_GOLD_DIVISOR,LaneCombatRuleConfig.COMBAT_GOLD_EDGE_MIN,LaneCombatRuleConfig.COMBAT_GOLD_EDGE_MAX);
         double pressure=clamp(attackerPressure/LaneCombatRuleConfig.COMBAT_PRESSURE_DIVISOR,LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MIN,LaneCombatRuleConfig.COMBAT_PRESSURE_EDGE_MAX);
         double existing=mechanics+aggression+gold+pressure;
-        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.LANE_COMBAT,participants(state.getTeamState(attacker),lane),participants(state.getTeamState(defender),lane),existing,gold);
+        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.LANE_COMBAT,participants(state.getTeamState(attacker),lane),participants(state.getTeamState(defender),lane),existing,gold,actionId);
     }
 
     double decisiveChance(GameState state, Lane lane, TeamSide attacker) {
-        double edge = combatEdge(state, lane, attacker);
+        return decisiveChance(state, lane, attacker, null);
+    }
+
+    double decisiveChance(GameState state, Lane lane, TeamSide attacker, String actionId) {
+        double edge = combatEdge(state, lane, attacker, actionId);
         return clamp(LaneCombatRuleConfig.BASE_DECISIVE_CHANCE
                         + (laneAggression(state, lane, attacker) - 14) * LaneCombatRuleConfig.DECISIVE_AGGRESSION_FACTOR
                         + Math.abs(edge) * LaneCombatRuleConfig.DECISIVE_EDGE_FACTOR,
@@ -165,7 +182,8 @@ public final class LaneCombatResolver {
 
     private MatchEvent laneEvent(int time, Lane lane, TeamSide initiator, LaneCombatOutcome outcome,
                                  TeamSide winningSide, PlayerState killer, PlayerState victim,
-                                 List<PlayerState> assistants, double before, double after) {
+                                 List<PlayerState> assistants, double before, double after,
+                                 String actionId) {
         List<String> assistantNames = assistants.stream().map(PlayerState::getPlayerName).toList();
         List<String> assistantIds = assistants.stream().map(PlayerState::getStructuredPlayerId).toList();
         MatchEvent event = new MatchEvent(time, MatchEventType.LANE_COMBAT, laneMessage(lane, outcome),
@@ -175,6 +193,7 @@ public final class LaneCombatResolver {
                 killer == null ? null : killer.getStructuredPlayerId(),
                 victim == null ? null : victim.getStructuredPlayerId(), assistantIds);
         event.setCombatSource(CombatSource.LANE_COMBAT);
+        event.setActionId(actionId);
         event.setLaneCombat(new LaneCombatData(lane, initiator, outcome, winningSide,
                 killer == null ? null : killer.getStructuredPlayerId(),
                 victim == null ? null : victim.getStructuredPlayerId(), assistantIds, before, after));

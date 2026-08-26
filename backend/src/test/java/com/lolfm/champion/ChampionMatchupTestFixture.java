@@ -5,6 +5,7 @@ import com.lolfm.domain.PlayerAttributes;
 import com.lolfm.domain.Position;
 import com.lolfm.simulator.GameState;
 import com.lolfm.simulator.PlayerState;
+import com.lolfm.simulator.PlayerKey;
 import com.lolfm.simulator.TeamSide;
 import com.lolfm.simulator.TeamState;
 import java.util.ArrayList;
@@ -46,10 +47,12 @@ public final class ChampionMatchupTestFixture {
         List<PlayerState> players = new ArrayList<>();
         for (Position position : Position.values()) {
             players.add(new PlayerState(
-                    side + "-" + position,
-                    position,
-                    new PlayerAttributes(15, 15, 15, 15),
-                    500));
+                    new PlayerKey(side, position),
+                    new com.lolfm.player.PlayerId("player-test-"
+                            + side.name().toLowerCase() + "-"
+                            + position.name().toLowerCase()),
+                    side + "-" + position, position,
+                    new PlayerAttributes(15, 15, 15, 15), null, 500, true));
         }
         return new TeamState(name, players);
     }

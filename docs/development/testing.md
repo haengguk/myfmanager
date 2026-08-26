@@ -599,3 +599,28 @@ gradlew.bat finalizeMatchEngineV9FreshCalibration --console=plain --no-daemon
 최종 source-bound full은 217 suites / 2,194 tests / failures 0 / errors 0 / skipped 0, aggregate XML 721.031초와 Gradle wall 12분 6초로 통과했다. Calibration은 네 explicit JVM shard에서 100 checkpoint, 400 production Auto Drafts, 1,200 core rows, replay 300건과 instrumentation parity 300건을 만들었다.
 
 Fresh-JVM finalizer reload는 첫 checkpoint canonical payload digest 불일치로 실패했다. Raw checkpoint/sidecar는 100/100 일치했지만 signed payload 안 `Set.copyOf` 순서가 cross-JVM canonical order가 아니었다. Contract에 따라 holdout authorization은 생성하지 않았고 동일 calibration/finalizer를 성공할 때까지 재시도하지 않는다. 상세 결과는 [fresh 재검증 V1](match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v1.md)에 있다.
+
+### Match Engine V9 fresh Auto Draft 재검증 V2
+
+V2는 V1의 unordered signed collection, action identity 누락, 시간 선행만으로 인정하던 간접 인과, duplicate slot/payload 혼합과 standalone finalizer 재실행 위험을 먼저 보강한다. 대형 population은 계속 default `test`에서 제외하고, preflight와 worker/finalizer를 명시적 task로만 실행한다.
+
+```text
+gradlew.bat runMatchEngineV9FreshSerializationPreflight --console=plain
+gradlew.bat verifyMatchEngineV9FreshSerializationPreflight --console=plain
+gradlew.bat runMatchEngineV9FreshDraftProbe --console=plain
+gradlew.bat verifyMatchEngineV9FreshDraftProbe --console=plain
+gradlew.bat smokeMatchEngineV9FreshRequalification --console=plain
+gradlew.bat freezeMatchEngineV9FreshRequalification --console=plain
+gradlew.bat test --console=plain
+gradlew.bat recordMatchEngineV9FreshFullRegressionReceipt --console=plain
+gradlew.bat runMatchEngineV9FreshCalibrationWorkers --console=plain
+gradlew.bat finalizeMatchEngineV9FreshCalibrationV2 --console=plain
+```
+
+`finalizeMatchEngineV9FreshCalibrationV2`는 이미 존재하는 authenticated calibration checkpoint만 읽는 standalone artifact-only finalizer다. Worker task에 의존하지 않으며 checkpoint가 없거나 source/contract가 다르면 gameplay를 실행하지 않고 실패한다. 전체 자동 수명주기를 처음부터 실행하는 aggregate alias는 `runMatchEngineV9FreshRequalificationV2`지만, 이미 소비된 official population에 재사용하는 명령이 아니다.
+
+Focused 92 tests, serialization fresh-JVM A/B, Auto Draft probe A/B, DRY_RUN smoke와 immutable baseline parity가 모두 통과했다. Serialization A/B raw SHA-256은 둘 다 `9351da98de9ed2ad6a524b835aee1eeb42da4f0e0af83f5ff792074b78cb2e1d`, Draft probe A/B는 둘 다 `dd33583045cf1f0806b44569eab80ce5881ba7428f1d92629393d46cb65f70f5`다. 최종 complete backend regression은 219 suites / 2,200 tests / failures 0 / errors 0 / skipped 0, Gradle wall 14분 43초로 한 번에 통과했다.
+
+공식 calibration은 4개 fresh JVM에서 fixture 100, production Auto Draft 400, core rows 1,200, paired rows 800, replay 300, instrumentation parity 300을 생성했다. 네 worker identity는 모두 달랐고 checkpoint/sidecar 100/100과 receipt 4/4를 finalizer가 인증했다. Artifact-only finalizer proof는 `gameplayExecutionCountBefore=0`, `After=0`, `coreSimulationCount=0`이다.
+
+Calibration exact integrity와 Composition causal gate는 통과했지만 Matchup 공개 divergence 400쌍 중 exact direct action cause는 1, indirect prior-state cause는 0, unresolved snapshot cause는 399였다. `UNRESOLVED_SNAPSHOT_CAUSE` exact-zero gate 때문에 상태는 `MATCH_ENGINE_V9_FRESH_REQUALIFICATION_V2_BLOCKED_HOLDOUT_NOT_CONSUMED`이다. `calibration-operational-gate-failed.json`은 `holdoutAuthorized=false`를 고정하며 authorization/start/completion과 holdout checkpoint/receipt는 생성되지 않았다. Final A/B, promotion과 recursive `SHA256SUMS.txt`도 도달하지 않았으므로 존재하지 않는다. 자세한 수치와 후속 경계는 [fresh 재검증 V2](match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v2.md)에 있다.

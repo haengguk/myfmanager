@@ -25,9 +25,10 @@ public record ChampionMatchupApplicationProvenance(
         double actualConsumerInputDelta,
         boolean consumed,
         boolean nonZero,
-        String structuredActionId
+        String structuredActionId,
+        ChampionMatchupStateMutationLineage stateMutationLineage
 ) {
-    public static final String SCHEMA_VERSION = "CHAMPION_MATCHUP_APPLICATION_PROVENANCE_V1";
+    public static final String SCHEMA_VERSION = "CHAMPION_MATCHUP_APPLICATION_PROVENANCE_V2";
 
     public ChampionMatchupApplicationProvenance {
         if (!SCHEMA_VERSION.equals(schemaVersion) || applicationSequence < 1
@@ -58,6 +59,13 @@ public record ChampionMatchupApplicationProvenance(
         }
         if (structuredActionId != null && structuredActionId.isBlank()) {
             throw new IllegalArgumentException("Structured action identity must not be blank");
+        }
+        boolean combatConsumer = applicationPoint == ChampionMatchupApplicationPoint
+                .COMBAT_PROGRESSION_SCORE;
+        if (combatConsumer == (structuredActionId == null)
+                || combatConsumer == (stateMutationLineage != null)) {
+            throw new IllegalArgumentException(
+                    "Combat applications require an action; pressure applications require a mutation");
         }
     }
 

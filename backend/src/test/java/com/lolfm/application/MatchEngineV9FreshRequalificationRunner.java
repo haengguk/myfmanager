@@ -53,20 +53,21 @@ import java.util.stream.Collectors;
 /** Authenticated, bounded execution lifecycle for the fresh Auto Draft V9 audit. */
 public final class MatchEngineV9FreshRequalificationRunner {
     public static final Path OUTPUT = Path.of("build", "reports",
-            "match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v1");
+            "match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v2");
     public static final int SHARD_COUNT = 4;
     private static final String CHECKPOINT_SCHEMA =
-            "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FIXTURE_CHECKPOINT_V1";
+            "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FIXTURE_CHECKPOINT_V2";
     private static final String ROW_SCHEMA =
-            "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_MATCH_ROW_V1";
+            "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_MATCH_ROW_V2";
     private static final String FULL_RECEIPT_SCHEMA =
-            "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FULL_REGRESSION_RECEIPT_V1";
+            "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FULL_REGRESSION_RECEIPT_V2";
 
     private final ObjectMapper mapper;
     private final ObjectMapper canonical;
     private final FreshAutoDraftRealMatchHarness harness;
     private final SimulationProvenanceService provenance;
     private final PlayerIdentityCatalog identities;
+    private long gameplayExecutionCount;
 
     public MatchEngineV9FreshRequalificationRunner(
             ObjectMapper mapper,
@@ -150,6 +151,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
                 "ALL_FIVE_POSITIONS_STRUCTURED_COVERAGE",
                 "BASELINE_APPLICATION_EXACT_ZERO", "PAIR_PARTICIPANT_PERSPECTIVE_ERROR_0",
                 "DUPLICATE_CONFLICTING_UNBOUND_APPLICATION_0", "DIRECT_RANDOM_0",
+                "UNRESOLVED_SNAPSHOT_CAUSE_0",
                 "UNEXPLAINED_PUBLIC_DIVERGENCE_0",
                 "DIRECT_OBJECTIVE_STRUCTURE_MUTATION_0"));
         contract.put("compositionCausalGates", List.of(
@@ -202,7 +204,10 @@ public final class MatchEngineV9FreshRequalificationRunner {
     }
 
     public SmokeResult smoke(Path backendRoot, Path output) throws Exception {
-        Binding binding = requireBinding(backendRoot, output, false);
+        String contractHash = Files.isRegularFile(output.resolve("contract.json"))
+                ? requireBinding(backendRoot, output, false).contractHash()
+                : "PRE_FREEZE_SOURCE:"
+                + sourceIdentity(backendRoot).combinedSourceHash();
         List<MatchEngineV9FreshRequalificationContract.Fixture> fixtures = List.of(
                 MatchEngineV9FreshRequalificationContract.schedule().fixtures().get(2),
                 MatchEngineV9FreshRequalificationContract.schedule().fixtures().get(90));
@@ -278,7 +283,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
         } catch (RuntimeException exception) {
             finalizerTransformsExact = false;
         }
-        SmokeResult result = new SmokeResult(binding.contractHash(), fixtures.size(), drafts,
+        SmokeResult result = new SmokeResult(contractHash, fixtures.size(), drafts,
                 rows, replay, instrumentation, bindingExact, matchupReachable,
                 compositionReachable, finalizerTransformsExact, errors);
         if (!result.clean()) throw new IllegalStateException("Fresh smoke gate failed: " + result);
@@ -297,6 +302,24 @@ public final class MatchEngineV9FreshRequalificationRunner {
             throw new IllegalArgumentException("Invalid official worker lane/shard");
         }
         Binding binding = requireBinding(backendRoot, output, true);
+        Path receiptPath = output.resolve("worker-receipts").resolve(
+                lane.name().toLowerCase(Locale.ROOT) + "-shard-" + shardIndex + ".json");
+        if (Files.isRegularFile(receiptPath)) {
+            WorkerReceipt receipt = canonical.readValue(receiptPath.toFile(), WorkerReceipt.class);
+            if (!"MATCH_ENGINE_V9_FRESH_REQUALIFICATION_WORKER_RECEIPT_V2"
+                    .equals(receipt.schemaVersion())
+                    || !receipt.contractHash().equals(binding.contractHash())
+                    || !receipt.combinedSourceHash().equals(
+                    binding.sourceIdentity().combinedSourceHash())
+                    || receipt.sampleLane() != lane || receipt.shardIndex() != shardIndex
+                    || receipt.shardCount() != SHARD_COUNT || receipt.fixtureCount() != 25) {
+                throw new IllegalStateException(
+                        "Existing worker receipt has stale or conflicting ownership: " + receiptPath);
+            }
+            return new ShardResult(lane, shardIndex, receipt.fixtureCount(),
+                    receipt.draftCount(), receipt.rowCount(), receipt.replayCheckCount(),
+                    receipt.instrumentationCheckCount(), receipt.workerJvmIdentityHash());
+        }
         if (lane == MatchEngineV9FreshRequalificationContract.SampleLane.HOLDOUT) {
             requireAndStartHoldout(output, binding);
             if (Files.exists(output.resolve("holdout-completion-receipt.json"))) {
@@ -336,20 +359,19 @@ public final class MatchEngineV9FreshRequalificationRunner {
                     fixture.fixtureId(), checkpoint.drafts().size(), checkpoint.rows().size());
         }
         WorkerReceipt receipt = new WorkerReceipt(
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_WORKER_RECEIPT_V1",
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_WORKER_RECEIPT_V2",
                 binding.contractHash(), binding.sourceIdentity().combinedSourceHash(),
                 lane, shardIndex, SHARD_COUNT, workerJvmIdentity(), fixtureCount,
                 draftCount, rowCount, replayChecks, instrumentationChecks,
                 List.copyOf(checkpointHashes));
-        Path receiptPath = output.resolve("worker-receipts").resolve(
-                lane.name().toLowerCase(Locale.ROOT) + "-shard-" + shardIndex + ".json");
         Files.createDirectories(receiptPath.getParent());
-        writeReplace(receiptPath, canonicalBytes(receipt));
+        writeFrozen(receiptPath, canonicalBytes(receipt));
         return new ShardResult(lane, shardIndex, fixtureCount, draftCount, rowCount,
                 replayChecks, instrumentationChecks, receipt.workerJvmIdentityHash());
     }
 
     public CalibrationReview finalizeCalibration(Path backendRoot, Path output) throws Exception {
+        long executionsBefore = gameplayExecutionCount;
         Binding binding = requireBinding(backendRoot, output, true);
         List<FixtureCheckpoint> checkpoints = readAllCheckpoints(output, binding,
                 MatchEngineV9FreshRequalificationContract.SampleLane.CALIBRATION);
@@ -371,7 +393,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
                 && population.instrumentationChecks().stream()
                 .allMatch(InstrumentationCheck::exact);
         CalibrationReview review = new CalibrationReview(
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_CALIBRATION_REVIEW_V1",
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_CALIBRATION_REVIEW_V2",
                 binding.contractHash(), 100, 4, 3, population.drafts().size(),
                 population.rows().size(), population.pairs().size(),
                 population.replayChecks().size(), population.instrumentationChecks().size(),
@@ -379,6 +401,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
                 operationalClean,
                 "FROZEN_GATES_RETAINED_WITHOUT_TUNING_OR_SEED_FIXTURE_CHANGE");
         writeReplace(output.resolve("calibration-review.json"), canonicalBytes(review));
+        writeFinalizerExecutionProof(output, "CALIBRATION", executionsBefore);
         if (!operationalClean) {
             writeReplace(output.resolve("calibration-operational-gate-failed.json"),
                     canonicalBytes(Map.of("contractHash", binding.contractHash(),
@@ -386,7 +409,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
             return review;
         }
         HoldoutAuthorization authorization = new HoldoutAuthorization(
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_HOLDOUT_AUTHORIZATION_V1",
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_HOLDOUT_AUTHORIZATION_V2",
                 binding.contractHash(), binding.sourceIdentity().combinedSourceHash(),
                 MatchEngineV9FreshRequalificationContract.schedule().scheduleHash(),
                 fileHash(output.resolve("consumed-seed-ledger.json")),
@@ -399,6 +422,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
     }
 
     public FinalArtifactResult finalizeOfficial(Path backendRoot, Path output) throws Exception {
+        long executionsBefore = gameplayExecutionCount;
         Binding binding = requireBinding(backendRoot, output, true);
         Path started = output.resolve("holdout-authorization.started");
         if (!Files.isRegularFile(started)) {
@@ -450,7 +474,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
         ProfileDecision decision = decide(baselineStable, matchupEligible,
                 compositionEligible, eligibleProfiles);
         FinalArtifactResult result = new FinalArtifactResult(
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FINAL_ARTIFACT_V1",
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FINAL_ARTIFACT_V2",
                 binding.contractHash(), all.drafts().size(), all.rows().size(),
                 all.pairs().size(), calibrationPopulation.replayChecks().size(),
                 calibrationPopulation.instrumentationChecks().size(),
@@ -461,11 +485,12 @@ public final class MatchEngineV9FreshRequalificationRunner {
         writeFinalArtifacts(output, binding, calibrationPopulation, holdoutPopulation,
                 all, integrity, result);
         HoldoutCompletion completion = new HoldoutCompletion(
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_HOLDOUT_COMPLETION_V1",
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_HOLDOUT_COMPLETION_V2",
                 binding.contractHash(), 100, 400, 1_200, true,
                 fileHash(output.resolve("final-recommendation.json")));
         writeFrozen(output.resolve("holdout-completion-receipt.json"),
                 canonicalBytes(completion));
+        writeFinalizerExecutionProof(output, "FINAL", executionsBefore);
         writeReplace(output.resolve("SHA256SUMS.txt"),
                 recursiveManifest(output).getBytes(StandardCharsets.UTF_8));
         return result;
@@ -475,6 +500,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
     public FinalArtifactResult writeFreshJvmCandidate(
             Path backendRoot, Path output, Path candidate
     ) throws Exception {
+        long executionsBefore = gameplayExecutionCount;
         Binding binding = requireBinding(backendRoot, output, true);
         if (!Files.isRegularFile(output.resolve("holdout-authorization.started"))) {
             throw new IllegalStateException("Holdout must be consumed before artifact finalization");
@@ -502,7 +528,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
         if (matchupEligible) eligible.add(SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1);
         if (compositionEligible) eligible.add(SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1);
         FinalArtifactResult result = new FinalArtifactResult(
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FINAL_ARTIFACT_V1",
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FINAL_ARTIFACT_V2",
                 binding.contractHash(), all.drafts().size(), all.rows().size(),
                 all.pairs().size(), calibration.replayChecks().size(),
                 calibration.instrumentationChecks().size(), officialSimulationCount(all),
@@ -516,6 +542,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
         }
         Files.createDirectories(candidate);
         writeFinalArtifacts(candidate, binding, calibration, holdout, all, integrity, result);
+        writeFinalizerExecutionProof(candidate, "FINAL_CANDIDATE", executionsBefore);
         return result;
     }
 
@@ -536,7 +563,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
             throw new IllegalStateException("Fresh-JVM result contract mismatch");
         }
         HoldoutCompletion completion = new HoldoutCompletion(
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_HOLDOUT_COMPLETION_V1",
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_HOLDOUT_COMPLETION_V2",
                 binding.contractHash(), 100, 400, 1_200, true,
                 fileHash(output.resolve("final-recommendation.json")));
         writeFrozen(output.resolve("holdout-completion-receipt.json"),
@@ -582,6 +609,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
             var prepared = harness.prepare(fixture, seed);
             drafts.add(draftEvidence(fixture, lane, seedIndex, prepared));
             List<FreshAutoDraftRealMatchHarness.Executed> runs = harness.executeProfiles(prepared);
+            gameplayExecutionCount += runs.size();
             List<MatchRow> seedRows = new ArrayList<>(3);
             for (int profileIndex = 0; profileIndex < runs.size(); profileIndex++) {
                 seedRows.add(toRow(fixture, lane, seedIndex, profileIndex,
@@ -598,6 +626,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
                     && seedIndex == 0) {
                 for (FreshAutoDraftRealMatchHarness.Executed run : runs) {
                     var repeated = harness.execute(prepared, run.profileId());
+                    gameplayExecutionCount++;
                     replayChecks.add(new ReplayCheck(fixture.fixtureId(), seed,
                             run.profileId(), exact(run, repeated),
                             run.provenance().timelineHash(),
@@ -605,6 +634,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
                             run.execution().randomFingerprint(),
                             repeated.execution().randomFingerprint()));
                     var disabled = harness.executeInstrumentationDisabled(prepared, run.profileId());
+                    gameplayExecutionCount++;
                     boolean exact = provenance.timelineHash(disabled.timeline()).equals(
                             run.provenance().timelineHash())
                             && disabled.randomFingerprint().equals(
@@ -634,7 +664,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
     ) {
         var draft = prepared.input().finalDraft();
         return new DraftEvidence(
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_DRAFT_EVIDENCE_V1",
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_DRAFT_EVIDENCE_V2",
                 fixture.fixtureId(), lane, seedIndex, prepared.seed(),
                 draft.draftSelectionPolicyId(), draft.draftSelectionPolicyHash(),
                 DraftSelectionTraceHasher.TRACE_HASH_ALGORITHM,
@@ -710,14 +740,16 @@ public final class MatchEngineV9FreshRequalificationRunner {
                     positions.add(pair.opponent().position());
                 }));
         return new MatchupEvidence(value.consumedApplicationCount(),
-                value.nonZeroConsumedApplicationCount(), value.duplicateConsumedApplicationErrors(),
-                value.applicationBindingErrors(), value.missingAssignmentErrors(),
+                value.nonZeroConsumedApplicationCount(),
+                value.idempotentDuplicateConsumedApplicationCount(),
+                value.duplicateConsumedApplicationErrors(), value.applicationBindingErrors(),
+                value.staleAssignmentParticipantErrors(), value.missingAssignmentErrors(),
                 value.deadParticipantErrors(), value.nonParticipantErrors(),
                 value.sameTeamPairErrors(), value.crossPositionErrors(),
                 value.duplicateApplicationErrors(), value.staleStateErrors(),
                 value.directRandomCalls(), value.finalMatchupEdgeSum(),
                 positions.stream().map(Enum::name).sorted().toList(),
-                value.applicationProvenance());
+                value.applicationProvenance(), value.stateConsumerProvenance());
     }
 
     private static CompositionEvidence compositionEvidence(CompositionRuntimeDiagnostics value) {
@@ -767,20 +799,38 @@ public final class MatchEngineV9FreshRequalificationRunner {
         Divergence divergence = firstDivergence(beforeTimeline, afterTimeline);
         int direct = 0;
         int indirect = 0;
+        int unresolved = 0;
         int unexplained = 0;
+        CausalClassification classification = CausalClassification.NO_PUBLIC_DIVERGENCE;
         if (divergence.present()) {
             if (kind == MarginalKind.MATCHUP_MINUS_BASELINE) {
                 List<ChampionMatchupApplicationProvenance> applications =
                         after.matchup().applications();
-                direct = (int) applications.stream().filter(value ->
-                        value.structuredActionId() != null
-                                && divergence.actionIds().contains(value.structuredActionId())
-                                && value.simulationTimeSeconds() == divergence.timeSeconds()).count();
-                if (direct == 0) {
-                    indirect = (int) applications.stream().filter(value ->
-                            value.nonZero()
-                                    && value.simulationTimeSeconds()
-                                    <= divergence.timeSeconds()).count();
+                boolean exactDirect = applications.stream().anyMatch(value ->
+                        exactDirectBinding(value, divergence.timeSeconds(),
+                                divergence.actionIds(), divergence.contexts(),
+                                divergence.stages()));
+                if (exactDirect) {
+                    direct = 1;
+                    classification = CausalClassification.EXACT_DIRECT_ACTION_CAUSE;
+                } else {
+                    boolean exactIndirect = exactIndirectBinding(
+                            after.matchup().stateConsumers(), divergence.timeSeconds(),
+                            divergence.actionIds(), divergence.contexts());
+                    if (exactIndirect) {
+                        indirect = 1;
+                        classification = CausalClassification.INDIRECT_PRIOR_STATE_CAUSE;
+                    } else {
+                        boolean stateObservedWithoutConsumer = unresolvedStateObserved(
+                                applications, divergence.timeSeconds());
+                        if (stateObservedWithoutConsumer) {
+                            unresolved = 1;
+                            classification = CausalClassification.UNRESOLVED_SNAPSHOT_CAUSE;
+                        } else {
+                            unexplained = 1;
+                            classification = CausalClassification.UNEXPLAINED_PUBLIC_DIVERGENCE;
+                        }
+                    }
                 }
             } else {
                 List<CompositionApplicationProvenance> applications =
@@ -791,12 +841,17 @@ public final class MatchEngineV9FreshRequalificationRunner {
                                 && value.publicEventTimeSeconds() != null
                                 && value.publicEventTimeSeconds() == divergence.timeSeconds())
                         .count();
+                if (direct > 0) {
+                    classification = CausalClassification.EXACT_DIRECT_ACTION_CAUSE;
+                } else {
+                    unexplained = 1;
+                    classification = CausalClassification.UNEXPLAINED_PUBLIC_DIVERGENCE;
+                }
             }
-            if (direct == 0 && indirect == 0) unexplained = 1;
         }
         StructureSeverity severity = severity(before.structure(), after.structure());
         return new PairObservation(
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_PAIR_OBSERVATION_V1",
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_PAIR_OBSERVATION_V2",
                 before.fixtureId(), before.sampleLane(), before.seedIndex(), before.seed(), kind,
                 before.profileId(), after.profileId(), before.inputHash(),
                 before.draftSelectionTraceHash(), before.finalDraftHash(),
@@ -807,8 +862,9 @@ public final class MatchEngineV9FreshRequalificationRunner {
                 after.durationSeconds() - before.durationSeconds(),
                 before.endReason() == GameEndReason.SIMULATION_TIMEOUT,
                 after.endReason() == GameEndReason.SIMULATION_TIMEOUT,
-                divergence.present(), divergence.timeSeconds(), direct, indirect, unexplained,
-                divergence.actionIds());
+                divergence.present(), divergence.timeSeconds(), classification, direct, indirect,
+                unresolved, unexplained, divergence.actionIds(), divergence.contexts(),
+                divergence.stages());
     }
 
     private static void requirePairedIdentity(MatchRow before, MatchRow after) {
@@ -827,7 +883,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
 
     private Divergence firstDivergence(MatchTimeline first, MatchTimeline second) throws Exception {
         if (provenance.timelineHash(first).equals(provenance.timelineHash(second))) {
-            return new Divergence(false, -1, Set.of());
+            return new Divergence(false, -1, List.of(), List.of(), List.of());
         }
         int events = Math.min(first.getEvents().size(), second.getEvents().size());
         for (int index = 0; index < events; index++) {
@@ -848,23 +904,139 @@ public final class MatchEngineV9FreshRequalificationRunner {
             MatchSnapshot right = second.getSnapshots().get(index);
             if (!java.util.Arrays.equals(canonicalBytes(left), canonicalBytes(right))) {
                 return new Divergence(true,
-                        Math.min(left.getTimeSeconds(), right.getTimeSeconds()), Set.of());
+                        Math.min(left.getTimeSeconds(), right.getTimeSeconds()), List.of(),
+                        List.of(), List.of());
             }
         }
         return new Divergence(true,
-                Math.min(first.getDurationSeconds(), second.getDurationSeconds()), Set.of());
+                Math.min(first.getDurationSeconds(), second.getDurationSeconds()), List.of(),
+                List.of(), List.of());
     }
 
     private static Divergence divergence(MatchEvent first, MatchEvent second) {
         LinkedHashSet<String> actionIds = new LinkedHashSet<>();
+        EnumSet<com.lolfm.simulator.ProgressionCombatContext> contexts = EnumSet.noneOf(
+                com.lolfm.simulator.ProgressionCombatContext.class);
+        EnumSet<com.lolfm.simulator.ProgressionApplicationStage> stages = EnumSet.noneOf(
+                com.lolfm.simulator.ProgressionApplicationStage.class);
         for (MatchEvent value : new MatchEvent[]{first, second}) {
             if (value == null) continue;
             if (value.getActionId() != null) actionIds.add(value.getActionId());
             if (value.getParentActionId() != null) actionIds.add(value.getParentActionId());
+            contextOf(value).ifPresent(contexts::add);
+            stageOf(value).ifPresent(stages::add);
         }
         int time = second == null ? first.getTimeSeconds()
                 : Math.min(first.getTimeSeconds(), second.getTimeSeconds());
-        return new Divergence(true, time, Set.copyOf(actionIds));
+        return new Divergence(true, time, canonicalActionIds(actionIds),
+                contexts.stream().sorted(Comparator.comparingInt(Enum::ordinal)).toList(),
+                stages.stream().sorted(Comparator.comparingInt(Enum::ordinal)).toList());
+    }
+
+    static boolean exactDirectBinding(
+            ChampionMatchupApplicationProvenance application,
+            int divergenceTimeSeconds,
+            java.util.Collection<String> divergenceActionIds,
+            java.util.Collection<com.lolfm.simulator.ProgressionCombatContext> contexts,
+            java.util.Collection<com.lolfm.simulator.ProgressionApplicationStage> stages
+    ) {
+        return application.nonZero()
+                && application.applicationPoint()
+                == com.lolfm.champion.ChampionMatchupApplicationPoint
+                .COMBAT_PROGRESSION_SCORE
+                && application.structuredActionId() != null
+                && divergenceActionIds.contains(application.structuredActionId())
+                && application.simulationTimeSeconds() == divergenceTimeSeconds
+                && contexts.contains(application.context())
+                && stages.contains(application.applicationStage());
+    }
+
+    static boolean exactIndirectBinding(
+            java.util.Collection<com.lolfm.champion.ChampionMatchupStateConsumerProvenance>
+                    consumers,
+            int divergenceTimeSeconds,
+            java.util.Collection<String> divergenceActionIds,
+            java.util.Collection<com.lolfm.simulator.ProgressionCombatContext> contexts
+    ) {
+        return consumers.stream().anyMatch(value -> value.matchupPressureDelta() != 0.0
+                && value.consumerTimeSeconds() == divergenceTimeSeconds
+                && divergenceActionIds.contains(value.consumerActionId())
+                && contexts.contains(value.consumerContext()));
+    }
+
+    static boolean unresolvedStateObserved(
+            java.util.Collection<ChampionMatchupApplicationProvenance> applications,
+            int divergenceTimeSeconds
+    ) {
+        return applications.stream()
+                .filter(ChampionMatchupApplicationProvenance::nonZero)
+                .map(ChampionMatchupApplicationProvenance::stateMutationLineage)
+                .filter(Objects::nonNull)
+                .anyMatch(value -> value.simulationTimeSeconds() <= divergenceTimeSeconds);
+    }
+
+    private static java.util.Optional<com.lolfm.simulator.ProgressionCombatContext> contextOf(
+            MatchEvent event) {
+        if (event.getCombatSource() != null) {
+            return switch (event.getCombatSource()) {
+                case LANE_COMBAT -> java.util.Optional.of(
+                        com.lolfm.simulator.ProgressionCombatContext.LANE_COMBAT);
+                case JUNGLE_GANK -> java.util.Optional.of(
+                        com.lolfm.simulator.ProgressionCombatContext.JUNGLE_GANK);
+                case COUNTER_GANK -> java.util.Optional.of(
+                        com.lolfm.simulator.ProgressionCombatContext.COUNTER_GANK);
+                case ROAM -> java.util.Optional.of(
+                        com.lolfm.simulator.ProgressionCombatContext.ROAM);
+                case SKIRMISH -> java.util.Optional.of(
+                        com.lolfm.simulator.ProgressionCombatContext.GENERIC_SKIRMISH);
+                case TEAMFIGHT -> java.util.Optional.of(
+                        com.lolfm.simulator.ProgressionCombatContext.TEAMFIGHT);
+                case OBJECTIVE_FIGHT -> java.util.Optional.of(
+                        com.lolfm.simulator.ProgressionCombatContext.OBJECTIVE_FIGHT);
+                case LATE_GAME_SIEGE -> java.util.Optional.of(
+                        com.lolfm.simulator.ProgressionCombatContext.LATE_GAME_SIEGE);
+                case BASE_DEFENSE -> java.util.Optional.of(
+                        com.lolfm.simulator.ProgressionCombatContext.BASE_DEFENSE);
+                case OTHER -> java.util.Optional.empty();
+            };
+        }
+        return switch (event.getType()) {
+            case LANE_COMBAT -> java.util.Optional.of(
+                    com.lolfm.simulator.ProgressionCombatContext.LANE_COMBAT);
+            case JUNGLE_GANK -> java.util.Optional.of(
+                    com.lolfm.simulator.ProgressionCombatContext.JUNGLE_GANK);
+            case COUNTER_GANK -> java.util.Optional.of(
+                    com.lolfm.simulator.ProgressionCombatContext.COUNTER_GANK);
+            case ROAM -> java.util.Optional.of(
+                    com.lolfm.simulator.ProgressionCombatContext.ROAM);
+            case TEAMFIGHT, TEAMFIGHT_RESULT, ACE -> java.util.Optional.of(
+                    com.lolfm.simulator.ProgressionCombatContext.TEAMFIGHT);
+            default -> java.util.Optional.empty();
+        };
+    }
+
+    private static java.util.Optional<com.lolfm.simulator.ProgressionApplicationStage> stageOf(
+            MatchEvent event) {
+        if (event.getCombatSource() == com.lolfm.domain.CombatSource.SKIRMISH) {
+            return java.util.Optional.of(
+                    com.lolfm.simulator.ProgressionApplicationStage.INITIATIVE);
+        }
+        if (event.getType() == MatchEventType.TEAMFIGHT_RESULT
+                || event.getType() == MatchEventType.ACE) {
+            return java.util.Optional.of(
+                    com.lolfm.simulator.ProgressionApplicationStage.FIGHT_GRADE);
+        }
+        return contextOf(event).map(ignored ->
+                com.lolfm.simulator.ProgressionApplicationStage.COMBAT_SCORE);
+    }
+
+    /** Signed evidence order is lexical canonical order, not gameplay/event order. */
+    static List<String> canonicalActionIds(java.util.Collection<String> actionIds) {
+        Objects.requireNonNull(actionIds, "actionIds");
+        if (actionIds.stream().anyMatch(value -> value == null || value.isBlank())) {
+            throw new IllegalArgumentException("Signed action identities must be non-blank");
+        }
+        return actionIds.stream().distinct().sorted().toList();
     }
 
     private static String eventIdentity(MatchEvent value) {
@@ -1169,6 +1341,8 @@ public final class MatchEngineV9FreshRequalificationRunner {
         long publicDivergence = pairs.stream().filter(PairObservation::publicDivergence).count();
         long direct = pairs.stream().mapToLong(PairObservation::directCauseCount).sum();
         long indirect = pairs.stream().mapToLong(PairObservation::indirectCauseCount).sum();
+        long unresolved = pairs.stream()
+                .mapToLong(PairObservation::unresolvedSnapshotCauseCount).sum();
         long unexplained = pairs.stream().mapToLong(PairObservation::unexplainedCount).sum();
         long objectiveStructureDirectMutation = matchup.stream()
                 .flatMap(value -> value.matchup().applications().stream())
@@ -1178,7 +1352,8 @@ public final class MatchEngineV9FreshRequalificationRunner {
         boolean pass = baselineApplications == 0 && applications > 0 && nonZero > 0
                 && positions.containsAll(List.of("TOP", "JUNGLE", "MID", "ADC", "SUPPORT"))
                 && bindingErrors == 0 && duplicates == 0 && directRandom == 0
-                && unexplained == 0 && objectiveStructureDirectMutation == 0;
+                && unresolved == 0 && unexplained == 0
+                && objectiveStructureDirectMutation == 0;
         return new CausalGate("MATCHUP", pass, Map.ofEntries(
                 Map.entry("baselineApplications", baselineApplications),
                 Map.entry("consumedApplications", applications),
@@ -1190,6 +1365,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
                 Map.entry("publicDivergencePairs", publicDivergence),
                 Map.entry("directCauseCount", direct),
                 Map.entry("indirectCauseCount", indirect),
+                Map.entry("unresolvedSnapshotCause", unresolved),
                 Map.entry("unexplainedPublicDivergence", unexplained),
                 Map.entry("objectiveStructureDirectMutation", objectiveStructureDirectMutation)),
                 positions.stream().sorted().toList(), pass ? List.of() : failureReasons(
@@ -1198,6 +1374,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
                 positions.size() != 5, "POSITION_COVERAGE_INCOMPLETE",
                 bindingErrors + duplicates > 0, "APPLICATION_BINDING_OR_DUPLICATE_ERROR",
                 directRandom != 0, "DIRECT_RANDOM_NON_ZERO",
+                unresolved != 0, "UNRESOLVED_SNAPSHOT_CAUSE",
                 unexplained != 0, "UNEXPLAINED_PUBLIC_DIVERGENCE",
                 objectiveStructureDirectMutation != 0, "DIRECT_OBJECTIVE_STRUCTURE_MUTATION"));
     }
@@ -1494,6 +1671,14 @@ public final class MatchEngineV9FreshRequalificationRunner {
     ) throws Exception {
         requireSidecar(path);
         FixtureCheckpoint value = canonical.readValue(path.toFile(), FixtureCheckpoint.class);
+        byte[] rawBytes = Files.readAllBytes(path);
+        byte[] typedBytes = canonicalBytes(value);
+        byte[] treeBytes = canonical.writeValueAsBytes(canonical.readTree(rawBytes));
+        if (!java.util.Arrays.equals(rawBytes, typedBytes)
+                || !java.util.Arrays.equals(rawBytes, treeBytes)) {
+            throw new IllegalStateException(
+                    "Checkpoint typed/tree canonical bytes differ: " + path);
+        }
         if (!CHECKPOINT_SCHEMA.equals(value.schemaVersion())
                 || !value.contractHash().equals(binding.contractHash())
                 || !value.combinedSourceHash().equals(
@@ -1569,7 +1754,16 @@ public final class MatchEngineV9FreshRequalificationRunner {
             Path path = output.resolve("worker-receipts").resolve(
                     lane.name().toLowerCase(Locale.ROOT) + "-shard-" + shard + ".json");
             WorkerReceipt receipt = canonical.readValue(path.toFile(), WorkerReceipt.class);
-            if (!receipt.contractHash().equals(binding.contractHash())
+            byte[] rawReceipt = Files.readAllBytes(path);
+            if (!java.util.Arrays.equals(rawReceipt, canonicalBytes(receipt))
+                    || !java.util.Arrays.equals(rawReceipt,
+                    canonical.writeValueAsBytes(canonical.readTree(rawReceipt)))) {
+                throw new IllegalStateException(
+                        "Worker receipt typed/tree canonical bytes differ: " + path);
+            }
+            if (!"MATCH_ENGINE_V9_FRESH_REQUALIFICATION_WORKER_RECEIPT_V2"
+                    .equals(receipt.schemaVersion())
+                    || !receipt.contractHash().equals(binding.contractHash())
                     || !receipt.combinedSourceHash().equals(
                     binding.sourceIdentity().combinedSourceHash())
                     || receipt.sampleLane() != lane || receipt.shardIndex() != shard
@@ -1641,7 +1835,7 @@ public final class MatchEngineV9FreshRequalificationRunner {
         writeReplace(output.resolve("paired-marginals.csv"),
                 pairedCsv(all.pairs()).getBytes(StandardCharsets.UTF_8));
         writeReplace(output.resolve("baseline-summary.json"), canonicalBytes(Map.of(
-                "schemaVersion", "MATCH_ENGINE_V9_FRESH_BASELINE_SUMMARY_V1",
+                "schemaVersion", "MATCH_ENGINE_V9_FRESH_BASELINE_SUMMARY_V2",
                 "status", result.baselineStable() ? "BASELINE_V1_STABLE" : "BLOCKED",
                 "calibrationRows", profile(calibration.rows(),
                         SimulationRuntimeProfileId.BASELINE_V1).size(),
@@ -1650,37 +1844,37 @@ public final class MatchEngineV9FreshRequalificationRunner {
                 "exactIntegrity", integrity,
                 "currentProductionProfile", "BASELINE_V1")));
         writeReplace(output.resolve("matchup-eligibility.json"), canonicalBytes(Map.of(
-                "schemaVersion", "MATCHUP_V9_FRESH_ELIGIBILITY_V1",
+                "schemaVersion", "MATCHUP_V9_FRESH_ELIGIBILITY_V2",
                 "status", result.decision().matchupStatus(),
                 "causalGate", result.matchupCausalGate(),
                 "calibrationMacro", result.calibrationSensitivity().matchupMinusBaseline(),
                 "holdoutMacro", result.holdoutSensitivity().matchupMinusBaseline())));
         writeReplace(output.resolve("composition-eligibility.json"), canonicalBytes(Map.of(
-                "schemaVersion", "COMPOSITION_V9_FRESH_ELIGIBILITY_V1",
+                "schemaVersion", "COMPOSITION_V9_FRESH_ELIGIBILITY_V2",
                 "status", result.decision().compositionStatus(),
                 "causalGate", result.compositionCausalGate(),
                 "calibrationMacro", result.calibrationSensitivity().fullMinusMatchup(),
                 "holdoutMacro", result.holdoutSensitivity().fullMinusMatchup())));
         writeReplace(output.resolve("structure-severity-summary.json"), canonicalBytes(Map.of(
-                "schemaVersion", "MATCH_ENGINE_V9_FRESH_STRUCTURE_SEVERITY_SUMMARY_V1",
+                "schemaVersion", "MATCH_ENGINE_V9_FRESH_STRUCTURE_SEVERITY_SUMMARY_V2",
                 "calibration", structureSeveritySummary(calibration.pairs()),
                 "holdout", structureSeveritySummary(holdout.pairs()),
                 "hardGateExcludesHpOnly", true)));
         writeReplace(output.resolve("causal-coverage-summary.json"), canonicalBytes(Map.of(
-                "schemaVersion", "MATCH_ENGINE_V9_FRESH_CAUSAL_COVERAGE_SUMMARY_V1",
+                "schemaVersion", "MATCH_ENGINE_V9_FRESH_CAUSAL_COVERAGE_SUMMARY_V2",
                 "matchup", result.matchupCausalGate(),
                 "composition", result.compositionCausalGate())));
         writeReplace(output.resolve("segmented-sensitivity.csv"),
                 segmentedSensitivity(all.pairs()).getBytes(StandardCharsets.UTF_8));
         writeReplace(output.resolve("eligible-production-profiles.json"), canonicalBytes(Map.of(
-                "schemaVersion", "MATCH_ENGINE_V9_FRESH_ELIGIBLE_PROFILES_V1",
+                "schemaVersion", "MATCH_ENGINE_V9_FRESH_ELIGIBLE_PROFILES_V2",
                 "currentProductionProfile", "BASELINE_V1",
                 "productionChanged", false,
                 "eligibleProfiles", result.eligibleProfiles(),
                 "rejectedProfiles", result.decision().rejectedProfiles())));
         Map<String, Object> recommendation = new LinkedHashMap<>();
         recommendation.put("schemaVersion",
-                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FINAL_RECOMMENDATION_V1");
+                "MATCH_ENGINE_V9_FRESH_REQUALIFICATION_FINAL_RECOMMENDATION_V2");
         recommendation.put("currentProductionProfile", "BASELINE_V1");
         recommendation.put("productionChanged", false);
         recommendation.put("engineImplementationVersion",
@@ -1757,7 +1951,8 @@ public final class MatchEngineV9FreshRequalificationRunner {
                 "fixture_id,sample_lane,seed_index,seed,marginal,before_profile,after_profile,"
                         + "winner_changed,objective_changed,structure_severity,before_duration,"
                         + "after_duration,duration_delta,public_divergence,direct_causes,"
-                        + "indirect_causes,unexplained\n");
+                        + "causal_classification,indirect_causes,unresolved_snapshot,"
+                        + "unexplained\n");
         pairs.stream().sorted(Comparator.comparing(PairObservation::fixtureId)
                         .thenComparing(PairObservation::sampleLane)
                         .thenComparingInt(PairObservation::seedIndex)
@@ -1773,7 +1968,9 @@ public final class MatchEngineV9FreshRequalificationRunner {
                         .append(pair.durationDeltaSeconds()).append(',')
                         .append(pair.publicDivergence()).append(',')
                         .append(pair.directCauseCount()).append(',')
+                        .append(pair.causalClassification()).append(',')
                         .append(pair.indirectCauseCount()).append(',')
+                        .append(pair.unresolvedSnapshotCauseCount()).append(',')
                         .append(pair.unexplainedCount()).append('\n'));
         return value.toString();
     }
@@ -1870,6 +2067,27 @@ public final class MatchEngineV9FreshRequalificationRunner {
         byte[] raw = canonical.writeValueAsBytes(value);
         Object normalized = canonical.readValue(raw, Object.class);
         return canonical.writeValueAsBytes(normalized);
+    }
+
+    public long gameplayExecutionCount() {
+        return gameplayExecutionCount;
+    }
+
+    private void writeFinalizerExecutionProof(
+            Path output, String finalizer, long executionsBefore) throws Exception {
+        long executed = gameplayExecutionCount - executionsBefore;
+        if (executed != 0) {
+            throw new IllegalStateException("Artifact finalizer executed gameplay: " + executed);
+        }
+        writeReplace(output.resolve(finalizer.toLowerCase(Locale.ROOT)
+                        + "-finalizer-zero-simulation-proof.json"),
+                canonicalBytes(Map.of(
+                        "schemaVersion",
+                        "MATCH_ENGINE_V9_FRESH_FINALIZER_ZERO_SIMULATION_PROOF_V2",
+                        "finalizer", finalizer,
+                        "coreSimulationCount", 0,
+                        "gameplayExecutionCountBefore", executionsBefore,
+                        "gameplayExecutionCountAfter", gameplayExecutionCount)));
     }
 
     private static void writeFrozen(Path path, byte[] bytes) throws IOException {
@@ -2123,8 +2341,10 @@ public final class MatchEngineV9FreshRequalificationRunner {
     public record MatchupEvidence(
             int consumedApplicationCount,
             int nonZeroConsumedApplicationCount,
+            int idempotentDuplicateConsumedApplicationCount,
             int duplicateConsumedApplicationErrors,
             int applicationBindingErrors,
+            int staleAssignmentParticipantErrors,
             int missingAssignmentErrors,
             int deadParticipantErrors,
             int nonParticipantErrors,
@@ -2135,15 +2355,18 @@ public final class MatchEngineV9FreshRequalificationRunner {
             int directRandomCalls,
             double aggregateFinalEdge,
             List<String> coveredPositions,
-            List<ChampionMatchupApplicationProvenance> applications
+            List<ChampionMatchupApplicationProvenance> applications,
+            List<com.lolfm.champion.ChampionMatchupStateConsumerProvenance> stateConsumers
     ) {
         public MatchupEvidence {
             coveredPositions = List.copyOf(coveredPositions);
             applications = List.copyOf(applications);
+            stateConsumers = List.copyOf(stateConsumers);
         }
 
         public long bindingErrorCount() {
-            return (long) applicationBindingErrors + missingAssignmentErrors
+            return (long) applicationBindingErrors + staleAssignmentParticipantErrors
+                    + missingAssignmentErrors
                     + deadParticipantErrors + nonParticipantErrors + sameTeamPairErrors
                     + crossPositionErrors + staleStateErrors;
         }
@@ -2285,6 +2508,14 @@ public final class MatchEngineV9FreshRequalificationRunner {
 
     public enum MarginalKind { MATCHUP_MINUS_BASELINE, FULL_MINUS_MATCHUP }
 
+    public enum CausalClassification {
+        NO_PUBLIC_DIVERGENCE,
+        EXACT_DIRECT_ACTION_CAUSE,
+        INDIRECT_PRIOR_STATE_CAUSE,
+        UNRESOLVED_SNAPSHOT_CAUSE,
+        UNEXPLAINED_PUBLIC_DIVERGENCE
+    }
+
     public enum StructureSeverity {
         EXACT,
         HP_ONLY,
@@ -2319,17 +2550,47 @@ public final class MatchEngineV9FreshRequalificationRunner {
             boolean afterTimeout,
             boolean publicDivergence,
             int firstPublicDivergenceSeconds,
+            CausalClassification causalClassification,
             int directCauseCount,
             int indirectCauseCount,
+            int unresolvedSnapshotCauseCount,
             int unexplainedCount,
-            Set<String> divergenceActionIds
+            List<String> divergenceActionIds,
+            List<com.lolfm.simulator.ProgressionCombatContext> divergenceContexts,
+            List<com.lolfm.simulator.ProgressionApplicationStage> divergenceStages
     ) {
         public PairObservation {
-            divergenceActionIds = Set.copyOf(divergenceActionIds);
+            Objects.requireNonNull(causalClassification, "causalClassification");
+            divergenceActionIds = canonicalActionIds(divergenceActionIds);
+            divergenceContexts = divergenceContexts.stream()
+                    .distinct().sorted(Comparator.comparingInt(Enum::ordinal)).toList();
+            divergenceStages = divergenceStages.stream()
+                    .distinct().sorted(Comparator.comparingInt(Enum::ordinal)).toList();
+            int classified = (directCauseCount > 0 ? 1 : 0)
+                    + (indirectCauseCount > 0 ? 1 : 0)
+                    + (unresolvedSnapshotCauseCount > 0 ? 1 : 0)
+                    + (unexplainedCount > 0 ? 1 : 0);
+            if (publicDivergence != (classified == 1)) {
+                throw new IllegalArgumentException("Public divergence cause must be exclusive");
+            }
         }
     }
 
-    private record Divergence(boolean present, int timeSeconds, Set<String> actionIds) { }
+    private record Divergence(
+            boolean present,
+            int timeSeconds,
+            List<String> actionIds,
+            List<com.lolfm.simulator.ProgressionCombatContext> contexts,
+            List<com.lolfm.simulator.ProgressionApplicationStage> stages
+    ) {
+        private Divergence {
+            actionIds = canonicalActionIds(actionIds);
+            contexts = contexts.stream().distinct()
+                    .sorted(Comparator.comparingInt(Enum::ordinal)).toList();
+            stages = stages.stream().distinct()
+                    .sorted(Comparator.comparingInt(Enum::ordinal)).toList();
+        }
+    }
 
     public record ReplayCheck(
             String fixtureId,

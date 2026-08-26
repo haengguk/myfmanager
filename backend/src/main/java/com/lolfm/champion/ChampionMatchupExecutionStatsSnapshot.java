@@ -40,13 +40,17 @@ public record ChampionMatchupExecutionStatsSnapshot(
         java.util.List<Double> applicationEdges,
         int consumedApplicationCount,
         int nonZeroConsumedApplicationCount,
+        int idempotentDuplicateConsumedApplicationCount,
         int duplicateConsumedApplicationErrors,
         int applicationBindingErrors,
-        java.util.List<ChampionMatchupApplicationProvenance> applicationProvenance
+        int staleAssignmentParticipantErrors,
+        java.util.List<ChampionMatchupApplicationProvenance> applicationProvenance,
+        java.util.List<ChampionMatchupStateConsumerProvenance> stateConsumerProvenance
 ) {
     public ChampionMatchupExecutionStatsSnapshot {
         applicationEdges = java.util.List.copyOf(applicationEdges);
         applicationProvenance = java.util.List.copyOf(applicationProvenance);
+        stateConsumerProvenance = java.util.List.copyOf(stateConsumerProvenance);
     }
     public static ChampionMatchupExecutionStatsSnapshot empty() {
         return new ChampionMatchupExecutionStatsSnapshot(
@@ -54,6 +58,6 @@ public record ChampionMatchupExecutionStatsSnapshot(
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0.0, 0.0, 0.0, 0L, 0L, 0.0, 0,
                 0.0, 0.0, 0, 0, 0, java.util.List.of(),
-                0, 0, 0, 0, java.util.List.of());
+                0, 0, 0, 0, 0, 0, java.util.List.of(), java.util.List.of());
     }
 }

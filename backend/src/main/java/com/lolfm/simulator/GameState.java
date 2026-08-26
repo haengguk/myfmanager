@@ -345,6 +345,17 @@ public class GameState {
 
     public LaneState laneState(Lane lane) { return laneStates.get(lane); }
     public Map<Lane, LaneState> getLaneStates() { return Map.copyOf(laneStates); }
+    public void recordLanePressureConsumer(
+            Lane lane,
+            ProgressionCombatContext context,
+            ProgressionApplicationStage stage,
+            String structuredActionId
+    ) {
+        LaneState laneState = laneState(java.util.Objects.requireNonNull(lane, "lane"));
+        championMatchupExecutionStats.recordStateConsumer(
+                laneState.getMatchupMutationLineage(), currentTimeSeconds, context, stage,
+                structuredActionId);
+    }
     public void clearStructureActionRegistryThisTick() {
         for (TeamSide side : TeamSide.values()) {
             structureActionAttemptedThisTick.put(side, false);

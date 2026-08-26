@@ -62,7 +62,7 @@ public class PlayerState {
                 startingGold, farmRecoveryEnabled);
     }
 
-    PlayerState(PlayerKey playerKey, PlayerId playerId, String playerName, Position position,
+    public PlayerState(PlayerKey playerKey, PlayerId playerId, String playerName, Position position,
                 PlayerAttributes attributes, PlayerMatchPerformance matchPerformance,
                 int startingGold, boolean farmRecoveryEnabled) {
         this.playerKey = playerKey;

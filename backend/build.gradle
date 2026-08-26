@@ -1141,6 +1141,7 @@ def registerV9RequalificationTest = { String taskName, String tag, int forks ->
         useJUnitPlatform { includeTags tag }
         maxHeapSize = "2g"
         maxParallelForks = forks
+        forkEvery = 1
         failFast = true
         outputs.upToDateWhen { false }
         reports.html.outputLocation = layout.buildDirectory.dir(
@@ -1255,6 +1256,21 @@ registerMatchEngineV9FreshClassTest(
         "runMatchEngineV9FreshDraftProbeA", "MatchEngineV9FreshDraftProbeATest")
 registerMatchEngineV9FreshClassTest(
         "runMatchEngineV9FreshDraftProbeB", "MatchEngineV9FreshDraftProbeBTest")
+registerMatchEngineV9FreshClassTest(
+        "runMatchEngineV9FreshSerializationPreflightA",
+        "MatchEngineV9FreshSerializationPreflightATest")
+registerMatchEngineV9FreshClassTest(
+        "runMatchEngineV9FreshSerializationPreflightB",
+        "MatchEngineV9FreshSerializationPreflightBTest")
+registerMatchEngineV9FreshClassTest(
+        "verifyMatchEngineV9FreshSerializationPreflight",
+        "MatchEngineV9FreshSerializationPreflightVerificationTest")
+tasks.register("runMatchEngineV9FreshSerializationPreflight") {
+    group = "verification"
+    description = "Writes the two fresh-JVM V2 canonical serialization candidates."
+    dependsOn("runMatchEngineV9FreshSerializationPreflightA",
+            "runMatchEngineV9FreshSerializationPreflightB")
+}
 tasks.register("runMatchEngineV9FreshDraftProbe") {
     group = "verification"
     dependsOn("runMatchEngineV9FreshDraftProbeA", "runMatchEngineV9FreshDraftProbeB")
@@ -1289,54 +1305,75 @@ tasks.register("writeMatchEngineV9AutoDraftFreshJvmArtifacts") {
             "writeMatchEngineV9AutoDraftFreshJvmArtifactB")
 }
 
-tasks.named("smokeMatchEngineV9FreshRequalification") {
-    dependsOn("freezeMatchEngineV9FreshRequalification")
-}
-tasks.named("verifyMatchEngineV9FreshDraftProbe") {
-    dependsOn("runMatchEngineV9FreshDraftProbe")
-}
-tasks.named("freezeMatchEngineV9FreshRequalification") {
-    dependsOn("verifyMatchEngineV9FreshDraftProbe")
-}
-tasks.named("recordMatchEngineV9FreshFullRegressionReceipt") {
-    dependsOn("smokeMatchEngineV9FreshRequalification")
-}
-tasks.named("runMatchEngineV9FreshCalibrationWorkers") {
-    dependsOn("recordMatchEngineV9FreshFullRegressionReceipt")
-}
-(0..3).each { shard ->
-    tasks.named("runMatchEngineV9FreshCalibrationShard${shard}") {
-        dependsOn("recordMatchEngineV9FreshFullRegressionReceipt")
-    }
-}
-tasks.named("finalizeMatchEngineV9FreshCalibration") {
-    dependsOn("runMatchEngineV9FreshCalibrationWorkers")
-}
-tasks.named("runMatchEngineV9FreshHoldoutWorkers") {
-    dependsOn("finalizeMatchEngineV9FreshCalibration")
-}
-(0..3).each { shard ->
-    tasks.named("runMatchEngineV9FreshHoldoutShard${shard}") {
-        dependsOn("finalizeMatchEngineV9FreshCalibration")
-    }
-}
-tasks.named("writeMatchEngineV9AutoDraftFreshJvmArtifacts") {
-    dependsOn("runMatchEngineV9FreshHoldoutWorkers")
-}
-tasks.named("writeMatchEngineV9AutoDraftFreshJvmArtifactA") {
-    dependsOn("runMatchEngineV9FreshHoldoutWorkers")
-}
-tasks.named("writeMatchEngineV9AutoDraftFreshJvmArtifactB") {
-    dependsOn("runMatchEngineV9FreshHoldoutWorkers")
-}
-tasks.named("promoteMatchEngineV9FreshOfficialArtifacts") {
-    dependsOn("writeMatchEngineV9AutoDraftFreshJvmArtifacts")
-}
-
 tasks.register("runMatchEngineV9FreshRequalification") {
     group = "verification"
     description = "Runs the frozen 3,000-simulation fresh Auto Draft V9 requalification."
-    dependsOn("promoteMatchEngineV9FreshOfficialArtifacts")
+    dependsOn("runMatchEngineV9FreshSerializationPreflight",
+            "verifyMatchEngineV9FreshSerializationPreflight",
+            "runMatchEngineV9FreshDraftProbe",
+            "verifyMatchEngineV9FreshDraftProbe",
+            "freezeMatchEngineV9FreshRequalification",
+            "smokeMatchEngineV9FreshRequalification",
+            "test",
+            "recordMatchEngineV9FreshFullRegressionReceipt",
+            "runMatchEngineV9FreshCalibrationWorkers",
+            "finalizeMatchEngineV9FreshCalibration",
+            "runMatchEngineV9FreshHoldoutWorkers",
+            "writeMatchEngineV9AutoDraftFreshJvmArtifacts",
+            "promoteMatchEngineV9FreshOfficialArtifacts")
+}
+tasks.named("verifyMatchEngineV9FreshSerializationPreflight") {
+    mustRunAfter("runMatchEngineV9FreshSerializationPreflight")
+}
+tasks.named("runMatchEngineV9FreshDraftProbeA") {
+    mustRunAfter("verifyMatchEngineV9FreshSerializationPreflight")
+}
+tasks.named("runMatchEngineV9FreshDraftProbeB") {
+    mustRunAfter("verifyMatchEngineV9FreshSerializationPreflight")
+}
+tasks.named("verifyMatchEngineV9FreshDraftProbe") {
+    mustRunAfter("runMatchEngineV9FreshDraftProbe")
+}
+tasks.named("freezeMatchEngineV9FreshRequalification") {
+    mustRunAfter("smokeMatchEngineV9FreshRequalification")
+}
+tasks.named("smokeMatchEngineV9FreshRequalification") {
+    mustRunAfter("verifyMatchEngineV9FreshDraftProbe")
+}
+tasks.named("test") { mustRunAfter("freezeMatchEngineV9FreshRequalification") }
+tasks.named("recordMatchEngineV9FreshFullRegressionReceipt") { mustRunAfter("test") }
+(0..3).each { shard ->
+    tasks.named("runMatchEngineV9FreshCalibrationShard${shard}") {
+        mustRunAfter("recordMatchEngineV9FreshFullRegressionReceipt")
+    }
+}
+tasks.named("finalizeMatchEngineV9FreshCalibration") {
+    mustRunAfter("runMatchEngineV9FreshCalibrationWorkers")
+}
+(0..3).each { shard ->
+    tasks.named("runMatchEngineV9FreshHoldoutShard${shard}") {
+        mustRunAfter("finalizeMatchEngineV9FreshCalibration")
+    }
+}
+tasks.named("writeMatchEngineV9AutoDraftFreshJvmArtifactA") {
+    mustRunAfter("runMatchEngineV9FreshHoldoutWorkers")
+}
+tasks.named("writeMatchEngineV9AutoDraftFreshJvmArtifactB") {
+    mustRunAfter("runMatchEngineV9FreshHoldoutWorkers")
+}
+tasks.named("promoteMatchEngineV9FreshOfficialArtifacts") {
+    mustRunAfter("writeMatchEngineV9AutoDraftFreshJvmArtifacts")
+}
+
+tasks.register("finalizeMatchEngineV9FreshCalibrationV2") {
+    group = "verification"
+    description = "Artifact-only V2 calibration finalizer; it never schedules gameplay workers."
+    dependsOn("finalizeMatchEngineV9FreshCalibration")
+}
+tasks.register("runMatchEngineV9FreshRequalificationV2") {
+    group = "verification"
+    description = "Runs the complete frozen V2 lifecycle in its only authorized order."
+    dependsOn("runMatchEngineV9FreshRequalification")
 }
 // MATCH_ENGINE_V9_FRESH_REQUALIFICATION_BUILD_CONTRACT_END
 // MATCHUP_V9_STRUCTURE_ATTRIBUTION_BUILD_CONTRACT_START

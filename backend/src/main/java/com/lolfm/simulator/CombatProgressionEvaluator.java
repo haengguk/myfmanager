@@ -10,7 +10,7 @@ public final class CombatProgressionEvaluator {
             GameState state, ProgressionCombatContext context,
             List<PlayerState> own, List<PlayerState> enemy) {
         return evaluateAndRecord(state, context, own, enemy, Double.NaN, Double.NaN,
-                ProgressionApplicationStage.COMBAT_SCORE);
+                ProgressionApplicationStage.COMBAT_SCORE, null);
     }
 
     public CombatProgressionBreakdown evaluate(
@@ -18,7 +18,7 @@ public final class CombatProgressionEvaluator {
             List<PlayerState> own, List<PlayerState> enemy,
             double existingScoreBeforeProgression, double goldContribution) {
         return evaluateAndRecord(state, context, own, enemy, existingScoreBeforeProgression,
-                goldContribution, ProgressionApplicationStage.COMBAT_SCORE);
+                goldContribution, ProgressionApplicationStage.COMBAT_SCORE, null);
     }
 
     public CombatProgressionBreakdown evaluate(
@@ -27,7 +27,7 @@ public final class CombatProgressionEvaluator {
             double existingScoreBeforeProgression, double goldContribution,
             ProgressionApplicationStage stage) {
         return evaluateAndRecord(state, context, own, enemy, existingScoreBeforeProgression,
-                goldContribution, stage);
+                goldContribution, stage, null);
     }
 
     public CombatProgressionBreakdown evaluateAndRecord(
@@ -35,8 +35,17 @@ public final class CombatProgressionEvaluator {
             List<PlayerState> own, List<PlayerState> enemy,
             double existingScoreBeforeProgression, double goldContribution,
             ProgressionApplicationStage stage) {
+        return evaluateAndRecord(state, context, own, enemy, existingScoreBeforeProgression,
+                goldContribution, stage, null);
+    }
+
+    public CombatProgressionBreakdown evaluateAndRecord(
+            GameState state, ProgressionCombatContext context,
+            List<PlayerState> own, List<PlayerState> enemy,
+            double existingScoreBeforeProgression, double goldContribution,
+            ProgressionApplicationStage stage, String structuredActionId) {
         return evaluate(state, context, own, enemy, existingScoreBeforeProgression,
-                goldContribution, stage, true);
+                goldContribution, stage, true, structuredActionId);
     }
 
     public CombatProgressionBreakdown evaluatePure(
@@ -45,14 +54,15 @@ public final class CombatProgressionEvaluator {
             double existingScoreBeforeProgression, double goldContribution,
             ProgressionApplicationStage stage) {
         return evaluate(state, context, own, enemy, existingScoreBeforeProgression,
-                goldContribution, stage, false);
+                goldContribution, stage, false, null);
     }
 
     private CombatProgressionBreakdown evaluate(
             GameState state, ProgressionCombatContext context,
             List<PlayerState> own, List<PlayerState> enemy,
             double existingScoreBeforeProgression, double goldContribution,
-            ProgressionApplicationStage stage, boolean recordDiagnostics) {
+            ProgressionApplicationStage stage, boolean recordDiagnostics,
+            String structuredActionId) {
         int time = state.getCurrentTimeSeconds();
         List<PlayerState> eligibleOwn = eligible(own, time);
         List<PlayerState> eligibleEnemy = eligible(enemy, time);
@@ -95,12 +105,13 @@ public final class CombatProgressionEvaluator {
         double matchupContribution = matchup.matchupEdge();
         double combined = scoreBeforeMatchup + matchupContribution;
 
-        if (recordDiagnostics) {
+        if (recordDiagnostics && structuredActionId != null) {
             state.getChampionMatchupExecutionStats().recordConsumedApplication(
                     state, matchup, context, stage,
                     com.lolfm.champion.ChampionMatchupApplicationPoint
                             .COMBAT_PROGRESSION_SCORE,
-                    laneScope(state, own, enemy), scoreBeforeMatchup, combined, null);
+                    laneScope(state, own, enemy), scoreBeforeMatchup, combined,
+                    structuredActionId);
         }
 
         if (recordDiagnostics) {
@@ -142,9 +153,26 @@ public final class CombatProgressionEvaluator {
     public double contribution(GameState state, ProgressionCombatContext context,
                                List<PlayerState> own, List<PlayerState> enemy,
                                double existingScoreBeforeProgression, double goldContribution,
+                               String structuredActionId) {
+        return evaluateAndRecord(state, context, own, enemy, existingScoreBeforeProgression,
+                goldContribution, ProgressionApplicationStage.COMBAT_SCORE,
+                structuredActionId).finalContribution();
+    }
+
+    public double contribution(GameState state, ProgressionCombatContext context,
+                               List<PlayerState> own, List<PlayerState> enemy,
+                               double existingScoreBeforeProgression, double goldContribution,
                                ProgressionApplicationStage stage) {
         return evaluate(state, context, own, enemy, existingScoreBeforeProgression,
                 goldContribution, stage).finalContribution();
+    }
+
+    public double contribution(GameState state, ProgressionCombatContext context,
+                               List<PlayerState> own, List<PlayerState> enemy,
+                               double existingScoreBeforeProgression, double goldContribution,
+                               ProgressionApplicationStage stage, String structuredActionId) {
+        return evaluateAndRecord(state, context, own, enemy, existingScoreBeforeProgression,
+                goldContribution, stage, structuredActionId).finalContribution();
     }
 
     private List<PlayerState> eligible(List<PlayerState> players, int time) {

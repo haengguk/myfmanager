@@ -68,6 +68,12 @@ public final class JungleGankResolver {
                 : weightedSide(triggered, random);
         consumeTempoForActualAction(state, side, time, JungleTempoActionType.GANK);
         Lane lane = chooseTargetLane(state, side, time, random);
+        String actionId = CombatActionIdentity.actualAt(time);
+        for (Lane evaluatedLane : Lane.values()) {
+            state.recordLanePressureConsumer(evaluatedLane,
+                    ProgressionCombatContext.JUNGLE_GANK,
+                    ProgressionApplicationStage.INITIATIVE, actionId);
+        }
         state.getCompositionRuntimeState().recordActualAttempt(
                 CompositionActionType.JUNGLE_GANK, side, side, side.opposite(), FightScale.SMALL,
                 null, false, null, lane, time, CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
@@ -83,13 +89,13 @@ public final class JungleGankResolver {
         boolean defenderInitiallyTriggered = triggered.containsKey(side.opposite());
         CounterGankResolver.ResponseDecision counterDecision = counterGankEnabled
                 ? counterGankResolver.tryResolve(state, side, lane, defenderInitiallyTriggered,
-                        overextension, random, events)
+                        overextension, random, events, actionId)
                 : CounterGankResolver.ResponseDecision.disabled(defenderInitiallyTriggered);
         if (counterDecision.responseSucceeded()) return true;
         action.recordGankAttempt(time, lane);
 
-        double edge = combatEdge(state, side, lane);
-        double decisive = decisiveChance(state, side, lane);
+        double edge = combatEdge(state, side, lane, actionId);
+        double decisive = decisiveChance(state, side, lane, actionId);
         double success = gankSuccessChance(edge);
         JungleGankOutcome outcome = random.nextDouble() >= decisive ? JungleGankOutcome.NO_KILL
                 : random.nextDouble() < success ? JungleGankOutcome.GANK_SUCCESS
@@ -99,7 +105,8 @@ public final class JungleGankResolver {
             events.add(gankEvent(time, side, state.getTeamState(side).playerAt(Position.JUNGLE).getStructuredPlayerId(), lane, outcome, null, null, null, List.of(),
                     pressureBefore, pressureBefore, overextension, action.getJungleFarmBlockedUntilSeconds(),
                     attemptChance, selectedWeight, edge, decisive, success,
-                    triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED), counterDecision));
+                    triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED),
+                    counterDecision, actionId));
             return true;
         }
 
@@ -112,6 +119,7 @@ public final class JungleGankResolver {
         for (int i = eventStart; i < events.size(); i++) {
             events.get(i).setCombatSource(CombatSource.JUNGLE_GANK);
             events.get(i).setCombatLane(lane);
+            events.get(i).setActionId(actionId);
         }
 
         TeamSide winningSide = outcome == JungleGankOutcome.GANK_SUCCESS ? side : side.opposite();
@@ -123,7 +131,8 @@ public final class JungleGankResolver {
         events.add(gankEvent(time, side, state.getTeamState(side).playerAt(Position.JUNGLE).getStructuredPlayerId(), lane, outcome, winningSide, participants.killer(), participants.victim(),
                 participants.assistants(), pressureBefore, pressureAfter, overextension,
                 action.getJungleFarmBlockedUntilSeconds(), attemptChance, selectedWeight, edge, decisive, success,
-                triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED), counterDecision));
+                triggered.containsKey(TeamSide.BLUE), triggered.containsKey(TeamSide.RED),
+                counterDecision, actionId));
         return true;
     }
 
@@ -258,6 +267,10 @@ public final class JungleGankResolver {
     }
 
     double combatEdge(GameState state, TeamSide side, Lane lane) {
+        return combatEdge(state, side, lane, null);
+    }
+
+    double combatEdge(GameState state, TeamSide side, Lane lane, String actionId) {
         double mechanicsEdge = attackerMechanics(state, side, lane) - laneMechanics(state, side.opposite(), lane);
         double aggressionEdge = attackerAggression(state, side, lane) - laneAggression(state, side.opposite(), lane);
         double vulnerability = clamp(enemyOverextension(state, side, lane)
@@ -265,7 +278,7 @@ public final class JungleGankResolver {
                 0, JungleGankRuleConfig.GANK_VULNERABILITY_EDGE_MAX);
         double gold=goldEdge(state,side,lane);
         double existing=(lane==Lane.BOT?JungleGankRuleConfig.BOT_GANK_NUMBERS_EDGE:JungleGankRuleConfig.SOLO_GANK_NUMBERS_EDGE)+mechanicsEdge*JungleGankRuleConfig.GANK_MECHANICS_EDGE_FACTOR+aggressionEdge*JungleGankRuleConfig.GANK_AGGRESSION_EDGE_FACTOR+gold+vulnerability;
-        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.JUNGLE_GANK,combatGroup(state,side,lane),combatGroup(state,side.opposite(),lane),existing,gold);
+        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.JUNGLE_GANK,combatGroup(state,side,lane),combatGroup(state,side.opposite(),lane),existing,gold,actionId);
     }
 
     private List<PlayerState> combatGroup(GameState state, TeamSide side, Lane lane) {
@@ -273,11 +286,15 @@ public final class JungleGankResolver {
     }
 
     double decisiveChance(GameState state, TeamSide side, Lane lane) {
+        return decisiveChance(state, side, lane, null);
+    }
+
+    double decisiveChance(GameState state, TeamSide side, Lane lane, String actionId) {
         PlayerState jungler = state.getTeamState(side).playerAt(Position.JUNGLE);
         return clamp(JungleGankRuleConfig.BASE_GANK_DECISIVE_CHANCE
                         + ((jungler.hasMatchPerformance() ? playerSkills.laneIntervention(jungler) : jungler.getAggression()) - 14)
                         * JungleGankRuleConfig.GANK_DECISIVE_AGGRESSION_FACTOR
-                        + Math.abs(combatEdge(state, side, lane)) * JungleGankRuleConfig.GANK_DECISIVE_EDGE_FACTOR
+                        + Math.abs(combatEdge(state, side, lane, actionId)) * JungleGankRuleConfig.GANK_DECISIVE_EDGE_FACTOR
                         + enemyOverextension(state, side, lane) / 100.0
                         * JungleGankRuleConfig.GANK_DECISIVE_OVEREXTENSION_MAX_BONUS,
                 JungleGankRuleConfig.MIN_GANK_DECISIVE_CHANCE, JungleGankRuleConfig.MAX_GANK_DECISIVE_CHANCE);
@@ -344,7 +361,8 @@ public final class JungleGankResolver {
                                  double before, double after, double overextension, int blockedUntil,
                                  double attemptChance, double targetWeight, double edge, double decisive, double success,
                                  boolean blueTriggered, boolean redTriggered,
-                                 CounterGankResolver.ResponseDecision counterDecision) {
+                                 CounterGankResolver.ResponseDecision counterDecision,
+                                 String actionId) {
         MatchEvent event = new MatchEvent(time, MatchEventType.JUNGLE_GANK, gankMessage(lane, outcome),
                 killer == null ? null : killer.getPlayerName(),
                 victim == null ? null : victim.getPlayerName(), names(assists));
@@ -352,6 +370,7 @@ public final class JungleGankResolver {
                 killer == null ? null : killer.getStructuredPlayerId(),
                 victim == null ? null : victim.getStructuredPlayerId(), ids(assists));
         event.setCombatSource(CombatSource.JUNGLE_GANK);
+        event.setActionId(actionId);
         event.setJungleGank(new JungleGankData(side,
                 junglerPlayerId, lane, outcome, winning,
                 killer == null ? null : killer.getStructuredPlayerId(),

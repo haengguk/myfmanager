@@ -811,7 +811,9 @@ public class MatchSimulator {
         if (eligibleLanes.isEmpty()) return false;
         double chance = genericSkirmishChance(state);
         if (random.nextDouble() >= chance) return false;
-        TeamSelection attacking = chooseTeamForSkirmish(random, blueTeam, redTeam, state);
+        String actionId = CombatActionIdentity.actualAt(state.getCurrentTimeSeconds());
+        TeamSelection attacking = chooseTeamForSkirmish(random, blueTeam, redTeam, state,
+                actionId);
         Lane combatLane = eligibleLanes.get(random.nextInt(eligibleLanes.size()));
         state.getCompositionRuntimeState().recordActualAttempt(
                 CompositionActionType.SKIRMISH,
@@ -820,8 +822,8 @@ public class MatchSimulator {
                 attacking.actingState() == state.getBlueTeamState() ? TeamSide.RED : TeamSide.BLUE,
                 FightScale.SMALL, null, false, null, null, state.getCurrentTimeSeconds(),
                 CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE,
-                skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED),
-                skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.RED : TeamSide.BLUE));
+                skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED, actionId),
+                skirmishInitiative(state, attacking.actingState() == state.getBlueTeamState() ? TeamSide.RED : TeamSide.BLUE, actionId));
         if (state.getCompositionRuntimeState().isAuditSemantics()) {
             TeamSide winner = attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED;
             state.getCompositionRuntimeState().recordAuditWinnerObservation(
@@ -874,7 +876,6 @@ public class MatchSimulator {
             throw new IllegalStateException(
                     "Eligible localized skirmish did not produce an actual attempt");
         }
-        String actionId = "COMBAT_AT:" + state.getCurrentTimeSeconds();
         for (int i = eventStart; i < events.size(); i++) {
             events.get(i).setActionId(actionId);
             if (events.get(i).getType() == MatchEventType.KILL) {
@@ -909,11 +910,12 @@ public class MatchSimulator {
         }
     }
 
-    private TeamSelection chooseTeamForSkirmish(Random random, Team blueTeam, Team redTeam, GameState state) {
+    private TeamSelection chooseTeamForSkirmish(Random random, Team blueTeam, Team redTeam,
+                                                GameState state, String actionId) {
         TeamState blue = state.getBlueTeamState();
         TeamState red = state.getRedTeamState();
-        double blueWeight = skirmishInitiative(state, TeamSide.BLUE);
-        double redWeight = skirmishInitiative(state, TeamSide.RED);
+        double blueWeight = skirmishInitiative(state, TeamSide.BLUE, actionId);
+        double redWeight = skirmishInitiative(state, TeamSide.RED, actionId);
         double blueCandidate = state.getCompositionRuntimeState().adjustedScoreForCandidate(
                 TeamSide.BLUE, TeamCompositionContext.SKIRMISH, CompositionActionType.SKIRMISH,
                 CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE, blueWeight, redWeight);
@@ -975,6 +977,10 @@ public class MatchSimulator {
     }
 
     private double skirmishInitiative(GameState state, TeamSide side) {
+        return skirmishInitiative(state, side, null);
+    }
+
+    private double skirmishInitiative(GameState state, TeamSide side, String actionId) {
         TeamState team=state.getTeamState(side);int currentTime=state.getCurrentTimeSeconds();
         int alive = 0;
         double total = 0.0;
@@ -990,7 +996,7 @@ public class MatchSimulator {
         List<PlayerState> own=team.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
         List<PlayerState> enemy=state.getTeamState(side.opposite()).getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(currentTime)).toList();
         double existing=total+team.getGold()/1_500.0;
-        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.GENERIC_SKIRMISH,own,enemy,existing,0,ProgressionApplicationStage.INITIATIVE);
+        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.GENERIC_SKIRMISH,own,enemy,existing,0,ProgressionApplicationStage.INITIATIVE,actionId);
     }
 
     double genericSkirmishChance(GameState state) {

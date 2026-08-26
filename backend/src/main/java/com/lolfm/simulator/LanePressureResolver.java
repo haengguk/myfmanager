@@ -19,10 +19,34 @@ public final class LanePressureResolver {
                 state.getLanePhaseExecutionStats().recordPressureDecay(before, next);
                 continue;
             }
-            double next = calculateNextPressure(laneState.getPressure(), lanePowerDifference(state, lane)
-                            + laneOpportunity.attributeDifference(state, lane),
-                    goldModifier(state, lane), randomVariation(random));
-            laneState.setPressure(next);
+            double currentPressure = laneState.getPressure();
+            double lanePower = lanePowerDifference(state, lane);
+            LaneOpportunityEvaluator.LaneOpportunityBreakdown opportunity =
+                    laneOpportunity.evaluate(state, lane);
+            double gold = goldModifier(state, lane);
+            double randomValue = randomVariation(random);
+            double baseline = calculateNextPressure(currentPressure,
+                    lanePower + opportunity.beforeMatchup(), gold, randomValue);
+            double next = calculateNextPressure(currentPressure,
+                    lanePower + opportunity.afterMatchup(), gold, randomValue);
+            double unclampedMatchupDelta = (opportunity.afterMatchup()
+                    - opportunity.beforeMatchup()) * LanePressureRuleConfig.ATTRIBUTE_DIFFERENCE_FACTOR;
+            double matchupPressureDelta = next - baseline;
+            double clampEffect = matchupPressureDelta - unclampedMatchupDelta;
+            var lineage = laneState.applyPressureResolution(currentTimeSeconds, next,
+                    matchupPressureDelta, clampEffect);
+            if (opportunity.matchupResult() != null) {
+                state.getChampionMatchupExecutionStats().recordConsumedApplication(
+                        state, opportunity.matchupResult(), ProgressionCombatContext.LANE_COMBAT,
+                        ProgressionApplicationStage.INITIATIVE,
+                        com.lolfm.champion.ChampionMatchupApplicationPoint
+                                .LANE_OPPORTUNITY_PRESSURE,
+                        switch (lane) {
+                            case TOP -> com.lolfm.champion.ChampionMatchupLaneScope.TOP;
+                            case MID -> com.lolfm.champion.ChampionMatchupLaneScope.MID;
+                            case BOT -> com.lolfm.champion.ChampionMatchupLaneScope.BOT;
+                        }, baseline, next, null, lineage);
+            }
         }
         state.markLanePressureResolvedAt(currentTimeSeconds);
     }

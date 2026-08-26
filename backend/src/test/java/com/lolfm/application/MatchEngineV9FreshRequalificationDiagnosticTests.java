@@ -35,6 +35,19 @@ abstract class MatchEngineV9FreshTestSupport {
 }
 
 @SpringBootTest
+class MatchEngineV9FreshFinalizerLifecycleTest extends MatchEngineV9FreshTestSupport {
+    @Test void standaloneFinalizerFailsFastWithoutCheckpointAndExecutesNoGameplay()
+            throws Exception {
+        var value = runner();
+        Path missing = Files.createTempDirectory("match-engine-v9-v2-finalizer-missing-");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                value.finalizeCalibration(Path.of("."), missing))
+                .isInstanceOf(IllegalStateException.class);
+        assertThat(value.gameplayExecutionCount()).isZero();
+    }
+}
+
+@SpringBootTest
 @Tag("diagnostic")
 @Tag("match-engine-v9-fresh-freeze")
 class MatchEngineV9FreshFreezeTest extends MatchEngineV9FreshTestSupport {

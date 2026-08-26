@@ -15,14 +15,14 @@ import java.util.Set;
 /** Frozen schedule and pre-result acceptance policy for the fresh Auto Draft audit. */
 public final class MatchEngineV9FreshRequalificationContract {
     public static final String CONTRACT_SCHEMA =
-            "MATCH_ENGINE_V9_AUTO_DRAFT_MATCHUP_COMPOSITION_FRESH_REQUALIFICATION_CONTRACT_V1";
+            "MATCH_ENGINE_V9_AUTO_DRAFT_MATCHUP_COMPOSITION_FRESH_REQUALIFICATION_CONTRACT_V2";
     public static final String SCHEDULE_SCHEMA =
-            "MATCH_ENGINE_V9_AUTO_DRAFT_MATCHUP_COMPOSITION_FRESH_REQUALIFICATION_SCHEDULE_V1";
+            "MATCH_ENGINE_V9_AUTO_DRAFT_MATCHUP_COMPOSITION_FRESH_REQUALIFICATION_SCHEDULE_V2";
     public static final String SCHEDULE_VERSION =
-            "MATCH_ENGINE_V9_REAL_LCK_AUTO_DRAFT_PAIRED_100_FIXTURE_4_4_V1_RETRY_1";
+            "MATCH_ENGINE_V9_REAL_LCK_AUTO_DRAFT_PAIRED_100_FIXTURE_4_4_V2";
     public static final String SEED_NAMESPACE =
-            "MATCH_ENGINE_V9_AUTO_DRAFT_FRESH_REQUALIFICATION_SEEDS_V1_RETRY_1_"
-                    + "AFTER_SERIALIZATION_PREFLIGHT_FAILURE";
+            "MATCH_ENGINE_V9_AUTO_DRAFT_FRESH_REQUALIFICATION_SEEDS_V2_"
+                    + "AFTER_CAUSALITY_EVIDENCE_HARDENING";
     public static final String DRAFT_REUSE_POLICY =
             "ONE_PRODUCTION_AUTO_DRAFT_PER_FIXTURE_AND_SEED_SHARED_BY_ALL_PROFILES";
     public static final int EXPECTED_FIXTURES = 100;
@@ -45,7 +45,7 @@ public final class MatchEngineV9FreshRequalificationContract {
     public static final AcceptanceGates GATES = new AcceptanceGates(
             2.0, 2.0, 15.0, 20.0, 15.0, 7.5, 30.0, 120.0, 0);
     public static final String SEED_BINDING_HASH = sha256(
-            "seedBindingSchema=MATCH_ENGINE_V9_AUTO_DRAFT_FRESH_SEED_BINDING_V1\n"
+            "seedBindingSchema=MATCH_ENGINE_V9_AUTO_DRAFT_FRESH_SEED_BINDING_V2\n"
                     + "scheduleVersion=" + SCHEDULE_VERSION + "\n"
                     + "calibrationSeedsPerFixture=4\n"
                     + "holdoutSeedsPerFixture=4\n"
@@ -154,7 +154,7 @@ public final class MatchEngineV9FreshRequalificationContract {
     ) {
         ArrayList<Long> result = new ArrayList<>(count);
         for (int index = 0; index < count; index++) {
-            String canonical = "seedSchema=MATCH_ENGINE_V9_AUTO_DRAFT_FRESH_SEED_V1\n"
+            String canonical = "seedSchema=MATCH_ENGINE_V9_AUTO_DRAFT_FRESH_SEED_V2\n"
                     + "seedNamespace=" + SEED_NAMESPACE + '\n'
                     + "seedBindingHash=" + SEED_BINDING_HASH + '\n'
                     + "fixtureId=" + fixture.fixtureId() + '\n'

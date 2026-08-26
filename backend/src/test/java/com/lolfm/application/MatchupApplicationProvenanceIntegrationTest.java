@@ -12,6 +12,7 @@ import com.lolfm.simulator.Phase13GB1SimulationExecutor;
 import com.lolfm.simulator.SimulationInstrumentation;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
 import java.util.EnumSet;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +44,14 @@ class MatchupApplicationProvenanceIntegrationTest {
             assertThat(value.consumerScoreAfter() - value.consumerScoreBefore())
                     .isEqualTo(value.actualConsumerInputDelta());
             assertThat(value.pairApplications()).isNotEmpty();
+            if (value.applicationPoint()
+                    == ChampionMatchupApplicationPoint.COMBAT_PROGRESSION_SCORE) {
+                assertThat(value.structuredActionId()).isNotBlank();
+                assertThat(value.stateMutationLineage()).isNull();
+            } else {
+                assertThat(value.structuredActionId()).isNull();
+                assertThat(value.stateMutationLineage()).isNotNull();
+            }
             value.pairApplications().forEach(pair -> {
                 assertThat(pair.source().position()).isEqualTo(pair.opponent().position());
                 assertThat(pair.source().playerKey().side())
@@ -59,6 +68,50 @@ class MatchupApplicationProvenanceIntegrationTest {
         on.applicationProvenance().forEach(value -> value.pairApplications()
                 .forEach(pair -> positions.add(pair.source().position())));
         assertThat(positions).containsExactlyInAnyOrder(Position.values());
+        assertThat(on.stateConsumerProvenance()).allSatisfy(value -> {
+            assertThat(value.consumerActionId()).startsWith("COMBAT_AT:");
+            assertThat(value.consumerTimeSeconds())
+                    .isGreaterThanOrEqualTo(value.mutationTimeSeconds());
+        });
+        var indirect = on.stateConsumerProvenance().stream().findFirst().orElseThrow();
+        assertThat(MatchEngineV9FreshRequalificationRunner.exactIndirectBinding(
+                on.stateConsumerProvenance(), indirect.consumerTimeSeconds(),
+                List.of(indirect.consumerActionId()),
+                List.of(indirect.consumerContext()))).isTrue();
+        assertThat(MatchEngineV9FreshRequalificationRunner.exactIndirectBinding(
+                on.stateConsumerProvenance(), indirect.consumerTimeSeconds(),
+                List.of("WRONG_ACTION"), List.of(indirect.consumerContext()))).isFalse();
+        assertThat(MatchEngineV9FreshRequalificationRunner.unresolvedStateObserved(
+                on.applicationProvenance(), indirect.consumerTimeSeconds())).isTrue();
+        var direct = on.applicationProvenance().stream()
+                .filter(value -> value.applicationPoint()
+                        == ChampionMatchupApplicationPoint.COMBAT_PROGRESSION_SCORE)
+                .findFirst().orElseThrow();
+        assertThat(MatchEngineV9FreshRequalificationRunner.exactDirectBinding(
+                direct, direct.simulationTimeSeconds(), List.of(direct.structuredActionId()),
+                List.of(direct.context()), List.of(direct.applicationStage()))).isTrue();
+        assertThat(MatchEngineV9FreshRequalificationRunner.exactDirectBinding(
+                direct, direct.simulationTimeSeconds() + 1,
+                List.of(direct.structuredActionId()), List.of(direct.context()),
+                List.of(direct.applicationStage()))).isFalse();
+        assertThat(MatchEngineV9FreshRequalificationRunner.exactDirectBinding(
+                direct, direct.simulationTimeSeconds(), List.of("WRONG_ACTION"),
+                List.of(direct.context()), List.of(direct.applicationStage()))).isFalse();
+        assertThat(MatchEngineV9FreshRequalificationRunner.exactDirectBinding(
+                direct, direct.simulationTimeSeconds(), List.of(direct.structuredActionId()),
+                List.of(direct.context()
+                        == com.lolfm.simulator.ProgressionCombatContext.LANE_COMBAT
+                        ? com.lolfm.simulator.ProgressionCombatContext.GENERIC_SKIRMISH
+                        : com.lolfm.simulator.ProgressionCombatContext.LANE_COMBAT),
+                List.of(direct.applicationStage()))).isFalse();
+        assertThat(MatchEngineV9FreshRequalificationRunner.exactDirectBinding(
+                direct, direct.simulationTimeSeconds(), List.of(direct.structuredActionId()),
+                List.of(direct.context()),
+                List.of(direct.applicationStage()
+                        == com.lolfm.simulator.ProgressionApplicationStage.COMBAT_SCORE
+                        ? com.lolfm.simulator.ProgressionApplicationStage.INITIATIVE
+                        : com.lolfm.simulator.ProgressionApplicationStage.COMBAT_SCORE)))
+                .isFalse();
     }
 
     @Test

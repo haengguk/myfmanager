@@ -19,7 +19,7 @@ import java.util.Set;
 
 /** Read-only inventory of every predecessor seed source required by the fresh audit. */
 public final class MatchEngineV9ConsumedSeedLedger {
-    public static final String SCHEMA = "MATCH_ENGINE_V9_CONSUMED_SEED_LEDGER_V1";
+    public static final String SCHEMA = "MATCH_ENGINE_V9_CONSUMED_SEED_LEDGER_V2";
     private static final Set<String> SEED_FIELDS = Set.of(
             "seed", "seeds", "calibrationseeds", "holdoutseeds", "dryrunseed",
             "matchseed", "preparationseed", "seedvalue");
@@ -40,6 +40,12 @@ public final class MatchEngineV9ConsumedSeedLedger {
                 spec("MATCH_ENGINE_V9_FRESH_FAILED_SERIALIZATION_PREFLIGHT",
                         "match-engine-v9-auto-draft-matchup-composition-fresh-requalification-failed-serialization-preflight-v1/frozen-schedule.json",
                         "ENTIRE_FROZEN_NAMESPACE_RETIRED_AFTER_FOUR_SHARDS_STARTED"),
+                spec("MATCH_ENGINE_V9_FRESH_V1_CALIBRATION",
+                        "match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v1/frozen-schedule.json",
+                        "CONSUMED_BLOCKED_EVIDENCE", "calibrationSeeds"),
+                spec("MATCH_ENGINE_V9_FRESH_V1_HOLDOUT",
+                        "match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v1/frozen-schedule.json",
+                        "RETIRED_UNCONSUMED_SOURCE_CONTRACT_CHANGED", "holdoutSeeds"),
                 spec("MATCHUP_V9_STRUCTURE_ATTRIBUTION",
                         "matchup-v9-structure-effect-attribution-v1/frozen-attribution-schedule.json", null),
                 spec("COMPOSITION_V9_FAILED_WORKER_ISOLATION",
@@ -69,7 +75,8 @@ public final class MatchEngineV9ConsumedSeedLedger {
             }
             JsonNode root = mapper.readTree(source.toFile());
             ArrayList<Long> values = new ArrayList<>();
-            collectSeeds(root, null, values);
+            if (spec.seedField() == null) collectSeeds(root, null, values);
+            else collectNamedSeeds(root, spec.seedField(), values);
             LinkedHashSet<Long> sourceUnique = new LinkedHashSet<>(values);
             boolean reuseOnly = spec.relationship() != null && spec.relationship().startsWith("REUSES_");
             if (!reuseOnly) unique.addAll(sourceUnique);
@@ -81,7 +88,9 @@ public final class MatchEngineV9ConsumedSeedLedger {
                     Files.readAllBytes(Files.isRegularFile(manifest) ? manifest : source));
             sources.add(new LedgerSource(spec.sourceId(), spec.relativePath(), manifestHash,
                     manifestKind, findText(root, "seedNamespace", "UNKNOWN"),
-                    sampleLanes(root), values.size(), sourceUnique.size(), spec.relationship(), true));
+                    spec.seedField() == null ? sampleLanes(root)
+                            : List.of(spec.seedField()), values.size(), sourceUnique.size(),
+                    spec.relationship(), true));
         }
         List<Long> autoSeeds = AutoDraftVarietyV1Schedule.SEEDS;
         unique.addAll(autoSeeds);
@@ -102,7 +111,24 @@ public final class MatchEngineV9ConsumedSeedLedger {
     }
 
     private static SourceSpec spec(String id, String path, String relationship) {
-        return new SourceSpec(id, path, relationship);
+        return new SourceSpec(id, path, relationship, null);
+    }
+
+    private static SourceSpec spec(
+            String id, String path, String relationship, String seedField) {
+        return new SourceSpec(id, path, relationship, seedField);
+    }
+
+    private static void collectNamedSeeds(JsonNode node, String fieldName, List<Long> target) {
+        if (node == null) return;
+        if (node.isObject()) {
+            node.fields().forEachRemaining(entry -> {
+                if (entry.getKey().equals(fieldName)) collectSeedValues(entry.getValue(), target);
+                else collectNamedSeeds(entry.getValue(), fieldName, target);
+            });
+        } else if (node.isArray()) {
+            node.forEach(value -> collectNamedSeeds(value, fieldName, target));
+        }
     }
 
     private static void collectSeeds(JsonNode node, String fieldName, List<Long> target) {
@@ -173,7 +199,8 @@ public final class MatchEngineV9ConsumedSeedLedger {
         }
     }
 
-    private record SourceSpec(String sourceId, String relativePath, String relationship) { }
+    private record SourceSpec(
+            String sourceId, String relativePath, String relationship, String seedField) { }
 
     public record Ledger(
             String schemaVersion,

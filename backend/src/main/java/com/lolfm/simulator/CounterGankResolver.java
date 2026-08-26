@@ -18,6 +18,14 @@ public final class CounterGankResolver {
     public ResponseDecision tryResolve(GameState state, TeamSide attackingSide, Lane lane,
                                        boolean defenderInitiallyTriggered, double overextension,
                                        Random random, List<MatchEvent> events) {
+        return tryResolve(state, attackingSide, lane, defenderInitiallyTriggered,
+                overextension, random, events, null);
+    }
+
+    public ResponseDecision tryResolve(GameState state, TeamSide attackingSide, Lane lane,
+                                       boolean defenderInitiallyTriggered, double overextension,
+                                       Random random, List<MatchEvent> events,
+                                       String structuredActionId) {
         int time = state.getCurrentTimeSeconds();
         CounterGankIneligibility reason = ineligibility(state, attackingSide, lane, time);
         state.getCombatExecutionStats().recordCounterGankEligibility(
@@ -47,7 +55,11 @@ public final class CounterGankResolver {
         double defendingMechanics = groupMechanics(state, defendingSide, lane);
         double attackingGold = groupGold(state, attackingSide, lane);
         double defendingGold = groupGold(state, defendingSide, lane);
-        double edge = combatEdge(state, attackingSide, lane, overextension);
+        String actionId = structuredActionId == null
+                ? CombatActionIdentity.actualAt(time) : structuredActionId;
+        state.recordLanePressureConsumer(lane, ProgressionCombatContext.COUNTER_GANK,
+                ProgressionApplicationStage.INITIATIVE, actionId);
+        double edge = combatEdge(state, attackingSide, lane, overextension, actionId);
         double decisive = decisiveChance(state, attackingSide, lane, edge);
         double attackingWin = attackingSideWinChance(edge);
         CounterGankOutcome outcome = random.nextDouble() >= decisive
@@ -75,6 +87,7 @@ public final class CounterGankResolver {
             for (int i = eventStart; i < events.size(); i++) {
                 events.get(i).setCombatSource(CombatSource.COUNTER_GANK);
                 events.get(i).setCombatLane(lane);
+                events.get(i).setActionId(actionId);
             }
             double shock = lane == Lane.BOT ? CounterGankRuleConfig.BOT_COUNTER_GANK_PRESSURE_SHOCK
                     : CounterGankRuleConfig.SOLO_COUNTER_GANK_PRESSURE_SHOCK;
@@ -91,6 +104,7 @@ public final class CounterGankResolver {
                 killer == null ? null : killer.getStructuredPlayerId(),
                 victim == null ? null : victim.getStructuredPlayerId(), ids(assistants));
         event.setCombatSource(CombatSource.COUNTER_GANK);
+        event.setActionId(actionId);
         event.setCounterGank(new CounterGankData(
                 attackingSide, defendingSide,
                 state.getTeamState(attackingSide).playerAt(Position.JUNGLE).getStructuredPlayerId(),
@@ -195,6 +209,11 @@ public final class CounterGankResolver {
     }
 
     double combatEdge(GameState state, TeamSide attackingSide, Lane lane, double overextension) {
+        return combatEdge(state, attackingSide, lane, overextension, null);
+    }
+
+    double combatEdge(GameState state, TeamSide attackingSide, Lane lane, double overextension,
+                      String actionId) {
         TeamSide defendingSide = attackingSide.opposite();
         double goldEdge = clamp((groupGold(state, attackingSide, lane) - groupGold(state, defendingSide, lane))
                         / CounterGankRuleConfig.COUNTER_GANK_GOLD_DIVISOR,
@@ -203,7 +222,7 @@ public final class CounterGankResolver {
         double overextensionEdge = clamp(overextension / CounterGankRuleConfig.OVEREXTENSION_EDGE_DIVISOR,
                 0, CounterGankRuleConfig.OVEREXTENSION_EDGE_MAX);
         double existing=(groupMechanics(state,attackingSide,lane)-groupMechanics(state,defendingSide,lane))*CounterGankRuleConfig.MECHANICS_EDGE_FACTOR+(groupAggression(state,attackingSide,lane)-groupAggression(state,defendingSide,lane))*CounterGankRuleConfig.AGGRESSION_EDGE_FACTOR+(groupTeamfighting(state,attackingSide,lane)-groupTeamfighting(state,defendingSide,lane))*CounterGankRuleConfig.TEAMFIGHTING_EDGE_FACTOR+goldEdge+overextensionEdge-CounterGankRuleConfig.COUNTER_PREPARATION_EDGE;
-        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.COUNTER_GANK,combatGroup(state,attackingSide,lane),combatGroup(state,defendingSide,lane),existing,goldEdge);
+        return existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.COUNTER_GANK,combatGroup(state,attackingSide,lane),combatGroup(state,defendingSide,lane),existing,goldEdge,actionId);
     }
 
     private List<PlayerState> combatGroup(GameState state, TeamSide side, Lane lane) {List<PlayerState> result=new ArrayList<>();result.add(state.getTeamState(side).playerAt(Position.JUNGLE));result.addAll(lanePlayers(state.getTeamState(side),lane));return result;}
