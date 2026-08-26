@@ -10,6 +10,7 @@ import com.lolfm.draft.DraftEngine;
 import com.lolfm.draft.DraftResourceSet;
 import com.lolfm.draft.DraftRuleSet;
 import com.lolfm.draft.DraftScoringPolicy;
+import com.lolfm.draft.DraftSelectionContext;
 import com.lolfm.draft.DraftTeamContext;
 import com.lolfm.draft.FinalDraftResult;
 import com.lolfm.draft.SeriesDraftHistory;
@@ -129,7 +130,11 @@ public final class RealDraftMatchOrchestrator {
         Set<ChampionId> exclusionsBeforeDraft = seriesHistory.consumedPicks();
         int gameNumber = seriesHistory.committedGameCount() + 1;
 
-        FinalDraftResult draftResult = drafts.draft(blueContext, redContext, seriesHistory);
+        DraftSelectionContext selectionContext = RealDraftSelectionContextFactory.create(
+                matchSeed, normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
+                gameNumber, exclusionsBeforeDraft);
+        FinalDraftResult draftResult = drafts.draft(
+                blueContext, redContext, seriesHistory, selectionContext);
         preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 blueContext, redContext, draftResult, seriesHistory);
 
@@ -189,7 +194,11 @@ public final class RealDraftMatchOrchestrator {
         DraftTeamContext redContext = DraftTeamContext.from(redTeam);
         Set<ChampionId> exclusionsBeforeDraft = seriesHistory.consumedPicks();
         int gameNumber = seriesHistory.committedGameCount() + 1;
-        FinalDraftResult draftResult = drafts.draft(blueContext, redContext, seriesHistory);
+        DraftSelectionContext selectionContext = RealDraftSelectionContextFactory.create(
+                matchSeed, normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
+                gameNumber, exclusionsBeforeDraft);
+        FinalDraftResult draftResult = drafts.draft(
+                blueContext, redContext, seriesHistory, selectionContext);
         preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 blueContext, redContext, draftResult, seriesHistory);
         MatchEngineV1Input input = matchEngineV1Inputs.fromRealDraft(

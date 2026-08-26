@@ -171,22 +171,22 @@ class DraftComputationContextTest {
         DraftTeamContext fitted = DraftTestSupport.context(Position.JUNGLE,
                 Map.of(new com.lolfm.champion.ChampionRoleKey(
                         id("poppy"), Position.JUNGLE), 20));
-        FinalDraftResult expectedSame = engine.draft(
+        FinalDraftResult expectedSame = engine.draftDeterministicBest(
                 neutral, neutral, new SeriesDraftHistory());
-        FinalDraftResult expectedDifferent = engine.draft(
+        FinalDraftResult expectedDifferent = engine.draftDeterministicBest(
                 fitted, neutral, new SeriesDraftHistory());
 
         try (var executor = Executors.newFixedThreadPool(2)) {
             List<Callable<FinalDraftResult>> same = List.of(
-                    () -> engine.draft(neutral, neutral, new SeriesDraftHistory()),
-                    () -> engine.draft(neutral, neutral, new SeriesDraftHistory()));
+                    () -> engine.draftDeterministicBest(neutral, neutral, new SeriesDraftHistory()),
+                    () -> engine.draftDeterministicBest(neutral, neutral, new SeriesDraftHistory()));
             for (var future : executor.invokeAll(same)) {
                 assertThat(AutoDraftObservationHarnessV1.productionEquivalent(
                         expectedSame, future.get())).isTrue();
             }
             List<Callable<FinalDraftResult>> different = List.of(
-                    () -> engine.draft(neutral, neutral, new SeriesDraftHistory()),
-                    () -> engine.draft(fitted, neutral, new SeriesDraftHistory()));
+                    () -> engine.draftDeterministicBest(neutral, neutral, new SeriesDraftHistory()),
+                    () -> engine.draftDeterministicBest(fitted, neutral, new SeriesDraftHistory()));
             List<java.util.concurrent.Future<FinalDraftResult>> results =
                     executor.invokeAll(different);
             assertThat(AutoDraftObservationHarnessV1.productionEquivalent(

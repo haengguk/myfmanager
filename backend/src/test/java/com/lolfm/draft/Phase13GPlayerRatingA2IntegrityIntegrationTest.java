@@ -27,7 +27,7 @@ class Phase13GPlayerRatingA2IntegrityIntegrationTest {
         assertThat(resources.meta().metaVersion()).isEqualTo("draft-meta-full-173-216-role-2026-08-18-v3");
         assertThat(resources.meta().actualLegalRoleKeyHash()).isEqualTo(LEGAL_ROLE_HASH);
         assertThat(resources.champions().composition().profileHash()).isEqualTo(COMPOSITION_HASH);
-        assertThat(new DraftEngine(resources).draft(
+        assertThat(new DraftEngine(resources).draftDeterministicBest(
                 new DraftTeamContext(Map.of()), new DraftTeamContext(Map.of()), new SeriesDraftHistory())
                 .decisions()).hasSize(20);
     }

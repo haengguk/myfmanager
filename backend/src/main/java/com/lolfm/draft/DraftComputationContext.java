@@ -13,7 +13,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 
-/** Mutable memoization state owned by exactly one {@link DraftEngine#draft} call. */
+/** Mutable memoization state owned by exactly one DraftEngine execution. */
 final class DraftComputationContext {
     private static final Comparator<ChampionId> CHAMPION_ORDER =
             Comparator.comparing(ChampionId::value);

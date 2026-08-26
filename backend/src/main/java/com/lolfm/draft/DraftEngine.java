@@ -13,6 +13,11 @@ import java.util.List;
 import java.util.Map;
 
 public final class DraftEngine {
+    public static final String DETERMINISTIC_BEST_REFERENCE_POLICY_ID =
+            "DETERMINISTIC_BEST_REFERENCE_V1";
+    public static final String DETERMINISTIC_BEST_REFERENCE_POLICY_HASH =
+            "f4c1cc238fa2da61e1f4202bf5a3e8e1d6401be453f00bfef8365ae543087899";
+
     private final DraftResourceSet resources;
     private final DraftRuleSet rules;
     private final PreDraftPlanner planner;
@@ -20,6 +25,7 @@ public final class DraftEngine {
     private final PickEvaluator pickEvaluator;
     private final BanEvaluator banEvaluator;
     private final ShallowDraftSearch search;
+    private final AutoDraftSelector selector;
     private final FinalRoleAssignmentResolver finalRoles;
 
     public DraftEngine(DraftResourceSet resources) {
@@ -41,10 +47,30 @@ public final class DraftEngine {
         DraftCandidateGenerator generator = new DraftCandidateGenerator(resources.champions().catalog(), resources.meta(),
                 assignments, composition, availability, policy);
         search = new ShallowDraftSearch(planner, generator, pickEvaluator, banEvaluator, policy);
+        selector = new AutoDraftSelector(AutoDraftSelectionPolicy.production());
         finalRoles = new FinalRoleAssignmentResolver(assignments, matchup, composition);
     }
 
-    public FinalDraftResult draft(DraftTeamContext blue, DraftTeamContext red, SeriesDraftHistory history) {
+    /** Authoritative seeded production boundary. */
+    public FinalDraftResult draft(DraftTeamContext blue, DraftTeamContext red,
+                                  SeriesDraftHistory history,
+                                  DraftSelectionContext selectionContext) {
+        if (selectionContext.seriesGameNumber() != history.committedGameCount() + 1) {
+            throw new IllegalArgumentException("Draft selection series game number mismatch");
+        }
+        return executeDraft(blue, red, history, selectionContext);
+    }
+
+    /** Explicit unseeded reference used only to prove that scoring/search did not change. */
+    public FinalDraftResult draftDeterministicBest(DraftTeamContext blue,
+                                                   DraftTeamContext red,
+                                                   SeriesDraftHistory history) {
+        return executeDraft(blue, red, history, null);
+    }
+
+    private FinalDraftResult executeDraft(DraftTeamContext blue, DraftTeamContext red,
+                                          SeriesDraftHistory history,
+                                          DraftSelectionContext selectionContext) {
         DraftComputationContext context = DraftComputationContext.cached();
         DraftState state = DraftState.fresh(rules, history);
         DraftPlanPortfolio blueInitial = planner.plan(
@@ -52,9 +78,22 @@ public final class DraftEngine {
         DraftPlanPortfolio redInitial = planner.plan(
                 red, blue, TeamSide.RED, state.fearlessExclusions(), context);
         ArrayList<DraftDecision> decisions = new ArrayList<>();
+        ArrayList<DraftSelectionTrace> selectionTraces = new ArrayList<>();
         while (!state.complete()) {
             DraftTurn turn = state.currentTurn();
-            ShallowDraftSearch.SearchChoice choice = search.choose(state, blue, red, context);
+            ShallowDraftSearch.SearchResult evaluated = search.evaluate(
+                    state, blue, red, context);
+            DraftSearchCandidate selected;
+            if (selectionContext == null) {
+                selected = evaluated.rankedCandidates().getFirst();
+            } else {
+                AutoDraftSelector.Selection selection = selector.select(
+                        state, evaluated, selectionContext);
+                selected = selection.selectedCandidate();
+                selectionTraces.add(selection.trace());
+            }
+            ShallowDraftSearch.SearchChoice choice =
+                    ShallowDraftSearch.SearchChoice.fromSelection(evaluated, selected);
             decisions.add(new DraftDecision(turn.number(), turn.side(), turn.actionType(), choice.championId(),
                     choice.immediateScore(), choice.continuationScore(), choice.finalSearchScore(),
                     choice.componentBreakdown(), choice.portfolio().preferred().archetype(),
@@ -70,9 +109,16 @@ public final class DraftEngine {
                 blue, red, TeamSide.BLUE, state, context);
         DraftPlanPortfolio redFinal = planner.replan(
                 red, blue, TeamSide.RED, state, context);
+        String selectionPolicyId = selectionContext == null
+                ? DETERMINISTIC_BEST_REFERENCE_POLICY_ID
+                : AutoDraftSelectionPolicy.production().policyId();
+        String selectionPolicyHash = selectionContext == null
+                ? DETERMINISTIC_BEST_REFERENCE_POLICY_HASH
+                : AutoDraftSelectionPolicy.production().policyHash();
         return new FinalDraftResult(rules, state.blueBans(), state.redBans(), state.bluePicks(), state.redPicks(), decisions,
                 blueRoles.positions(), redRoles.positions(), matchAssignments, blueInitial, redInitial, blueFinal, redFinal,
-                state.fearlessExclusions(), resources.meta().metaVersion(), resources.meta().requiredLegalRoleKeyHash(),
+                state.fearlessExclusions(), selectionPolicyId, selectionPolicyHash,
+                selectionTraces, resources.meta().metaVersion(), resources.meta().requiredLegalRoleKeyHash(),
                 resources.meta().actualLegalRoleKeyHash());
     }
 

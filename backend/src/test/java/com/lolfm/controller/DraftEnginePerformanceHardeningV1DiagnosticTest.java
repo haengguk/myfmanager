@@ -158,7 +158,7 @@ class DraftEnginePerformanceHardeningV1DiagnosticTest {
     private void warmUpOnce(DraftEngine production) {
         AutoDraftScalabilityScheduleV1.Fixture fixture =
                 AutoDraftScalabilityScheduleV1.FIXTURES.getFirst();
-        production.draft(DraftTeamContext.from(teams.assemble(fixture.blueTeamCode())),
+        production.draftDeterministicBest(DraftTeamContext.from(teams.assemble(fixture.blueTeamCode())),
                 DraftTeamContext.from(teams.assemble(fixture.redTeamCode())),
                 new SeriesDraftHistory());
     }

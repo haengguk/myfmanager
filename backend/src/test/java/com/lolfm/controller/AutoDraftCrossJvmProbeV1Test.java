@@ -41,7 +41,7 @@ class AutoDraftCrossJvmProbeV1Test {
         Team blue = teams.assemble("GEN");
         Team red = teams.assemble("T1");
         DraftEngine drafts = field(orchestrator, "drafts", DraftEngine.class);
-        FinalDraftResult result = drafts.draft(DraftTeamContext.from(blue),
+        FinalDraftResult result = drafts.draftDeterministicBest(DraftTeamContext.from(blue),
                 DraftTeamContext.from(red), new SeriesDraftHistory());
         MatchEngineV1Input input = inputs.fromRealDraft(
                 "GEN", blue, "T1", red, 73L, 1, Set.of(), result);

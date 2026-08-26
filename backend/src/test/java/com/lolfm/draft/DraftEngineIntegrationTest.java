@@ -23,8 +23,8 @@ class DraftEngineIntegrationTest {
     @Test
     void fullDraftIsLegalExplainedAndExactlyDeterministic() {
         SeriesDraftHistory history = new SeriesDraftHistory();
-        FinalDraftResult first = engine.draft(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, history);
-        FinalDraftResult replay = engine.draft(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, history);
+        FinalDraftResult first = engine.draftDeterministicBest(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, history);
+        FinalDraftResult replay = engine.draftDeterministicBest(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, history);
         assertThat(first.decisions()).hasSize(20).isEqualTo(replay.decisions());
         assertThat(first.blueBans()).hasSize(5); assertThat(first.redBans()).hasSize(5);
         assertThat(first.bluePicks()).hasSize(5); assertThat(first.redPicks()).hasSize(5);
@@ -46,7 +46,7 @@ class DraftEngineIntegrationTest {
     @Test
     void hardFearlessConsumesOnlyCompletedPicksOnceAndFreshSeriesDoesNotLeak() {
         SeriesDraftHistory series = new SeriesDraftHistory();
-        FinalDraftResult gameOne = engine.draft(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, series);
+        FinalDraftResult gameOne = engine.draftDeterministicBest(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, series);
         series.commitCompleted(gameOne);
         series.commitCompleted(gameOne);
         assertThat(series.committedGameCount()).isOne();
@@ -54,7 +54,7 @@ class DraftEngineIntegrationTest {
                 java.util.stream.Stream.concat(gameOne.bluePicks().stream(), gameOne.redPicks().stream()).toList());
         assertThat(series.consumedPicks()).doesNotContainAnyElementsOf(gameOne.blueBans());
         assertThat(series.consumedPicks()).doesNotContainAnyElementsOf(gameOne.redBans());
-        FinalDraftResult gameTwo = engine.draft(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, series);
+        FinalDraftResult gameTwo = engine.draftDeterministicBest(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, series);
         assertThat(gameTwo.hardFearlessExclusions()).containsAll(series.consumedPicks());
         assertThat(gameTwo.bluePicks()).doesNotContainAnyElementsOf(series.consumedPicks());
         assertThat(gameTwo.redPicks()).doesNotContainAnyElementsOf(series.consumedPicks());
@@ -63,7 +63,7 @@ class DraftEngineIntegrationTest {
 
     @Test
     void resultingAssignmentsRunThroughTheExistingMatchSimulatorDeterministically() {
-        FinalDraftResult result = engine.draft(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, new SeriesDraftHistory());
+        FinalDraftResult result = engine.draftDeterministicBest(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, new SeriesDraftHistory());
         DummyDataFactory teams = new DummyDataFactory();
         MatchSimulator simulator = new MatchSimulator(new TeamfightResolver(), new EndGameEvaluator(), new SnapshotFactory(),
                 new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(), new StructureResolver(), new PushResolver());
@@ -80,13 +80,13 @@ class DraftEngineIntegrationTest {
     void fullDraftLatencyMeasurementDoesNotMutateSeriesBehavior() {
         SeriesDraftHistory history = new SeriesDraftHistory();
         long gameOneStart = System.nanoTime();
-        FinalDraftResult gameOne = engine.draft(
+        FinalDraftResult gameOne = engine.draftDeterministicBest(
                 DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, history);
         long gameOneMillis = (System.nanoTime() - gameOneStart) / 1_000_000;
         assertThat(history.committedGameCount()).isZero();
         history.commitCompleted(gameOne);
         long laterStart = System.nanoTime();
-        FinalDraftResult later = engine.draft(
+        FinalDraftResult later = engine.draftDeterministicBest(
                 DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, history);
         long laterMillis = (System.nanoTime() - laterStart) / 1_000_000;
         assertThat(history.committedGameCount()).isOne();

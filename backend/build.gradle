@@ -1333,3 +1333,63 @@ tasks.register("runCompositionV9ApplicationCausality") {
     dependsOn("finalizeCompositionV9ApplicationCausality")
 }
 // COMPOSITION_V9_APPLICATION_CAUSALITY_BUILD_CONTRACT_END
+
+// AUTO_DRAFT_VARIETY_V1_BUILD_CONTRACT_START
+["A", "B"].each { String suffix ->
+    tasks.register("runAutoDraftVarietyV1CrossJvmProbe${suffix}", Test) {
+        group = "verification"
+        description = "Writes Auto Draft Variety V1 fresh-JVM probe ${suffix}."
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = sourceSets.test.runtimeClasspath
+        useJUnitPlatform { includeTags "auto-draft-variety-v1-cross-jvm" }
+        maxHeapSize = "2g"
+        maxParallelForks = 1
+        failFast = true
+        outputs.upToDateWhen { false }
+        systemProperty "autoDraftVarietyProbeOutput", layout.buildDirectory.file(
+                "reports/auto-draft-variety-v1-probes/probe-${suffix.toLowerCase()}.json")
+                .get().asFile.absolutePath
+        reports.html.outputLocation = layout.buildDirectory.dir(
+                "reports/tests/autoDraftVarietyV1CrossJvm${suffix}")
+        reports.junitXml.outputLocation = layout.buildDirectory.dir(
+                "test-results/autoDraftVarietyV1CrossJvm${suffix}")
+    }
+}
+
+tasks.register("verifyAutoDraftVarietyV1CrossJvm") {
+    group = "verification"
+    description = "Byte-verifies seeded Draft decisions and selection traces across fresh JVMs."
+    dependsOn("runAutoDraftVarietyV1CrossJvmProbeA",
+            "runAutoDraftVarietyV1CrossJvmProbeB")
+    doLast {
+        def probes = layout.buildDirectory.dir(
+                "reports/auto-draft-variety-v1-probes").get().asFile.toPath()
+        if (Files.mismatch(probes.resolve("probe-a.json"),
+                probes.resolve("probe-b.json")) != -1L) {
+            throw new GradleException("Auto Draft Variety V1 fresh-JVM probe mismatch")
+        }
+    }
+}
+
+tasks.register("runAutoDraftVarietyV1Diagnostic", Test) {
+    group = "verification"
+    description = "Runs the fixed 80-Draft bounded variety observation without Match Simulator."
+    dependsOn("verifyAutoDraftVarietyV1CrossJvm")
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags "auto-draft-variety-v1" }
+    maxHeapSize = "3g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    systemProperty "autoDraftVarietyBackendRoot", projectDir.absolutePath
+    systemProperty "autoDraftVarietyOutput", layout.buildDirectory.dir(
+            "reports/auto-draft-variety-v1").get().asFile.absolutePath
+    systemProperty "autoDraftVarietyProbeDirectory", layout.buildDirectory.dir(
+            "reports/auto-draft-variety-v1-probes").get().asFile.absolutePath
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/autoDraftVarietyV1")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/autoDraftVarietyV1")
+}
+// AUTO_DRAFT_VARIETY_V1_BUILD_CONTRACT_END

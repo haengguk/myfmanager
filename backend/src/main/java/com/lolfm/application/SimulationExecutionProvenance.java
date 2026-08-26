@@ -27,6 +27,9 @@ public record SimulationExecutionProvenance(
         String draftRuleSetIdentity,
         String draftRuleSetHash,
         String draftScoringPolicyHash,
+        String draftSelectionPolicyId,
+        String draftSelectionPolicyHash,
+        String draftSelectionTraceHash,
         String draftDecisionHash,
         String finalDraftHash,
         String finalAssignmentHash,
@@ -36,7 +39,7 @@ public record SimulationExecutionProvenance(
         String timelineHashAlgorithm,
         SimulationRandomFingerprint randomFingerprint
 ) {
-    public static final String SCHEMA = "SIMULATION_EXECUTION_PROVENANCE_V2";
+    public static final String SCHEMA = "SIMULATION_EXECUTION_PROVENANCE_V3";
 
     public SimulationExecutionProvenance {
         schemaVersion = required(schemaVersion, "schemaVersion");
@@ -71,6 +74,12 @@ public record SimulationExecutionProvenance(
         draftRuleSetHash = requiredHash(draftRuleSetHash, "draftRuleSetHash");
         draftScoringPolicyHash = requiredHash(
                 draftScoringPolicyHash, "draftScoringPolicyHash");
+        draftSelectionPolicyId = required(
+                draftSelectionPolicyId, "draftSelectionPolicyId");
+        draftSelectionPolicyHash = requiredHash(
+                draftSelectionPolicyHash, "draftSelectionPolicyHash");
+        draftSelectionTraceHash = requiredHash(
+                draftSelectionTraceHash, "draftSelectionTraceHash");
         draftDecisionHash = requiredHash(draftDecisionHash, "draftDecisionHash");
         finalDraftHash = requiredHash(finalDraftHash, "finalDraftHash");
         finalAssignmentHash = requiredHash(finalAssignmentHash, "finalAssignmentHash");

@@ -11,7 +11,8 @@ export interface RealMatchSimulateRequestDto {
 }
 
 export interface RealMatchProductionPolicyDto {
-  policyId: string; policyHash: string; runtimeProfileId: string; configurationHash: string;
+  policyId: string; policyHash: string; draftSelectionPolicyId: string; draftSelectionPolicyHash: string;
+  runtimeProfileId: string; configurationHash: string;
   activeGameplayRulesVersion: string; engineImplementationVersion: string; matchupMode: string;
   compositionMode: string; jungleClearContribution: string; economyCandidateActivation: boolean;
   tempoCandidateActivation: boolean; diagnosticsExcludedFromGameplayIdentity: boolean;
@@ -37,10 +38,23 @@ export interface RealMatchTeamPresentationDto {
   teamSide: TeamSide; teamCode: string; displayName: string; lineup: readonly RealMatchPlayerPresentationDto[];
 }
 export interface RealMatchDraftDecisionDto { turn: number; teamSide: TeamSide; actionType: DraftActionType; championId: string; }
+export interface RealMatchDraftSelectionPoolEntryDto {
+  championId: string; canonicalRank: number; rawFinalSearchScore: number; canonicalFinalScore: number;
+  canonicalScoreLoss: number; rankWeight: number;
+}
+export interface RealMatchDraftSelectionTraceDto {
+  policyId: string; policyMode: string; policyHash: string; selectionContextHash: string; turn: number;
+  teamSide: TeamSide; actionType: DraftActionType; bestCandidateId: string; bestCanonicalScore: number;
+  eligiblePool: readonly RealMatchDraftSelectionPoolEntryDto[]; selectedChampionId: string;
+  selectedRank: number; selectedCanonicalScoreLoss: number; drawBucket: number | null;
+  totalEligibleWeight: number; reason: 'ONLY_ONE_WITHIN_WINDOW' | 'SEEDED_WEIGHTED_SELECTION';
+}
 export interface RealMatchFinalAssignmentDto { playerId: string; teamSide: TeamSide; position: Position; championId: string; }
 export interface RealMatchDraftDto {
   schemaVersion: 'REAL_MATCH_DRAFT_V1'; seriesGameNumber: number; draftRuleSetIdentity: string;
-  draftRuleSetHash: string; draftScoringPolicyHash: string; hardFearlessExclusionsBeforeDraft: readonly string[];
+  draftRuleSetHash: string; draftScoringPolicyHash: string; draftSelectionPolicyId: string;
+  draftSelectionPolicyHash: string; draftSelectionTraceHash: string;
+  selectionTraces: readonly RealMatchDraftSelectionTraceDto[]; hardFearlessExclusionsBeforeDraft: readonly string[];
   decisions: readonly RealMatchDraftDecisionDto[]; blueBans: readonly string[]; bluePicks: readonly string[];
   redBans: readonly string[]; redPicks: readonly string[]; finalAssignments: readonly RealMatchFinalAssignmentDto[];
   finalDraftHash: string; finalAssignmentHash: string;
@@ -101,6 +115,7 @@ export interface RealMatchTimelineDto {
 export interface RealMatchIntegrityDto {
   matchEngineContract: string; policyId: string; policyHash: string; runtimeProfileId: string;
   configurationHash: string; engineImplementationVersion: string; activeGameplayRulesVersion: string;
+  draftSelectionPolicyId: string; draftSelectionPolicyHash: string; draftSelectionTraceHash: string;
   inputHash: string; inputHashAlgorithm: string; resourceProvenanceHash: string; replayProvenanceHash: string;
   replayProvenanceHashAlgorithm: string; simulatorTimelineHash: string; simulatorTimelineHashAlgorithm: string;
   structuredTimelineHash: string; structuredTimelineHashAlgorithm: string; outputHash: string;

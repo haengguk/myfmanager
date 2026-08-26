@@ -2,6 +2,7 @@ package com.lolfm.application;
 
 import com.lolfm.champion.ChampionMatchupMode;
 import com.lolfm.composition.TeamCompositionGameplayMode;
+import com.lolfm.draft.AutoDraftSelectionPolicy;
 import com.lolfm.simulator.JungleClearContribution;
 import com.lolfm.simulator.ResolvedSimulationRuntimeProfile;
 import com.lolfm.simulator.SimulationGameplayConfiguration;
@@ -31,6 +32,10 @@ public final class MatchEngineV1Policy {
             "b22cd42b20e7ebc4faba8b2089db21abadaca90aa8294ead54155ee5a9377cd0";
     public static final String DRAFT_SCORING_POLICY_SHA256 =
             "4bc9f8b1db17ff2803fce80b2616e2fd0afffa278749a80b91231e342caeec18";
+    public static final String DRAFT_SELECTION_POLICY_ID =
+            AutoDraftSelectionPolicy.POLICY_ID;
+    public static final String DRAFT_SELECTION_POLICY_SHA256 =
+            AutoDraftSelectionPolicy.APPROVED_POLICY_SHA256;
     public static final String POLICY_HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_POLICY_LINES_TRAILING_NEWLINE_V1";
     public static final String LOW_LEVEL_DEFAULT_IDENTITY =
@@ -55,6 +60,9 @@ public final class MatchEngineV1Policy {
     public static void requireAuthoritative(Requirement requirement) {
         Objects.requireNonNull(requirement, "productionPolicyRequirement");
         if (!requirement.policyId().equals(POLICY_ID)
+                || !requirement.draftSelectionPolicyId().equals(DRAFT_SELECTION_POLICY_ID)
+                || !requirement.draftSelectionPolicyHash().equals(
+                DRAFT_SELECTION_POLICY_SHA256)
                 || requirement.runtimeProfileId() != SimulationRuntimeProfileId.BASELINE_V1
                 || !requirement.configurationHash().equals(PROFILE.configurationHash())
                 || requirement.economyCandidateActivation()
@@ -64,7 +72,8 @@ public final class MatchEngineV1Policy {
     }
 
     public static Requirement requirement() {
-        return new Requirement(POLICY_ID, SimulationRuntimeProfileId.BASELINE_V1,
+        return new Requirement(POLICY_ID, DRAFT_SELECTION_POLICY_ID,
+                DRAFT_SELECTION_POLICY_SHA256, SimulationRuntimeProfileId.BASELINE_V1,
                 PROFILE.configurationHash(), false, false);
     }
 
@@ -92,6 +101,8 @@ public final class MatchEngineV1Policy {
         String canonical = "policySchema=" + POLICY_SCHEMA + '\n'
                 + "policyId=" + POLICY_ID + '\n'
                 + "contractSchema=" + CONTRACT_SCHEMA + '\n'
+                + "draftSelectionPolicyId=" + DRAFT_SELECTION_POLICY_ID + '\n'
+                + "draftSelectionPolicyHash=" + DRAFT_SELECTION_POLICY_SHA256 + '\n'
                 + "runtimeProfileId=" + PROFILE.profileId().name() + '\n'
                 + "configurationHash=" + PROFILE.configurationHash() + '\n'
                 + "activeGameplayRulesVersion=" + PROFILE.activeGameplayRulesVersion() + '\n'
@@ -105,7 +116,9 @@ public final class MatchEngineV1Policy {
                 + "tempoCandidateActivation=false\n"
                 + "diagnosticsExcludedFromGameplayIdentity=true\n";
         return new Snapshot(
-                POLICY_SCHEMA, POLICY_ID, CONTRACT_SCHEMA, PROFILE.profileId(),
+                POLICY_SCHEMA, POLICY_ID, CONTRACT_SCHEMA,
+                DRAFT_SELECTION_POLICY_ID, DRAFT_SELECTION_POLICY_SHA256,
+                PROFILE.profileId(),
                 PROFILE.configurationHash(), SimulationRuntimeProfiles.CONFIGURATION_HASH_ALGORITHM,
                 configuration, PROFILE.activeGameplayRulesVersion(),
                 SimulationProvenanceService.ENGINE_IMPLEMENTATION_VERSION,
@@ -124,6 +137,8 @@ public final class MatchEngineV1Policy {
 
     public record Requirement(
             String policyId,
+            String draftSelectionPolicyId,
+            String draftSelectionPolicyHash,
             SimulationRuntimeProfileId runtimeProfileId,
             String configurationHash,
             boolean economyCandidateActivation,
@@ -131,6 +146,10 @@ public final class MatchEngineV1Policy {
     ) {
         public Requirement {
             policyId = required(policyId, "policyId");
+            draftSelectionPolicyId = required(
+                    draftSelectionPolicyId, "draftSelectionPolicyId");
+            draftSelectionPolicyHash = requiredHash(
+                    draftSelectionPolicyHash, "draftSelectionPolicyHash");
             Objects.requireNonNull(runtimeProfileId, "runtimeProfileId");
             configurationHash = requiredHash(configurationHash, "configurationHash");
         }
@@ -140,6 +159,8 @@ public final class MatchEngineV1Policy {
             String schemaVersion,
             String policyId,
             String contractSchemaVersion,
+            String draftSelectionPolicyId,
+            String draftSelectionPolicyHash,
             SimulationRuntimeProfileId retainedRuntimeProfileId,
             String configurationHash,
             String configurationHashAlgorithm,
@@ -158,6 +179,10 @@ public final class MatchEngineV1Policy {
             schemaVersion = required(schemaVersion, "schemaVersion");
             policyId = required(policyId, "policyId");
             contractSchemaVersion = required(contractSchemaVersion, "contractSchemaVersion");
+            draftSelectionPolicyId = required(
+                    draftSelectionPolicyId, "draftSelectionPolicyId");
+            draftSelectionPolicyHash = requiredHash(
+                    draftSelectionPolicyHash, "draftSelectionPolicyHash");
             Objects.requireNonNull(retainedRuntimeProfileId, "retainedRuntimeProfileId");
             configurationHash = requiredHash(configurationHash, "configurationHash");
             configurationHashAlgorithm = required(

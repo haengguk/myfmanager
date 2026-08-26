@@ -29,7 +29,7 @@ class AutoDraftObservationHarnessV1Test {
 
     @Test
     void observedDecompositionIsExactlyEqualToProductionDraft() {
-        FinalDraftResult production = engine.draft(blue, red, new SeriesDraftHistory());
+        FinalDraftResult production = engine.draftDeterministicBest(blue, red, new SeriesDraftHistory());
         AutoDraftObservationHarnessV1.Observation observed = observer.observe(
                 blue, red, new SeriesDraftHistory());
 

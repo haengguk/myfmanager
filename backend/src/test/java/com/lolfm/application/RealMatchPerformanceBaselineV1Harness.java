@@ -110,7 +110,9 @@ public final class RealMatchPerformanceBaselineV1Harness {
         DraftTeamContext redContext = DraftTeamContext.from(redTeam);
         Set<ChampionId> exclusionsBeforeDraft = history.consumedPicks();
         int gameNumber = history.committedGameCount() + 1;
-        FinalDraftResult draftResult = drafts.draft(blueContext, redContext, history);
+        FinalDraftResult draftResult = drafts.draft(blueContext, redContext, history,
+                RealDraftSelectionContextFactory.create(matchSeed, blueTeamCode, blueTeam,
+                        redTeamCode, redTeam, gameNumber, exclusionsBeforeDraft));
         long preparationNanos = elapsed(preparationStart, captureTimings);
 
         long preflightStart = tick(captureTimings);

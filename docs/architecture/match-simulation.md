@@ -14,6 +14,10 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 별도의 backend application entry point인 `RealDraftMatchOrchestrator`는 explicit LCK team code 두 개, caller-owned `SeriesDraftHistory`, match seed를 받는다. 이 path는 `LckTeamAssembler`가 만든 실제 Team으로 Draft를 실행하고 `FinalDraftResult.matchChampionAssignments()`를 그대로 같은 Team과 함께 simulator에 전달한다. `GET /api/v1/real-matches/options`와 `POST /api/v1/real-matches/simulate`가 이 경로를 additive하게 노출한다. 기존 `MatchController`나 `DummyDataFactory`를 거치지 않으며 세부 HTTP 계약은 [Real Match API V1](real-match-api-v1.md)에 있다.
 
+Real Draft의 `AUTO_DRAFT_VARIETY_V1`은 match seed와 structured Draft context를 SHA-256으로 결속해 최고점 대비 2.0 이내 상위 3개 후보에서 deterministic weighted selection을 수행한다. 이 선택은 `Random` 객체를 사용하지 않으며 아래 simulator gameplay stream을 소비하지 않는다. 따라서 Draft selection trace와 simulator `randomFingerprint`는 서로 다른 provenance 축이다. 기존 Draft scoring/search 의미와 `BASELINE_V1` Matchup/Composition runtime OFF도 그대로다.
+
+Draft scoring/search 자체는 Random을 사용하지 않는다. 선수별 champion proficiency는 Draft evaluator 입력이지만 general player ratings는 아직 Draft scoring 입력이 아니며, final assignment 이후 Match Engine의 ability realization에 사용된다. Draft 단계의 Matchup/Composition 평가는 match runtime contribution 활성화와 별개다. Fresh Matchup/Composition requalification은 별도 milestone에서 비중첩 seed와 policy contract로 수행해야 한다.
+
 동결된 application boundary인 `MatchEngineV1`은 완성된 roster/final Draft/seed를 immutable input으로 받아 immutable summary/timeline/provenance를 반환한다. `RealDraftMatchOrchestrator.orchestrateV1`이 이 경계에 additive하게 연결되며, 성공한 output까지 검증된 뒤에만 series history를 commit한다. Real Match API service는 fresh-history 단판 overload만 호출하고 policy/provenance/output hash를 검증한 뒤 immutable transport DTO를 반환한다. 정책, 입출력, hash와 호환성의 전체 계약은 [Match Engine V1 Contract](match-engine-v1.md)에 있다.
 
 기존 overload는 `BASELINE_V1`을 명시적으로 resolve한다. Additive overload는 임의 boolean 묶음이 아니라 `SimulationRuntimeProfileId`만 받는다. `ConfiguredMatchSimulatorFactory`의 public boundary도 profile ID와 별도 `SimulationInstrumentation`만 받아 closed registry를 내부에서 resolve한다. Caller-fabricated `ResolvedSimulationRuntimeProfile`은 실행/provenance 경계에서 허용하지 않는다.
@@ -50,11 +54,11 @@ V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal ch
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
 - `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`다. V8은 authoritative player rating/proficiency 실행을 추가했고, V9은 명시적 구조물 target, 전체 구조물 HP, match-scoped 지속 공성/웨이브, 구조화된 중복 방어와 넥서스 포탑 재생성을 통합했다.
 - `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2`다.
-- `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring policy, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다. Match Engine V1은 이 legacy identity와 전체 `MatchEngineV1Input.inputHash`를 별도 V1 replay binding으로 다시 묶어 명시적 rating/proficiency snapshot도 재현 입력에 포함한다.
+- `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring/selection policy, selection trace hash, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다. Match Engine V1은 이 legacy identity와 전체 `MatchEngineV1Input.inputHash`를 별도 V1 replay binding으로 다시 묶어 명시적 rating/proficiency snapshot도 재현 입력에 포함한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
 - `randomFingerprint`: match의 seeded `Random.next(bits)` draw count와 resolver context/value의 ordered SHA-256을 기록한다. Gameplay input이 아닌 observational output이므로 configuration/replay hash에는 넣지 않는다.
 
-기존 `FinalDraftResult.draftIdentity()`는 series commit idempotency용 ordered decision identity로 유지한다. Provenance의 final draft/assignment hash가 그보다 넓은 replay 범위를 additive하게 담당한다.
+기존 `FinalDraftResult.draftIdentity()`는 series commit idempotency용 ordered decision identity로 유지한다. Draft selection policy/trace hash와 provenance의 final draft/assignment hash가 그보다 넓은 replay 범위를 additive하게 담당한다.
 
 `MatchSimulator.simulateObserved(...)`는 기존 simulator flow에 같은 seeded `Random`을 위임하는 observer를 전달하고 timeline과 Random fingerprint를 함께 반환한다. Observer는 스스로 draw를 요청하지 않고 trace capture 여부도 gameplay sequence를 바꾸지 않는다. Plain `simulate(...)`와 observed path의 complete timeline parity, diagnostics ON/OFF의 timeline+fingerprint equality를 테스트한다.
 
@@ -298,7 +302,7 @@ Frontend는 snapshot을 현재 playback time 이하에서 선택하고 event를 
 - 명시적 seed는 같은 team, assignment, options에서 replay key다.
 - main gameplay `Random`은 한 번 생성되고 `MatchSimulator`의 고정 resolver 순서로 전달된다.
 - explicit player rating의 match realization은 match seed에서 구조적으로 파생되고 skill enum declaration order로 draw를 배정한다.
-- real orchestration replay는 동일 team codes, fresh/equivalent series history, authored resources, match seed에서 Draft decisions, final roles, assignment, events, snapshots, winner와 duration이 모두 같다.
+- real orchestration replay는 동일 team codes, fresh/equivalent series history, authored resources, match seed에서 Draft selection traces/decisions, final roles, assignment, events, snapshots, winner와 duration이 모두 같다.
 - ineligible action, duplicate evaluation, 실행되지 않는 branch, diagnostics는 불필요한 Random을 소비하면 안 된다.
 - API/timeline에 노출되는 enum set은 immutable `EnumSet` declaration order로 canonicalize한다. Hash/summary/serialization은 `Set.copyOf`의 JVM별 iteration order에 의존하지 않는다.
 - Champion Power 참가자 map과 평균은 Blue/Red × TOP/JUNGLE/MID/ADC/SUPPORT의 명시적 `PlayerKey` 순서로 canonicalize한다. `Map.copyOf().values()` iteration order로 부동소수점 합산 순서를 결정하지 않는다.

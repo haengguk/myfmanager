@@ -488,6 +488,26 @@ sha256sum -c SHA256SUMS.txt
 
 Artifact status는 `REAL_MATCH_RUNTIME_HARDENED_AND_AUTO_DRAFT_SCALABILITY_AUDIT_CAPTURED`, manifest 7/7과 raw SHA-256 `751cb19ccf55b34cc0bf4a410a292ba66df4e84d566dd1e217b4a68712d3be8b`다. 이 report는 correctness input이나 production source of truth가 아니며, search/scoring/tuning/cache 변경 없이 다음 `DRAFT_ENGINE_PERFORMANCE_HARDENING_V1`의 기준선으로만 사용한다.
 
+### Auto Draft Variety V1
+
+Seeded selection의 빠른 correctness와 fresh-JVM 검증은 다음처럼 실행한다.
+
+```text
+gradlew.bat test --tests com.lolfm.draft.AutoDraftSelectorTest --console=plain --no-daemon
+gradlew.bat test --tests com.lolfm.draft.AutoDraftVarietyV1ProductionIntegrationTest --console=plain --no-daemon
+gradlew.bat verifyAutoDraftVarietyV1CrossJvm --console=plain --no-daemon
+```
+
+고정 population diagnostic은 default `test`에서 제외된다. LCK 10개 순환 fixture × 8 seeds, 총 80 production Draft와 fixture별 same-seed 10건만 실행하며 Match Simulator나 대규모 balance population은 실행하지 않는다.
+
+```text
+gradlew.bat runAutoDraftVarietyV1Diagnostic --console=plain --no-daemon
+cd backend/build/reports/auto-draft-variety-v1
+sha256sum -c SHA256SUMS.txt
+```
+
+공식 실행 status는 `AUTO_DRAFT_VARIETY_V1_ACCEPTED`이고 manifest raw SHA-256은 `772d1b5c55cb254cb3eb06149098e56730daca302fe0c04a88d13ed46afccd51`다. 10/10 fixture가 complete Draft identity와 final pick tuple variety gate를 통과했고 correctness error는 모두 0이다. Rank/loss 분포는 정책 reachability 관찰값이지 balance, 승률 또는 brittle unit-test oracle이 아니다. 전체 설계와 결과는 [Auto Draft Variety V1](auto-draft-variety-v1.md)에 있다.
+
 ### Draft Engine performance hardening V1
 
 빠른 계약/경계 검증과 fresh JVM 재현성은 다음처럼 실행한다.

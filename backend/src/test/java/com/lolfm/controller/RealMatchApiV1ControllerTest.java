@@ -160,6 +160,13 @@ class RealMatchApiV1ControllerTest {
         assertThat(first.path("draft").path("seriesGameNumber").asInt()).isEqualTo(1);
         assertThat(first.path("draft").path("hardFearlessExclusionsBeforeDraft")).isEmpty();
         assertThat(first.path("draft").path("decisions")).hasSize(20);
+        assertThat(first.path("draft").path("selectionTraces")).hasSize(20);
+        assertThat(first.path("draft").path("draftSelectionPolicyId").asText())
+                .isEqualTo(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID);
+        assertThat(first.path("draft").path("draftSelectionPolicyHash").asText())
+                .isEqualTo(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256);
+        assertThat(first.path("draft").path("draftSelectionTraceHash").asText())
+                .matches("[0-9a-f]{64}");
         assertThat(first.path("draft").path("finalAssignments")).hasSize(10);
         assertThat(first.path("result").path("players")).hasSize(10);
         assertThat(first.path("result").path("players").get(0)
@@ -173,6 +180,8 @@ class RealMatchApiV1ControllerTest {
         assertThat(first.path("timeline").path("snapshots")).isNotEmpty();
         assertThat(first.path("integrity").path("policyId").asText())
                 .isEqualTo(MatchEngineV1Policy.POLICY_ID);
+        assertThat(first.path("integrity").path("draftSelectionTraceHash"))
+                .isEqualTo(first.path("draft").path("draftSelectionTraceHash"));
         assertThat(first.path("integrity").path("runtimeProfileId").asText())
                 .isEqualTo("BASELINE_V1");
         assertThat(first.path("integrity").path("outputHash").asText())

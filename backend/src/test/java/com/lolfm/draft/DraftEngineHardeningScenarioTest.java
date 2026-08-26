@@ -23,7 +23,7 @@ class DraftEngineHardeningScenarioTest {
         Set<ChampionId> flexPool = Set.of(id("yasuo"), id("poppy"), id("varus"), id("taliyah"),
                 id("galio"), id("camille"), id("anivia"), id("cassiopeia"));
         DraftTeamContext flexTeam = boosted(flexPool);
-        FinalDraftResult result = engine.draft(flexTeam, DraftTestSupport.NEUTRAL, new SeriesDraftHistory());
+        FinalDraftResult result = engine.draftDeterministicBest(flexTeam, DraftTestSupport.NEUTRAL, new SeriesDraftHistory());
         assertLegal(result);
         Set<ChampionId> drafted = new HashSet<>(result.bluePicks());
         drafted.addAll(result.blueBans()); drafted.addAll(result.redBans());
@@ -34,7 +34,7 @@ class DraftEngineHardeningScenarioTest {
     void diveAntiDiveAndRealBanPlanPivotScenarioCompletesLegally() {
         Set<ChampionId> dive = Set.of(id("naafiri"), id("kaisa"), id("vi"), id("nocturne"));
         Set<ChampionId> antiDive = Set.of(id("poppy"), id("renata-glasc"), id("braum"), id("janna"));
-        FinalDraftResult result = engine.draft(boosted(antiDive), boosted(dive), new SeriesDraftHistory());
+        FinalDraftResult result = engine.draftDeterministicBest(boosted(antiDive), boosted(dive), new SeriesDraftHistory());
         assertLegal(result);
         Set<ChampionId> actions = new HashSet<>();
         actions.addAll(result.bluePicks()); actions.addAll(result.redPicks());

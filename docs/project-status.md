@@ -58,8 +58,10 @@ Identity/proficiency companion JSON은 exact SHA의 local runnable working tree�
 | Draft Meta role profiles | 216 |
 | Rule sequence | professional 5 bans + 5 picks per team, 20 turns |
 | Series rule | completed picks를 양 팀 공통 Hard Fearless exclusion으로 누적 |
-| Determinism | Random/time input 없음; stable lexical tie-break |
-| API/frontend exposure | 없음 |
+| Selection policy | `AUTO_DRAFT_VARIETY_V1` / `SEEDED_BOUNDED_RANK_WEIGHTED_V1` |
+| Selection policy SHA-256 | `b4645a9897329b6b0d50405a22ef788885a40ecede4b0fedd04e168211cf75cc` |
+| Determinism | match seed + canonical context SHA-256; simulator Random 소비 없음 |
+| API/frontend exposure | additive policy/trace/integrity fields와 LIVE strict validation |
 
 보정된 `RealProficiencyCandidateReachabilityGate`를 real `DraftTeamContext`와 실제 17+ proficiency 537개에 key당 3개의 bounded scenario로 실행했다. ChampionId presence와 target-position-fixed `ChampionRoleKey` completion을 별도 metric으로 기록한다.
 
@@ -89,6 +91,14 @@ Generated report:
 
 Report SHA-256: summary `4f3a13ca19cb00abc8da463173578b222fa55e389bb34d1a96abe6f2b10bfde3`, key CSV `936346bc52dfbfab430634d1fcb44781bb765c82f3558f60565e1c36541b1f61`.
 
+### Auto Draft Variety V1
+
+기존 production Draft가 정렬된 평가 결과의 1위만 선택해 seed가 달라도 같은 Draft를 만들던 경계를 교정했다. 후보 생성, Draft Meta, 선수 proficiency, 상대 threat, matchup/composition, flex/denial, future/role feasibility와 shallow search는 그대로 유지하고 최고점 대비 2.0 이내 상위 3개 후보에만 deterministic seeded selection을 적용한다. BAN weight는 55/30/15, PICK은 70/22/8이다.
+
+같은 팀/roster/series state/seed는 20-turn trace, final assignment, Match Engine input과 timeline이 exact다. 선택은 SHA-256 bucket이며 Match Simulator `Random`을 소비하지 않는다. `draftIdentity()`는 ordered decisions로 유지하고 selection policy/trace hash를 Match Engine V1 input, V3 execution/replay provenance와 Real Match API `draft`/`integrity`에 additive하게 결속했다. 현재 Match Engine V1 policy hash는 `b2975b2f3ced0b1864e7730abc7794dcbf4bafe7a031ef098811f62daa796d94`, representative LIVE GEN–T1 seed 73 output hash는 `40c8786ebece2d9abc71d95c304d39ef8f63f2b3277237d1aeaf0a3cf1d76c34`다.
+
+10 fixture × 8 seed의 80-Draft diagnostic은 complete identity variety 10/10, final pick tuple variety 10/10, correctness error 0으로 `AUTO_DRAFT_VARIETY_V1_ACCEPTED`를 기록했다. 1,600턴 선택은 rank 1/2/3이 1,126/358/116회였고 score-loss max는 BAN 1.983034, PICK 1.988794였다. Fresh-JVM A/B도 33,808 bytes와 SHA-256 `0291df0f03da4ff0067a620f0d4b8e1dc317577defd2a47166cfa9b579e097c2`로 exact다. 최종 backend regression은 214 suites / 2,182 tests / failures 0 / errors 0 / skipped 0, aggregate 815.104초, Gradle wall 13분 50초로 통과했고 frontend production build도 통과했다. 세부 정책·fixture별 분포와 한계는 [Auto Draft Variety V1](development/auto-draft-variety-v1.md)에 있다.
+
 ### Real Draft→Match backend application flow
 
 `RealDraftMatchOrchestrator`는 Spring application component로서 다음 deterministic 경계를 연결한다.
@@ -107,7 +117,7 @@ explicit LCK team codes
 
 Series overload는 호출자가 소유한 `SeriesDraftHistory`만 변경한다. Draft와 Match가 모두 성공한 뒤 양 팀 completed picks를 commit하고, 다음 game은 그 exact set을 exclusion으로 받는다. Static/global series state와 BO3/BO5 scheduling은 추가하지 않았다.
 
-GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history replay를 실행해 flex final role mapping, 실제 LCK `PlayerId`의 KILL/assist participant 보존, complete timeline replay를 검증했다. 이 backend component는 아직 REST/frontend에 노출되지 않는다.
+GEN 대 T1 representative flow는 game 1과 Hard Fearless game 2, fresh-history replay를 실행해 flex final role mapping, 실제 LCK `PlayerId`의 KILL/assist participant 보존, complete timeline replay를 검증했다. Fresh Game 1 경로는 Real Match API와 LIVE frontend에 노출되며, 지속되는 BO3/BO5 series lifecycle은 아직 노출하지 않는다.
 
 ### Explicit simulation runtime profiles and provenance
 
@@ -252,7 +262,7 @@ Freeze artifact는 `backend/build/reports/match-engine-v1-freeze/`에 있으며 
 
 요청마다 `RealDraftMatchOrchestrator.orchestrateV1` fresh-history overload를 호출해 단판 Game 1 Professional Draft와 Match Engine V1 current implementation을 실행한다. Service는 authoritative `BASELINE_V1` policy/configuration, 현재 요청의 BLUE/RED/seed, fresh Game 1/history, mandatory provenance와 실제 structured timeline output hash가 모두 exact일 때만 immutable `REAL_MATCH_RESPONSE_V1`을 반환한다. Typed preflight 실패만 422이며 엔진/오케스트레이션 내부 실패는 500과 구분된다. Team code는 display name과 별도 identity로 유지한다. 응답은 presentation roster, ordered Draft/final assignment, final result, 선수별 base/realized rating과 champion proficiency ability profile, 모든 structured event/snapshot과 policy/input/resource/replay/timeline/output hash 및 Random fingerprint를 포함한다. Error는 controller-scoped `REAL_MATCH_API_ERROR_V1`이며 legacy endpoint와 Champion API error 의미는 그대로다. 세부 계약은 [Real Match API V1](architecture/real-match-api-v1.md)에 있다.
 
-Current V9 fixed `GEN` 대 `T1`, seed `"73"`는 timing observer ON/OFF와 같은 요청 replay에서 Draft/result/structured timeline/Random fingerprint가 exact하고 두 요청 모두 Game 1이다. 결과는 T1(RED) 승리, `NEXUS_DESTROYED`, 1,750초(29분 10초), event 350개, snapshot 176개이며 output hash는 `86a8a09be83d20d6ac90a584888237762909f35f107de6ba3bffcafaf7a77b04`다. 현재 policy hash는 `fb6b37ba770af03c176ff00bdbe683afb1e2701473461ceef6cd808bf5e970e5`다.
+Current V9 fixed `GEN` 대 `T1`, seed `"73"`는 timing observer ON/OFF와 같은 요청 replay에서 Draft/result/structured timeline/Random fingerprint가 exact하고 두 요청 모두 Game 1이다. 결과는 T1(RED) 승리, `NEXUS_DESTROYED`, 1,750초(29분 10초), event 350개, snapshot 176개이며 output hash는 `40c8786ebece2d9abc71d95c304d39ef8f63f2b3277237d1aeaf0a3cf1d76c34`다. 현재 policy hash는 `b2975b2f3ced0b1864e7730abc7794dcbf4bafe7a031ef098811f62daa796d94`이며 `AUTO_DRAFT_VARIETY_V1` selection policy를 additive하게 결속한다.
 
 `backend/build/reports/real-match-api-v1/`의 기존 frontend handoff와 performance baseline은 V8 당시의 historical artifact다. V9의 gameplay/provenance/output hash oracle로 재사용하거나 자동 승격하지 않는다. Frontend 기본 공급자는 현재 LIVE API이며 reference artifact는 명시적 reference 모드에서만 사용한다. V9 공식 handoff를 새로 배포해야 할 때는 current source binding, semantic audit와 fresh-JVM candidate A/B byte equality를 다시 거쳐 별도 승격해야 한다. Historical Match Engine freeze와 V8 manifest/SHA는 과거 감사 기록으로 그대로 보존한다.
 

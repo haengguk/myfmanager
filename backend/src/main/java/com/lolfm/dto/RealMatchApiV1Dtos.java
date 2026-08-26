@@ -73,6 +73,8 @@ public final class RealMatchApiV1Dtos {
     public record ProductionPolicy(
             String policyId,
             String policyHash,
+            String draftSelectionPolicyId,
+            String draftSelectionPolicyHash,
             String runtimeProfileId,
             String configurationHash,
             String activeGameplayRulesVersion,
@@ -87,6 +89,10 @@ public final class RealMatchApiV1Dtos {
         public ProductionPolicy {
             policyId = required(policyId, "policyId");
             policyHash = required(policyHash, "policyHash");
+            draftSelectionPolicyId = required(
+                    draftSelectionPolicyId, "draftSelectionPolicyId");
+            draftSelectionPolicyHash = required(
+                    draftSelectionPolicyHash, "draftSelectionPolicyHash");
             runtimeProfileId = required(runtimeProfileId, "runtimeProfileId");
             configurationHash = required(configurationHash, "configurationHash");
             activeGameplayRulesVersion = required(
@@ -205,6 +211,10 @@ public final class RealMatchApiV1Dtos {
             String draftRuleSetIdentity,
             String draftRuleSetHash,
             String draftScoringPolicyHash,
+            String draftSelectionPolicyId,
+            String draftSelectionPolicyHash,
+            String draftSelectionTraceHash,
+            List<DraftSelectionTrace> selectionTraces,
             List<String> hardFearlessExclusionsBeforeDraft,
             List<DraftDecision> decisions,
             List<String> blueBans,
@@ -221,6 +231,13 @@ public final class RealMatchApiV1Dtos {
             draftRuleSetHash = required(draftRuleSetHash, "draftRuleSetHash");
             draftScoringPolicyHash = required(
                     draftScoringPolicyHash, "draftScoringPolicyHash");
+            draftSelectionPolicyId = required(
+                    draftSelectionPolicyId, "draftSelectionPolicyId");
+            draftSelectionPolicyHash = required(
+                    draftSelectionPolicyHash, "draftSelectionPolicyHash");
+            draftSelectionTraceHash = required(
+                    draftSelectionTraceHash, "draftSelectionTraceHash");
+            selectionTraces = List.copyOf(selectionTraces);
             hardFearlessExclusionsBeforeDraft = List.copyOf(
                     hardFearlessExclusionsBeforeDraft);
             decisions = List.copyOf(decisions);
@@ -243,6 +260,51 @@ public final class RealMatchApiV1Dtos {
         public DraftDecision {
             Objects.requireNonNull(teamSide, "teamSide");
             Objects.requireNonNull(actionType, "actionType");
+            championId = required(championId, "championId");
+        }
+    }
+
+    public record DraftSelectionTrace(
+            String policyId,
+            String policyMode,
+            String policyHash,
+            String selectionContextHash,
+            int turn,
+            TeamSide teamSide,
+            DraftActionType actionType,
+            String bestCandidateId,
+            long bestCanonicalScore,
+            List<DraftSelectionPoolEntry> eligiblePool,
+            String selectedChampionId,
+            int selectedRank,
+            long selectedCanonicalScoreLoss,
+            Integer drawBucket,
+            int totalEligibleWeight,
+            String reason
+    ) {
+        public DraftSelectionTrace {
+            policyId = required(policyId, "policyId");
+            policyMode = required(policyMode, "policyMode");
+            policyHash = required(policyHash, "policyHash");
+            selectionContextHash = required(selectionContextHash, "selectionContextHash");
+            Objects.requireNonNull(teamSide, "teamSide");
+            Objects.requireNonNull(actionType, "actionType");
+            bestCandidateId = required(bestCandidateId, "bestCandidateId");
+            eligiblePool = List.copyOf(eligiblePool);
+            selectedChampionId = required(selectedChampionId, "selectedChampionId");
+            reason = required(reason, "reason");
+        }
+    }
+
+    public record DraftSelectionPoolEntry(
+            String championId,
+            int canonicalRank,
+            double rawFinalSearchScore,
+            long canonicalFinalScore,
+            long canonicalScoreLoss,
+            int rankWeight
+    ) {
+        public DraftSelectionPoolEntry {
             championId = required(championId, "championId");
         }
     }
@@ -537,6 +599,9 @@ public final class RealMatchApiV1Dtos {
             String configurationHash,
             String engineImplementationVersion,
             String activeGameplayRulesVersion,
+            String draftSelectionPolicyId,
+            String draftSelectionPolicyHash,
+            String draftSelectionTraceHash,
             String inputHash,
             String inputHashAlgorithm,
             String resourceProvenanceHash,
@@ -562,6 +627,12 @@ public final class RealMatchApiV1Dtos {
                     engineImplementationVersion, "engineImplementationVersion");
             activeGameplayRulesVersion = required(
                     activeGameplayRulesVersion, "activeGameplayRulesVersion");
+            draftSelectionPolicyId = required(
+                    draftSelectionPolicyId, "draftSelectionPolicyId");
+            draftSelectionPolicyHash = required(
+                    draftSelectionPolicyHash, "draftSelectionPolicyHash");
+            draftSelectionTraceHash = required(
+                    draftSelectionTraceHash, "draftSelectionTraceHash");
             inputHash = required(inputHash, "inputHash");
             inputHashAlgorithm = required(inputHashAlgorithm, "inputHashAlgorithm");
             resourceProvenanceHash = required(

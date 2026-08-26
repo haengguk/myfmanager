@@ -12,6 +12,8 @@ import com.lolfm.domain.PlayerSkill;
 import com.lolfm.domain.Position;
 import com.lolfm.domain.Team;
 import com.lolfm.draft.DraftActionType;
+import com.lolfm.draft.DraftSelectionTrace;
+import com.lolfm.draft.DraftSelectionTraceHasher;
 import com.lolfm.player.PlayerId;
 import com.lolfm.simulator.PlayerKey;
 import com.lolfm.simulator.TeamSide;
@@ -87,6 +89,10 @@ public record MatchEngineV1Input(
                 .append("inputSchema=").append(schemaVersion).append('\n')
                 .append("matchIdentity=").append(matchIdentity).append('\n')
                 .append("policyId=").append(productionPolicy.policyId()).append('\n')
+                .append("draftSelectionPolicyId=")
+                .append(productionPolicy.draftSelectionPolicyId()).append('\n')
+                .append("draftSelectionPolicyHash=")
+                .append(productionPolicy.draftSelectionPolicyHash()).append('\n')
                 .append("runtimeProfileId=").append(productionPolicy.runtimeProfileId()).append('\n')
                 .append("configurationHash=").append(productionPolicy.configurationHash()).append('\n')
                 .append("matchSeed=").append(matchSeed).append('\n')
@@ -432,6 +438,10 @@ public record MatchEngineV1Input(
             String draftRuleSetIdentity,
             String draftRuleSetHash,
             String draftScoringPolicyHash,
+            String draftSelectionPolicyId,
+            String draftSelectionPolicyHash,
+            List<DraftSelectionTrace> selectionTraces,
+            String draftSelectionTraceHash,
             List<DraftDecisionInput> decisions,
             String draftDecisionHash,
             List<ChampionId> blueBans,
@@ -455,6 +465,17 @@ public record MatchEngineV1Input(
                     draftRuleSetHash, "draftRuleSetHash");
             draftScoringPolicyHash = MatchEngineV1Policy.requiredHash(
                     draftScoringPolicyHash, "draftScoringPolicyHash");
+            draftSelectionPolicyId = MatchEngineV1Policy.required(
+                    draftSelectionPolicyId, "draftSelectionPolicyId");
+            draftSelectionPolicyHash = MatchEngineV1Policy.requiredHash(
+                    draftSelectionPolicyHash, "draftSelectionPolicyHash");
+            selectionTraces = List.copyOf(selectionTraces);
+            draftSelectionTraceHash = MatchEngineV1Policy.requiredHash(
+                    draftSelectionTraceHash, "draftSelectionTraceHash");
+            if (!draftSelectionTraceHash.equals(
+                    DraftSelectionTraceHasher.hash(selectionTraces))) {
+                throw new IllegalArgumentException("MATCH_ENGINE_V1_DRAFT_TRACE_HASH_MISMATCH");
+            }
             decisions = List.copyOf(decisions);
             draftDecisionHash = MatchEngineV1Policy.requiredHash(
                     draftDecisionHash, "draftDecisionHash");
@@ -479,19 +500,28 @@ public record MatchEngineV1Input(
             if (!draftRuleSetIdentity.equals(MatchEngineV1Policy.DRAFT_RULE_SET_IDENTITY)
                     || !draftRuleSetHash.equals(MatchEngineV1Policy.DRAFT_RULE_SET_SHA256)
                     || !draftScoringPolicyHash.equals(
-                    MatchEngineV1Policy.DRAFT_SCORING_POLICY_SHA256)) {
+                    MatchEngineV1Policy.DRAFT_SCORING_POLICY_SHA256)
+                    || !draftSelectionPolicyId.equals(
+                    MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID)
+                    || !draftSelectionPolicyHash.equals(
+                    MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256)) {
                 throw new IllegalArgumentException("MATCH_ENGINE_V1_DRAFT_POLICY_MISMATCH");
             }
             if (decisions.size() != 20 || bluePicks.size() != Position.values().length
                     || redPicks.size() != Position.values().length) {
                 throw new IllegalArgumentException("MATCH_ENGINE_V1_INCOMPLETE_FINAL_DRAFT");
             }
+            validateSelectionTraces(decisions, selectionTraces,
+                    draftSelectionPolicyId, draftSelectionPolicyHash);
         }
 
         void appendCanonical(StringBuilder value) {
             value.append("draftRuleSetIdentity=").append(draftRuleSetIdentity).append('\n')
                     .append("draftRuleSetHash=").append(draftRuleSetHash).append('\n')
                     .append("draftScoringPolicyHash=").append(draftScoringPolicyHash).append('\n')
+                    .append("draftSelectionPolicyId=").append(draftSelectionPolicyId).append('\n')
+                    .append("draftSelectionPolicyHash=").append(draftSelectionPolicyHash).append('\n')
+                    .append("draftSelectionTraceHash=").append(draftSelectionTraceHash).append('\n')
                     .append("draftDecisionHash=").append(draftDecisionHash).append('\n')
                     .append("finalAssignmentHash=").append(finalAssignmentHash).append('\n')
                     .append("finalDraftHash=").append(finalDraftHash).append('\n');
@@ -499,6 +529,11 @@ public record MatchEngineV1Input(
                     .append(decision.turn()).append('|').append(decision.side()).append('|')
                     .append(decision.actionType()).append('|')
                     .append(decision.selectedChampionId().value()).append('\n'));
+            for (int index = 0; index < selectionTraces.size(); index++) {
+                value.append("draftSelectionTrace=").append(index).append('|')
+                        .append(DraftSelectionTraceHasher.traceHash(
+                                selectionTraces.get(index))).append('\n');
+            }
             appendChampionList(value, "blueBan", blueBans);
             appendChampionList(value, "redBan", redBans);
             appendChampionList(value, "bluePick", bluePicks);
@@ -509,6 +544,30 @@ public record MatchEngineV1Input(
             value.append("draftMetaVersion=").append(draftMetaVersion).append('\n')
                     .append("requiredLegalRoleKeyHash=").append(requiredLegalRoleKeyHash).append('\n')
                     .append("actualLegalRoleKeyHash=").append(actualLegalRoleKeyHash).append('\n');
+        }
+
+        private static void validateSelectionTraces(
+                List<DraftDecisionInput> decisions,
+                List<DraftSelectionTrace> traces,
+                String policyId,
+                String policyHash
+        ) {
+            if (traces.size() != decisions.size()) {
+                throw new IllegalArgumentException("MATCH_ENGINE_V1_DRAFT_TRACE_CARDINALITY");
+            }
+            for (int index = 0; index < decisions.size(); index++) {
+                DraftDecisionInput decision = decisions.get(index);
+                DraftSelectionTrace trace = traces.get(index);
+                if (trace.turn() != decision.turn() || trace.side() != decision.side()
+                        || trace.actionType() != decision.actionType()
+                        || !trace.selectedChampionId().equals(decision.selectedChampionId())
+                        || !trace.policyId().equals(policyId)
+                        || !trace.policyHash().equals(policyHash)
+                        || trace.selectedRank() > 3
+                        || trace.selectedCanonicalScoreLoss() > 2_000_000L) {
+                    throw new IllegalArgumentException("MATCH_ENGINE_V1_DRAFT_TRACE_MISMATCH");
+                }
+            }
         }
     }
 }

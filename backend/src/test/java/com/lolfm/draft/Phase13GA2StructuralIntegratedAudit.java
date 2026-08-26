@@ -541,7 +541,7 @@ public final class Phase13GA2StructuralIntegratedAudit {
         Phase13GASyntheticContextFactory.SyntheticContext red = requiredContext(redContextId);
         long engineStarted = System.nanoTime();
         try {
-            FinalDraftResult result = engine.draft(blue.draftContext(), red.draftContext(), history);
+            FinalDraftResult result = engine.draftDeterministicBest(blue.draftContext(), red.draftContext(), history);
             long engineDraftMillis = elapsedMillis(engineStarted);
             long validationStarted = System.nanoTime();
             Validation validation = validateDraft(id, blue, red, history, result);
@@ -1325,7 +1325,7 @@ public final class Phase13GA2StructuralIntegratedAudit {
 
     private long measureEngineOnly(String blueContextId, String redContextId, SeriesDraftHistory history) {
         long started = System.nanoTime();
-        engine.draft(requiredContext(blueContextId).draftContext(),
+        engine.draftDeterministicBest(requiredContext(blueContextId).draftContext(),
                 requiredContext(redContextId).draftContext(), history);
         return elapsedMillis(started);
     }

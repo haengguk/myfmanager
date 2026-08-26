@@ -96,7 +96,7 @@ class RealMatchRuntimeAutoDraftScalabilityV1DiagnosticTest {
             List<Measured> fixtureMeasured = measured.stream()
                     .filter(value -> value.fixture().equals(fixture)).toList();
             Measured representative = fixtureMeasured.getFirst();
-            FinalDraftResult reference = production.draft(
+            FinalDraftResult reference = production.draftDeterministicBest(
                     representative.blueContext(), representative.redContext(),
                     new SeriesDraftHistory());
             MatchEngineV1Input referenceInput = input(
@@ -138,7 +138,7 @@ class RealMatchRuntimeAutoDraftScalabilityV1DiagnosticTest {
                 AutoDraftScalabilityScheduleV1.FIXTURES.getFirst();
         Team blueTeam = teams.assemble(fixture.blueTeamCode());
         Team redTeam = teams.assemble(fixture.redTeamCode());
-        FinalDraftResult result = production.draft(DraftTeamContext.from(blueTeam),
+        FinalDraftResult result = production.draftDeterministicBest(DraftTeamContext.from(blueTeam),
                 DraftTeamContext.from(redTeam), new SeriesDraftHistory());
         input(fixture, blueTeam, redTeam, result);
     }

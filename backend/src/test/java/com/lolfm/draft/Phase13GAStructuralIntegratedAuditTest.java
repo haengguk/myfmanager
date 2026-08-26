@@ -52,7 +52,7 @@ class Phase13GAStructuralIntegratedAuditTest {
         contexts = Phase13GASyntheticContextFactory.create(resources);
         schedule = Phase13GAAuditSchedule.freeze(contexts);
         engine = new DraftEngine(resources);
-        neutralDraft = engine.draft(context("synthetic-neutral"), context("synthetic-neutral"), new SeriesDraftHistory());
+        neutralDraft = engine.draftDeterministicBest(context("synthetic-neutral"), context("synthetic-neutral"), new SeriesDraftHistory());
     }
 
     @Test
@@ -156,7 +156,7 @@ class Phase13GAStructuralIntegratedAuditTest {
 
     @Test
     void exactDraftReplayIsDeterministic() {
-        FinalDraftResult replay = engine.draft(context("synthetic-neutral"), context("synthetic-neutral"), new SeriesDraftHistory());
+        FinalDraftResult replay = engine.draftDeterministicBest(context("synthetic-neutral"), context("synthetic-neutral"), new SeriesDraftHistory());
         assertThat(replay.decisions()).isEqualTo(neutralDraft.decisions());
         assertThat(replay.blueFinalRoleAssignments()).isEqualTo(neutralDraft.blueFinalRoleAssignments());
         assertThat(replay.redFinalRoleAssignments()).isEqualTo(neutralDraft.redFinalRoleAssignments());
@@ -168,7 +168,7 @@ class Phase13GAStructuralIntegratedAuditTest {
         SeriesDraftHistory history = new SeriesDraftHistory();
         Set<ChampionId> prior = new HashSet<>();
         for (int game = 0; game < 5; game++) {
-            FinalDraftResult result = engine.draft(context("synthetic-neutral"), context("synthetic-high-baseline"), history);
+            FinalDraftResult result = engine.draftDeterministicBest(context("synthetic-neutral"), context("synthetic-high-baseline"), history);
             Set<ChampionId> picks = new HashSet<>(result.bluePicks());
             picks.addAll(result.redPicks());
             assertThat(picks).hasSize(10);
@@ -186,14 +186,14 @@ class Phase13GAStructuralIntegratedAuditTest {
         history.commitCompleted(gameOne);
         assertThat(history.consumedPicks()).doesNotContainAnyElementsOf(gameOne.blueBans());
         assertThat(history.consumedPicks()).doesNotContainAnyElementsOf(gameOne.redBans());
-        assertThat(engine.draft(context("synthetic-neutral"), context("synthetic-neutral"), history)
+        assertThat(engine.draftDeterministicBest(context("synthetic-neutral"), context("synthetic-neutral"), history)
                 .hardFearlessExclusions()).containsExactlyInAnyOrderElementsOf(history.consumedPicks());
     }
 
     @Test
     void freshSeriesHasNoPriorFearlessHistory() {
         assertThat(new SeriesDraftHistory().consumedPicks()).isEmpty();
-        FinalDraftResult fresh = engine.draft(context("synthetic-neutral"), context("synthetic-neutral"), new SeriesDraftHistory());
+        FinalDraftResult fresh = engine.draftDeterministicBest(context("synthetic-neutral"), context("synthetic-neutral"), new SeriesDraftHistory());
         assertThat(fresh.hardFearlessExclusions()).isEmpty();
     }
 
@@ -201,7 +201,7 @@ class Phase13GAStructuralIntegratedAuditTest {
     void allFiveFearlessGamesRemainCompletable() {
         SeriesDraftHistory history = new SeriesDraftHistory();
         for (int game = 0; game < 5; game++) {
-            FinalDraftResult result = engine.draft(context("synthetic-flex-wide"), context("synthetic-flex-narrow"), history);
+            FinalDraftResult result = engine.draftDeterministicBest(context("synthetic-flex-wide"), context("synthetic-flex-narrow"), history);
             assertThat(result.decisions()).hasSize(20);
             history.commitCompleted(result);
         }

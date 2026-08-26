@@ -26,6 +26,15 @@ public final class ShallowDraftSearch {
 
     SearchChoice choose(DraftState state, DraftTeamContext blue, DraftTeamContext red,
                         DraftComputationContext context) {
+        return SearchChoice.deterministicBest(evaluate(state, blue, red, context));
+    }
+
+    public SearchResult evaluate(DraftState state, DraftTeamContext blue, DraftTeamContext red) {
+        return evaluate(state, blue, red, DraftComputationContext.uncached());
+    }
+
+    SearchResult evaluate(DraftState state, DraftTeamContext blue, DraftTeamContext red,
+                          DraftComputationContext context) {
         TeamSide root = state.currentTurn().side();
         DraftPlanPortfolio rootPortfolio = portfolio(state, root, blue, red, context);
         DraftPlanPortfolio enemyPortfolio = portfolio(
@@ -33,7 +42,7 @@ public final class ShallowDraftSearch {
         List<ChampionId> rootCandidates = candidates.generate(state, context(root, blue, red),
                 context(root.opposite(), blue, red), rootPortfolio, enemyPortfolio, context);
         if (rootCandidates.isEmpty()) throw new IllegalStateException("No legal draft candidate at turn " + state.currentTurn().number());
-        ArrayList<ScoredCandidate> scored = new ArrayList<>();
+        ArrayList<DraftSearchCandidate> scored = new ArrayList<>();
         for (ChampionId candidate : rootCandidates) {
             ActionEvaluation evaluation = actionEvaluation(state, candidate, blue, red,
                     rootPortfolio, enemyPortfolio, context);
@@ -41,19 +50,12 @@ public final class ShallowDraftSearch {
             DraftState next = state.apply(action(state, candidate));
             double continuation = utility(next, root, blue, red,
                     policy.searchDepth() - 1, 0.72, context);
-            scored.add(new ScoredCandidate(candidate, immediate, continuation,
+            scored.add(new DraftSearchCandidate(candidate, immediate, continuation,
                     immediate + continuation, evaluation.components()));
         }
-        scored.sort(Comparator.comparingDouble(ScoredCandidate::score).reversed()
+        scored.sort(Comparator.comparingDouble(DraftSearchCandidate::finalSearchScore).reversed()
                 .thenComparing(value -> value.championId().value()));
-        ScoredCandidate selected = scored.getFirst();
-        List<DraftAlternative> alternatives = scored.stream().skip(1).limit(3)
-                .map(value -> new DraftAlternative(value.championId(), value.score())).toList();
-        List<DraftSearchCandidateScore> rootScores = scored.stream()
-                .map(value -> new DraftSearchCandidateScore(value.championId(), value.immediateScore(),
-                        value.continuationScore(), value.finalSearchScore())).toList();
-        return new SearchChoice(selected.championId(), selected.immediateScore(), selected.continuationScore(),
-                selected.finalSearchScore(), selected.components(), alternatives, rootPortfolio, rootScores);
+        return new SearchResult(scored, rootPortfolio);
     }
 
     public static ChampionId selectRobust(Map<ChampionId, Double> immediate,
@@ -135,11 +137,35 @@ public final class ShallowDraftSearch {
             componentBreakdown = Map.copyOf(componentBreakdown);
             rootCandidateScores = List.copyOf(rootCandidateScores);
         }
+
+        static SearchChoice deterministicBest(SearchResult result) {
+            DraftSearchCandidate selected = result.rankedCandidates().getFirst();
+            return fromSelection(result, selected);
+        }
+
+        static SearchChoice fromSelection(SearchResult result, DraftSearchCandidate selected) {
+            List<DraftAlternative> alternatives = result.rankedCandidates().stream()
+                    .skip(1).limit(3)
+                    .map(value -> new DraftAlternative(
+                            value.championId(), value.finalSearchScore())).toList();
+            List<DraftSearchCandidateScore> rootScores = result.rankedCandidates().stream()
+                    .map(value -> new DraftSearchCandidateScore(
+                            value.championId(), value.immediateScore(),
+                            value.continuationScore(), value.finalSearchScore())).toList();
+            return new SearchChoice(selected.championId(), selected.immediateScore(),
+                    selected.continuationScore(), selected.finalSearchScore(),
+                    selected.componentBreakdown(), alternatives, result.portfolio(), rootScores);
+        }
+    }
+
+    public record SearchResult(List<DraftSearchCandidate> rankedCandidates,
+                               DraftPlanPortfolio portfolio) {
+        public SearchResult {
+            rankedCandidates = List.copyOf(rankedCandidates);
+            if (rankedCandidates.isEmpty()) {
+                throw new IllegalArgumentException("At least one evaluated candidate is required");
+            }
+        }
     }
     private record ActionEvaluation(double score, Map<String, Double> components) { }
-    private record ScoredCandidate(ChampionId championId, double immediateScore,
-                                   double continuationScore, double finalSearchScore,
-                                   Map<String, Double> components) {
-        double score() { return finalSearchScore; }
-    }
 }

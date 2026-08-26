@@ -24,7 +24,7 @@ import org.springframework.core.env.Environment;
         properties = {"spring.main.banner-mode=off", "logging.level.root=ERROR"})
 class RealMatchTransportCompressionV1IntegrationTest {
     private static final String FIXED_OUTPUT_HASH =
-            "86a8a09be83d20d6ac90a584888237762909f35f107de6ba3bffcafaf7a77b04";
+            "40c8786ebece2d9abc71d95c304d39ef8f63f2b3277237d1aeaf0a3cf1d76c34";
 
     @LocalServerPort int port;
     @Autowired ObjectMapper mapper;

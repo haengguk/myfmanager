@@ -261,6 +261,12 @@ class RealDraftMatchOrchestratorTest {
         assertThat(value.replayProvenanceHash()).isNotEqualTo(value.timelineHash());
         assertThat(value.timelineHash()).isEqualTo(canonicalHash(objectMapper, gameOne.timeline()));
         assertThat(value.draftDecisionHash()).isEqualTo(gameOne.draftResult().draftIdentity());
+        assertThat(value.draftSelectionPolicyId())
+                .isEqualTo(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID);
+        assertThat(value.draftSelectionPolicyHash())
+                .isEqualTo(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256);
+        assertThat(value.draftSelectionTraceHash())
+                .isEqualTo(gameOne.draftResult().selectionTraceHash());
         assertThat(value.engineRulesVersion())
                 .isEqualTo(SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
         assertThat(value.activeGameplayRulesVersion()).isEqualTo(value.engineRulesVersion());
@@ -369,6 +375,12 @@ class RealDraftMatchOrchestratorTest {
         assertThat(actual.redFinalPortfolio()).isEqualTo(expected.redFinalPortfolio());
         assertThat(actual.hardFearlessExclusions())
                 .containsExactlyInAnyOrderElementsOf(expected.hardFearlessExclusions());
+        assertThat(actual.draftSelectionPolicyId())
+                .isEqualTo(expected.draftSelectionPolicyId());
+        assertThat(actual.draftSelectionPolicyHash())
+                .isEqualTo(expected.draftSelectionPolicyHash());
+        assertThat(actual.selectionTraces()).isEqualTo(expected.selectionTraces());
+        assertThat(actual.selectionTraceHash()).isEqualTo(expected.selectionTraceHash());
         assertThat(actual.draftMetaVersion()).isEqualTo(expected.draftMetaVersion());
         assertThat(actual.requiredLegalRoleKeyHash())
                 .isEqualTo(expected.requiredLegalRoleKeyHash());
@@ -412,7 +424,9 @@ class RealDraftMatchOrchestratorTest {
                 source.bluePicks(), source.redPicks(), source.decisions(), blueRoles, redRoles,
                 assignments, source.blueInitialPortfolio(), source.redInitialPortfolio(),
                 source.blueFinalPortfolio(), source.redFinalPortfolio(),
-                source.hardFearlessExclusions(), source.draftMetaVersion(),
+                source.hardFearlessExclusions(), source.draftSelectionPolicyId(),
+                source.draftSelectionPolicyHash(), source.selectionTraces(),
+                source.draftMetaVersion(),
                 source.requiredLegalRoleKeyHash(), source.actualLegalRoleKeyHash());
     }
 

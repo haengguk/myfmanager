@@ -185,6 +185,11 @@ class RealMatchApiV1ServiceTest {
                 MatchEngineV1Policy.DRAFT_RULE_SET_SHA256);
         when(execution.draftScoringPolicyHash()).thenReturn(
                 MatchEngineV1Policy.DRAFT_SCORING_POLICY_SHA256);
+        when(execution.draftSelectionPolicyId()).thenReturn(
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID);
+        when(execution.draftSelectionPolicyHash()).thenReturn(
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256);
+        when(execution.draftSelectionTraceHash()).thenReturn("1".repeat(64));
         when(execution.draftDecisionHash()).thenReturn("d".repeat(64));
         when(execution.finalDraftHash()).thenReturn("e".repeat(64));
         when(execution.finalAssignmentHash()).thenReturn("f".repeat(64));
@@ -200,6 +205,11 @@ class RealMatchApiV1ServiceTest {
         when(draft.draftRuleSetHash()).thenReturn(MatchEngineV1Policy.DRAFT_RULE_SET_SHA256);
         when(draft.draftScoringPolicyHash()).thenReturn(
                 MatchEngineV1Policy.DRAFT_SCORING_POLICY_SHA256);
+        when(draft.draftSelectionPolicyId()).thenReturn(
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID);
+        when(draft.draftSelectionPolicyHash()).thenReturn(
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256);
+        when(draft.draftSelectionTraceHash()).thenReturn("1".repeat(64));
         when(draft.draftDecisionHash()).thenReturn("d".repeat(64));
         when(draft.finalDraftHash()).thenReturn("e".repeat(64));
         when(draft.finalAssignmentHash()).thenReturn("f".repeat(64));

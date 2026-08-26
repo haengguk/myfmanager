@@ -124,6 +124,8 @@ public final class AutoDraftObservationHarnessV1 {
                 rules, state.blueBans(), state.redBans(), state.bluePicks(), state.redPicks(),
                 decisions, blueRoles.positions(), redRoles.positions(), matchAssignments,
                 blueInitial, redInitial, blueFinal, redFinal, state.fearlessExclusions(),
+                DraftEngine.DETERMINISTIC_BEST_REFERENCE_POLICY_ID,
+                DraftEngine.DETERMINISTIC_BEST_REFERENCE_POLICY_HASH, List.of(),
                 resources.meta().metaVersion(), resources.meta().requiredLegalRoleKeyHash(),
                 resources.meta().actualLegalRoleKeyHash());
         return new Observation(result, elapsed(draftStart), initialPlanNanos, finalRoleNanos,

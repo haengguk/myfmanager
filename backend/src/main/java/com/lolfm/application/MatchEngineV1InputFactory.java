@@ -67,6 +67,10 @@ public final class MatchEngineV1InputFactory {
                 draftResult.ruleSet().identity(),
                 provenance.draftRuleSetHash(),
                 provenance.draftScoringPolicyHash(),
+                draftResult.draftSelectionPolicyId(),
+                draftResult.draftSelectionPolicyHash(),
+                draftResult.selectionTraces(),
+                draftResult.selectionTraceHash(),
                 draftResult.decisions().stream().map(value ->
                         new MatchEngineV1Input.DraftDecisionInput(
                                 value.turn(), value.side(), value.actionType(),

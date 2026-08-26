@@ -120,6 +120,12 @@ public final class RealMatchApiV1Service {
                     && draft.draftRuleSetHash().equals(execution.draftRuleSetHash())
                     && draft.draftScoringPolicyHash().equals(
                     execution.draftScoringPolicyHash())
+                    && draft.draftSelectionPolicyId().equals(
+                    execution.draftSelectionPolicyId())
+                    && draft.draftSelectionPolicyHash().equals(
+                    execution.draftSelectionPolicyHash())
+                    && draft.draftSelectionTraceHash().equals(
+                    execution.draftSelectionTraceHash())
                     && draft.draftDecisionHash().equals(execution.draftDecisionHash())
                     && draft.finalDraftHash().equals(execution.finalDraftHash())
                     && draft.finalAssignmentHash().equals(execution.finalAssignmentHash())

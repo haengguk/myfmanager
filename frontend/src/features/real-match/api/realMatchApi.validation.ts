@@ -74,6 +74,10 @@ function integer(value: unknown, path: string, minimum = 0): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum) fail(path, `${minimum} 이상의 정수가 필요합니다.`);
   return value;
 }
+function signedInteger(value: unknown, path: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value)) fail(path, 'safe integer가 필요합니다.');
+  return value;
+}
 function finiteNumber(value: unknown, path: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) fail(path, '유한한 숫자가 필요합니다.');
   return value;
@@ -123,7 +127,8 @@ function validateStringMap(value: unknown, path: string): void {
 function validateProductionPolicy(value: unknown, path: string): void {
   const source = record(value, path);
   for (const key of [
-    'policyId', 'policyHash', 'runtimeProfileId', 'configurationHash', 'activeGameplayRulesVersion',
+    'policyId', 'policyHash', 'draftSelectionPolicyId', 'draftSelectionPolicyHash',
+    'runtimeProfileId', 'configurationHash', 'activeGameplayRulesVersion',
     'engineImplementationVersion', 'matchupMode', 'compositionMode', 'jungleClearContribution',
   ]) text(source[key], `${path}.${key}`);
   for (const key of ['economyCandidateActivation', 'tempoCandidateActivation', 'diagnosticsExcludedFromGameplayIdentity']) {
@@ -298,7 +303,8 @@ function validateIntegrity(value: unknown): void {
   const integrity = record(value, '$.integrity');
   for (const key of [
     'matchEngineContract', 'policyId', 'policyHash', 'runtimeProfileId', 'configurationHash',
-    'engineImplementationVersion', 'activeGameplayRulesVersion', 'inputHash', 'inputHashAlgorithm',
+    'engineImplementationVersion', 'activeGameplayRulesVersion', 'draftSelectionPolicyId',
+    'draftSelectionPolicyHash', 'draftSelectionTraceHash', 'inputHash', 'inputHashAlgorithm',
     'resourceProvenanceHash', 'replayProvenanceHash', 'replayProvenanceHashAlgorithm',
     'simulatorTimelineHash', 'simulatorTimelineHashAlgorithm', 'structuredTimelineHash',
     'structuredTimelineHashAlgorithm', 'outputHash', 'outputHashAlgorithm', 'outputHashScope',
@@ -354,7 +360,11 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
   const draft = record(root.draft, '$.draft');
   literal(draft.schemaVersion, 'REAL_MATCH_DRAFT_V1', '$.draft.schemaVersion');
   if (integer(draft.seriesGameNumber, '$.draft.seriesGameNumber', 1) !== 1) fail('$.draft.seriesGameNumber', '현재 계약은 fresh Game 1만 지원합니다.');
-  for (const key of ['draftRuleSetIdentity', 'draftRuleSetHash', 'draftScoringPolicyHash', 'finalDraftHash', 'finalAssignmentHash']) text(draft[key], `$.draft.${key}`);
+  for (const key of [
+    'draftRuleSetIdentity', 'draftRuleSetHash', 'draftScoringPolicyHash',
+    'draftSelectionPolicyId', 'draftSelectionPolicyHash', 'draftSelectionTraceHash',
+    'finalDraftHash', 'finalAssignmentHash',
+  ]) text(draft[key], `$.draft.${key}`);
   stringArray(draft.hardFearlessExclusionsBeforeDraft, '$.draft.hardFearlessExclusionsBeforeDraft');
   const decisions = array(draft.decisions, '$.draft.decisions');
   if (decisions.length !== 20) fail('$.draft.decisions', '정확히 20개의 자동 Draft 결정이 필요합니다.');
@@ -372,6 +382,58 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
     const championId = text(decision.championId, `${path}.championId`);
     decisionChampions[side][actionType].push(championId);
     allDecisionChampions.push(championId);
+  });
+  const selectionTraces = array(draft.selectionTraces, '$.draft.selectionTraces');
+  if (selectionTraces.length !== decisions.length) fail('$.draft.selectionTraces', 'Draft 결정별 selection trace가 필요합니다.');
+  selectionTraces.forEach((traceValue, index) => {
+    const path = `$.draft.selectionTraces[${index}]`;
+    const trace = record(traceValue, path);
+    if (text(trace.policyId, `${path}.policyId`) !== draft.draftSelectionPolicyId) fail(`${path}.policyId`, 'Draft selection policy와 일치해야 합니다.');
+    text(trace.policyMode, `${path}.policyMode`);
+    if (text(trace.policyHash, `${path}.policyHash`) !== draft.draftSelectionPolicyHash) fail(`${path}.policyHash`, 'Draft selection policy hash와 일치해야 합니다.');
+    text(trace.selectionContextHash, `${path}.selectionContextHash`);
+    const decision = record(decisions[index], `$.draft.decisions[${index}]`);
+    if (integer(trace.turn, `${path}.turn`, 1) !== decision.turn) fail(`${path}.turn`, 'Draft 결정 turn과 일치해야 합니다.');
+    if (teamSide(trace.teamSide, `${path}.teamSide`) !== decision.teamSide) fail(`${path}.teamSide`, 'Draft 결정 side와 일치해야 합니다.');
+    const actionType = oneOf(trace.actionType, DRAFT_ACTIONS, `${path}.actionType`) as DraftActionType;
+    if (actionType !== decision.actionType) fail(`${path}.actionType`, 'Draft 결정 action과 일치해야 합니다.');
+    const bestCandidateId = text(trace.bestCandidateId, `${path}.bestCandidateId`);
+    signedInteger(trace.bestCanonicalScore, `${path}.bestCanonicalScore`);
+    const pool = array(trace.eligiblePool, `${path}.eligiblePool`);
+    if (pool.length < 1 || pool.length > 3) fail(`${path}.eligiblePool`, 'selection pool은 1~3개여야 합니다.');
+    const expectedWeights = actionType === 'BAN' ? [55, 30, 15] : [70, 22, 8];
+    let totalWeight = 0;
+    const poolIds = new Set<string>();
+    pool.forEach((entryValue, poolIndex) => {
+      const entryPath = `${path}.eligiblePool[${poolIndex}]`;
+      const entry = record(entryValue, entryPath);
+      const championId = text(entry.championId, `${entryPath}.championId`);
+      if (poolIds.has(championId)) fail(`${entryPath}.championId`, 'selection pool champion은 중복될 수 없습니다.');
+      poolIds.add(championId);
+      if (integer(entry.canonicalRank, `${entryPath}.canonicalRank`, 1) !== poolIndex + 1) fail(`${entryPath}.canonicalRank`, 'canonical rank가 연속이어야 합니다.');
+      finiteNumber(entry.rawFinalSearchScore, `${entryPath}.rawFinalSearchScore`);
+      signedInteger(entry.canonicalFinalScore, `${entryPath}.canonicalFinalScore`);
+      if (integer(entry.canonicalScoreLoss, `${entryPath}.canonicalScoreLoss`) > 2_000_000) fail(`${entryPath}.canonicalScoreLoss`, '2.0 score-loss window를 초과했습니다.');
+      const weight = integer(entry.rankWeight, `${entryPath}.rankWeight`, 1);
+      if (weight !== expectedWeights[poolIndex]) fail(`${entryPath}.rankWeight`, 'production rank weight와 일치해야 합니다.');
+      totalWeight += weight;
+    });
+    const selectedRank = integer(trace.selectedRank, `${path}.selectedRank`, 1);
+    if (selectedRank > pool.length) fail(`${path}.selectedRank`, 'selection pool 범위를 벗어났습니다.');
+    const selectedEntry = record(pool[selectedRank - 1], `${path}.eligiblePool[selected]`);
+    const selectedChampionId = text(trace.selectedChampionId, `${path}.selectedChampionId`);
+    if (selectedChampionId !== decision.championId || selectedChampionId !== selectedEntry.championId) fail(`${path}.selectedChampionId`, '실제 Draft 결정과 일치해야 합니다.');
+    if (bestCandidateId !== record(pool[0], `${path}.eligiblePool[0]`).championId) fail(`${path}.bestCandidateId`, 'pool rank 1과 일치해야 합니다.');
+    const selectedLoss = integer(trace.selectedCanonicalScoreLoss, `${path}.selectedCanonicalScoreLoss`);
+    if (selectedLoss !== selectedEntry.canonicalScoreLoss) fail(`${path}.selectedCanonicalScoreLoss`, '선택된 pool entry와 일치해야 합니다.');
+    if (integer(trace.totalEligibleWeight, `${path}.totalEligibleWeight`, 1) !== totalWeight) fail(`${path}.totalEligibleWeight`, 'pool weight 합과 일치해야 합니다.');
+    const reason = oneOf(trace.reason, ['ONLY_ONE_WITHIN_WINDOW', 'SEEDED_WEIGHTED_SELECTION'] as const, `${path}.reason`);
+    if (reason === 'ONLY_ONE_WITHIN_WINDOW') {
+      if (pool.length !== 1 || trace.drawBucket !== null) fail(path, 'singleton pool은 draw를 수행하지 않아야 합니다.');
+    } else {
+      const bucket = integer(trace.drawBucket, `${path}.drawBucket`);
+      if (pool.length < 2 || bucket >= totalWeight) fail(`${path}.drawBucket`, 'weighted draw bucket 범위가 올바르지 않습니다.');
+    }
   });
   exactSet(turns.map(String), Array.from({ length: 20 }, (_, index) => String(index + 1)), '$.draft.decisions.turn');
   if (new Set(allDecisionChampions).size !== 20) fail('$.draft.decisions.championId', 'Draft 전체에서 중복 없는 20개 챔피언이 필요합니다.');
@@ -510,6 +572,9 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
 
   validateIntegrity(root.integrity);
   const integrity = record(root.integrity, '$.integrity');
+  for (const key of ['draftSelectionPolicyId', 'draftSelectionPolicyHash', 'draftSelectionTraceHash'] as const) {
+    if (integrity[key] !== draft[key]) fail(`$.integrity.${key}`, `draft.${key}와 일치하지 않습니다.`);
+  }
   for (const [resultKey, integrityKey] of [
     ['runtimeProfileId', 'runtimeProfileId'], ['configurationHash', 'configurationHash'],
     ['resourceProvenanceHash', 'resourceProvenanceHash'], ['replayProvenanceHash', 'replayProvenanceHash'],

@@ -147,6 +147,7 @@ public final class RealDraftMatchPreflightValidator {
                 || result.redPicks().size() != Position.values().length) {
             throw failure("INCOMPLETE_FINAL_DRAFT", result.draftIdentity());
         }
+        validateSelectionEvidence(result);
         MatchChampionAssignments assignments = Objects.requireNonNull(
                 result.matchChampionAssignments(), "matchChampionAssignments");
         if (assignments.selectionMode() != ChampionSelectionMode.EXPLICIT) {
@@ -166,6 +167,28 @@ public final class RealDraftMatchPreflightValidator {
                 result.blueFinalRoleAssignments(), assignments);
         validateSideFinalRoles(TeamSide.RED, result.redPicks(),
                 result.redFinalRoleAssignments(), assignments);
+    }
+
+    private void validateSelectionEvidence(FinalDraftResult result) {
+        if (!result.draftSelectionPolicyId().equals(
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID)
+                || !result.draftSelectionPolicyHash().equals(
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256)
+                || result.selectionTraces().size() != result.decisions().size()
+                || !result.selectionTraceHash().matches("[0-9a-f]{64}")) {
+            throw failure("DRAFT_SELECTION_EVIDENCE_MISMATCH", result.draftIdentity());
+        }
+        for (int index = 0; index < result.decisions().size(); index++) {
+            var decision = result.decisions().get(index);
+            var trace = result.selectionTraces().get(index);
+            if (trace.turn() != decision.turn() || trace.side() != decision.side()
+                    || trace.actionType() != decision.actionType()
+                    || !trace.selectedChampionId().equals(decision.selectedChampionId())
+                    || trace.selectedRank() > 3
+                    || trace.selectedCanonicalScoreLoss() > 2_000_000L) {
+                throw failure("DRAFT_SELECTION_TRACE_MISMATCH", "turn=" + decision.turn());
+            }
+        }
     }
 
     private void validateSideFinalRoles(TeamSide side, java.util.List<ChampionId> picks,

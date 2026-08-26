@@ -155,7 +155,9 @@ public final class SimulationProvenanceService {
                 profile.configurationHash(), resourceProvenance.resourceProvenanceHash(),
                 blueTeamCode, redTeamCode, rosterIdentityHash, matchSeed, seriesGameNumber,
                 historyBeforeHash, draftResult.ruleSet().identity(), draftRuleSetHash,
-                draftScoringPolicyHash, draftResult.draftIdentity(), finalDraftHash,
+                draftScoringPolicyHash, draftResult.draftSelectionPolicyId(),
+                draftResult.draftSelectionPolicyHash(), draftResult.selectionTraceHash(),
+                draftResult.draftIdentity(), finalDraftHash,
                 finalAssignmentHash);
 
         return new SimulationExecutionProvenance(
@@ -167,7 +169,9 @@ public final class SimulationProvenanceService {
                 resourceProvenance,
                 blueTeamCode, redTeamCode, rosterIdentityHash, matchSeed, seriesGameNumber,
                 historyBeforeHash, draftResult.ruleSet().identity(), draftRuleSetHash,
-                draftScoringPolicyHash, draftResult.draftIdentity(), finalDraftHash,
+                draftScoringPolicyHash, draftResult.draftSelectionPolicyId(),
+                draftResult.draftSelectionPolicyHash(), draftResult.selectionTraceHash(),
+                draftResult.draftIdentity(), finalDraftHash,
                 finalAssignmentHash, replayHash, ORDERED_LINES_HASH_ALGORITHM,
                 timelineHash(timeline), TIMELINE_HASH_ALGORITHM, randomFingerprint);
     }
@@ -191,7 +195,11 @@ public final class SimulationProvenanceService {
                 MatchEngineV1Policy.APPROVED_RESOURCE_PROVENANCE_SHA256)
                 || !draft.draftRuleSetIdentity().equals(draftRules.identity())
                 || !draft.draftRuleSetHash().equals(draftRuleSetHash)
-                || !draft.draftScoringPolicyHash().equals(draftScoringPolicyHash)) {
+                || !draft.draftScoringPolicyHash().equals(draftScoringPolicyHash)
+                || !draft.draftSelectionPolicyId().equals(
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID)
+                || !draft.draftSelectionPolicyHash().equals(
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256)) {
             throw new IllegalStateException("MATCH_ENGINE_V1_PROVENANCE_IDENTITY_DRIFT");
         }
         String legacyReplayHash = replayProvenanceHash(
@@ -201,6 +209,8 @@ public final class SimulationProvenanceService {
                 input.rosterIdentityHash(), input.matchSeed(), draft.seriesGameNumber(),
                 input.seriesHistoryBeforeHash(), draft.draftRuleSetIdentity(),
                 draft.draftRuleSetHash(), draft.draftScoringPolicyHash(),
+                draft.draftSelectionPolicyId(), draft.draftSelectionPolicyHash(),
+                draft.draftSelectionTraceHash(),
                 draft.draftDecisionHash(), draft.finalDraftHash(),
                 draft.finalAssignmentHash());
         String replayHash = matchEngineV1ReplayProvenanceHash(
@@ -216,6 +226,8 @@ public final class SimulationProvenanceService {
                 input.rosterIdentityHash(), input.matchSeed(), draft.seriesGameNumber(),
                 input.seriesHistoryBeforeHash(), draft.draftRuleSetIdentity(),
                 draft.draftRuleSetHash(), draft.draftScoringPolicyHash(),
+                draft.draftSelectionPolicyId(), draft.draftSelectionPolicyHash(),
+                draft.draftSelectionTraceHash(),
                 draft.draftDecisionHash(), draft.finalDraftHash(),
                 draft.finalAssignmentHash(), replayHash,
                 MATCH_ENGINE_V1_REPLAY_PROVENANCE_HASH_ALGORITHM,
@@ -459,6 +471,51 @@ public final class SimulationProvenanceService {
                         .append(entry.getValue().name()).append('\n'));
     }
 
+    static String replayProvenanceHash(
+            String engineImplementationVersion,
+            String activeGameplayRulesVersion,
+            String configurationHash,
+            String resourceProvenanceHash,
+            String blueTeamCode,
+            String redTeamCode,
+            String rosterIdentityHash,
+            long seed,
+            int seriesGameNumber,
+            String seriesHistoryBeforeHash,
+            String draftRuleSetIdentity,
+            String draftRuleSetHash,
+            String draftScoringPolicyHash,
+            String draftSelectionPolicyId,
+            String draftSelectionPolicyHash,
+            String draftSelectionTraceHash,
+            String draftDecisionHash,
+            String finalDraftHash,
+            String finalAssignmentHash
+    ) {
+        String canonical = "replayProvenanceSchema=REPLAY_PROVENANCE_V3\n"
+                + "engineImplementationVersion=" + engineImplementationVersion + '\n'
+                + "activeGameplayRulesVersion=" + activeGameplayRulesVersion + '\n'
+                + "configurationHash=" + configurationHash + '\n'
+                + "resourceProvenanceHash=" + resourceProvenanceHash + '\n'
+                + "blueTeamCode=" + blueTeamCode + '\n'
+                + "redTeamCode=" + redTeamCode + '\n'
+                + "rosterIdentityHash=" + rosterIdentityHash + '\n'
+                + "matchSeed=" + seed + '\n'
+                + "seriesGameNumber=" + seriesGameNumber + '\n'
+                + "seriesHistoryBeforeHash=" + seriesHistoryBeforeHash + '\n'
+                + "draftRuleSetIdentity=" + draftRuleSetIdentity + '\n'
+                + "draftRuleSetHash=" + draftRuleSetHash + '\n'
+                + "draftScoringPolicyHash=" + draftScoringPolicyHash + '\n'
+                + "draftSelectionPolicyId=" + draftSelectionPolicyId + '\n'
+                + "draftSelectionPolicyHash=" + draftSelectionPolicyHash + '\n'
+                + "draftSelectionTraceHash=" + draftSelectionTraceHash + '\n'
+                + "draftDecisionHash=" + draftDecisionHash + '\n'
+                + "finalDraftHash=" + finalDraftHash + '\n'
+                + "finalAssignmentHash=" + finalAssignmentHash + '\n';
+        return orderedLinesHash(canonical);
+    }
+
+    /** Historical V2 evidence verifier; production creation uses the V3 overload above. */
     static String replayProvenanceHash(
             String engineImplementationVersion,
             String activeGameplayRulesVersion,

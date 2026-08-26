@@ -423,7 +423,7 @@ public final class Phase13GAStructuralIntegratedAudit {
         Phase13GASyntheticContextFactory.SyntheticContext red = requiredContext(redContextId);
         long started = System.nanoTime();
         try {
-            FinalDraftResult result = engine.draft(blue.draftContext(), red.draftContext(), history);
+            FinalDraftResult result = engine.draftDeterministicBest(blue.draftContext(), red.draftContext(), history);
             Validation validation = validateDraft(id, blue, red, history, result);
             String digest = validation.violations().isEmpty() ? canonicalDraft(result, validation.trace()) :
                     "INVALID:" + String.join("|", validation.violations());

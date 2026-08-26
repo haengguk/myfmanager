@@ -20,6 +20,9 @@ import com.lolfm.domain.PlayerSnapshot;
 import com.lolfm.domain.PlayerRatings;
 import com.lolfm.domain.PlayerSkill;
 import com.lolfm.domain.Position;
+import com.lolfm.draft.DraftSelectionPoolEntry;
+import com.lolfm.draft.DraftSelectionTrace;
+import com.lolfm.draft.DraftSelectionTraceHasher;
 import com.lolfm.draft.SeriesDraftHistory;
 import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
 import com.lolfm.simulator.JungleClearContribution;
@@ -242,6 +245,8 @@ class MatchEngineV1ContractTest {
 
         MatchEngineV1Policy.Requirement candidate = new MatchEngineV1Policy.Requirement(
                 MatchEngineV1Policy.POLICY_ID,
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID,
+                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256,
                 SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1,
                 SimulationRuntimeProfiles.resolve(
                         SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1)
@@ -515,9 +520,25 @@ class MatchEngineV1ContractTest {
             String assignmentHash,
             String finalDraftHash
     ) {
+        return copyDraft(source, source.selectionTraces(), decisions, bluePicks, redPicks,
+                decisionHash, assignmentHash, finalDraftHash);
+    }
+
+    private static MatchEngineV1Input.DraftInput copyDraft(
+            MatchEngineV1Input.DraftInput source,
+            List<DraftSelectionTrace> traces,
+            List<MatchEngineV1Input.DraftDecisionInput> decisions,
+            List<ChampionId> bluePicks,
+            List<ChampionId> redPicks,
+            String decisionHash,
+            String assignmentHash,
+            String finalDraftHash
+    ) {
         return new MatchEngineV1Input.DraftInput(
                 source.seriesGameNumber(), source.draftRuleSetIdentity(),
-                source.draftRuleSetHash(), source.draftScoringPolicyHash(), decisions,
+                source.draftRuleSetHash(), source.draftScoringPolicyHash(),
+                source.draftSelectionPolicyId(), source.draftSelectionPolicyHash(),
+                traces, DraftSelectionTraceHasher.hash(traces), decisions,
                 decisionHash, source.blueBans(), source.redBans(), bluePicks, redPicks,
                 source.hardFearlessExclusions(), source.draftMetaVersion(),
                 source.requiredLegalRoleKeyHash(), source.actualLegalRoleKeyHash(),
@@ -544,15 +565,39 @@ class MatchEngineV1ContractTest {
                                 : value).toList();
         String decisionHash = MatchEngineV1Input.draftDecisionHash(decisions);
         String assignmentHash = MatchEngineV1Input.finalAssignmentHash(assignments);
+        List<DraftSelectionTrace> traces = source.finalDraft().selectionTraces().stream()
+                .map(trace -> replaceChampion(trace, replaced.championId(), illegalChampion))
+                .toList();
         MatchEngineV1Input.DraftInput unsigned = copyDraft(
-                source.finalDraft(), decisions, bluePicks, source.finalDraft().redPicks(),
+                source.finalDraft(), traces, decisions, bluePicks,
+                source.finalDraft().redPicks(),
                 decisionHash, assignmentHash, "0".repeat(64));
         String finalDraftHash = MatchEngineV1Input.finalDraftHash(unsigned, assignments);
         MatchEngineV1Input.DraftInput draft = copyDraft(
-                source.finalDraft(), decisions, bluePicks, source.finalDraft().redPicks(),
+                source.finalDraft(), traces, decisions, bluePicks,
+                source.finalDraft().redPicks(),
                 decisionHash, assignmentHash, finalDraftHash);
         return copy(source, source.blueTeam(), source.redTeam(), assignments, draft,
                 source.productionPolicy());
+    }
+
+    private static DraftSelectionTrace replaceChampion(
+            DraftSelectionTrace trace, ChampionId original, ChampionId replacement
+    ) {
+        List<DraftSelectionPoolEntry> pool = trace.eligiblePool().stream()
+                .map(entry -> new DraftSelectionPoolEntry(
+                        entry.championId().equals(original) ? replacement : entry.championId(),
+                        entry.canonicalRank(), entry.rawFinalSearchScore(),
+                        entry.canonicalFinalScore(), entry.canonicalScoreLoss(),
+                        entry.rankWeight())).toList();
+        return new DraftSelectionTrace(trace.policyId(), trace.policyMode(), trace.policyHash(),
+                trace.selectionContextHash(), trace.turn(), trace.side(), trace.actionType(),
+                trace.bestCandidateId().equals(original) ? replacement : trace.bestCandidateId(),
+                trace.bestCanonicalScore(), pool,
+                trace.selectedChampionId().equals(original)
+                        ? replacement : trace.selectedChampionId(),
+                trace.selectedRank(), trace.selectedCanonicalScoreLoss(), trace.drawBucket(),
+                trace.totalEligibleWeight(), trace.reason());
     }
 
     private static MatchEngineV1Input renamedDisplayInput(MatchEngineV1Input source) {

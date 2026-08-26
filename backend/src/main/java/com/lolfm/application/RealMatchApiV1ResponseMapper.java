@@ -151,6 +151,22 @@ public final class RealMatchApiV1ResponseMapper {
                 source.draftRuleSetIdentity(),
                 source.draftRuleSetHash(),
                 source.draftScoringPolicyHash(),
+                source.draftSelectionPolicyId(),
+                source.draftSelectionPolicyHash(),
+                source.draftSelectionTraceHash(),
+                source.selectionTraces().stream().map(trace ->
+                        new RealMatchApiV1Dtos.DraftSelectionTrace(
+                                trace.policyId(), trace.policyMode(), trace.policyHash(),
+                                trace.selectionContextHash(), trace.turn(), trace.side(),
+                                trace.actionType(), trace.bestCandidateId().value(),
+                                trace.bestCanonicalScore(), trace.eligiblePool().stream()
+                                .map(entry -> new RealMatchApiV1Dtos.DraftSelectionPoolEntry(
+                                        entry.championId().value(), entry.canonicalRank(),
+                                        entry.rawFinalSearchScore(), entry.canonicalFinalScore(),
+                                        entry.canonicalScoreLoss(), entry.rankWeight())).toList(),
+                                trace.selectedChampionId().value(), trace.selectedRank(),
+                                trace.selectedCanonicalScoreLoss(), trace.drawBucket(),
+                                trace.totalEligibleWeight(), trace.reason().name())).toList(),
                 ids(source.hardFearlessExclusions()),
                 source.decisions().stream().map(decision ->
                         new RealMatchApiV1Dtos.DraftDecision(
@@ -265,6 +281,8 @@ public final class RealMatchApiV1ResponseMapper {
                 output.productionPolicy().policyId(), output.productionPolicy().policyHash(),
                 execution.runtimeProfileId().name(), execution.configurationHash(),
                 execution.engineImplementationVersion(), execution.activeGameplayRulesVersion(),
+                execution.draftSelectionPolicyId(), execution.draftSelectionPolicyHash(),
+                execution.draftSelectionTraceHash(),
                 output.inputHash(), output.inputHashAlgorithm(),
                 execution.resourceProvenance().resourceProvenanceHash(),
                 execution.replayProvenanceHash(), execution.replayProvenanceHashAlgorithm(),
@@ -280,7 +298,8 @@ public final class RealMatchApiV1ResponseMapper {
     private static RealMatchApiV1Dtos.ProductionPolicy productionPolicy() {
         MatchEngineV1Policy.Snapshot source = MatchEngineV1Policy.authoritative();
         return new RealMatchApiV1Dtos.ProductionPolicy(
-                source.policyId(), source.policyHash(), source.retainedRuntimeProfileId().name(),
+                source.policyId(), source.policyHash(), source.draftSelectionPolicyId(),
+                source.draftSelectionPolicyHash(), source.retainedRuntimeProfileId().name(),
                 source.configurationHash(), source.activeGameplayRulesVersion(),
                 source.engineImplementationVersion(),
                 source.gameplayConfiguration().championMatchupMode().name(),

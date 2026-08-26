@@ -26,6 +26,9 @@ public record FinalDraftResult(
         DraftPlanPortfolio blueFinalPortfolio,
         DraftPlanPortfolio redFinalPortfolio,
         Set<ChampionId> hardFearlessExclusions,
+        String draftSelectionPolicyId,
+        String draftSelectionPolicyHash,
+        List<DraftSelectionTrace> selectionTraces,
         String draftMetaVersion,
         String requiredLegalRoleKeyHash,
         String actualLegalRoleKeyHash
@@ -37,6 +40,14 @@ public record FinalDraftResult(
         blueFinalRoleAssignments = Map.copyOf(blueFinalRoleAssignments);
         redFinalRoleAssignments = Map.copyOf(redFinalRoleAssignments);
         hardFearlessExclusions = Set.copyOf(hardFearlessExclusions);
+        if (draftSelectionPolicyId == null || draftSelectionPolicyId.isBlank()) {
+            throw new IllegalArgumentException("draftSelectionPolicyId is required");
+        }
+        if (draftSelectionPolicyHash == null
+                || !draftSelectionPolicyHash.matches("[0-9a-f]{64}")) {
+            throw new IllegalArgumentException("draftSelectionPolicyHash must be lowercase SHA-256");
+        }
+        selectionTraces = List.copyOf(selectionTraces);
     }
     public String draftIdentity() {
         String canonical = decisions.stream().map(value -> value.turn() + ":" + value.side() + ":"
@@ -45,5 +56,9 @@ public record FinalDraftResult(
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical.getBytes(StandardCharsets.UTF_8)));
         } catch (NoSuchAlgorithmException error) { throw new IllegalStateException(error); }
+    }
+
+    public String selectionTraceHash() {
+        return DraftSelectionTraceHasher.hash(selectionTraces);
     }
 }
