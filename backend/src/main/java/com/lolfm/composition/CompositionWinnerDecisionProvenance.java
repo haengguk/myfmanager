@@ -28,6 +28,7 @@ public record CompositionWinnerDecisionProvenance(
         double baselineProbability,
         double candidateProbability,
         double randomSample,
+        long randomDrawOrdinal,
         double runtimeThreshold,
         TeamSide baselineCounterfactualWinner,
         TeamSide runtimeWinner,

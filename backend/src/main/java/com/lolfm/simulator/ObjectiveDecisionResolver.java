@@ -55,11 +55,13 @@ public final class ObjectiveDecisionResolver {
         List<ObjectiveDecisionWeightBreakdown> responderWeights = responderWeights(state, context);
         Selection responderSelection = select(responderWeights, random);
         ObjectiveDecisionAction responderAction = responderSelection.action();
+        com.lolfm.composition.GameplayAttemptId compositionAttemptId = null;
         if (responderAction == ObjectiveDecisionAction.CONTEST) {
             state.getCompositionRuntimeState().recordActualAttempt(
                     CompositionActionType.OBJECTIVE_SETUP, initiative, initiative, initiative.opposite(),
                     FightScale.FORMAL, type, true, null, null, time,
                     CompositionBaselineScoreDomain.NOT_AVAILABLE, null, null);
+            compositionAttemptId = state.getCompositionRuntimeState().lastActualAttemptId();
         }
         TeamSide captureSide = initiative;
         TeamSide fightWinner = null;
@@ -76,7 +78,7 @@ public final class ObjectiveDecisionResolver {
 
         if (responderAction == ObjectiveDecisionAction.CONTEST) {
             ObjectiveFightOutcome fight = objectiveFights.resolve(
-                    state, random, events, fightActionId);
+                    state, random, events, fightActionId, compositionAttemptId);
             fightWinner = fight.winningSide();
             fightSkillImpact = fight.skillImpact();
             secureDecision = objectiveSecures.resolve(state, type, fightWinner, random);

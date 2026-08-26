@@ -162,6 +162,16 @@ Invalid HP/state, duplicate structured action, impossible respawn, Nexus orderin
 
 새 acceptance proposal은 correctness exact gate, observational sensitivity, gameplay-critical macro safety, causal/reachability를 분리한다. Phase 13D Composition fallback 12%를 V9 hard gate로 복사하지 않고, macro 수치는 `THRESHOLD_REQUIRES_PRODUCT_DECISION`으로 남겼다. 공식 eligibility는 local application provenance와 제품 tolerance를 먼저 정의한 별도 contract 및 non-overlapping fresh seed에서만 판단한다. 세부 결과는 [Matchup V9 구조물 영향 Attribution](development/matchup-v9-structure-effect-attribution-v1.md)을 따른다.
 
+### Composition V9 application and causality hardening
+
+선행 V9의 `approved gameplay application=0`은 실제 gameplay zero가 아니라 production accounting/provenance 결함이었다. Frozen `PRODUCTION_V2` scalar modifier는 이미 skirmish와 teamfight/siege/base-defense winner consumer에 도달했지만 historical `CANDIDATE` 전용 counter/list가 이를 관측하지 못했다. 팀파이트 점수의 기존 support-tool Composition 기여와 그 점수를 재사용한 objective fight도 scalar-only counterfactual에 포함돼 local cause가 누락됐다.
+
+Match-scoped provenance는 actual attempt → routing/eligibility → frozen scalar 또는 existing non-scalar input → winner/fight grade → structured public action을 같은 `GameplayAttemptId`로 결속한다. `OBJECTIVE_SETUP`은 계속 scalar `DISABLED_NOT_APPROVED`이며 새 gain을 추가하지 않았다. 실제 objective fight의 기존 support-tool 소비만 별도 `SCALAR_DISABLED_EXISTING_NON_SCALAR_EFFECT_CONSUMED`로 기록한다. Diagnostic/application schema는 각각 `COMPOSITION_RUNTIME_DIAGNOSTICS_V4` / `COMPOSITION_APPLICATION_CAUSAL_PROVENANCE_V4`다.
+
+Final V5는 100 fixture × fresh 4 seeds, 두 profile의 800 core rows / 400 pairs와 replay 100, instrumentation 200으로 총 1,100 simulations을 4개 distinct JVM에서 실행했다. Actual attempts 22,219, approved scalar calculated/applied/consumed/non-zero는 모두 4,481, existing non-scalar consumed 1,743, total effect applications 4,967, local changed/unchanged 65/4,902였다. Public divergence 59쌍은 local cause 59/59에 결속돼 coverage 100%, unexplained 0이었다. Correctness/replay/instrumentation/Composition Random 오류도 모두 0이다.
+
+Verdict는 `COMPOSITION_APPLICATION_CAUSALITY_HARDENED_READY_FOR_FRESH_REQUALIFICATION_DESIGN`이다. 이는 production eligibility가 아니다. `BASELINE_V1`, Matchup/Composition/Jungle OFF production policy, engine V9/rules V3, frozen gain/formula/resource/profile/API/frontend는 유지했다. V5 artifact manifest raw SHA-256은 `cc5d02b4c97e636cf927b07275ffcaff8eb4ec0badaaa307883d5391a5b45af9`다. 최종 complete backend regression은 215 suites / 2,163 tests / failures 0 / errors 0 / skipped 0, Gradle wall 21분 46초로 통과했다. 세부 근거는 [Composition V9 application and causality hardening](development/composition-v9-application-causality-hardening-v1.md)을 따른다.
+
 ### Final 13G-B1 audit contract and real-match harness
 
 `PHASE_13G_B1_AUDIT_CONTRACT_AND_REAL_MATCH_HARNESS`는 gameplay를 바꾸지 않는 test-side 감사 기반이다. 실제 10개 LCK 팀의 모든 unordered pair 45개를 양 진영으로 뒤집은 G1 90 fixtures를 주 감사 축으로 고정하고, SHA 기반 deterministic pairing으로 모든 팀을 한 번씩 포함한 Hard Fearless G2 5 pairs × 양 진영 10 fixtures를 보조 민감도 축으로 고정했다. 각 fixture의 calibration 24 seeds와 holdout 8 seeds는 서로 분리해 미리 예약했고 schedule hash `3bb5e81241a3be2a1509e67528e577ae8f48fca94dec5fc15f93ec8ac78052ef`로 전체 계약을 고정한다.

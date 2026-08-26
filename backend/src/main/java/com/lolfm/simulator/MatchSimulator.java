@@ -828,6 +828,10 @@ public class MatchSimulator {
                     attacking.auditAdjustment(), TeamSide.BLUE, null, null,
                     attacking.localDecision().candidateScore(), attacking.localDecision().baselineScore(), attacking.localDecision().sample(),
                     attacking.localDecision().sampleIdentity(), winner);
+        }
+        if (state.getCompositionRuntimeState().isAuditSemantics()
+                || state.getCompositionRuntimeState().isProductionV2()) {
+            TeamSide winner = attacking.actingState() == state.getBlueTeamState() ? TeamSide.BLUE : TeamSide.RED;
             recordSkirmishDecisionProvenance(state, attacking, winner);
         }
         if (state.getCompositionRuntimeState().isCandidate() && attacking.localDecision() != null) {
@@ -872,6 +876,8 @@ public class MatchSimulator {
         for (int i = eventStart; i < events.size(); i++) {
             if (events.get(i).getType() == MatchEventType.KILL) {
                 markStructuredParticipants(state, events.get(i));
+                state.getCompositionRuntimeState().bindPublicAction(
+                        state.getCompositionRuntimeState().lastActualAttemptId(), events.get(i));
                 break;
             }
         }
@@ -940,13 +946,14 @@ public class MatchSimulator {
                 new CompositionDecisionScoreStage("COMPOSITION", selection.blueWeight(), adjustment.rawEdge(),
                         selection.blueCandidateWeight() - selection.blueWeight(), selection.blueCandidateWeight(), CompositionFactorAvailability.EXACT_RUNTIME_COMPONENT));
         state.getCompositionRuntimeState().recordWinnerDecisionProvenance(new CompositionWinnerDecisionProvenance(
-                state.getCompositionRuntimeState().matchSeed(), state.getCompositionRuntimeState().semanticsAuditAuthorization().diagnosticCaseIndex(),
+                state.getCompositionRuntimeState().matchSeed(), state.getCompositionRuntimeState().isAuditSemantics()
+                        ? state.getCompositionRuntimeState().semanticsAuditAuthorization().diagnosticCaseIndex() : -1,
                 state.getCompositionRuntimeState().lastActualAttemptId(), "SKIRMISH|SKIRMISH|SKIRMISH_COMBAT_SCORE",
                 TeamCompositionContext.SKIRMISH, CompositionActionType.SKIRMISH, CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE,
                 time, TeamSide.BLUE, null, null, CompositionCombatRole.SYMMETRIC, CompositionRuntimeDecisionKind.WEIGHTED_SELECTION,
                 CompositionRuntimeComparisonOperator.SAMPLE_LESS_THAN_PROBABILITY, adjustment.baselineGap(), adjustment.rawEdge(),
                 adjustment.referenceGain(), adjustment.winnerModifier(), adjustment.winnerDecisionGap(), local.baselineScore(), local.candidateScore(),
-                local.sample(), local.candidateScore(), TeamSide.valueOf(local.baselineDecision()), runtimeWinner,
+                local.sample(), local.sampleIdentity(), local.candidateScore(), TeamSide.valueOf(local.baselineDecision()), runtimeWinner,
                 blue.getGold(), red.getGold(), blue.getKills(), red.getKills(),
                 (int)blue.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(time)).count(),
                 (int)red.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(time)).count(),

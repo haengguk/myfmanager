@@ -456,7 +456,14 @@ public final class MatchupV9StructureAttributionArtifactWriter {
                         "requiredValue", 0, "observedPairFailures", correctnessErrors,
                         "metrics", List.of("invalidHealth", "duplicateStructuredAction",
                                 "nexusOrdering", "postFinishMutation", "impossibleRespawn",
-                                "displayIdentity", "ineligibleDuplicateRandomConsumption"))),
+                                "maximumStructureHealthDifference"),
+                        "focusedInvariantEvidence", Map.of(
+                                "displayIdentity", Map.of(
+                                        "status", PairedDiagnosticAuditGate.FOCUSED_PROOF_STATUS,
+                                        "evidenceId", "StructureEngineRedesignTest#displayNamesDoNotDefineStructureIdentity"),
+                                "ineligibleDuplicateRandomConsumption", Map.of(
+                                        "status", PairedDiagnosticAuditGate.FOCUSED_PROOF_STATUS,
+                                        "evidenceId", "StructureEngineRedesignTest#duplicateAndIneligibleCallsDoNotConsumeRandom")))),
                 Map.entry("observationalSensitivity", Map.of(
                         "hardCeiling", "NONE_WITHOUT_PRODUCT_RATIONALE",
                         "metrics", List.of("anyFinalStateChanged", "hpOnlyChanged",

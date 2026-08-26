@@ -1,5 +1,6 @@
 package com.lolfm.simulator;
 
+import com.lolfm.composition.GameplayAttemptId;
 import com.lolfm.domain.CombatSource;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
@@ -27,16 +28,53 @@ public final class ObjectiveFightResolver {
 
     public ObjectiveFightOutcome resolve(
             GameState state, Random random, List<MatchEvent> events, String actionId) {
+        return resolve(state, random, events, actionId, null);
+    }
+
+    ObjectiveFightOutcome resolve(
+            GameState state, Random random, List<MatchEvent> events, String actionId,
+            GameplayAttemptId compositionAttemptId) {
         java.util.Objects.requireNonNull(actionId, "actionId");
         int eventStart = events.size();
         Team blue = domainTeam(state.getBlueTeamState());
         Team red = domainTeam(state.getRedTeamState());
         ObjectiveFightSkillImpactData skillImpact = objectiveSkillImpact(state);
         double goldContribution=(state.getBlueTeamState().getGold()-state.getRedTeamState().getGold())/500.0;
-        double existing=goldContribution+(state.getBlueTeamState().getKills()-state.getRedTeamState().getKills())*11.0+teamfights.teamfightScore(state,TeamSide.BLUE,blue)-teamfights.teamfightScore(state,TeamSide.RED,red)+skillImpact.setupEdgeContribution();
-        double scoreWithoutNoise=existing+new CombatProgressionEvaluator().contribution(state,ProgressionCombatContext.OBJECTIVE_FIGHT,alive(state.getBlueTeamState(),state.getCurrentTimeSeconds()),alive(state.getRedTeamState(),state.getCurrentTimeSeconds()),existing,goldContribution);
-        double advantage=new CombatOutcomeProbabilityEvaluator().resolveUniformAdvantageScore(scoreWithoutNoise,random);
+        double common = goldContribution
+                + (state.getBlueTeamState().getKills() - state.getRedTeamState().getKills()) * 11.0
+                + skillImpact.setupEdgeContribution();
+        double runtimeExisting = common + teamfights.teamfightScore(state, TeamSide.BLUE, blue)
+                - teamfights.teamfightScore(state, TeamSide.RED, red);
+        boolean productionCounterfactual = state.getCompositionRuntimeState().isProductionV2();
+        double baselineExisting = productionCounterfactual
+                ? common + teamfights.teamfightScoreWithoutComposition(state, TeamSide.BLUE, blue)
+                - teamfights.teamfightScoreWithoutComposition(state, TeamSide.RED, red)
+                : runtimeExisting;
+        CombatProgressionEvaluator progression = new CombatProgressionEvaluator();
+        double baselineScoreWithoutNoise = baselineExisting + progression.contribution(state,
+                ProgressionCombatContext.OBJECTIVE_FIGHT,
+                alive(state.getBlueTeamState(), state.getCurrentTimeSeconds()),
+                alive(state.getRedTeamState(), state.getCurrentTimeSeconds()), baselineExisting, goldContribution);
+        double scoreWithoutNoise = runtimeExisting + progression.contribution(state,
+                ProgressionCombatContext.OBJECTIVE_FIGHT,
+                alive(state.getBlueTeamState(), state.getCurrentTimeSeconds()),
+                alive(state.getRedTeamState(), state.getCurrentTimeSeconds()), runtimeExisting, goldContribution);
+        double sample = random.nextDouble();
+        long sampleOrdinal = random instanceof SideOrientationRandomTraceObserver observer
+                ? observer.drawCount() : -1L;
+        CombatOutcomeProbabilityEvaluator probability = new CombatOutcomeProbabilityEvaluator();
+        double baselineAdvantage = probability.resolveUniformAdvantageScore(baselineScoreWithoutNoise, sample);
+        double advantage = probability.resolveUniformAdvantageScore(scoreWithoutNoise, sample);
         TeamSide winner = advantage >= 0 ? TeamSide.BLUE : TeamSide.RED;
+        TeamSide baselineWinner = baselineAdvantage >= 0 ? TeamSide.BLUE : TeamSide.RED;
+        if (productionCounterfactual && compositionAttemptId != null) {
+            state.getCompositionRuntimeState().recordExistingNonScalarDecisionProvenance(
+                    compositionAttemptId, "ObjectiveFightResolver.teamfightScore.supportToolExecution",
+                    baselineScoreWithoutNoise, scoreWithoutNoise,
+                    probability.uniformAdvantageProbability(baselineScoreWithoutNoise),
+                    probability.uniformAdvantageProbability(scoreWithoutNoise), sample, sampleOrdinal,
+                    baselineWinner, winner);
+        }
         Team winningTeam = winner == TeamSide.BLUE ? blue : red;
         Team losingTeam = winner == TeamSide.BLUE ? red : blue;
         TeamState winningState = state.getTeamState(winner);
@@ -64,6 +102,9 @@ public final class ObjectiveFightResolver {
         for (int index = eventStart; index < events.size(); index++) {
             events.get(index).setCombatSource(CombatSource.OBJECTIVE_FIGHT);
             events.get(index).setActionId(actionId);
+        }
+        if (productionCounterfactual && compositionAttemptId != null) {
+            state.getCompositionRuntimeState().bindPublicAction(compositionAttemptId, startEvent);
         }
         state.getCombatOutcomeExecutionStats().record(ProgressionCombatContext.OBJECTIVE_FIGHT,state.getCurrentTimeSeconds(),true,winner,blueParticipants,redParticipants);
         return new ObjectiveFightOutcome(winner, killed ? 1 : 0, participants, skillImpact);

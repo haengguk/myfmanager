@@ -58,7 +58,7 @@ public final class MatchupV9StructureAttributionRunner {
     private static final String BUILD_END =
             "// MATCHUP_V9_STRUCTURE_ATTRIBUTION_BUILD_CONTRACT_END";
     private static final String CHECKPOINT_SCHEMA =
-            "MATCHUP_V9_STRUCTURE_ATTRIBUTION_SHARD_CHECKPOINT_V1";
+            "MATCHUP_V9_STRUCTURE_ATTRIBUTION_SHARD_CHECKPOINT_V2";
 
     private final ObjectMapper mapper;
     private final ObjectMapper canonical;
@@ -66,6 +66,7 @@ public final class MatchupV9StructureAttributionRunner {
     private final ConfiguredMatchSimulatorFactory simulators;
     private final SimulationProvenanceService provenance;
     private final PlayerIdentityCatalog identities;
+    private final PairedDiagnosticAuditGate auditGate;
 
     public MatchupV9StructureAttributionRunner(
             RealDraftMatchOrchestrator orchestrator,
@@ -87,6 +88,7 @@ public final class MatchupV9StructureAttributionRunner {
                 orchestrator, simulators, mapper, champions, identities, ratings, proficiencies);
         provenance = new SimulationProvenanceService(
                 mapper, champions, identities, ratings, proficiencies);
+        auditGate = new PairedDiagnosticAuditGate(mapper);
     }
 
     public FreezeResult freeze(Path backendRoot, Path output) throws Exception {
@@ -217,12 +219,19 @@ public final class MatchupV9StructureAttributionRunner {
         writeFrozen(path, canonicalBytes(checkpoint));
         writeFrozen(sidecar(path), (fileHash(path) + "  " + path.getFileName() + "\n")
                 .getBytes(StandardCharsets.UTF_8));
+        List<PairedDiagnosticAuditGate.RowEnvelope> auditRows = pairs.stream()
+                .map(this::auditEnvelope).toList();
+        var workerReceipt = auditGate.writeShard(
+                output, auditContract(binding), shardIndex, path, auditRows);
         return new ShardResult(shardIndex, fixtures, pairs.size(), replayChecks,
-                instrumentationChecks, checkpoint.workerJvmIdentityHash());
+                instrumentationChecks,
+                workerReceipt.processIdentity().processIdentityHash());
     }
 
     public FinalizationResult finalizeArtifacts(Path backendRoot, Path output) throws Exception {
         Binding binding = requireBinding(backendRoot, output);
+        PairedDiagnosticAuditGate.VerifiedBundle verified = auditGate.verify(
+                output, auditContract(binding));
         ArrayList<PairRow> pairs = new ArrayList<>();
         for (int shard = 0; shard < SHARD_COUNT; shard++) {
             Path path = output.resolve("checkpoints").resolve("shard-" + shard + ".json");
@@ -236,7 +245,15 @@ public final class MatchupV9StructureAttributionRunner {
                     checkpoint.harnessSourceHash()) || checkpoint.shardIndex() != shard) {
                 throw new IllegalStateException("Attribution checkpoint binding mismatch");
             }
-            pairs.addAll(checkpoint.pairs());
+            for (PairRow pair : checkpoint.pairs()) {
+                var authenticated = verified.rowsByPairKey().get(pair.pairKey());
+                if (authenticated == null || !authenticated.row().sourcePairPayloadSha256()
+                        .equals(auditGate.canonicalHash(pair))) {
+                    throw new IllegalStateException(
+                            "Attribution pair outcome/observation differs from receipt");
+                }
+                pairs.add(pair);
+            }
         }
         pairs.sort(Comparator.comparingInt(PairRow::fixtureIndex)
                 .thenComparingInt(PairRow::seedIndex));
@@ -356,6 +373,9 @@ public final class MatchupV9StructureAttributionRunner {
         var matchup = diagnostics.championMatchup();
         return new RunSummary(
                 run.profileId(), run.provenance().configurationHash(),
+                run.provenance().engineImplementationVersion(),
+                run.provenance().activeGameplayRulesVersion(),
+                run.provenance().resourceProvenance().resourceProvenanceHash(),
                 run.provenance().replayProvenanceHash(), run.provenance().timelineHash(),
                 run.execution().randomFingerprint().randomDrawCount(),
                 run.execution().randomFingerprint().randomTraceHash(),
@@ -387,10 +407,13 @@ public final class MatchupV9StructureAttributionRunner {
         long perspective = before.matchupPerspectiveMismatchErrors()
                 + after.matchupPerspectiveMismatchErrors();
         long off = before.matchupApplications();
+        long maximumHealthDifference = MatchupV9StructureAttributionClassifier.compare(
+                before.finalStructureState(), after.finalStructureState())
+                .anyMaximumHealthDifference() ? 1 : 0;
         return new Correctness(timeout, gameplay, invalid, duplicate, nexus, post, respawn,
-                0, 0, random, perspective, off,
+                maximumHealthDifference, random, perspective, off,
                 timeout + gameplay + invalid + duplicate + nexus + post + respawn
-                        + random + perspective + off == 0);
+                        + maximumHealthDifference + random + perspective + off == 0);
     }
 
     private static StructureValidation validateStructureTimeline(MatchTimeline timeline) {
@@ -815,6 +838,118 @@ public final class MatchupV9StructureAttributionRunner {
         return output;
     }
 
+    private PairedDiagnosticAuditGate.Contract auditContract(Binding binding) {
+        var schedule = MatchupV9StructureAttributionContract.schedule();
+        ArrayList<PairedDiagnosticAuditGate.ExpectedPair> expected = new ArrayList<>();
+        for (int fixtureIndex = 0; fixtureIndex < schedule.fixtures().size(); fixtureIndex++) {
+            var fixture = schedule.fixtures().get(fixtureIndex);
+            for (int seedIndex = 0; seedIndex < fixture.seeds().size(); seedIndex++) {
+                long seed = fixture.seeds().get(seedIndex);
+                expected.add(new PairedDiagnosticAuditGate.ExpectedPair(
+                        fixtureIndex, fixture.fixtureId(), fixture.fixtureLane().name(),
+                        fixture.pairId(), fixture.blueTeamCode(), fixture.redTeamCode(),
+                        fixture.seriesGameNumber(), fixtureIndex % SHARD_COUNT,
+                        seedIndex, seed, pairKey(fixture.fixtureId(), seedIndex, seed)));
+            }
+        }
+        List<PairedDiagnosticAuditGate.ProfileContract> profiles =
+                MatchupV9StructureAttributionContract.PROFILES.stream().map(profileId -> {
+                    var profile = SimulationRuntimeProfiles.resolve(profileId);
+                    return new PairedDiagnosticAuditGate.ProfileContract(
+                            profileId.name(), profile.configurationHash(),
+                            profile.activeGameplayRulesVersion());
+                }).toList();
+        return new PairedDiagnosticAuditGate.Contract(
+                PairedDiagnosticAuditGate.CONTRACT_SCHEMA,
+                "MATCHUP_V9_STRUCTURE_ATTRIBUTION_AUDIT_HARDENING_V2",
+                binding.contractHash(), schedule.scheduleHash(),
+                binding.sourceIdentity().attributionHarnessSourceTree().hash(),
+                binding.sourceIdentity().engineImplementationVersion(),
+                provenance.resourceProvenance().resourceProvenanceHash(),
+                provenance.draftRuleSetIdentity(), provenance.draftRuleSetHash(),
+                provenance.draftScoringPolicyHash(), SHARD_COUNT,
+                MatchupV9StructureAttributionContract.EXPECTED_FIXTURES,
+                MatchupV9StructureAttributionContract.EXPECTED_PROFILE_ROWS,
+                MatchupV9StructureAttributionContract.EXPECTED_PAIRS,
+                profiles, expected,
+                new PairedDiagnosticAuditGate.InvariantEvidence(
+                        new PairedDiagnosticAuditGate.InvariantProof(
+                                PairedDiagnosticAuditGate.FOCUSED_PROOF_STATUS,
+                                "StructureEngineRedesignTest#displayNamesDoNotDefineStructureIdentity"),
+                        new PairedDiagnosticAuditGate.InvariantProof(
+                                PairedDiagnosticAuditGate.FOCUSED_PROOF_STATUS,
+                                "StructureEngineRedesignTest#duplicateAndIneligibleCallsDoNotConsumeRandom")));
+    }
+
+    private PairedDiagnosticAuditGate.RowEnvelope auditEnvelope(PairRow pair) {
+        List<PairedDiagnosticAuditGate.ProfileExecution> profiles = List.of(
+                profileExecution(pair.baseline()), profileExecution(pair.matchupCandidate()));
+        Correctness value = pair.correctness();
+        var auditRow = new PairedDiagnosticAuditGate.AuditRow(
+                pair.fixtureIndex(), pair.fixtureId(), pair.fixtureLane().name(),
+                pair.unorderedTeamPairId(), pair.blueTeamCode(), pair.redTeamCode(),
+                pair.seriesGameNumber(), pair.seedIndex(), pair.seed(), pair.pairKey(),
+                pair.rosterIdentityHash(), pair.seriesHistoryBeforeHash(),
+                pair.draftDecisionHash(), pair.finalDraftHash(), pair.finalAssignmentHash(),
+                pair.inputIdentityExact(), auditGate.canonicalHash(pair), profiles,
+                new PairedDiagnosticAuditGate.CorrectnessEvidence(
+                        value.timeoutCount(), value.gameplayIntegrityErrorCount(),
+                        value.invalidStructureHealthCount(),
+                        value.duplicateStructuredStructureActionCount(),
+                        value.nexusDestroyedWithTurretAliveCount(),
+                        value.postFinishStructureMutationEventCount(),
+                        value.impossibleRespawnStateTransitionCount(),
+                        value.maximumStructureHealthDifferenceCount(),
+                        value.matchupDirectRandomCallCount(),
+                        value.matchupPerspectiveMismatchCount(),
+                        value.matchupOffContributionCount(), value.pass()),
+                new PairedDiagnosticAuditGate.VerificationEvidence(
+                        pair.verification().replayChecked(), pair.verification().replayExact(),
+                        pair.verification().instrumentationProfilesChecked(),
+                        pair.verification().instrumentationTimelineRandomExact()));
+        return auditGate.envelope(auditRow);
+    }
+
+    private PairedDiagnosticAuditGate.ProfileExecution profileExecution(RunSummary run) {
+        Map<String, Object> outcome = Map.ofEntries(
+                Map.entry("winnerSide", run.winnerSide()),
+                Map.entry("winnerTeamCode", run.winnerTeamCode()),
+                Map.entry("endReason", run.endReason()),
+                Map.entry("durationSeconds", run.durationSeconds()),
+                Map.entry("objectiveSignature", run.objectiveSignature()),
+                Map.entry("timelineHash", run.timelineHash()),
+                Map.entry("randomDrawCount", run.randomDrawCount()),
+                Map.entry("randomTraceHash", run.randomTraceHash()));
+        Map<String, Object> structure = Map.of(
+                "finalState", run.finalStructureState(),
+                "timeline", run.structureTimeline(),
+                "validation", run.structureValidation());
+        return new PairedDiagnosticAuditGate.ProfileExecution(
+                run.profileId().name(), run.configurationHash(),
+                run.activeGameplayRulesVersion(), run.engineImplementationVersion(),
+                run.resourceProvenanceHash(), run.replayProvenanceHash(),
+                auditGate.canonicalHash(outcome), auditGate.canonicalHash(structure),
+                maximumStructureHealthHash(run.finalStructureState()),
+                run.structuredDiagnosticsHash());
+    }
+
+    private String maximumStructureHealthHash(FinalState state) {
+        TreeMap<String, Double> maximum = new TreeMap<>();
+        state.teams().forEach((side, team) -> {
+            maximum.put(side + "|NEXUS", team.nexusMaxHealth());
+            maximum.put(side + "|NEXUS_TURRET", team.nexusTurretMaxHealth());
+            team.lanes().forEach((lane, value) -> {
+                maximum.put(side + "|" + lane + "|OUTER", value.outerTower().maximum());
+                maximum.put(side + "|" + lane + "|INNER", value.innerTower().maximum());
+                maximum.put(side + "|" + lane + "|INHIBITOR_TURRET",
+                        value.inhibitorTower().maximum());
+                maximum.put(side + "|" + lane + "|INHIBITOR",
+                        value.inhibitor().maximum());
+            });
+        });
+        return auditGate.canonicalHash(maximum);
+    }
+
     private Map<String, Object> profileBindings() {
         LinkedHashMap<String, Object> result = new LinkedHashMap<>();
         for (var profile : MatchupV9StructureAttributionContract.PROFILES) {
@@ -1011,6 +1146,9 @@ public final class MatchupV9StructureAttributionRunner {
     public record RunSummary(
             SimulationRuntimeProfileId profileId,
             String configurationHash,
+            String engineImplementationVersion,
+            String activeGameplayRulesVersion,
+            String resourceProvenanceHash,
             String replayProvenanceHash,
             String timelineHash,
             long randomDrawCount,
@@ -1117,8 +1255,7 @@ public final class MatchupV9StructureAttributionRunner {
             long nexusDestroyedWithTurretAliveCount,
             long postFinishStructureMutationEventCount,
             long impossibleRespawnStateTransitionCount,
-            long displayNameBasedStructureIdentityCount,
-            long ineligibleDuplicateStructureRandomConsumptionErrorCount,
+            long maximumStructureHealthDifferenceCount,
             long matchupDirectRandomCallCount,
             long matchupPerspectiveMismatchCount,
             long matchupOffContributionCount,
