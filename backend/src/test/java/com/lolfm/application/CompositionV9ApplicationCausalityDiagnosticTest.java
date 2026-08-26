@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
+@Tag("diagnostic")
 class CompositionV9ApplicationCausalityDiagnosticTest {
     @Autowired RealDraftMatchOrchestrator orchestrator;
     @Autowired ConfiguredMatchSimulatorFactory simulators;
@@ -28,8 +29,12 @@ class CompositionV9ApplicationCausalityDiagnosticTest {
     @Tag("composition-v9-application-causality-freeze")
     void freezeContractBeforeFirstExecution() throws Exception {
         var result = runner().freeze(backendRoot(), output());
-        assertThat(result.overlapAudit().clean()).isTrue();
-        assertThat(result.overlapAudit().freshSeedCount()).isEqualTo(400);
+        assertThat(result.seedReuseAudit().valid()).isTrue();
+        assertThat(result.seedReuseAudit().relationship())
+                .isEqualTo(CompositionV9ApplicationCausalityRunner.EVIDENCE_REPAIR_RELATION);
+        assertThat(result.seedReuseAudit().reusedDistinctSeedCount()).isEqualTo(400);
+        assertThat(result.seedReuseAudit().freshEligibilityEvaluated()).isFalse();
+        assertThat(result.seedReuseAudit().freshSeedConsumed()).isFalse();
     }
 
     @Test

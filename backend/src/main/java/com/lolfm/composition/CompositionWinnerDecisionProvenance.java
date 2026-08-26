@@ -15,6 +15,7 @@ public record CompositionWinnerDecisionProvenance(
         CompositionBaselineScoreDomain scoreDomain,
         int timeSeconds,
         TeamSide perspectiveSide,
+        CompositionScoreOrientation scoreOrientation,
         TeamSide attackingSide,
         TeamSide defendingSide,
         CompositionCombatRole perspectiveRole,
@@ -25,6 +26,12 @@ public record CompositionWinnerDecisionProvenance(
         double selectedGain,
         double compositionModifier,
         double candidateScore,
+        double baselineScoreBeforeClamp,
+        double candidateScoreBeforeClamp,
+        double existingNonScalarCompositionComponent,
+        double baselineClampDelta,
+        double candidateClampDelta,
+        double clampEffect,
         double baselineProbability,
         double candidateProbability,
         double randomSample,
@@ -74,6 +81,7 @@ public record CompositionWinnerDecisionProvenance(
         Objects.requireNonNull(actionType, "actionType");
         Objects.requireNonNull(scoreDomain, "scoreDomain");
         Objects.requireNonNull(perspectiveSide, "perspectiveSide");
+        Objects.requireNonNull(scoreOrientation, "scoreOrientation");
         Objects.requireNonNull(perspectiveRole, "perspectiveRole");
         Objects.requireNonNull(decisionKind, "decisionKind");
         Objects.requireNonNull(comparisonOperator, "comparisonOperator");
@@ -84,5 +92,33 @@ public record CompositionWinnerDecisionProvenance(
         Objects.requireNonNull(championPowerAvailability, "championPowerAvailability");
         Objects.requireNonNull(matchupAvailability, "matchupAvailability");
         scoreStages = List.copyOf(scoreStages);
+        requireFinite(baselineScore, "baselineScore");
+        requireFinite(candidateScore, "candidateScore");
+        requireFinite(baselineScoreBeforeClamp, "baselineScoreBeforeClamp");
+        requireFinite(candidateScoreBeforeClamp, "candidateScoreBeforeClamp");
+        requireFinite(existingNonScalarCompositionComponent,
+                "existingNonScalarCompositionComponent");
+        requireFinite(baselineClampDelta, "baselineClampDelta");
+        requireFinite(candidateClampDelta, "candidateClampDelta");
+        requireFinite(clampEffect, "clampEffect");
+        requireClose(candidateScoreBeforeClamp - baselineScoreBeforeClamp,
+                compositionModifier + existingNonScalarCompositionComponent,
+                "pre-clamp score decomposition");
+        requireClose(baselineScore, baselineScoreBeforeClamp + baselineClampDelta,
+                "baseline clamp decomposition");
+        requireClose(candidateScore, candidateScoreBeforeClamp + candidateClampDelta,
+                "candidate clamp decomposition");
+        requireClose(clampEffect, candidateClampDelta - baselineClampDelta,
+                "differential clamp effect");
+    }
+
+    private static void requireFinite(double value, String field) {
+        if (!Double.isFinite(value)) throw new IllegalArgumentException(field + " must be finite");
+    }
+
+    private static void requireClose(double actual, double expected, String field) {
+        if (Math.abs(actual - expected) > 1e-12) {
+            throw new IllegalArgumentException(field + " mismatch");
+        }
     }
 }

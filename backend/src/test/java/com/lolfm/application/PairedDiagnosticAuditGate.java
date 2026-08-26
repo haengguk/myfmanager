@@ -29,14 +29,14 @@ import java.util.regex.Pattern;
  * it never participates in gameplay or owns match state.
  */
 public final class PairedDiagnosticAuditGate {
-    public static final String CONTRACT_SCHEMA = "PAIRED_DIAGNOSTIC_AUDIT_CONTRACT_V1";
-    public static final String CHECKPOINT_SCHEMA = "PAIRED_DIAGNOSTIC_AUDIT_CHECKPOINT_V1";
-    public static final String WORKER_RECEIPT_SCHEMA = "PAIRED_DIAGNOSTIC_WORKER_RECEIPT_V1";
+    public static final String CONTRACT_SCHEMA = "PAIRED_DIAGNOSTIC_AUDIT_CONTRACT_V2";
+    public static final String CHECKPOINT_SCHEMA = "PAIRED_DIAGNOSTIC_AUDIT_CHECKPOINT_V2";
+    public static final String WORKER_RECEIPT_SCHEMA = "PAIRED_DIAGNOSTIC_WORKER_RECEIPT_V2";
     public static final String RECEIPT_MANIFEST_SCHEMA =
-            "PAIRED_DIAGNOSTIC_CHECKPOINT_RECEIPT_MANIFEST_V1";
+            "PAIRED_DIAGNOSTIC_CHECKPOINT_RECEIPT_MANIFEST_V2";
     public static final String FOCUSED_PROOF_STATUS = "FOCUSED_CONTRACT_TEST";
-    public static final String CHECKPOINT_DIRECTORY = "checkpoints-authenticated-v2";
-    public static final String RECEIPT_DIRECTORY = "worker-receipts-v2";
+    public static final String CHECKPOINT_DIRECTORY = "checkpoints-authenticated-v3";
+    public static final String RECEIPT_DIRECTORY = "worker-receipts-v3";
 
     private static final Pattern HASH = Pattern.compile("[0-9a-f]{64}");
     private final ObjectMapper mapper;
@@ -108,6 +108,7 @@ public final class PairedDiagnosticAuditGate {
         Map<String, ExpectedPair> expected = expectedByKey(contract);
         Map<String, RowEnvelope> rowsByKey = new LinkedHashMap<>();
         ArrayList<WorkerReceipt> receipts = new ArrayList<>();
+        LinkedHashMap<String, String> receiptPayloadHashes = new LinkedHashMap<>();
         Set<String> processIdentities = new HashSet<>();
         Set<Long> processIds = new HashSet<>();
         for (int shard = 0; shard < contract.shardCount(); shard++) {
@@ -115,8 +116,14 @@ public final class PairedDiagnosticAuditGate {
             if (!Files.isRegularFile(receiptPath)) {
                 throw new IllegalStateException("Missing worker receipt for shard " + shard);
             }
-            WorkerReceipt receipt = mapper.readValue(receiptPath.toFile(), WorkerReceipt.class);
+            byte[] receiptPayload = Files.readAllBytes(receiptPath);
+            WorkerReceipt receipt = mapper.readValue(receiptPayload, WorkerReceipt.class);
+            if (!Arrays.equals(receiptPayload, canonicalBytes(receipt))) {
+                throw new IllegalStateException("Worker receipt bytes are not canonical/exact");
+            }
             validateReceipt(receipt, contract, shard);
+            receiptPayloadHashes.put(output.relativize(receiptPath).toString().replace('\\', '/'),
+                    sha256(receiptPayload));
             if (!processIdentities.add(receipt.processIdentity().processIdentityHash())
                     || !processIds.add(receipt.processIdentity().processId())) {
                 throw new IllegalStateException("Worker receipts are not distinct JVM processes");
@@ -162,8 +169,35 @@ public final class PairedDiagnosticAuditGate {
         ReceiptManifest manifest = new ReceiptManifest(
                 RECEIPT_MANIFEST_SCHEMA, contract.diagnosticId(), contract.shardCount(),
                 receipts.size(), processIdentities.size(), rowsByKey.size(),
-                receiptManifestHash(orderedReceipts), orderedReceipts);
+                receiptManifestHash(orderedReceipts, receiptPayloadHashes),
+                Map.copyOf(receiptPayloadHashes), orderedReceipts);
+        verifyReceiptManifestExact(output, manifest);
         return new VerifiedBundle(Map.copyOf(rowsByKey), manifest);
+    }
+
+    public void verifyReceiptManifestExact(Path output, ReceiptManifest manifest) throws IOException {
+        if (!RECEIPT_MANIFEST_SCHEMA.equals(manifest.schemaVersion())
+                || manifest.workerReceiptPayloadSha256ByPath().size()
+                != manifest.workerReceiptCount()) {
+            throw new IllegalStateException("Worker receipt manifest coverage mismatch");
+        }
+        for (WorkerReceipt receipt : manifest.workers()) {
+            Path path = receiptPath(output, receipt.shardIndex());
+            String logical = output.relativize(path).toString().replace('\\', '/');
+            byte[] payload = Files.readAllBytes(path);
+            if (!sha256(payload).equals(
+                    manifest.workerReceiptPayloadSha256ByPath().get(logical))
+                    || !Arrays.equals(payload, canonicalBytes(receipt))) {
+                throw new IllegalStateException(
+                        "Worker receipt manifest differs from nested receipt bytes");
+            }
+        }
+        List<WorkerReceipt> ordered = manifest.workers().stream()
+                .sorted(Comparator.comparingInt(WorkerReceipt::shardIndex)).toList();
+        if (!receiptManifestHash(ordered,
+                manifest.workerReceiptPayloadSha256ByPath()).equals(manifest.receiptManifestHash())) {
+            throw new IllegalStateException("Worker receipt manifest hash mismatch");
+        }
     }
 
     public String canonicalHash(Object value) {
@@ -216,15 +250,24 @@ public final class PairedDiagnosticAuditGate {
         requireHash(contract.contractHash(), "contractHash");
         requireHash(contract.scheduleHash(), "scheduleHash");
         requireHash(contract.harnessSourceHash(), "harnessSourceHash");
+        requireHash(contract.productionSourceHash(), "productionSourceHash");
         requireHash(contract.resourceProvenanceHash(), "resourceProvenanceHash");
         requireHash(contract.draftRuleSetHash(), "draftRuleSetHash");
         requireHash(contract.draftScoringPolicyHash(), "draftScoringPolicyHash");
-        if (!FOCUSED_PROOF_STATUS.equals(
-                contract.invariantEvidence().displayNameIdentity().status())
-                || !FOCUSED_PROOF_STATUS.equals(contract.invariantEvidence()
-                .ineligibleDuplicateRandomConsumption().status())) {
-            throw new IllegalStateException(
-                    "Natural population cannot claim unobserved focused invariants as zero");
+        DiagnosticDependencyManifest.verify(contract.dependencyManifest());
+        if (!contract.harnessSourceHash().equals(
+                contract.dependencyManifest().harnessSourceHash())) {
+            throw new IllegalStateException("Harness hash differs from dependency manifest");
+        }
+        try {
+            FocusedInvariantProofReceipt.verify(
+                    contract.invariantEvidence().displayNameIdentity(),
+                    contract.productionSourceHash(), contract.dependencyManifest());
+            FocusedInvariantProofReceipt.verify(
+                    contract.invariantEvidence().ineligibleDuplicateRandomConsumption(),
+                    contract.productionSourceHash(), contract.dependencyManifest());
+        } catch (IllegalArgumentException mismatch) {
+            throw new IllegalStateException("Focused invariant proof receipt mismatch", mismatch);
         }
     }
 
@@ -396,7 +439,11 @@ public final class PairedDiagnosticAuditGate {
                 + value.impossibleRespawnStateTransitionCount()
                 + value.maximumHealthDifferenceCount()
                 + value.directRandomCallCount() + value.perspectiveMismatchCount()
-                + value.offContributionCount();
+                + value.offContributionCount() + value.unboundAppliedTraceCount()
+                + value.unboundChangedTraceCount() + value.appliedConsumerNotReachedCount()
+                + value.exactActionCausalMismatchCount() + value.duplicatePublicBindingCount()
+                + value.conflictingPublicBindingCount()
+                + value.scalarNonScalarDecompositionMismatchCount();
         if (errors != 0 || !value.pass()) {
             throw new IllegalStateException("Correctness pass flag/count evidence differs");
         }
@@ -426,13 +473,16 @@ public final class PairedDiagnosticAuditGate {
         return sha256(value.toString().getBytes(StandardCharsets.UTF_8));
     }
 
-    private String receiptManifestHash(List<WorkerReceipt> receipts) {
+    private String receiptManifestHash(List<WorkerReceipt> receipts,
+                                       Map<String, String> receiptPayloadHashes) {
         StringBuilder value = new StringBuilder("schema=").append(RECEIPT_MANIFEST_SCHEMA)
                 .append('\n');
         receipts.forEach(receipt -> value.append(receipt.shardIndex()).append('|')
                 .append(receipt.processIdentity().processIdentityHash()).append('|')
                 .append(receipt.sourceCheckpointPayloadSha256()).append('|')
                 .append(receipt.auditCheckpointPayloadSha256()).append('|')
+                .append(receiptPayloadHashes.get(RECEIPT_DIRECTORY + "/shard-"
+                        + receipt.shardIndex() + ".json")).append('|')
                 .append(receipt.coverageHash()).append('|')
                 .append(receipt.executionEvidenceHash()).append('\n'));
         return sha256(value.toString().getBytes(StandardCharsets.UTF_8));
@@ -507,6 +557,8 @@ public final class PairedDiagnosticAuditGate {
             String contractHash,
             String scheduleHash,
             String harnessSourceHash,
+            String productionSourceHash,
+            DiagnosticDependencyManifest.Manifest dependencyManifest,
             String engineImplementationVersion,
             String resourceProvenanceHash,
             String draftRuleSetIdentity,
@@ -547,11 +599,9 @@ public final class PairedDiagnosticAuditGate {
     ) { }
 
     public record InvariantEvidence(
-            InvariantProof displayNameIdentity,
-            InvariantProof ineligibleDuplicateRandomConsumption
+            FocusedInvariantProofReceipt.Receipt displayNameIdentity,
+            FocusedInvariantProofReceipt.Receipt ineligibleDuplicateRandomConsumption
     ) { }
-
-    public record InvariantProof(String status, String evidenceId) { }
 
     public record WorkerProcessIdentity(
             String runtimeName,
@@ -612,6 +662,13 @@ public final class PairedDiagnosticAuditGate {
             long directRandomCallCount,
             long perspectiveMismatchCount,
             long offContributionCount,
+            long unboundAppliedTraceCount,
+            long unboundChangedTraceCount,
+            long appliedConsumerNotReachedCount,
+            long exactActionCausalMismatchCount,
+            long duplicatePublicBindingCount,
+            long conflictingPublicBindingCount,
+            long scalarNonScalarDecompositionMismatchCount,
             boolean pass
     ) { }
 
@@ -672,9 +729,11 @@ public final class PairedDiagnosticAuditGate {
             int distinctWorkerProcessCount,
             int pairedRowCount,
             String receiptManifestHash,
+            Map<String, String> workerReceiptPayloadSha256ByPath,
             List<WorkerReceipt> workers
     ) {
         public ReceiptManifest {
+            workerReceiptPayloadSha256ByPath = Map.copyOf(workerReceiptPayloadSha256ByPath);
             workers = List.copyOf(workers);
         }
     }

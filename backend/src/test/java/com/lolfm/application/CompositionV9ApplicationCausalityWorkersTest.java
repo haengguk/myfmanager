@@ -36,24 +36,28 @@ abstract class CompositionV9ApplicationCausalityWorkerSupport {
 }
 
 @SpringBootTest
+@Tag("diagnostic")
 @Tag("composition-v9-application-causality-worker")
 class CompositionV9ApplicationCausalityShard0Test extends CompositionV9ApplicationCausalityWorkerSupport {
     @Test void runShard() throws Exception { assertShard(0); }
 }
 
 @SpringBootTest
+@Tag("diagnostic")
 @Tag("composition-v9-application-causality-worker")
 class CompositionV9ApplicationCausalityShard1Test extends CompositionV9ApplicationCausalityWorkerSupport {
     @Test void runShard() throws Exception { assertShard(1); }
 }
 
 @SpringBootTest
+@Tag("diagnostic")
 @Tag("composition-v9-application-causality-worker")
 class CompositionV9ApplicationCausalityShard2Test extends CompositionV9ApplicationCausalityWorkerSupport {
     @Test void runShard() throws Exception { assertShard(2); }
 }
 
 @SpringBootTest
+@Tag("diagnostic")
 @Tag("composition-v9-application-causality-worker")
 class CompositionV9ApplicationCausalityShard3Test extends CompositionV9ApplicationCausalityWorkerSupport {
     @Test void runShard() throws Exception { assertShard(3); }

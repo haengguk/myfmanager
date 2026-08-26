@@ -1199,6 +1199,26 @@ tasks.register("runMatchEngineV9Requalification") {
 }
 // MATCH_ENGINE_V9_REQUALIFICATION_BUILD_CONTRACT_END
 // MATCHUP_V9_STRUCTURE_ATTRIBUTION_BUILD_CONTRACT_START
+tasks.register("verifyMatchupV9AttributionFocusedProof", Test) {
+    group = "verification"
+    description = "Produces exact focused JUnit proof receipts for the Matchup V9 attribution gate."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching "com.lolfm.simulator.StructureEngineRedesignTest.sameDisplayNamesCannotBorrowOpponentsRecentAce"
+        includeTestsMatching "com.lolfm.simulator.StructureEngineRedesignTest.twoPostFightAttackersCannotFallThroughIntoBaseAndConsumeNoRandom"
+    }
+    maxHeapSize = "2g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/verifyMatchupV9AttributionFocusedProof")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/verifyMatchupV9AttributionFocusedProof")
+}
+
 def registerMatchupV9StructureAttributionTest = { String taskName, String tag, int forks ->
     tasks.register(taskName, Test) {
         group = "verification"
@@ -1230,6 +1250,10 @@ registerMatchupV9StructureAttributionTest(
         "validateMatchupV9StructureAttributionAuditGate",
         "matchup-v9-structure-attribution-audit-gate", 1)
 
+tasks.named("freezeMatchupV9StructureAttribution") {
+    dependsOn("verifyMatchupV9AttributionFocusedProof")
+}
+
 tasks.named("runMatchupV9StructureAttributionWorkers") {
     dependsOn("freezeMatchupV9StructureAttribution")
 }
@@ -1245,6 +1269,26 @@ tasks.register("runMatchupV9StructureAttribution") {
 }
 // MATCHUP_V9_STRUCTURE_ATTRIBUTION_BUILD_CONTRACT_END
 // COMPOSITION_V9_APPLICATION_CAUSALITY_BUILD_CONTRACT_START
+tasks.register("verifyCompositionV9CausalityFocusedProof", Test) {
+    group = "verification"
+    description = "Produces exact focused JUnit proof receipts for the Composition V9 audit gate."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform()
+    filter {
+        includeTestsMatching "com.lolfm.composition.CompositionProductionApplicationProvenanceTest.offAndFreshMatchStateRemainExactZeroAndIsolated"
+        includeTestsMatching "com.lolfm.composition.CompositionProductionApplicationProvenanceTest.unsupportedContextIsStructuredDisabledAndCannotReachConsumer"
+    }
+    maxHeapSize = "2g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/verifyCompositionV9CausalityFocusedProof")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/verifyCompositionV9CausalityFocusedProof")
+}
+
 def registerCompositionV9ApplicationCausalityTest = { String taskName, String tag, int forks ->
     tasks.register(taskName, Test) {
         group = "verification"
@@ -1270,6 +1314,10 @@ registerCompositionV9ApplicationCausalityTest(
 registerCompositionV9ApplicationCausalityTest(
         "finalizeCompositionV9ApplicationCausality",
         "composition-v9-application-causality-finalize", 1)
+
+tasks.named("freezeCompositionV9ApplicationCausality") {
+    dependsOn("verifyCompositionV9CausalityFocusedProof")
+}
 
 tasks.named("runCompositionV9ApplicationCausalityWorkers") {
     dependsOn("freezeCompositionV9ApplicationCausality")

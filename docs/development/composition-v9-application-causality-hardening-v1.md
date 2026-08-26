@@ -2,11 +2,38 @@
 
 ## Verdict
 
-`COMPOSITION_APPLICATION_CAUSALITY_HARDENED_READY_FOR_FRESH_REQUALIFICATION_DESIGN`
+현재 authoritative evidence-repair 판정은
+`COMPOSITION_V9_CAUSALITY_AUDIT_HARDENED_AND_V5_EVIDENCE_REPAIRED`다.
+선행 V5 판정 `COMPOSITION_APPLICATION_CAUSALITY_HARDENED_READY_FOR_FRESH_REQUALIFICATION_DESIGN`은
+historical diagnostic 결론으로 보존한다.
 
 이 판정은 Composition의 production eligibility나 activation 판정이 아니다. Authoritative application policy는 계속 `BASELINE_V1`이고 Matchup/Composition/Jungle contribution은 각각 `OFF`/`OFF`/`DISABLED_NOT_INTEGRATED`다.
 
 기준 HEAD는 `b49773822dc5eb030a166d4e7bc93180dc46f470`이다. 최종 V5 contract가 동결한 production source hash는 `66e5f3f2148f47029e14b2395b692bea1e949284726fcf22478fb07282505b3d`, harness source hash는 `73544c08463f7d4bddc991b041834bc3bf49beed982986f43b9b0aa8755f3a6a`다.
+
+## V6 causality audit hardening and V5 evidence repair
+
+기준 커밋 `4c02debd19b5e0286cd586de02f106b44eb30499`에서 V5의 gameplay 수치나 eligibility를 새로 평가하지 않고 감사 계약과 증거 무결성만 복구했다. 최종 artifact는 `backend/build/reports/composition-v9-application-causality-hardening-v6/`이며, 기존 V5 root manifest raw SHA-256 `cc5d02b4c97e636cf927b07275ffcaff8eb4ec0badaaa307883d5391a5b45af9`와 `EVIDENCE_REPAIR_REUSES_V5_SEEDS_NOT_FRESH_ELIGIBILITY` 관계를 고정한다. V5 schedule의 400 distinct seeds를 재사용했고 `freshEligibilityEvaluated=false`, `freshSeedConsumed=false`다.
+
+대형 freeze/4-shard worker/finalize JUnit은 `diagnostic` tag를 가지며 기본 `test`에서 제외된다. 최종 default suite receipt는 2,169 test cases 중 forbidden Composition class 실행 0건을 증명한다. 빠른 contract/unit/rejection test와 exact-selector proof test는 기본 또는 전용 focused lane에 남는다.
+
+Diagnostic source identity는 파일명 prefix가 아니라 runner의 explicit dependency manifest를 사용한다. Composition manifest는 runner/contract/worker/gate, real-match harness와 executor, instrumentation executor, attribution classifier, proof source, 공통 receipt/manifest utility, production provenance/orchestration/policy와 해당 Gradle contract section을 포함한 23개 dependency의 logical path, raw SHA-256, CRLF→LF canonical SHA-256을 기록한다. Harness hash는 `c30b1b91c733e5af23ed9d7d3be97e5e3dc4785ab81d4770b414a53e117ae740`, production source guard는 `983daadb96bbcb53ea943f6abbf1aa4d69942c33c85f93dd1592d4610bcfe229`다. Runner가 새 direct/shared dependency를 사용하면 manifest 목록도 함께 갱신해야 하며, 무관한 test 파일은 포함하지 않는다. 중복 logical path, 누락 파일/section과 content/hash mismatch는 freeze 전에 거부한다. Matchup attribution manifest도 공통 `PairedDiagnosticAuditGate`, proof/manifest utility와 변경된 Gradle section을 포함한다.
+
+Focused invariant evidence는 문자열 label 대신 두 exact JUnit receipt다. 각 receipt는 class/method selector, source logical path/raw SHA, 고정 Gradle task/selector, production guard, 1/0/0/0 결과와 canonical PASS hash를 결속한다. Raw XML set hash는 관측값으로 별도 보존한다. 존재하지 않는 selector, source/production/task/result/payload 변조와 다른 task 재라벨은 rejection test가 거부한다.
+
+Public causality는 event/snapshot/objective/structure scope, deterministic final-timeline ordinal, time, action/parent action, event type, `CombatSource`, lane과 before/after structured payload hash를 기록한다. Exact direct cause는 complete event identity가 일치하고 non-null `actionId`가 있을 때만 인정한다. Snapshot-only 차이는 `INDIRECT_CAUSE` 또는 `UNRESOLVED_SNAPSHOT_CAUSE`이며 direct coverage에 포함하지 않는다. Final 400 pairs 중 public/event divergence 59건은 모두 exact direct cause였고 actionId null 0, indirect/unresolved/unexplained 0, exact event coverage 100%다. 같은 tick의 다른 changed attempt, altered binding identity, nested receipt/checkpoint/root manifest mutation은 focused rejection test에서 거부된다.
+
+Objective provenance는 실제 initiative/owner의 `routingPerspectiveSide`와 canonical `scoreOrientation=BLUE_MINUS_RED`를 분리한다. 486 applied objective traces는 BLUE initiative 249, RED 237, BLUE→RED flip 1, RED→BLUE flip 2, unchanged 483, orientation mismatch 0이었다. Gameplay winner와 secure/capture Random을 다시 뽑지 않고 baseline/runtime projection이 같은 sample을 공유한다.
+
+Teamfight/Siege/Base Defense의 기존 support-tool Composition component는 잔차가 아니라 explicit pre-clamp component로 전달한다. Post-clamp delta는 frozen scalar + exact existing non-scalar + differential clamp effect로 검증한다. SKIRMISH 3,224건은 existing non-scalar와 clamp effect가 모두 bit-exact positive zero였다. Counterfactual `CombatProgressionEvaluator`, Champion Power와 Matchup은 pure 계산과 actual record 경계를 분리해 pure 전후 execution stats/gameplay snapshot이 exact하고 runtime 경로만 1회 기록된다.
+
+Final correctness/replay/instrumentation gate는 모두 0 mismatch였다. Applied traces 4,967건의 consumer/public binding/actionId가 완전했고 scalar calculated/consumed 4,481/4,481, duplicate/conflicting binding, perspective/decomposition, direct Composition Random, replay 100, instrumentation 200 mismatch가 모두 0이었다. Resolver evaluation/trigger count는 계측되지 않은 0을 실제 0으로 과장하지 않고 400/400 모두 `NOT_INSTRUMENTED`로 기록한다.
+
+Worker receipt는 4개 distinct JVM PID `8548`, `26216`, `35088`, `31848`를 고정한다. Recursive root manifest는 top-level contract/JSON/JSONL/Markdown뿐 아니라 source checkpoints와 sidecar, authenticated checkpoints와 sidecar, worker receipts까지 39 files(20 nested)를 raw-byte hash로 검증한다. Final `SHA256SUMS.txt` raw SHA-256은 `79f957365e72fb201ca113ce19463e5298a51c102f9dc8f82af8851af870422f`이며 39/39 entry가 통과했다.
+
+최종 backend regression은 212 suites / 2,169 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit 732.447초, Gradle wall 12분 18초로 통과했다. 첫 clean full 뒤 최초 V6 evidence에서 SKIRMISH event 6건의 null action identity를 발견해 기존 structured `actionId`를 결정적으로 연결하고 affected focused tests 뒤 두 번째 full을 최종 결과로 사용했다. 이 변경은 event 순서, Random, winner, reward 또는 snapshot을 바꾸지 않는다.
+
+Production runtime은 계속 `BASELINE_V1`이며 Matchup/Composition/Jungle activation, gain/threshold tuning, resource/profile/API/frontend 변경은 없다. 다음 단계는 `AUTO_DRAFT_VARIETY_V1`이고, 그 이후 별도 계약과 새 non-overlapping seed를 가진 fresh requalification을 수행한다.
 
 ## Stage A: attribution audit harness gate
 

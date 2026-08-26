@@ -18,6 +18,28 @@ public final class CombatChampionPowerEvaluator {
             ProgressionCombatContext context,
             ProgressionApplicationStage stage
     ) {
+        return evaluate(state, own, enemy, context, stage, true);
+    }
+
+    /** Computes champion power without recording execution-diagnostic errors. */
+    public ChampionCombatPowerBreakdown evaluatePure(
+            GameState state,
+            List<PlayerState> own,
+            List<PlayerState> enemy,
+            ProgressionCombatContext context,
+            ProgressionApplicationStage stage
+    ) {
+        return evaluate(state, own, enemy, context, stage, false);
+    }
+
+    private ChampionCombatPowerBreakdown evaluate(
+            GameState state,
+            List<PlayerState> own,
+            List<PlayerState> enemy,
+            ProgressionCombatContext context,
+            ProgressionApplicationStage stage,
+            boolean recordDiagnostics
+    ) {
         List<PlayerState> ownEligible = eligible(own, state);
         List<PlayerState> enemyEligible = eligible(enemy, state);
         boolean configured = state.getChampionPowerProfileCatalog().isPresent()
@@ -30,9 +52,9 @@ public final class CombatChampionPowerEvaluator {
         }
 
         Map<PlayerKey, ChampionPowerBreakdown> ownValues = values(
-                state, ownEligible, context);
+                state, ownEligible, context, recordDiagnostics);
         Map<PlayerKey, ChampionPowerBreakdown> enemyValues = values(
-                state, enemyEligible, context);
+                state, enemyEligible, context, recordDiagnostics);
         double ownAverage = ChampionCombatPowerBreakdown.averageChampionPower(ownValues);
         double enemyAverage = ChampionCombatPowerBreakdown.averageChampionPower(enemyValues);
         double rawEdge = ownAverage - enemyAverage;
@@ -47,7 +69,8 @@ public final class CombatChampionPowerEvaluator {
     private Map<PlayerKey, ChampionPowerBreakdown> values(
             GameState state,
             List<PlayerState> players,
-            ProgressionCombatContext context
+            ProgressionCombatContext context,
+            boolean recordDiagnostics
     ) {
         LinkedHashMap<PlayerKey, ChampionPowerBreakdown> result = new LinkedHashMap<>();
         var evaluator = new ChampionPowerProfileEvaluator(
@@ -60,7 +83,9 @@ public final class CombatChampionPowerEvaluator {
                 championId = state.getChampionAssignments().orElseThrow()
                         .get(key).championId();
             } catch (RuntimeException error) {
-                state.getChampionPowerExecutionStats().missingAssignment();
+                if (recordDiagnostics) {
+                    state.getChampionPowerExecutionStats().missingAssignment();
+                }
                 throw error;
             }
             result.put(key, evaluator.evaluate(

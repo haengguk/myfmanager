@@ -9,7 +9,6 @@ import com.lolfm.application.PairedDiagnosticAuditGate.Contract;
 import com.lolfm.application.PairedDiagnosticAuditGate.CorrectnessEvidence;
 import com.lolfm.application.PairedDiagnosticAuditGate.ExpectedPair;
 import com.lolfm.application.PairedDiagnosticAuditGate.InvariantEvidence;
-import com.lolfm.application.PairedDiagnosticAuditGate.InvariantProof;
 import com.lolfm.application.PairedDiagnosticAuditGate.ProfileContract;
 import com.lolfm.application.PairedDiagnosticAuditGate.ProfileExecution;
 import com.lolfm.application.PairedDiagnosticAuditGate.RowEnvelope;
@@ -152,24 +151,65 @@ class MatchupV9StructureAttributionAuditGateTest {
                 .hasMessageContaining("not distinct JVM processes");
     }
 
+    @Test void rejectsNestedReceiptCheckpointAndPostVerificationReceiptMutation() throws Exception {
+        Contract contract = contract();
+
+        Path receiptRoot = temporary.resolve("receipt-byte-mutation");
+        writeBundle(receiptRoot, contract, false);
+        Path receipt = receiptRoot.resolve(PairedDiagnosticAuditGate.RECEIPT_DIRECTORY)
+                .resolve("shard-0.json");
+        Files.write(receipt, appendByte(Files.readAllBytes(receipt), (byte) ' '));
+        assertThatThrownBy(() -> gate.verify(receiptRoot, contract))
+                .isInstanceOf(IllegalStateException.class);
+
+        Path checkpointRoot = temporary.resolve("checkpoint-byte-mutation");
+        writeBundle(checkpointRoot, contract, false);
+        Path checkpoint = checkpointRoot.resolve(PairedDiagnosticAuditGate.CHECKPOINT_DIRECTORY)
+                .resolve("shard-0.json");
+        Files.write(checkpoint, appendByte(Files.readAllBytes(checkpoint), (byte) ' '));
+        assertThatThrownBy(() -> gate.verify(checkpointRoot, contract))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("checkpoint payload/receipt mismatch");
+
+        Path afterVerifyRoot = temporary.resolve("post-verify-replacement");
+        writeBundle(afterVerifyRoot, contract, false);
+        PairedDiagnosticAuditGate.VerifiedBundle verified = gate.verify(afterVerifyRoot, contract);
+        Path verifiedReceipt = afterVerifyRoot.resolve(PairedDiagnosticAuditGate.RECEIPT_DIRECTORY)
+                .resolve("shard-1.json");
+        Files.write(verifiedReceipt, appendByte(Files.readAllBytes(verifiedReceipt), (byte) ' '));
+        assertThatThrownBy(() -> gate.verifyReceiptManifestExact(
+                afterVerifyRoot, verified.receiptManifest()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("nested receipt bytes");
+    }
+
     @Test void requiresFocusedProofInsteadOfInventedPopulationZero() {
         Contract source = contract();
+        var proof = source.invariantEvidence().displayNameIdentity();
+        var relabeled = new FocusedInvariantProofReceipt.Receipt(
+                proof.schemaVersion(), proof.testClass(), proof.testMethod(), proof.exactSelector(),
+                proof.testSourceLogicalPath(), proof.testSourceSha256(), proof.gradleTask(),
+                proof.gradleSelector(), proof.resultsLogicalPath(), proof.gradleTaskIdentityHash(),
+                proof.productionGuardHash(), proof.tests(), proof.failures(), proof.errors(),
+                proof.skipped(), "FAIL", proof.canonicalJunitEvidenceHash(),
+                proof.rawJunitXmlSetSha256(), proof.proofReceiptPayloadSha256());
         Contract invalid = new Contract(
                 source.schemaVersion(), source.diagnosticId(), source.contractHash(),
                 source.scheduleHash(), source.harnessSourceHash(),
+                source.productionSourceHash(), source.dependencyManifest(),
                 source.engineImplementationVersion(), source.resourceProvenanceHash(),
                 source.draftRuleSetIdentity(), source.draftRuleSetHash(),
                 source.draftScoringPolicyHash(), source.shardCount(),
                 source.expectedFixtureCount(), source.expectedMatchRowCount(),
                 source.expectedPairCount(), source.profiles(), source.expectedPairs(),
-                new InvariantEvidence(new InvariantProof("OBSERVED_ZERO", "invented"),
+                new InvariantEvidence(relabeled,
                         source.invariantEvidence().ineligibleDuplicateRandomConsumption()));
 
         assertThatThrownBy(() -> gate.writeShard(temporary, invalid, 0,
                 sourceCheckpoint(0), rows(source, 0), process(0),
                 PairedDiagnosticAuditGate.environmentIdentityHash()))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("unobserved focused invariants");
+                .hasMessageContaining("Focused invariant proof receipt mismatch");
     }
 
     @Test void standaloneFinalizerHasNoWorkerDependency() throws Exception {
@@ -235,6 +275,11 @@ class MatchupV9StructureAttributionAuditGateTest {
     }
 
     private Contract contract() {
+        DiagnosticDependencyManifest.Manifest dependencies = syntheticDependencies();
+        String productionHash = hash("production source");
+        String proofSource = "synthetic/FocusedProof.java";
+        String proofSourceSha = DiagnosticDependencyManifest.requireDependency(
+                dependencies, proofSource).rawSha256();
         List<ProfileContract> profiles = List.of(
                 new ProfileContract("BASELINE", hash("configuration baseline"), "RULES_A"),
                 new ProfileContract("CANDIDATE", hash("configuration candidate"), "RULES_B"));
@@ -252,14 +297,33 @@ class MatchupV9StructureAttributionAuditGateTest {
         }
         return new Contract(PairedDiagnosticAuditGate.CONTRACT_SCHEMA,
                 "SYNTHETIC_ATTRIBUTION_AUDIT_GATE", hash("contract"), hash("schedule"),
-                hash("harness"), "ENGINE", hash("resources"), "DRAFT_RULES",
+                dependencies.harnessSourceHash(), productionHash, dependencies,
+                "ENGINE", hash("resources"), "DRAFT_RULES",
                 hash("draft rules"), hash("draft scoring"), SHARDS, SHARDS,
                 expected.size() * profiles.size(), expected.size(), profiles, expected,
                 new InvariantEvidence(
-                        new InvariantProof(PairedDiagnosticAuditGate.FOCUSED_PROOF_STATUS,
-                                "StructureEngineRedesignTest#displayIdentity"),
-                        new InvariantProof(PairedDiagnosticAuditGate.FOCUSED_PROOF_STATUS,
-                                "StructureEngineRedesignTest#ineligibleDuplicateRandom")));
+                        FocusedInvariantProofReceipt.syntheticPassing(
+                                "synthetic.FocusedProof", "displayIdentity", proofSource,
+                                proofSourceSha, "syntheticFocusedProof", productionHash),
+                        FocusedInvariantProofReceipt.syntheticPassing(
+                                "synthetic.FocusedProof", "ineligibleDuplicateRandom", proofSource,
+                                proofSourceSha, "syntheticFocusedProof", productionHash)));
+    }
+
+    private DiagnosticDependencyManifest.Manifest syntheticDependencies() {
+        try {
+            Path source = temporary.resolve("synthetic/FocusedProof.java");
+            Files.createDirectories(source.getParent());
+            if (!Files.exists(source)) {
+                Files.writeString(source, "class FocusedProof {}\n", StandardCharsets.UTF_8);
+            }
+            return DiagnosticDependencyManifest.create(temporary,
+                    "SYNTHETIC_DEPENDENCIES", "EXPLICIT_SYNTHETIC_TEST_DEPENDENCIES",
+                    List.of(DiagnosticDependencyManifest.DependencySpec.file(
+                            "synthetic/FocusedProof.java")));
+        } catch (IOException error) {
+            throw new IllegalStateException(error);
+        }
     }
 
     private List<RowEnvelope> rows(Contract contract, int shard) {
@@ -372,7 +436,7 @@ class MatchupV9StructureAttributionAuditGateTest {
 
     private CorrectnessEvidence correctness(boolean pass, long maximumDifference) {
         return new CorrectnessEvidence(0, 0, 0, 0, 0, 0, 0,
-                maximumDifference, 0, 0, 0, pass);
+                maximumDifference, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, pass);
     }
 
     private WorkerProcessIdentity process(int shard) {
@@ -385,5 +449,11 @@ class MatchupV9StructureAttributionAuditGateTest {
 
     private static String hash(String value) {
         return PairedDiagnosticAuditGate.sha256(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static byte[] appendByte(byte[] source, byte value) {
+        byte[] result = java.util.Arrays.copyOf(source, source.length + 1);
+        result[source.length] = value;
+        return result;
     }
 }

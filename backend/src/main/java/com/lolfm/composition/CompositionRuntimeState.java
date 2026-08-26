@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -42,6 +43,7 @@ public final class CompositionRuntimeState {
     private final Map<GameplayAttemptId, CompositionAttemptDescriptor> descriptorByAttempt = new HashMap<>();
     private final Map<GameplayAttemptId, CompositionContextRouting> routingByAttempt = new HashMap<>();
     private final Map<GameplayAttemptId, ApplicationTrace> applicationTraceByAttempt = new HashMap<>();
+    private final Map<MatchEvent, GameplayAttemptId> publicAttemptByEvent = new IdentityHashMap<>();
     private final Set<ObservationKey> observationKeys = new HashSet<>();
     private final Set<ApplicationKey> applicationKeys = new HashSet<>();
     private final Set<CandidateApplicationKey> candidateApplicationKeys = new HashSet<>();
@@ -66,6 +68,8 @@ public final class CompositionRuntimeState {
     private int runtimeInteractionRecalculationCount;
     private int resolverEvaluationCount;
     private int triggerSuccessCount;
+    private boolean resolverEvaluationInstrumented;
+    private boolean triggerSuccessInstrumented;
     private int actualAttemptCount;
     private int mappedActualAttemptCount;
     private int unmappedActualAttemptCount;
@@ -78,6 +82,8 @@ public final class CompositionRuntimeState {
     private int gameplayApplicationCount;
     private int nonZeroModifierCount;
     private int deferredCandidateApplicationCount;
+    private int duplicatePublicBindingCount;
+    private int conflictingPublicBindingCount;
 
     public CompositionRuntimeState(TeamCompositionGameplayMode mode, long matchSeed) {
         this(mode, matchSeed, CompositionCandidateExecutionAuthorization.none());
@@ -213,11 +219,17 @@ public final class CompositionRuntimeState {
     }
 
     public void recordResolverEvaluation() {
-        if (isActive()) resolverEvaluationCount++;
+        if (isActive()) {
+            resolverEvaluationInstrumented = true;
+            resolverEvaluationCount++;
+        }
     }
 
     public void recordTriggerSuccess() {
-        if (isActive()) triggerSuccessCount++;
+        if (isActive()) {
+            triggerSuccessInstrumented = true;
+            triggerSuccessCount++;
+        }
     }
 
     public CompositionShadowObservation recordActualAttempt(CompositionAttemptDescriptor attempt) {
@@ -305,7 +317,12 @@ public final class CompositionRuntimeState {
         return new CompositionRuntimeDiagnostics(CompositionRuntimeDiagnostics.SCHEMA_VERSION,
                 mode, initialized, matchSeed, lineupBuildCount,
                 teamCompositionAnalysisCount, interactionAnalysisCount, contextEdgeCount,
-                runtimeInteractionRecalculationCount, resolverEvaluationCount, triggerSuccessCount,
+                runtimeInteractionRecalculationCount,
+                CompositionDiagnosticCounterStatus.from(
+                        resolverEvaluationInstrumented, resolverEvaluationCount),
+                resolverEvaluationCount,
+                CompositionDiagnosticCounterStatus.from(triggerSuccessInstrumented, triggerSuccessCount),
+                triggerSuccessCount,
                 actualAttemptCount, mappedActualAttemptCount, unmappedActualAttemptCount,
                 shadowObservationCount, evaluationOnlyObservationCount, duplicateObservationCount,
                 multiContextAttemptCount, conflictingPerspectiveCount, duplicateApplicationPointCount,
@@ -326,6 +343,7 @@ public final class CompositionRuntimeState {
                 (int) applicationProvenance.stream().filter(value -> value.applicationApplied()
                         && !value.localDecisionChanged()).count(),
                 (int) applicationProvenance.stream().filter(value -> !"NOT_BOUND".equals(value.publicBindingStatus())).count(),
+                duplicatePublicBindingCount, conflictingPublicBindingCount,
                 (int) applicationProvenance.stream().filter(
                         CompositionApplicationProvenance::existingNonScalarEffectConsumed).count(),
                 (int) applicationProvenance.stream().filter(
@@ -374,13 +392,65 @@ public final class CompositionRuntimeState {
     }
 
     /** Binds an existing public event to its causal attempt without mutating that event. */
-    public void bindPublicAction(GameplayAttemptId attemptId, MatchEvent event) {
+    public void bindPublicAction(GameplayAttemptId attemptId, MatchEvent event, int eventOrdinal) {
         if (!isProductionV2()) return;
         Objects.requireNonNull(attemptId, "attemptId");
         Objects.requireNonNull(event, "event");
         ApplicationTrace trace = applicationTraceByAttempt.get(attemptId);
         if (trace == null) throw new IllegalStateException("Public binding requires an actual attempt");
-        trace.bind(event);
+        try {
+            GameplayAttemptId existingAttempt = publicAttemptByEvent.get(event);
+            if (existingAttempt != null && !existingAttempt.equals(attemptId)) {
+                throw new IllegalStateException("Public event is already bound to another attempt");
+            }
+            ApplicationTrace.BindingResult result = trace.bind(
+                    CompositionPublicEventIdentity.from(event, eventOrdinal));
+            if (result == ApplicationTrace.BindingResult.DUPLICATE) {
+                duplicatePublicBindingCount++;
+            } else {
+                publicAttemptByEvent.put(event, attemptId);
+            }
+        } catch (IllegalStateException conflict) {
+            conflictingPublicBindingCount++;
+            throw conflict;
+        }
+    }
+
+    /** Reconciles binding ordinals to the final stable-sorted public timeline. */
+    public void reconcilePublicActionOrdinals(List<MatchEvent> timelineEvents) {
+        if (!isProductionV2()) return;
+        Objects.requireNonNull(timelineEvents, "timelineEvents");
+        Map<GameplayAttemptId, List<CompositionPublicEventIdentity>> byAttempt = new HashMap<>();
+        Set<MatchEvent> seen = java.util.Collections.newSetFromMap(new IdentityHashMap<>());
+        int matched = 0;
+        for (int ordinal = 0; ordinal < timelineEvents.size(); ordinal++) {
+            MatchEvent event = timelineEvents.get(ordinal);
+            if (!seen.add(event)) {
+                throw new IllegalStateException("Public timeline contains the same event object twice");
+            }
+            GameplayAttemptId attemptId = publicAttemptByEvent.get(event);
+            if (attemptId == null) continue;
+            matched++;
+            byAttempt.computeIfAbsent(attemptId, ignored -> new ArrayList<>())
+                    .add(CompositionPublicEventIdentity.from(event, ordinal));
+        }
+        if (matched != publicAttemptByEvent.size()) {
+            throw new IllegalStateException("Bound public event is absent from final timeline");
+        }
+        for (Map.Entry<GameplayAttemptId, List<CompositionPublicEventIdentity>> entry
+                : byAttempt.entrySet()) {
+            ApplicationTrace trace = applicationTraceByAttempt.get(entry.getKey());
+            if (trace == null) {
+                throw new IllegalStateException("Final public binding has no match-scoped attempt");
+            }
+            trace.replaceBindings(entry.getValue());
+        }
+    }
+
+    /** Compatibility entry point for non-production callers; production bindings require an ordinal. */
+    public void bindPublicAction(GameplayAttemptId attemptId, MatchEvent event) {
+        if (!isProductionV2()) return;
+        throw new IllegalArgumentException("Production public binding requires deterministic event ordinal");
     }
 
     /** Records the existing fight-grade decision that follows the winner decision. */
@@ -401,6 +471,7 @@ public final class CompositionRuntimeState {
             String consumerIdentity,
             double baselineScore,
             double runtimeScore,
+            double exactExistingNonScalarComponent,
             double baselineProbability,
             double runtimeProbability,
             double randomSample,
@@ -412,6 +483,7 @@ public final class CompositionRuntimeState {
         ApplicationTrace trace = applicationTraceByAttempt.get(attemptId);
         if (trace == null) throw new IllegalStateException("Non-scalar provenance requires an actual attempt");
         trace.consumeExistingNonScalar(consumerIdentity, baselineScore, runtimeScore,
+                exactExistingNonScalarComponent,
                 baselineProbability, runtimeProbability, randomSample, randomDrawOrdinal,
                 baselineWinner, runtimeWinner);
     }
@@ -641,7 +713,15 @@ public final class CompositionRuntimeState {
         private double modifier;
         private double existingNonScalarCompositionDelta;
         private double totalCompositionInputDelta;
+        private Double baselineScoreBeforeClamp;
+        private Double candidateScoreBeforeClamp;
+        private Double baselineClampDelta;
+        private Double candidateClampDelta;
+        private double clampEffect;
+        private TeamSide routingPerspectiveSide;
         private TeamSide perspectiveSide;
+        private CompositionScoreOrientation scoreOrientation =
+                CompositionScoreOrientation.ROUTING_PERSPECTIVE_MINUS_OPPONENT;
         private TeamSide attackingSide;
         private TeamSide defendingSide;
         private Double perspectiveBefore;
@@ -672,6 +752,10 @@ public final class CompositionRuntimeState {
         private com.lolfm.domain.MatchEventType publicEventType;
         private String publicCombatSource;
         private Lane publicCombatLane;
+        private Integer publicEventTimeSeconds;
+        private Integer publicEventOrdinal;
+        private String publicStructuredPayloadSha256;
+        private final Map<Integer, CompositionPublicEventIdentity> publicEventBindings = new HashMap<>();
         private String publicBindingStatus = "NOT_BOUND";
 
         private ApplicationTrace(long matchSeed, TeamCompositionGameplayMode mode,
@@ -684,6 +768,7 @@ public final class CompositionRuntimeState {
             this.frozenKey = frozenKey;
             this.approvalStatus = approvalStatus;
             this.edge = edge;
+            this.routingPerspectiveSide = routing.perspectiveSide();
             this.perspectiveSide = routing.perspectiveSide();
             this.attackingSide = attempt.initiatingSide();
             this.defendingSide = attempt.defendingSide();
@@ -725,13 +810,19 @@ public final class CompositionRuntimeState {
                 throw new IllegalArgumentException("Production consumer modifier does not match frozen semantics");
             }
             perspectiveSide = value.perspectiveSide();
+            scoreOrientation = value.scoreOrientation();
             attackingSide = value.attackingSide() == null ? attackingSide : value.attackingSide();
             defendingSide = value.defendingSide() == null ? defendingSide : value.defendingSide();
             edge = value.compositionEdge();
             gain = value.selectedGain();
             modifier = value.compositionModifier();
             totalCompositionInputDelta = value.candidateScore() - value.baselineScore();
-            existingNonScalarCompositionDelta = totalCompositionInputDelta - modifier;
+            existingNonScalarCompositionDelta = value.existingNonScalarCompositionComponent();
+            baselineScoreBeforeClamp = value.baselineScoreBeforeClamp();
+            candidateScoreBeforeClamp = value.candidateScoreBeforeClamp();
+            baselineClampDelta = value.baselineClampDelta();
+            candidateClampDelta = value.candidateClampDelta();
+            clampEffect = value.clampEffect();
             perspectiveBefore = value.baselineScore();
             opponentBefore = 0.0;
             perspectiveAfter = value.candidateScore();
@@ -763,6 +854,7 @@ public final class CompositionRuntimeState {
         }
 
         void consumeExistingNonScalar(String consumer, double baselineScore, double runtimeScore,
+                                      double exactExistingNonScalarComponent,
                                       double baselineProbability, double runtimeProbability,
                                       double sample, long ordinal, TeamSide baselineWinner,
                                       TeamSide runtimeWinner) {
@@ -778,11 +870,16 @@ public final class CompositionRuntimeState {
                 throw new IllegalStateException("Composition effect already consumed: " + attempt.attemptId());
             }
             if (!Double.isFinite(baselineScore) || !Double.isFinite(runtimeScore)
+                    || !Double.isFinite(exactExistingNonScalarComponent)
                     || !Double.isFinite(baselineProbability) || !Double.isFinite(runtimeProbability)
                     || !Double.isFinite(sample)) {
                 throw new IllegalArgumentException("Non-scalar decision provenance must be finite");
             }
+            if (Math.abs((runtimeScore - baselineScore) - exactExistingNonScalarComponent) > 1e-12) {
+                throw new IllegalArgumentException("Objective non-scalar component decomposition mismatch");
+            }
             perspectiveSide = TeamSide.BLUE;
+            scoreOrientation = CompositionScoreOrientation.BLUE_MINUS_RED;
             opponentBefore = 0.0;
             opponentAfter = 0.0;
             perspectiveBefore = baselineScore;
@@ -793,8 +890,13 @@ public final class CompositionRuntimeState {
             this.adjustedProbability = runtimeProbability;
             modifier = 0.0;
             gain = 0.0;
-            existingNonScalarCompositionDelta = runtimeScore - baselineScore;
+            existingNonScalarCompositionDelta = exactExistingNonScalarComponent;
             totalCompositionInputDelta = existingNonScalarCompositionDelta;
+            baselineScoreBeforeClamp = baselineScore;
+            candidateScoreBeforeClamp = runtimeScore;
+            baselineClampDelta = 0.0;
+            candidateClampDelta = 0.0;
+            clampEffect = 0.0;
             consumerIdentity = consumer;
             existingNonScalarConsumed = true;
             applied = true;
@@ -806,23 +908,48 @@ public final class CompositionRuntimeState {
             finalResult = runtimeWinner.name();
         }
 
-        void bind(MatchEvent event) {
-            String source = event.getCombatSource() == null ? null : event.getCombatSource().name();
-            String status = event.getActionId() != null ? "BOUND_STRUCTURED_ACTION_ID"
-                    : event.getCombatSource() != null ? "BOUND_STRUCTURED_COMBAT_EVENT" : "BOUND_STRUCTURED_EVENT";
-            if (!"NOT_BOUND".equals(publicBindingStatus)) {
-                if (Objects.equals(publicActionId, event.getActionId())
-                        && publicEventType == event.getType()
-                        && Objects.equals(publicCombatSource, source)
-                        && publicCombatLane == event.getCombatLane()) return;
+        BindingResult bind(CompositionPublicEventIdentity identity) {
+            CompositionPublicEventIdentity existing = publicEventBindings.get(identity.eventOrdinal());
+            if (existing != null) {
+                if (existing.equals(identity)) return BindingResult.DUPLICATE;
                 throw new IllegalStateException("Conflicting public action binding: " + attempt.attemptId());
             }
-            publicActionId = event.getActionId();
-            publicParentActionId = event.getParentActionId();
-            publicEventType = event.getType();
-            publicCombatSource = source;
-            publicCombatLane = event.getCombatLane();
-            publicBindingStatus = status;
+            if (publicEventBindings.values().stream()
+                    .anyMatch(value -> value.sameStructuredEventExceptOrdinal(identity))) {
+                throw new IllegalStateException("Conflicting public action binding ordinal: "
+                        + attempt.attemptId());
+            }
+            publicEventBindings.put(identity.eventOrdinal(), identity);
+            if ("NOT_BOUND".equals(publicBindingStatus)) {
+                setPrimaryBinding(identity);
+            }
+            publicBindingStatus = "BOUND_EXACT_STRUCTURED_EVENT_SET";
+            return BindingResult.BOUND;
+        }
+
+        void replaceBindings(List<CompositionPublicEventIdentity> identities) {
+            if (identities.isEmpty()) {
+                throw new IllegalArgumentException("Final public binding set must not be empty");
+            }
+            publicEventBindings.clear();
+            for (CompositionPublicEventIdentity identity : identities) {
+                if (publicEventBindings.put(identity.eventOrdinal(), identity) != null) {
+                    throw new IllegalStateException("Duplicate final public event ordinal");
+                }
+            }
+            setPrimaryBinding(identities.getFirst());
+            publicBindingStatus = "BOUND_EXACT_STRUCTURED_EVENT_SET";
+        }
+
+        private void setPrimaryBinding(CompositionPublicEventIdentity identity) {
+            publicActionId = identity.actionId();
+            publicParentActionId = identity.parentActionId();
+            publicEventType = identity.eventType();
+            publicCombatSource = identity.combatSource();
+            publicCombatLane = identity.combatLane();
+            publicEventTimeSeconds = identity.eventTimeSeconds();
+            publicEventOrdinal = identity.eventOrdinal();
+            publicStructuredPayloadSha256 = identity.structuredPayloadSha256();
         }
 
         void recordGrade(String baselineGrade, String runtimeGrade, boolean gradeChanged) {
@@ -851,16 +978,26 @@ public final class CompositionRuntimeState {
                     attempt.matchTimeSeconds(), attempt.attemptId(), resolverIdentity(attempt.actionType()),
                     attempt.actionType(), routing.context(), routing.applicationPoint(), routing.scoreDomain(),
                     attempt.attemptOwnerSide(), attempt.initiatingSide(), attackingSide, defendingSide,
-                    perspectiveSide, opponent, attempt.lane(), attempt.objectiveType(), attempt.structureTargetType(),
+                    routingPerspectiveSide, perspectiveSide, scoreOrientation, opponent,
+                    attempt.lane(), attempt.objectiveType(), attempt.structureTargetType(),
                     attempt.fightScale(), mode, frozenKey, approvalStatus, routing.mapped(),
                     routing.applicationEligibility(), routing.eligibilityReason(), edge, gain, modifier,
-                    existingNonScalarCompositionDelta, totalCompositionInputDelta, existingNonScalarConsumed,
+                    existingNonScalarCompositionDelta, totalCompositionInputDelta,
+                    baselineScoreBeforeClamp, candidateScoreBeforeClamp,
+                    baselineClampDelta, candidateClampDelta, clampEffect,
+                    existingNonScalarConsumed,
                     perspectiveBefore, opponentBefore, perspectiveAfter, opponentAfter, baselineGap, adjustedGap,
                     baselineProbability, adjustedProbability, consumerIdentity, gameplayEffectStatus, calculated, applied,
                     modifier != 0.0, consumed, localChanged, randomOrdinal, randomSample,
                     baselineResult, finalResult, publicActionId, publicParentActionId, publicEventType,
-                    publicCombatSource, publicCombatLane, publicBindingStatus);
+                    publicCombatSource, publicCombatLane, publicEventTimeSeconds, publicEventOrdinal,
+                    publicStructuredPayloadSha256,
+                    publicEventBindings.values().stream().sorted(java.util.Comparator.comparingInt(
+                            CompositionPublicEventIdentity::eventOrdinal)).toList(),
+                    publicBindingStatus);
         }
+
+        private enum BindingResult { BOUND, DUPLICATE }
 
         private static String resolverIdentity(CompositionActionType action) {
             return switch (action) {

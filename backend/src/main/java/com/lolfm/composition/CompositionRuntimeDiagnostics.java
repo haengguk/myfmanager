@@ -13,7 +13,9 @@ public record CompositionRuntimeDiagnostics(
         int interactionAnalysisCount,
         int contextEdgeCount,
         int runtimeInteractionRecalculationCount,
+        CompositionDiagnosticCounterStatus resolverEvaluationInstrumentationStatus,
         int resolverEvaluationCount,
+        CompositionDiagnosticCounterStatus triggerSuccessInstrumentationStatus,
         int triggerSuccessCount,
         int actualAttemptCount,
         int mappedActualAttemptCount,
@@ -50,15 +52,21 @@ public record CompositionRuntimeDiagnostics(
         int localDecisionChangedCount,
         int localDecisionUnchangedCount,
         int publicActionBindingCount,
+        int duplicatePublicBindingCount,
+        int conflictingPublicBindingCount,
         int existingNonScalarEffectConsumedCount,
         int totalCompositionEffectApplicationCount,
         List<CompositionApplicationProvenance> applicationProvenance
 ) {
-    public static final String SCHEMA_VERSION = "COMPOSITION_RUNTIME_DIAGNOSTICS_V4";
+    public static final String SCHEMA_VERSION = "COMPOSITION_RUNTIME_DIAGNOSTICS_V5";
 
     public CompositionRuntimeDiagnostics {
         if (!SCHEMA_VERSION.equals(schemaVersion)) {
             throw new IllegalArgumentException("Unsupported composition diagnostic schema: " + schemaVersion);
+        }
+        if (resolverEvaluationInstrumentationStatus == null
+                || triggerSuccessInstrumentationStatus == null) {
+            throw new IllegalArgumentException("Composition counter instrumentation status is required");
         }
         observations = List.copyOf(observations);
         routings = List.copyOf(routings);

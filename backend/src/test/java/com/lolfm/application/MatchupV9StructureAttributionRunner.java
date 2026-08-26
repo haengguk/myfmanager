@@ -97,6 +97,8 @@ public final class MatchupV9StructureAttributionRunner {
         var overlap = MatchupV9StructureAttributionContract.requireNoSeedOverlap(schedule);
         var predecessor = MatchupV9StructureAttributionEvidence.verify(backendRoot, mapper);
         SourceIdentity source = sourceIdentity(backendRoot);
+        PairedDiagnosticAuditGate.InvariantEvidence focusedEvidence =
+                focusedInvariantEvidence(backendRoot, source.productionSourceTree().hash());
         LinkedHashMap<String, Object> contract = new LinkedHashMap<>();
         contract.put("schemaVersion", MatchupV9StructureAttributionContract.CONTRACT_SCHEMA);
         contract.put("taskName", "MATCHUP_V9_STRUCTURE_EFFECT_ATTRIBUTION_AND_ACCEPTANCE_CONTRACT_REDESIGN");
@@ -109,6 +111,8 @@ public final class MatchupV9StructureAttributionRunner {
         contract.put("profiles", profileBindings());
         contract.put("resourceProvenance", provenance.resourceProvenance());
         contract.put("sourceIdentity", source);
+        contract.put("dependencyManifest", source.dependencyManifest());
+        contract.put("focusedInvariantEvidence", focusedEvidence);
         contract.put("predecessorEvidence", predecessor);
         contract.put("scheduleHash", schedule.scheduleHash());
         contract.put("seedNamespace", schedule.seedNamespace());
@@ -777,49 +781,87 @@ public final class MatchupV9StructureAttributionRunner {
                 .equals(MatchupV9StructureAttributionContract.schedule().scheduleHash())) {
             throw new IllegalStateException("Current source/schedule differs from frozen attribution contract");
         }
-        return new Binding(contractHash, current);
+        var contractRoot = mapper.readTree(contractPath.toFile());
+        PairedDiagnosticAuditGate.InvariantEvidence focusedEvidence = mapper.treeToValue(
+                contractRoot.path("focusedInvariantEvidence"),
+                PairedDiagnosticAuditGate.InvariantEvidence.class);
+        FocusedInvariantProofReceipt.verify(focusedEvidence.displayNameIdentity(),
+                current.productionSourceTree().hash(), current.dependencyManifest());
+        FocusedInvariantProofReceipt.verify(focusedEvidence.ineligibleDuplicateRandomConsumption(),
+                current.productionSourceTree().hash(), current.dependencyManifest());
+        return new Binding(contractHash, current, focusedEvidence);
     }
 
     private SourceIdentity sourceIdentity(Path backendRoot) throws Exception {
         Path gitRoot = backendRoot.toAbsolutePath().normalize().getParent();
+        DiagnosticDependencyManifest.Manifest dependencies = attributionDependencyManifest(backendRoot);
         return new SourceIdentity(
                 git(gitRoot, "rev-parse", "HEAD"), git(gitRoot, "status", "--short"),
                 Phase13GB1AuditArtifactWriter.productionSourceTree(backendRoot),
-                attributionHarnessSourceTree(backendRoot),
+                new Phase13GB1AuditArtifactWriter.SourceTreeIdentity(
+                        "EXPLICIT_DIAGNOSTIC_DEPENDENCY_MANIFEST_V1",
+                        dependencies.harnessSourceHash(), dependencies.dependencies().size()),
+                dependencies,
                 SimulationProvenanceService.ENGINE_IMPLEMENTATION_VERSION,
                 MatchEngineV1Policy.authoritative().policyHash());
     }
 
     static Phase13GB1AuditArtifactWriter.SourceTreeIdentity attributionHarnessSourceTree(
             Path backendRoot) throws IOException {
-        Path normalized = backendRoot.toAbsolutePath().normalize();
-        TreeMap<String, byte[]> files = new TreeMap<>();
-        Path testRoot = normalized.resolve(Path.of("src", "test", "java"));
-        try (var walk = Files.walk(testRoot)) {
-            for (Path file : walk.filter(Files::isRegularFile)
-                    .filter(value -> value.getFileName().toString()
-                            .startsWith("MatchupV9StructureAttribution"))
-                    .sorted().toList()) {
-                files.put(portable(normalized.relativize(file)), Files.readAllBytes(file));
-            }
-        }
-        String build = Files.readString(normalized.resolve("build.gradle"), StandardCharsets.UTF_8)
-                .replace("\r\n", "\n");
-        int start = build.indexOf(BUILD_START);
-        int end = build.indexOf(BUILD_END);
-        if (start < 0 || end < start || build.indexOf(BUILD_START, start + 1) >= 0
-                || build.indexOf(BUILD_END, end + 1) >= 0) {
-            throw new IllegalStateException("Missing or duplicate attribution Gradle contract");
-        }
-        files.put("build.gradle#MATCHUP_V9_STRUCTURE_ATTRIBUTION_BUILD_CONTRACT",
-                (build.substring(start, end + BUILD_END.length()) + '\n')
-                        .getBytes(StandardCharsets.UTF_8));
-        StringBuilder canonical = new StringBuilder();
-        files.forEach((path, bytes) -> canonical.append(path).append('|')
-                .append(MatchupV9StructureAttributionContract.sha256(bytes)).append('\n'));
+        DiagnosticDependencyManifest.Manifest manifest = attributionDependencyManifest(backendRoot);
         return new Phase13GB1AuditArtifactWriter.SourceTreeIdentity(
-                "SHA256_UTF8_SORTED_LOGICAL_PATH_PIPE_RAW_OR_NORMALIZED_FILE_SHA256_LINES_V2",
-                MatchupV9StructureAttributionContract.sha256(canonical.toString()), files.size());
+                "EXPLICIT_DIAGNOSTIC_DEPENDENCY_MANIFEST_V1",
+                manifest.harnessSourceHash(), manifest.dependencies().size());
+    }
+
+    static DiagnosticDependencyManifest.Manifest attributionDependencyManifest(
+            Path backendRoot) throws IOException {
+        String base = "src/test/java/com/lolfm/";
+        List<DiagnosticDependencyManifest.DependencySpec> dependencies = List.of(
+                dependency(base + "application/MatchupV9StructureAttributionRunner.java"),
+                dependency(base + "application/MatchupV9StructureAttributionContract.java"),
+                dependency(base + "application/MatchupV9StructureAttributionClassifier.java"),
+                dependency(base + "application/MatchupV9StructureAttributionEvidence.java"),
+                dependency(base + "application/MatchupV9StructureAttributionArtifactWriter.java"),
+                dependency(base + "application/MatchupV9StructureAttributionDiagnosticTests.java"),
+                dependency(base + "application/MatchupV9StructureAttributionContractTest.java"),
+                dependency(base + "application/MatchupV9StructureAttributionAuditGateTest.java"),
+                dependency(base + "application/PairedDiagnosticAuditGate.java"),
+                dependency(base + "application/DiagnosticDependencyManifest.java"),
+                dependency(base + "application/FocusedInvariantProofReceipt.java"),
+                dependency(base + "application/Phase13GB1RealMatchHarness.java"),
+                dependency(base + "application/Phase13GB1AuditSchedule.java"),
+                dependency(base + "application/Phase13GB1AuditArtifactWriter.java"),
+                dependency("src/main/java/com/lolfm/application/SimulationProvenanceService.java"),
+                dependency("src/main/java/com/lolfm/application/RealDraftMatchOrchestrator.java"),
+                dependency("src/main/java/com/lolfm/application/MatchEngineV1Policy.java"),
+                dependency(base + "simulator/Phase13GB1SimulationExecutor.java"),
+                dependency(base + "simulator/MatchEngineV9InstrumentationExecutor.java"),
+                dependency(base + "simulator/StructureEngineRedesignTest.java"),
+                DiagnosticDependencyManifest.DependencySpec.section(
+                        "build.gradle#MATCHUP_V9_STRUCTURE_ATTRIBUTION_BUILD_CONTRACT",
+                        "build.gradle", BUILD_START, BUILD_END));
+        return DiagnosticDependencyManifest.create(backendRoot,
+                "MATCHUP_V9_STRUCTURE_ATTRIBUTION_HARNESS_V3",
+                "EXPLICIT_DIRECT_SHARED_RUNNER_PROOF_AND_GRADLE_DEPENDENCIES_ONLY", dependencies);
+    }
+
+    private static DiagnosticDependencyManifest.DependencySpec dependency(String path) {
+        return DiagnosticDependencyManifest.DependencySpec.file(path);
+    }
+
+    private PairedDiagnosticAuditGate.InvariantEvidence focusedInvariantEvidence(
+            Path backendRoot, String productionSourceHash) throws Exception {
+        String source = "src/test/java/com/lolfm/simulator/StructureEngineRedesignTest.java";
+        return new PairedDiagnosticAuditGate.InvariantEvidence(
+                FocusedInvariantProofReceipt.capture(backendRoot,
+                        "verifyMatchupV9AttributionFocusedProof",
+                        "com.lolfm.simulator.StructureEngineRedesignTest#sameDisplayNamesCannotBorrowOpponentsRecentAce",
+                        source, productionSourceHash),
+                FocusedInvariantProofReceipt.capture(backendRoot,
+                        "verifyMatchupV9AttributionFocusedProof",
+                        "com.lolfm.simulator.StructureEngineRedesignTest#twoPostFightAttackersCannotFallThroughIntoBaseAndConsumeNoRandom",
+                        source, productionSourceHash));
     }
 
     private static String portable(Path value) {
@@ -864,6 +906,8 @@ public final class MatchupV9StructureAttributionRunner {
                 "MATCHUP_V9_STRUCTURE_ATTRIBUTION_AUDIT_HARDENING_V2",
                 binding.contractHash(), schedule.scheduleHash(),
                 binding.sourceIdentity().attributionHarnessSourceTree().hash(),
+                binding.sourceIdentity().productionSourceTree().hash(),
+                binding.sourceIdentity().dependencyManifest(),
                 binding.sourceIdentity().engineImplementationVersion(),
                 provenance.resourceProvenance().resourceProvenanceHash(),
                 provenance.draftRuleSetIdentity(), provenance.draftRuleSetHash(),
@@ -871,14 +915,7 @@ public final class MatchupV9StructureAttributionRunner {
                 MatchupV9StructureAttributionContract.EXPECTED_FIXTURES,
                 MatchupV9StructureAttributionContract.EXPECTED_PROFILE_ROWS,
                 MatchupV9StructureAttributionContract.EXPECTED_PAIRS,
-                profiles, expected,
-                new PairedDiagnosticAuditGate.InvariantEvidence(
-                        new PairedDiagnosticAuditGate.InvariantProof(
-                                PairedDiagnosticAuditGate.FOCUSED_PROOF_STATUS,
-                                "StructureEngineRedesignTest#displayNamesDoNotDefineStructureIdentity"),
-                        new PairedDiagnosticAuditGate.InvariantProof(
-                                PairedDiagnosticAuditGate.FOCUSED_PROOF_STATUS,
-                                "StructureEngineRedesignTest#duplicateAndIneligibleCallsDoNotConsumeRandom")));
+                profiles, expected, binding.invariantEvidence());
     }
 
     private PairedDiagnosticAuditGate.RowEnvelope auditEnvelope(PairRow pair) {
@@ -902,7 +939,8 @@ public final class MatchupV9StructureAttributionRunner {
                         value.maximumStructureHealthDifferenceCount(),
                         value.matchupDirectRandomCallCount(),
                         value.matchupPerspectiveMismatchCount(),
-                        value.matchupOffContributionCount(), value.pass()),
+                        value.matchupOffContributionCount(), 0, 0, 0, 0, 0, 0, 0,
+                        value.pass()),
                 new PairedDiagnosticAuditGate.VerificationEvidence(
                         pair.verification().replayChecked(), pair.verification().replayExact(),
                         pair.verification().instrumentationProfilesChecked(),
@@ -1037,13 +1075,15 @@ public final class MatchupV9StructureAttributionRunner {
             SimulationExecutionProvenance provenance
     ) { }
 
-    public record Binding(String contractHash, SourceIdentity sourceIdentity) { }
+    public record Binding(String contractHash, SourceIdentity sourceIdentity,
+                          PairedDiagnosticAuditGate.InvariantEvidence invariantEvidence) { }
 
     public record SourceIdentity(
             String gitHead,
             String workingTreeStatus,
             Phase13GB1AuditArtifactWriter.SourceTreeIdentity productionSourceTree,
             Phase13GB1AuditArtifactWriter.SourceTreeIdentity attributionHarnessSourceTree,
+            DiagnosticDependencyManifest.Manifest dependencyManifest,
             String engineImplementationVersion,
             String productionPolicyHash
     ) { }

@@ -542,6 +542,7 @@ public class MatchSimulator {
         ));
 
         events.sort(java.util.Comparator.comparingInt(MatchEvent::getTimeSeconds));
+        gameState.getCompositionRuntimeState().reconcilePublicActionOrdinals(events);
         if (events.stream().anyMatch(event -> event.getTimeSeconds()
                 > gameState.getCurrentTimeSeconds())) {
             throw new IllegalStateException("Timeline event exceeds terminal match time for seed " + seed);
@@ -873,13 +874,14 @@ public class MatchSimulator {
             throw new IllegalStateException(
                     "Eligible localized skirmish did not produce an actual attempt");
         }
+        String actionId = "COMBAT_AT:" + state.getCurrentTimeSeconds();
         for (int i = eventStart; i < events.size(); i++) {
+            events.get(i).setActionId(actionId);
             if (events.get(i).getType() == MatchEventType.KILL) {
                 markStructuredParticipants(state, events.get(i));
-                state.getCompositionRuntimeState().bindPublicAction(
-                        state.getCompositionRuntimeState().lastActualAttemptId(), events.get(i));
-                break;
             }
+            state.getCompositionRuntimeState().bindPublicAction(
+                    state.getCompositionRuntimeState().lastActualAttemptId(), events.get(i), i);
         }
         return true;
     }
@@ -950,9 +952,13 @@ public class MatchSimulator {
                         ? state.getCompositionRuntimeState().semanticsAuditAuthorization().diagnosticCaseIndex() : -1,
                 state.getCompositionRuntimeState().lastActualAttemptId(), "SKIRMISH|SKIRMISH|SKIRMISH_COMBAT_SCORE",
                 TeamCompositionContext.SKIRMISH, CompositionActionType.SKIRMISH, CompositionBaselineScoreDomain.SKIRMISH_COMBAT_SCORE,
-                time, TeamSide.BLUE, null, null, CompositionCombatRole.SYMMETRIC, CompositionRuntimeDecisionKind.WEIGHTED_SELECTION,
+                time, TeamSide.BLUE, CompositionScoreOrientation.BLUE_MINUS_RED,
+                null, null, CompositionCombatRole.SYMMETRIC, CompositionRuntimeDecisionKind.WEIGHTED_SELECTION,
                 CompositionRuntimeComparisonOperator.SAMPLE_LESS_THAN_PROBABILITY, adjustment.baselineGap(), adjustment.rawEdge(),
-                adjustment.referenceGain(), adjustment.winnerModifier(), adjustment.winnerDecisionGap(), local.baselineScore(), local.candidateScore(),
+                adjustment.referenceGain(), adjustment.winnerModifier(), adjustment.winnerDecisionGap(),
+                adjustment.baselineGap(), adjustment.winnerDecisionGap(), 0.0,
+                0.0, 0.0, 0.0,
+                local.baselineScore(), local.candidateScore(),
                 local.sample(), local.sampleIdentity(), local.candidateScore(), TeamSide.valueOf(local.baselineDecision()), runtimeWinner,
                 blue.getGold(), red.getGold(), blue.getKills(), red.getKills(),
                 (int)blue.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(time)).count(),

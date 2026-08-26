@@ -93,6 +93,17 @@ cd backend
 
 Diagnostic JUnit은 공통 `diagnostic` tag와 task별 tag를 함께 가진다. 각 custom task는 `composition-holdout`, `simulation-distribution`, `phase13g-real-proficiency`처럼 자기 domain tag만 include하므로 다른 diagnostic을 우연히 함께 실행하지 않는다. 기본 lane에는 bounded in-memory holdout selection/schedule 계약과 composition runtime identity/authorization/gain/sign/Random-isolation 계약이 남는다. 다중 seed라도 participant legality, duplicate prevention, respawn, one-action-per-tick처럼 deterministic invariant를 검증하는 테스트는 diagnostic으로 이동하지 않는다.
 
+Composition V9 causality evidence repair는 다음 lane을 사용한다.
+
+```bash
+cd backend
+./gradlew test                                      # diagnostic tag 제외
+./gradlew verifyCompositionV9CausalityFocusedProof # exact selector 2건의 JUnit receipt
+./gradlew runCompositionV9ApplicationCausality     # freeze → 4 JVM workers → finalize
+```
+
+마지막 task는 기존 V5의 400 seeds를 evidence repair로만 재사용해 1,100 simulations을 실행한다. Freeze는 default `test` XML에서 대형 Composition 5 classes가 0건인지 확인하고, explicit runner dependency manifest와 focused proof receipt를 source contract에 결속한다. Finalizer는 worker PID 고유성, source/authenticated checkpoint와 sidecar, canonical receipt bytes와 recursive `SHA256SUMS.txt`를 다시 검증한다. 새 shared runner/proof/Gradle dependency를 도입할 때만 explicit manifest를 갱신하며 무관한 test source는 추가하지 않는다.
+
 기본 `test`에는 role-fixed completion helper, flex false-positive cases, identity/catalog/resource/API contract, 소수 representative real keys, `@TempDir` report writer만 남는다. 전체 audit JUnit class는 `diagnostic` tag이며 default task가 제외한다. 따라서 기본 test는 shared full-population report를 만들거나 입력으로 읽지 않는다. Artifact inventory diagnostic은 CSV를 line streaming으로 읽어 같은 header/row semantics를 유지하면서 전체 report tree를 한꺼번에 heap에 올리지 않는다.
 
 Diagnostic 결과를 normal unit-test assertion으로 옮기려면 먼저 그것이 balance observation이 아니라 deterministic invariant인지 확인한다.

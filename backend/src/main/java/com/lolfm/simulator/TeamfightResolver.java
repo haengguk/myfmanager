@@ -237,7 +237,10 @@ public class TeamfightResolver {
 
         String actionId = "COMBAT_AT:" + currentTime;
         for (int i = eventStart; i < events.size(); i++) events.get(i).setActionId(actionId);
-        gameState.getCompositionRuntimeState().bindPublicAction(compositionAttemptId, events.get(eventStart));
+        for (int i = eventStart; i < events.size(); i++) {
+            gameState.getCompositionRuntimeState().bindPublicAction(
+                    compositionAttemptId, events.get(i), i);
+        }
         gameState.getCombatOutcomeExecutionStats().record(progressionContext,currentTime,true,sides.winningSide(),blueParticipants,redParticipants);
         return Optional.of(new TeamfightOutcome(
                 sides.winningSide(),
@@ -475,17 +478,26 @@ public class TeamfightResolver {
         double baselineExisting = goldContribution + killContribution + blueBaseline - redBaseline;
         double existing = goldContribution + killContribution + blueScore - redScore;
         CombatProgressionEvaluator progression = new CombatProgressionEvaluator();
-        CombatProgressionBreakdown baselineBreakdown = progression.evaluate(state, context,
-                eligibleParticipants(blue, state.getCurrentTimeSeconds()),
-                eligibleParticipants(red, state.getCurrentTimeSeconds()),
-                baselineExisting, goldContribution);
-        ProgressionCombatSample baselineProgressionSample = state.getProgressionExecutionStats().snapshot().combatSamples().getLast();
+        List<PlayerState> blueEligible = eligibleParticipants(blue, state.getCurrentTimeSeconds());
+        List<PlayerState> redEligible = eligibleParticipants(red, state.getCurrentTimeSeconds());
+        CombatProgressionBreakdown baselineBreakdown;
+        CombatProgressionBreakdown historicalBreakdown;
+        if (productionCounterfactual) {
+            baselineBreakdown = progression.evaluatePure(state, context, blueEligible, redEligible,
+                    baselineExisting, goldContribution, ProgressionApplicationStage.COMBAT_SCORE);
+            historicalBreakdown = progression.evaluateAndRecord(state, context, blueEligible, redEligible,
+                    existing, goldContribution, ProgressionApplicationStage.COMBAT_SCORE);
+        } else {
+            historicalBreakdown = progression.evaluateAndRecord(state, context, blueEligible, redEligible,
+                    existing, goldContribution, ProgressionApplicationStage.COMBAT_SCORE);
+            baselineBreakdown = historicalBreakdown;
+        }
+        ProgressionCombatSample runtimeProgressionSample = state.getProgressionExecutionStats()
+                .snapshot().combatSamples().getLast();
         double baselineScoreWithoutNoise = baselineExisting + baselineBreakdown.finalContribution();
-        CombatProgressionBreakdown historicalBreakdown = progression.evaluate(state, context,
-                eligibleParticipants(blue, state.getCurrentTimeSeconds()),
-                eligibleParticipants(red, state.getCurrentTimeSeconds()),
-                existing, goldContribution);
         double historicalScoreWithoutNoise = existing + historicalBreakdown.finalContribution();
+        double exactExistingNonScalarComposition = (blueRuntimeBase - blueBaseline)
+                - (redRuntimeBase - redBaseline);
         CompositionCombatRole blueRole = context == ProgressionCombatContext.BASE_DEFENSE
                 ? structuredAttackingSide == TeamSide.BLUE ? CompositionCombatRole.ATTACKER : CompositionCombatRole.DEFENDER
                 : CompositionCombatRole.SYMMETRIC;
@@ -508,24 +520,35 @@ public class TeamfightResolver {
                 compositionContext.name() + "|" + action.name() + "|" + domain.name());
         DecisionFactorCapture factors = captureDecisionFactors(state, blueRuntimeBase, redRuntimeBase,
                 blueBaseline, redBaseline, goldContribution,
-                killContribution, baselineProgressionSample, baselineBreakdown, auditAdjustment);
+                killContribution, runtimeProgressionSample, historicalBreakdown, auditAdjustment,
+                exactExistingNonScalarComposition);
+        double baselineClampDelta = baselineDecisionScore - baselineScoreWithoutNoise;
+        double candidateClampDelta = scoreWithoutNoise - rawScoreWithoutNoise;
+        double clampEffect = candidateClampDelta - baselineClampDelta;
         return pressure >= 0
                 ? new TeamfightSides(TeamSide.BLUE, blueTeam, blue, redTeam, red, pressure,
-                        Math.abs(baselinePressure), local, auditAdjustment, structuredAttackingSide, factors)
+                        Math.abs(baselinePressure), local, auditAdjustment, structuredAttackingSide, factors,
+                        baselineScoreWithoutNoise, rawScoreWithoutNoise,
+                        exactExistingNonScalarComposition, baselineClampDelta,
+                        candidateClampDelta, clampEffect)
                 : new TeamfightSides(TeamSide.RED, redTeam, red, blueTeam, blue, Math.abs(pressure),
-                        Math.abs(baselinePressure), local, auditAdjustment, structuredAttackingSide, factors);
+                        Math.abs(baselinePressure), local, auditAdjustment, structuredAttackingSide, factors,
+                        baselineScoreWithoutNoise, rawScoreWithoutNoise,
+                        exactExistingNonScalarComposition, baselineClampDelta,
+                        candidateClampDelta, clampEffect);
     }
 
     private DecisionFactorCapture captureDecisionFactors(
             GameState state, double blueRuntimeBase, double redRuntimeBase,
             double blueBaseline, double redBaseline, double goldContribution, double killContribution,
             ProgressionCombatSample progressionSample, CombatProgressionBreakdown breakdown,
-            CompositionWinnerDecisionAdjustment adjustment) {
+            CompositionWinnerDecisionAdjustment adjustment,
+            double exactExistingNonScalarComposition) {
         List<CompositionDecisionScoreStage> stages = new ArrayList<>();
         double score = 0.0;
         double base = blueBaseline - redBaseline;
         stages.add(new CompositionDecisionScoreStage("PLAYER_OR_TEAM_BASE_POWER", score, base, base, score += base, CompositionFactorAvailability.EXACT_RUNTIME_COMPONENT));
-        double existingComposition = (blueRuntimeBase - redRuntimeBase) - base;
+        double existingComposition = exactExistingNonScalarComposition;
         stages.add(new CompositionDecisionScoreStage("EXISTING_COMPOSITION_SUPPORT_TOOL", score,
                 existingComposition, existingComposition, score += existingComposition,
                 CompositionFactorAvailability.EXACT_RUNTIME_COMPONENT));
@@ -560,11 +583,15 @@ public class TeamfightResolver {
                 state.getCompositionRuntimeState().matchSeed(), state.getCompositionRuntimeState().isAuditSemantics()
                         ? state.getCompositionRuntimeState().semanticsAuditAuthorization().diagnosticCaseIndex() : -1,
                 attemptId, context.name() + "|" + action.name() + "|" + domain.name(), context, action, domain,
-                state.getCurrentTimeSeconds(), TeamSide.BLUE, attacker, defender, sides.auditAdjustment().perspectiveRole(),
+                state.getCurrentTimeSeconds(), TeamSide.BLUE, CompositionScoreOrientation.BLUE_MINUS_RED,
+                attacker, defender, sides.auditAdjustment().perspectiveRole(),
                 CompositionRuntimeDecisionKind.UNIFORM_NOISE_THRESHOLD,
                 CompositionRuntimeComparisonOperator.NOISY_SCORE_GREATER_THAN_OR_EQUAL_ZERO,
                 sides.localDecision().baselineScore(), sides.auditAdjustment().rawEdge(), sides.auditAdjustment().referenceGain(),
                 sides.auditAdjustment().winnerModifier(), sides.localDecision().candidateScore(),
+                sides.baselineScoreBeforeClamp(), sides.candidateScoreBeforeClamp(),
+                sides.existingNonScalarCompositionComponent(), sides.baselineClampDelta(),
+                sides.candidateClampDelta(), sides.clampEffect(),
                 evaluator.uniformAdvantageProbability(sides.localDecision().baselineScore()),
                 evaluator.uniformAdvantageProbability(sides.localDecision().candidateScore()), sides.localDecision().sample(),
                 sides.localDecision().sampleIdentity(),
@@ -633,7 +660,7 @@ public class TeamfightResolver {
             } else {
                 totalTeamfighting += player.getTeamfighting();
                 totalMechanics += player.getMechanics();
-        }
+            }
         }
         if (alive == 0) return 0.0;
         double score = totalTeamfighting / alive * PlayerImpactRuleConfig.TEAMFIGHTING_SCORE_WEIGHT
@@ -664,14 +691,26 @@ public class TeamfightResolver {
         double historicalCandidateGap = state.getCompositionRuntimeState().adjustedGapFor(
                 compositionAttemptId, runtimeWinningScore, runtimeLosingScore);
         CombatProgressionEvaluator progression = new CombatProgressionEvaluator();
-        double baselineTeamfightGap = Math.max(0.0, baselineGap + progression.contribution(state, context,
-                eligibleParticipants(sides.winningTeamState(), currentTime),
-                eligibleParticipants(sides.losingTeamState(), currentTime),
-                baselineGap, 0, ProgressionApplicationStage.FIGHT_GRADE));
-        double historicalCandidateTeamfightGap = Math.max(0.0, historicalCandidateGap + progression.contribution(
-                state, context, eligibleParticipants(sides.winningTeamState(), currentTime),
-                eligibleParticipants(sides.losingTeamState(), currentTime), historicalCandidateGap, 0,
-                ProgressionApplicationStage.FIGHT_GRADE));
+        List<PlayerState> winningEligible = eligibleParticipants(sides.winningTeamState(), currentTime);
+        List<PlayerState> losingEligible = eligibleParticipants(sides.losingTeamState(), currentTime);
+        double baselineProgression;
+        double historicalProgression;
+        if (productionCounterfactual) {
+            baselineProgression = progression.evaluatePure(state, context, winningEligible,
+                    losingEligible, baselineGap, 0, ProgressionApplicationStage.FIGHT_GRADE)
+                    .finalContribution();
+            historicalProgression = progression.evaluateAndRecord(state, context, winningEligible,
+                    losingEligible, historicalCandidateGap, 0, ProgressionApplicationStage.FIGHT_GRADE)
+                    .finalContribution();
+        } else {
+            historicalProgression = progression.evaluateAndRecord(state, context, winningEligible,
+                    losingEligible, historicalCandidateGap, 0, ProgressionApplicationStage.FIGHT_GRADE)
+                    .finalContribution();
+            baselineProgression = historicalProgression;
+        }
+        double baselineTeamfightGap = Math.max(0.0, baselineGap + baselineProgression);
+        double historicalCandidateTeamfightGap = Math.max(0.0,
+                historicalCandidateGap + historicalProgression);
         CompositionActionType action = compositionAction(context);
         CompositionBaselineScoreDomain domain = compositionDomain(context);
         TeamCompositionContext compositionContext = compositionContext(action);
@@ -1027,7 +1066,13 @@ public class TeamfightResolver {
             LocalDecision localDecision,
             CompositionWinnerDecisionAdjustment auditAdjustment,
             TeamSide structuredAttackingSide,
-            DecisionFactorCapture factors
+            DecisionFactorCapture factors,
+            double baselineScoreBeforeClamp,
+            double candidateScoreBeforeClamp,
+            double existingNonScalarCompositionComponent,
+            double baselineClampDelta,
+            double candidateClampDelta,
+            double clampEffect
     ) {
     }
 

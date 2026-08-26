@@ -7,6 +7,8 @@ import static org.assertj.core.api.Assertions.within;
 import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionSelectionValidator;
 import com.lolfm.composition.CompositionApplicationProvenance;
+import com.lolfm.composition.CompositionPublicEventIdentity;
+import com.lolfm.composition.CompositionScoreOrientation;
 import com.lolfm.composition.CompositionRuntimeDiagnostics;
 import com.lolfm.composition.TeamCompositionContext;
 import com.lolfm.factory.DummyDataFactory;
@@ -38,8 +40,16 @@ class CompositionProductionProvenanceIntegrationTest {
                 .filter(CompositionApplicationProvenance::applicationApplied).toList()).allSatisfy(value -> {
                     assertThat(value.gameplayConsumerIdentity()).isNotEqualTo("NOT_REACHED");
                     assertThat(value.publicBindingStatus()).isNotEqualTo("NOT_BOUND");
+                    assertThat(value.publicEventBindings()).isNotEmpty();
                     assertThat(value.randomDrawOrdinal()).isNotNull();
                     assertThat(value.randomSample()).isNotNull();
+                    assertThat(value.publicEventBindings()).allSatisfy(binding -> {
+                        assertThat(binding.actionId()).isNotBlank();
+                        assertThat(binding.eventOrdinal()).isLessThan(result.timeline().getEvents().size());
+                        assertThat(binding).isEqualTo(CompositionPublicEventIdentity.from(
+                                result.timeline().getEvents().get(binding.eventOrdinal()),
+                                binding.eventOrdinal()));
+                    });
                 });
         assertThat(diagnostics.applicationProvenance().stream()
                 .filter(CompositionApplicationProvenance::modifierConsumed).toList()).allSatisfy(value -> {
@@ -47,11 +57,25 @@ class CompositionProductionProvenanceIntegrationTest {
                     assertThat(value.modifier()).isEqualTo(value.rawCompositionEdge() * value.frozenGain());
                     assertThat(value.totalCompositionInputDelta())
                             .isEqualTo(value.adjustedGap() - value.baselineGap());
-                    assertThat(value.totalCompositionInputDelta())
-                            .isCloseTo(value.modifier() + value.existingNonScalarCompositionDelta(), within(1e-12));
+                    assertThat(value.candidateScoreBeforeClamp() - value.baselineScoreBeforeClamp())
+                            .isCloseTo(value.modifier()
+                                    + value.existingNonScalarCompositionDelta(), within(1e-12));
+                    assertThat(value.clampEffect()).isCloseTo(
+                            value.candidateClampDelta() - value.baselineClampDelta(), within(1e-12));
+                    assertThat(value.totalCompositionInputDelta()).isCloseTo(
+                            value.modifier() + value.existingNonScalarCompositionDelta()
+                                    + value.clampEffect(), within(1e-12));
                     assertThat(value.context()).isIn(TeamCompositionContext.SKIRMISH,
                             TeamCompositionContext.TEAMFIGHT, TeamCompositionContext.SIEGE,
                             TeamCompositionContext.BASE_DEFENSE);
+                });
+        assertThat(diagnostics.applicationProvenance().stream()
+                .filter(value -> value.context() == TeamCompositionContext.SKIRMISH
+                        && value.modifierConsumed()).toList()).isNotEmpty().allSatisfy(value -> {
+                    assertThat(Double.doubleToRawLongBits(value.existingNonScalarCompositionDelta()))
+                            .isEqualTo(Double.doubleToRawLongBits(0.0d));
+                    assertThat(Double.doubleToRawLongBits(value.clampEffect()))
+                            .isEqualTo(Double.doubleToRawLongBits(0.0d));
                 });
         assertThat(diagnostics.applicationProvenance()).anySatisfy(value -> {
             assertThat(value.context()).isIn(TeamCompositionContext.TEAMFIGHT,
@@ -66,6 +90,11 @@ class CompositionProductionProvenanceIntegrationTest {
                     if (value.applicationApplied()) {
                         assertThat(value.context()).isEqualTo(TeamCompositionContext.OBJECTIVE_SETUP);
                         assertThat(value.existingNonScalarEffectConsumed()).isTrue();
+                        assertThat(value.routingPerspectiveSide())
+                                .isEqualTo(value.attemptOwnerSide());
+                        assertThat(value.scoreOrientation())
+                                .isEqualTo(CompositionScoreOrientation.BLUE_MINUS_RED);
+                        assertThat(value.perspectiveSide()).isEqualTo(TeamSide.BLUE);
                     }
                 });
         assertThat(diagnostics.candidateApplications()).isEmpty();
@@ -75,6 +104,8 @@ class CompositionProductionProvenanceIntegrationTest {
         assertThat(diagnostics.duplicateApplicationPointCount()).isZero();
         assertThat(diagnostics.multiContextAttemptCount()).isZero();
         assertThat(diagnostics.conflictingPerspectiveCount()).isZero();
+        assertThat(diagnostics.duplicatePublicBindingCount()).isZero();
+        assertThat(diagnostics.conflictingPublicBindingCount()).isZero();
     }
 
     @Test

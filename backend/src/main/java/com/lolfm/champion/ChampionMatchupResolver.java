@@ -21,13 +21,36 @@ public final class ChampionMatchupResolver {
             ProgressionCombatContext context,
             ProgressionApplicationStage stage
     ) {
+        return evaluate(state, sourceParticipants, opponentParticipants, context, stage, true);
+    }
+
+    /** Computes the same matchup contribution without mutating execution diagnostics. */
+    public ChampionMatchupResult evaluatePure(
+            GameState state,
+            List<PlayerState> sourceParticipants,
+            List<PlayerState> opponentParticipants,
+            ProgressionCombatContext context,
+            ProgressionApplicationStage stage
+    ) {
+        return evaluate(state, sourceParticipants, opponentParticipants, context, stage, false);
+    }
+
+    private ChampionMatchupResult evaluate(
+            GameState state,
+            List<PlayerState> sourceParticipants,
+            List<PlayerState> opponentParticipants,
+            ProgressionCombatContext context,
+            ProgressionApplicationStage stage,
+            boolean recordDiagnostics
+    ) {
         ChampionMatchupExecutionStats stats = state.getChampionMatchupExecutionStats();
         if (state.getChampionMatchupMode() == ChampionMatchupMode.OFF) {
-            stats.recordDisabledEvaluation();
+            if (recordDiagnostics) stats.recordDisabledEvaluation();
             return ChampionMatchupResult.disabled();
         }
         if (state.getChampionMatchupMode() == ChampionMatchupMode.GEOMETRIC_V2) {
-            return evaluateGeometric(state, sourceParticipants, opponentParticipants, context, stage, stats);
+            return evaluateGeometric(state, sourceParticipants, opponentParticipants,
+                    context, stage, stats, recordDiagnostics);
         }
         Collected source = collect(state, sourceParticipants);
         Collected opponent = collect(state, opponentParticipants);
@@ -81,14 +104,15 @@ public final class ChampionMatchupResolver {
                 true, contributions.size(), total, average, contributions,
                 counters.missingAssignments, counters.dead, counters.crossPosition,
                 counters.nonParticipant, counters.sameTeam, counters.duplicates);
-        stats.recordEnabledEvaluation(result);
+        if (recordDiagnostics) stats.recordEnabledEvaluation(result);
         return result;
     }
 
     private ChampionMatchupResult evaluateGeometric(
             GameState state, List<PlayerState> sourceParticipants,
             List<PlayerState> opponentParticipants, ProgressionCombatContext context,
-            ProgressionApplicationStage stage, ChampionMatchupExecutionStats stats
+            ProgressionApplicationStage stage, ChampionMatchupExecutionStats stats,
+            boolean recordDiagnostics
     ) {
         Collected source = collect(state, sourceParticipants);
         Collected opponent = collect(state, opponentParticipants);
@@ -125,7 +149,7 @@ public final class ChampionMatchupResolver {
                 contributions.isEmpty() ? 0.0 : total / contributions.size(), contributions,
                 counters.missingAssignments, counters.dead, counters.crossPosition,
                 counters.nonParticipant, counters.sameTeam, counters.duplicates);
-        stats.recordEnabledEvaluation(result);
+        if (recordDiagnostics) stats.recordEnabledEvaluation(result);
         return result;
     }
 

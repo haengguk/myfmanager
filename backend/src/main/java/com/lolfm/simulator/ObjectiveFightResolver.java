@@ -51,14 +51,29 @@ public final class ObjectiveFightResolver {
                 - teamfights.teamfightScoreWithoutComposition(state, TeamSide.RED, red)
                 : runtimeExisting;
         CombatProgressionEvaluator progression = new CombatProgressionEvaluator();
-        double baselineScoreWithoutNoise = baselineExisting + progression.contribution(state,
-                ProgressionCombatContext.OBJECTIVE_FIGHT,
-                alive(state.getBlueTeamState(), state.getCurrentTimeSeconds()),
-                alive(state.getRedTeamState(), state.getCurrentTimeSeconds()), baselineExisting, goldContribution);
-        double scoreWithoutNoise = runtimeExisting + progression.contribution(state,
-                ProgressionCombatContext.OBJECTIVE_FIGHT,
-                alive(state.getBlueTeamState(), state.getCurrentTimeSeconds()),
-                alive(state.getRedTeamState(), state.getCurrentTimeSeconds()), runtimeExisting, goldContribution);
+        List<PlayerState> blueAlive = alive(state.getBlueTeamState(), state.getCurrentTimeSeconds());
+        List<PlayerState> redAlive = alive(state.getRedTeamState(), state.getCurrentTimeSeconds());
+        double baselineProgression;
+        double runtimeProgression;
+        if (productionCounterfactual) {
+            baselineProgression = progression.evaluatePure(state,
+                    ProgressionCombatContext.OBJECTIVE_FIGHT, blueAlive, redAlive,
+                    baselineExisting, goldContribution, ProgressionApplicationStage.COMBAT_SCORE)
+                    .finalContribution();
+            runtimeProgression = progression.evaluateAndRecord(state,
+                    ProgressionCombatContext.OBJECTIVE_FIGHT, blueAlive, redAlive,
+                    runtimeExisting, goldContribution, ProgressionApplicationStage.COMBAT_SCORE)
+                    .finalContribution();
+        } else {
+            runtimeProgression = progression.evaluateAndRecord(state,
+                    ProgressionCombatContext.OBJECTIVE_FIGHT, blueAlive, redAlive,
+                    runtimeExisting, goldContribution, ProgressionApplicationStage.COMBAT_SCORE)
+                    .finalContribution();
+            baselineProgression = runtimeProgression;
+        }
+        double baselineScoreWithoutNoise = baselineExisting + baselineProgression;
+        double scoreWithoutNoise = runtimeExisting + runtimeProgression;
+        double exactExistingNonScalarComponent = runtimeExisting - baselineExisting;
         double sample = random.nextDouble();
         long sampleOrdinal = random instanceof SideOrientationRandomTraceObserver observer
                 ? observer.drawCount() : -1L;
@@ -71,6 +86,7 @@ public final class ObjectiveFightResolver {
             state.getCompositionRuntimeState().recordExistingNonScalarDecisionProvenance(
                     compositionAttemptId, "ObjectiveFightResolver.teamfightScore.supportToolExecution",
                     baselineScoreWithoutNoise, scoreWithoutNoise,
+                    exactExistingNonScalarComponent,
                     probability.uniformAdvantageProbability(baselineScoreWithoutNoise),
                     probability.uniformAdvantageProbability(scoreWithoutNoise), sample, sampleOrdinal,
                     baselineWinner, winner);
@@ -104,7 +120,10 @@ public final class ObjectiveFightResolver {
             events.get(index).setActionId(actionId);
         }
         if (productionCounterfactual && compositionAttemptId != null) {
-            state.getCompositionRuntimeState().bindPublicAction(compositionAttemptId, startEvent);
+            for (int index = eventStart; index < events.size(); index++) {
+                state.getCompositionRuntimeState().bindPublicAction(
+                        compositionAttemptId, events.get(index), index);
+            }
         }
         state.getCombatOutcomeExecutionStats().record(ProgressionCombatContext.OBJECTIVE_FIGHT,state.getCurrentTimeSeconds(),true,winner,blueParticipants,redParticipants);
         return new ObjectiveFightOutcome(winner, killed ? 1 : 0, participants, skillImpact);
