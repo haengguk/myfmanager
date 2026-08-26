@@ -52,3 +52,8 @@ V9 structure 관측에서 holdout baseline은 structure damage 12,221회, destru
 2. Composition의 실제 application 0회와 local-cause 위반 60회를 application-point accounting과 winner-decision provenance 기준으로 진단한다.
 3. 위 원인을 수정하더라도 이번 holdout seed를 재사용하지 않고 새 versioned contract/calibration/holdout을 만든다.
 
+## Fresh Auto Draft successor 결과
+
+후속 [fresh 재검증 V1](match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v1.md)은 fixture별 고정 Draft를 seed별 production Auto Draft로 교체하고 Matchup local application provenance 및 Composition V6 causal evidence를 통합했다. 이는 이 문서의 historical verdict와 artifact hash를 덮어쓰지 않는다.
+
+새 calibration 네 shard는 100 fixtures / 400 Drafts / 1,200 core rows를 생성했지만, fresh-JVM finalizer가 signed checkpoint의 unordered Set round-trip digest를 거부했다. Raw file sidecar는 100/100 정상이었으나 evidence integrity 선행 gate가 실패했으므로 holdout은 승인·소비되지 않았고 Matchup/Composition의 새 macro/causal verdict도 만들지 않았다. Production recommendation은 계속 `BASELINE_V1` 유지다.

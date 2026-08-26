@@ -108,8 +108,13 @@ public final class Phase13GB1SimulationExecutor {
     }
 
     public static String structuredDiagnosticsHash(StructuredDiagnostics diagnostics) {
+        return structuredValueHash(Objects.requireNonNull(diagnostics, "diagnostics"));
+    }
+
+    /** Canonical structured hash for one diagnostic component, including domain-keyed maps. */
+    public static String structuredValueHash(Object value) {
         StringBuilder canonical = new StringBuilder();
-        appendCanonical(Objects.requireNonNull(diagnostics, "diagnostics"), canonical);
+        appendCanonical(value, canonical);
         try {
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(
                     canonical.toString().getBytes(StandardCharsets.UTF_8)));

@@ -137,6 +137,69 @@ class AutoDraftSelectorTest {
                 .hasMessageContaining("Duplicate Draft selection candidate");
     }
 
+    @Test
+    void alternativesExcludeActualSelectionForRankOneTwoAndThree() {
+        List<DraftSearchCandidate> ranked = List.of(
+                candidate("aatrox", 10.0), candidate("ahri", 9.5),
+                candidate("akali", 9.0), candidate("alistar", 8.5));
+        ShallowDraftSearch.SearchResult result =
+                new ShallowDraftSearch.SearchResult(ranked, null);
+
+        for (int selectedIndex = 0; selectedIndex < 3; selectedIndex++) {
+            ChampionId selected = ranked.get(selectedIndex).championId();
+            ShallowDraftSearch.SearchChoice choice =
+                    ShallowDraftSearch.SearchChoice.fromSelection(
+                            result, ranked.get(selectedIndex));
+            assertThat(choice.alternatives()).extracting(DraftAlternative::championId)
+                    .doesNotContain(selected)
+                    .containsExactlyElementsOf(ranked.stream()
+                            .map(DraftSearchCandidate::championId)
+                            .filter(value -> !value.equals(selected)).limit(3).toList());
+        }
+    }
+
+    @Test
+    void traceHashV2IgnoresRawDoubleButBindsFixedPointEvidence() {
+        DraftSelectionTrace first = select(fresh(), context(73L), List.of(
+                candidate("aatrox", 10.0), candidate("ahri", 9.5))).trace();
+        List<DraftSelectionPoolEntry> rawChanged = first.eligiblePool().stream()
+                .map(value -> new DraftSelectionPoolEntry(value.championId(),
+                        value.canonicalRank(), value.rawFinalSearchScore() + 1e-12,
+                        value.canonicalFinalScore(), value.canonicalScoreLoss(),
+                        value.rankWeight())).toList();
+        DraftSelectionTrace observationallyDifferent = copy(first, rawChanged,
+                first.selectionContextHash(), first.drawBucket(), first.totalEligibleWeight());
+        DraftSelectionPoolEntry changedFixed = new DraftSelectionPoolEntry(
+                rawChanged.getFirst().championId(), 1, rawChanged.getFirst().rawFinalSearchScore(),
+                rawChanged.getFirst().canonicalFinalScore() + 1,
+                rawChanged.getFirst().canonicalScoreLoss(), rawChanged.getFirst().rankWeight());
+        List<DraftSelectionPoolEntry> fixedChanged = new java.util.ArrayList<>(rawChanged);
+        fixedChanged.set(0, changedFixed);
+        DraftSelectionTrace structurallyDifferent = new DraftSelectionTrace(
+                first.policyId(), first.policyMode(), first.policyHash(),
+                first.selectionContextHash(), first.turn(), first.side(), first.actionType(),
+                first.bestCandidateId(), first.bestCanonicalScore() + 1, fixedChanged,
+                first.selectedChampionId(), first.selectedRank(),
+                first.selectedCanonicalScoreLoss(), first.drawBucket(),
+                first.totalEligibleWeight(), first.reason());
+
+        assertThat(DraftSelectionTraceHasher.TRACE_HASH_ALGORITHM).endsWith("_V2");
+        assertThat(DraftSelectionTraceHasher.traceHash(observationallyDifferent))
+                .isEqualTo(DraftSelectionTraceHasher.traceHash(first));
+        assertThat(DraftSelectionTraceHasher.traceHash(structurallyDifferent))
+                .isNotEqualTo(DraftSelectionTraceHasher.traceHash(first));
+    }
+
+    private static DraftSelectionTrace copy(
+            DraftSelectionTrace source, List<DraftSelectionPoolEntry> pool,
+            String contextHash, Integer drawBucket, int totalWeight) {
+        return new DraftSelectionTrace(source.policyId(), source.policyMode(), source.policyHash(),
+                contextHash, source.turn(), source.side(), source.actionType(),
+                source.bestCandidateId(), source.bestCanonicalScore(), pool,
+                source.selectedChampionId(), source.selectedRank(),
+                source.selectedCanonicalScoreLoss(), drawBucket, totalWeight, source.reason());
+    }
+
     private AutoDraftSelector.Selection select(DraftState state,
                                                DraftSelectionContext context,
                                                List<DraftSearchCandidate> candidates) {

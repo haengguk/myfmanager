@@ -9,7 +9,9 @@ import java.util.Objects;
 
 public final class DraftSelectionTraceHasher {
     public static final String TRACE_HASH_ALGORITHM =
-            "SHA256_UTF8_EXPLICIT_ORDERED_DRAFT_SELECTION_TRACE_LINES_TRAILING_NEWLINE_V1";
+            "SHA256_UTF8_EXPLICIT_ORDERED_DRAFT_SELECTION_TRACE_FIXED_POINT_LINES_TRAILING_NEWLINE_V2";
+    public static final String TRACE_SCHEMA = "AUTO_DRAFT_SELECTION_TRACE_V2";
+    public static final String TRACE_SET_SCHEMA = "AUTO_DRAFT_SELECTION_TRACE_SET_V2";
 
     private DraftSelectionTraceHasher() {
     }
@@ -17,7 +19,8 @@ public final class DraftSelectionTraceHasher {
     public static String hash(List<DraftSelectionTrace> traces) {
         Objects.requireNonNull(traces, "traces");
         StringBuilder canonical = new StringBuilder(
-                "traceSetSchema=AUTO_DRAFT_SELECTION_TRACE_SET_V1\n")
+                "traceSetSchema=" + TRACE_SET_SCHEMA + "\n")
+                .append("traceHashAlgorithm=").append(TRACE_HASH_ALGORITHM).append('\n')
                 .append("traceCount=").append(traces.size()).append('\n');
         for (int index = 0; index < traces.size(); index++) {
             DraftSelectionTrace trace = traces.get(index);
@@ -30,7 +33,8 @@ public final class DraftSelectionTraceHasher {
     public static String traceHash(DraftSelectionTrace trace) {
         Objects.requireNonNull(trace, "trace");
         StringBuilder canonical = new StringBuilder(
-                "traceSchema=AUTO_DRAFT_SELECTION_TRACE_V1\n")
+                "traceSchema=" + TRACE_SCHEMA + "\n")
+                .append("traceHashAlgorithm=").append(TRACE_HASH_ALGORITHM).append('\n')
                 .append("policyId=").append(trace.policyId()).append('\n')
                 .append("policyMode=").append(trace.policyMode()).append('\n')
                 .append("policyHash=").append(trace.policyHash()).append('\n')
@@ -42,7 +46,6 @@ public final class DraftSelectionTraceHasher {
                 .append("bestCanonicalScore=").append(trace.bestCanonicalScore()).append('\n');
         trace.eligiblePool().forEach(entry -> canonical.append("eligibleCandidate=")
                 .append(entry.canonicalRank()).append('|').append(entry.championId().value())
-                .append('|').append(Double.toHexString(entry.rawFinalSearchScore()))
                 .append('|').append(entry.canonicalFinalScore()).append('|')
                 .append(entry.canonicalScoreLoss()).append('|').append(entry.rankWeight())
                 .append('\n'));

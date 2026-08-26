@@ -328,3 +328,11 @@ Jungle Tempo production code 직전의 별도 oracle은 `backend/baseline/pre-ju
 - diagnostics mode가 같은 gameplay configuration의 decision이나 Random consumption을 바꾸면 안 된다.
 
 Champion별 입력은 [Champion System](champion-system.md), player 입력은 [Player System](player-system.md)을 참고한다.
+
+## V9 candidate application provenance와 artifact canonicalization
+
+Matchup candidate diagnostics는 실제 consumer가 입력을 읽는 지점마다 match-scoped `ChampionMatchupApplicationProvenance`를 기록한다. Identity는 application sequence/point, simulation time, side/perspective, position/player/champion pair, lane/context/stage와 before/after/delta로 구성한다. Exact structured action identity가 없는 combat score 계산에는 임의 action ID를 만들지 않는다. Resolver 자체는 stateless이며 이 기록은 gameplay state와 Random을 바꾸지 않는다.
+
+Real Match/Match Engine input은 Auto Draft selection trace schema와 hash algorithm을 additive identity로 결속한다. V2 trace hash는 fixed-point evidence만 사용하고 authoritative validator가 policy/weight/draw/context/roster/history/seed를 재검증한다.
+
+Official diagnostic payload도 gameplay invariant와 같은 canonical collection 규율을 지켜야 한다. [fresh 재검증 V1](../development/match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v1.md)은 raw checkpoint 100개를 정상 기록했지만 `PairObservation.divergenceActionIds`의 `Set.copyOf` iteration order 때문에 fresh-JVM deserialize/reserialize digest가 달라져 holdout 전에 차단됐다. Hash 대상 Set은 명시적으로 정렬된 List 또는 정렬 순서를 보존하는 canonical projection으로 바꿔야 하며, 우연히 통과할 때까지 finalizer를 재시도해서는 안 된다.

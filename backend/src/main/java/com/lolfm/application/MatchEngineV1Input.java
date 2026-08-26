@@ -12,8 +12,13 @@ import com.lolfm.domain.PlayerSkill;
 import com.lolfm.domain.Position;
 import com.lolfm.domain.Team;
 import com.lolfm.draft.DraftActionType;
+import com.lolfm.draft.DraftAction;
+import com.lolfm.draft.DraftRuleSet;
+import com.lolfm.draft.DraftSelectionContext;
+import com.lolfm.draft.DraftSelectionEvidenceValidator;
 import com.lolfm.draft.DraftSelectionTrace;
 import com.lolfm.draft.DraftSelectionTraceHasher;
+import com.lolfm.draft.AutoDraftSelectionPolicy;
 import com.lolfm.player.PlayerId;
 import com.lolfm.simulator.PlayerKey;
 import com.lolfm.simulator.TeamSide;
@@ -77,6 +82,8 @@ public record MatchEngineV1Input(
                 Set.copyOf(finalDraft.hardFearlessExclusions())))) {
             throw new IllegalArgumentException("MATCH_ENGINE_V1_SERIES_HISTORY_IDENTITY_MISMATCH");
         }
+        validateAuthoritativeDraftSelection(blueTeam, redTeam, finalDraft, matchSeed,
+                rosterIdentityHash, seriesHistoryBeforeHash);
     }
 
     public String inputHash() {
@@ -210,6 +217,33 @@ public record MatchEngineV1Input(
         }
         if (!draft.finalDraftHash().equals(finalDraftHash(draft, assignments))) {
             throw new IllegalArgumentException("MATCH_ENGINE_V1_FINAL_DRAFT_HASH_MISMATCH");
+        }
+    }
+
+    private static void validateAuthoritativeDraftSelection(
+            TeamInput blue,
+            TeamInput red,
+            DraftInput draft,
+            long matchSeed,
+            String rosterIdentityHash,
+            String seriesHistoryBeforeHash
+    ) {
+        DraftSelectionContext context = new DraftSelectionContext(
+                matchSeed, blue.teamIdentity(), red.teamIdentity(), rosterIdentityHash,
+                draft.seriesGameNumber(), seriesHistoryBeforeHash);
+        List<DraftAction> actions = draft.decisions().stream().map(value ->
+                new DraftAction(value.turn(), value.side(), value.actionType(),
+                        value.selectedChampionId())).toList();
+        DraftSelectionEvidenceValidator.ValidatedDraft validated =
+                new DraftSelectionEvidenceValidator(AutoDraftSelectionPolicy.production())
+                        .validate(DraftRuleSet.professional(),
+                                Set.copyOf(draft.hardFearlessExclusions()), context,
+                                actions, draft.selectionTraces(), draft.draftSelectionTraceHash());
+        if (!validated.blueBans().equals(draft.blueBans())
+                || !validated.redBans().equals(draft.redBans())
+                || !validated.bluePicks().equals(draft.bluePicks())
+                || !validated.redPicks().equals(draft.redPicks())) {
+            throw new IllegalArgumentException("MATCH_ENGINE_V1_DRAFT_STATE_RECONSTRUCTION_MISMATCH");
         }
     }
 
@@ -521,6 +555,8 @@ public record MatchEngineV1Input(
                     .append("draftScoringPolicyHash=").append(draftScoringPolicyHash).append('\n')
                     .append("draftSelectionPolicyId=").append(draftSelectionPolicyId).append('\n')
                     .append("draftSelectionPolicyHash=").append(draftSelectionPolicyHash).append('\n')
+                    .append("draftSelectionTraceHashAlgorithm=")
+                    .append(DraftSelectionTraceHasher.TRACE_HASH_ALGORITHM).append('\n')
                     .append("draftSelectionTraceHash=").append(draftSelectionTraceHash).append('\n')
                     .append("draftDecisionHash=").append(draftDecisionHash).append('\n')
                     .append("finalAssignmentHash=").append(finalAssignmentHash).append('\n')

@@ -508,6 +508,8 @@ public final class SimulationProvenanceService {
                 + "draftScoringPolicyHash=" + draftScoringPolicyHash + '\n'
                 + "draftSelectionPolicyId=" + draftSelectionPolicyId + '\n'
                 + "draftSelectionPolicyHash=" + draftSelectionPolicyHash + '\n'
+                + "draftSelectionTraceHashAlgorithm="
+                + com.lolfm.draft.DraftSelectionTraceHasher.TRACE_HASH_ALGORITHM + '\n'
                 + "draftSelectionTraceHash=" + draftSelectionTraceHash + '\n'
                 + "draftDecisionHash=" + draftDecisionHash + '\n'
                 + "finalDraftHash=" + finalDraftHash + '\n'

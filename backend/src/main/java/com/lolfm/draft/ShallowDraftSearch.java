@@ -145,7 +145,8 @@ public final class ShallowDraftSearch {
 
         static SearchChoice fromSelection(SearchResult result, DraftSearchCandidate selected) {
             List<DraftAlternative> alternatives = result.rankedCandidates().stream()
-                    .skip(1).limit(3)
+                    .filter(value -> !value.championId().equals(selected.championId()))
+                    .limit(3)
                     .map(value -> new DraftAlternative(
                             value.championId(), value.finalSearchScore())).toList();
             List<DraftSearchCandidateScore> rootScores = result.rankedCandidates().stream()

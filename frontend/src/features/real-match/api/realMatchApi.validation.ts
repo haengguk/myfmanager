@@ -304,7 +304,8 @@ function validateIntegrity(value: unknown): void {
   for (const key of [
     'matchEngineContract', 'policyId', 'policyHash', 'runtimeProfileId', 'configurationHash',
     'engineImplementationVersion', 'activeGameplayRulesVersion', 'draftSelectionPolicyId',
-    'draftSelectionPolicyHash', 'draftSelectionTraceHash', 'inputHash', 'inputHashAlgorithm',
+    'draftSelectionPolicyHash', 'draftSelectionTraceHashAlgorithm', 'draftSelectionTraceHash',
+    'inputHash', 'inputHashAlgorithm',
     'resourceProvenanceHash', 'replayProvenanceHash', 'replayProvenanceHashAlgorithm',
     'simulatorTimelineHash', 'simulatorTimelineHashAlgorithm', 'structuredTimelineHash',
     'structuredTimelineHashAlgorithm', 'outputHash', 'outputHashAlgorithm', 'outputHashScope',
@@ -362,7 +363,8 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
   if (integer(draft.seriesGameNumber, '$.draft.seriesGameNumber', 1) !== 1) fail('$.draft.seriesGameNumber', '현재 계약은 fresh Game 1만 지원합니다.');
   for (const key of [
     'draftRuleSetIdentity', 'draftRuleSetHash', 'draftScoringPolicyHash',
-    'draftSelectionPolicyId', 'draftSelectionPolicyHash', 'draftSelectionTraceHash',
+    'draftSelectionPolicyId', 'draftSelectionPolicyHash', 'draftSelectionTraceHashAlgorithm',
+    'draftSelectionTraceHash',
     'finalDraftHash', 'finalAssignmentHash',
   ]) text(draft[key], `$.draft.${key}`);
   stringArray(draft.hardFearlessExclusionsBeforeDraft, '$.draft.hardFearlessExclusionsBeforeDraft');
@@ -572,7 +574,8 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
 
   validateIntegrity(root.integrity);
   const integrity = record(root.integrity, '$.integrity');
-  for (const key of ['draftSelectionPolicyId', 'draftSelectionPolicyHash', 'draftSelectionTraceHash'] as const) {
+  for (const key of ['draftSelectionPolicyId', 'draftSelectionPolicyHash',
+    'draftSelectionTraceHashAlgorithm', 'draftSelectionTraceHash'] as const) {
     if (integrity[key] !== draft[key]) fail(`$.integrity.${key}`, `draft.${key}와 일치하지 않습니다.`);
   }
   for (const [resultKey, integrityKey] of [

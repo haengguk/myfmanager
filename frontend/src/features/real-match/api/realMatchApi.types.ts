@@ -53,7 +53,7 @@ export interface RealMatchFinalAssignmentDto { playerId: string; teamSide: TeamS
 export interface RealMatchDraftDto {
   schemaVersion: 'REAL_MATCH_DRAFT_V1'; seriesGameNumber: number; draftRuleSetIdentity: string;
   draftRuleSetHash: string; draftScoringPolicyHash: string; draftSelectionPolicyId: string;
-  draftSelectionPolicyHash: string; draftSelectionTraceHash: string;
+  draftSelectionPolicyHash: string; draftSelectionTraceHashAlgorithm: string; draftSelectionTraceHash: string;
   selectionTraces: readonly RealMatchDraftSelectionTraceDto[]; hardFearlessExclusionsBeforeDraft: readonly string[];
   decisions: readonly RealMatchDraftDecisionDto[]; blueBans: readonly string[]; bluePicks: readonly string[];
   redBans: readonly string[]; redPicks: readonly string[]; finalAssignments: readonly RealMatchFinalAssignmentDto[];
@@ -115,7 +115,8 @@ export interface RealMatchTimelineDto {
 export interface RealMatchIntegrityDto {
   matchEngineContract: string; policyId: string; policyHash: string; runtimeProfileId: string;
   configurationHash: string; engineImplementationVersion: string; activeGameplayRulesVersion: string;
-  draftSelectionPolicyId: string; draftSelectionPolicyHash: string; draftSelectionTraceHash: string;
+  draftSelectionPolicyId: string; draftSelectionPolicyHash: string; draftSelectionTraceHashAlgorithm: string;
+  draftSelectionTraceHash: string;
   inputHash: string; inputHashAlgorithm: string; resourceProvenanceHash: string; replayProvenanceHash: string;
   replayProvenanceHashAlgorithm: string; simulatorTimelineHash: string; simulatorTimelineHashAlgorithm: string;
   structuredTimelineHash: string; structuredTimelineHashAlgorithm: string; outputHash: string;

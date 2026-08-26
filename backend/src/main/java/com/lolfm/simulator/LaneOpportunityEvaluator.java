@@ -19,12 +19,28 @@ public final class LaneOpportunityEvaluator {
         double power = championPower.evaluate(state, blue, red,
                 ProgressionCombatContext.LANE_COMBAT, ProgressionApplicationStage.INITIATIVE)
                 .finalContribution();
-        double matchupEdge = matchup.evaluate(state, blue, red,
-                ProgressionCombatContext.LANE_COMBAT, ProgressionApplicationStage.INITIATIVE)
-                .matchupEdge();
-        return clamp((power + matchupEdge) * LanePressureRuleConfig.CHAMPION_LANE_OPPORTUNITY_SCALE,
+        var matchupResult = matchup.evaluate(state, blue, red,
+                ProgressionCombatContext.LANE_COMBAT, ProgressionApplicationStage.INITIATIVE);
+        double matchupEdge = matchupResult.matchupEdge();
+        double before = clamp(power * LanePressureRuleConfig.CHAMPION_LANE_OPPORTUNITY_SCALE,
                 -LanePressureRuleConfig.MAX_CHAMPION_LANE_OPPORTUNITY_ATTRIBUTE,
                 LanePressureRuleConfig.MAX_CHAMPION_LANE_OPPORTUNITY_ATTRIBUTE);
+        double after = clamp((power + matchupEdge)
+                        * LanePressureRuleConfig.CHAMPION_LANE_OPPORTUNITY_SCALE,
+                -LanePressureRuleConfig.MAX_CHAMPION_LANE_OPPORTUNITY_ATTRIBUTE,
+                LanePressureRuleConfig.MAX_CHAMPION_LANE_OPPORTUNITY_ATTRIBUTE);
+        state.getChampionMatchupExecutionStats().recordConsumedApplication(
+                state, matchupResult, ProgressionCombatContext.LANE_COMBAT,
+                ProgressionApplicationStage.INITIATIVE,
+                com.lolfm.champion.ChampionMatchupApplicationPoint
+                        .LANE_OPPORTUNITY_PRESSURE,
+                switch (lane) {
+                    case TOP -> com.lolfm.champion.ChampionMatchupLaneScope.TOP;
+                    case MID -> com.lolfm.champion.ChampionMatchupLaneScope.MID;
+                    case BOT -> com.lolfm.champion.ChampionMatchupLaneScope.BOT;
+                },
+                before, after, null);
+        return after;
     }
 
     private List<PlayerState> participants(TeamState team, Lane lane) {

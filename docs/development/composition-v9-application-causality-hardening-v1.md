@@ -152,3 +152,9 @@ V5 `SHA256SUMS.txt`의 모든 entry가 통과했고 manifest raw SHA-256은 `cc5
 ## Next step
 
 이번 결과로 fresh requalification의 causal evidence 계약을 설계할 수 있게 됐다. 다음 단계는 Matchup local application provenance와 Composition provenance의 통합 검토, 결과를 보기 전에 gameplay-critical product tolerance 고정, 새 non-overlapping calibration/holdout, Matchup-only/Full-system final requalification과 explicit production runtime 결정을 순서대로 수행하는 것이다. Jungle Economy/Tempo는 자동으로 다시 열지 않는다.
+
+## Fresh requalification 소비 결과
+
+[Match Engine V9 fresh 재검증 V1](match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v1.md)은 V6 scalar/non-scalar decomposition과 public action binding을 변경하지 않고 공식 calibration에 소비했다. Smoke에서는 `SKIRMISH`/`TEAMFIGHT`/`SIEGE`/`BASE_DEFENSE` consumer reachability와 instrumentation parity가 확인됐다.
+
+그러나 calibration checkpoint를 fresh JVM에서 재로드하는 evidence-integrity gate가 unordered Set canonicalization 때문에 실패했다. 따라서 calculated/applied/consumed cardinality, direct/indirect/unresolved cause, macro sensitivity를 official Composition eligibility로 집계하지 않았고 holdout도 0개 소비다. V6 artifact와 causality 결론은 historical predecessor로 유지되며, 다음 시도는 serializer fix 뒤 새 non-overlapping seed contract가 필요하다.

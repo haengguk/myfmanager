@@ -213,6 +213,7 @@ public final class RealMatchApiV1Dtos {
             String draftScoringPolicyHash,
             String draftSelectionPolicyId,
             String draftSelectionPolicyHash,
+            String draftSelectionTraceHashAlgorithm,
             String draftSelectionTraceHash,
             List<DraftSelectionTrace> selectionTraces,
             List<String> hardFearlessExclusionsBeforeDraft,
@@ -235,6 +236,8 @@ public final class RealMatchApiV1Dtos {
                     draftSelectionPolicyId, "draftSelectionPolicyId");
             draftSelectionPolicyHash = required(
                     draftSelectionPolicyHash, "draftSelectionPolicyHash");
+            draftSelectionTraceHashAlgorithm = required(
+                    draftSelectionTraceHashAlgorithm, "draftSelectionTraceHashAlgorithm");
             draftSelectionTraceHash = required(
                     draftSelectionTraceHash, "draftSelectionTraceHash");
             selectionTraces = List.copyOf(selectionTraces);
@@ -601,6 +604,7 @@ public final class RealMatchApiV1Dtos {
             String activeGameplayRulesVersion,
             String draftSelectionPolicyId,
             String draftSelectionPolicyHash,
+            String draftSelectionTraceHashAlgorithm,
             String draftSelectionTraceHash,
             String inputHash,
             String inputHashAlgorithm,
@@ -631,6 +635,8 @@ public final class RealMatchApiV1Dtos {
                     draftSelectionPolicyId, "draftSelectionPolicyId");
             draftSelectionPolicyHash = required(
                     draftSelectionPolicyHash, "draftSelectionPolicyHash");
+            draftSelectionTraceHashAlgorithm = required(
+                    draftSelectionTraceHashAlgorithm, "draftSelectionTraceHashAlgorithm");
             draftSelectionTraceHash = required(
                     draftSelectionTraceHash, "draftSelectionTraceHash");
             inputHash = required(inputHash, "inputHash");

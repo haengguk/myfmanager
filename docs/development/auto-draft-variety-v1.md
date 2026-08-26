@@ -129,3 +129,9 @@ Focused 검증은 selector 경계/중복/비유한값, same-seed, 다른 seed va
 - 이 80-Draft diagnostic은 consumed holdout이나 balance qualification으로 재해석하지 않는다.
 
 Historical V8 frontend reference와 기존 V8/V9 diagnostic artifact는 재생성하거나 덮어쓰지 않았다. 현재 LIVE identity만 additive Draft selection policy/trace를 반영한다.
+
+## Fresh requalification post-review hardening
+
+후속 [Match Engine V9 fresh 재검증](match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v1.md)은 기존 policy ID/hash와 scoring/tuning을 유지하면서 세 review gap을 닫았다. Rank 2/3 선택 시 선택 champion을 `topAlternatives`에서 제거했고, backend authoritative validator가 20개 trace의 weight/sum/bucket/rank/pool/context/history/roster/seed binding을 다시 계산한다. Trace hash는 raw double 대신 fixed-point evidence만 쓰는 `AUTO_DRAFT_SELECTION_TRACE_V2`와 `SHA256_UTF8_EXPLICIT_ORDERED_DRAFT_SELECTION_TRACE_FIXED_POINT_LINES_TRAILING_NEWLINE_V2`로 갱신됐다.
+
+10-fixture × 2 non-official seed fresh-JVM probe A/B는 20 Draft씩 byte-exact였고 강화 smoke도 profile 간 immutable Draft sharing을 확인했다. Official calibration은 100 fixtures × 4 seeds에서 production Auto Draft 400개를 실제로 생성했다. 다만 checkpoint fresh-JVM reload의 unordered Set canonicalization 실패로 population이 공식 eligibility evidence로 승격되지 못했으며, 이 400 Draft의 rank/pool/score-loss 분포를 성공 근거로 보고하지 않는다. Historical `AUTO_DRAFT_VARIETY_V1_ACCEPTED` verdict와 artifact hash는 그대로다.

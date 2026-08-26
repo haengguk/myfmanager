@@ -96,6 +96,14 @@ public final class CombatProgressionEvaluator {
         double combined = scoreBeforeMatchup + matchupContribution;
 
         if (recordDiagnostics) {
+            state.getChampionMatchupExecutionStats().recordConsumedApplication(
+                    state, matchup, context, stage,
+                    com.lolfm.champion.ChampionMatchupApplicationPoint
+                            .COMBAT_PROGRESSION_SCORE,
+                    laneScope(state, own, enemy), scoreBeforeMatchup, combined, null);
+        }
+
+        if (recordDiagnostics) {
             state.getChampionPowerExecutionStats().record(
                     new com.lolfm.champion.ChampionPowerCombatSample(
                             time, context, stage, ownSide, eligibleOwn.size(), eligibleEnemy.size(),
@@ -173,6 +181,32 @@ public final class CombatProgressionEvaluator {
         if (state.getBlueTeamState().getPlayers().contains(sample)) return TeamSide.BLUE;
         if (state.getRedTeamState().getPlayers().contains(sample)) return TeamSide.RED;
         return null;
+    }
+
+    private com.lolfm.champion.ChampionMatchupLaneScope laneScope(
+            GameState state, List<PlayerState> own, List<PlayerState> enemy) {
+        java.util.EnumSet<Lane> lanes = java.util.EnumSet.noneOf(Lane.class);
+        java.util.stream.Stream.concat(own.stream(), enemy.stream()).distinct()
+                .map(state::playerKeyOf).flatMap(java.util.Optional::stream)
+                .map(PlayerKey::position).map(CombatProgressionEvaluator::laneOf)
+                .flatMap(java.util.Optional::stream).forEach(lanes::add);
+        if (lanes.size() != 1) {
+            return com.lolfm.champion.ChampionMatchupLaneScope.NOT_APPLICABLE;
+        }
+        return switch (lanes.iterator().next()) {
+            case TOP -> com.lolfm.champion.ChampionMatchupLaneScope.TOP;
+            case MID -> com.lolfm.champion.ChampionMatchupLaneScope.MID;
+            case BOT -> com.lolfm.champion.ChampionMatchupLaneScope.BOT;
+        };
+    }
+
+    private static java.util.Optional<Lane> laneOf(com.lolfm.domain.Position position) {
+        return switch (position) {
+            case TOP -> java.util.Optional.of(Lane.TOP);
+            case MID -> java.util.Optional.of(Lane.MID);
+            case ADC, SUPPORT -> java.util.Optional.of(Lane.BOT);
+            case JUNGLE -> java.util.Optional.empty();
+        };
     }
 
     private record Averages(double level, double item, double total, int clamped) { }

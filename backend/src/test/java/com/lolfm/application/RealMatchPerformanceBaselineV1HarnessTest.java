@@ -13,7 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class RealMatchPerformanceBaselineV1HarnessTest {
     private static final String FIXTURE_A_OUTPUT_HASH =
-            "40c8786ebece2d9abc71d95c304d39ef8f63f2b3277237d1aeaf0a3cf1d76c34";
+            "9b6ab9aa249dda31992655c7126f8ebd7c3eacef77c243eee2d716ff36ce3ee5";
 
     @Autowired ObjectMapper mapper;
     @Autowired RealMatchApiV1RequestParser requests;

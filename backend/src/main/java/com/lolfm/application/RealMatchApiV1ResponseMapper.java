@@ -153,6 +153,7 @@ public final class RealMatchApiV1ResponseMapper {
                 source.draftScoringPolicyHash(),
                 source.draftSelectionPolicyId(),
                 source.draftSelectionPolicyHash(),
+                com.lolfm.draft.DraftSelectionTraceHasher.TRACE_HASH_ALGORITHM,
                 source.draftSelectionTraceHash(),
                 source.selectionTraces().stream().map(trace ->
                         new RealMatchApiV1Dtos.DraftSelectionTrace(
@@ -282,6 +283,7 @@ public final class RealMatchApiV1ResponseMapper {
                 execution.runtimeProfileId().name(), execution.configurationHash(),
                 execution.engineImplementationVersion(), execution.activeGameplayRulesVersion(),
                 execution.draftSelectionPolicyId(), execution.draftSelectionPolicyHash(),
+                com.lolfm.draft.DraftSelectionTraceHasher.TRACE_HASH_ALGORITHM,
                 execution.draftSelectionTraceHash(),
                 output.inputHash(), output.inputHashAlgorithm(),
                 execution.resourceProvenance().resourceProvenanceHash(),

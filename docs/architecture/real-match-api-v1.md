@@ -160,3 +160,9 @@ Frontend V1-A는 V8 historical handoff를 full response 타입으로 가장하�
 LIVE가 기본값이다. `VITE_REAL_MATCH_DATA_SOURCE=reference`를 명시한 빌드만 checked-in fixture를 dynamic import하며, LIVE 실패 시 REFERENCE로 자동 전환하지 않는다. API base와 options/simulate timeout은 각각 `VITE_REAL_MATCH_API_BASE_URL`, `VITE_REAL_MATCH_OPTIONS_TIMEOUT_MS`, `VITE_REAL_MATCH_SIMULATE_TIMEOUT_MS`로 중앙 설정한다. UI는 options loading/retry, 요청 단계와 경과 시간, 취소, retry, stale response 격리와 중복 submit 방지를 제공한다.
 
 V1-B는 임의의 서로 다른 두 팀과 canonical signed-long seed를 실제 API로 실행한다. V1-A reference 조합은 계속 `GEN` BLUE 대 `T1` RED, seed `"73"`, fresh Game 1 하나로 고정한다. 그 뒤 `SERIES_LIFECYCLE_V1`이 BO3/BO5와 누적 Hard Fearless history를 별도 계약으로 다룬다. Save/Load, Career/Season도 아직 구현되지 않았다. 상세 실행·성능·E2E 근거는 [Real Match Frontend V1-B](../development/real-match-frontend-v1-b.md)에 기록한다.
+
+## Auto Draft trace V2 additive identity
+
+현재 response `draft`와 strict LIVE validator는 `draftSelectionTraceHashAlgorithm`을 additive field로 포함한다. Backend input은 policy ID/hash, 20개 trace, trace-set hash와 algorithm을 authoritative하게 재검증하며 replay provenance V3도 이 algorithm identity를 결속한다. 기존 response field의 이름과 의미, timeline playback, chart/speed control은 바꾸지 않았다.
+
+`AUTO_DRAFT_SELECTION_TRACE_V2`는 raw double last bit를 hash input에서 제거하고 기존 fixed-point canonical score/loss/weight/bucket evidence만 사용한다. Frontend production build는 통과했으며 화면 flow는 바뀌지 않아 Playwright를 다시 실행하지 않았다. 이 API hardening은 candidate runtime activation이 아니고 public production profile은 계속 `BASELINE_V1`이다.

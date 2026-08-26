@@ -116,6 +116,12 @@ public final class AutoDraftSelector {
         return List.copyOf(values);
     }
 
+    public String selectionContextHash(DraftState state,
+                                       DraftSelectionContext context,
+                                       List<DraftSelectionPoolEntry> pool) {
+        return HexFormat.of().formatHex(selectionContextDigest(state, context, pool));
+    }
+
     private byte[] selectionContextDigest(DraftState state,
                                           DraftSelectionContext context,
                                           List<DraftSelectionPoolEntry> pool) {

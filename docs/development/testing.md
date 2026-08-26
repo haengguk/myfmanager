@@ -581,3 +581,21 @@ gradlew.bat generateRealMatchTransportCompressionV1Official --console=plain --no
 ## Test Memory
 
 `backend/build.gradle`의 `test` task는 `maxHeapSize = '2g'`를 설정한다. 이는 test JVM 전용 heap 상한이며 Spring Boot production JVM 또는 frontend process의 memory 설정이 아니다.
+
+### Match Engine V9 fresh Auto Draft 재검증
+
+Focused/preflight와 official lifecycle은 별도 explicit task로 분리한다. Default `test`는 대형 worker/finalizer를 실행하지 않는다.
+
+```text
+gradlew.bat verifyMatchEngineV9FreshDraftProbe --console=plain --no-daemon
+gradlew.bat freezeMatchEngineV9FreshRequalification --console=plain --no-daemon
+gradlew.bat smokeMatchEngineV9FreshRequalification --console=plain --no-daemon
+gradlew.bat test --console=plain
+gradlew.bat recordMatchEngineV9FreshFullRegressionReceipt --console=plain
+gradlew.bat runMatchEngineV9FreshCalibrationWorkers --console=plain --no-daemon
+gradlew.bat finalizeMatchEngineV9FreshCalibration --console=plain --no-daemon
+```
+
+최종 source-bound full은 217 suites / 2,194 tests / failures 0 / errors 0 / skipped 0, aggregate XML 721.031초와 Gradle wall 12분 6초로 통과했다. Calibration은 네 explicit JVM shard에서 100 checkpoint, 400 production Auto Drafts, 1,200 core rows, replay 300건과 instrumentation parity 300건을 만들었다.
+
+Fresh-JVM finalizer reload는 첫 checkpoint canonical payload digest 불일치로 실패했다. Raw checkpoint/sidecar는 100/100 일치했지만 signed payload 안 `Set.copyOf` 순서가 cross-JVM canonical order가 아니었다. Contract에 따라 holdout authorization은 생성하지 않았고 동일 calibration/finalizer를 성공할 때까지 재시도하지 않는다. 상세 결과는 [fresh 재검증 V1](match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v1.md)에 있다.

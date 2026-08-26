@@ -259,18 +259,19 @@ class MatchEngineV1ContractTest {
 
     @Test
     void illegalChampionFailsBeforeSimulatorRandomAndSeriesMutation() {
-        MatchEngineV1Input illegal = withIllegalChampion(input);
+        MatchEngineV1Input.ChampionAssignmentInput top = input.assignment(
+                TeamSide.BLUE, Position.TOP);
         ConfiguredMatchSimulatorFactory simulators = mock(ConfiguredMatchSimulatorFactory.class);
         SimulationProvenanceService provenance = mock(SimulationProvenanceService.class);
         MatchEngineV1Projector projector = mock(MatchEngineV1Projector.class);
         ChampionCatalog champions = mock(ChampionCatalog.class);
         when(champions.supports(new ChampionRoleKey(
-                new ChampionId("not-a-real-champion"), Position.TOP))).thenReturn(false);
+                top.championId(), Position.TOP))).thenReturn(false);
         MatchEngineV1 isolated = new MatchEngineV1(
                 simulators, provenance, projector, champions);
         SeriesDraftHistory history = new SeriesDraftHistory();
 
-        assertThatThrownBy(() -> isolated.execute(illegal))
+        assertThatThrownBy(() -> isolated.execute(input))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("ILLEGAL_CHAMPION_ASSIGNMENT");
         verifyNoInteractions(simulators, provenance, projector);

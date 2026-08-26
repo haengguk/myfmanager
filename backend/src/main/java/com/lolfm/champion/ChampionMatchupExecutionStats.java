@@ -2,6 +2,11 @@ package com.lolfm.champion;
 
 public final class ChampionMatchupExecutionStats {
     private final java.util.List<Double> applicationEdges = new java.util.ArrayList<>();
+    private final java.util.List<ChampionMatchupApplicationProvenance> applicationProvenance =
+            new java.util.ArrayList<>();
+    private final java.util.Set<ConsumedApplicationIdentity> consumedApplicationIdentities =
+            new java.util.HashSet<>();
+    private long nextApplicationSequence = 1;
     private int evaluations;
     private int enabledEvaluations;
     private int disabledEvaluations;
@@ -38,6 +43,10 @@ public final class ChampionMatchupExecutionStats {
     private int prototypeCoverageDilutionCount;
     private int signCancellationCount;
     private int unexpectedAggregationDilutionCount;
+    private int consumedApplicationCount;
+    private int nonZeroConsumedApplicationCount;
+    private int duplicateConsumedApplicationErrors;
+    private int applicationBindingErrors;
 
     public void recordDisabledEvaluation() {
         evaluations++;
@@ -95,6 +104,77 @@ public final class ChampionMatchupExecutionStats {
     public void featureOffMismatch() { featureOffMismatch++; }
     public void mirrorMismatch() { mirrorMismatch++; }
 
+    public void recordConsumedApplication(
+            com.lolfm.simulator.GameState state,
+            ChampionMatchupResult result,
+            com.lolfm.simulator.ProgressionCombatContext context,
+            com.lolfm.simulator.ProgressionApplicationStage stage,
+            ChampionMatchupApplicationPoint applicationPoint,
+            ChampionMatchupLaneScope laneScope,
+            double scoreBefore,
+            double scoreAfter,
+            String structuredActionId
+    ) {
+        if (state.getChampionMatchupMode() == ChampionMatchupMode.OFF || !result.enabled()
+                || result.pairContributions().isEmpty()) return;
+        com.lolfm.simulator.TeamSide perspective = result.pairContributions().getFirst()
+                .source().side();
+        java.util.List<ChampionMatchupPairApplication> pairs = new java.util.ArrayList<>();
+        try {
+            for (ChampionMatchupPairContribution contribution : result.pairContributions()) {
+                pairs.add(new ChampionMatchupPairApplication(
+                        binding(state, contribution.source()),
+                        binding(state, contribution.opponent()), contribution.edge()));
+            }
+        } catch (IllegalArgumentException | IllegalStateException error) {
+            applicationBindingErrors++;
+            return;
+        }
+        double delta = scoreAfter - scoreBefore;
+        ConsumedApplicationIdentity identity = new ConsumedApplicationIdentity(
+                state.getCurrentTimeSeconds(), context, stage, applicationPoint, perspective,
+                laneScope, java.util.List.copyOf(pairs), Double.doubleToLongBits(result.matchupEdge()),
+                Double.doubleToLongBits(scoreBefore), Double.doubleToLongBits(scoreAfter),
+                structuredActionId);
+        if (!consumedApplicationIdentities.add(identity)) return;
+        long sequence = nextApplicationSequence++;
+        applicationProvenance.add(new ChampionMatchupApplicationProvenance(
+                ChampionMatchupApplicationProvenance.SCHEMA_VERSION, sequence,
+                "MATCHUP_APPLICATION:" + sequence, state.getCurrentTimeSeconds(),
+                state.getChampionMatchupMode(), context, stage, applicationPoint, perspective,
+                laneScope, pairs, result.matchupEdge(), scoreBefore, scoreAfter, delta,
+                true, delta != 0.0, structuredActionId));
+        consumedApplicationCount++;
+        if (delta != 0.0) nonZeroConsumedApplicationCount++;
+    }
+
+    private static ChampionMatchupParticipantBinding binding(
+            com.lolfm.simulator.GameState state, com.lolfm.simulator.PlayerKey key) {
+        com.lolfm.simulator.PlayerState player = state.getTeamState(key.side()).playerAt(key.position());
+        ChampionAssignment assignment = state.getChampionAssignments().orElseThrow().get(key);
+        return new ChampionMatchupParticipantBinding(key, key.position(), player.requirePlayerId(),
+                assignment.championId());
+    }
+
+    /** Match-scoped, structured idempotence key; display text is deliberately absent. */
+    private record ConsumedApplicationIdentity(
+            int simulationTimeSeconds,
+            com.lolfm.simulator.ProgressionCombatContext context,
+            com.lolfm.simulator.ProgressionApplicationStage applicationStage,
+            ChampionMatchupApplicationPoint applicationPoint,
+            com.lolfm.simulator.TeamSide perspective,
+            ChampionMatchupLaneScope laneScope,
+            java.util.List<ChampionMatchupPairApplication> pairApplications,
+            long aggregateEdgeBits,
+            long consumerScoreBeforeBits,
+            long consumerScoreAfterBits,
+            String structuredActionId
+    ) {
+        private ConsumedApplicationIdentity {
+            pairApplications = java.util.List.copyOf(pairApplications);
+        }
+    }
+
     public ChampionMatchupExecutionStatsSnapshot snapshot() {
         return new ChampionMatchupExecutionStatsSnapshot(
                 evaluations, enabledEvaluations, disabledEvaluations,
@@ -110,6 +190,9 @@ public final class ChampionMatchupExecutionStats {
                 dilutionRatioSum, dilutionSamples, coverageRatioSum,
                 netDirectionalRetentionSum, prototypeCoverageDilutionCount,
                 signCancellationCount, unexpectedAggregationDilutionCount,
-                java.util.List.copyOf(applicationEdges));
+                java.util.List.copyOf(applicationEdges), consumedApplicationCount,
+                nonZeroConsumedApplicationCount, duplicateConsumedApplicationErrors,
+                applicationBindingErrors, java.util.List.copyOf(applicationProvenance));
     }
+
 }
