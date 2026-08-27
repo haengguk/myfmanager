@@ -8,7 +8,6 @@ import com.lolfm.draft.DraftTeamContext;
 import com.lolfm.draft.PlayerControlledDraftEngine;
 import com.lolfm.dto.PlayerDraftApiV1Dtos;
 import com.lolfm.player.LckTeamAssembler;
-import com.lolfm.simulator.SimulationInstrumentation;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,27 +22,18 @@ public final class PlayerDraftApiV1Service {
     private final LckTeamAssembler teams;
     private final PlayerControlledDraftEngine drafts;
     private final PlayerDraftSessionRepository sessions;
-    private final PlayerControlledDraftMatchPreflightValidator preflight;
-    private final MatchEngineV1InputFactory inputs;
-    private final MatchEngineV1 matches;
-    private final MatchEngineV1Canonicalizer canonicalizer;
+    private final PlayerDraftMatchSimulationExecutor simulations;
 
     public PlayerDraftApiV1Service(
             LckTeamAssembler teams,
             PlayerControlledDraftEngine drafts,
             PlayerDraftSessionRepository sessions,
-            PlayerControlledDraftMatchPreflightValidator preflight,
-            MatchEngineV1InputFactory inputs,
-            MatchEngineV1 matches,
-            MatchEngineV1Canonicalizer canonicalizer
+            PlayerDraftMatchSimulationExecutor simulations
     ) {
         this.teams = Objects.requireNonNull(teams, "teams");
         this.drafts = Objects.requireNonNull(drafts, "drafts");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
-        this.preflight = Objects.requireNonNull(preflight, "preflight");
-        this.inputs = Objects.requireNonNull(inputs, "inputs");
-        this.matches = Objects.requireNonNull(matches, "matches");
-        this.canonicalizer = Objects.requireNonNull(canonicalizer, "canonicalizer");
+        this.simulations = Objects.requireNonNull(simulations, "simulations");
     }
 
     public PlayerDraftSessionView start(PlayerDraftApiV1Dtos.StartRequest request) {
@@ -175,36 +165,22 @@ public final class PlayerDraftApiV1Service {
                             "PLAYER_DRAFT_NOT_COMPLETE", null,
                             "20개 드래프트 턴을 완료한 뒤 시뮬레이션해야 합니다.");
                 }
-                if (session.simulation() != null) {
-                    return new PlayerDraftSessionRepository.Mutation<>(session,
-                            new SimulationExecution(session.view(), session.simulation()));
-                }
-                Team blue = teams.assemble(session.blueTeamCode());
-                Team red = teams.assemble(session.redTeamCode());
-                DraftTeamContext blueContext = DraftTeamContext.from(blue);
-                DraftTeamContext redContext = DraftTeamContext.from(red);
-                DraftSelectionContext context = selectionContext(
-                        session.blueTeamCode(), blue, session.redTeamCode(), red,
-                        session.matchSeed());
-                MatchEngineV1Input input;
                 try {
-                    preflight.validate(blue, red, blueContext, redContext, context,
-                            session.progress().result());
-                    input = inputs.fromPlayerControlledDraft(
-                            session.blueTeamCode(), blue, session.redTeamCode(), red,
-                            session.matchSeed(), session.progress().result());
-                } catch (IllegalArgumentException error) {
-                    throw PlayerDraftApiV1Exception.unprocessable(
-                            "PLAYER_DRAFT_MATCH_PREFLIGHT_FAILED", null,
-                            "드래프트 증거 또는 최종 역할 배치를 검증하지 못했습니다.", error);
-                }
-                try {
-                    MatchEngineV1Output output = matches.execute(
-                            input, SimulationInstrumentation.enabled());
-                    validateOutput(session, output);
-                    PlayerDraftSession updated = session.withSimulation(output);
+                    PlayerDraftMatchSimulationExecutor.Execution execution =
+                            simulations.execute(session);
+                    if (session.simulationReceipt() != null) {
+                        if (!session.simulationReceipt().equals(execution.receipt())) {
+                            throw PlayerDraftApiV1Exception.internal(
+                                    new IllegalStateException(
+                                            "PLAYER_DRAFT_SIMULATION_RECEIPT_MISMATCH"));
+                        }
+                        return new PlayerDraftSessionRepository.Mutation<>(session,
+                                new SimulationExecution(session.view(), execution.output()));
+                    }
+                    PlayerDraftSession updated = session.withSimulationReceipt(
+                            execution.receipt());
                     return new PlayerDraftSessionRepository.Mutation<>(updated,
-                            new SimulationExecution(updated.view(), output));
+                            new SimulationExecution(updated.view(), execution.output()));
                 } catch (PlayerDraftApiV1Exception error) {
                     throw error;
                 } catch (RuntimeException error) {
@@ -242,42 +218,6 @@ public final class PlayerDraftApiV1Service {
         if (!teams.teamCodes().contains(request.redTeamCode())) {
             throw PlayerDraftApiV1Exception.badRequest(
                     "UNKNOWN_TEAM", "redTeamCode", "지원하지 않는 RED 팀 코드입니다.");
-        }
-    }
-
-    private void validateOutput(PlayerDraftSession session, MatchEngineV1Output output) {
-        try {
-            SimulationExecutionProvenance execution = Objects.requireNonNull(
-                    output, "output").executionProvenance();
-            var control = output.finalDraft().controlEvidence();
-            boolean valid = output.productionPolicy().equals(
-                    MatchEngineV1Policy.authoritative())
-                    && output.configurationHash().equals(
-                    MatchEngineV1Policy.authoritative().configurationHash())
-                    && execution.runtimeProfileId()
-                    == MatchEngineV1Policy.authoritative().retainedRuntimeProfileId()
-                    && execution.blueTeamCode().equals(session.blueTeamCode())
-                    && execution.redTeamCode().equals(session.redTeamCode())
-                    && execution.matchSeed() == session.matchSeed()
-                    && execution.seriesGameNumber() == 1
-                    && output.finalDraft().seriesGameNumber() == 1
-                    && output.finalDraft().hardFearlessExclusions().isEmpty()
-                    && control != null
-                    && execution.draftSelectionPolicyId().equals(control.policyId())
-                    && execution.draftSelectionPolicyHash().equals(control.policyHash())
-                    && execution.draftSelectionTraceHash().equals(
-                    control.controlEvidenceHash())
-                    && output.resultSummary().finalDraftHash().equals(
-                    output.finalDraft().finalDraftHash())
-                    && output.resultSummary().finalAssignmentHash().equals(
-                    output.finalDraft().finalAssignmentHash())
-                    && output.simulatorTimelineHash().equals(execution.timelineHash())
-                    && output.hasValidOutputHash(canonicalizer);
-            if (!valid) throw PlayerDraftApiV1Exception.internal(null);
-        } catch (PlayerDraftApiV1Exception error) {
-            throw error;
-        } catch (RuntimeException error) {
-            throw PlayerDraftApiV1Exception.internal(error);
         }
     }
 

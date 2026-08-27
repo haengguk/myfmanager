@@ -39,7 +39,7 @@
 - Hard Fearless exclusion과 series game number를 포함한 series-history-before identity
 - roster identity, match identity, match seed와 authoritative production-policy requirement
 
-입력 생성의 완전 자동 경로는 `MatchEngineV1InputFactory`가 authoritative `FinalDraftResult`를 변환하는 것이다. Player Draft 경로는 완료된 `PlayerControlledDraftResult`를 별도 preflight로 처음부터 재구성한 뒤 같은 factory의 additive adapter를 사용한다. V1 실행 중 재-Draft하지 않는다. 누락·중복 player/position/champion, roster/assignment/Draft hash 불일치, illegal champion-role, candidate policy 요청은 simulator와 seeded `Random` 생성 전에 거부한다.
+입력 생성의 완전 자동 경로는 `MatchEngineV1InputFactory`가 authoritative `FinalDraftResult`를 변환하는 것이다. Player Draft의 raw result 경로는 `PlayerControlledDraftMatchInputBoundary.validateAndCreateInput` 하나다. 이 경계가 roster/team/seed/Game 1, 20턴 manual selectable-set legality와 authoritative AI trace, state hash, final role/player assignment를 처음부터 재구성하고 private-constructor validated token을 만든 뒤에만 factory의 package-private projection을 호출한다. Public raw mixed factory와 caller 호출 순서 의존 preflight는 없다. V1 실행 중 재-Draft하지 않는다. 누락·중복 player/position/champion, roster/assignment/Draft hash 불일치, illegal champion-role, candidate policy 요청은 simulator와 seeded `Random` 생성 전에 거부한다.
 
 혼합 경로의 기존 `draftSelectionPolicyId/hash`와 `selectionTraces`는 AI 턴에 실제로 사용한 `AUTO_DRAFT_VARIETY_V1`만 나타낸다. 별도 `DraftControlEvidence`가 `PLAYER_CONTROLLED_DRAFT_V1`, controlled side, 20개 authority/action/state binding, AI trace와 manual legality evidence를 결속한다. `finalDraftHash`, `inputHash`와 replay provenance는 control evidence hash를 포함한다. `clientActionId`, session ID, revision, 생성/만료 시각은 operational data이며 gameplay identity에서 제외된다. 완전 자동 입력의 canonical serialization과 hash는 이 nullable additive evidence가 없을 때 기존과 byte-exact다.
 
@@ -84,7 +84,7 @@ Nexus 파괴 종료는 반드시 winner가 있고, safety timeout은 winner가 `
 
 현재 `POST /api/matches/simulate`는 계속 `DummyDataFactory`와 legacy HTTP response를 사용한다. 별도의 `GET /api/v1/real-matches/options`와 `POST /api/v1/real-matches/simulate`는 Match Engine V1을 LIVE frontend에 노출하며 항상 authoritative production policy만 사용한다. Request profile selector와 오류 시 `BASELINE_V1` 자동 fallback은 없다. Career/Save/Season, BO3/BO5 series service와 persistence는 이 계약에 포함되지 않는다.
 
-`/api/v1/player-drafts/sessions/{sessionId}/simulate`도 같은 authoritative `PRODUCTION_MATCHUP_COMPOSITION_V1` / V9 실행 경계를 사용한다. 다만 응답은 `REAL_MATCH_RESPONSE_V1`의 20개 Auto trace인 것처럼 가장하지 않고 `PLAYER_DRAFT_MATCH_RESPONSE_V1`로 분리해 mixed authority와 control evidence를 그대로 제공한다.
+`/api/v1/player-drafts/sessions/{sessionId}/simulate`도 같은 authoritative `PRODUCTION_MATCHUP_COMPOSITION_V1` / V9 실행 경계를 사용한다. 다만 응답은 `REAL_MATCH_RESPONSE_V1`의 20개 Auto trace인 것처럼 가장하지 않고 `PLAYER_DRAFT_MATCH_RESPONSE_V1`로 분리해 mixed authority와 control evidence를 그대로 제공한다. Player Draft session은 전체 output/timeline을 보관하지 않고 compact identity receipt만 유지한다. Retry는 immutable input으로 deterministic re-execution한 뒤 receipt exact equality를 확인하므로 CPU 비용은 다시 들지만 session heap에 대형 result cache가 누적되지 않는다.
 
 ## Historical Freeze Evidence
 

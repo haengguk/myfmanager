@@ -98,16 +98,17 @@ public final class MatchEngineV1InputFactory {
                 MatchEngineV1Policy.requirement());
     }
 
-    /** Additive mixed-authority adapter; existing full-auto input creation is unchanged. */
-    public MatchEngineV1Input fromPlayerControlledDraft(
-            String blueTeamCode,
-            Team blueTeam,
-            String redTeamCode,
-            Team redTeam,
-            long matchSeed,
-            PlayerControlledDraftResult draftResult
+    /** Unchecked projection only accepts the opaque token issued by the validating boundary. */
+    MatchEngineV1Input fromValidatedPlayerControlledDraft(
+            PlayerControlledDraftMatchInputBoundary.ValidatedDraft validated
     ) {
-        Objects.requireNonNull(draftResult, "draftResult");
+        Objects.requireNonNull(validated, "validated");
+        String blueTeamCode = validated.blueTeamCode();
+        Team blueTeam = validated.blueTeam();
+        String redTeamCode = validated.redTeamCode();
+        Team redTeam = validated.redTeam();
+        long matchSeed = validated.matchSeed();
+        PlayerControlledDraftResult draftResult = validated.result();
         MatchEngineV1Input.TeamInput blue = team(TeamSide.BLUE, blueTeamCode, blueTeam);
         MatchEngineV1Input.TeamInput red = team(TeamSide.RED, redTeamCode, redTeam);
         List<MatchEngineV1Input.ChampionAssignmentInput> assignments =

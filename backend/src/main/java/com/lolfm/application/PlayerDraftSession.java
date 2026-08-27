@@ -20,7 +20,7 @@ record PlayerDraftSession(
         Instant expiresAt,
         PlayerControlledDraftEngine.Progress progress,
         Map<String, ActionReceipt> actionReceipts,
-        MatchEngineV1Output simulation
+        SimulationReceipt simulationReceipt
 ) {
     PlayerDraftSession {
         sessionId = required(sessionId, "sessionId");
@@ -38,7 +38,7 @@ record PlayerDraftSession(
     PlayerDraftSession withStatus(PlayerDraftSessionStatus next) {
         return new PlayerDraftSession(sessionId, revision, next, blueTeamCode, redTeamCode,
                 controlledSide, matchSeed, createdAt, expiresAt, progress,
-                actionReceipts, simulation);
+                actionReceipts, simulationReceipt);
     }
 
     PlayerDraftSession withAction(
@@ -53,10 +53,11 @@ record PlayerDraftSession(
                 expiresAt, nextProgress, receipts, null);
     }
 
-    PlayerDraftSession withSimulation(MatchEngineV1Output output) {
+    PlayerDraftSession withSimulationReceipt(SimulationReceipt receipt) {
         return new PlayerDraftSession(sessionId, revision, PlayerDraftSessionStatus.SIMULATED,
                 blueTeamCode, redTeamCode, controlledSide, matchSeed, createdAt,
-                expiresAt, progress, actionReceipts, Objects.requireNonNull(output, "output"));
+                expiresAt, progress, actionReceipts,
+                Objects.requireNonNull(receipt, "receipt"));
     }
 
     PlayerDraftSessionView view() {

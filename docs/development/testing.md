@@ -22,22 +22,28 @@ Focused correctness test는 큰 seed sample이나 분포 목표가 아니라 for
 
 ### Player-controlled Draft API V1
 
-혼합 Draft는 다음 세 focused lane으로 검증한다.
+혼합 Draft와 session hardening은 다음 focused lane으로 검증한다.
 
 ```bash
 cd backend
 gradlew.bat test \
   --tests com.lolfm.draft.PlayerControlledDraftEngineTest \
   --tests com.lolfm.application.PlayerDraftSessionRepositoryTest \
+  --tests com.lolfm.application.PlayerDraftSimulationHardeningTest \
+  --tests com.lolfm.application.PlayerControlledDraftMatchInputBoundaryTest \
   --tests com.lolfm.controller.PlayerDraftApiV1ControllerTest \
   --console=plain
 ```
 
 - domain: BLUE/RED 완주, authority/evidence binding, advisory 밖 legal choice, flex 유지, illegal action mutation 0, AI production parity, transcript replay와 final-assignment 재구성
-- session: injected Clock TTL, bounded capacity, session isolation과 concurrent atomic mutation
+- session: injected Clock TTL/lazy eviction, concurrent create exact capacity, collision/cleanup permit leak 0, repository instance isolation과 per-session atomic mutation
+- simulation ownership: full output/timeline 비보관, 16KiB 이하 compact receipt, first/repeat deterministic execution, mismatch/failure rollback과 same-session concurrent serialization
+- input boundary: selectable-set/control hash, authority/action, authoritative AI trace, state/final role/player assignment와 roster/team/seed 변조 거부, public raw factory 부재
 - HTTP: strict start/action/simulate parsing, revision/idempotency conflict, 동시 제출 단일 성공, cancel/not-found, 완료와 simulation 분리, V9 policy/provenance와 반복 simulate equality
 
 기존 완전 자동 semantics 회귀는 `MatchEngineV1ContractTest`, `RealMatchApiV1ControllerTest`, `AutoDraftVarietyV1ProductionIntegrationTest`를 함께 실행한다. 대규모 seed population, balance diagnostic, frontend build는 이 backend-only 기능의 focused lane에 포함하지 않는다.
+
+Session hardening final tree는 Player Draft 5 suites / 27 tests와 기존 직접 영향 3 suites를 묶어 8 suites / 52 tests / failures 0 / errors 0 / skipped 0, aggregate XML 421.531초, Gradle wall 7분 15초로 통과했다. Final complete backend는 226 suites / 2,230 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,200.205초, Gradle wall 20분 19초로 첫 실행에서 통과했다. Live HTTP smoke는 RED-controlled 20-turn completion과 first/repeat Draft/input/replay/timeline/Random/output/result identity exact, DELETE 204를 확인했다.
 
 ## Full Regression
 

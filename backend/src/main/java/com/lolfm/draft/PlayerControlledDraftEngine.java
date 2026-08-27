@@ -173,10 +173,13 @@ public final class PlayerControlledDraftEngine {
             DraftSelectionContext selectionContext
     ) {
         Objects.requireNonNull(result, "result");
+        if (!rules.equals(result.ruleSet()) || result.controlledSide() == null
+                || !result.hardFearlessExclusions().isEmpty()) {
+            throw new IllegalArgumentException("PLAYER_DRAFT_RULE_OR_SERIES_CONTEXT_MISMATCH");
+        }
         DraftState state = new DraftState(rules, 0, List.of(), List.of(), List.of(),
                 List.of(), result.hardFearlessExclusions());
-        DraftSelectionEvidenceValidator autoValidator =
-                new DraftSelectionEvidenceValidator(AutoDraftSelectionPolicy.production());
+        DraftComputationContext computation = DraftComputationContext.cached();
         for (DraftTurnControlEvidence evidence : result.turnEvidence()) {
             DraftTurn turn = state.currentTurn();
             if (evidence.turn() != turn.number() || evidence.side() != turn.side()
@@ -189,8 +192,17 @@ public final class PlayerControlledDraftEngine {
             DraftAction action = new DraftAction(
                     turn.number(), turn.side(), turn.actionType(), evidence.championId());
             if (evidence.authority() == DraftDecisionAuthority.AI) {
-                state = autoValidator.validateTurn(
-                        state, selectionContext, action, evidence.autoSelectionTrace());
+                ShallowDraftSearch.SearchResult evaluated = search.evaluate(
+                        state, blue, red, computation);
+                AutoDraftSelector.Selection authoritative = selector.select(
+                        state, evaluated, selectionContext);
+                if (!authoritative.selectedCandidate().championId().equals(
+                        evidence.championId())
+                        || !authoritative.trace().equals(evidence.autoSelectionTrace())) {
+                    throw new IllegalArgumentException(
+                            "PLAYER_DRAFT_AUTHORITATIVE_AI_TRACE_MISMATCH");
+                }
+                state = state.apply(action);
             } else {
                 SelectionView legal = view(
                         new Progress(result.controlledSide(), state,

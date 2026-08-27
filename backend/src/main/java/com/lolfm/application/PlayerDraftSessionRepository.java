@@ -21,6 +21,7 @@ final class PlayerDraftSessionRepository {
     private final Clock clock;
     private final int maximumSessions;
     private final Duration ttl;
+    private final Object capacityBoundary = new Object();
 
     @org.springframework.beans.factory.annotation.Autowired
     PlayerDraftSessionRepository(Clock clock) {
@@ -43,12 +44,15 @@ final class PlayerDraftSessionRepository {
     }
 
     PlayerDraftSession create(PlayerDraftSession session) {
-        cleanupTerminalAndExpired();
-        if (sessions.size() >= maximumSessions) {
-            throw new RepositoryFailure("PLAYER_DRAFT_SESSION_CAPACITY_REACHED");
-        }
-        if (sessions.putIfAbsent(session.sessionId(), session) != null) {
-            throw new RepositoryFailure("PLAYER_DRAFT_SESSION_ID_COLLISION");
+        Objects.requireNonNull(session, "session");
+        synchronized (capacityBoundary) {
+            cleanupTerminalAndExpired();
+            if (sessions.size() >= maximumSessions) {
+                throw new RepositoryFailure("PLAYER_DRAFT_SESSION_CAPACITY_REACHED");
+            }
+            if (sessions.putIfAbsent(session.sessionId(), session) != null) {
+                throw new RepositoryFailure("PLAYER_DRAFT_SESSION_ID_COLLISION");
+            }
         }
         return session;
     }
@@ -110,7 +114,14 @@ final class PlayerDraftSessionRepository {
                 removable.add(id);
             }
         });
-        removable.forEach(sessions::remove);
+        removable.forEach(id -> sessions.computeIfPresent(id, (key, current) ->
+                current.status() == PlayerDraftSessionStatus.CANCELLED
+                        || current.status() == PlayerDraftSessionStatus.EXPIRED
+                        || !now.isBefore(current.expiresAt()) ? null : current));
+    }
+
+    int storedSessionCount() {
+        return sessions.size();
     }
 
     record Mutation<T>(PlayerDraftSession session, T result) {
