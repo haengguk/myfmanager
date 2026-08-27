@@ -98,8 +98,20 @@ class RealMatchApiV1ControllerTest {
         assertThat(root.path("productionPolicy").path("knownDiagnosticLimitation").asText())
                 .isEqualTo(
                         "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES");
+        assertThat(root.path("productionPolicy").path("acceptanceStatus").asText())
+                .isEqualTo("PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT");
+        assertThat(root.path("productionPolicy").path("knownDiagnosticLimitations"))
+                .extracting(JsonNode::asText)
+                .containsExactly(
+                        "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES",
+                        "COMPOSITION_NEXUS_ENDING_SENSITIVITY_9_25_PERCENT_EXCEEDS_PROPOSED_7_5_PERCENT_TOLERANCE");
         assertThat(root.path("productionPolicy").path("statisticalHoldoutApproved").asBoolean())
                 .isFalse();
+        assertThat(root.path("productionPolicy").path("rollbackProfileId").asText())
+                .isEqualTo("BASELINE_V1");
+        assertThat(root.path("productionPolicy").path("rollbackMode").asText())
+                .isEqualTo("EXPLICIT_VERSIONED_POLICY_CHANGE_ONLY");
+        assertThat(root.path("productionPolicy").path("automaticFallback").asBoolean()).isFalse();
         assertThat(root.path("productionPolicy").path("matchupMode").asText())
                 .isEqualTo("GEOMETRIC_V2");
         assertThat(root.path("productionPolicy").path("compositionMode").asText())
@@ -203,6 +215,16 @@ class RealMatchApiV1ControllerTest {
         assertThat(first.path("timeline").path("snapshots")).isNotEmpty();
         assertThat(first.path("integrity").path("policyId").asText())
                 .isEqualTo(MatchEngineV1Policy.POLICY_ID);
+        assertThat(first.path("integrity").path("acceptanceStatus").asText())
+                .isEqualTo("PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT");
+        assertThat(first.path("integrity").path("knownDiagnosticLimitations"))
+                .extracting(JsonNode::asText)
+                .containsExactlyElementsOf(MatchEngineV1Policy.KNOWN_DIAGNOSTIC_LIMITATIONS);
+        assertThat(first.path("integrity").path("statisticalHoldoutApproved").asBoolean())
+                .isFalse();
+        assertThat(first.path("integrity").path("rollbackProfileId").asText())
+                .isEqualTo("BASELINE_V1");
+        assertThat(first.path("integrity").path("automaticFallback").asBoolean()).isFalse();
         assertThat(first.path("integrity").path("draftSelectionTraceHash"))
                 .isEqualTo(first.path("draft").path("draftSelectionTraceHash"));
         assertThat(first.path("integrity").path("runtimeProfileId").asText())

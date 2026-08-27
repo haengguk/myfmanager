@@ -4,25 +4,30 @@
 
 ## Current Production Snapshot
 
-### Matchup/Composition production activation
+### Matchup/Composition Production V9 acceptance
 
 공개 Real Match V9의 authoritative runtime은 `PRODUCTION_MATCHUP_COMPOSITION_V1`이다. Matchup `GEOMETRIC_V2`와 Composition `PRODUCTION_V2`를 실제 simulation에 적용하고 Jungle Clear contribution은 `DISABLED_NOT_INTEGRATED`, Jungle Economy/Tempo candidate activation은 모두 `false`다. 공통 13 gameplay system은 전부 ON이며 active rules는 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`, engine은 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`다.
 
 | 항목 | 현재 값 |
 | --- | --- |
-| Policy schema / ID | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V2` / `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY` |
-| Policy SHA-256 | `c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5` |
+| Policy schema / ID | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V3` / `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_ACCEPTED_PRODUCTION_POLICY` |
+| Policy SHA-256 | `78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493` |
 | Runtime profile | `PRODUCTION_MATCHUP_COMPOSITION_V1` |
 | Configuration SHA-256 | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
 | Product decision | `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION` |
-| Known limitation | `MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES` |
+| Acceptance | `PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT` |
+| Ordered risk 1 | `MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES` |
+| Ordered risk 2 | `COMPOSITION_NEXUS_ENDING_SENSITIVITY_9_25_PERCENT_EXCEEDS_PROPOSED_7_5_PERCENT_TOLERANCE` |
 | Statistical holdout approved | `false` |
+| Rollback | `BASELINE_V1` / `EXPLICIT_VERSIONED_POLICY_CHANGE_ONLY` / automatic fallback `false` |
 
 이 전환은 fresh requalification이나 statistical holdout 통과 선언이 아니다. V2 calibration public divergence 400건 중 Matchup direct binding은 1건, unresolved lineage는 399건이었고 holdout은 승인·시작·소비되지 않았다. Composition direct causal binding은 기존 V6/V2 계약에서 확인됐다. 제품 소유자가 알려진 한계와 민감도를 수용하고 Draft의 Matchup/Composition 의미를 실제 gameplay에 연결한 결정이다.
 
-Calibration 관측에서 Matchup−Baseline은 Blue WR +1.5%p, winner change 4.5%, structure progression 10.25%, Nexus/ending 5.5%, 평균 duration +1.1초였다. Full−Matchup은 각각 -1.0%p, 8.5%, 14.75%, 9.25%, +6.3초였다. Composition Nexus/ending 9.25%는 직전 제안 tolerance 7.5%보다 높아 production monitoring risk로 남는다. `objective detailed signature`는 내부 decision detail 차이를 포함하므로 실제 objective outcome 변화율로 해석하지 않는다.
+Calibration 관측에서 Matchup−Baseline은 Blue WR +1.5%p, winner change 4.5%, structure progression 10.25%, Nexus/ending 5.5%, 평균 duration +1.1초였다. Full−Matchup은 각각 -1.0%p, 8.5%, 14.75%, 9.25%, +6.3초였다. Composition Nexus/ending 9.25%는 pair의 final signature 차이이지 넥서스 파괴 증가율이 아니며, 7.5%는 직전 proposed tolerance다. `objective detailed signature`는 내부 decision detail 차이를 포함하므로 실제 objective outcome 변화율로 해석하지 않는다.
 
-`BASELINE_V1`은 configuration hash `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`인 explicit rollback/비교 profile로 보존한다. Runtime 오류 시 자동 fallback은 없고 rollback은 향후 명시적 versioned policy 변경으로만 수행한다. 자세한 구현·검증·LIVE smoke는 [Match Engine V9 Matchup/Composition Production Activation](development/match-engine-v9-matchup-composition-production-activation.md)에 있다.
+`BASELINE_V1`은 configuration hash `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`인 explicit rollback/비교 profile로 보존한다. Runtime 오류 시 자동 fallback은 없고 rollback은 향후 명시적 versioned policy 변경으로만 수행한다. 현재 정책·검증·LIVE smoke는 [Match Engine V9 Production Acceptance](development/match-engine-v9-production-acceptance.md)에 있다.
+
+T1/GEN fixed-Draft acceptance sanity는 POKE/ENGAGE/COUNTER 세 lineup, 네 team/side orientation, 세 profile, 50 seeds의 1,200 core simulation과 replay/instrumentation/rollback 추가 10회를 실행했다. 30 authored proficiency binding은 모두 정확하고 neutral fallback은 0이다. Production 400/400 pair에서 Composition이 도달해 scalar 4,885회와 전체 structured effect 5,339회를 기록했다. Timeout/domain/structure/Nexus/Random/Jungle/replay/instrumentation/rollback 오류는 모두 0이다. 이 값은 product sanity이지 calibration, holdout, balance 승인이나 현실 LCK 승률이 아니다. 상세 결과는 [Match Engine V9 Production Acceptance](development/match-engine-v9-production-acceptance.md)에 있다.
 
 ### Champion resources
 
@@ -115,7 +120,7 @@ Report SHA-256: summary `4f3a13ca19cb00abc8da463173578b222fa55e389bb34d1a96abe6f
 
 기존 production Draft가 정렬된 평가 결과의 1위만 선택해 seed가 달라도 같은 Draft를 만들던 경계를 교정했다. 후보 생성, Draft Meta, 선수 proficiency, 상대 threat, matchup/composition, flex/denial, future/role feasibility와 shallow search는 그대로 유지하고 최고점 대비 2.0 이내 상위 3개 후보에만 deterministic seeded selection을 적용한다. BAN weight는 55/30/15, PICK은 70/22/8이다.
 
-같은 팀/roster/series state/seed는 20-turn trace, final assignment, Match Engine input과 timeline이 exact다. 선택은 SHA-256 bucket이며 Match Simulator `Random`을 소비하지 않는다. `draftIdentity()`는 ordered decisions로 유지하고 selection policy/trace hash를 Match Engine V1 input, V3 execution/replay provenance와 Real Match API `draft`/`integrity`에 additive하게 결속했다. 현재 Match Engine V1 policy hash는 `c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5`, representative activation smoke의 LIVE GEN–T1 seed 73 output hash는 `b74cd4a509134fc5a1b8cb9aa458e6a86233f407ce59084856aa370a80a33481`다.
+같은 팀/roster/series state/seed는 20-turn trace, final assignment, Match Engine input과 timeline이 exact다. 선택은 SHA-256 bucket이며 Match Simulator `Random`을 소비하지 않는다. `draftIdentity()`는 ordered decisions로 유지하고 selection policy/trace hash를 Match Engine V1 input, V3 execution/replay provenance와 Real Match API `draft`/`integrity`에 additive하게 결속했다. 현재 Match Engine V1 policy hash는 `78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493`다. 과거 activation smoke의 GEN–T1 seed 73 output hash는 당시 V2 policy까지 결속한 historical 값이며 현재 V3 output oracle로 재사용하지 않는다.
 
 10 fixture × 8 seed의 80-Draft diagnostic은 complete identity variety 10/10, final pick tuple variety 10/10, correctness error 0으로 `AUTO_DRAFT_VARIETY_V1_ACCEPTED`를 기록했다. 1,600턴 선택은 rank 1/2/3이 1,126/358/116회였고 score-loss max는 BAN 1.983034, PICK 1.988794였다. Fresh-JVM A/B도 33,808 bytes와 SHA-256 `0291df0f03da4ff0067a620f0d4b8e1dc317577defd2a47166cfa9b579e097c2`로 exact다. 최종 backend regression은 214 suites / 2,182 tests / failures 0 / errors 0 / skipped 0, aggregate 815.104초, Gradle wall 13분 50초로 통과했고 frontend production build도 통과했다. 세부 정책·fixture별 분포와 한계는 [Auto Draft Variety V1](development/auto-draft-variety-v1.md)에 있다.
 
@@ -281,9 +286,9 @@ Freeze artifact는 `backend/build/reports/match-engine-v1-freeze/`에 있으며 
 
 `GET /api/v1/real-matches/options`는 authoritative `LckTeamAssembler`와 player resources에서 실제 LCK 10팀, 팀당 5명, 총 50개의 unique stable `PlayerId`를 canonical 순서로 제공한다. `POST /api/v1/real-matches/simulate`는 exact schema, 서로 다른 두 team code와 canonical signed-long JSON string seed만 받으며 unknown field, profile/candidate flag, client-authored Draft와 series history를 Real Match V1 경계에서 거부한다.
 
-요청마다 `RealDraftMatchOrchestrator.orchestrateV1` fresh-history overload를 호출해 단판 Game 1 Professional Draft와 Match Engine V1 current implementation을 실행한다. Service는 authoritative `PRODUCTION_MATCHUP_COMPOSITION_V1` policy/configuration, 현재 요청의 BLUE/RED/seed, fresh Game 1/history, mandatory provenance와 실제 structured timeline output hash가 모두 exact일 때만 immutable `REAL_MATCH_RESPONSE_V1`을 반환한다. Typed preflight 실패만 422이며 엔진/오케스트레이션 내부 실패는 500과 구분된다. Team code는 display name과 별도 identity로 유지한다. 응답은 presentation roster, ordered Draft/final assignment, final result, 선수별 base/realized rating과 champion proficiency ability profile, 모든 structured event/snapshot과 policy/input/resource/replay/timeline/output hash 및 Random fingerprint, activation decision/known limitation/holdout false를 포함한다. Error는 controller-scoped `REAL_MATCH_API_ERROR_V1`이며 legacy endpoint와 Champion API error 의미는 그대로다. 세부 계약은 [Real Match API V1](architecture/real-match-api-v1.md)에 있다.
+요청마다 `RealDraftMatchOrchestrator.orchestrateV1` fresh-history overload를 호출해 단판 Game 1 Professional Draft와 Match Engine V1 current implementation을 실행한다. Service는 authoritative `PRODUCTION_MATCHUP_COMPOSITION_V1` policy/configuration, 현재 요청의 BLUE/RED/seed, fresh Game 1/history, mandatory provenance와 실제 structured timeline output hash가 모두 exact일 때만 immutable `REAL_MATCH_RESPONSE_V1`을 반환한다. Typed preflight 실패만 422이며 엔진/오케스트레이션 내부 실패는 500과 구분된다. Team code는 display name과 별도 identity로 유지한다. 응답은 presentation roster, ordered Draft/final assignment, final result, 선수별 base/realized rating과 champion proficiency ability profile, 모든 structured event/snapshot과 policy/input/resource/replay/timeline/output hash 및 Random fingerprint를 포함한다. Options policy와 simulate integrity에는 acceptance status, ordered known risk 2개, holdout false, rollback profile과 automatic fallback false가 additive하게 노출된다. Error는 controller-scoped `REAL_MATCH_API_ERROR_V1`이며 legacy endpoint와 Champion API error 의미는 그대로다. 세부 계약은 [Real Match API V1](architecture/real-match-api-v1.md)에 있다.
 
-Activation LIVE smoke의 fixed `GEN` 대 `T1`, seed `"73"`는 T1(RED) 승리, `NEXUS_DESTROYED`, 2,320초(38분 40초), event 376개, snapshot 233개이며 output hash는 `b74cd4a509134fc5a1b8cb9aa458e6a86233f407ce59084856aa370a80a33481`다. 현재 policy hash는 `c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5`다. Options/simulate HTTP 200, actual gzip, Draft 20 decisions/10 assignments와 browser Draft→Playback→Result를 확인했지만 이 한 경기는 balance 표본이 아니다.
+Acceptance LIVE smoke의 fixed `GEN` 대 `T1`, seed `"73"`는 T1(RED) 승리, `NEXUS_DESTROYED`, 2,320초(38분 40초), event 376개, snapshot 233개이며 output hash는 `4774cec14fcd0606c00421b7fce29f8159f4950a77814212cd3417b30a2d617b`다. 현재 V3 policy hash는 `78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493`다. Options/simulate HTTP 200, actual gzip, ordered risk와 rollback metadata, Draft 20 decisions/10 assignments, browser Draft→Playback→x30/종료 seek→Result와 233-snapshot 골드 차트를 확인했다. Console/page/runtime validation error와 reference fallback은 0이지만 이 한 경기는 balance 표본이 아니다.
 
 `backend/build/reports/real-match-api-v1/`의 기존 frontend handoff와 performance baseline은 V8 당시의 historical artifact다. V9의 gameplay/provenance/output hash oracle로 재사용하거나 자동 승격하지 않는다. Frontend 기본 공급자는 현재 LIVE API이며 reference artifact는 명시적 reference 모드에서만 사용한다. V9 공식 handoff를 새로 배포해야 할 때는 current source binding, semantic audit와 fresh-JVM candidate A/B byte equality를 다시 거쳐 별도 승격해야 한다. Historical Match Engine freeze와 V8 manifest/SHA는 과거 감사 기록으로 그대로 보존한다.
 
@@ -527,6 +532,8 @@ Match Engine V9 fresh Auto Draft 재검증은 final source-bound backend regress
 V2 causality/evidence hardening의 focused 92 tests, serialization fresh-JVM A/B, Auto Draft probe A/B, DRY_RUN smoke와 baseline parity는 clean pass했다. 당시 최종 backend regression은 219 suites / 2,200 tests / failures 0 / errors 0 / skipped 0, Gradle wall 14분 43초였다. Official calibration은 4개 서로 다른 worker JVM, authenticated checkpoint/sidecar 100/100과 receipt 4/4, Draft 400, core rows 1,200, paired rows 800, replay/instrumentation 각 300을 만들었다. Artifact-only calibration finalizer는 gameplay execution 0을 증명했지만 Matchup direct/indirect/unresolved/unexplained가 1/0/399/0이어서 holdout을 승인하지 않았다. 상태는 `MATCH_ENGINE_V9_FRESH_REQUALIFICATION_V2_BLOCKED_HOLDOUT_NOT_CONSUMED`였고 당시 runtime은 `BASELINE_V1`이었다. 상세 내용은 [fresh 재검증 V2](development/match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v2.md)을 따른다.
 
 Matchup/Composition production activation은 위 V2 limitation을 숨기거나 holdout 통과로 재명명하지 않고 `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION`을 policy/API에 결속했다. Final executable tree는 219 suites / 2,201 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,821.280초, Gradle wall 16분 25초로 clean pass했다. LIVE GEN–T1 seed 73 smoke는 production profile과 gzip, 20-turn Draft, playback/result, output hash `b74cd4a509134fc5a1b8cb9aa458e6a86233f407ce59084856aa370a80a33481`을 확인했다. 별도 activation artifact와 대형 statistical task는 실행하지 않았다.
+
+Match Engine V9 production acceptance는 V3 policy에 acceptance status, 두 ordered risk와 explicit BASELINE rollback identity를 additive하게 결속했다. T1/GEN fixed Draft product sanity는 core 1,200회와 replay/instrumentation/rollback 추가 10회를 실행해 Production Composition scalar 4,885회, structured effect 5,339회와 direct binding 5,339 / indirect 0 / unresolved 0을 관측했고 correctness/Random/Jungle/replay/instrumentation/rollback 오류는 0이었다. Focused 4 suites / 22 tests와 frontend 87-module build가 통과했고, final executable tree의 첫 complete backend regression은 221 suites / 2,203 tests / failures 0 / errors 0 / skipped 0, aggregate XML 859.986초, Gradle wall 14분 29초로 clean pass했다. Raw-only finalizer A/B는 byte-identical이었고 official artifact manifest 12/12, raw SHA-256 `1b3094dc2f59b0c4fb32130c2e5b6bac8060d73c99f4c7c9c696561d59c316e1`을 확인했다. 이 acceptance는 statistical holdout이나 balance proof가 아니다.
 
 Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필요했다. 첫 clean full 뒤 별도 JVM artifact oracle이 unordered `PlayerSkill` set iteration으로 seeded realization draw-to-skill 배정이 달라지는 production 결함을 발견했고, 이를 고친 두 번째 clean full 뒤 다시 별도 JVM에서 Champion Power tag summary ordering이 timeline hash를 바꾸는 독립 production 결함을 발견했다. 두 문제 모두 single-JVM focused/full suite만으로 검출할 수 없었으므로 canonical ordering 수정과 cross-JVM 후보 2회 exact equality를 먼저 확정한 뒤 당시 final full을 실행했다.
 

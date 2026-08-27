@@ -13,22 +13,34 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Objects;
 
 /** Authoritative, code-owned production runtime policy for the Match Engine V1 boundary. */
 public final class MatchEngineV1Policy {
     public static final String CONTRACT_SCHEMA = "MATCH_ENGINE_CONTRACT_V1";
-    public static final String POLICY_SCHEMA = "MATCH_ENGINE_V1_PRODUCTION_POLICY_V2";
+    public static final String POLICY_SCHEMA = "MATCH_ENGINE_V1_PRODUCTION_POLICY_V3";
     public static final String POLICY_ID =
-            "MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY";
+            "MATCH_ENGINE_V1_MATCHUP_COMPOSITION_ACCEPTED_PRODUCTION_POLICY";
     public static final String ACTIVATION_DECISION_SCHEMA =
             "MATCH_ENGINE_V9_MATCHUP_COMPOSITION_PRODUCTION_ACTIVATION_DECISION_V1";
     public static final String ACTIVATION_DECISION_CODE =
             "PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION";
     public static final String KNOWN_DIAGNOSTIC_LIMITATION =
             "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES";
+    public static final String COMPOSITION_NEXUS_ENDING_SENSITIVITY_LIMITATION =
+            "COMPOSITION_NEXUS_ENDING_SENSITIVITY_9_25_PERCENT_EXCEEDS_PROPOSED_7_5_PERCENT_TOLERANCE";
+    public static final List<String> KNOWN_DIAGNOSTIC_LIMITATIONS = List.of(
+            KNOWN_DIAGNOSTIC_LIMITATION,
+            COMPOSITION_NEXUS_ENDING_SENSITIVITY_LIMITATION);
+    public static final String ACCEPTANCE_STATUS =
+            "PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT";
+    public static final SimulationRuntimeProfileId ROLLBACK_PROFILE_ID =
+            SimulationRuntimeProfileId.BASELINE_V1;
+    public static final String ROLLBACK_MODE = "EXPLICIT_VERSIONED_POLICY_CHANGE_ONLY";
+    public static final boolean AUTOMATIC_FALLBACK = false;
     public static final String APPROVED_POLICY_SHA256 =
-            "c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5";
+            "78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493";
     /** Historical Final 13G evidence identity; retained for audit compatibility only. */
     public static final String FINAL_13G_B_MANIFEST_SHA256 =
             "bd9a9cf3b089cfc76fceb0311094c1b70232278404f5675c42d89849d927bc98";
@@ -124,8 +136,14 @@ public final class MatchEngineV1Policy {
                 + "policyId=" + POLICY_ID + '\n'
                 + "activationDecisionSchema=" + ACTIVATION_DECISION_SCHEMA + '\n'
                 + "activationDecisionCode=" + ACTIVATION_DECISION_CODE + '\n'
+                + "acceptanceStatus=" + ACCEPTANCE_STATUS + '\n'
                 + "knownDiagnosticLimitation=" + KNOWN_DIAGNOSTIC_LIMITATION + '\n'
+                + "knownDiagnosticLimitations="
+                + String.join("|", KNOWN_DIAGNOSTIC_LIMITATIONS) + '\n'
                 + "statisticalHoldoutApproved=false\n"
+                + "rollbackProfileId=" + ROLLBACK_PROFILE_ID.name() + '\n'
+                + "rollbackMode=" + ROLLBACK_MODE + '\n'
+                + "automaticFallback=false\n"
                 + "contractSchema=" + CONTRACT_SCHEMA + '\n'
                 + "draftSelectionPolicyId=" + DRAFT_SELECTION_POLICY_ID + '\n'
                 + "draftSelectionPolicyHash=" + DRAFT_SELECTION_POLICY_SHA256 + '\n'
@@ -147,7 +165,9 @@ public final class MatchEngineV1Policy {
         }
         return new Snapshot(
                 POLICY_SCHEMA, POLICY_ID, ACTIVATION_DECISION_SCHEMA,
-                ACTIVATION_DECISION_CODE, KNOWN_DIAGNOSTIC_LIMITATION, false,
+                ACTIVATION_DECISION_CODE, ACCEPTANCE_STATUS,
+                KNOWN_DIAGNOSTIC_LIMITATION, KNOWN_DIAGNOSTIC_LIMITATIONS, false,
+                ROLLBACK_PROFILE_ID, ROLLBACK_MODE, AUTOMATIC_FALLBACK,
                 CONTRACT_SCHEMA,
                 DRAFT_SELECTION_POLICY_ID, DRAFT_SELECTION_POLICY_SHA256,
                 PROFILE.profileId(),
@@ -192,8 +212,13 @@ public final class MatchEngineV1Policy {
             String policyId,
             String activationDecisionSchema,
             String activationDecisionCode,
+            String acceptanceStatus,
             String knownDiagnosticLimitation,
+            List<String> knownDiagnosticLimitations,
             boolean statisticalHoldoutApproved,
+            SimulationRuntimeProfileId rollbackProfileId,
+            String rollbackMode,
+            boolean automaticFallback,
             String contractSchemaVersion,
             String draftSelectionPolicyId,
             String draftSelectionPolicyHash,
@@ -217,8 +242,19 @@ public final class MatchEngineV1Policy {
             activationDecisionSchema = required(
                     activationDecisionSchema, "activationDecisionSchema");
             activationDecisionCode = required(activationDecisionCode, "activationDecisionCode");
+            acceptanceStatus = required(acceptanceStatus, "acceptanceStatus");
             knownDiagnosticLimitation = required(
                     knownDiagnosticLimitation, "knownDiagnosticLimitation");
+            knownDiagnosticLimitations = List.copyOf(Objects.requireNonNull(
+                    knownDiagnosticLimitations, "knownDiagnosticLimitations"));
+            if (knownDiagnosticLimitations.isEmpty()
+                    || !knownDiagnosticLimitations.getFirst().equals(knownDiagnosticLimitation)
+                    || knownDiagnosticLimitations.stream().anyMatch(value -> value == null
+                    || value.isBlank())) {
+                throw new IllegalArgumentException("knownDiagnosticLimitations is invalid");
+            }
+            Objects.requireNonNull(rollbackProfileId, "rollbackProfileId");
+            rollbackMode = required(rollbackMode, "rollbackMode");
             contractSchemaVersion = required(contractSchemaVersion, "contractSchemaVersion");
             draftSelectionPolicyId = required(
                     draftSelectionPolicyId, "draftSelectionPolicyId");

@@ -128,13 +128,19 @@ function validateProductionPolicy(value: unknown, path: string): void {
   const source = record(value, path);
   for (const key of [
     'policyId', 'policyHash', 'activationDecisionSchema', 'activationDecisionCode',
-    'knownDiagnosticLimitation', 'draftSelectionPolicyId', 'draftSelectionPolicyHash',
+    'acceptanceStatus', 'knownDiagnosticLimitation', 'rollbackProfileId', 'rollbackMode',
+    'draftSelectionPolicyId', 'draftSelectionPolicyHash',
     'runtimeProfileId', 'configurationHash', 'activeGameplayRulesVersion',
     'engineImplementationVersion', 'matchupMode', 'compositionMode', 'jungleClearContribution',
   ]) text(source[key], `${path}.${key}`);
-  for (const key of ['statisticalHoldoutApproved', 'economyCandidateActivation', 'tempoCandidateActivation', 'diagnosticsExcludedFromGameplayIdentity']) {
+  const limitations = array(source.knownDiagnosticLimitations, `${path}.knownDiagnosticLimitations`);
+  if (limitations.length === 0) fail(`${path}.knownDiagnosticLimitations`, '최소 한 개가 필요합니다.');
+  limitations.forEach((value, index) => text(value, `${path}.knownDiagnosticLimitations[${index}]`));
+  if (limitations[0] !== source.knownDiagnosticLimitation) fail(`${path}.knownDiagnosticLimitations`, '첫 제한은 compatibility primary 제한과 일치해야 합니다.');
+  for (const key of ['statisticalHoldoutApproved', 'automaticFallback', 'economyCandidateActivation', 'tempoCandidateActivation', 'diagnosticsExcludedFromGameplayIdentity']) {
     bool(source[key], `${path}.${key}`);
   }
+  if (source.statisticalHoldoutApproved !== false || source.automaticFallback !== false) fail(path, '통계 holdout 승인과 자동 fallback은 false여야 합니다.');
 }
 
 export function validateRealMatchOptionsPayload(value: unknown): RealMatchOptionsDto {
@@ -304,6 +310,7 @@ function validateIntegrity(value: unknown): void {
   const integrity = record(value, '$.integrity');
   for (const key of [
     'matchEngineContract', 'policyId', 'policyHash', 'runtimeProfileId', 'configurationHash',
+    'acceptanceStatus', 'rollbackProfileId',
     'engineImplementationVersion', 'activeGameplayRulesVersion', 'draftSelectionPolicyId',
     'draftSelectionPolicyHash', 'draftSelectionTraceHashAlgorithm', 'draftSelectionTraceHash',
     'inputHash', 'inputHashAlgorithm',
@@ -311,6 +318,12 @@ function validateIntegrity(value: unknown): void {
     'simulatorTimelineHash', 'simulatorTimelineHashAlgorithm', 'structuredTimelineHash',
     'structuredTimelineHashAlgorithm', 'outputHash', 'outputHashAlgorithm', 'outputHashScope',
   ]) text(integrity[key], `$.integrity.${key}`);
+  const limitations = array(integrity.knownDiagnosticLimitations, '$.integrity.knownDiagnosticLimitations');
+  if (limitations.length === 0) fail('$.integrity.knownDiagnosticLimitations', '최소 한 개가 필요합니다.');
+  limitations.forEach((value, index) => text(value, `$.integrity.knownDiagnosticLimitations[${index}]`));
+  bool(integrity.statisticalHoldoutApproved, '$.integrity.statisticalHoldoutApproved');
+  bool(integrity.automaticFallback, '$.integrity.automaticFallback');
+  if (integrity.statisticalHoldoutApproved !== false || integrity.automaticFallback !== false) fail('$.integrity', '통계 holdout 승인과 자동 fallback은 false여야 합니다.');
   bool(integrity.diagnosticsExcludedFromGameplayIdentity, '$.integrity.diagnosticsExcludedFromGameplayIdentity');
   const random = record(integrity.randomFingerprint, '$.integrity.randomFingerprint');
   text(random.schemaVersion, '$.integrity.randomFingerprint.schemaVersion');

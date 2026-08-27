@@ -75,8 +75,13 @@ public final class RealMatchApiV1Dtos {
             String policyHash,
             String activationDecisionSchema,
             String activationDecisionCode,
+            String acceptanceStatus,
             String knownDiagnosticLimitation,
+            List<String> knownDiagnosticLimitations,
             boolean statisticalHoldoutApproved,
+            String rollbackProfileId,
+            String rollbackMode,
+            boolean automaticFallback,
             String draftSelectionPolicyId,
             String draftSelectionPolicyHash,
             String runtimeProfileId,
@@ -96,8 +101,19 @@ public final class RealMatchApiV1Dtos {
             activationDecisionSchema = required(
                     activationDecisionSchema, "activationDecisionSchema");
             activationDecisionCode = required(activationDecisionCode, "activationDecisionCode");
+            acceptanceStatus = required(acceptanceStatus, "acceptanceStatus");
             knownDiagnosticLimitation = required(
                     knownDiagnosticLimitation, "knownDiagnosticLimitation");
+            knownDiagnosticLimitations = List.copyOf(Objects.requireNonNull(
+                    knownDiagnosticLimitations, "knownDiagnosticLimitations"));
+            if (knownDiagnosticLimitations.isEmpty()
+                    || !knownDiagnosticLimitations.getFirst().equals(knownDiagnosticLimitation)
+                    || knownDiagnosticLimitations.stream().anyMatch(value -> value == null
+                    || value.isBlank())) {
+                throw new IllegalArgumentException("knownDiagnosticLimitations is invalid");
+            }
+            rollbackProfileId = required(rollbackProfileId, "rollbackProfileId");
+            rollbackMode = required(rollbackMode, "rollbackMode");
             draftSelectionPolicyId = required(
                     draftSelectionPolicyId, "draftSelectionPolicyId");
             draftSelectionPolicyHash = required(
@@ -607,6 +623,11 @@ public final class RealMatchApiV1Dtos {
             String matchEngineContract,
             String policyId,
             String policyHash,
+            String acceptanceStatus,
+            List<String> knownDiagnosticLimitations,
+            boolean statisticalHoldoutApproved,
+            String rollbackProfileId,
+            boolean automaticFallback,
             String runtimeProfileId,
             String configurationHash,
             String engineImplementationVersion,
@@ -634,6 +655,15 @@ public final class RealMatchApiV1Dtos {
             matchEngineContract = required(matchEngineContract, "matchEngineContract");
             policyId = required(policyId, "policyId");
             policyHash = required(policyHash, "policyHash");
+            acceptanceStatus = required(acceptanceStatus, "acceptanceStatus");
+            knownDiagnosticLimitations = List.copyOf(Objects.requireNonNull(
+                    knownDiagnosticLimitations, "knownDiagnosticLimitations"));
+            if (knownDiagnosticLimitations.isEmpty()
+                    || knownDiagnosticLimitations.stream().anyMatch(value -> value == null
+                    || value.isBlank())) {
+                throw new IllegalArgumentException("knownDiagnosticLimitations is invalid");
+            }
+            rollbackProfileId = required(rollbackProfileId, "rollbackProfileId");
             runtimeProfileId = required(runtimeProfileId, "runtimeProfileId");
             configurationHash = required(configurationHash, "configurationHash");
             engineImplementationVersion = required(

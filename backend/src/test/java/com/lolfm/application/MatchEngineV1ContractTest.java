@@ -81,22 +81,30 @@ class MatchEngineV1ContractTest {
         MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
 
         assertThat(policy.schemaVersion())
-                .isEqualTo("MATCH_ENGINE_V1_PRODUCTION_POLICY_V2");
+                .isEqualTo("MATCH_ENGINE_V1_PRODUCTION_POLICY_V3");
         assertThat(policy.policyId())
-                .isEqualTo("MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY");
+                .isEqualTo("MATCH_ENGINE_V1_MATCHUP_COMPOSITION_ACCEPTED_PRODUCTION_POLICY");
         assertThat(policy.activationDecisionSchema()).isEqualTo(
                 "MATCH_ENGINE_V9_MATCHUP_COMPOSITION_PRODUCTION_ACTIVATION_DECISION_V1");
         assertThat(policy.activationDecisionCode()).isEqualTo(
                 "PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION");
         assertThat(policy.knownDiagnosticLimitation()).isEqualTo(
                 "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES");
+        assertThat(policy.acceptanceStatus()).isEqualTo(
+                "PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT");
+        assertThat(policy.knownDiagnosticLimitations()).containsExactly(
+                "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES",
+                "COMPOSITION_NEXUS_ENDING_SENSITIVITY_9_25_PERCENT_EXCEEDS_PROPOSED_7_5_PERCENT_TOLERANCE");
         assertThat(policy.statisticalHoldoutApproved()).isFalse();
+        assertThat(policy.rollbackProfileId()).isEqualTo(SimulationRuntimeProfileId.BASELINE_V1);
+        assertThat(policy.rollbackMode()).isEqualTo("EXPLICIT_VERSIONED_POLICY_CHANGE_ONLY");
+        assertThat(policy.automaticFallback()).isFalse();
         assertThat(policy.retainedRuntimeProfileId())
                 .isEqualTo(SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
         assertThat(policy.configurationHash())
                 .isEqualTo("caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d");
         assertThat(policy.policyHash()).isEqualTo(
-                "c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5");
+                "78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493");
         assertThat(policy.activeGameplayRulesVersion())
                 .isEqualTo("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3");
         assertThat(policy.engineImplementationVersion())

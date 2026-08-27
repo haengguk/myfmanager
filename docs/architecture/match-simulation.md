@@ -35,7 +35,7 @@ Draft scoring/search 자체는 Random을 사용하지 않는다. 선수별 champ
 | `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_V1` | `e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b` |
 | `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_AND_GANK_TEMPO_V1` | `c835280cbaa1244f4fecb099b19f71111c6d77aa1aeb1b7110a6e86e6381451c` |
 
-`BASELINE_V1`은 이름만 OFF 묶음이 아니라 legacy Spring `@Autowired MatchSimulator`의 13 gameplay booleans와 두 mode를 모두 snapshot한 명시적 롤백 profile이다. Fixed-seed complete timeline parity test가 활성화 전 frozen baseline과 exact equality를 검증한다. Production과 Full candidate의 configuration hash가 같은 것은 profile ID가 아니라 gameplay configuration만 hash하는 계약에 따른 의도된 alias다. 둘은 runtime profile ID, production policy와 replay provenance로 구분된다. `ChampionMatchupMode.ON`, Composition `SHADOW`/`CANDIDATE` 같은 historical/internal audit path는 application profile로 선택할 수 없다.
+`BASELINE_V1`은 이름만 OFF 묶음이 아니라 legacy Spring `@Autowired MatchSimulator`의 13 gameplay booleans와 두 mode를 모두 snapshot한 명시적 롤백 profile이다. Acceptance-time fixed fixture는 current tree에서 explicit baseline을 fresh state로 두 번 실행해 complete timeline/Random/output equality를 검증한다. Matching V9 pre-activation immutable output oracle이 없으므로 이를 cross-commit byte parity로 해석하지 않는다. Production과 Full candidate의 configuration hash가 같은 것은 profile ID가 아니라 gameplay configuration만 hash하는 계약에 따른 의도된 alias다. 둘은 runtime profile ID, production policy와 Match Engine V1 replay binding으로 구분된다. `ChampionMatchupMode.ON`, Composition `SHADOW`/`CANDIDATE` 같은 historical/internal audit path는 application profile로 선택할 수 없다.
 
 Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
 
@@ -43,7 +43,7 @@ Baseline, Matchup-only, Full candidate와 production profile은 `activeGameplayR
 
 ## Match Engine V1 Policy Boundary
 
-Match Engine V1의 authoritative application policy는 `PRODUCTION_MATCHUP_COMPOSITION_V1` 하나이며 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`, Economy/Tempo candidate activation `false`를 고정한다. 활성화 결정은 `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION`이고 statistical holdout approval은 `false`다. Caller는 V1 facade에 profile ID나 gameplay boolean을 전달할 수 없다. `SimulationOptions.productionDefaults()`는 값이 일치해도 별도의 저수준 constructor default일 뿐 제품 authority로 해석하지 않는다.
+Match Engine V1의 authoritative application policy는 `PRODUCTION_MATCHUP_COMPOSITION_V1` 하나이며 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`, Economy/Tempo candidate activation `false`를 고정한다. 제품 상태는 `PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT`이고 statistical holdout approval은 `false`다. Matchup causal lineage 399/400 unresolved와 Composition Nexus/ending 9.25% sensitivity를 순서가 고정된 risk set으로 노출한다. Caller는 V1 facade에 profile ID나 gameplay boolean을 전달할 수 없고 오류 시 `BASELINE_V1`로 자동 fallback하지 않는다. `SimulationOptions.productionDefaults()`는 값이 일치해도 별도의 저수준 constructor default일 뿐 제품 authority로 해석하지 않는다.
 
 V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal champion-role을 simulator 및 seeded `Random` 생성 전에 거부한다. 성공 경로에서는 existing simulator와 common gameplay rules를 그대로 실행한 뒤 structured winner/end reason, final snapshot, stable participant identity, full provenance를 immutable output으로 투영한다. 기존 simulator와 Real Draft overload는 제거하거나 의미를 바꾸지 않았다.
 

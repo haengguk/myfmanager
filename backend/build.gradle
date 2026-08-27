@@ -1571,3 +1571,89 @@ tasks.register("runAutoDraftVarietyV1Diagnostic", Test) {
             "test-results/autoDraftVarietyV1")
 }
 // AUTO_DRAFT_VARIETY_V1_BUILD_CONTRACT_END
+
+// MATCH_ENGINE_V9_PRODUCTION_ACCEPTANCE_BUILD_CONTRACT_START
+tasks.register("runMatchEngineV9ProductionAcceptanceDiagnostic", Test) {
+    group = "verification"
+    description = "Runs the bounded 1,200-match T1/GEN fixed-Draft product-sanity diagnostic."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform { includeTags "match-engine-v9-production-acceptance" }
+    maxHeapSize = "3g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    systemProperty "matchEngineV9AcceptanceBackendRoot", projectDir.absolutePath
+    systemProperty "matchEngineV9AcceptanceRawOutput", layout.buildDirectory.dir(
+            "reports/match-engine-v9-production-acceptance-raw-candidate")
+            .get().asFile.absolutePath
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/matchEngineV9ProductionAcceptanceDiagnostic")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/matchEngineV9ProductionAcceptanceDiagnostic")
+}
+
+def registerMatchEngineV9ProductionAcceptanceFinalizer = {
+        String taskName, String outputName ->
+    tasks.register(taskName, JavaExec) {
+        group = "verification"
+        description = "Raw-only deterministic Match Engine V9 acceptance finalizer ${outputName}."
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = "com.lolfm.application.MatchEngineV9ProductionAcceptanceFinalizer"
+        dependsOn(testClasses)
+        args projectDir.absolutePath,
+                layout.buildDirectory.dir(
+                        "reports/match-engine-v9-production-acceptance-raw-candidate")
+                        .get().asFile.absolutePath,
+                layout.buildDirectory.dir("reports/${outputName}").get().asFile.absolutePath
+        outputs.upToDateWhen { false }
+    }
+}
+
+registerMatchEngineV9ProductionAcceptanceFinalizer(
+        "finalizeMatchEngineV9ProductionAcceptanceCandidate",
+        "match-engine-v9-production-acceptance-candidate")
+tasks.named("finalizeMatchEngineV9ProductionAcceptanceCandidate") {
+    dependsOn("runMatchEngineV9ProductionAcceptanceDiagnostic")
+}
+registerMatchEngineV9ProductionAcceptanceFinalizer(
+        "finalizeMatchEngineV9ProductionAcceptanceA",
+        "match-engine-v9-production-acceptance-finalizer-a")
+registerMatchEngineV9ProductionAcceptanceFinalizer(
+        "finalizeMatchEngineV9ProductionAcceptanceB",
+        "match-engine-v9-production-acceptance-finalizer-b")
+
+tasks.register("verifyAndPromoteMatchEngineV9ProductionAcceptance") {
+    group = "verification"
+    description = "Byte-verifies fresh-JVM finalizers A/B and promotes the official artifact."
+    dependsOn("finalizeMatchEngineV9ProductionAcceptanceA",
+            "finalizeMatchEngineV9ProductionAcceptanceB")
+    doLast {
+        def first = layout.buildDirectory.dir(
+                "reports/match-engine-v9-production-acceptance-finalizer-a")
+                .get().asFile.toPath()
+        def second = layout.buildDirectory.dir(
+                "reports/match-engine-v9-production-acceptance-finalizer-b")
+                .get().asFile.toPath()
+        List firstFiles
+        List secondFiles
+        Files.walk(first).withCloseable { stream ->
+            firstFiles = stream.filter { Files.isRegularFile(it) }
+                    .map { first.relativize(it) }.sorted().toList()
+        }
+        Files.walk(second).withCloseable { stream ->
+            secondFiles = stream.filter { Files.isRegularFile(it) }
+                    .map { second.relativize(it) }.sorted().toList()
+        }
+        if (firstFiles != secondFiles || firstFiles.any { relative ->
+            Files.mismatch(first.resolve(relative), second.resolve(relative)) != -1L
+        }) {
+            throw new GradleException("Match Engine V9 acceptance finalizer A/B mismatch")
+        }
+        def official = layout.buildDirectory.dir(
+                "reports/match-engine-v9-production-acceptance").get().asFile
+        project.delete(official)
+        copy { from first.toFile(); into official }
+    }
+}
+// MATCH_ENGINE_V9_PRODUCTION_ACCEPTANCE_BUILD_CONTRACT_END

@@ -14,7 +14,7 @@ Real Match API V1은 실제 LCK roster, Professional Draft와 동결된 `MatchEn
 
 응답에는 다음이 포함된다.
 
-- `matchEngineContract`와 현재 production policy/configuration/rules/engine identity, activation decision/known limitation/holdout 승인 여부
+- `matchEngineContract`와 현재 production policy/configuration/rules/engine identity, acceptance status, 순서가 고정된 known risk 2개, holdout 승인 여부, 명시적 rollback profile/mode
 - seed가 필수 signed Java long decimal string이라는 정책
 - 표시용 team code/name, player ID/nickname/position
 - 코드에서 확인한 resource version과 provenance hash
@@ -87,7 +87,7 @@ REAL_MATCH_RESPONSE_V1
 - `draft`는 rules/scoring identity와 별도의 Draft selection policy ID/hash, 20-turn selection trace hash와 structured trace, Game 1, Draft 전 exclusion, ordered ban/pick decision, 양 팀 ban/pick, final player-position-champion assignment와 final hash를 제공한다.
 - `result`는 `MATCH_RESULT_SUMMARY_V1`의 winner/end reason/duration, 팀 최종 상태, 10명 KDA/CS/gold/XP/level과 `PLAYER_ABILITY_PROFILE_V1`을 그대로 투영한다. 선수별 profile은 12개 base/realized/delta rating과 선택 champion proficiency 및 실행 보정을 stable `PlayerId`/position/champion assignment에 결속한다.
 - `timeline`은 모든 immutable structured event와 snapshot을 투영한다. Stable participant ID, champion ID, `CombatSource`, objective/structure field, structured data와 player progression을 보존한다. V9의 `STRUCTURE_ACTION`은 `STARTED`, `DAMAGE`, `DESTROYED`, `REPELLED`, `ABORTED`, `RESPAWNED` phase, target/tier/index, 양 side, source, HP 전후/최대치, 피해량, plate, 참가자, wave/backdoor, 지속 여부와 종료 사유를 제공한다. Snapshot의 `structureState`는 lane별 구조물 HP, 개별 넥서스 포탑 HP/남은 개수, 넥서스 HP와 active siege를 제공하고 player activity에는 `SIEGING`이 추가된다. `displayMessage`는 표시용이다.
-- `integrity`는 contract/policy/configuration/rules/engine identity, Draft selection policy/trace identity, input/resource/replay/timeline/output hash와 Match Simulator Random fingerprint를 제공한다.
+- `integrity`는 contract/policy/configuration/rules/engine identity, acceptance status, ordered known risks, `statisticalHoldoutApproved=false`, rollback profile, `automaticFallback=false`, Draft selection policy/trace identity, input/resource/replay/timeline/output hash와 Match Simulator Random fingerprint를 제공한다. Options의 policy block보다 범위가 작은 result decision block이지만 acceptance/risk/rollback 의미는 self-contained하다.
 
 Safety timeout에서는 `result.winner`와 `timeline.winner`가 `null`일 수 있다. Event의 actor, lane, participant, combat/structure field도 해당 event 의미에 없으면 `null`이다. 전체 enum 값과 nullable field 목록은 generated contract와 handoff artifact에 고정한다.
 
@@ -100,12 +100,14 @@ V1은 다음 runtime만 허용한다.
 | 항목 | 값 |
 | --- | --- |
 | Contract | `MATCH_ENGINE_CONTRACT_V1` |
-| Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V2` |
-| Policy | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY` |
-| Policy hash | `c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5` |
+| Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V3` |
+| Policy | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_ACCEPTED_PRODUCTION_POLICY` |
+| Policy hash | `78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493` |
 | Activation decision | `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION` |
-| Known limitation | `MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES` |
+| Acceptance status | `PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT` |
+| Ordered known limitations | Matchup causal lineage 399/400 unresolved; Composition Nexus/ending 9.25% sensitivity > proposed 7.5% tolerance |
 | Statistical holdout approved | `false` |
+| Rollback | `BASELINE_V1` / `EXPLICIT_VERSIONED_POLICY_CHANGE_ONLY` / automatic fallback `false` |
 | Draft selection | `AUTO_DRAFT_VARIETY_V1` |
 | Draft selection policy hash | `b4645a9897329b6b0d50405a22ef788885a40ecede4b0fedd04e168211cf75cc` |
 | Runtime profile | `PRODUCTION_MATCHUP_COMPOSITION_V1` |
@@ -117,6 +119,8 @@ V1은 다음 runtime만 허용한다.
 | Economy / Tempo candidate | `false` / `false` |
 
 V9 구조물 규칙과 additive timeline/snapshot field는 현재 engine output과 provenance에 포함된다. Presentation metadata는 engine output hash를 재정의하지 않으며 기존 response field의 이름이나 의미는 제거하지 않았다.
+
+두 번째 known risk는 fixed paired calibration에서 final Nexus/ending signature가 달랐던 pair 비율이다. 넥서스 파괴량 증가율이나 현실 승률이 아니며, 7.5%는 직전 proposed tolerance다. Risk와 acceptance decision은 policy canonical hash에 들어가지만 gameplay configuration hash에는 들어가지 않는다.
 
 Draft는 Match Simulator의 mutable `Random`을 소비하지 않는다. 매 턴 최고점 대비 2.0 이내 상위 3개 후보를 대상으로 seed와 structured Draft context의 SHA-256에서 deterministic bucket을 선택한다. 같은 request는 20개 Draft trace부터 timeline까지 exact replay되고, 다른 seed는 품질 제한 안에서 다른 Draft가 될 수 있다. 자세한 정책과 80-Draft evidence는 [Auto Draft Variety V1](../development/auto-draft-variety-v1.md)에 있다.
 
@@ -149,7 +153,7 @@ Real Match API focused 검증은 V8 `PlayerAbilityProfileContractTest`를 포함
 
 최종 complete backend regression은 메모리 한도에 맞춘 일회성 JVM/worker 제한 아래 default `test` 전체를 첫 실행에서 수행했고 196 suites / 2,091 tests, failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 810.092초, Gradle wall time은 13분 43초다. 테스트 선택이나 default diagnostic 제외 경계는 바꾸지 않았으며, 이후 executable production source, resource, Gradle과 shared fixture는 변경하지 않았다.
 
-`backend/build/reports/real-match-api-v1/`의 handoff 6개 JSON과 `SHA256SUMS.txt`는 V8 당시 생성한 historical frontend reference다. 그 fixture는 GEN(BLUE) 승리, 3,430초와 output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`를 보존하지만 현재 V9 gameplay/provenance oracle로 사용하지 않는다. Activation smoke의 LIVE `GEN` 대 `T1`, seed `"73"` 결과는 T1(RED) 승리, 2,320초, event 376개, snapshot 233개와 output hash `b74cd4a509134fc5a1b8cb9aa458e6a86233f407ce59084856aa370a80a33481`다. 이 한 경기는 API/화면 호환성 smoke일 뿐 balance 표본이 아니다. 별도 V9 handoff를 공식 승격할 때는 current source binding과 fresh-JVM candidate A/B를 새로 검증해야 한다.
+`backend/build/reports/real-match-api-v1/`의 handoff 6개 JSON과 `SHA256SUMS.txt`는 V8 당시 생성한 historical frontend reference다. 그 fixture는 GEN(BLUE) 승리, 3,430초와 output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`를 보존하지만 현재 V9 gameplay/provenance oracle로 사용하지 않는다. Acceptance smoke의 LIVE `GEN` 대 `T1`, seed `"73"` 결과는 T1(RED) 승리, 2,320초, event 376개, snapshot 233개와 V3 policy-bound output hash `4774cec14fcd0606c00421b7fce29f8159f4950a77814212cd3417b30a2d617b`다. 이 한 경기는 API/화면 호환성 smoke일 뿐 balance 표본이 아니다. 별도 V9 handoff를 공식 승격할 때는 current source binding과 fresh-JVM candidate A/B를 새로 검증해야 한다.
 
 Artifact writer는 전체 XML의 단순 개수만 신뢰하지 않는다. 필수 8개 suite와 최소 test 수, failures/errors/skipped 0을 확인하고, 전용 dynamic test가 기록한 production source 502 files / `e23f2d2149edd3a7478b5333f126e876d969b5a3c71c20b670447cc9cbd71817` 및 API verification source 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`를 현재 tree와 exact 비교한다. 생성 전에는 options/roster/Draft/result/final snapshot/structured participant/hash/Random/선수 ability profile의 V8 semantic audit와 same-request replay도 수행한다. 두 fresh JVM candidate A/B의 JSON 6개와 manifest는 7/7 byte-for-byte exact였고, 감사 통과 뒤에만 공식 local artifact로 승격했다. 따라서 이전 V6/V7 handoff, 이전 clean XML이나 고정 base commit/run-count 표시는 새 evidence로 재사용할 수 없다.
 

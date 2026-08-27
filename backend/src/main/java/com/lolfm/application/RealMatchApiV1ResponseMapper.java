@@ -280,6 +280,11 @@ public final class RealMatchApiV1ResponseMapper {
         return new RealMatchApiV1Dtos.Integrity(
                 MatchEngineV1Policy.CONTRACT_SCHEMA,
                 output.productionPolicy().policyId(), output.productionPolicy().policyHash(),
+                output.productionPolicy().acceptanceStatus(),
+                output.productionPolicy().knownDiagnosticLimitations(),
+                output.productionPolicy().statisticalHoldoutApproved(),
+                output.productionPolicy().rollbackProfileId().name(),
+                output.productionPolicy().automaticFallback(),
                 execution.runtimeProfileId().name(), execution.configurationHash(),
                 execution.engineImplementationVersion(), execution.activeGameplayRulesVersion(),
                 execution.draftSelectionPolicyId(), execution.draftSelectionPolicyHash(),
@@ -301,8 +306,10 @@ public final class RealMatchApiV1ResponseMapper {
         MatchEngineV1Policy.Snapshot source = MatchEngineV1Policy.authoritative();
         return new RealMatchApiV1Dtos.ProductionPolicy(
                 source.policyId(), source.policyHash(), source.activationDecisionSchema(),
-                source.activationDecisionCode(), source.knownDiagnosticLimitation(),
-                source.statisticalHoldoutApproved(), source.draftSelectionPolicyId(),
+                source.activationDecisionCode(), source.acceptanceStatus(),
+                source.knownDiagnosticLimitation(), source.knownDiagnosticLimitations(),
+                source.statisticalHoldoutApproved(), source.rollbackProfileId().name(),
+                source.rollbackMode(), source.automaticFallback(), source.draftSelectionPolicyId(),
                 source.draftSelectionPolicyHash(), source.retainedRuntimeProfileId().name(),
                 source.configurationHash(), source.activeGameplayRulesVersion(),
                 source.engineImplementationVersion(),

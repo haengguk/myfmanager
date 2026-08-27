@@ -1,5 +1,7 @@
 # Match Engine V9 Matchup/Composition Production Activation
 
+> 이 문서는 최초 activation 당시 실행 기록을 보존한다. 현재 V3 policy, 두 ordered risk, acceptance artifact와 최신 LIVE output은 [Match Engine V9 Production Acceptance](match-engine-v9-production-acceptance.md)가 authoritative하다.
+
 ## 상태
 
 `MATCH_ENGINE_V9_MATCHUP_COMPOSITION_PRODUCTION_ACTIVATED`
@@ -9,8 +11,12 @@
 Machine-readable 제품 결정은 다음과 같다.
 
 - decision: `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION`
-- known limitation: `MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES`
+- acceptance: `PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT`
+- ordered known limitations:
+  1. `MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES`
+  2. `COMPOSITION_NEXUS_ENDING_SENSITIVITY_9_25_PERCENT_EXCEEDS_PROPOSED_7_5_PERCENT_TOLERANCE`
 - statistical holdout approved: `false`
+- rollback: `BASELINE_V1` / `EXPLICIT_VERSIONED_POLICY_CHANGE_ONLY` / automatic fallback `false`
 
 이 결정은 `FRESH_REQUALIFICATION_PASSED`, `STATISTICALLY_ACCEPTED`, `HOLDOUT_PASSED`를 뜻하지 않는다. 직전 V2 calibration의 canonical evidence는 정상이었지만 Matchup causal lineage gate가 완결되지 않아 새 holdout은 승인·시작·소비되지 않았다. 제품 소유자가 이 한계와 관측 민감도를 인지하고 Draft의 Matchup/Composition 의미를 실제 gameplay에 연결하기 위해 위험을 수용한 결정이다.
 
@@ -53,7 +59,7 @@ Machine-readable 제품 결정은 다음과 같다.
 | Tempo candidate activation | `false` |
 | Active gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3` |
 
-Configuration hash는 `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d`다. 이 hash는 gameplay configuration만 나타내므로 exact clone인 Full candidate와 같은 것이 의도된 계약이다. Candidate와 production은 runtime profile ID, production policy, replay provenance로 구분한다. 기존 여섯 profile 중 나머지 다섯 profile의 semantics/hash는 변경하지 않았다.
+Configuration hash는 `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d`다. 이 hash는 gameplay configuration만 나타내므로 exact clone인 Full candidate와 같은 것이 의도된 계약이다. Candidate와 production은 runtime profile ID, production policy, Match Engine V1 replay binding으로 구분한다. 기존 여섯 profile 중 나머지 다섯 profile의 semantics/hash는 변경하지 않았다.
 
 ## Policy, provenance, hash
 
@@ -62,19 +68,19 @@ Authoritative product authority는 계속 `MatchEngineV1Policy` 한 곳에 있�
 | 항목 | 값 |
 | --- | --- |
 | Contract | `MATCH_ENGINE_CONTRACT_V1` |
-| Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V2` |
-| Policy ID | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY` |
-| Policy SHA-256 | `c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5` |
+| Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V3` |
+| Policy ID | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_ACCEPTED_PRODUCTION_POLICY` |
+| Policy SHA-256 | `78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493` |
 | Runtime profile | `PRODUCTION_MATCHUP_COMPOSITION_V1` |
 | Configuration SHA-256 | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
 | Engine | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9` |
 | Rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3` |
 
-Policy canonical serialization은 profile/configuration, Matchup/Composition/Jungle mode, Economy/Tempo false, decision code, known limitation과 holdout false를 결속한다. Decision text는 configuration hash에 들어가지 않는다. Runtime에서 code-owned approved policy hash를 다시 계산하므로 의미가 drift하면 실행 전에 실패한다.
+Policy canonical serialization은 profile/configuration, Matchup/Composition/Jungle mode, Economy/Tempo false, acceptance decision, ordered risk set, holdout false와 explicit rollback 의미를 결속한다. Risk/decision text는 gameplay configuration hash에 들어가지 않는다. Runtime에서 code-owned approved policy hash를 다시 계산하므로 의미가 drift하면 실행 전에 실패한다.
 
 `SimulationOptions.productionDefaults()`는 현재 gameplay 값과 정렬되지만 authoritative application default가 아니다. Alignment와 authority를 분리했고 `lowLevelProductionDefaultsAuthoritativeApplicationDefault=false`를 유지했다. Historical Final 13G-B manifest/source hash는 audit-only 상수로 남겼으며 새 activation 승인 근거로 사용하지 않았다.
 
-Replay/output integrity는 기존 champion resource, player identity/ratings/proficiency, Draft rule/meta/selection policy와 20-turn trace, final Draft/assignment, seed, engine/rules/resource provenance를 그대로 결속하면서 새 production profile와 policy를 반영한다. Diagnostics ON/OFF는 configuration, timeline, outcome, reward와 Random fingerprint를 바꾸지 않는다.
+Replay/output integrity는 기존 champion resource, player identity/ratings/proficiency, Draft rule/meta/selection policy와 20-turn trace, final Draft/assignment, seed, engine/rules/resource provenance를 그대로 결속하면서 production profile와 policy를 반영한다. Generic/legacy replay provenance hash는 gameplay configuration을 결속하고 profile alias는 제외하므로 exact Full candidate와 Production에서 같을 수 있다. 공개 Match Engine V1은 이 legacy hash를 policy/profile을 포함한 `inputHash`와 다시 결속해 제품 실행을 구분한다. Diagnostics ON/OFF는 configuration, timeline, outcome, reward와 Random fingerprint를 바꾸지 않는다.
 
 ## Production wiring과 API
 
@@ -91,7 +97,7 @@ POST /api/v1/real-matches/simulate
 
 Profile 인자가 없는 일반 `RealDraftMatchOrchestrator` overload도 hard-coded baseline 대신 policy에서 production profile을 얻는다. Explicit-profile overload는 진단/롤백 비교를 위해 closed registry profile을 계속 받는다. 공개 request에는 profile selector를 추가하지 않았고 `runtimeProfileId` 같은 extra field는 `UNSUPPORTED_REQUEST_FIELD`로 거부한다. Production 오류에서 baseline으로 조용히 fallback하는 경로도 없다.
 
-API의 기존 필드는 제거·개명하지 않았다. Options/response의 production policy DTO에 activation decision schema/code, known limitation과 `statisticalHoldoutApproved=false`를 additive하게 노출했다. Frontend는 profile을 generic string으로 검증하고 LIVE 기본 공급자, strict runtime validation, reference 자동 fallback 금지를 유지한다.
+API의 기존 필드는 제거·개명하지 않았다. Options의 production policy DTO에는 activation schema/code, acceptance status, primary compatibility limitation, ordered risk set, `statisticalHoldoutApproved=false`, rollback profile/mode와 automatic fallback false를 노출한다. 개별 simulate 결과는 `integrity`에 acceptance status, ordered risk set, holdout false, rollback profile과 automatic fallback false를 additive하게 넣어 외부 문서 없이 결정 의미를 확인할 수 있다. 두 block의 전체 필드가 같다고 주장하지 않는다. Frontend는 strict LIVE validation과 reference 자동 fallback 금지를 유지한다.
 
 ## Gameplay reachability와 직접 영향 invariant
 
@@ -115,13 +121,13 @@ Deterministic focused fixture에서 다음을 확인했다.
 | Matchup − Baseline | +1.5%p | 4.5% | 10.25% | 5.5% | +1.1초 |
 | Full − Matchup | -1.0%p | 8.5% | 14.75% | 9.25% | +6.3초 |
 
-Composition의 Nexus/ending 9.25%는 직전 제안 tolerance 7.5%보다 높았다. 이것은 production에서 우선 관찰해야 할 known risk다. `objective detailed signature` 변화율은 실제 오브젝트 승패만이 아니라 내부 decision detail 차이도 포함하므로 production 효과율로 해석하지 않는다.
+Composition의 Nexus/ending 9.25%는 직전 제안 tolerance 7.5%보다 높았다. 이것은 Matchup-only와 Full의 final Nexus/ending signature가 9.25%의 pair에서 달랐다는 뜻이지, 넥서스를 9.25% 더 많이 파괴했다는 뜻이 아니다. 7.5%도 직전 proposed tolerance이며 보편적인 통계 기준이 아니다. `objective detailed signature` 변화율은 실제 오브젝트 승패만이 아니라 내부 decision detail 차이도 포함하므로 production 효과율로 해석하지 않는다.
 
 Matchup public divergence 400건 중 exact direct binding은 1건이고 399건은 diagnostic lineage가 unresolved였다. 이는 gameplay corruption의 증거도, causal proof 완료도 아니다. Composition은 기존 V6/V2 causality 계약에서 direct binding이 확인됐다.
 
 ## BASELINE rollback
 
-`BASELINE_V1`의 exact configuration/hash `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`를 그대로 보존했다. Explicit baseline 실행은 활성화 전 baseline path와 complete gameplay timeline, Random/result parity를 유지하며 production 실행과 profile/policy/provenance가 명확히 다르다.
+`BASELINE_V1`의 exact configuration/hash `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`를 그대로 보존했다. Activation은 gameplay resolver/tuning/resource를 바꾸지 않았고 current acceptance tree에서 explicit baseline replay oracle을 별도로 확인한다. 다만 matching V9 pre-activation immutable output oracle이 없으므로 complete cross-commit byte parity를 증명했다고 주장하지 않는다.
 
 롤백은 향후 `MatchEngineV1Policy`의 명시적 versioned 변경으로만 수행해야 한다. Runtime exception이나 integrity mismatch가 baseline을 자동 선택하게 만들지 않았다. V8 handoff, V9 baseline, calibration/holdout/recommendation artifact는 재작성하지 않았다.
 

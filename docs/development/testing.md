@@ -593,6 +593,25 @@ gradlew.bat generateRealMatchTransportCompressionV1Official --console=plain --no
 
 기존 report를 baseline 참고로 읽을 수는 있지만 architecture/resource contract는 production source와 active JSON에서 복원한다. expected result를 바꾸기 전에는 intended behavior, Random order, eligibility, priority, duplicate mutation, event classification 중 원인을 구분한다.
 
+### Match Engine V9 production acceptance sanity
+
+T1/GEN 고정 Draft product-sanity population은 공통 `diagnostic`과 `match-engine-v9-production-acceptance` tag를 사용하므로 default `test`에서 제외된다. Normal/focused lane에는 lineup legality, static archetype threshold, 30개 authored proficiency binding, exact 1,200-cell schedule, policy/API contract와 두 fixture `BASELINE_V1` replay oracle만 남는다.
+
+```text
+gradlew.bat test \
+  --tests com.lolfm.application.MatchEngineV9ProductionAcceptanceContractTest \
+  --tests com.lolfm.application.MatchEngineV9ProductionAcceptanceRollbackOracleTest \
+  --tests com.lolfm.application.MatchEngineV1ContractTest \
+  --tests com.lolfm.controller.RealMatchApiV1ControllerTest --console=plain
+gradlew.bat finalizeMatchEngineV9ProductionAcceptanceCandidate --console=plain
+gradlew.bat test --console=plain
+gradlew.bat verifyAndPromoteMatchEngineV9ProductionAcceptance --console=plain
+```
+
+Candidate task만 2 scenarios × 4 orientations × 3 profiles × 50 seeds = 1,200 core simulation을 실행한다. Replay 4회, instrumentation 전용 2회, rollback oracle 4회는 core와 분리해 총 추가 10회로 보고한다. Clean full 뒤 A/B finalizer는 같은 raw CSV/JSON만 읽어 검증·집계하며 gameplay simulation과 Random 소비는 0이다. A/B output 전체가 byte-identical일 때만 `build/reports/match-engine-v9-production-acceptance/`로 승격한다. 이 population은 calibration, blind holdout, balance 승인 또는 현실 LCK 승률 표본이 아니다.
+
+최종 acceptance tree는 focused 4 suites / 22 tests를 1분 26초에 통과했고, candidate diagnostic은 약 3분에 1,200+10회를 완료했다. Frontend build는 87 modules / Vite 1.47초, complete backend regression은 첫 실행 221 suites / 2,203 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML 859.986초 / Gradle wall 14분 29초였다. Full 뒤 raw-only A/B finalizer와 promotion은 약 4초에 byte-identical output과 official manifest 12/12를 확인했다. 이후 변경은 문서뿐이므로 full regression을 반복하지 않았다.
+
 ## Test Memory
 
 `backend/build.gradle`의 `test` task는 `maxHeapSize = '2g'`를 설정한다. 이는 test JVM 전용 heap 상한이며 Spring Boot production JVM 또는 frontend process의 memory 설정이 아니다.

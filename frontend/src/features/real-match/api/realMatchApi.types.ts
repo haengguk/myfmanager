@@ -12,7 +12,9 @@ export interface RealMatchSimulateRequestDto {
 
 export interface RealMatchProductionPolicyDto {
   policyId: string; policyHash: string; activationDecisionSchema: string; activationDecisionCode: string;
-  knownDiagnosticLimitation: string; statisticalHoldoutApproved: boolean;
+  acceptanceStatus: string; knownDiagnosticLimitation: string;
+  knownDiagnosticLimitations: readonly string[]; statisticalHoldoutApproved: boolean;
+  rollbackProfileId: string; rollbackMode: string; automaticFallback: boolean;
   draftSelectionPolicyId: string; draftSelectionPolicyHash: string;
   runtimeProfileId: string; configurationHash: string;
   activeGameplayRulesVersion: string; engineImplementationVersion: string; matchupMode: string;
@@ -116,6 +118,8 @@ export interface RealMatchTimelineDto {
 
 export interface RealMatchIntegrityDto {
   matchEngineContract: string; policyId: string; policyHash: string; runtimeProfileId: string;
+  acceptanceStatus: string; knownDiagnosticLimitations: readonly string[];
+  statisticalHoldoutApproved: boolean; rollbackProfileId: string; automaticFallback: boolean;
   configurationHash: string; engineImplementationVersion: string; activeGameplayRulesVersion: string;
   draftSelectionPolicyId: string; draftSelectionPolicyHash: string; draftSelectionTraceHashAlgorithm: string;
   draftSelectionTraceHash: string;

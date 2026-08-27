@@ -36,17 +36,35 @@ public final class Phase13GB1SimulationExecutor {
             String blueTeamCode,
             String redTeamCode
     ) {
+        return execute(simulators, blueTeam, redTeam, assignments, profileId, seed,
+                blueTeamCode, redTeamCode, "PHASE_13G_B_FIXED_DRAFT",
+                SimulationInstrumentation.enabled());
+    }
+
+    /** Test-side overload for diagnostics that must prove instrumentation parity by identity. */
+    public static Execution execute(
+            ConfiguredMatchSimulatorFactory simulators,
+            Team blueTeam,
+            Team redTeam,
+            MatchChampionAssignments assignments,
+            SimulationRuntimeProfileId profileId,
+            long seed,
+            String blueTeamCode,
+            String redTeamCode,
+            String diagnosticIdentity,
+            SimulationInstrumentation instrumentation
+    ) {
         Objects.requireNonNull(simulators, "simulators");
         Objects.requireNonNull(assignments, "assignments");
         SideOrientationRandomTraceObserver random = new SideOrientationRandomTraceObserver(
                 seed,
-                "PHASE_13G_B_FIXED_DRAFT",
+                Objects.requireNonNull(diagnosticIdentity, "diagnosticIdentity"),
                 Objects.requireNonNull(blueTeamCode, "blueTeamCode"),
                 Objects.requireNonNull(redTeamCode, "redTeamCode"),
                 false);
         MatchSimulator.SimulationResult result = simulators.create(
                         Objects.requireNonNull(profileId, "profileId"),
-                        SimulationInstrumentation.enabled())
+                        Objects.requireNonNull(instrumentation, "instrumentation"))
                 .simulateWithSideDiagnostics(blueTeam, redTeam, assignments, random);
         SimulationRandomFingerprint fingerprint = random.fingerprint();
         if (result.randomDrawCount() != fingerprint.randomDrawCount()

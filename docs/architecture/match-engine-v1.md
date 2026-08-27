@@ -9,9 +9,9 @@
 | 항목 | 동결 값 |
 | --- | --- |
 | Contract schema | `MATCH_ENGINE_CONTRACT_V1` |
-| Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V2` |
-| Policy | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY` |
-| Policy hash | `c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5` |
+| Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V3` |
+| Policy | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_ACCEPTED_PRODUCTION_POLICY` |
+| Policy hash | `78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493` |
 | Runtime profile | `PRODUCTION_MATCHUP_COMPOSITION_V1` |
 | Configuration hash | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
 | Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3` |
@@ -19,12 +19,14 @@
 | Matchup / Composition / Jungle contribution | `GEOMETRIC_V2` / `PRODUCTION_V2` / `DISABLED_NOT_INTEGRATED` |
 | Economy / Tempo candidate activation | `false` / `false` |
 | Activation decision | `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION` |
-| Known limitation | `MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES` |
+| Acceptance status | `PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT` |
+| Ordered known limitations | Matchup causal lineage 399/400 unresolved, Composition Nexus/ending 9.25% sensitivity > proposed 7.5% tolerance |
 | Statistical holdout approved | `false` |
+| Rollback | `BASELINE_V1` / `EXPLICIT_VERSIONED_POLICY_CHANGE_ONLY` / automatic fallback `false` |
 
 `SimulationOptions.productionDefaults()`는 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`를 사용하는 저수준 constructor default다. 값은 현재 profile과 정렬되지만 이름이나 값의 일치가 제품 authority를 뜻하지 않는다. 권한은 `MatchEngineV1Policy`가 단독으로 소유하고 snapshot의 `lowLevelProductionDefaultsAuthoritativeApplicationDefault`는 `false`다.
 
-이 표는 현재 application policy를 설명한다. 아래 Freeze Evidence는 Match Engine V1 경계를 처음 고정했을 때의 historical V6 baseline artifact이며 재생성하지 않는다. 이후 production implementation은 player ratings/ability profile의 V8과 구조물 HP·지속 공성·구조화 이벤트의 V9로 진화했고, 현재 V9 activation에서 Matchup/Composition runtime을 별도 V2 policy로 전환했다. `BASELINE_V1`은 explicit rollback profile로 보존하며 기존 V8 frontend handoff는 historical reference이고 현재 V9 실행 oracle이 아니다.
+이 표는 현재 application policy를 설명한다. ordered risk code의 두 번째 값은 paired calibration의 Matchup-only와 Full 사이 final Nexus/ending signature가 9.25%에서 달랐다는 뜻이며, 넥서스를 9.25% 더 파괴했다는 뜻이 아니다. 7.5%도 직전 proposed tolerance이지 통계적 진리나 새 승인 gate가 아니다. 아래 Freeze Evidence는 Match Engine V1 경계를 처음 고정했을 때의 historical V6 baseline artifact이며 재생성하지 않는다. 이후 production implementation은 player ratings/ability profile의 V8과 구조물 HP·지속 공성·구조화 이벤트의 V9로 진화했다. `BASELINE_V1`은 explicit rollback profile로 보존하며 기존 V8 frontend handoff는 historical reference이고 현재 V9 실행 oracle이 아니다.
 
 ## Immutable Input
 
@@ -65,7 +67,7 @@ Preflight, simulation, projection 또는 output validation이 실패하면 calle
 - `MATCH_RESULT_SUMMARY_V1`: winner/end reason/duration, 양 팀 최종 상태, stable player별 champion/KDA/CS/gold/XP/level
 - final Draft와 final assignment identity
 - `MATCH_ENGINE_TIMELINE_V1`: structured events와 모든 structured snapshots의 deep immutable copy
-- non-null `SimulationExecutionProvenance`: configuration/resource/replay/timeline identity와 Random fingerprint. V1 replay identity는 legacy 실행 입력 hash와 전체 `inputHash`를 다시 결속해 동적 rating/proficiency snapshot까지 포함한다.
+- non-null `SimulationExecutionProvenance`: configuration/resource/replay/timeline identity와 Random fingerprint. Generic/legacy replay hash는 gameplay configuration을 결속하고 profile alias를 제외하므로 exact configuration clone인 Production과 Full candidate에서 같을 수 있다. 공개 V1 replay binding은 이 legacy hash와 policy/profile을 포함한 전체 `inputHash`를 다시 결속해 동적 rating/proficiency snapshot과 제품 identity를 구분한다.
 - input, simulator timeline, structured timeline, output hash와 각 hash algorithm/scope
 
 최종 summary는 event를 다시 세어 만들지 않고 마지막 structured snapshot에서 투영한다. Summary action event와 그 전투의 `KILL` event를 별도 전투 두 번으로 세지 않으며, assistants는 `KILL` event의 structured stable IDs로 유지한다. Display message는 표시용일 뿐 action, participant, winner 또는 reward 판단에 사용하지 않는다.
