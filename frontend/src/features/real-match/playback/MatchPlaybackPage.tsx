@@ -9,8 +9,8 @@ import { PlaybackControls, type PlaybackSpeed } from './PlaybackControls';
 import { PlayerComparison } from './PlayerComparison';
 import { ResultModal } from './ResultModal';
 
-export function MatchPlaybackPage({ viewModel, onBack, onDraft, onComplete, onFirstPaint }: {
-  viewModel: PlaybackViewModel; onBack: () => void; onDraft: () => void; onComplete: () => void; onFirstPaint?: () => void;
+export function MatchPlaybackPage({ viewModel, draftContextLabel, onBack, onDraft, onComplete, onFirstPaint }: {
+  viewModel: PlaybackViewModel; draftContextLabel: string; onBack: () => void; onDraft: () => void; onComplete: () => void; onFirstPaint?: () => void;
 }) {
   const [currentSeconds, setCurrentSeconds] = useState(viewModel.initialSeconds);
   const [speed, setSpeed] = useState<PlaybackSpeed>(1);
@@ -61,7 +61,7 @@ export function MatchPlaybackPage({ viewModel, onBack, onDraft, onComplete, onFi
 
   return (
     <div className="rm-playback-app">
-      <MatchUtilityBar meta={`${viewModel.seasonLabel} · 전체 타임라인 ${viewModel.events.length}개`} onBack={onBack} secondaryLabel="자동 Draft 다시 보기" onSecondary={onDraft} />
+      <MatchUtilityBar meta={`${viewModel.seasonLabel} · ${draftContextLabel} · 전체 타임라인 ${viewModel.events.length}개`} onBack={onBack} secondaryLabel={`${draftContextLabel} 다시 보기`} onSecondary={onDraft} />
       <MatchScoreboard viewModel={viewModel} snapshot={snapshot} currentSeconds={currentSeconds} playing={playing} />
       <main className="rm-match-core">
         <LiveChampionPanel side="BLUE" teamCode={viewModel.teams.BLUE.code} snapshot={snapshot.teams.BLUE} championsById={viewModel.championsById} />

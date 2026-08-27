@@ -5,8 +5,16 @@ import { build } from 'esbuild';
 
 const FRONTEND_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REPOSITORY_DIR = resolve(FRONTEND_DIR, '..');
-const OPTIONS_PATH = resolve(REPOSITORY_DIR, 'backend/build/reports/real-match-api-v1/real-match-api-v1-options-example.json');
-const RESPONSE_PATH = resolve(REPOSITORY_DIR, 'backend/build/reports/real-match-api-v1/real-match-api-v1-fixed-response.json');
+const OPTIONS_PATH = resolve(
+  REPOSITORY_DIR,
+  process.env.LOLMANAGER_REAL_MATCH_OPTIONS_PATH
+    ?? 'backend/build/reports/real-match-api-v1/real-match-api-v1-options-example.json',
+);
+const RESPONSE_PATH = resolve(
+  REPOSITORY_DIR,
+  process.env.LOLMANAGER_REAL_MATCH_RESPONSE_PATH
+    ?? 'backend/build/reports/real-match-api-v1/real-match-api-v1-fixed-response.json',
+);
 const invariant = (condition, message) => { if (!condition) throw new Error(`[real-match-live-contract] ${message}`); };
 const readSource = (path) => readFileSync(resolve(FRONTEND_DIR, path), 'utf8');
 
@@ -29,7 +37,17 @@ async function loadRuntimeContract() {
     write: false,
   });
   const source = bundled.outputFiles[0].text;
-  return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  try {
+    return await import(
+      `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`
+    );
+  } catch (error) {
+    const summary =
+      error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    throw new Error(
+      `[real-match-live-contract] runtime bundle import failed: ${summary}`,
+    );
+  }
 }
 
 const runtime = await loadRuntimeContract();
@@ -51,6 +69,8 @@ const selection = {
   seed: request.seed,
   gameNumber: setupOptions.gameNumber,
   seriesType: setupOptions.seriesType,
+  draftMode: 'AUTO',
+  controlledSide: 'BLUE',
 };
 const session = runtime.createLiveMatchSession(response, setupOptions, selection, {
   payloadBytes: statSync(RESPONSE_PATH).size,
@@ -59,15 +79,31 @@ const session = runtime.createLiveMatchSession(response, setupOptions, selection
   runtimeValidationMs: 0,
   requestStartedAt: 0,
 });
+const expectedFixedResult = process.env.LOLMANAGER_REAL_MATCH_RESPONSE_PATH
+  ? {
+      events: 376,
+      snapshots: 233,
+      winner: 'RED',
+      durationSeconds: 2320,
+      runtimeProfile: 'PRODUCTION_MATCHUP_COMPOSITION_V1',
+    }
+  : {
+      events: 517,
+      snapshots: 344,
+      winner: 'BLUE',
+      durationSeconds: 3430,
+      runtimeProfile: 'BASELINE_V1',
+    };
 
 invariant(options.teams.length === 10, '실제 Options validator가 10개 팀을 확인하지 못했습니다.');
 invariant(options.teams.flatMap((team) => team.lineup).length === 50, '실제 Options validator 결과가 50명이 아닙니다.');
 invariant(session.source === 'LIVE', '실제 adapter가 LIVE session을 만들지 않았습니다.');
 invariant(session.selectedTeams.BLUE.code === 'GEN' && session.selectedTeams.RED.code === 'T1', '실제 adapter의 선택 팀 identity가 다릅니다.');
 invariant(session.draft.decisions.length === 20 && session.draft.rosters.BLUE.length === 5 && session.draft.rosters.RED.length === 5, '실제 adapter의 Draft 구성이 완전하지 않습니다.');
-invariant(session.playback.events.length === 517 && session.playback.snapshots.length === 344, '실제 adapter의 전체 timeline 구성이 다릅니다.');
-invariant(session.playback.winner === 'BLUE' && session.result.winner === 'BLUE', '실제 adapter의 고정 승자가 BLUE가 아닙니다.');
-invariant(session.playback.durationSeconds === 3430 && session.result.durationSeconds === 3430, '실제 adapter의 경기 시간이 3430초가 아닙니다.');
+invariant(session.playback.events.length === expectedFixedResult.events && session.playback.snapshots.length === expectedFixedResult.snapshots, '실제 adapter의 전체 timeline 구성이 다릅니다.');
+invariant(session.playback.winner === expectedFixedResult.winner && session.result.winner === expectedFixedResult.winner, '실제 adapter의 고정 승자가 다릅니다.');
+invariant(session.playback.durationSeconds === expectedFixedResult.durationSeconds && session.result.durationSeconds === expectedFixedResult.durationSeconds, '실제 adapter의 경기 시간이 다릅니다.');
+invariant(session.result.integrity.runtimeProfile === expectedFixedResult.runtimeProfile, '실제 adapter의 runtime profile이 고정 응답과 다릅니다.');
 invariant(!Object.hasOwn(session, 'response') && !Object.hasOwn(session, 'rawResponse'), '정규화 session이 raw 응답을 보유합니다.');
 
 function expectContractFailure(label, payload, payloadRequest = request) {

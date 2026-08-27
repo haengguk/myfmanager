@@ -608,6 +608,30 @@ gradlew.bat generateRealMatchTransportCompressionV1Official --console=plain --no
 
 최종 full은 204 suites / 2,118 tests / failures 0 / errors 0 / skipped 0, aggregate XML 622.904초, Gradle 10분 37초로 첫 실행에서 clean pass했다. 두 fixture의 외부 HTTP wire 감소율은 91.701%와 90.766%이고, setup→Draft→playback→result의 Chrome first/warm은 console/page error 및 reference fallback 0이다. Official artifact는 `build/reports/real-match-transport-compression-v1/`의 JSON/CSV/Markdown 5개와 manifest이며 status는 `REAL_MATCH_TRANSPORT_COMPRESSION_AND_LIVE_E2E_ACCEPTED`, manifest raw SHA-256은 `860f6cea4e8dfc42e1a38148dc5c2763331bcd899d784670af4e3222d89a068f`다.
 
+### Player-controlled Draft Frontend V1
+
+Frontend-only milestone은 다음 lane으로 검증했다.
+
+```text
+cd frontend
+npm run build
+npm run player-draft:verify
+npm run reference:check
+npm run reference:verify
+LOLMANAGER_REAL_MATCH_OPTIONS_PATH=output/verification-live/options.json \
+LOLMANAGER_REAL_MATCH_RESPONSE_PATH=output/verification-live/response.json \
+  npm run live:verify
+npm run bundle:verify
+```
+
+Production build와 Player Draft deterministic contract가 통과했다. Contract script는 valid ACTIVE/COMPLETED/SIMULATION 수용, wrong schema와 invalid status/current turn, PLAYER/AI evidence, duplicate champion, recommendation/selectable, final assignment, control/integrity 불일치 거부, error DTO와 unavailable reason 한국어 mapping 전체를 검사한다. Reference check/verify와 bundle check도 통과해 기존 AUTO/REFERENCE adapter 의미와 lazy reference chunk를 보존했다.
+
+기본 `npm run live:verify`가 읽는 로컬 `backend/build/reports/real-match-api-v1`은 historical V8 handoff이며 현재 V9 strict validator가 요구하는 activation decision과 Draft selection policy 필드보다 오래됐다. 해당 사용자 산출물을 덮어쓰거나 checked-in reference를 재생성하지 않고, 실제 V9 `/options`와 GEN/T1 seed 73 응답을 ignored `output/verification-live`에 분리했다. 위 환경 경로를 사용한 `live:verify`는 teams 10, players 50, decisions 20, assignments 10, events 376, snapshots 233, RED/2,320초와 invalid mutation 10종을 통과했다. Player Draft session/action/simulation 응답도 아래 LIVE browser smoke에서 현재 strict validator를 통과했다.
+
+Playwright LIVE smoke는 seed 73과 실제 GEN/T1 options를 사용했다. BLUE-controlled flow는 player action 10회 뒤 decisions 20개와 final assignment 10개를 표시했고, `/simulate` logical request 1회가 HTTP 200 및 gzip으로 완료된 뒤 Playback→Result→mixed-authority Draft review를 확인했다. RED-controlled 별도 session은 생성 응답에 BLUE AI turn이 포함되고 현재 RED player turn인지, action 1회 뒤 revision/decision 증가와 DELETE 204를 확인했다. AUTO flow는 기존 `/api/v1/real-matches/simulate`만 1회 사용하고 `/player-drafts/*` 호출 0회, 읽기 전용 자동 Draft 20/20과 console error 0을 확인했다. 1440×900과 1280×720에서 Draft 화면과 수평 overflow를 확인했다.
+
+Backend production Java/resource/API/Gradle을 변경하지 않았으므로 complete backend regression은 실행하지 않았다. 이는 frontend-only 변경에 full regression을 실행하지 않는 검증 budget 원칙을 따른다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.

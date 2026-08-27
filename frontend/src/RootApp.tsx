@@ -13,14 +13,20 @@ import type { MatchSessionViewModel, MatchSetupOptionsViewModel, MatchSetupSelec
 import { realMatchConfig } from './features/real-match/realMatch.config';
 import { MatchSetupPage } from './features/real-match/setup/MatchSetupPage';
 import { MatchResultPage } from './features/real-match/result/MatchResultPage';
+import { createPlayerDraftSession } from './features/real-match/player-draft/api/playerDraftApi.client';
+import type { PlayerDraftSessionResponseDto } from './features/real-match/player-draft/api/playerDraftApi.types';
+import { createPlayerDraftMatchSession, mergePlayerDraftChampionCatalog } from './features/real-match/player-draft/playerDraft.adapter';
+import { PlayerDraftRoomPage } from './features/real-match/player-draft/PlayerDraftRoomPage';
+import type { PlayerDraftScreenState } from './features/real-match/player-draft/playerDraft.types';
 import { AppShell } from './layout/AppShell';
 import type { AppSection } from './layout/Sidebar';
 
-type ActiveScreen = AppSection | 'setup' | 'draft' | 'playback' | 'result';
+type ActiveScreen = AppSection | 'setup' | 'draft' | 'player-draft' | 'playback' | 'result';
 
 function RootApp() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('inbox');
   const [matchSession, setMatchSession] = useState<MatchSessionViewModel | null>(null);
+  const [playerDraftState, setPlayerDraftState] = useState<PlayerDraftScreenState | null>(null);
   const [draftReturnScreen, setDraftReturnScreen] = useState<ActiveScreen>('setup');
   const [searchValue, setSearchValue] = useState('');
   const [gameTime, setGameTime] = useState('오후 1:42');
@@ -55,6 +61,8 @@ function RootApp() {
       ? 'lolmanager — Match Setup'
       : activeScreen === 'draft'
       ? 'lolmanager — 자동 Draft 결과'
+      : activeScreen === 'player-draft'
+        ? 'lolmanager — 직접 Draft'
       : activeScreen === 'playback'
         ? 'lolmanager — Match Playback'
         : activeScreen === 'result'
@@ -93,9 +101,23 @@ function RootApp() {
     matchRequestRef.current = controller;
     setMatchSession(null);
     try {
+      if (selection.draftMode === 'PLAYER_CONTROLLED') {
+        if (options.source !== 'LIVE') throw new Error('직접 밴픽은 LIVE 데이터에서만 사용할 수 있습니다.');
+        onStage('CONNECTING');
+        const session = await createPlayerDraftSession({
+          schemaVersion: 'PLAYER_DRAFT_START_REQUEST_V1', blueTeamCode: selection.blueTeamId,
+          redTeamCode: selection.redTeamId, controlledSide: selection.controlledSide, seed: selection.seed,
+        }, controller.signal);
+        if (controller.signal.aborted || requestId !== matchRequestSequenceRef.current) throw new DOMException('Stale player Draft response', 'AbortError');
+        onStage('NORMALIZING');
+        setPlayerDraftState({ session, options, selection, championsById: mergePlayerDraftChampionCatalog(session) });
+        setDraftReturnScreen('setup'); setActiveScreen('player-draft');
+        return;
+      }
       const session = await createMatchSession(options.source, options, selection, controller.signal, onStage);
       if (controller.signal.aborted || requestId !== matchRequestSequenceRef.current) throw new DOMException('Stale match response', 'AbortError');
       setMatchSession(session);
+      setPlayerDraftState(null);
       console.info('[real-match-performance]', JSON.stringify({
         source: session.source,
         matchIdentity: session.sessionId,
@@ -113,6 +135,12 @@ function RootApp() {
     }
   };
 
+  const updatePlayerDraftSession = useCallback((session: PlayerDraftSessionResponseDto) => {
+    setPlayerDraftState((current) => current ? {
+      ...current, session, championsById: mergePlayerDraftChampionCatalog(session, current.championsById),
+    } : current);
+  }, []);
+
   if (activeScreen === 'setup') {
     return <MatchSetupPage dataSource={realMatchConfig.dataSource} onBack={() => { cancelMatchRequest(); setActiveScreen('inbox'); }} onLegacy={() => { cancelMatchRequest(); setActiveScreen('match'); }} onStart={startMatch} onCancelStart={cancelMatchRequest} />;
   }
@@ -124,8 +152,25 @@ function RootApp() {
     }} />;
   }
 
+  if (activeScreen === 'player-draft' && playerDraftState) {
+    return <PlayerDraftRoomPage state={playerDraftState} onSessionChange={updatePlayerDraftSession}
+      onSimulationComplete={(simulation) => {
+        const session = createPlayerDraftMatchSession(simulation, playerDraftState.options, playerDraftState.selection);
+        setMatchSession(session);
+        setPlayerDraftState((current) => current ? {
+          ...current, session: simulation.response.session,
+          championsById: mergePlayerDraftChampionCatalog(simulation.response.session, current.championsById),
+        } : current);
+        playbackNavigationStartedAtRef.current = performance.now(); setDraftReturnScreen('playback'); setActiveScreen('playback');
+      }}
+      onCancelled={() => { setPlayerDraftState(null); setMatchSession(null); setDraftReturnScreen('setup'); setActiveScreen('setup'); }}
+      onReviewBack={() => setActiveScreen(draftReturnScreen)} />;
+  }
+
   if (activeScreen === 'playback' && matchSession) {
-    return <MatchPlaybackPage viewModel={matchSession.playback} onBack={() => setActiveScreen('setup')} onDraft={() => { setDraftReturnScreen('playback'); setActiveScreen('draft'); }} onComplete={() => setActiveScreen('result')}
+    const playerControlled = matchSession.draftOrigin.mode === 'PLAYER_CONTROLLED';
+    const draftContextLabel = matchSession.draftOrigin.mode === 'PLAYER_CONTROLLED' ? `직접 Draft · ${matchSession.draftOrigin.controlledSide} PLAYER` : '자동 Draft';
+    return <MatchPlaybackPage viewModel={matchSession.playback} draftContextLabel={draftContextLabel} onBack={() => setActiveScreen('setup')} onDraft={() => { setDraftReturnScreen('playback'); setActiveScreen(playerControlled ? 'player-draft' : 'draft'); }} onComplete={() => setActiveScreen('result')}
       onFirstPaint={() => {
         if (measuredPlaybackSessionsRef.current.has(matchSession.sessionId)) return;
         measuredPlaybackSessionsRef.current.add(matchSession.sessionId);
@@ -141,10 +186,12 @@ function RootApp() {
   }
 
   if (activeScreen === 'result' && matchSession) {
-    return <MatchResultPage result={matchSession.result} championsById={matchSession.playback.championsById} onBack={() => setActiveScreen('setup')} onDraft={() => { setDraftReturnScreen('result'); setActiveScreen('draft'); }} onPlayback={() => setActiveScreen('playback')} onRerun={() => setActiveScreen('playback')} onNewMatch={() => { setMatchSession(null); setDraftReturnScreen('setup'); setActiveScreen('setup'); }} />;
+    const playerControlled = matchSession.draftOrigin.mode === 'PLAYER_CONTROLLED';
+    const draftContextLabel = matchSession.draftOrigin.mode === 'PLAYER_CONTROLLED' ? `직접 Draft · ${matchSession.draftOrigin.controlledSide} PLAYER` : '자동 Draft';
+    return <MatchResultPage result={matchSession.result} championsById={matchSession.playback.championsById} draftContextLabel={draftContextLabel} onBack={() => setActiveScreen('setup')} onDraft={() => { setDraftReturnScreen('result'); setActiveScreen(playerControlled ? 'player-draft' : 'draft'); }} onPlayback={() => setActiveScreen('playback')} onRerun={() => setActiveScreen('playback')} onNewMatch={() => { setMatchSession(null); setPlayerDraftState(null); setDraftReturnScreen('setup'); setActiveScreen('setup'); }} />;
   }
 
-  if (activeScreen === 'draft' || activeScreen === 'playback' || activeScreen === 'result') {
+  if (activeScreen === 'draft' || activeScreen === 'player-draft' || activeScreen === 'playback' || activeScreen === 'result') {
     return <MatchSetupPage dataSource={realMatchConfig.dataSource} onBack={() => setActiveScreen('inbox')} onLegacy={() => setActiveScreen('match')} onStart={startMatch} onCancelStart={cancelMatchRequest} />;
   }
 

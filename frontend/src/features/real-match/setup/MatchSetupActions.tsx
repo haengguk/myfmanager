@@ -5,6 +5,7 @@ export function MatchSetupActions({
   stageLabel,
   statusTitle,
   statusCopy,
+  startLabel,
   onStart,
   onCancel,
 }: {
@@ -14,6 +15,7 @@ export function MatchSetupActions({
   stageLabel: string;
   statusTitle: string;
   statusCopy: string;
+  startLabel: string;
   onStart: () => void;
   onCancel: () => void;
 }) {
@@ -23,7 +25,7 @@ export function MatchSetupActions({
       <div className="rm-setup-action-buttons">
         {creating ? <button className="rm-secondary-action" type="button" onClick={onCancel}>요청 취소</button> : null}
         <button className="rm-primary-action" type="button" disabled={!ready || creating} onClick={onStart}>
-          {creating ? <><span className="rm-spinner" aria-hidden="true" />{stageLabel} · {elapsedSeconds}초</> : '실제 경기 실행'}
+          {creating ? <><span className="rm-spinner" aria-hidden="true" />{stageLabel} · {elapsedSeconds}초</> : startLabel}
         </button>
       </div>
     </footer>

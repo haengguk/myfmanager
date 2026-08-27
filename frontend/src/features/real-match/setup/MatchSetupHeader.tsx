@@ -1,7 +1,7 @@
 import { MatchUtilityBar } from '../MatchChrome';
-import type { MatchSetupOptionsViewModel } from '../matchSession.types';
+import type { MatchDraftMode, MatchSetupOptionsViewModel } from '../matchSession.types';
 
-export function MatchSetupHeader({ options, onBack, onLegacy }: { options: MatchSetupOptionsViewModel; onBack: () => void; onLegacy: () => void }) {
+export function MatchSetupHeader({ options, draftMode, onBack, onLegacy }: { options: MatchSetupOptionsViewModel; draftMode: MatchDraftMode; onBack: () => void; onLegacy: () => void }) {
   return (
     <>
       <MatchUtilityBar meta={options.seasonLabel} onBack={onBack} backLabel="대시보드로 돌아가기" secondaryLabel="기존 시뮬레이터" onSecondary={onLegacy} />
@@ -13,7 +13,7 @@ export function MatchSetupHeader({ options, onBack, onLegacy }: { options: Match
         <div className="rm-setup-meta" aria-label="경기 조건">
           <span><small>현재 게임</small><strong>Game {options.gameNumber}</strong></span>
           <span><small>경기 형식</small><strong>{options.seriesType}</strong></span>
-          <span><small>드래프트</small><strong>{options.draftRule}</strong></span>
+          <span><small>드래프트</small><strong>{draftMode === 'PLAYER_CONTROLLED' ? 'Professional Draft · 직접' : options.draftRule}</strong></span>
           <em>팀당 5명</em>
         </div>
       </section>

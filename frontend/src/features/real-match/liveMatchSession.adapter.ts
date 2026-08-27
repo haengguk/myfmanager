@@ -5,7 +5,7 @@ import type {
 } from './matchSession.types';
 import type {
   RealMatchEventDto, RealMatchOptionsDto, RealMatchPlayerResultDto, RealMatchResponseDto,
-  RealMatchTeamPresentationDto, RealMatchTeamResultDto,
+  RealMatchResultDto, RealMatchTeamPresentationDto, RealMatchTeamResultDto, RealMatchTimelineDto,
 } from './api/realMatchApi.types';
 import type {
   ChampionViewModel, DraftViewModel, MatchSnapshotViewModel, PlaybackEventViewModel, PlaybackViewModel,
@@ -20,6 +20,23 @@ const MAJOR_EVENT_TYPES = new Set([
 const HIDDEN_LOG_EVENT_TYPES = new Set([
   'ASSIST', 'MATCH_PHASE_CHANGE', 'LEVEL_UP', 'ITEM_STAGE_REACHED',
 ]);
+
+export interface CommonLiveMatchSource {
+  matchIdentity: string; seed: string;
+  teams: readonly RealMatchTeamPresentationDto[];
+  draft: {
+    seriesGameNumber: number; decisions: readonly { turn: number; teamSide: TeamSide; actionType: 'BAN' | 'PICK'; championId: string }[];
+    blueBans: readonly string[]; redBans: readonly string[]; bluePicks: readonly string[]; redPicks: readonly string[];
+    draftRuleSetIdentity: string; finalDraftHash: string; finalAssignmentHash: string;
+  };
+  result: RealMatchResultDto; timeline: RealMatchTimelineDto;
+  integrity: {
+    runtimeProfileId: string; configurationHash: string; policyHash: string; engineImplementationVersion: string;
+    resourceProvenanceHash: string; replayProvenanceHash: string; simulatorTimelineHash: string;
+    structuredTimelineHash: string; outputHash: string;
+    randomFingerprint: { randomDrawCount: number; randomTraceHash: string };
+  };
+}
 
 const STRUCTURE_SOURCE_LABELS = {
   LANE_PRESSURE: '라인 압박', POST_FIGHT: '한타 후 공성', BARON_PRESSURE: '바론 압박',
@@ -81,7 +98,7 @@ function riotAssetId(championId: string): string {
     ?? championId.split('-').map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`).join('');
 }
 
-function createChampionMap(source: RealMatchResponseDto): Readonly<Record<string, ChampionViewModel>> {
+function createChampionMap(source: CommonLiveMatchSource): Readonly<Record<string, ChampionViewModel>> {
   const presented = Object.fromEntries(source.teams.flatMap((team) => team.lineup.map((player) => [
     player.championId,
     { id: player.championId, name: player.champion.displayNameKo, nameEn: player.champion.displayNameEn, portraitUrl: player.champion.portraitUrl } satisfies ChampionViewModel,
@@ -101,7 +118,7 @@ function createChampionMap(source: RealMatchResponseDto): Readonly<Record<string
   return presented;
 }
 
-function createDraft(source: RealMatchResponseDto, options: MatchSetupOptionsViewModel, teams: Record<TeamSide, TeamViewModel>, championsById: Readonly<Record<string, ChampionViewModel>>): DraftViewModel {
+function createDraft(source: CommonLiveMatchSource, options: MatchSetupOptionsViewModel, teams: Record<TeamSide, TeamViewModel>, championsById: Readonly<Record<string, ChampionViewModel>>): DraftViewModel {
   return {
     matchId: source.matchIdentity,
     simulationSeed: source.seed,
@@ -179,7 +196,7 @@ function structureDisplayMessage(event: RealMatchEventDto, teams: Record<TeamSid
   return `${event.displayMessage ?? `${teamCode} · ${target} 파괴.`}${sourceText}`;
 }
 
-function createPlayback(source: RealMatchResponseDto, options: MatchSetupOptionsViewModel, teams: Record<TeamSide, TeamViewModel>, championsById: Readonly<Record<string, ChampionViewModel>>): PlaybackViewModel {
+function createPlayback(source: CommonLiveMatchSource, options: MatchSetupOptionsViewModel, teams: Record<TeamSide, TeamViewModel>, championsById: Readonly<Record<string, ChampionViewModel>>): PlaybackViewModel {
   const playerNamesById = Object.fromEntries(source.teams.flatMap((team) => team.lineup.map((player) => [player.playerId, player.nickname])));
   const events: readonly PlaybackEventViewModel[] = source.timeline.events.map((event, index) => {
     const action = structureAction(event);
@@ -245,7 +262,7 @@ function playerView(player: RealMatchPlayerResultDto, playerName: string, goldDi
     totalExperience: player.totalExperience, level: player.level, goldDifference, abilityProfile: player.abilityProfile,
   };
 }
-function resultPlayers(source: RealMatchResponseDto, names: Readonly<Record<string, string>>): readonly FinalPlayerComparisonViewModel[] {
+function resultPlayers(source: CommonLiveMatchSource, names: Readonly<Record<string, string>>): readonly FinalPlayerComparisonViewModel[] {
   return POSITIONS.map((position) => {
     const blue = source.result.players.find((player) => player.teamSide === 'BLUE' && player.position === position)!;
     const red = source.result.players.find((player) => player.teamSide === 'RED' && player.position === position)!;
@@ -253,7 +270,7 @@ function resultPlayers(source: RealMatchResponseDto, names: Readonly<Record<stri
     return { position, blue: playerView(blue, names[blue.playerId] ?? blue.playerId, difference), red: playerView(red, names[red.playerId] ?? red.playerId, -difference) };
   });
 }
-function teamStats(source: RealMatchResponseDto, side: TeamSide): TeamFinalStatsViewModel {
+function teamStats(source: CommonLiveMatchSource, side: TeamSide): TeamFinalStatsViewModel {
   const team: RealMatchTeamResultDto = bySide(source.result.teams, side);
   const opponent = bySide(source.result.teams, side === 'BLUE' ? 'RED' : 'BLUE');
   const players = source.result.players.filter((player) => player.teamSide === side);
@@ -265,7 +282,7 @@ function teamStats(source: RealMatchResponseDto, side: TeamSide): TeamFinalStats
     inhibitorsDestroyed: 3 - opponent.inhibitorsRemaining,
   };
 }
-function createResult(source: RealMatchResponseDto, options: MatchSetupOptionsViewModel, teams: Record<TeamSide, TeamViewModel>, names: Readonly<Record<string, string>>): MatchResultViewModel {
+function createResult(source: CommonLiveMatchSource, options: MatchSetupOptionsViewModel, teams: Record<TeamSide, TeamViewModel>, names: Readonly<Record<string, string>>): MatchResultViewModel {
   return {
     matchId: source.matchIdentity, seasonLabel: options.seasonLabel, gameNumber: source.draft.seriesGameNumber,
     seriesType: options.seriesType, seed: source.seed, durationSeconds: source.result.durationSeconds,
@@ -288,11 +305,12 @@ function createResult(source: RealMatchResponseDto, options: MatchSetupOptionsVi
   };
 }
 
-export function createLiveMatchSession(
-  source: RealMatchResponseDto,
+export function createLiveMatchSessionFromCommon(
+  source: CommonLiveMatchSource,
   options: MatchSetupOptionsViewModel,
   selection: MatchSetupSelection,
   requestPerformance: Omit<MatchSessionPerformance, 'normalizationMs'>,
+  draftOrigin: MatchSessionViewModel['draftOrigin'],
 ): MatchSessionViewModel {
   const normalizationStartedAt = performance.now();
   const selectedTeams = {
@@ -311,8 +329,18 @@ export function createLiveMatchSession(
     selectedTeams: { BLUE: selectedTeams.BLUE, RED: selectedTeams.RED },
     draft: createDraft(source, options, teams, championsById), playback,
     result: createResult(source, options, teams, playback.playerNamesById),
+    draftOrigin,
     performance: { ...requestPerformance, normalizationMs: 0 },
   };
   session.performance.normalizationMs = performance.now() - normalizationStartedAt;
   return session;
+}
+
+export function createLiveMatchSession(
+  source: RealMatchResponseDto,
+  options: MatchSetupOptionsViewModel,
+  selection: MatchSetupSelection,
+  requestPerformance: Omit<MatchSessionPerformance, 'normalizationMs'>,
+): MatchSessionViewModel {
+  return createLiveMatchSessionFromCommon(source, options, selection, requestPerformance, { mode: 'AUTO' });
 }

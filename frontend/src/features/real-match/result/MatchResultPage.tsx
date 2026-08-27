@@ -10,7 +10,7 @@ import { PlayerResultComparison } from './PlayerResultComparison';
 import { ResultActions } from './ResultActions';
 import { TeamFinalStats } from './TeamFinalStats';
 
-export function MatchResultPage({ result, championsById, onBack, onDraft, onPlayback, onRerun, onNewMatch }: { result: MatchResultViewModel; championsById: Readonly<Record<string, ChampionViewModel>>; onBack: () => void; onDraft: () => void; onPlayback: () => void; onRerun: () => void; onNewMatch: () => void }) {
+export function MatchResultPage({ result, championsById, draftContextLabel, onBack, onDraft, onPlayback, onRerun, onNewMatch }: { result: MatchResultViewModel; championsById: Readonly<Record<string, ChampionViewModel>>; draftContextLabel: string; onBack: () => void; onDraft: () => void; onPlayback: () => void; onRerun: () => void; onNewMatch: () => void }) {
   const [modalAction, setModalAction] = useState<ResultConfirmAction | null>(null);
   const [returnFocus, setReturnFocus] = useState<HTMLElement | null>(null);
   const [copyToast, setCopyToast] = useState({ visible: false, label: '' });
@@ -40,6 +40,7 @@ export function MatchResultPage({ result, championsById, onBack, onDraft, onPlay
       </main>
       <ResultActions
         result={result}
+        draftContextLabel={draftContextLabel}
         onDraft={onDraft}
         onPlayback={onPlayback}
         onNewMatch={() => openModal('new-match', document.activeElement as HTMLElement)}

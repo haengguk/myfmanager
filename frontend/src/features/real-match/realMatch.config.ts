@@ -13,5 +13,7 @@ export const realMatchConfig = {
   dataSource: (configuredSource === 'reference' ? 'REFERENCE' : 'LIVE') as MatchDataSource,
   apiBaseUrl,
   optionsTimeoutMs: positiveInteger(import.meta.env.VITE_REAL_MATCH_OPTIONS_TIMEOUT_MS, 30_000),
+  playerDraftSessionTimeoutMs: positiveInteger(import.meta.env.VITE_PLAYER_DRAFT_SESSION_TIMEOUT_MS, 30_000),
+  playerDraftActionTimeoutMs: positiveInteger(import.meta.env.VITE_PLAYER_DRAFT_ACTION_TIMEOUT_MS, 45_000),
   simulateTimeoutMs: positiveInteger(import.meta.env.VITE_REAL_MATCH_SIMULATE_TIMEOUT_MS, 300_000),
 } as const;

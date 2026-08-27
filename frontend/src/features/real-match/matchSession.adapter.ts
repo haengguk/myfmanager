@@ -343,6 +343,7 @@ export function createReferenceMatchSession(selection: MatchSetupSelection): Mat
     draft: createDraft(reference, teams, championsById),
     playback,
     result: createResult(reference, teams, playback.playerNamesById),
+    draftOrigin: { mode: 'AUTO' },
     performance: {
       payloadBytes: reference.provenance.sourceFullResponseBytes,
       requestAndDownloadMs: 0,
@@ -360,6 +361,8 @@ export const referenceMatchSession = createReferenceMatchSession({
   seed: reference.request.seed,
   gameNumber: reference.match.draft.seriesGameNumber,
   seriesType: referenceMatchSetupOptions.seriesType,
+  draftMode: 'AUTO',
+  controlledSide: 'BLUE',
 });
 
 export const positions = POSITIONS;

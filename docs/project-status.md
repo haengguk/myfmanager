@@ -136,6 +136,24 @@ Final boundary focused는 Player Draft engine/boundary/session simulation/API와
 
 직전 session hardening에서 실행한 별도 `localhost:8098` bootRun smoke는 RED-controlled session 생성, turn 1 AI→turn 2 PLAYER 시작, player action 10회와 20 decisions 완료, first/repeat Production V9 simulate를 확인했다. 두 응답의 final Draft/assignment, input/replay, simulator/structured timeline, Random draw/hash, output와 winner/duration identity는 exact였고 output hash는 `857f6b371ffd01f4ad5bd80f3032e3c84bdd86add99a57b1eb00d080976ea0ee`, Random draw count 4,676, BLUE 승리, 2,230초였다. DELETE 204 뒤 임시 session과 서버를 종료했다. 이번 final boundary milestone에서는 live smoke, frontend build, 대형 diagnostic, calibration/holdout과 historical artifact 재생성을 실행하지 않았다.
 
+### Player-controlled Draft Frontend V1
+
+상태는 `PLAYER_CONTROLLED_DRAFT_FRONTEND_V1_ACCEPTED`다. LIVE 경기 설정에 기존 AUTO와 분리된 직접 밴픽 mode와 BLUE/RED controlled side를 추가했다. 직접 밴픽은 전용 strict DTO/validator/client 경계로 실제 session을 만들고, backend legal champion 전체·advisory top 3·구조화된 unavailable reason을 사용해 player action과 AI follow-up을 20턴까지 진행한다. Revision과 logical `clientActionId`, stale refresh, 동일 session retry, explicit cancel 204 의미를 보존한다.
+
+완료 화면은 pick order를 position으로 추론하지 않고 backend `finalAssignments` 10개를 사용한다. 명시적 simulate 뒤 Player Draft 전용 payload를 검증하고 common playback/result view model로 정규화하며, controlled side·20턴 PLAYER/AI authority·control evidence·final assignment를 Draft 다시 보기에 유지한다. 기존 AUTO `/api/v1/real-matches/simulate`, 읽기 전용 자동 Draft, REFERENCE lazy import와 GEN/T1/73 의미는 그대로다.
+
+Frontend production build, Player Draft deterministic contract, reference check/verify와 bundle 경계를 통과했다. 실제 LIVE smoke는 BLUE complete Draft→gzip simulation→Playback→Result→mixed-authority review, RED first-turn/action/cancel 204, AUTO의 Player Draft endpoint 0회를 확인했다. Backend production Java/resource/Gradle과 gameplay/profile/policy, existing reference JSON은 변경하지 않았고 frontend-only 범위이므로 backend full regression은 실행하지 않았다. 상세 구현과 제한은 [Player-controlled Draft Frontend V1](development/player-controlled-draft-frontend-v1.md)에 있다.
+
+현재 제한은 full-page reload resume, 심층 keyboard/reconnect/expiry/late-response/race audit, Draft timer/WebSocket/DB/auth, BO3/BO5와 Game 2+다. 다음 제품 작업은 `PLAYER_CONTROLLED_DRAFT_LIVE_E2E_AND_ACCESSIBILITY`이며, 그 뒤 확정된 Series 정책을 기준으로 `SERIES_LIFECYCLE_V1_BACKEND`와 `SERIES_FRONTEND_V1`을 진행한다.
+
+### Series Lifecycle V1 contract sketch
+
+상태는 `SERIES_LIFECYCLE_V1_CONTRACT_SKETCH_READY`다. [Series Lifecycle V1 Contract Sketch](architecture/series-lifecycle-v1-contract-sketch.md)는 현재 caller-owned `SeriesDraftHistory`, Match Engine V1의 game number/history/input binding과 standalone Player Draft 기반을 확인하고, 향후 backend-owned BO3/BO5 aggregate의 team-code score, game별 side/seed/history, parent-bound child Draft, Production V9 simulate-and-commit, compact receipt, revision/idempotency/concurrency/expiry와 additive Series API/frontend view를 설계했다.
+
+이는 문서 계약만 준비된 상태다. BO3/BO5 aggregate/repository/controller/DTO, Game 2+ Player Draft, Series frontend, DB/Save/Load와 실제 series 실행은 구현되지 않았다. Side 교대, root seed UX, lifetime limits, no-decisive-result와 full replay scope는 문서의 `PRODUCT_DECISION_REQUIRED`로 남겼다. 현재 production policy/profile/gameplay와 기존 Player Draft/Real Match API는 변경하지 않았고, 문서 전용 작업이므로 backend/frontend test나 build를 실행하지 않았다.
+
+권장 구현 순서는 domain/repository → Series-owned Draft integration → Production V9 match commit/API → backend hardening → Series frontend다. 다만 즉시 다음 제품 작업은 기존 계획대로 standalone `PLAYER_CONTROLLED_DRAFT_FRONTEND_V1`일 수 있으며, 해당 화면 component가 explicit game/side/exclusion context를 받도록 설계하면 이후 Series wrapper가 재사용할 수 있다.
+
 ### Auto Draft Variety V1
 
 기존 production Draft가 정렬된 평가 결과의 1위만 선택해 seed가 달라도 같은 Draft를 만들던 경계를 교정했다. 후보 생성, Draft Meta, 선수 proficiency, 상대 threat, matchup/composition, flex/denial, future/role feasibility와 shallow search는 그대로 유지하고 최고점 대비 2.0 이내 상위 3개 후보에만 deterministic seeded selection을 적용한다. BAN weight는 55/30/15, PICK은 70/22/8이다.
@@ -488,7 +506,7 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 2. Player Draft browser E2E, keyboard/a11y와 reconnect/expiry UX를 검증한다.
 3. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
 4. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
-5. `SERIES_LIFECYCLE_V1`에서 BO3/BO5와 누적 Hard Fearless history를 caller-owned series context로 설계한다. Save/Career/Season persistence는 그 이후 별도 범위다.
+5. `SERIES_LIFECYCLE_V1_CONTRACT_SKETCH`는 준비됐다. 후속 backend는 domain/repository → parent-bound Player Draft → Production V9 atomic match commit/API → hardening 순서로 구현하고, 그 뒤 `SERIES_FRONTEND_V1`을 연결한다. Save/Career/Season persistence는 별도 범위다.
 6. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 7. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 8. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.

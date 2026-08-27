@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RealMatchApiFailure } from '../api/realMatchApi.client';
+import { PlayerDraftApiFailure } from '../player-draft/api/playerDraftApi.client';
 import type { MatchRequestStage } from '../api/realMatchApi.types';
 import { loadMatchSetupOptions } from '../matchDataSource';
-import type { MatchSetupOptionsViewModel, MatchSetupSelection, MatchTeamOptionViewModel } from '../matchSession.types';
+import type { MatchDraftMode, MatchSetupOptionsViewModel, MatchSetupSelection, MatchTeamOptionViewModel } from '../matchSession.types';
 import type { MatchDataSource, TeamSide } from '../realMatch.contract';
 import { validateCanonicalSignedInt64Seed } from '../seedValidation';
 import { MatchSetupActions } from './MatchSetupActions';
@@ -26,6 +27,9 @@ function emptyOptions(source: MatchDataSource): MatchSetupOptionsViewModel {
 }
 
 function errorMessage(error: unknown): string {
+  if (error instanceof PlayerDraftApiFailure) return error.kind === 'CANCELLED'
+    ? '직접 밴픽 생성 요청을 취소했습니다. 팀과 seed 선택은 유지됩니다.'
+    : error.userMessage;
   if (error instanceof RealMatchApiFailure) return error.kind === 'CANCELLED'
     ? '경기 요청을 취소했습니다. 팀과 seed 선택은 유지됩니다.'
     : error.userMessage;
@@ -47,6 +51,8 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
   const [blueTeamId, setBlueTeamId] = useState('');
   const [redTeamId, setRedTeamId] = useState('');
   const [seed, setSeed] = useState('73');
+  const [draftMode, setDraftMode] = useState<MatchDraftMode>('AUTO');
+  const [controlledSide, setControlledSide] = useState<TeamSide>('BLUE');
   const [defaultApplied, setDefaultApplied] = useState(true);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -99,7 +105,10 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
   const selected = (teamId: string): MatchTeamOptionViewModel | null => teamById.get(teamId) ?? null;
   const conflict = Boolean(blueTeamId && redTeamId && blueTeamId === redTeamId);
   const seedError = validateCanonicalSignedInt64Seed(seed);
-  const selection: MatchSetupSelection = { blueTeamId, redTeamId, seed, gameNumber: displayOptions.gameNumber, seriesType: displayOptions.seriesType };
+  const selection: MatchSetupSelection = {
+    blueTeamId, redTeamId, seed, gameNumber: displayOptions.gameNumber,
+    seriesType: displayOptions.seriesType, draftMode, controlledSide,
+  };
   const optionsReady = Boolean(options && !optionsLoading && !optionsError
     && (options.source === 'LIVE' ? options.teams.length === 10 : options.teams.length >= 2));
   const referenceSelectionReady = !options || options.source !== 'REFERENCE'
@@ -107,7 +116,8 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
       && redTeamId === options.defaultRedTeamCode
       && seed === options.defaultSeed
       && displayOptions.gameNumber === 1);
-  const ready = optionsReady && Boolean(blueTeamId && redTeamId) && !conflict && !seedError
+  const playerDraftSourceReady = draftMode === 'AUTO' || displayOptions.source === 'LIVE';
+  const ready = optionsReady && Boolean(blueTeamId && redTeamId) && !conflict && !seedError && playerDraftSourceReady
     && referenceSelectionReady && !creating;
   const blockReason = optionsLoading
     ? `${dataSource} 데이터 공급자에서 팀과 로스터를 불러오고 있습니다.`
@@ -119,11 +129,16 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
           ? 'BLUE와 RED에는 서로 다른 팀을 선택해야 합니다.'
           : seedError
             ? seedError
+            : !playerDraftSourceReady
+              ? '직접 밴픽은 LIVE 데이터 공급자에서만 시작할 수 있습니다.'
             : !referenceSelectionReady
               ? 'REFERENCE 데이터는 기본 GEN 대 T1 · seed 73 · Fresh Game 1 조합만 실행할 수 있습니다.'
               : '';
+  const controlledTeam = selected(controlledSide === 'BLUE' ? blueTeamId : redTeamId);
   const pairCopy = ready
-    ? `${selected(blueTeamId)?.code} · ${selected(redTeamId)?.code} · seed ${seed} · ${displayOptions.source} 자동 Draft를 실행합니다.`
+    ? draftMode === 'PLAYER_CONTROLLED'
+      ? `${controlledSide}의 ${controlledTeam?.code}을 직접 제어하고 상대 턴은 AI가 진행합니다. · seed ${seed}`
+      : `${selected(blueTeamId)?.code} · ${selected(redTeamId)?.code} · seed ${seed} · ${displayOptions.source} 자동 Draft를 실행합니다.`
     : creating
       ? `${STAGE_LABELS[requestStage]} 중입니다. 약 33MB 응답은 시간이 걸릴 수 있습니다.`
       : blockReason;
@@ -164,7 +179,7 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
 
   return (
     <div className="rm-setup-app">
-      <MatchSetupHeader options={displayOptions} onBack={onBack} onLegacy={onLegacy} />
+      <MatchSetupHeader options={displayOptions} draftMode={draftMode} onBack={onBack} onLegacy={onLegacy} />
       <main className="rm-setup-stage">
         <TeamSelectionPanel side="BLUE" teams={displayOptions.teams} selectedTeamId={blueTeamId} selectedTeam={selected(blueTeamId)}
           oppositeTeamId={redTeamId} disabled={creating} optionsLoading={optionsLoading} optionsError={Boolean(optionsError)}
@@ -175,6 +190,29 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
           <SeedInput value={seed} disabled={creating || optionsLoading} defaultApplied={defaultApplied && seed === displayOptions.defaultSeed}
             error={seedError} onChange={(value) => { setSeed(value); setDefaultApplied(false); setCreateError(null); }}
             onUseDefault={applyDefault} onClear={() => { setSeed(''); setDefaultApplied(false); setCreateError(null); }} />
+          <fieldset className="rm-draft-mode-fieldset" disabled={creating || optionsLoading}>
+            <legend>Draft 방식</legend>
+            <div className="rm-draft-mode-options">
+              <button type="button" className={draftMode === 'AUTO' ? 'is-selected' : ''} aria-pressed={draftMode === 'AUTO'} onClick={() => { setDraftMode('AUTO'); setCreateError(null); }}>
+                <strong>자동 밴픽</strong><span>양 팀의 20턴을 Production AI가 진행합니다.</span>
+              </button>
+              <button type="button" className={draftMode === 'PLAYER_CONTROLLED' ? 'is-selected' : ''} aria-pressed={draftMode === 'PLAYER_CONTROLLED'} disabled={displayOptions.source !== 'LIVE'} onClick={() => { setDraftMode('PLAYER_CONTROLLED'); setCreateError(null); }}>
+                <strong>직접 밴픽</strong><span>{displayOptions.source === 'LIVE' ? '한 진영의 10개 결정을 직접 선택합니다.' : 'LIVE 데이터에서만 사용할 수 있습니다.'}</span>
+              </button>
+            </div>
+          </fieldset>
+          {draftMode === 'PLAYER_CONTROLLED' ? (
+            <fieldset className="rm-controlled-side-fieldset" disabled={creating}>
+              <legend>내가 제어할 진영</legend>
+              <div>
+                {(['BLUE', 'RED'] as const).map((side) => {
+                  const team = selected(side === 'BLUE' ? blueTeamId : redTeamId);
+                  return <button type="button" key={side} className={`rm-side-${side.toLowerCase()}${controlledSide === side ? ' is-selected' : ''}`} aria-pressed={controlledSide === side} onClick={() => setControlledSide(side)}><strong>{side}</strong><span>{team?.code ?? '팀 선택 필요'}</span></button>;
+                })}
+              </div>
+              <p>상대 진영의 턴은 현재 Draft 상태에 맞춰 AI가 자동 진행합니다. 직접 밴픽은 Game 1 단판만 지원합니다.</p>
+            </fieldset>
+          ) : null}
           <div className="rm-repro-note">
             <div><span aria-hidden="true">i</span><p><strong>{displayOptions.source} 데이터 공급자</strong>{options ? `${displayOptions.engineImplementationVersion} · ${displayOptions.runtimeProfile}` : 'Options API 계약을 확인하고 있습니다.'}</p></div>
             {optionsError ? <><SetupErrorMessage>{optionsError}</SetupErrorMessage><button className="rm-secondary-action rm-options-retry" type="button" disabled={optionsLoading} onClick={() => setOptionsAttempt((value) => value + 1)}>Options 다시 시도</button></> : null}
@@ -187,8 +225,8 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
           rosterLoading={false} rosterError={false} conflict={conflict} onChange={(teamId) => changeTeam('RED', teamId)} />
       </main>
       <MatchSetupActions ready={ready} creating={creating} elapsedSeconds={elapsedSeconds} stageLabel={STAGE_LABELS[requestStage]}
-        statusTitle={creating ? `${displayOptions.source} 경기 생성 중` : ready ? '실제 경기 실행 가능' : optionsError ? '서버 연결 필요' : '경기 조건 확인'}
-        statusCopy={pairCopy} onStart={start} onCancel={cancel} />
+        statusTitle={creating ? draftMode === 'PLAYER_CONTROLLED' ? '직접 밴픽 생성 중' : `${displayOptions.source} 경기 생성 중` : ready ? draftMode === 'PLAYER_CONTROLLED' ? '직접 밴픽 시작 가능' : '실제 경기 실행 가능' : optionsError ? '서버 연결 필요' : '경기 조건 확인'}
+        statusCopy={pairCopy} startLabel={draftMode === 'PLAYER_CONTROLLED' ? '직접 밴픽 시작' : '실제 경기 실행'} onStart={start} onCancel={cancel} />
     </div>
   );
 }

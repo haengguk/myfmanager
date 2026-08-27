@@ -13,8 +13,10 @@ export interface MatchSetupOptionsViewModel {
   teams: readonly MatchTeamOptionViewModel[];
 }
 
+export type MatchDraftMode = 'AUTO' | 'PLAYER_CONTROLLED';
 export interface MatchSetupSelection {
   blueTeamId: string; redTeamId: string; seed: string; gameNumber: number; seriesType: string;
+  draftMode: MatchDraftMode; controlledSide: TeamSide;
 }
 
 export interface TeamFinalStatsViewModel {
@@ -55,6 +57,10 @@ export interface MatchSessionViewModel {
   sessionId: string; source: MatchDataSource; setup: MatchSetupSelection;
   selectedTeams: Record<TeamSide, MatchTeamOptionViewModel>;
   draft: DraftViewModel; playback: PlaybackViewModel; result: MatchResultViewModel;
+  draftOrigin: { mode: 'AUTO' } | {
+    mode: 'PLAYER_CONTROLLED'; sessionId: string; controlledSide: TeamSide;
+    controlEvidenceHash: string; draftIdentity: string;
+  };
   performance: MatchSessionPerformance;
 }
 
