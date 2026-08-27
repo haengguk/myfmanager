@@ -1,8 +1,6 @@
 package com.lolfm.application;
 
 import com.lolfm.controller.PlayerDraftApiV1Exception;
-import com.lolfm.domain.Team;
-import com.lolfm.player.LckTeamAssembler;
 import com.lolfm.simulator.SimulationInstrumentation;
 import java.util.Objects;
 import org.springframework.stereotype.Component;
@@ -10,30 +8,25 @@ import org.springframework.stereotype.Component;
 /** Transient Production V9 execution; only its compact receipt may enter session state. */
 @Component
 final class PlayerDraftMatchSimulationExecutor {
-    private final LckTeamAssembler teams;
     private final PlayerControlledDraftMatchInputBoundary inputs;
     private final MatchEngineV1 matches;
     private final MatchEngineV1Canonicalizer canonicalizer;
 
     PlayerDraftMatchSimulationExecutor(
-            LckTeamAssembler teams,
             PlayerControlledDraftMatchInputBoundary inputs,
             MatchEngineV1 matches,
             MatchEngineV1Canonicalizer canonicalizer
     ) {
-        this.teams = Objects.requireNonNull(teams, "teams");
         this.inputs = Objects.requireNonNull(inputs, "inputs");
         this.matches = Objects.requireNonNull(matches, "matches");
         this.canonicalizer = Objects.requireNonNull(canonicalizer, "canonicalizer");
     }
 
     Execution execute(PlayerDraftSession session) {
-        Team blue = teams.assemble(session.blueTeamCode());
-        Team red = teams.assemble(session.redTeamCode());
         MatchEngineV1Input input;
         try {
             input = inputs.validateAndCreateInput(
-                    session.blueTeamCode(), blue, session.redTeamCode(), red,
+                    session.blueTeamCode(), session.redTeamCode(),
                     session.matchSeed(), session.progress().result());
         } catch (IllegalArgumentException error) {
             throw PlayerDraftApiV1Exception.unprocessable(

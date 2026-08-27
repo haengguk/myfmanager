@@ -3,7 +3,9 @@ package com.lolfm.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.champion.ChampionAssignment;
+import com.lolfm.champion.ChampionCatalog;
 import com.lolfm.champion.ChampionSelectionMode;
 import com.lolfm.champion.MatchChampionAssignments;
 import com.lolfm.domain.Position;
@@ -13,6 +15,7 @@ import com.lolfm.draft.DraftSelectionPoolEntry;
 import com.lolfm.draft.DraftSelectionTrace;
 import com.lolfm.draft.DraftTeamContext;
 import com.lolfm.draft.DraftTurnControlEvidence;
+import com.lolfm.draft.DraftResourceSet;
 import com.lolfm.draft.PlayerControlledDraftEngine;
 import com.lolfm.draft.PlayerControlledDraftResult;
 import com.lolfm.draft.PlayerManualSelectionEvidence;
@@ -35,6 +38,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PlayerControlledDraftMatchInputBoundaryTest {
     @Autowired LckTeamAssembler teams;
+    @Autowired ObjectMapper mapper;
+    @Autowired ChampionCatalog champions;
     @Autowired PlayerControlledDraftEngine drafts;
     @Autowired PlayerControlledDraftMatchInputBoundary boundary;
     @Autowired MatchEngineV1 matches;
@@ -66,10 +71,16 @@ class PlayerControlledDraftMatchInputBoundaryTest {
     @Test
     void validMixedDraftUsesSingleBoundaryAndExecutesProductionMatch() {
         MatchEngineV1Input input = boundary.validateAndCreateInput(
-                "GEN", blue, "T1", red, 73L, completed);
+                "GEN", "T1", 73L, completed);
         MatchEngineV1Output output = matches.execute(
                 input, SimulationInstrumentation.enabled());
 
+        for (Position position : Position.values()) {
+            assertThat(input.player(TeamSide.BLUE, position).playerId()).isEqualTo(
+                    playerAt(blue, position).requirePlayerId());
+            assertThat(input.player(TeamSide.RED, position).playerId()).isEqualTo(
+                    playerAt(red, position).requirePlayerId());
+        }
         assertThat(input.finalDraft().controlEvidence()).isNotNull();
         assertThat(output.finalDraft().finalDraftHash())
                 .isEqualTo(input.finalDraft().finalDraftHash());
@@ -79,6 +90,15 @@ class PlayerControlledDraftMatchInputBoundaryTest {
 
     @Test
     void rawUncheckedFactoryCannotBeCalledAsPublicProductionApi() {
+        var publicBoundary = java.util.Arrays.stream(
+                        PlayerControlledDraftMatchInputBoundary.class.getMethods())
+                .filter(method -> method.getName().equals("validateAndCreateInput"))
+                .findFirst().orElseThrow();
+        assertThat(publicBoundary.getParameterTypes()).containsExactly(
+                String.class, String.class, long.class,
+                PlayerControlledDraftResult.class);
+        assertThat(java.util.Arrays.stream(publicBoundary.getParameterTypes()))
+                .doesNotContain(Team.class);
         assertThat(java.util.Arrays.stream(MatchEngineV1InputFactory.class.getMethods())
                 .filter(method -> java.util.Arrays.asList(method.getParameterTypes())
                         .contains(PlayerControlledDraftResult.class)))
@@ -93,6 +113,35 @@ class PlayerControlledDraftMatchInputBoundaryTest {
                         PlayerControlledDraftMatchInputBoundary.ValidatedDraft.class
                                 .getDeclaredConstructors()))
                 .allMatch(constructor -> Modifier.isPrivate(constructor.getModifiers()));
+    }
+
+    @Test
+    void boundaryRejectsSameOrUnknownTeamCodesBeforeInputCreation() {
+        assertRejected(completed, 73L, "GEN", "gen");
+        assertRejected(completed, 73L, "UNKNOWN", "T1");
+        assertRejected(completed, 73L, "GEN", "UNKNOWN");
+    }
+
+    @Test
+    void boundaryBindsAllThreeDraftMetaFieldsToActiveResources() {
+        var activeMeta = DraftResourceSet.loadDefault(mapper, champions).meta();
+        assertThat(completed.draftMetaVersion()).isEqualTo(activeMeta.metaVersion());
+        assertThat(completed.requiredLegalRoleKeyHash())
+                .isEqualTo(activeMeta.requiredLegalRoleKeyHash());
+        assertThat(completed.actualLegalRoleKeyHash())
+                .isEqualTo(activeMeta.actualLegalRoleKeyHash());
+
+        assertMetaRejected(copyWithMeta(
+                completed.draftMetaVersion() + "-forged",
+                completed.requiredLegalRoleKeyHash(), completed.actualLegalRoleKeyHash()),
+                73L, "GEN", "T1");
+        assertMetaRejected(copyWithMeta(
+                completed.draftMetaVersion(), differentHash(
+                        completed.requiredLegalRoleKeyHash()),
+                completed.actualLegalRoleKeyHash()), 73L, "GEN", "T1");
+        assertMetaRejected(copyWithMeta(
+                completed.draftMetaVersion(), completed.requiredLegalRoleKeyHash(),
+                differentHash(completed.actualLegalRoleKeyHash())), 73L, "GEN", "T1");
     }
 
     @Test
@@ -114,7 +163,7 @@ class PlayerControlledDraftMatchInputBoundaryTest {
                         null, forgedSet));
         assertThat(selectableTampered.controlEvidence().controlEvidenceHash())
                 .isNotEqualTo(completed.controlEvidence().controlEvidenceHash());
-        assertRejected(selectableTampered, 73L, blue, red, "GEN", "T1");
+        assertRejected(selectableTampered, 73L, "GEN", "T1");
 
         var anotherChampion = completed.turnEvidence().get(
                 playerIndex == 0 ? 1 : 0).championId();
@@ -125,7 +174,7 @@ class PlayerControlledDraftMatchInputBoundaryTest {
         assertRejected(withTurn(playerIndex, new DraftTurnControlEvidence(
                 player.turn(), player.side(), player.actionType(), player.championId(),
                 player.authority(), player.stateBeforeHash(), player.stateAfterHash(),
-                null, forgedChampion)), 73L, blue, red, "GEN", "T1");
+                null, forgedChampion)), 73L, "GEN", "T1");
 
         DraftSelectionTrace unrelatedAiTrace = completed.turnEvidence().stream()
                 .filter(value -> value.authority() == DraftDecisionAuthority.AI)
@@ -133,7 +182,7 @@ class PlayerControlledDraftMatchInputBoundaryTest {
         assertRejected(withTurn(playerIndex, new DraftTurnControlEvidence(
                 player.turn(), player.side(), player.actionType(), player.championId(),
                 DraftDecisionAuthority.AI, player.stateBeforeHash(), player.stateAfterHash(),
-                unrelatedAiTrace, null)), 73L, blue, red, "GEN", "T1");
+                unrelatedAiTrace, null)), 73L, "GEN", "T1");
     }
 
     @Test
@@ -158,12 +207,12 @@ class PlayerControlledDraftMatchInputBoundaryTest {
         assertRejected(withTurn(aiIndex, new DraftTurnControlEvidence(
                 ai.turn(), ai.side(), ai.actionType(), ai.championId(), ai.authority(),
                 ai.stateBeforeHash(), ai.stateAfterHash(), forgedTrace, null)),
-                73L, blue, red, "GEN", "T1");
+                73L, "GEN", "T1");
 
         assertRejected(withTurn(aiIndex, new DraftTurnControlEvidence(
                 ai.turn(), ai.side(), ai.actionType(), ai.championId(), ai.authority(),
                 "e".repeat(64), ai.stateAfterHash(), ai.autoSelectionTrace(), null)),
-                73L, blue, red, "GEN", "T1");
+                73L, "GEN", "T1");
     }
 
     @Test
@@ -177,7 +226,7 @@ class PlayerControlledDraftMatchInputBoundaryTest {
         blueRoles.put(secondRole.getKey(), firstRole.getValue());
         assertRejected(copy(completed.turnEvidence(), blueRoles,
                         completed.redFinalRoleAssignments(), completed.matchChampionAssignments()),
-                73L, blue, red, "GEN", "T1");
+                73L, "GEN", "T1");
 
         ArrayList<ChampionAssignment> assignments = new ArrayList<>(
                 completed.matchChampionAssignments().asMap().values());
@@ -191,11 +240,10 @@ class PlayerControlledDraftMatchInputBoundaryTest {
                 assignments, ChampionSelectionMode.EXPLICIT);
         assertRejected(copy(completed.turnEvidence(), completed.blueFinalRoleAssignments(),
                         completed.redFinalRoleAssignments(), forgedAssignments),
-                73L, blue, red, "GEN", "T1");
+                73L, "GEN", "T1");
 
-        assertRejected(completed, 74L, blue, red, "GEN", "T1");
-        Team differentRed = teams.assemble("DK");
-        assertRejected(completed, 73L, blue, differentRed, "GEN", "DK");
+        assertRejected(completed, 74L, "GEN", "T1");
+        assertRejected(completed, 73L, "GEN", "DK");
     }
 
     private PlayerControlledDraftResult withTurn(
@@ -221,13 +269,47 @@ class PlayerControlledDraftMatchInputBoundaryTest {
                 completed.actualLegalRoleKeyHash());
     }
 
+    private PlayerControlledDraftResult copyWithMeta(
+            String draftMetaVersion,
+            String requiredLegalRoleKeyHash,
+            String actualLegalRoleKeyHash
+    ) {
+        return new PlayerControlledDraftResult(
+                completed.ruleSet(), completed.controlledSide(), completed.blueBans(),
+                completed.redBans(), completed.bluePicks(), completed.redPicks(),
+                completed.turnEvidence(), completed.blueFinalRoleAssignments(),
+                completed.redFinalRoleAssignments(), completed.matchChampionAssignments(),
+                completed.hardFearlessExclusions(), draftMetaVersion,
+                requiredLegalRoleKeyHash, actualLegalRoleKeyHash);
+    }
+
+    private static String differentHash(String value) {
+        String candidate = "a".repeat(64);
+        return candidate.equals(value) ? "b".repeat(64) : candidate;
+    }
+
+    private static com.lolfm.domain.Player playerAt(Team team, Position position) {
+        return team.getPlayers().stream()
+                .filter(player -> player.getPosition() == position)
+                .findFirst().orElseThrow();
+    }
+
     private void assertRejected(
             PlayerControlledDraftResult result, long seed,
-            Team selectedBlue, Team selectedRed,
             String blueCode, String redCode
     ) {
         assertThatThrownBy(() -> boundary.validateAndCreateInput(
-                blueCode, selectedBlue, redCode, selectedRed, seed, result))
+                blueCode, redCode, seed, result))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private void assertMetaRejected(
+            PlayerControlledDraftResult result, long seed,
+            String blueCode, String redCode
+    ) {
+        assertThatThrownBy(() -> boundary.validateAndCreateInput(
+                blueCode, redCode, seed, result))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("PLAYER_DRAFT_META_RESOURCE_IDENTITY_MISMATCH");
     }
 }

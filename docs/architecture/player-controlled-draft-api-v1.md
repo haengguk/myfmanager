@@ -1,6 +1,6 @@
 # Player-controlled Draft API V1
 
-상태: `PLAYER_CONTROLLED_DRAFT_API_V1_HARDENED`
+상태: `PLAYER_CONTROLLED_DRAFT_API_V1_FINAL_BOUNDARY_HARDENED`
 
 ## Scope
 
@@ -48,12 +48,16 @@ Expiry와 cancelled entry의 물리 제거는 scheduler 기반 eager deletion이
 
 20턴 완료 시 `FinalRoleAssignmentResolver`가 flex role을 확정하지만 simulation을 자동 시작하지 않는다. `/simulate`는 turn 1부터 다음을 새로 검증한다.
 
-1. rules/side/action/champion/authority와 before/after state hash
-2. PLAYER turn의 현재 full selectable-set identity와 accepted legality
-3. AI turn의 authoritative Auto policy/pool/weight/context/bucket trace
-4. final ban/pick state, legal role permutation과 exact player assignment
+1. BLUE/RED team code를 authoritative LCK five-position stable-`PlayerId` roster로 해석하고 unknown/same team을 거부
+2. completed result의 Draft Meta version과 required/actual legal-role hash를 current active resource와 exact 비교
+3. rules/side/action/champion/authority와 before/after state hash
+4. PLAYER turn의 현재 full selectable-set identity와 accepted legality
+5. AI turn의 authoritative Auto policy/pool/weight/context/bucket trace
+6. final ban/pick state, legal role permutation과 exact player assignment
 
-Raw `PlayerControlledDraftResult`에서 Match Engine input으로 가는 public production 경계는 `PlayerControlledDraftMatchInputBoundary.validateAndCreateInput` 하나다. 이 경계가 real five-position roster/stable player identity, team/seed/Game 1 context, 20턴 state와 full manual selectable-set, authoritative AI search trace, final role/player assignment를 재구성한 뒤에만 private-constructor validated token을 만든다. `MatchEngineV1InputFactory`의 unchecked mixed projection은 이 token만 받고 public raw factory는 제공하지 않는다.
+Raw `PlayerControlledDraftResult`에서 Match Engine input으로 가는 public production 경계는 `PlayerControlledDraftMatchInputBoundary.validateAndCreateInput` 하나다. Public method는 BLUE/RED team code, match seed와 completed result만 받으며 caller-provided `Team`, `Team.getName()`이나 player/team display name을 identity 증거로 받지 않는다. 경계 내부의 `LckTeamAssembler`가 real five-position roster와 position별 stable `PlayerId`를 결정한다. 이 roster로 team/seed/Game 1 context, 20턴 state와 full manual selectable-set, authoritative AI search trace, final role/player assignment를 재구성하고, result의 Draft Meta version과 두 legal-role hash가 active `DraftResourceSet.meta()`와 exact일 때만 private-constructor validated token을 만든다. `MatchEngineV1InputFactory`의 unchecked mixed projection은 이 token만 받고 public raw factory는 제공하지 않는다.
+
+세 Meta identity 중 하나라도 stale/forged이면 형식이 유효한 SHA-256이어도 deterministic preflight error로 거부된다. 이 시점에는 Match Engine input이나 simulator가 생성되지 않으므로 gameplay state mutation과 seeded gameplay Random 소비는 0이다. 정상 transcript의 Draft/final assignment/control/input/replay/resource/timeline/Random/output/result identity는 변경하지 않는다.
 
 검증 뒤 authoritative `PRODUCTION_MATCHUP_COMPOSITION_V1`, engine `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`를 fresh match state에서 실행한다. `finalDraftHash`, input/replay/output identity는 control evidence를 결속한다. 응답 `PLAYER_DRAFT_MATCH_RESPONSE_V1`은 공통 team/result/timeline을 재사용하지만 Draft authority를 `REAL_MATCH_RESPONSE_V1`인 것처럼 표시하지 않는다.
 
@@ -66,6 +70,10 @@ Receipt는 match/policy/profile/configuration/engine/rules, input/replay/resourc
 반복 `/simulate`는 cached full output을 반환하지 않는다. 완료된 immutable Draft에서 Match Engine을 결정적으로 다시 실행하고 새 receipt를 기존 receipt와 exact 비교한 뒤에만 response를 반환한다. Mismatch 또는 실행 실패 시 기존 status/receipt/revision을 유지하고 sanitized 500으로 실패한다. 같은 session의 concurrent simulate는 repository의 per-session atomic mutation 안에서 순차 실행되어 각각 exact response를 받으며, 다른 session을 전역으로 잠그지 않는다.
 
 이 계약은 session마다 20~34MB급 result object graph를 보관하지 않는 heap safety를 retry CPU 절약보다 우선한다. 반복 요청은 Draft를 다시 수행하지 않지만 Match Engine 실행 비용을 다시 지불한다. Background job이나 durable result retrieval이 필요하면 total-byte quota를 가진 별도 storage milestone로 설계하며 compressed full response를 session cache로 보관하지 않는다.
+
+## Verification
+
+Final boundary focused lane은 engine/boundary/session simulation/API/Match Engine contract 5 suites / 36 tests / failures 0 / errors 0 / skipped 0으로 통과했다. 최종 executable production tree의 새 complete backend regression은 226 suites / 2,232 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,034.299초, Gradle wall 17분 29초로 첫 실행에서 통과했다. 기존 전체 회귀 수치는 재사용하지 않았다. API schema, session memory/capacity/receipt/retry, Production V9/profile/gameplay는 바꾸지 않았고 frontend 및 대형 diagnostic은 실행하지 않았다.
 
 ## Errors and limitations
 

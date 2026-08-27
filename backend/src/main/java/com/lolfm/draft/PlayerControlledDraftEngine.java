@@ -173,6 +173,15 @@ public final class PlayerControlledDraftEngine {
             DraftSelectionContext selectionContext
     ) {
         Objects.requireNonNull(result, "result");
+        DraftMetaCatalog activeMeta = resources.meta();
+        if (!activeMeta.metaVersion().equals(result.draftMetaVersion())
+                || !activeMeta.requiredLegalRoleKeyHash().equals(
+                        result.requiredLegalRoleKeyHash())
+                || !activeMeta.actualLegalRoleKeyHash().equals(
+                        result.actualLegalRoleKeyHash())) {
+            throw new IllegalArgumentException(
+                    "PLAYER_DRAFT_META_RESOURCE_IDENTITY_MISMATCH");
+        }
         if (!rules.equals(result.ruleSet()) || result.controlledSide() == null
                 || !result.hardFearlessExclusions().isEmpty()) {
             throw new IllegalArgumentException("PLAYER_DRAFT_RULE_OR_SERIES_CONTEXT_MISMATCH");

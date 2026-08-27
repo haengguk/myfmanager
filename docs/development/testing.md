@@ -22,28 +22,29 @@ Focused correctness test는 큰 seed sample이나 분포 목표가 아니라 for
 
 ### Player-controlled Draft API V1
 
-혼합 Draft와 session hardening은 다음 focused lane으로 검증한다.
+혼합 Draft의 final authoritative-input boundary와 기존 session hardening은 다음 focused lane으로 검증한다.
 
 ```bash
 cd backend
 gradlew.bat test \
-  --tests com.lolfm.draft.PlayerControlledDraftEngineTest \
-  --tests com.lolfm.application.PlayerDraftSessionRepositoryTest \
-  --tests com.lolfm.application.PlayerDraftSimulationHardeningTest \
   --tests com.lolfm.application.PlayerControlledDraftMatchInputBoundaryTest \
+  --tests com.lolfm.draft.PlayerControlledDraftEngineTest \
+  --tests com.lolfm.application.PlayerDraftSimulationHardeningTest \
   --tests com.lolfm.controller.PlayerDraftApiV1ControllerTest \
+  --tests com.lolfm.application.MatchEngineV1ContractTest \
   --console=plain
 ```
 
 - domain: BLUE/RED 완주, authority/evidence binding, advisory 밖 legal choice, flex 유지, illegal action mutation 0, AI production parity, transcript replay와 final-assignment 재구성
 - session: injected Clock TTL/lazy eviction, concurrent create exact capacity, collision/cleanup permit leak 0, repository instance isolation과 per-session atomic mutation
 - simulation ownership: full output/timeline 비보관, 16KiB 이하 compact receipt, first/repeat deterministic execution, mismatch/failure rollback과 same-session concurrent serialization
-- input boundary: selectable-set/control hash, authority/action, authoritative AI trace, state/final role/player assignment와 roster/team/seed 변조 거부, public raw factory 부재
+- input boundary: caller-provided `Team` 없이 team code를 `LckTeamAssembler` authoritative stable-`PlayerId` roster로 해석, unknown/same/mismatched team context 거부, display label 비의존, selectable-set/control hash, authority/action, authoritative AI trace, state/final role/player assignment와 seed 변조 거부, public raw factory 부재
+- active resource binding: completed result의 Draft Meta version 및 required/actual legal-role hash를 현재 `DraftResourceSet.meta()`와 exact 비교하고 세 독립 변조를 Match Engine/seeded gameplay Random 전에 거부
 - HTTP: strict start/action/simulate parsing, revision/idempotency conflict, 동시 제출 단일 성공, cancel/not-found, 완료와 simulation 분리, V9 policy/provenance와 반복 simulate equality
 
 기존 완전 자동 semantics 회귀는 `MatchEngineV1ContractTest`, `RealMatchApiV1ControllerTest`, `AutoDraftVarietyV1ProductionIntegrationTest`를 함께 실행한다. 대규모 seed population, balance diagnostic, frontend build는 이 backend-only 기능의 focused lane에 포함하지 않는다.
 
-Session hardening final tree는 Player Draft 5 suites / 27 tests와 기존 직접 영향 3 suites를 묶어 8 suites / 52 tests / failures 0 / errors 0 / skipped 0, aggregate XML 421.531초, Gradle wall 7분 15초로 통과했다. Final complete backend는 226 suites / 2,230 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,200.205초, Gradle wall 20분 19초로 첫 실행에서 통과했다. Live HTTP smoke는 RED-controlled 20-turn completion과 first/repeat Draft/input/replay/timeline/Random/output/result identity exact, DELETE 204를 확인했다.
+Final boundary tree의 위 focused lane은 5 suites / 36 tests / failures 0 / errors 0 / skipped 0으로 통과했다. 최종 executable production tree의 새 complete backend regression은 226 suites / 2,232 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,034.299초, Gradle wall 17분 29초로 첫 실행에서 통과했다. 기존 226 suites / 2,230 tests 결과를 재사용하지 않았다. 이번 backend-only milestone에서는 frontend, live HTTP smoke, 대형 diagnostic, calibration/holdout과 historical artifact 재생성을 실행하지 않았다.
 
 ## Full Regression
 

@@ -118,7 +118,7 @@ Report SHA-256: summary `4f3a13ca19cb00abc8da463173578b222fa55e389bb34d1a96abe6f
 
 ### Player-controlled Draft API V1
 
-상태는 `PLAYER_CONTROLLED_DRAFT_API_V1_HARDENED`다.
+상태는 `PLAYER_CONTROLLED_DRAFT_API_V1_FINAL_BOUNDARY_HARDENED`다.
 
 Backend는 한쪽 `TeamSide`의 10개 ban/pick turn을 플레이어가 직접 선택하고 반대쪽은 기존 `AUTO_DRAFT_VARIETY_V1`이 현재 상태에 반응하는 Game 1 session API를 제공한다. 제어 정책은 `PLAYER_CONTROLLED_DRAFT_V1`, SHA-256은 `8f6488f07c44a6529e88bd022fff3124458a8237cc919bd7dd3e140eaa4a0752`다. AI selection/search/scoring/tuning과 기존 Real Match `/options`·`/simulate` 계약은 변경하지 않았다.
 
@@ -128,13 +128,13 @@ Manual choice는 advisory top 3에 제한되지 않고 current availability, par
 
 Draft 완료는 경기를 자동 실행하지 않으며 explicit simulate만 현재 `PRODUCTION_MATCHUP_COMPOSITION_V1` / engine V9를 fresh state에서 실행한다. Session은 더 이상 `MatchEngineV1Output`, timeline/event/snapshot 또는 full match DTO를 보관하지 않고 16KiB 이하 canonical 계약의 compact simulation receipt만 보관한다. 반복 simulate는 immutable completed Draft에서 Match Engine을 결정적으로 다시 실행해 stored receipt와 input/replay/resource/Draft/control/timeline/Random/output/result identity를 exact 비교한다. Mismatch와 실행 실패는 stable receipt/status/revision을 덮어쓰지 않는다. 이는 retry CPU를 다시 지불하는 대신 session별 대형 result object graph 누적을 제거하는 선택이다.
 
-Mixed transcript에서 Match Engine input까지는 public `PlayerControlledDraftMatchInputBoundary.validateAndCreateInput` 하나가 소유한다. Full manual selectable-set, authority/action, authoritative AI search trace, state hashes, final role/player assignment와 roster/team/seed/Game 1 context를 재구성해야만 private-constructor validated token이 발급된다. Unchecked mixed projector는 token만 받는 package-private method이며 public raw factory는 제거했다. 기존 full-auto `fromRealDraft` semantics는 변경하지 않았다.
+Mixed transcript에서 Match Engine input까지는 public `PlayerControlledDraftMatchInputBoundary.validateAndCreateInput` 하나가 소유한다. 이 public 경계는 caller가 만든 `Team`이나 display name을 받지 않고 BLUE/RED team code, seed와 completed result만 받아 `LckTeamAssembler`의 authoritative five-position stable-`PlayerId` roster를 내부에서 조립한다. Full manual selectable-set, authority/action, authoritative AI search trace, state hashes, final role/player assignment와 roster/team/seed/Game 1 context를 재구성하고, completed result의 Draft Meta version 및 required/actual legal-role hash를 현재 active `DraftResourceSet.meta()`와 exact 비교해야만 private-constructor validated token이 발급된다. 이 불일치는 Match Engine input 및 seeded gameplay Random 전에 차단된다. Unchecked mixed projector는 token만 받는 package-private method이며 public raw factory는 없다. 기존 full-auto `fromRealDraft` semantics는 변경하지 않았다.
 
 현재 제한은 frontend 미구현, restart persistence/auth/database/background result storage/WebSocket/multi-node coordination 부재, Game 1/빈 Hard Fearless only다. 상세 계약은 [Player-controlled Draft API V1](architecture/player-controlled-draft-api-v1.md)에 있다.
 
-초기 V1의 focused 3 suites / 14 tests와 기존 Auto Draft/Match Engine/Real Match 영향 회귀는 그대로 보존된다. Hardening focused는 Player Draft 5 suites / 27 tests가 clean했고, 직접 영향 기존 회귀를 합친 실행은 8 suites / 52 tests / failures 0 / errors 0 / skipped 0, aggregate XML 421.531초, Gradle wall 7분 15초로 통과했다. Final default backend regression은 226 suites / 2,230 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,200.205초, Gradle wall 20분 19초로 첫 실행에서 통과했다.
+Final boundary focused는 Player Draft engine/boundary/session simulation/API와 Match Engine contract 5 suites / 36 tests / failures 0 / errors 0 / skipped 0으로 통과했다. 최종 executable production tree의 새 default backend regression은 첫 실행에서 226 suites / 2,232 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,034.299초, Gradle wall 17분 29초로 통과했다. 기존 session memory/capacity/receipt/retry, API schema, full-auto Real Match, Production V9/profile/gameplay semantics는 full regression으로 보존했고 frontend, 대형 diagnostic, calibration/holdout과 historical artifact 재생성은 실행하지 않았다.
 
-별도 `localhost:8098` bootRun smoke는 RED-controlled session 생성, turn 1 AI→turn 2 PLAYER 시작, player action 10회와 20 decisions 완료, first/repeat Production V9 simulate를 확인했다. 두 응답의 final Draft/assignment, input/replay, simulator/structured timeline, Random draw/hash, output와 winner/duration identity는 exact였고 output hash는 `857f6b371ffd01f4ad5bd80f3032e3c84bdd86add99a57b1eb00d080976ea0ee`, Random draw count 4,676, BLUE 승리, 2,230초였다. DELETE 204 뒤 임시 session과 서버를 종료했다. Frontend build, 대형 diagnostic, calibration/holdout과 historical artifact 재생성은 실행하지 않았다.
+직전 session hardening에서 실행한 별도 `localhost:8098` bootRun smoke는 RED-controlled session 생성, turn 1 AI→turn 2 PLAYER 시작, player action 10회와 20 decisions 완료, first/repeat Production V9 simulate를 확인했다. 두 응답의 final Draft/assignment, input/replay, simulator/structured timeline, Random draw/hash, output와 winner/duration identity는 exact였고 output hash는 `857f6b371ffd01f4ad5bd80f3032e3c84bdd86add99a57b1eb00d080976ea0ee`, Random draw count 4,676, BLUE 승리, 2,230초였다. DELETE 204 뒤 임시 session과 서버를 종료했다. 이번 final boundary milestone에서는 live smoke, frontend build, 대형 diagnostic, calibration/holdout과 historical artifact 재생성을 실행하지 않았다.
 
 ### Auto Draft Variety V1
 
@@ -507,15 +507,15 @@ gradlew.bat test --console=plain --no-daemon
 | 항목 | 결과 |
 | --- | ---: |
 | JUnit suites | 226 |
-| Tests | 2,230 |
+| Tests | 2,232 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 1,200.205 seconds |
-| Gradle wall duration | 20m 19s |
+| Aggregate JUnit XML time | 1,034.299 seconds |
+| Gradle wall duration | 17m 29s |
 | Build | `BUILD SUCCESSFUL` |
 
-Player-controlled Draft API V1 hardening이 포함된 final production tree의 complete regression이다. 첫 실행에서 226 suites / 2,230 tests가 clean pass했고 이후 executable production Java/resource/Gradle/shared fixture는 변경하지 않았다. 새 ownership/capacity/retry/preflight 경계를 포함한 Player Draft focused 5 suites / 27 tests와 기존 controller/domain 경로가 clean했고, `MatchEngineV1ContractTest`, `RealMatchApiV1ControllerTest`, `AutoDraftVarietyV1ProductionIntegrationTest`까지 묶은 직접 영향 실행은 8 suites / 52 tests가 clean했다. Frontend, 대형 statistical diagnostic, calibration/holdout과 historical artifact 재생성은 실행하지 않았다.
+Player-controlled Draft API V1 final boundary hardening이 포함된 final executable production tree의 새 complete regression이다. 첫 실행에서 226 suites / 2,232 tests가 clean pass했다. 직전 226 suites / 2,230 tests 결과를 재사용하지 않았다. Public mixed boundary가 team code만 받아 authoritative roster를 내부 조립하고 active Draft Meta identity 세 필드를 exact 검증하는 focused lane은 5 suites / 36 tests가 clean했다. Session memory/capacity/receipt/retry와 API schema는 변경하지 않았고 full-auto factory, profile, gameplay/Random semantics도 변경하지 않았다. Full pass 뒤에는 executable production Java/resource/Gradle/shared fixture를 바꾸지 않고 문서만 갱신했다. Frontend, 대형 statistical diagnostic, calibration/holdout과 historical artifact 재생성은 실행하지 않았다.
 
 Activation/profile/policy/API/reachability focused는 10 suites / 58 tests, 2분 56초에 통과했다. 직접 영향 gameplay invariant는 9 suites / 101 tests, 7초에 통과했다. Frontend production build는 87 modules, 약 8초에 성공했고 LIVE options/simulate gzip 및 Draft→Playback→Result 브라우저 smoke도 통과했다. 대형 calibration/holdout/B2/B3/13G-B/population task와 activation artifact bundle은 실행·생성하지 않았다.
 

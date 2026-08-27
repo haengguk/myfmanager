@@ -5,6 +5,8 @@ import com.lolfm.draft.DraftSelectionContext;
 import com.lolfm.draft.DraftTeamContext;
 import com.lolfm.draft.PlayerControlledDraftEngine;
 import com.lolfm.draft.PlayerControlledDraftResult;
+import com.lolfm.player.LckTeamAssembler;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Component;
@@ -12,33 +14,34 @@ import org.springframework.stereotype.Component;
 /** The only production boundary from a raw mixed Draft result to Match Engine input. */
 @Component
 public final class PlayerControlledDraftMatchInputBoundary {
+    private final LckTeamAssembler teams;
     private final PlayerControlledDraftEngine drafts;
     private final MatchEngineV1InputFactory inputs;
 
     public PlayerControlledDraftMatchInputBoundary(
+            LckTeamAssembler teams,
             PlayerControlledDraftEngine drafts,
             MatchEngineV1InputFactory inputs
     ) {
+        this.teams = Objects.requireNonNull(teams, "teams");
         this.drafts = Objects.requireNonNull(drafts, "drafts");
         this.inputs = Objects.requireNonNull(inputs, "inputs");
     }
 
     public MatchEngineV1Input validateAndCreateInput(
             String blueTeamCode,
-            Team blueTeam,
             String redTeamCode,
-            Team redTeam,
             long matchSeed,
             PlayerControlledDraftResult result
     ) {
-        blueTeamCode = required(blueTeamCode, "blueTeamCode");
-        redTeamCode = required(redTeamCode, "redTeamCode");
+        blueTeamCode = canonicalTeamCode(blueTeamCode, "blueTeamCode");
+        redTeamCode = canonicalTeamCode(redTeamCode, "redTeamCode");
         if (blueTeamCode.equals(redTeamCode)) {
             throw new IllegalArgumentException("PLAYER_DRAFT_TEAM_IDENTITY_COLLISION");
         }
-        Objects.requireNonNull(blueTeam, "blueTeam");
-        Objects.requireNonNull(redTeam, "redTeam");
         Objects.requireNonNull(result, "result");
+        Team blueTeam = teams.assemble(blueTeamCode);
+        Team redTeam = teams.assemble(redTeamCode);
         DraftTeamContext blueContext = DraftTeamContext.from(blueTeam);
         DraftTeamContext redContext = DraftTeamContext.from(redTeam);
         if (blueTeam.getPlayers().size() != 5 || redTeam.getPlayers().size() != 5
@@ -106,5 +109,9 @@ public final class PlayerControlledDraftMatchInputBoundary {
             throw new IllegalArgumentException(field + " is invalid");
         }
         return normalized;
+    }
+
+    private static String canonicalTeamCode(String value, String field) {
+        return required(value, field).toUpperCase(Locale.ROOT);
     }
 }
