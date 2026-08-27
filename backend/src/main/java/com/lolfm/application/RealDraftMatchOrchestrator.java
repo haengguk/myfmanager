@@ -70,7 +70,7 @@ public final class RealDraftMatchOrchestrator {
     /** One isolated game with a fresh series scope. */
     public RealDraftMatchResult orchestrate(String blueTeamCode, String redTeamCode, long matchSeed) {
         return orchestrate(blueTeamCode, redTeamCode, new SeriesDraftHistory(), matchSeed,
-                SimulationRuntimeProfileId.BASELINE_V1,
+                MatchEngineV1Policy.authoritative().retainedRuntimeProfileId(),
                 SimulationInstrumentation.enabled());
     }
 
@@ -89,7 +89,7 @@ public final class RealDraftMatchOrchestrator {
     public RealDraftMatchResult orchestrate(String blueTeamCode, String redTeamCode,
                                             SeriesDraftHistory seriesHistory, long matchSeed) {
         return orchestrate(blueTeamCode, redTeamCode, seriesHistory, matchSeed,
-                SimulationRuntimeProfileId.BASELINE_V1,
+                MatchEngineV1Policy.authoritative().retainedRuntimeProfileId(),
                 SimulationInstrumentation.enabled());
     }
 

@@ -62,7 +62,7 @@ Test-side phase 관측 median은 다음과 같다. `Draft`와 `roster/Draft/inpu
 
 ## 결과 무결성과 검증
 
-V8 측정 당시 GEN–T1/73은 BLUE 승, 3,430초, output `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`였고 HLE–DK/-73은 RED 승, 2,840초였다. 현재 V9 GEN–T1/73 계약은 RED 승, 1,750초, output `40c8786ebece2d9abc71d95c304d39ef8f63f2b3277237d1aeaf0a3cf1d76c34`다. 현재 hash는 seeded Draft selection policy와 trace의 additive identity를 포함한다. 아래 BootRun/JAR/Chrome 수치는 V8 실행 기록이며 V9 외부 성능 실측으로 해석하지 않는다.
+V8 측정 당시 GEN–T1/73은 BLUE 승, 3,430초, output `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`였고 HLE–DK/-73은 RED 승, 2,840초였다. Matchup/Composition activation 전 V9 GEN–T1/73 계약은 RED 승, 1,750초, output `40c8786ebece2d9abc71d95c304d39ef8f63f2b3277237d1aeaf0a3cf1d76c34`였다. 해당 hash는 seeded Draft selection policy와 trace의 additive identity를 포함한다. 아래 BootRun/JAR/Chrome 수치는 V8 실행 기록이며 현재 V9 외부 성능 실측으로 해석하지 않는다. 활성화 뒤 smoke 값은 [production activation](match-engine-v9-matchup-composition-production-activation.md)에 별도로 기록한다.
 
 Backend focused는 compression negotiation, fixed API, service/orchestration, Draft parity, same-seed Random과 Draft hardening artifact를 포함한다. Candidate가 clean한 뒤 production/runtime tree를 동결했고 complete backend regression을 한 번 실행했다.
 

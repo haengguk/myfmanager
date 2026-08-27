@@ -12,11 +12,11 @@ import org.junit.jupiter.api.Test;
 
 class SimulationRuntimeProfilesTest {
     @Test
-    void resolvesThreeFrozenPreJungleProfilesAndTwoVersionedJungleCandidates() {
+    void resolvesBaselineCandidatesProductionAndTwoVersionedJungleCandidates() {
         Map<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> profiles =
                 SimulationRuntimeProfiles.all();
 
-        assertThat(profiles).hasSize(5).containsOnlyKeys(SimulationRuntimeProfileId.values());
+        assertThat(profiles).hasSize(6).containsOnlyKeys(SimulationRuntimeProfileId.values());
         assertThat(profiles.values().stream()
                 .filter(profile -> switch (profile.profileId()) {
                     case FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1,
@@ -30,6 +30,8 @@ class SimulationRuntimeProfilesTest {
                 profiles.get(SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1));
         assertExactCommonGameplay(
                 profiles.get(SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1));
+        assertExactCommonGameplay(
+                profiles.get(SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1));
         ResolvedSimulationRuntimeProfile jungleEconomy = profiles.get(
                 SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1);
         assertExactCommonGameplayExceptJungle(jungleEconomy);
@@ -63,6 +65,15 @@ class SimulationRuntimeProfilesTest {
         assertThat(profiles.get(SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1)
                 .gameplayConfiguration().teamCompositionGameplayMode())
                 .isEqualTo(TeamCompositionGameplayMode.PRODUCTION_V2);
+        ResolvedSimulationRuntimeProfile production = profiles.get(
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
+        assertThat(production.gameplayConfiguration())
+                .isEqualTo(profiles.get(SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1)
+                        .gameplayConfiguration());
+        assertThat(production.gameplayConfiguration().championMatchupMode())
+                .isEqualTo(ChampionMatchupMode.GEOMETRIC_V2);
+        assertThat(production.gameplayConfiguration().teamCompositionGameplayMode())
+                .isEqualTo(TeamCompositionGameplayMode.PRODUCTION_V2);
         assertThat(jungleEconomy.gameplayConfiguration().championMatchupMode())
                 .isEqualTo(ChampionMatchupMode.GEOMETRIC_V2);
         assertThat(jungleEconomy.gameplayConfiguration().teamCompositionGameplayMode())
@@ -83,6 +94,10 @@ class SimulationRuntimeProfilesTest {
                 .isEqualTo("58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec");
         assertThat(SimulationRuntimeProfiles.resolve(
                 SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1).configurationHash())
+                .isEqualTo("caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d");
+        assertThat(SimulationRuntimeProfiles.resolve(
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1)
+                .configurationHash())
                 .isEqualTo("caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d");
         assertThat(SimulationRuntimeProfiles.resolve(
                 SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1)

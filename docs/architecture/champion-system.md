@@ -49,7 +49,7 @@ missing뿐 아니라 extra와 unsupported role도 실패한다. 세부 JSON 계�
 | Composition | `full-173-composition-profile-2026-08-v2` / 216 materialized role profiles |
 | Jungle Clear | `full-173-jungle-clear-economy-2026-08-v1` / 51 profiles / 51 enabled |
 
-Resource가 active manifest에 포함된 것과 simulation contribution이 활성화된 것은 다르다. 현재 Spring HTTP simulator는 Champion Power만 켜고 Matchup/Composition mode는 `OFF`다. Draft engine은 active Matchup과 Composition resource를 직접 평가에 사용한다.
+Resource가 active manifest에 포함된 것과 simulation contribution이 활성화된 것은 다르다. Legacy `POST /api/matches/simulate`의 Spring simulator는 Champion Power만 켜고 Matchup/Composition mode를 `OFF`로 유지한다. 공개 Real Match API는 `PRODUCTION_MATCHUP_COMPOSITION_V1`에서 Matchup `GEOMETRIC_V2`와 Composition `PRODUCTION_V2`를 실제 simulation에 적용한다. Draft engine도 active Matchup과 Composition resource를 직접 평가에 사용한다.
 
 ## Champion Power
 

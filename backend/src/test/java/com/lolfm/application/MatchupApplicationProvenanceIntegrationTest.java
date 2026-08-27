@@ -27,7 +27,8 @@ class MatchupApplicationProvenanceIntegrationTest {
         RealDraftMatchResult prepared = orchestrator.orchestrate(
                 "GEN", "T1", 73L, SimulationRuntimeProfileId.BASELINE_V1);
         var baseline = execute(prepared, SimulationRuntimeProfileId.BASELINE_V1);
-        var matchup = execute(prepared, SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1);
+        var matchup = execute(
+                prepared, SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
         var off = baseline.structuredDiagnostics().championMatchup();
         var on = matchup.structuredDiagnostics().championMatchup();
 
@@ -118,12 +119,14 @@ class MatchupApplicationProvenanceIntegrationTest {
     void sameSeedInstrumentationAndNewMatchIsolationRemainExact() {
         RealDraftMatchResult prepared = orchestrator.orchestrate(
                 "DK", "HLE", -73L, SimulationRuntimeProfileId.BASELINE_V1);
-        var first = execute(prepared, SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1);
-        var replay = execute(prepared, SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1);
+        var first = execute(
+                prepared, SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
+        var replay = execute(
+                prepared, SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
         var disabled = MatchEngineV9InstrumentationExecutor.execute(
                 simulators, prepared.blueTeam(), prepared.redTeam(),
                 prepared.matchChampionAssignments(),
-                SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1,
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1,
                 SimulationInstrumentation.disabled(), prepared.matchSeed(), "DK", "HLE");
 
         assertCompleteTimelineEquals(first.timeline(), replay.timeline());

@@ -59,6 +59,7 @@ class RealDraftMatchOrchestratorTest {
     private RealDraftMatchResult gameTwo;
     private RealDraftMatchResult replay;
     private RealDraftMatchResult diagnosticsOffReplay;
+    private RealDraftMatchResult explicitBaselineReplay;
 
     @BeforeAll
     void runRepresentativeRealGames() {
@@ -68,8 +69,12 @@ class RealDraftMatchOrchestratorTest {
         replay = orchestrator.orchestrate("GEN", "T1", MATCH_SEED);
         diagnosticsOffReplay = orchestrator.orchestrate(
                 "GEN", "T1", new SeriesDraftHistory(), MATCH_SEED,
-                SimulationRuntimeProfileId.BASELINE_V1,
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1,
                 SimulationInstrumentation.disabled());
+        explicitBaselineReplay = orchestrator.orchestrate(
+                "GEN", "T1", new SeriesDraftHistory(), MATCH_SEED,
+                SimulationRuntimeProfileId.BASELINE_V1,
+                SimulationInstrumentation.enabled());
     }
 
     @Test
@@ -254,9 +259,10 @@ class RealDraftMatchOrchestratorTest {
         SimulationExecutionProvenance value = gameOne.executionProvenance();
 
         assertThat(value).isNotNull();
-        assertThat(value.runtimeProfileId()).isEqualTo(SimulationRuntimeProfileId.BASELINE_V1);
+        assertThat(value.runtimeProfileId()).isEqualTo(
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
         assertThat(value.configurationHash())
-                .isEqualTo("c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215");
+                .isEqualTo("caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d");
         assertThat(value.configurationHash()).isNotEqualTo(value.replayProvenanceHash());
         assertThat(value.replayProvenanceHash()).isNotEqualTo(value.timelineHash());
         assertThat(value.timelineHash()).isEqualTo(canonicalHash(objectMapper, gameOne.timeline()));
@@ -301,6 +307,23 @@ class RealDraftMatchOrchestratorTest {
         assertThat(disabled.timelineHash()).isEqualTo(enabled.timelineHash());
         assertThat(disabled.randomFingerprint()).isEqualTo(enabled.randomFingerprint());
         assertCompleteTimelineEquals(gameOne.timeline(), diagnosticsOffReplay.timeline());
+    }
+
+    @Test
+    void baselineRemainsAnExplicitRollbackProfileWithoutSilentFallback() {
+        assertCompleteDraftResultEquals(gameOne.draftResult(), explicitBaselineReplay.draftResult());
+        assertThat(explicitBaselineReplay.matchChampionAssignments().asMap())
+                .isEqualTo(gameOne.matchChampionAssignments().asMap());
+        assertThat(explicitBaselineReplay.executionProvenance().runtimeProfileId())
+                .isEqualTo(SimulationRuntimeProfileId.BASELINE_V1);
+        assertThat(explicitBaselineReplay.executionProvenance().configurationHash())
+                .isEqualTo("c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215");
+        assertThat(gameOne.executionProvenance().runtimeProfileId())
+                .isEqualTo(SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
+        assertThat(gameOne.executionProvenance().configurationHash())
+                .isEqualTo("caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d");
+        assertThat(explicitBaselineReplay.executionProvenance().replayProvenanceHash())
+                .isNotEqualTo(gameOne.executionProvenance().replayProvenanceHash());
     }
 
     @Test

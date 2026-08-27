@@ -127,11 +127,12 @@ function validateStringMap(value: unknown, path: string): void {
 function validateProductionPolicy(value: unknown, path: string): void {
   const source = record(value, path);
   for (const key of [
-    'policyId', 'policyHash', 'draftSelectionPolicyId', 'draftSelectionPolicyHash',
+    'policyId', 'policyHash', 'activationDecisionSchema', 'activationDecisionCode',
+    'knownDiagnosticLimitation', 'draftSelectionPolicyId', 'draftSelectionPolicyHash',
     'runtimeProfileId', 'configurationHash', 'activeGameplayRulesVersion',
     'engineImplementationVersion', 'matchupMode', 'compositionMode', 'jungleClearContribution',
   ]) text(source[key], `${path}.${key}`);
-  for (const key of ['economyCandidateActivation', 'tempoCandidateActivation', 'diagnosticsExcludedFromGameplayIdentity']) {
+  for (const key of ['statisticalHoldoutApproved', 'economyCandidateActivation', 'tempoCandidateActivation', 'diagnosticsExcludedFromGameplayIdentity']) {
     bool(source[key], `${path}.${key}`);
   }
 }

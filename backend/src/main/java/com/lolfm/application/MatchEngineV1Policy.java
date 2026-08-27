@@ -15,11 +15,21 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Objects;
 
-/** Authoritative, code-owned production runtime policy for the frozen Match Engine V1 boundary. */
+/** Authoritative, code-owned production runtime policy for the Match Engine V1 boundary. */
 public final class MatchEngineV1Policy {
     public static final String CONTRACT_SCHEMA = "MATCH_ENGINE_CONTRACT_V1";
-    public static final String POLICY_SCHEMA = "MATCH_ENGINE_V1_PRODUCTION_POLICY_V1";
-    public static final String POLICY_ID = "MATCH_ENGINE_V1_BASELINE_PRODUCTION_POLICY";
+    public static final String POLICY_SCHEMA = "MATCH_ENGINE_V1_PRODUCTION_POLICY_V2";
+    public static final String POLICY_ID =
+            "MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY";
+    public static final String ACTIVATION_DECISION_SCHEMA =
+            "MATCH_ENGINE_V9_MATCHUP_COMPOSITION_PRODUCTION_ACTIVATION_DECISION_V1";
+    public static final String ACTIVATION_DECISION_CODE =
+            "PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION";
+    public static final String KNOWN_DIAGNOSTIC_LIMITATION =
+            "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES";
+    public static final String APPROVED_POLICY_SHA256 =
+            "c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5";
+    /** Historical Final 13G evidence identity; retained for audit compatibility only. */
     public static final String FINAL_13G_B_MANIFEST_SHA256 =
             "bd9a9cf3b089cfc76fceb0311094c1b70232278404f5675c42d89849d927bc98";
     public static final String FINAL_13G_B_APPROVED_SOURCE_TREE_SHA256 =
@@ -42,7 +52,8 @@ public final class MatchEngineV1Policy {
             "LOW_LEVEL_SIMULATION_OPTIONS_PRODUCTION_DEFAULTS";
 
     private static final ResolvedSimulationRuntimeProfile PROFILE =
-            SimulationRuntimeProfiles.resolve(SimulationRuntimeProfileId.BASELINE_V1);
+            SimulationRuntimeProfiles.resolve(
+                    SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
     private static final Snapshot SNAPSHOT = createAndVerify();
 
     private MatchEngineV1Policy() {
@@ -63,7 +74,8 @@ public final class MatchEngineV1Policy {
                 || !requirement.draftSelectionPolicyId().equals(DRAFT_SELECTION_POLICY_ID)
                 || !requirement.draftSelectionPolicyHash().equals(
                 DRAFT_SELECTION_POLICY_SHA256)
-                || requirement.runtimeProfileId() != SimulationRuntimeProfileId.BASELINE_V1
+                || requirement.runtimeProfileId()
+                != SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1
                 || !requirement.configurationHash().equals(PROFILE.configurationHash())
                 || requirement.economyCandidateActivation()
                 || requirement.tempoCandidateActivation()) {
@@ -73,33 +85,47 @@ public final class MatchEngineV1Policy {
 
     public static Requirement requirement() {
         return new Requirement(POLICY_ID, DRAFT_SELECTION_POLICY_ID,
-                DRAFT_SELECTION_POLICY_SHA256, SimulationRuntimeProfileId.BASELINE_V1,
+                DRAFT_SELECTION_POLICY_SHA256,
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1,
                 PROFILE.configurationHash(), false, false);
     }
 
-    public static boolean isLowLevelProductionDefaultsAuthoritative() {
+    /** Low-level defaults can align with production semantics without owning product authority. */
+    public static boolean isLowLevelProductionDefaultsAlignedWithAuthoritativeProfile() {
         SimulationOptions lowLevel = SimulationOptions.productionDefaults();
-        return lowLevel.championMatchupMode() == PROFILE.gameplayConfiguration().championMatchupMode()
+        return lowLevel.championMatchupMode()
+                == PROFILE.gameplayConfiguration().championMatchupMode()
                 && lowLevel.teamCompositionGameplayMode()
                 == PROFILE.gameplayConfiguration().teamCompositionGameplayMode()
                 && lowLevel.jungleClearContribution()
                 == PROFILE.gameplayConfiguration().jungleClearContribution();
     }
 
+    /** @deprecated Product authority is owned only by this policy, never by low-level defaults. */
+    @Deprecated(forRemoval = false)
+    public static boolean isLowLevelProductionDefaultsAuthoritative() {
+        return false;
+    }
+
     private static Snapshot createAndVerify() {
         SimulationGameplayConfiguration configuration = PROFILE.gameplayConfiguration();
         if (!PROFILE.configurationHash().equals(
-                "c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215")
+                "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d")
                 || !PROFILE.activeGameplayRulesVersion().equals(
                 SimulationRuntimeProfiles.PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION)
-                || configuration.championMatchupMode() != ChampionMatchupMode.OFF
-                || configuration.teamCompositionGameplayMode() != TeamCompositionGameplayMode.OFF
+                || configuration.championMatchupMode() != ChampionMatchupMode.GEOMETRIC_V2
+                || configuration.teamCompositionGameplayMode()
+                != TeamCompositionGameplayMode.PRODUCTION_V2
                 || configuration.jungleClearContribution()
                 != JungleClearContribution.DISABLED_NOT_INTEGRATED) {
             throw new IllegalStateException("MATCH_ENGINE_V1_APPROVED_RUNTIME_DRIFT");
         }
         String canonical = "policySchema=" + POLICY_SCHEMA + '\n'
                 + "policyId=" + POLICY_ID + '\n'
+                + "activationDecisionSchema=" + ACTIVATION_DECISION_SCHEMA + '\n'
+                + "activationDecisionCode=" + ACTIVATION_DECISION_CODE + '\n'
+                + "knownDiagnosticLimitation=" + KNOWN_DIAGNOSTIC_LIMITATION + '\n'
+                + "statisticalHoldoutApproved=false\n"
                 + "contractSchema=" + CONTRACT_SCHEMA + '\n'
                 + "draftSelectionPolicyId=" + DRAFT_SELECTION_POLICY_ID + '\n'
                 + "draftSelectionPolicyHash=" + DRAFT_SELECTION_POLICY_SHA256 + '\n'
@@ -115,14 +141,20 @@ public final class MatchEngineV1Policy {
                 + "economyCandidateActivation=false\n"
                 + "tempoCandidateActivation=false\n"
                 + "diagnosticsExcludedFromGameplayIdentity=true\n";
+        String policyHash = sha256(canonical);
+        if (!APPROVED_POLICY_SHA256.equals(policyHash)) {
+            throw new IllegalStateException("MATCH_ENGINE_V1_APPROVED_POLICY_DRIFT");
+        }
         return new Snapshot(
-                POLICY_SCHEMA, POLICY_ID, CONTRACT_SCHEMA,
+                POLICY_SCHEMA, POLICY_ID, ACTIVATION_DECISION_SCHEMA,
+                ACTIVATION_DECISION_CODE, KNOWN_DIAGNOSTIC_LIMITATION, false,
+                CONTRACT_SCHEMA,
                 DRAFT_SELECTION_POLICY_ID, DRAFT_SELECTION_POLICY_SHA256,
                 PROFILE.profileId(),
                 PROFILE.configurationHash(), SimulationRuntimeProfiles.CONFIGURATION_HASH_ALGORITHM,
                 configuration, PROFILE.activeGameplayRulesVersion(),
                 SimulationProvenanceService.ENGINE_IMPLEMENTATION_VERSION,
-                false, false, true, sha256(canonical), POLICY_HASH_ALGORITHM,
+                false, false, true, policyHash, POLICY_HASH_ALGORITHM,
                 LOW_LEVEL_DEFAULT_IDENTITY, false);
     }
 
@@ -158,6 +190,10 @@ public final class MatchEngineV1Policy {
     public record Snapshot(
             String schemaVersion,
             String policyId,
+            String activationDecisionSchema,
+            String activationDecisionCode,
+            String knownDiagnosticLimitation,
+            boolean statisticalHoldoutApproved,
             String contractSchemaVersion,
             String draftSelectionPolicyId,
             String draftSelectionPolicyHash,
@@ -178,6 +214,11 @@ public final class MatchEngineV1Policy {
         public Snapshot {
             schemaVersion = required(schemaVersion, "schemaVersion");
             policyId = required(policyId, "policyId");
+            activationDecisionSchema = required(
+                    activationDecisionSchema, "activationDecisionSchema");
+            activationDecisionCode = required(activationDecisionCode, "activationDecisionCode");
+            knownDiagnosticLimitation = required(
+                    knownDiagnosticLimitation, "knownDiagnosticLimitation");
             contractSchemaVersion = required(contractSchemaVersion, "contractSchemaVersion");
             draftSelectionPolicyId = required(
                     draftSelectionPolicyId, "draftSelectionPolicyId");

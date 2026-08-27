@@ -4,7 +4,7 @@
 
 ## Production과 구현 결과
 
-현재 production profile은 계속 `BASELINE_V1`이다. Engine은 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`, active rules는 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`, resource provenance는 `64ab1be3fdfe8d6660648ac634b52a86a5693d264bfbe707153dac9c17d39b4f`로 유지됐다. Matchup/Composition gain, 확률, timing, resource와 HTTP 기본 wiring은 바꾸지 않았다.
+이 재검증 종료 당시 production profile은 계속 `BASELINE_V1`이었다. Engine은 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`, active rules는 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`, resource provenance는 `64ab1be3fdfe8d6660648ac634b52a86a5693d264bfbe707153dac9c17d39b4f`로 유지됐다. Matchup/Composition gain, 확률, timing, resource와 HTTP 기본 wiring은 바꾸지 않았다. 이후 별도 production activation decision은 이 문서의 blocked verdict를 holdout pass로 재해석하지 않는다.
 
 Auto Draft post-review gap 세 건은 다음처럼 보완했다.
 

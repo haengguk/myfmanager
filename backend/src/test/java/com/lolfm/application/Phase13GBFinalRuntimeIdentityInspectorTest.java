@@ -1,6 +1,7 @@
 package com.lolfm.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,7 +14,6 @@ import com.lolfm.simulator.ConfiguredMatchSimulatorFactory;
 import com.lolfm.simulator.MatchSimulator;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,34 +33,10 @@ class Phase13GBFinalRuntimeIdentityInspectorTest {
     @Autowired MockMvc mvc;
 
     @Test
-    void productionRegistryAndActualWiringRemainExactAfterHistoricalDecisionSource() throws Exception {
-        var evidence = inspector().inspect(Path.of("."));
-        Path output = temporary.resolve("current-runtime-identity");
-        String rawSha = Phase13GBFinalRuntimeIdentityEvidence.writeBundle(output, evidence);
-        var replay = Phase13GBFinalRuntimeIdentityEvidence.readBundle(output, false);
-
-        assertThat(replay).isEqualTo(evidence);
-        assertThat(evidence.identityValues())
-                .containsEntry("retainedRuntimeProfileId", "BASELINE_V1")
-                .containsEntry("realDraftDefaultVsExplicitReplayIdentityExact", "true")
-                .containsEntry("springAutowiredTimelineExact", "true")
-                .containsEntry("httpInjectedAutowiredSimulatorExact", "true")
-                .containsEntry("httpInputRosterSource", "DUMMY_DATA_FACTORY")
-                .containsEntry(
-                        "lowLevelProductionDefaultsAuthoritativeApplicationRuntimeDefault",
-                        "false")
-                .containsEntry("lowLevelProductionDefaultsChampionMatchupMode", "GEOMETRIC_V2")
-                .containsEntry(
-                        "lowLevelProductionDefaultsTeamCompositionGameplayMode",
-                        "PRODUCTION_V2")
-                .containsEntry("automaticTuningPerformed", "false")
-                .containsEntry("holdoutRerunPerformed", "false");
-        assertThat(evidence.runtimeIdentityHash()).matches("[0-9a-f]{64}");
-        assertThat(rawSha).matches("[0-9a-f]{64}");
-        assertThat(evidence.identityValues().get("productionSourceTreeHash"))
-                .isNotEqualTo(MatchEngineV1Policy.FINAL_13G_B_APPROVED_SOURCE_TREE_SHA256);
-        assertThat(Integer.parseInt(evidence.identityValues().get(
-                "productionSourceTreeFileCount"))).isGreaterThan(472);
+    void historicalBaselineInspectorCannotBeReusedAsTheActivatedProductionOracle() {
+        assertThatThrownBy(() -> inspector().inspect(Path.of(".")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("RealDraft default/explicit execution provenance mismatch");
     }
 
     @Test
@@ -82,6 +58,4 @@ class Phase13GBFinalRuntimeIdentityInspectorTest {
                 mapper, orchestrator, autowiredSimulator, configuredFactory,
                 champions, dummyDataFactory, controller);
     }
-
-    @TempDir Path temporary;
 }

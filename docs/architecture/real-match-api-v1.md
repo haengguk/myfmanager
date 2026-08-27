@@ -14,7 +14,7 @@ Real Match API V1은 실제 LCK roster, Professional Draft와 동결된 `MatchEn
 
 응답에는 다음이 포함된다.
 
-- `matchEngineContract`와 현재 production policy/configuration/rules/engine identity
+- `matchEngineContract`와 현재 production policy/configuration/rules/engine identity, activation decision/known limitation/holdout 승인 여부
 - seed가 필수 signed Java long decimal string이라는 정책
 - 표시용 team code/name, player ID/nickname/position
 - 코드에서 확인한 resource version과 provenance hash
@@ -100,15 +100,19 @@ V1은 다음 runtime만 허용한다.
 | 항목 | 값 |
 | --- | --- |
 | Contract | `MATCH_ENGINE_CONTRACT_V1` |
-| Policy | `MATCH_ENGINE_V1_BASELINE_PRODUCTION_POLICY` |
-| Policy hash | `b2975b2f3ced0b1864e7730abc7794dcbf4bafe7a031ef098811f62daa796d94` |
+| Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V2` |
+| Policy | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY` |
+| Policy hash | `c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5` |
+| Activation decision | `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION` |
+| Known limitation | `MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES` |
+| Statistical holdout approved | `false` |
 | Draft selection | `AUTO_DRAFT_VARIETY_V1` |
 | Draft selection policy hash | `b4645a9897329b6b0d50405a22ef788885a40ecede4b0fedd04e168211cf75cc` |
-| Runtime profile | `BASELINE_V1` |
-| Configuration hash | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
+| Runtime profile | `PRODUCTION_MATCHUP_COMPOSITION_V1` |
+| Configuration hash | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
 | Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3` |
 | Engine | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9` |
-| Matchup / Composition | `OFF` / `OFF` |
+| Matchup / Composition | `GEOMETRIC_V2` / `PRODUCTION_V2` |
 | Jungle contribution | `DISABLED_NOT_INTEGRATED` |
 | Economy / Tempo candidate | `false` / `false` |
 
@@ -145,7 +149,7 @@ Real Match API focused 검증은 V8 `PlayerAbilityProfileContractTest`를 포함
 
 최종 complete backend regression은 메모리 한도에 맞춘 일회성 JVM/worker 제한 아래 default `test` 전체를 첫 실행에서 수행했고 196 suites / 2,091 tests, failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 810.092초, Gradle wall time은 13분 43초다. 테스트 선택이나 default diagnostic 제외 경계는 바꾸지 않았으며, 이후 executable production source, resource, Gradle과 shared fixture는 변경하지 않았다.
 
-`backend/build/reports/real-match-api-v1/`의 handoff 6개 JSON과 `SHA256SUMS.txt`는 V8 당시 생성한 historical frontend reference다. 그 fixture는 GEN(BLUE) 승리, 3,430초와 output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`를 보존하지만 현재 V9 gameplay/provenance oracle로 사용하지 않는다. 현재 LIVE `GEN` 대 `T1`, seed `"73"` 결과는 T1(RED) 승리, 1,750초, event 350개, snapshot 176개와 output hash `40c8786ebece2d9abc71d95c304d39ef8f63f2b3277237d1aeaf0a3cf1d76c34`다. 이 hash 변경은 `AUTO_DRAFT_VARIETY_V1` policy와 20-turn selection trace가 additive input/output identity에 결속된 결과다. V9 handoff를 공식 승격할 때는 현재 source binding과 fresh-JVM candidate A/B를 새로 검증해야 한다.
+`backend/build/reports/real-match-api-v1/`의 handoff 6개 JSON과 `SHA256SUMS.txt`는 V8 당시 생성한 historical frontend reference다. 그 fixture는 GEN(BLUE) 승리, 3,430초와 output hash `bdc597af083aa4f081cf4fe7a242d0e36eec7744b186d998d6f83b717648e874`를 보존하지만 현재 V9 gameplay/provenance oracle로 사용하지 않는다. Activation smoke의 LIVE `GEN` 대 `T1`, seed `"73"` 결과는 T1(RED) 승리, 2,320초, event 376개, snapshot 233개와 output hash `b74cd4a509134fc5a1b8cb9aa458e6a86233f407ce59084856aa370a80a33481`다. 이 한 경기는 API/화면 호환성 smoke일 뿐 balance 표본이 아니다. 별도 V9 handoff를 공식 승격할 때는 current source binding과 fresh-JVM candidate A/B를 새로 검증해야 한다.
 
 Artifact writer는 전체 XML의 단순 개수만 신뢰하지 않는다. 필수 8개 suite와 최소 test 수, failures/errors/skipped 0을 확인하고, 전용 dynamic test가 기록한 production source 502 files / `e23f2d2149edd3a7478b5333f126e876d969b5a3c71c20b670447cc9cbd71817` 및 API verification source 9 files / `a83456b742e32a03810ee9c9584a2015b29f683b96c6d478337d2bec957eb9f9`를 현재 tree와 exact 비교한다. 생성 전에는 options/roster/Draft/result/final snapshot/structured participant/hash/Random/선수 ability profile의 V8 semantic audit와 same-request replay도 수행한다. 두 fresh JVM candidate A/B의 JSON 6개와 manifest는 7/7 byte-for-byte exact였고, 감사 통과 뒤에만 공식 local artifact로 승격했다. 따라서 이전 V6/V7 handoff, 이전 clean XML이나 고정 base commit/run-count 표시는 새 evidence로 재사용할 수 없다.
 
@@ -165,4 +169,4 @@ V1-B는 임의의 서로 다른 두 팀과 canonical signed-long seed를 실제 
 
 현재 response `draft`와 strict LIVE validator는 `draftSelectionTraceHashAlgorithm`을 additive field로 포함한다. Backend input은 policy ID/hash, 20개 trace, trace-set hash와 algorithm을 authoritative하게 재검증하며 replay provenance V3도 이 algorithm identity를 결속한다. 기존 response field의 이름과 의미, timeline playback, chart/speed control은 바꾸지 않았다.
 
-`AUTO_DRAFT_SELECTION_TRACE_V2`는 raw double last bit를 hash input에서 제거하고 기존 fixed-point canonical score/loss/weight/bucket evidence만 사용한다. Frontend production build는 통과했으며 화면 flow는 바뀌지 않아 Playwright를 다시 실행하지 않았다. 이 API hardening은 candidate runtime activation이 아니고 public production profile은 계속 `BASELINE_V1`이다.
+`AUTO_DRAFT_SELECTION_TRACE_V2`는 raw double last bit를 hash input에서 제거하고 기존 fixed-point canonical score/loss/weight/bucket evidence만 사용한다. 이 API hardening 당시에는 candidate runtime activation이 아니었고 public profile이 `BASELINE_V1`이었다. 이후 별도 V9 activation decision으로 public profile은 `PRODUCTION_MATCHUP_COMPOSITION_V1`이 됐으며 Draft trace 계약 자체는 바뀌지 않았다.

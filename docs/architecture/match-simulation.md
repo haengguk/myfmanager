@@ -14,35 +14,36 @@ HTTP simulation은 `com.lolfm.controller.MatchController`의 `POST /api/matches/
 
 별도의 backend application entry point인 `RealDraftMatchOrchestrator`는 explicit LCK team code 두 개, caller-owned `SeriesDraftHistory`, match seed를 받는다. 이 path는 `LckTeamAssembler`가 만든 실제 Team으로 Draft를 실행하고 `FinalDraftResult.matchChampionAssignments()`를 그대로 같은 Team과 함께 simulator에 전달한다. `GET /api/v1/real-matches/options`와 `POST /api/v1/real-matches/simulate`가 이 경로를 additive하게 노출한다. 기존 `MatchController`나 `DummyDataFactory`를 거치지 않으며 세부 HTTP 계약은 [Real Match API V1](real-match-api-v1.md)에 있다.
 
-Real Draft의 `AUTO_DRAFT_VARIETY_V1`은 match seed와 structured Draft context를 SHA-256으로 결속해 최고점 대비 2.0 이내 상위 3개 후보에서 deterministic weighted selection을 수행한다. 이 선택은 `Random` 객체를 사용하지 않으며 아래 simulator gameplay stream을 소비하지 않는다. 따라서 Draft selection trace와 simulator `randomFingerprint`는 서로 다른 provenance 축이다. 기존 Draft scoring/search 의미와 `BASELINE_V1` Matchup/Composition runtime OFF도 그대로다.
+Real Draft의 `AUTO_DRAFT_VARIETY_V1`은 match seed와 structured Draft context를 SHA-256으로 결속해 최고점 대비 2.0 이내 상위 3개 후보에서 deterministic weighted selection을 수행한다. 이 선택은 `Random` 객체를 사용하지 않으며 아래 simulator gameplay stream을 소비하지 않는다. 따라서 Draft selection trace와 simulator `randomFingerprint`는 서로 다른 provenance 축이다. Draft scoring/search 의미는 그대로이고, 공개 Real Match runtime은 `PRODUCTION_MATCHUP_COMPOSITION_V1`에서 Matchup `GEOMETRIC_V2`와 Composition `PRODUCTION_V2`를 실제 simulation에 적용한다.
 
 Draft scoring/search 자체는 Random을 사용하지 않는다. 선수별 champion proficiency는 Draft evaluator 입력이지만 general player ratings는 아직 Draft scoring 입력이 아니며, final assignment 이후 Match Engine의 ability realization에 사용된다. Draft 단계의 Matchup/Composition 평가는 match runtime contribution 활성화와 별개다. Fresh Matchup/Composition requalification은 별도 milestone에서 비중첩 seed와 policy contract로 수행해야 한다.
 
 동결된 application boundary인 `MatchEngineV1`은 완성된 roster/final Draft/seed를 immutable input으로 받아 immutable summary/timeline/provenance를 반환한다. `RealDraftMatchOrchestrator.orchestrateV1`이 이 경계에 additive하게 연결되며, 성공한 output까지 검증된 뒤에만 series history를 commit한다. Real Match API service는 fresh-history 단판 overload만 호출하고 policy/provenance/output hash를 검증한 뒤 immutable transport DTO를 반환한다. 정책, 입출력, hash와 호환성의 전체 계약은 [Match Engine V1 Contract](match-engine-v1.md)에 있다.
 
-기존 overload는 `BASELINE_V1`을 명시적으로 resolve한다. Additive overload는 임의 boolean 묶음이 아니라 `SimulationRuntimeProfileId`만 받는다. `ConfiguredMatchSimulatorFactory`의 public boundary도 profile ID와 별도 `SimulationInstrumentation`만 받아 closed registry를 내부에서 resolve한다. Caller-fabricated `ResolvedSimulationRuntimeProfile`은 실행/provenance 경계에서 허용하지 않는다.
+명시적 profile 인자가 없는 `RealDraftMatchOrchestrator` overload는 `MatchEngineV1Policy.authoritative()`에서 현재 production profile을 얻는다. Additive explicit-profile overload는 임의 boolean 묶음이 아니라 `SimulationRuntimeProfileId`만 받으며 `BASELINE_V1`을 명시적으로 선택해 롤백/비교할 수 있다. `ConfiguredMatchSimulatorFactory`의 public boundary도 profile ID와 별도 `SimulationInstrumentation`만 받아 closed registry를 내부에서 resolve한다. Caller-fabricated `ResolvedSimulationRuntimeProfile`은 실행/provenance 경계에서 허용하지 않는다.
 
 ## Explicit Runtime Profiles
 
-다섯 profile의 공통 gameplay flag는 Lane Combat, FARM Recovery, Jungle Gank, Counter Gank, Roam, Objective Priority, Lane Phase, Mid/Late Macro, Objective Decision, Progression/Progression Power, Champion Power 모두 ON이다. 기존 세 profile은 Jungle Clear contribution이 `DISABLED_NOT_INTEGRATED`이고, 네 번째 candidate는 `ECONOMY_V1`, 다섯 번째 candidate는 `ECONOMY_AND_GANK_TEMPO_V1`이다.
+여섯 profile의 공통 gameplay flag는 Lane Combat, FARM Recovery, Jungle Gank, Counter Gank, Roam, Objective Priority, Lane Phase, Mid/Late Macro, Objective Decision, Progression/Progression Power, Champion Power 모두 ON이다. Baseline, Matchup-only, Full candidate와 production profile은 Jungle Clear contribution이 `DISABLED_NOT_INTEGRATED`이고, 두 Jungle candidate만 각각 `ECONOMY_V1`, `ECONOMY_AND_GANK_TEMPO_V1`이다.
 
 | Profile | Matchup | Composition | Jungle Clear | Configuration hash |
 | --- | --- | --- | --- | --- |
 | `BASELINE_V1` | `OFF` | `OFF` | `DISABLED_NOT_INTEGRATED` | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
 | `MATCHUP_ONLY_CANDIDATE_V1` | `GEOMETRIC_V2` | `OFF` | `DISABLED_NOT_INTEGRATED` | `58714464c19a2cffd108d47a93a0909126513c8bb10cb0e19bbd87f8e78532ec` |
 | `FULL_SYSTEM_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `DISABLED_NOT_INTEGRATED` | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
+| `PRODUCTION_MATCHUP_COMPOSITION_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `DISABLED_NOT_INTEGRATED` | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
 | `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_V1` | `e04869bca5281f7f416c8191d7bf1b5be04b3129f33f6dfd4de83e8d8e92743b` |
 | `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1` | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_AND_GANK_TEMPO_V1` | `c835280cbaa1244f4fecb099b19f71111c6d77aa1aeb1b7110a6e86e6381451c` |
 
-`BASELINE_V1`은 이름만 OFF 묶음이 아니라 현재 Spring `@Autowired MatchSimulator`의 13 gameplay booleans와 두 mode를 모두 snapshot한 profile이다. Fixed-seed complete timeline parity test가 기존 constructor path와 exact equality를 검증한다. `ChampionMatchupMode.ON`, Composition `SHADOW`/`CANDIDATE` 같은 historical/internal audit path는 application profile로 선택할 수 없다.
+`BASELINE_V1`은 이름만 OFF 묶음이 아니라 legacy Spring `@Autowired MatchSimulator`의 13 gameplay booleans와 두 mode를 모두 snapshot한 명시적 롤백 profile이다. Fixed-seed complete timeline parity test가 활성화 전 frozen baseline과 exact equality를 검증한다. Production과 Full candidate의 configuration hash가 같은 것은 profile ID가 아니라 gameplay configuration만 hash하는 계약에 따른 의도된 alias다. 둘은 runtime profile ID, production policy와 replay provenance로 구분된다. `ChampionMatchupMode.ON`, Composition `SHADOW`/`CANDIDATE` 같은 historical/internal audit path는 application profile로 선택할 수 없다.
 
 Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
 
-기존 세 profile은 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2`를 사용한다. V3/V2 갱신은 V9 구조물 내구도·지속 공성 규칙이 모든 profile에 공통으로 적용된 사실을 식별한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
+Baseline, Matchup-only, Full candidate와 production profile은 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2`를 사용한다. V3/V2 갱신은 V9 구조물 내구도·지속 공성 규칙이 모든 profile에 공통으로 적용된 사실을 식별한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
 
 ## Match Engine V1 Policy Boundary
 
-Match Engine V1의 authoritative application policy는 `BASELINE_V1` 하나이며 Economy/Tempo candidate activation은 둘 다 `false`다. Caller는 V1 facade에 profile ID나 gameplay boolean을 전달할 수 없다. `SimulationOptions.productionDefaults()`는 별도의 저수준 constructor default이고 V1 policy로 해석하지 않는다.
+Match Engine V1의 authoritative application policy는 `PRODUCTION_MATCHUP_COMPOSITION_V1` 하나이며 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`, Economy/Tempo candidate activation `false`를 고정한다. 활성화 결정은 `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION`이고 statistical holdout approval은 `false`다. Caller는 V1 facade에 profile ID나 gameplay boolean을 전달할 수 없다. `SimulationOptions.productionDefaults()`는 값이 일치해도 별도의 저수준 constructor default일 뿐 제품 authority로 해석하지 않는다.
 
 V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal champion-role을 simulator 및 seeded `Random` 생성 전에 거부한다. 성공 경로에서는 existing simulator와 common gameplay rules를 그대로 실행한 뒤 structured winner/end reason, final snapshot, stable participant identity, full provenance를 immutable output으로 투영한다. 기존 simulator와 Real Draft overload는 제거하거나 의미를 바꾸지 않았다.
 
@@ -53,7 +54,7 @@ V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal ch
 - `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
 - `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`다. V8은 authoritative player rating/proficiency 실행을 추가했고, V9은 명시적 구조물 target, 전체 구조물 HP, match-scoped 지속 공성/웨이브, 구조화된 중복 방어와 넥서스 포탑 재생성을 통합했다.
-- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. 기존 세 profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2`다.
+- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. Baseline, Matchup-only, Full candidate와 production profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2`다.
 - `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring/selection policy, selection trace hash, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다. Match Engine V1은 이 legacy identity와 전체 `MatchEngineV1Input.inputHash`를 별도 V1 replay binding으로 다시 묶어 명시적 rating/proficiency snapshot도 재현 입력에 포함한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
 - `randomFingerprint`: match의 seeded `Random.next(bits)` draw count와 resolver context/value의 ordered SHA-256을 기록한다. Gameplay input이 아닌 observational output이므로 configuration/replay hash에는 넣지 않는다.
@@ -82,11 +83,13 @@ V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal ch
 | 구성 경로 | Champion Power | Matchup | Composition | Jungle Clear |
 | --- | --- | --- | --- | --- |
 | Spring `@Autowired MatchSimulator` (`MatchController`) | ON | `OFF` | `OFF` | OFF |
-| Real Match API V1 (`RealDraftMatchOrchestrator.orchestrateV1`) | ON | `OFF` | `OFF` | OFF |
+| Real Match API V1 (`RealDraftMatchOrchestrator.orchestrateV1`) | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | OFF |
 | 명시적 `SimulationOptions.productionDefaults()` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | OFF |
-| `RealDraftMatchOrchestrator` 기존 overload / `BASELINE_V1` | ON | `OFF` | `OFF` | OFF |
+| `RealDraftMatchOrchestrator` 암묵적 overload | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | OFF |
+| explicit `BASELINE_V1` 롤백/비교 경로 | ON | `OFF` | `OFF` | OFF |
 | `MATCHUP_ONLY_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `OFF` | OFF |
 | `FULL_SYSTEM_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | OFF |
+| `PRODUCTION_MATCHUP_COMPOSITION_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | OFF |
 | `FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_V1` |
 | `FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1` | ON | `GEOMETRIC_V2` | `PRODUCTION_V2` | `ECONOMY_AND_GANK_TEMPO_V1` |
 
@@ -184,7 +187,7 @@ Focused gate는 다음 교차 계약을 한 묶음으로 검증한다.
 - death/FARM recovery와 action block이 겹치면 가장 늦은 boundary까지 유지한다. Macro FARM block도 CS/FARM gold/XP/Tempo credit/Jungle Economy Random을 모두 막되 passive gold는 유지한다.
 - duplicate/ineligible path, priority fallthrough, 한 tick 한 major combat, common reward/death path, structured summary/KILL 연결, fresh-match state와 same-seed replay를 함께 검증한다. Major-combat gate는 종류 집합이 아니라 actual summary marker의 multiplicity를 유지하므로 같은 tick의 같은 종류 중복도 실패하며, 연결된 `KILL`은 별도 attempt로 세지 않는다.
 
-다섯 profile의 configuration hash와 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`은 바뀌지 않았다. Engine implementation은 Batch C V4/V5 뒤 determinism V6로 올라가 replay provenance hash는 의도적으로 달라지지만, 기존 네 profile 12경기의 complete timeline과 Random fingerprint는 Pre-Tempo oracle과 exact parity다. B1 artifact도 두 fresh JVM에서 7/7 byte-identical하다. 이 gate는 correctness hardening이며 calibration이나 `PRODUCTION_V1` 채택 결정이 아니다.
+당시 다섯 profile의 configuration hash와 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V1`은 바뀌지 않았다. Engine implementation은 Batch C V4/V5 뒤 determinism V6로 올라가 replay provenance hash는 의도적으로 달라지지만, 기존 네 profile 12경기의 complete timeline과 Random fingerprint는 Pre-Tempo oracle과 exact parity다. B1 artifact도 두 fresh JVM에서 7/7 byte-identical하다. 이 gate는 correctness hardening이며 calibration이나 `PRODUCTION_V1` 채택 결정이 아니다.
 
 ### Final 13G-B real-data audit boundary
 
@@ -255,7 +258,7 @@ B2 calibration evidence(holdout 0)
 
 Final 13G-B는 simulator나 resolver가 아니라 B2/B3 artifact의 test-side read-only consumer다. B2/B3 raw manifest와 review cross-reference가 exact일 때만 결정을 만들며 새 seed, `Random`, Draft orchestration 또는 match state를 생성하지 않는다. Paired rows는 `fixtureId`, team code, stable player ID, champion ID와 side로 결합한다. Display nickname, event message, description과 array index는 gameplay attribution이나 segment key로 사용하지 않는다.
 
-Retained runtime evidence는 별도 test-side inspector가 actual production objects에서 만든다. Closed registry의 `BASELINE_V1`을 resolve하고 RealDraft 기본 overload와 explicit BASELINE, Spring autowired simulator, `POST /api/matches/simulate` controller injection을 fixed seed로 실행해 parity를 확인한다. Production source tree는 main Java/resources/settings와 B1/B2/B3 block을 제외한 production build contract에서 다시 계산하고, resource/Draft/rules/engine identity는 실제 RealDraft execution provenance에서 읽는다. Standalone synthesis는 frozen evidence raw SHA와 내부 ordered-lines runtime identity hash를 모두 다시 검증하므로 caller가 임의 profile/hash/wiring 값을 self-sign해 READY를 만들 수 없다.
+Final 13G-B 당시 retained runtime evidence는 별도 test-side inspector가 actual production objects에서 만들었다. Closed registry의 `BASELINE_V1`을 resolve하고 당시 RealDraft 기본 overload와 explicit BASELINE, Spring autowired simulator, `POST /api/matches/simulate` controller injection을 fixed seed로 실행해 parity를 확인했다. Production source tree는 main Java/resources/settings와 B1/B2/B3 block을 제외한 production build contract에서 다시 계산하고, resource/Draft/rules/engine identity는 실제 RealDraft execution provenance에서 읽었다. Standalone synthesis는 frozen evidence raw SHA와 내부 ordered-lines runtime identity hash를 모두 다시 검증하므로 caller가 임의 profile/hash/wiring 값을 self-sign해 READY를 만들 수 없었다.
 
 ```text
 B2 manifest/review + B3 manifest/review/frozen gate
@@ -268,11 +271,11 @@ production registry/actual wiring
   → Production Decision V2 (candidate activation false, runtime identity EXACT)
 ```
 
-결정은 `KEEP_CURRENT_RUNTIME_DEFAULT`이며 retained application runtime은 `BASELINE_V1`이다. Configuration hash는 `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`, active rules는 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, engine은 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6`다. Final evidence와 runtime identity가 모두 exact일 때만 `READY_FOR_MATCH_ENGINE_V1_FREEZE`이며, runtime evidence가 없거나 frozen identity와 다르면 `BLOCK_MATCH_ENGINE_V1_FREEZE_RUNTIME_IDENTITY_UNBOUND`다.
+당시 결정은 `KEEP_CURRENT_RUNTIME_DEFAULT`이며 retained application runtime은 `BASELINE_V1`이었다. Configuration hash는 `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`, active rules는 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V2`, engine은 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V6`였다. Final evidence와 runtime identity가 모두 exact일 때만 `READY_FOR_MATCH_ENGINE_V1_FREEZE`였으며, runtime evidence가 없거나 frozen identity와 다르면 `BLOCK_MATCH_ENGINE_V1_FREEZE_RUNTIME_IDENTITY_UNBOUND`였다. 이 historical evidence는 현재 V9 activation의 승인 근거로 재해석하거나 다시 쓰지 않는다.
 
 Economy의 frozen `FAIL`은 한 discrete G1 flip 경계라는 설명을 붙이되 승인으로 다시 이름 붙이지 않는다. Tempo의 10개 공통 champion bucket 민감도 순서는 calibration↔holdout unweighted Pearson 0.906으로 재현됐다. 이 분석은 pre-registered decision gate가 아니며 player/team/fixture/matchup confounder를 격리하지 않았으므로 champion의 독립 효과나 인과관계를 뜻하지 않는다. Winner flip 자체도 Random trajectory sensitivity이며 product tolerance가 정의되지 않았다. 따라서 Economy/Tempo candidate configuration은 계속 explicit audit profile로 존재하되 Production V1 기본 runtime에는 들어가지 않는다.
 
-이 결정은 production configuration enum이나 HTTP default를 변경해 “OFF”를 새로 구현한 것이 아니다. 이미 존재하는 현재 default를 유지하고 두 candidate를 활성화하지 않는 범위 결정이다. HTTP는 autowired `MatchSimulator`와 `DummyDataFactory` roster를 계속 사용하며 RealDraft API 전환은 하지 않았다. `SimulationOptions.productionDefaults()`는 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`, Jungle contribution OFF인 저수준 constructor default(configuration hash `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d`)로, authoritative application runtime default와 분리된다. 향후 Economy 수정 또는 Tempo V2는 소비된 B3 seed나 gate를 재사용하지 않고 새 candidate identity, calibration 계획, product tolerance와 fresh holdout을 가져야 한다.
+이 historical 결정은 production configuration enum이나 HTTP default를 변경해 “OFF”를 새로 구현한 것이 아니었다. 당시 존재하던 default를 유지하고 두 Jungle candidate를 활성화하지 않는 범위 결정이었다. 이후 Real Match API와 현재 Matchup/Composition production activation은 별도 versioned policy이며, legacy `POST /api/matches/simulate`의 autowired `MatchSimulator`와 `DummyDataFactory` 경로는 계속 보존한다. `SimulationOptions.productionDefaults()`는 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`, Jungle contribution OFF인 저수준 constructor default(configuration hash `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d`)로, 값이 같아도 authoritative application policy가 아니다. 향후 Economy 수정 또는 Tempo V2는 소비된 B3 seed나 gate를 재사용하지 않고 새 candidate identity, calibration 계획, product tolerance와 fresh holdout을 가져야 한다.
 
 ## Combat Strength Inputs
 

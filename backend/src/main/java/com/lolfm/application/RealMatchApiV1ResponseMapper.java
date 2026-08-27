@@ -300,7 +300,9 @@ public final class RealMatchApiV1ResponseMapper {
     private static RealMatchApiV1Dtos.ProductionPolicy productionPolicy() {
         MatchEngineV1Policy.Snapshot source = MatchEngineV1Policy.authoritative();
         return new RealMatchApiV1Dtos.ProductionPolicy(
-                source.policyId(), source.policyHash(), source.draftSelectionPolicyId(),
+                source.policyId(), source.policyHash(), source.activationDecisionSchema(),
+                source.activationDecisionCode(), source.knownDiagnosticLimitation(),
+                source.statisticalHoldoutApproved(), source.draftSelectionPolicyId(),
                 source.draftSelectionPolicyHash(), source.retainedRuntimeProfileId().name(),
                 source.configurationHash(), source.activeGameplayRulesVersion(),
                 source.engineImplementationVersion(),

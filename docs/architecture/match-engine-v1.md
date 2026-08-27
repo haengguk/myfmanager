@@ -2,25 +2,29 @@
 
 ## Purpose
 
-`MatchEngineV1`은 Final 13G-B production decision에서 승인된 현재 runtime을 실제 경기 기능이 사용할 수 있는 하나의 application boundary로 고정한다. Draft 결과를 다시 계산하거나 caller가 profile과 gameplay boolean을 조합하게 하지 않고, 완성된 두 roster와 final Draft, seed를 immutable input으로 받아 immutable result와 timeline, execution provenance를 반환한다.
+`MatchEngineV1`은 code-owned production policy가 승인한 현재 runtime을 실제 경기 기능이 사용하는 하나의 application boundary로 고정한다. Draft 결과를 다시 계산하거나 caller가 profile과 gameplay boolean을 조합하게 하지 않고, 완성된 두 roster와 final Draft, seed를 immutable input으로 받아 immutable result와 timeline, execution provenance를 반환한다.
 
-이 freeze는 Economy/Tempo candidate를 production으로 승격한 작업이 아니다. V1의 유일한 authoritative policy는 다음과 같다.
+현재 정책은 Matchup과 Composition을 production으로 활성화하지만 Economy/Tempo candidate는 승격하지 않는다. V1의 유일한 authoritative policy는 다음과 같다.
 
 | 항목 | 동결 값 |
 | --- | --- |
 | Contract schema | `MATCH_ENGINE_CONTRACT_V1` |
-| Policy | `MATCH_ENGINE_V1_BASELINE_PRODUCTION_POLICY` |
-| Policy hash | `fb6b37ba770af03c176ff00bdbe683afb1e2701473461ceef6cd808bf5e970e5` |
-| Runtime profile | `BASELINE_V1` |
-| Configuration hash | `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215` |
+| Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V2` |
+| Policy | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY` |
+| Policy hash | `c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5` |
+| Runtime profile | `PRODUCTION_MATCHUP_COMPOSITION_V1` |
+| Configuration hash | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
 | Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3` |
 | Current engine implementation | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9` |
-| Matchup / Composition / Jungle contribution | `OFF` / `OFF` / `DISABLED_NOT_INTEGRATED` |
+| Matchup / Composition / Jungle contribution | `GEOMETRIC_V2` / `PRODUCTION_V2` / `DISABLED_NOT_INTEGRATED` |
 | Economy / Tempo candidate activation | `false` / `false` |
+| Activation decision | `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION` |
+| Known limitation | `MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES` |
+| Statistical holdout approved | `false` |
 
-`SimulationOptions.productionDefaults()`는 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`를 사용하는 저수준 constructor default다. 이름이 비슷하더라도 Match Engine V1의 authoritative application policy가 아니며 V1 facade는 이를 선택하지 않는다.
+`SimulationOptions.productionDefaults()`는 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`를 사용하는 저수준 constructor default다. 값은 현재 profile과 정렬되지만 이름이나 값의 일치가 제품 authority를 뜻하지 않는다. 권한은 `MatchEngineV1Policy`가 단독으로 소유하고 snapshot의 `lowLevelProductionDefaultsAuthoritativeApplicationDefault`는 `false`다.
 
-이 표는 현재 application policy를 설명한다. 아래 Freeze Evidence는 Match Engine V1 경계를 처음 고정했을 때의 historical V6 artifact이며 재생성하지 않는다. 이후 production implementation은 player ratings/ability profile의 V8과 구조물 HP·지속 공성·구조화 이벤트의 V9로 진화했다. Retained `BASELINE_V1`, configuration hash, candidate 비활성화와 HTTP 경계 의미는 유지되며 engine/rules/policy/output hash는 V9 의미를 식별하도록 갱신됐다. 기존 V8 frontend handoff는 historical reference이고 현재 V9 실행 oracle이 아니다.
+이 표는 현재 application policy를 설명한다. 아래 Freeze Evidence는 Match Engine V1 경계를 처음 고정했을 때의 historical V6 baseline artifact이며 재생성하지 않는다. 이후 production implementation은 player ratings/ability profile의 V8과 구조물 HP·지속 공성·구조화 이벤트의 V9로 진화했고, 현재 V9 activation에서 Matchup/Composition runtime을 별도 V2 policy로 전환했다. `BASELINE_V1`은 explicit rollback profile로 보존하며 기존 V8 frontend handoff는 historical reference이고 현재 V9 실행 oracle이 아니다.
 
 ## Immutable Input
 
@@ -74,7 +78,7 @@ Nexus 파괴 종료는 반드시 winner가 있고, safety timeout은 winner가 `
 
 기존 `MatchSimulator.simulate`, `simulateObserved`, legacy `RealDraftMatchOrchestrator` overload와 기존 response field는 유지한다. `simulateStructuredObserved`와 V1 input/output/orchestration만 additive하게 추가했다. 같은 Real Draft fixture와 seed에서 legacy 경로와 V1 경로는 Draft, complete legacy timeline, Random fingerprint와 replay hash/algorithm을 제외한 provenance field가 exact equality다. V1 replay hash는 legacy replay hash에 전체 `inputHash`를 추가 결속하므로 의도적으로 legacy 값과 다르다.
 
-현재 `POST /api/matches/simulate`는 계속 `DummyDataFactory`와 legacy HTTP response를 사용한다. Match Engine V1을 HTTP나 frontend에 노출하거나 기존 demo response를 교체하지 않았다. Career/Save/Season, BO3/BO5 series service와 persistence도 이 freeze 범위에 포함되지 않는다.
+현재 `POST /api/matches/simulate`는 계속 `DummyDataFactory`와 legacy HTTP response를 사용한다. 별도의 `GET /api/v1/real-matches/options`와 `POST /api/v1/real-matches/simulate`는 Match Engine V1을 LIVE frontend에 노출하며 항상 authoritative production policy만 사용한다. Request profile selector와 오류 시 `BASELINE_V1` 자동 fallback은 없다. Career/Save/Season, BO3/BO5 series service와 persistence는 이 계약에 포함되지 않는다.
 
 ## Historical Freeze Evidence
 
@@ -97,7 +101,7 @@ Final 13G-B evidence manifest `bd9a9cf3b089cfc76fceb0311094c1b70232278404f5675c4
 
 ## Next Integration Steps
 
-1. V1 request/response를 사용하는 Real Match API를 별도 additive endpoint로 설계한다.
-2. 실제 roster/Draft 선택과 immutable result/timeline playback을 frontend에 연결한다.
+1. LIVE production에서 winner/side, structure·Nexus progression, 경기 시간과 runtime integrity 오류를 structured field로 관찰한다.
+2. Matchup lane-pressure mutation의 downstream consumer action lineage를 새 versioned contract와 비중첩 fresh seed로 완성한다.
 3. caller-owned 임시 series history를 BO3/BO5 lifecycle과 영속 Save/Career 경계로 승격한다.
 4. Economy 수정이나 Tempo V2가 필요하면 기존 B3 seed를 재사용하지 말고 새 candidate identity, tolerance, calibration과 fresh holdout을 만든다.

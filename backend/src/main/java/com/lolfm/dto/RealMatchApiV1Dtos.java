@@ -73,6 +73,10 @@ public final class RealMatchApiV1Dtos {
     public record ProductionPolicy(
             String policyId,
             String policyHash,
+            String activationDecisionSchema,
+            String activationDecisionCode,
+            String knownDiagnosticLimitation,
+            boolean statisticalHoldoutApproved,
             String draftSelectionPolicyId,
             String draftSelectionPolicyHash,
             String runtimeProfileId,
@@ -89,6 +93,11 @@ public final class RealMatchApiV1Dtos {
         public ProductionPolicy {
             policyId = required(policyId, "policyId");
             policyHash = required(policyHash, "policyHash");
+            activationDecisionSchema = required(
+                    activationDecisionSchema, "activationDecisionSchema");
+            activationDecisionCode = required(activationDecisionCode, "activationDecisionCode");
+            knownDiagnosticLimitation = required(
+                    knownDiagnosticLimitation, "knownDiagnosticLimitation");
             draftSelectionPolicyId = required(
                     draftSelectionPolicyId, "draftSelectionPolicyId");
             draftSelectionPolicyHash = required(

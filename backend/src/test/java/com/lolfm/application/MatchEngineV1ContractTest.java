@@ -77,21 +77,34 @@ class MatchEngineV1ContractTest {
     }
 
     @Test
-    void productionPolicyFreezesApprovedBaselineAndSeparatesLowLevelDefaults() {
+    void productionPolicyActivatesApprovedMatchupCompositionAndSeparatesLowLevelDefaults() {
         MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
 
+        assertThat(policy.schemaVersion())
+                .isEqualTo("MATCH_ENGINE_V1_PRODUCTION_POLICY_V2");
+        assertThat(policy.policyId())
+                .isEqualTo("MATCH_ENGINE_V1_MATCHUP_COMPOSITION_PRODUCTION_POLICY");
+        assertThat(policy.activationDecisionSchema()).isEqualTo(
+                "MATCH_ENGINE_V9_MATCHUP_COMPOSITION_PRODUCTION_ACTIVATION_DECISION_V1");
+        assertThat(policy.activationDecisionCode()).isEqualTo(
+                "PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION");
+        assertThat(policy.knownDiagnosticLimitation()).isEqualTo(
+                "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES");
+        assertThat(policy.statisticalHoldoutApproved()).isFalse();
         assertThat(policy.retainedRuntimeProfileId())
-                .isEqualTo(SimulationRuntimeProfileId.BASELINE_V1);
+                .isEqualTo(SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
         assertThat(policy.configurationHash())
-                .isEqualTo("c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215");
+                .isEqualTo("caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d");
+        assertThat(policy.policyHash()).isEqualTo(
+                "c700fdbbec5a6ed1b750578eeed49e17818eee9dfbda00a1d534c9bf42be19b5");
         assertThat(policy.activeGameplayRulesVersion())
                 .isEqualTo("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3");
         assertThat(policy.engineImplementationVersion())
                 .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
         assertThat(policy.gameplayConfiguration().championMatchupMode())
-                .isEqualTo(ChampionMatchupMode.OFF);
+                .isEqualTo(ChampionMatchupMode.GEOMETRIC_V2);
         assertThat(policy.gameplayConfiguration().teamCompositionGameplayMode())
-                .isEqualTo(TeamCompositionGameplayMode.OFF);
+                .isEqualTo(TeamCompositionGameplayMode.PRODUCTION_V2);
         assertThat(policy.gameplayConfiguration().jungleClearContribution())
                 .isEqualTo(JungleClearContribution.DISABLED_NOT_INTEGRATED);
         assertThat(policy.economyCandidateActivation()).isFalse();
@@ -104,7 +117,10 @@ class MatchEngineV1ContractTest {
                 .isEqualTo(TeamCompositionGameplayMode.PRODUCTION_V2);
         assertThat(lowLevel.jungleClearContribution())
                 .isEqualTo(JungleClearContribution.DISABLED_NOT_INTEGRATED);
+        assertThat(MatchEngineV1Policy
+                .isLowLevelProductionDefaultsAlignedWithAuthoritativeProfile()).isTrue();
         assertThat(MatchEngineV1Policy.isLowLevelProductionDefaultsAuthoritative()).isFalse();
+        assertThat(policy.lowLevelProductionDefaultsAuthoritativeApplicationDefault()).isFalse();
     }
 
     @Test

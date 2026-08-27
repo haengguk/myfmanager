@@ -106,6 +106,13 @@ class CompositionProductionProvenanceIntegrationTest {
         assertThat(diagnostics.conflictingPerspectiveCount()).isZero();
         assertThat(diagnostics.duplicatePublicBindingCount()).isZero();
         assertThat(diagnostics.conflictingPublicBindingCount()).isZero();
+        assertThat(result.jungleEconomyExecutionStats().evaluations()).isZero();
+        assertThat(result.jungleEconomyExecutionStats().awardedCs()).isZero();
+        assertThat(result.jungleEconomyExecutionStats().awardedGold()).isZero();
+        assertThat(result.jungleEconomyExecutionStats().awardedExperience()).isZero();
+        assertThat(result.jungleTempoExecutionStats().economyUpdates()).isZero();
+        assertThat(result.jungleTempoExecutionStats().actualConsumptions().values())
+                .containsOnly(0);
     }
 
     @Test
@@ -142,7 +149,9 @@ class CompositionProductionProvenanceIntegrationTest {
         var assignments = new ChampionSelectionValidator(champions).resolve(null);
         SideOrientationRandomTraceObserver random = new SideOrientationRandomTraceObserver(
                 SYNTHETIC_SEED, "COMPOSITION_V9_PROVENANCE_FOCUSED_TEST", "BLUE", "RED", false);
-        return simulators.create(SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1, instrumentation)
+        return simulators.create(
+                        SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1,
+                        instrumentation)
                 .simulateWithSideDiagnostics(teams.createBlueTeam(), teams.createRedTeam(), assignments, random);
     }
 }

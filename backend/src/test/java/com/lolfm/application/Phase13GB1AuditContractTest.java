@@ -6,7 +6,6 @@ import com.lolfm.simulator.JungleClearContribution;
 import com.lolfm.simulator.SimulationRuntimeProfileId;
 import com.lolfm.simulator.SimulationRuntimeProfiles;
 import java.lang.reflect.Modifier;
-import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +31,12 @@ class Phase13GB1AuditContractTest {
                 SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1,
                 SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1);
         assertThat(Phase13GB1RealMatchHarness.AUDIT_PROFILES)
-                .containsExactlyElementsOf(List.of(SimulationRuntimeProfileId.values()));
+                .doesNotContain(SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
+        assertThat(SimulationRuntimeProfiles.resolve(
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1)
+                .gameplayConfiguration()).isEqualTo(SimulationRuntimeProfiles.resolve(
+                SimulationRuntimeProfileId.FULL_SYSTEM_CANDIDATE_V1)
+                .gameplayConfiguration());
         assertThat(Phase13GB1RealMatchHarness.AUDIT_PROFILES).allSatisfy(profileId -> {
             var profile = SimulationRuntimeProfiles.resolve(profileId);
             assertThat(profile.configurationHash()).isEqualTo(EXPECTED_HASHES.get(profileId));

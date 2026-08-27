@@ -11,7 +11,9 @@ export interface RealMatchSimulateRequestDto {
 }
 
 export interface RealMatchProductionPolicyDto {
-  policyId: string; policyHash: string; draftSelectionPolicyId: string; draftSelectionPolicyHash: string;
+  policyId: string; policyHash: string; activationDecisionSchema: string; activationDecisionCode: string;
+  knownDiagnosticLimitation: string; statisticalHoldoutApproved: boolean;
+  draftSelectionPolicyId: string; draftSelectionPolicyHash: string;
   runtimeProfileId: string; configurationHash: string;
   activeGameplayRulesVersion: string; engineImplementationVersion: string; matchupMode: string;
   compositionMode: string; jungleClearContribution: string; economyCandidateActivation: boolean;

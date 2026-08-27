@@ -92,7 +92,20 @@ class RealMatchApiV1ControllerTest {
         assertThat(root.path("productionPolicy").path("policyHash").asText())
                 .isEqualTo(MatchEngineV1Policy.authoritative().policyHash());
         assertThat(root.path("productionPolicy").path("runtimeProfileId").asText())
-                .isEqualTo("BASELINE_V1");
+                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
+        assertThat(root.path("productionPolicy").path("activationDecisionCode").asText())
+                .isEqualTo("PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION");
+        assertThat(root.path("productionPolicy").path("knownDiagnosticLimitation").asText())
+                .isEqualTo(
+                        "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES");
+        assertThat(root.path("productionPolicy").path("statisticalHoldoutApproved").asBoolean())
+                .isFalse();
+        assertThat(root.path("productionPolicy").path("matchupMode").asText())
+                .isEqualTo("GEOMETRIC_V2");
+        assertThat(root.path("productionPolicy").path("compositionMode").asText())
+                .isEqualTo("PRODUCTION_V2");
+        assertThat(root.path("productionPolicy").path("jungleClearContribution").asText())
+                .isEqualTo("DISABLED_NOT_INTEGRATED");
         assertThat(root.path("productionPolicy").path("economyCandidateActivation").asBoolean())
                 .isFalse();
         assertThat(root.path("productionPolicy").path("tempoCandidateActivation").asBoolean())
@@ -138,6 +151,16 @@ class RealMatchApiV1ControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("UNSUPPORTED_REQUEST_FIELD"))
                 .andExpect(jsonPath("$.field").value("jungleTempoEnabled"));
+        mvc.perform(post("/api/v1/real-matches/simulate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"schemaVersion":"REAL_MATCH_SIMULATE_REQUEST_V1",
+                                 "blueTeamCode":"GEN","redTeamCode":"T1","seed":"73",
+                                 "runtimeProfileId":"BASELINE_V1"}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_REQUEST_FIELD"))
+                .andExpect(jsonPath("$.field").value("runtimeProfileId"));
     }
 
     @Test
@@ -183,7 +206,7 @@ class RealMatchApiV1ControllerTest {
         assertThat(first.path("integrity").path("draftSelectionTraceHash"))
                 .isEqualTo(first.path("draft").path("draftSelectionTraceHash"));
         assertThat(first.path("integrity").path("runtimeProfileId").asText())
-                .isEqualTo("BASELINE_V1");
+                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
         assertThat(first.path("integrity").path("outputHash").asText())
                 .matches("[0-9a-f]{64}");
         assertThat(first.path("integrity").path("randomFingerprint")

@@ -87,7 +87,7 @@ Team/player display name, event 문구, frontend text, unordered collection 순�
 - `integrity`와 options policy snapshot도 selection policy identity를 노출한다.
 - LIVE frontend validator는 field cardinality, decision/trace 일치와 integrity 일치를 엄격히 검사한다.
 
-기존 Draft scoring policy SHA-256은 `4bc9f8b1db17ff2803fce80b2616e2fd0afffa278749a80b91231e342caeec18`, runtime configuration SHA-256은 `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`로 유지됐다. Selection policy를 포함한 현재 Match Engine V1 production policy hash는 `b2975b2f3ced0b1864e7730abc7794dcbf4bafe7a031ef098811f62daa796d94`다.
+기존 Draft scoring policy SHA-256은 `4bc9f8b1db17ff2803fce80b2616e2fd0afffa278749a80b91231e342caeec18`, 당시 runtime configuration SHA-256은 `c8cc557bd721228c473e30d31b7258510f9608a18098578bc1da36e603536215`로 유지됐다. Selection policy를 포함한 Auto Draft Variety V1 당시 Match Engine V1 production policy hash는 `b2975b2f3ced0b1864e7730abc7794dcbf4bafe7a031ef098811f62daa796d94`였다. 현재 policy는 Matchup/Composition production activation에서 별도 V2 identity로 갱신됐다.
 
 ## 고정 진단
 

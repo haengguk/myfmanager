@@ -80,6 +80,11 @@ public final class SimulationRuntimeProfiles {
                         TeamCompositionGameplayMode.PRODUCTION_V2),
                 "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d",
                 PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
+        register(result, SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1,
+                exactConfiguration(ChampionMatchupMode.GEOMETRIC_V2,
+                        TeamCompositionGameplayMode.PRODUCTION_V2),
+                "caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d",
+                PRE_JUNGLE_ACTIVE_GAMEPLAY_RULES_VERSION);
         register(result,
                 SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1,
                 exactConfiguration(ChampionMatchupMode.GEOMETRIC_V2,

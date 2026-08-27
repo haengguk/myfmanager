@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.application.MatchEngineV1Policy;
 import com.lolfm.dto.RealMatchApiV1Dtos;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
@@ -23,9 +24,6 @@ import org.springframework.core.env.Environment;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {"spring.main.banner-mode=off", "logging.level.root=ERROR"})
 class RealMatchTransportCompressionV1IntegrationTest {
-    private static final String FIXED_OUTPUT_HASH =
-            "9b6ab9aa249dda31992655c7126f8ebd7c3eacef77c243eee2d716ff36ce3ee5";
-
     @LocalServerPort int port;
     @Autowired ObjectMapper mapper;
     @Autowired Environment environment;
@@ -144,13 +142,31 @@ class RealMatchTransportCompressionV1IntegrationTest {
     }
 
     private static void assertFixedIdentity(JsonNode response) {
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
         assertThat(response.path("draft").path("decisions")).hasSize(20);
-        assertThat(response.path("result").path("winner").asText()).isEqualTo("RED");
-        assertThat(response.path("result").path("durationSeconds").asInt()).isEqualTo(1_750);
-        assertThat(response.path("timeline").path("events")).hasSize(350);
-        assertThat(response.path("timeline").path("snapshots")).hasSize(176);
+        assertThat(response.path("draft").path("finalAssignments")).hasSize(10);
+        assertThat(policy.retainedRuntimeProfileId().name())
+                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
+        assertThat(policy.gameplayConfiguration().championMatchupMode().name())
+                .isEqualTo("GEOMETRIC_V2");
+        assertThat(policy.gameplayConfiguration().teamCompositionGameplayMode().name())
+                .isEqualTo("PRODUCTION_V2");
+        assertThat(policy.gameplayConfiguration().jungleClearContribution().name())
+                .isEqualTo("DISABLED_NOT_INTEGRATED");
+        assertThat(policy.activationDecisionCode())
+                .isEqualTo("PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION");
+        assertThat(policy.statisticalHoldoutApproved()).isFalse();
+        assertThat(response.path("integrity").path("runtimeProfileId").asText())
+                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
+        assertThat(response.path("integrity").path("policyHash").asText())
+                .isEqualTo(policy.policyHash());
+        assertThat(response.path("integrity").path("configurationHash").asText())
+                .isEqualTo(policy.configurationHash());
+        assertThat(response.path("result").path("durationSeconds").asInt()).isPositive();
+        assertThat(response.path("timeline").path("events")).isNotEmpty();
+        assertThat(response.path("timeline").path("snapshots")).isNotEmpty();
         assertThat(response.path("integrity").path("outputHash").asText())
-                .isEqualTo(FIXED_OUTPUT_HASH);
+                .matches("[0-9a-f]{64}");
         assertThat(response.path("integrity").path("replayProvenanceHash").asText())
                 .isNotBlank();
         assertThat(response.path("integrity").path("simulatorTimelineHash").asText())

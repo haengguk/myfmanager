@@ -38,6 +38,21 @@ npm run build
 
 Production source, resource, runtime wiring, shared fixture 또는 Gradle/test configuration 변경을 마친 뒤 complete backend `test`를 final verification으로 한 번 실행한다. 실제 product regression을 발견해 고친 경우에만 affected focused tests 뒤 최종 full regression을 한 번 더 실행하며, 정상적으로는 최대 2회다. Clean full pass 이후 docs/report wording/assertion-only/isolated test-local fixture만 바뀌면 full regression을 반복하지 않는다. 현재 실행 수치는 [Project Status](../project-status.md)를 따른다.
 
+### Matchup/Composition production activation
+
+`PRODUCTION_MATCHUP_COMPOSITION_V1` 활성화는 대형 통계 task 없이 다음 correctness lane으로 검증했다.
+
+- profile/policy/Match Engine/Real Draft/API/structured reachability 10 suites / 58 tests, 2분 56초
+- combat/FARM/reward/structure/Random 직접 영향 invariant 9 suites / 101 tests, 7초
+- 첫 full에서 드러난 historical/current-default expectation 보정 4 suites / 7 tests, 1분 11초
+- 최종 complete backend 219 suites / 2,201 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,821.280초, Gradle wall 16분 25초
+- frontend production build 87 modules, 약 8초
+- LIVE options/simulate gzip와 실제 Draft → playback → result 브라우저 smoke
+
+첫 full은 2,201 tests 중 4건이 실패했다. Historical Final 13G의 5-profile audit/inspector와 현재 transport/performance test가 암묵적 default를 계속 baseline으로 가정한 것이 원인이었다. Historical audit은 새 production alias를 의도적으로 제외하고 historical baseline inspector가 현재 production oracle이 되지 않도록 고정했다. Current transport/performance test는 새 policy/profile/configuration identity를 검증한다. Affected focused pass 뒤 두 번째이자 최종 full을 수행했으며 historical artifact/output hash는 갱신하지 않았다.
+
+Activation correctness는 Matchup/Composition non-zero structured application, baseline exact OFF/rollback, Jungle Economy/Tempo exact zero, same-seed/cross-JVM determinism, diagnostics ON/OFF timeline·Random parity와 public request profile selector 부재를 포함한다. `PreJungleTempoParityAuditTest`는 historical diagnostic tag로 default test에서 제외되며, 이번 activation에서 별도 parity artifact를 생성하거나 대형 calibration/holdout을 실행하지 않았다.
+
 ## Determinism
 
 Same-seed regression은 winner 하나만 비교하지 않는다. 같은 teams, champion assignments, options, seed에 대해 다음 전체 의미가 같아야 한다.
