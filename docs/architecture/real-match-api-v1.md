@@ -4,6 +4,8 @@
 
 Real Match API V1은 실제 LCK roster, Professional Draft와 동결된 `MatchEngineV1`을 외부 HTTP client가 사용할 수 있게 하는 additive backend 경계다. 기존 `POST /api/matches/simulate`의 Dummy roster, champion selection과 timeline 응답은 그대로 유지한다. Frontend V1-A의 compact reference 경계 위에 V1-B가 strict live HTTP provider를 추가했으며, 기본 진입 모드는 LIVE다.
 
+플레이어가 한쪽 Draft를 직접 진행하는 기능은 별도 [Player-controlled Draft API V1](player-controlled-draft-api-v1.md) 계약을 사용한다. 이 문서의 `/options`, `/simulate`, `REAL_MATCH_RESPONSE_V1`과 20개 Auto selection trace 의미는 변경되지 않는다.
+
 한 요청은 항상 독립된 단판 Game 1이다. `RealDraftMatchOrchestrator.orchestrateV1(blueTeamCode, redTeamCode, seed)`가 fresh `SeriesDraftHistory`를 만들므로 HTTP 요청 사이에 Hard Fearless exclusion이나 mutable match state가 공유되지 않는다. BO3/BO5와 지속되는 series lifecycle은 이 계약에 포함되지 않는다.
 
 ## Endpoints

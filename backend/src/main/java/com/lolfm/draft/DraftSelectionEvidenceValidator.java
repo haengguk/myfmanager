@@ -50,6 +50,21 @@ public final class DraftSelectionEvidenceValidator {
                 state.bluePicks(), state.redPicks());
     }
 
+    /** Validates one AI turn while a mixed-authority preflight owns state reconstruction. */
+    public DraftState validateTurn(
+            DraftState state,
+            DraftSelectionContext context,
+            DraftAction decision,
+            DraftSelectionTrace trace
+    ) {
+        Objects.requireNonNull(state, "state");
+        Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(decision, "decision");
+        Objects.requireNonNull(trace, "trace");
+        validateTrace(state, context, decision, trace);
+        return state.apply(decision);
+    }
+
     private void validateTrace(DraftState state, DraftSelectionContext context,
                                DraftAction decision, DraftSelectionTrace trace) {
         DraftTurn turn = state.currentTurn();

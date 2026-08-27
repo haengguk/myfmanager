@@ -1,5 +1,6 @@
 package com.lolfm.application;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.lolfm.champion.ChampionAssignment;
 import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionRoleKey;
@@ -13,12 +14,17 @@ import com.lolfm.domain.Position;
 import com.lolfm.domain.Team;
 import com.lolfm.draft.DraftActionType;
 import com.lolfm.draft.DraftAction;
+import com.lolfm.draft.DraftControlEvidence;
+import com.lolfm.draft.DraftDecisionAuthority;
 import com.lolfm.draft.DraftRuleSet;
 import com.lolfm.draft.DraftSelectionContext;
 import com.lolfm.draft.DraftSelectionEvidenceValidator;
 import com.lolfm.draft.DraftSelectionTrace;
 import com.lolfm.draft.DraftSelectionTraceHasher;
+import com.lolfm.draft.DraftState;
+import com.lolfm.draft.DraftStateHasher;
 import com.lolfm.draft.AutoDraftSelectionPolicy;
+import com.lolfm.draft.PlayerSelectionLegality;
 import com.lolfm.player.PlayerId;
 import com.lolfm.simulator.PlayerKey;
 import com.lolfm.simulator.TeamSide;
@@ -234,17 +240,75 @@ public record MatchEngineV1Input(
         List<DraftAction> actions = draft.decisions().stream().map(value ->
                 new DraftAction(value.turn(), value.side(), value.actionType(),
                         value.selectedChampionId())).toList();
-        DraftSelectionEvidenceValidator.ValidatedDraft validated =
-                new DraftSelectionEvidenceValidator(AutoDraftSelectionPolicy.production())
-                        .validate(DraftRuleSet.professional(),
-                                Set.copyOf(draft.hardFearlessExclusions()), context,
-                                actions, draft.selectionTraces(), draft.draftSelectionTraceHash());
+        DraftSelectionEvidenceValidator validator =
+                new DraftSelectionEvidenceValidator(AutoDraftSelectionPolicy.production());
+        DraftSelectionEvidenceValidator.ValidatedDraft validated;
+        if (draft.controlEvidence() == null) {
+            validated = validator.validate(DraftRuleSet.professional(),
+                    Set.copyOf(draft.hardFearlessExclusions()), context,
+                    actions, draft.selectionTraces(), draft.draftSelectionTraceHash());
+        } else {
+            validated = validateMixedDraftSelection(draft, context, actions, validator);
+        }
         if (!validated.blueBans().equals(draft.blueBans())
                 || !validated.redBans().equals(draft.redBans())
                 || !validated.bluePicks().equals(draft.bluePicks())
                 || !validated.redPicks().equals(draft.redPicks())) {
             throw new IllegalArgumentException("MATCH_ENGINE_V1_DRAFT_STATE_RECONSTRUCTION_MISMATCH");
         }
+    }
+
+    private static DraftSelectionEvidenceValidator.ValidatedDraft validateMixedDraftSelection(
+            DraftInput draft,
+            DraftSelectionContext context,
+            List<DraftAction> actions,
+            DraftSelectionEvidenceValidator validator
+    ) {
+        DraftControlEvidence control = draft.controlEvidence();
+        if (control.turns().size() != actions.size()
+                || !control.autoSelectionTraces().equals(draft.selectionTraces())) {
+            throw new IllegalArgumentException("MATCH_ENGINE_V1_CONTROL_EVIDENCE_CARDINALITY");
+        }
+        DraftState state = new DraftState(DraftRuleSet.professional(), 0,
+                List.of(), List.of(), List.of(), List.of(),
+                Set.copyOf(draft.hardFearlessExclusions()));
+        for (int index = 0; index < actions.size(); index++) {
+            DraftAction action = actions.get(index);
+            var evidence = control.turns().get(index);
+            String beforeHash = DraftStateHasher.hash(state);
+            boolean playerTurn = action.side() == control.controlledSide();
+            if (evidence.turn() != action.turn() || evidence.side() != action.side()
+                    || evidence.actionType() != action.actionType()
+                    || !evidence.championId().equals(action.championId())
+                    || !evidence.stateBeforeHash().equals(beforeHash)
+                    || playerTurn != (evidence.authority() == DraftDecisionAuthority.PLAYER)) {
+                throw new IllegalArgumentException("MATCH_ENGINE_V1_CONTROL_EVIDENCE_BINDING");
+            }
+            if (playerTurn) {
+                var manual = evidence.playerSelectionEvidence();
+                if (manual.controlledSide() != control.controlledSide()
+                        || manual.turn() != action.turn()
+                        || manual.actionType() != action.actionType()
+                        || !manual.championId().equals(action.championId())
+                        || !manual.stateBeforeHash().equals(beforeHash)
+                        || manual.legalityResult() != PlayerSelectionLegality.LEGAL) {
+                    throw new IllegalArgumentException(
+                            "MATCH_ENGINE_V1_MANUAL_SELECTION_EVIDENCE_BINDING");
+                }
+                state = state.apply(action);
+            } else {
+                state = validator.validateTurn(
+                        state, context, action, evidence.autoSelectionTrace());
+            }
+            if (!evidence.stateAfterHash().equals(DraftStateHasher.hash(state))) {
+                throw new IllegalArgumentException("MATCH_ENGINE_V1_CONTROL_STATE_AFTER_HASH");
+            }
+        }
+        if (!state.complete()) {
+            throw new IllegalArgumentException("MATCH_ENGINE_V1_CONTROL_DRAFT_INCOMPLETE");
+        }
+        return new DraftSelectionEvidenceValidator.ValidatedDraft(
+                state.blueBans(), state.redBans(), state.bluePicks(), state.redPicks());
     }
 
     private static List<PlayerInput> allPlayers(TeamInput blue, TeamInput red) {
@@ -351,6 +415,14 @@ public record MatchEngineV1Input(
                 .append("actualLegalRoleKeyHash=")
                 .append(draft.actualLegalRoleKeyHash()).append('\n')
                 .append("finalAssignmentHash=").append(draft.finalAssignmentHash()).append('\n');
+        if (draft.controlEvidence() != null) {
+            canonical.append("draftControlPolicyId=")
+                    .append(draft.controlEvidence().policyId()).append('\n')
+                    .append("draftControlPolicyHash=")
+                    .append(draft.controlEvidence().policyHash()).append('\n')
+                    .append("draftControlEvidenceHash=")
+                    .append(draft.controlEvidence().controlEvidenceHash()).append('\n');
+        }
         return hash(canonical.toString());
     }
 
@@ -487,8 +559,43 @@ public record MatchEngineV1Input(
             String requiredLegalRoleKeyHash,
             String actualLegalRoleKeyHash,
             String finalAssignmentHash,
-            String finalDraftHash
+            String finalDraftHash,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            DraftControlEvidence controlEvidence
     ) {
+        /** Compatibility constructor preserving the frozen full-auto V1 input shape. */
+        public DraftInput(
+                int seriesGameNumber,
+                String draftRuleSetIdentity,
+                String draftRuleSetHash,
+                String draftScoringPolicyHash,
+                String draftSelectionPolicyId,
+                String draftSelectionPolicyHash,
+                List<DraftSelectionTrace> selectionTraces,
+                String draftSelectionTraceHash,
+                List<DraftDecisionInput> decisions,
+                String draftDecisionHash,
+                List<ChampionId> blueBans,
+                List<ChampionId> redBans,
+                List<ChampionId> bluePicks,
+                List<ChampionId> redPicks,
+                List<ChampionId> hardFearlessExclusions,
+                String draftMetaVersion,
+                String requiredLegalRoleKeyHash,
+                String actualLegalRoleKeyHash,
+                String finalAssignmentHash,
+                String finalDraftHash
+        ) {
+            this(seriesGameNumber, draftRuleSetIdentity, draftRuleSetHash,
+                    draftScoringPolicyHash, draftSelectionPolicyId,
+                    draftSelectionPolicyHash, selectionTraces,
+                    draftSelectionTraceHash, decisions, draftDecisionHash,
+                    blueBans, redBans, bluePicks, redPicks,
+                    hardFearlessExclusions, draftMetaVersion,
+                    requiredLegalRoleKeyHash, actualLegalRoleKeyHash,
+                    finalAssignmentHash, finalDraftHash, null);
+        }
+
         public DraftInput {
             if (seriesGameNumber < 1) {
                 throw new IllegalArgumentException("seriesGameNumber must be positive");
@@ -545,8 +652,13 @@ public record MatchEngineV1Input(
                     || redPicks.size() != Position.values().length) {
                 throw new IllegalArgumentException("MATCH_ENGINE_V1_INCOMPLETE_FINAL_DRAFT");
             }
-            validateSelectionTraces(decisions, selectionTraces,
-                    draftSelectionPolicyId, draftSelectionPolicyHash);
+            if (controlEvidence == null) {
+                validateSelectionTraces(decisions, selectionTraces,
+                        draftSelectionPolicyId, draftSelectionPolicyHash);
+            } else {
+                validateMixedControlEvidence(decisions, selectionTraces, controlEvidence,
+                        draftSelectionPolicyId, draftSelectionPolicyHash);
+            }
         }
 
         void appendCanonical(StringBuilder value) {
@@ -561,6 +673,21 @@ public record MatchEngineV1Input(
                     .append("draftDecisionHash=").append(draftDecisionHash).append('\n')
                     .append("finalAssignmentHash=").append(finalAssignmentHash).append('\n')
                     .append("finalDraftHash=").append(finalDraftHash).append('\n');
+            if (controlEvidence != null) {
+                value.append("draftControlEvidenceSchema=")
+                        .append(controlEvidence.schemaVersion()).append('\n')
+                        .append("draftControlPolicyId=")
+                        .append(controlEvidence.policyId()).append('\n')
+                        .append("draftControlPolicyHash=")
+                        .append(controlEvidence.policyHash()).append('\n')
+                        .append("draftControlledSide=")
+                        .append(controlEvidence.controlledSide()).append('\n')
+                        .append("draftControlEvidenceHashAlgorithm=")
+                        .append(com.lolfm.draft.PlayerDraftControlPolicy.HASH_ALGORITHM)
+                        .append('\n')
+                        .append("draftControlEvidenceHash=")
+                        .append(controlEvidence.controlEvidenceHash()).append('\n');
+            }
             decisions.forEach(decision -> value.append("draftDecision=")
                     .append(decision.turn()).append('|').append(decision.side()).append('|')
                     .append(decision.actionType()).append('|')
@@ -602,6 +729,45 @@ public record MatchEngineV1Input(
                         || trace.selectedRank() > 3
                         || trace.selectedCanonicalScoreLoss() > 2_000_000L) {
                     throw new IllegalArgumentException("MATCH_ENGINE_V1_DRAFT_TRACE_MISMATCH");
+                }
+            }
+        }
+
+        private static void validateMixedControlEvidence(
+                List<DraftDecisionInput> decisions,
+                List<DraftSelectionTrace> traces,
+                DraftControlEvidence controlEvidence,
+                String autoPolicyId,
+                String autoPolicyHash
+        ) {
+            if (controlEvidence.turns().size() != decisions.size()
+                    || !controlEvidence.autoSelectionTraces().equals(traces)) {
+                throw new IllegalArgumentException(
+                        "MATCH_ENGINE_V1_DRAFT_CONTROL_EVIDENCE_CARDINALITY");
+            }
+            int autoIndex = 0;
+            for (int index = 0; index < decisions.size(); index++) {
+                DraftDecisionInput decision = decisions.get(index);
+                var evidence = controlEvidence.turns().get(index);
+                if (evidence.turn() != decision.turn()
+                        || evidence.side() != decision.side()
+                        || evidence.actionType() != decision.actionType()
+                        || !evidence.championId().equals(decision.selectedChampionId())) {
+                    throw new IllegalArgumentException(
+                            "MATCH_ENGINE_V1_DRAFT_CONTROL_EVIDENCE_MISMATCH");
+                }
+                if (evidence.authority() == DraftDecisionAuthority.AI) {
+                    DraftSelectionTrace trace = traces.get(autoIndex++);
+                    if (!trace.policyId().equals(autoPolicyId)
+                            || !trace.policyHash().equals(autoPolicyHash)
+                            || trace.turn() != decision.turn()
+                            || trace.side() != decision.side()
+                            || trace.actionType() != decision.actionType()
+                            || !trace.selectedChampionId().equals(
+                            decision.selectedChampionId())) {
+                        throw new IllegalArgumentException(
+                                "MATCH_ENGINE_V1_DRAFT_CONTROL_AUTO_TRACE_MISMATCH");
+                    }
                 }
             }
         }

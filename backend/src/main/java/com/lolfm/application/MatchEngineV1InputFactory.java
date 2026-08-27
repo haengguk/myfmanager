@@ -5,6 +5,9 @@ import com.lolfm.domain.Player;
 import com.lolfm.domain.Position;
 import com.lolfm.domain.Team;
 import com.lolfm.draft.FinalDraftResult;
+import com.lolfm.draft.AutoDraftSelectionPolicy;
+import com.lolfm.draft.DraftSelectionTraceHasher;
+import com.lolfm.draft.PlayerControlledDraftResult;
 import com.lolfm.player.PlayerId;
 import com.lolfm.simulator.PlayerKey;
 import com.lolfm.simulator.TeamSide;
@@ -93,6 +96,61 @@ public final class MatchEngineV1InputFactory {
                 SimulationProvenanceService.seriesHistoryHash(
                         seriesGameNumber - 1, seriesExclusionsBeforeDraft),
                 MatchEngineV1Policy.requirement());
+    }
+
+    /** Additive mixed-authority adapter; existing full-auto input creation is unchanged. */
+    public MatchEngineV1Input fromPlayerControlledDraft(
+            String blueTeamCode,
+            Team blueTeam,
+            String redTeamCode,
+            Team redTeam,
+            long matchSeed,
+            PlayerControlledDraftResult draftResult
+    ) {
+        Objects.requireNonNull(draftResult, "draftResult");
+        MatchEngineV1Input.TeamInput blue = team(TeamSide.BLUE, blueTeamCode, blueTeam);
+        MatchEngineV1Input.TeamInput red = team(TeamSide.RED, redTeamCode, redTeam);
+        List<MatchEngineV1Input.ChampionAssignmentInput> assignments =
+                draftResult.matchChampionAssignments().asMap().values().stream()
+                        .sorted(Comparator.comparing(value -> value.playerKey().stableId()))
+                        .map(value -> assignment(value, blue, red)).toList();
+        List<MatchEngineV1Input.DraftDecisionInput> decisions = draftResult.decisions().stream()
+                .map(value -> new MatchEngineV1Input.DraftDecisionInput(
+                        value.turn(), value.side(), value.actionType(), value.championId()))
+                .toList();
+        String decisionHash = MatchEngineV1Input.draftDecisionHash(decisions);
+        String assignmentHash = MatchEngineV1Input.finalAssignmentHash(assignments);
+        var controlEvidence = draftResult.controlEvidence();
+        var autoPolicy = AutoDraftSelectionPolicy.production();
+        var traces = controlEvidence.autoSelectionTraces();
+        MatchEngineV1Input.DraftInput unsigned = new MatchEngineV1Input.DraftInput(
+                1, draftResult.ruleSet().identity(), provenance.draftRuleSetHash(),
+                provenance.draftScoringPolicyHash(), autoPolicy.policyId(),
+                autoPolicy.policyHash(), traces, DraftSelectionTraceHasher.hash(traces),
+                decisions, decisionHash, draftResult.blueBans(), draftResult.redBans(),
+                draftResult.bluePicks(), draftResult.redPicks(), List.of(),
+                draftResult.draftMetaVersion(), draftResult.requiredLegalRoleKeyHash(),
+                draftResult.actualLegalRoleKeyHash(), assignmentHash, "0".repeat(64),
+                controlEvidence);
+        String finalDraftHash = MatchEngineV1Input.finalDraftHash(unsigned, assignments);
+        MatchEngineV1Input.DraftInput draft = new MatchEngineV1Input.DraftInput(
+                1, draftResult.ruleSet().identity(), provenance.draftRuleSetHash(),
+                provenance.draftScoringPolicyHash(), autoPolicy.policyId(),
+                autoPolicy.policyHash(), traces, DraftSelectionTraceHasher.hash(traces),
+                decisions, decisionHash, draftResult.blueBans(), draftResult.redBans(),
+                draftResult.bluePicks(), draftResult.redPicks(), List.of(),
+                draftResult.draftMetaVersion(), draftResult.requiredLegalRoleKeyHash(),
+                draftResult.actualLegalRoleKeyHash(), assignmentHash, finalDraftHash,
+                controlEvidence);
+        String rosterHash = SimulationProvenanceService.rosterIdentityHash(
+                blueTeamCode, blueTeam, redTeamCode, redTeam);
+        String historyHash = SimulationProvenanceService.seriesHistoryHash(0, Set.of());
+        String matchIdentity = "PLAYER_CONTROLLED_DRAFT:" + blueTeamCode + ':'
+                + redTeamCode + ":GAME:1:SEED:" + matchSeed + ":DRAFT:"
+                + decisionHash;
+        return new MatchEngineV1Input(
+                MatchEngineV1Input.SCHEMA, matchIdentity, blue, red, assignments, draft,
+                matchSeed, rosterHash, historyHash, MatchEngineV1Policy.requirement());
     }
 
     private static MatchEngineV1Input.TeamInput team(

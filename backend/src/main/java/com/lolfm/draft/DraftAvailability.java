@@ -28,6 +28,18 @@ public final class DraftAvailability {
         return computeCanComplete(state, side, candidate, null, null);
     }
 
+    /** Whether the side's current partial roster remains completable after one champion is removed. */
+    public boolean canCompleteAfterExcluding(
+            DraftState state, TeamSide side, ChampionId excludedChampion
+    ) {
+        Set<ChampionId> unavailable = new HashSet<>(state.unavailableChampions());
+        if (excludedChampion != null) unavailable.add(excludedChampion);
+        List<ChampionId> pool = available(unavailable);
+        return feasibleAssignments(state.picks(side), null).stream()
+                .anyMatch(assignment -> matchRemaining(
+                        orderedMissingPositions(assignment), pool, 0, new HashSet<>()));
+    }
+
     boolean canComplete(DraftState state, TeamSide side, ChampionId candidate,
                         DraftComputationContext context) {
         return context.completion(state, side, candidate, null,

@@ -4,7 +4,9 @@
 
 `com.lolfm.draft.DraftEngine`이 production draft domain의 진입점이다. `DraftResourceSet.loadDefault()`는 active `ChampionResourceSet`과 고정 Draft Meta resource를 조립한다.
 
-`DraftEngine` 자체는 pure domain component이며 controller가 아니다. 직접 Java 호출자는 `DraftTeamContext` 두 개와 series-scoped `SeriesDraftHistory`를 전달할 수 있다. Spring backend에서는 `RealDraftMatchOrchestrator`가 실제 Team으로 두 context를 만들고 DraftEngine을 호출한다. 결과의 `FinalDraftResult.matchChampionAssignments()`가 유일한 match assignment source이며 재계산 없이 `MatchSimulator`에 전달된다. Draft REST API와 frontend draft 화면은 아직 없다.
+`DraftEngine` 자체는 pure domain component이며 controller가 아니다. 직접 Java 호출자는 `DraftTeamContext` 두 개와 series-scoped `SeriesDraftHistory`를 전달할 수 있다. Spring backend에서는 `RealDraftMatchOrchestrator`가 실제 Team으로 두 context를 만들고 DraftEngine을 호출한다. 결과의 `FinalDraftResult.matchChampionAssignments()`가 유일한 match assignment source이며 재계산 없이 `MatchSimulator`에 전달된다.
+
+Additive `PlayerControlledDraftEngine`은 같은 planner/evaluator/search와 `AUTO_DRAFT_VARIETY_V1` selector를 사용하되 한쪽 팀의 모든 턴을 `PLAYER` authority로 멈춰 세우는 stateless transition domain이다. `PlayerDraftApiV1Controller`가 이 경계를 bounded in-memory session으로 노출한다. 기존 완전 자동 `DraftEngine`과 `/api/v1/real-matches` 계약은 변경하지 않는다. Frontend draft 화면은 아직 없다.
 
 ## Draft Flow
 
@@ -40,6 +42,22 @@ DraftResourceSet + DraftRuleSet + DraftScoringPolicy
 - 남은 pick 수로 5 positions를 완성할 수 있음
 
 `canComplete`는 flex champion의 어느 legal role이든 허용하는 champion-level 완성 검사다. 진단용 `canCompleteWithCandidateAtRole`은 candidate를 특정 `Position`에 고정한 feasible assignment만 남긴 뒤, unavailable pool을 제외한 서로 다른 champion으로 나머지 positions까지 매칭할 수 있을 때만 true다. 이 additive helper는 production scoring이나 shortlist를 변경하지 않는다.
+
+Player Draft의 manual selection은 AI 추천 상위 3개에 제한되지 않는다. 현재 turn/side/action과 champion identity, current Draft/Hard Fearless availability를 먼저 확인한다. PICK은 partial role assignment와 남은 roster 완성을 모두 유지해야 하고, BAN은 그 champion을 제외한 뒤 BLUE/RED 양쪽 roster가 모두 완성 가능해야 한다. 거부된 action은 immutable `DraftState`, evidence, revision과 Match Simulator Random을 전혀 변경하지 않는다.
+
+## Mixed Player/AI authority
+
+Game 1의 `PlayerControlledDraftEngine.Progress`는 immutable `DraftState`와 ordered `DraftTurnControlEvidence`를 함께 보유한다. 매 turn은 다음을 구조적으로 결속한다.
+
+- turn, side, action type, `ChampionId`
+- `AI` 또는 `PLAYER` authority
+- action 직전/직후 `DraftStateHasher` identity
+- AI이면 기존 authoritative `DraftSelectionTrace`
+- PLAYER이면 controlled side, selectable-set identity, legality result와 operational `clientActionId`
+
+PLAYER evidence에는 존재하지 않는 AI rank, score-loss 또는 weighted draw를 만들지 않는다. `clientActionId`는 HTTP idempotency evidence에는 남지만 gameplay/control-evidence hash에서는 제외한다. 제어 정책은 `PLAYER_CONTROLLED_DRAFT_V1`, SHA-256은 `8f6488f07c44a6529e88bd022fff3124458a8237cc919bd7dd3e140eaa4a0752`다.
+
+플레이어 action을 적용하면 상대 AI는 갱신된 상태에서 기존 production search/selector로 다음 플레이어 턴 또는 20턴 완료까지 진행한다. 20턴이 끝난 뒤에만 기존 `FinalRoleAssignmentResolver`가 flex role을 확정한다. Match preflight는 transcript를 turn 1부터 다시 적용하고 manual selectable set, AI trace, state hash와 final role assignment를 재계산하므로 caller가 최종 assignment만 주입할 수 없다.
 
 ## Pre-Draft Planning
 
@@ -129,7 +147,8 @@ Draft Meta는 `draft-meta-full-173-216-role-2026-08-18-v3`이며 active champion
 
 ## Out of Scope / Not Wired
 
-- Draft Controller, HTTP endpoint, frontend draft UI
+- player-controlled Draft frontend UI
+- session persistence, authentication, multi-node coordination, restart recovery
 - series scheduling, side selection, roster/substitute management
 - 별도의 Standard ruleset 선택
 - production Player Ratings를 draft score에 직접 반영하는 경로

@@ -202,6 +202,13 @@ public final class SimulationProvenanceService {
                 MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256)) {
             throw new IllegalStateException("MATCH_ENGINE_V1_PROVENANCE_IDENTITY_DRIFT");
         }
+        String selectionPolicyId = draft.controlEvidence() == null
+                ? draft.draftSelectionPolicyId() : draft.controlEvidence().policyId();
+        String selectionPolicyHash = draft.controlEvidence() == null
+                ? draft.draftSelectionPolicyHash() : draft.controlEvidence().policyHash();
+        String selectionEvidenceHash = draft.controlEvidence() == null
+                ? draft.draftSelectionTraceHash()
+                : draft.controlEvidence().controlEvidenceHash();
         String legacyReplayHash = replayProvenanceHash(
                 ENGINE_IMPLEMENTATION_VERSION, profile.activeGameplayRulesVersion(),
                 profile.configurationHash(), resourceProvenance.resourceProvenanceHash(),
@@ -209,8 +216,7 @@ public final class SimulationProvenanceService {
                 input.rosterIdentityHash(), input.matchSeed(), draft.seriesGameNumber(),
                 input.seriesHistoryBeforeHash(), draft.draftRuleSetIdentity(),
                 draft.draftRuleSetHash(), draft.draftScoringPolicyHash(),
-                draft.draftSelectionPolicyId(), draft.draftSelectionPolicyHash(),
-                draft.draftSelectionTraceHash(),
+                selectionPolicyId, selectionPolicyHash, selectionEvidenceHash,
                 draft.draftDecisionHash(), draft.finalDraftHash(),
                 draft.finalAssignmentHash());
         String replayHash = matchEngineV1ReplayProvenanceHash(
@@ -226,8 +232,7 @@ public final class SimulationProvenanceService {
                 input.rosterIdentityHash(), input.matchSeed(), draft.seriesGameNumber(),
                 input.seriesHistoryBeforeHash(), draft.draftRuleSetIdentity(),
                 draft.draftRuleSetHash(), draft.draftScoringPolicyHash(),
-                draft.draftSelectionPolicyId(), draft.draftSelectionPolicyHash(),
-                draft.draftSelectionTraceHash(),
+                selectionPolicyId, selectionPolicyHash, selectionEvidenceHash,
                 draft.draftDecisionHash(), draft.finalDraftHash(),
                 draft.finalAssignmentHash(), replayHash,
                 MATCH_ENGINE_V1_REPLAY_PROVENANCE_HASH_ALGORITHM,

@@ -20,6 +20,25 @@ cd backend
 
 Focused correctness test는 큰 seed sample이나 분포 목표가 아니라 formula boundary, state transition, duplicate protection, Random non-consumption, structured event를 검증해야 한다.
 
+### Player-controlled Draft API V1
+
+혼합 Draft는 다음 세 focused lane으로 검증한다.
+
+```bash
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.draft.PlayerControlledDraftEngineTest \
+  --tests com.lolfm.application.PlayerDraftSessionRepositoryTest \
+  --tests com.lolfm.controller.PlayerDraftApiV1ControllerTest \
+  --console=plain
+```
+
+- domain: BLUE/RED 완주, authority/evidence binding, advisory 밖 legal choice, flex 유지, illegal action mutation 0, AI production parity, transcript replay와 final-assignment 재구성
+- session: injected Clock TTL, bounded capacity, session isolation과 concurrent atomic mutation
+- HTTP: strict start/action/simulate parsing, revision/idempotency conflict, 동시 제출 단일 성공, cancel/not-found, 완료와 simulation 분리, V9 policy/provenance와 반복 simulate equality
+
+기존 완전 자동 semantics 회귀는 `MatchEngineV1ContractTest`, `RealMatchApiV1ControllerTest`, `AutoDraftVarietyV1ProductionIntegrationTest`를 함께 실행한다. 대규모 seed population, balance diagnostic, frontend build는 이 backend-only 기능의 focused lane에 포함하지 않는다.
+
 ## Full Regression
 
 Backend normal regression:

@@ -116,6 +116,20 @@ Generated report:
 
 Report SHA-256: summary `4f3a13ca19cb00abc8da463173578b222fa55e389bb34d1a96abe6f2b10bfde3`, key CSV `936346bc52dfbfab430634d1fcb44781bb765c82f3558f60565e1c36541b1f61`.
 
+### Player-controlled Draft API V1
+
+상태는 `PLAYER_CONTROLLED_DRAFT_API_V1_ACCEPTED`다.
+
+Backend는 한쪽 `TeamSide`의 10개 ban/pick turn을 플레이어가 직접 선택하고 반대쪽은 기존 `AUTO_DRAFT_VARIETY_V1`이 현재 상태에 반응하는 Game 1 session API를 제공한다. 제어 정책은 `PLAYER_CONTROLLED_DRAFT_V1`, SHA-256은 `8f6488f07c44a6529e88bd022fff3124458a8237cc919bd7dd3e140eaa4a0752`다. AI selection/search/scoring/tuning과 기존 Real Match `/options`·`/simulate` 계약은 변경하지 않았다.
+
+Manual choice는 advisory top 3에 제한되지 않고 current availability, partial role feasibility와 future completion을 통과한 전체 champion pool을 사용한다. Flex role은 pick 순간 고정하지 않고 20턴 완료 후 기존 resolver가 확정한다. 모든 turn은 `AI`/`PLAYER` authority와 state-before/after identity를 남기며 AI는 원래 Auto trace, PLAYER는 selectable-set/legality/client-action evidence를 사용한다. Session/request/revision/time identity는 gameplay hash에서 제외한다.
+
+새 endpoint는 `/api/v1/player-drafts/sessions` 아래 create/get/action/simulate/delete 다섯 개다. Process-local repository는 injected Clock, 기본 TTL 30분과 최대 128 sessions, revision/client-action idempotency와 atomic AI follow-up을 제공한다. Draft 완료는 경기를 자동 실행하지 않으며 explicit simulate만 현재 `PRODUCTION_MATCHUP_COMPOSITION_V1` / engine V9를 fresh state에서 실행한다. Mixed transcript와 final assignment는 Match Engine input 전에 처음부터 재구성되고 control evidence가 final Draft/input/replay/output identity에 결속된다.
+
+현재 제한은 frontend 미구현, restart persistence/auth/database/WebSocket/multi-node coordination 부재, Game 1/빈 Hard Fearless only다. 상세 계약은 [Player-controlled Draft API V1](architecture/player-controlled-draft-api-v1.md)에 있다.
+
+Focused 3 suites / 14 tests와 기존 Auto Draft/Match Engine/Real Match 영향 회귀가 clean pass했다. Final default backend regression은 224 suites / 2,217 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,155.636초, Gradle wall 19분 22초로 첫 실행에서 통과했다. 별도 `localhost:8097` bootRun smoke는 기존 options `REAL_MATCH_OPTIONS_V1` / production profile / 10 teams, RED-controlled session 생성, turn 1 AI→turn 2 PLAYER→turn 3 AI atomic 진행, revision 0→1, manual `LEGAL`, GET gzip, DELETE 204를 확인했다. 임시 session과 서버는 종료했으며 frontend build와 대형 diagnostic은 실행하지 않았다.
+
 ### Auto Draft Variety V1
 
 기존 production Draft가 정렬된 평가 결과의 1위만 선택해 seed가 달라도 같은 Draft를 만들던 경계를 교정했다. 후보 생성, Draft Meta, 선수 proficiency, 상대 threat, matchup/composition, flex/denial, future/role feasibility와 shallow search는 그대로 유지하고 최고점 대비 2.0 이내 상위 3개 후보에만 deterministic seeded selection을 적용한다. BAN weight는 55/30/15, PICK은 70/22/8이다.
@@ -459,18 +473,20 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 - Explicit runtime profiles는 backend orchestration input이며 아직 HTTP/frontend profile selector로 노출하지 않았다.
 - Final 13G-B는 Economy `FAIL`과 Tempo `REVIEW_REQUIRED`를 보존한 채 Production V1을 `KEEP_CURRENT_RUNTIME_DEFAULT`로 결정했다. 두 candidate profile은 감사/향후 설계용으로 남지만 runtime 기본값에는 활성화하지 않는다.
 - Jungle Economy V1-A는 economy-only candidate profile에서 계속 CS/gold/XP에만 연결된다. V1-B Tempo candidate는 별도 profile에서 bounded readiness를 gank와 counter-gank eligibility에만 연결한다. Objective eligibility/확률/reward에는 직접 연결하지 않았고 Production V1 tuning은 수행하지 않았다.
-- `DraftEngine`은 application component 내부의 pure domain dependency이며 독립 Spring bean/API로 공개되지 않는다.
+- 완전 자동 `DraftEngine`은 계속 application component 내부 pure domain dependency다. 별도 `PlayerControlledDraftEngine`만 V1 session API용 Spring bean으로 조립된다.
 - 첫 game은 exclusion이 없어 단판처럼 동작하지만 별도 Standard ruleset 선택 기능은 없다.
 
 ## Pending
 
-1. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
-2. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
-3. `SERIES_LIFECYCLE_V1`에서 BO3/BO5와 누적 Hard Fearless history를 caller-owned series context로 설계한다. Save/Career/Season persistence는 그 이후 별도 범위다.
-4. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
-5. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
-6. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
-7. Matchup lane-pressure mutation version이 downstream action eligibility/score/selection에서 실제 소비될 때 exact consumer action ID까지 이어지는 lineage를 완성한다. 다음 official 실행은 새 versioned contract와 비중첩 fresh seed로 수행한다. `UNRESOLVED_SNAPSHOT_CAUSE` exact-zero gate를 완화하거나 실패 finalizer를 성공할 때까지 재시도하지 않는다.
+1. Player Draft frontend V1에서 team/side/seed setup, legal pool, advisory와 turn authority를 표시하고 complete→explicit simulate 흐름을 연결한다.
+2. Player Draft browser E2E, keyboard/a11y와 reconnect/expiry UX를 검증한다.
+3. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
+4. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
+5. `SERIES_LIFECYCLE_V1`에서 BO3/BO5와 누적 Hard Fearless history를 caller-owned series context로 설계한다. Save/Career/Season persistence는 그 이후 별도 범위다.
+6. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
+7. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
+8. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
+9. Matchup lane-pressure mutation version이 downstream action eligibility/score/selection에서 실제 소비될 때 exact consumer action ID까지 이어지는 lineage를 완성한다. 다음 official 실행은 새 versioned contract와 비중첩 fresh seed로 수행한다. `UNRESOLVED_SNAPSHOT_CAUSE` exact-zero gate를 완화하거나 실패 finalizer를 성공할 때까지 재시도하지 않는다.
 
 ## Test Snapshot
 
@@ -484,16 +500,16 @@ gradlew.bat test --console=plain --no-daemon
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 219 |
-| Tests | 2,201 |
+| JUnit suites | 224 |
+| Tests | 2,217 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 0 |
-| Aggregate JUnit XML time | 1,821.280 seconds |
-| Gradle wall duration | 16m 25s |
+| Aggregate JUnit XML time | 1,155.636 seconds |
+| Gradle wall duration | 19m 22s |
 | Build | `BUILD SUCCESSFUL` |
 
-Matchup/Composition production activation final tree의 complete regression이다. 첫 full은 2,201 tests 중 historical Final 13G profile/inspector와 현재 transport/performance expectation 4건이 새 암묵적 production default를 baseline으로 가정해 실패했다. Historical audit/oracle을 현재 production과 명시적으로 분리하고 current tests를 새 identity에 맞춘 뒤 affected 4 suites / 7 tests를 통과했으며, 위 수치는 두 번째이자 최종 full의 clean 결과다. 과거 artifact/output hash는 갱신하지 않았다.
+Player-controlled Draft API V1이 포함된 final production tree의 complete regression이다. 첫 실행에서 224 suites / 2,217 tests가 clean pass했고 이후 executable production Java/resource/Gradle/shared fixture는 변경하지 않았다. 새 domain/session/controller focused 3 suites / 14 tests도 failures/errors/skipped 0으로 통과했다. 기존 Auto Draft/Match Engine/Real Match focused 회귀는 `MatchEngineV1ContractTest`, `RealMatchApiV1ControllerTest`, `AutoDraftVarietyV1ProductionIntegrationTest`를 묶어 clean pass했다. Frontend, 대형 statistical diagnostic, calibration/holdout과 historical artifact 재생성은 실행하지 않았다.
 
 Activation/profile/policy/API/reachability focused는 10 suites / 58 tests, 2분 56초에 통과했다. 직접 영향 gameplay invariant는 9 suites / 101 tests, 7초에 통과했다. Frontend production build는 87 modules, 약 8초에 성공했고 LIVE options/simulate gzip 및 Draft→Playback→Result 브라우저 smoke도 통과했다. 대형 calibration/holdout/B2/B3/13G-B/population task와 activation artifact bundle은 실행·생성하지 않았다.
 

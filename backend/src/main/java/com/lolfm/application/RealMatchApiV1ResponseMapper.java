@@ -81,6 +81,28 @@ public final class RealMatchApiV1ResponseMapper {
                 integrity(output, execution));
     }
 
+    /** Shared immutable match projection for additive APIs with a different Draft contract. */
+    SharedMatchComponents sharedMatchComponents(MatchEngineV1Output output) {
+        Objects.requireNonNull(output, "output");
+        SimulationExecutionProvenance execution = Objects.requireNonNull(
+                output.executionProvenance(), "executionProvenance");
+        return new SharedMatchComponents(
+                List.of(teamPresentation(output, TeamSide.BLUE, execution.blueTeamCode()),
+                        teamPresentation(output, TeamSide.RED, execution.redTeamCode())),
+                result(output.resultSummary()), timeline(output.timeline()), productionPolicy());
+    }
+
+    record SharedMatchComponents(
+            List<RealMatchApiV1Dtos.TeamPresentation> teams,
+            RealMatchApiV1Dtos.Result result,
+            RealMatchApiV1Dtos.Timeline timeline,
+            RealMatchApiV1Dtos.ProductionPolicy productionPolicy
+    ) {
+        SharedMatchComponents {
+            teams = List.copyOf(teams);
+        }
+    }
+
     private RealMatchApiV1Dtos.OptionTeam optionTeam(
             String teamCode, Team team, Set<String> allPlayerIds
     ) {
