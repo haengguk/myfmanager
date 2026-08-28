@@ -3,6 +3,7 @@ package com.lolfm.application;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -17,11 +18,22 @@ final class SeriesRepository {
             new ConcurrentHashMap<>();
     private final Clock clock;
     private final SeriesLifecycleConfiguration configuration;
+    private final CleanupObserver cleanupObserver;
     private final Object capacityBoundary = new Object();
 
+    @org.springframework.beans.factory.annotation.Autowired
     SeriesRepository(Clock clock, SeriesLifecycleConfiguration configuration) {
+        this(clock, configuration, CleanupObserver.NONE);
+    }
+
+    SeriesRepository(
+            Clock clock,
+            SeriesLifecycleConfiguration configuration,
+            CleanupObserver cleanupObserver
+    ) {
         this.clock = Objects.requireNonNull(clock, "clock");
         this.configuration = Objects.requireNonNull(configuration, "configuration");
+        this.cleanupObserver = Objects.requireNonNull(cleanupObserver, "cleanupObserver");
     }
 
     Instant now() { return clock.instant(); }
@@ -103,18 +115,29 @@ final class SeriesRepository {
         SeriesGame game = aggregate.currentGame();
         if (aggregate.status() == SeriesStatus.ACTIVE && game.reservation() != null
                 && !now.isBefore(game.reservation().leaseExpiresAt())) {
+            SeriesSimulationReservation expiredReservation = game.reservation();
             SeriesGame released = new SeriesGame(
                     game.gameId(), game.gameNumber(), game.blueTeamCode(), game.redTeamCode(),
                     game.controlledSide(), game.matchSeed(), game.historyBefore(),
                     game.historyBeforeHash(), SeriesGameStatus.SIMULATION_FAILED_RETRYABLE,
                     "SIMULATION_LEASE_EXPIRED", game.childGeneration(), game.childDraft(),
                     null, game.completedDraft(), game.resultSummary(), game.receipt());
+            LinkedHashMap<String, SeriesCommandReceipt> receipts = new LinkedHashMap<>(
+                    aggregate.commandReceipts());
+            SeriesCommandReceipt command = receipts.get(expiredReservation.commandId());
+            if (command != null && command.completion() == SeriesCommandCompletion.IN_PROGRESS
+                    && command.payloadHash().equals(expiredReservation.payloadHash())) {
+                receipts.put(command.commandId(), command.completed(
+                        SeriesCommandCompletion.FAILED, aggregate.revision(),
+                        aggregate.status(), released.status(), "SIMULATION_LEASE_EXPIRED",
+                        "SERIES_SIMULATION_LEASE_EXPIRED", 409, true));
+            }
             aggregate = aggregate.copy(aggregate.revision(), aggregate.status(),
                     aggregate.terminalReason(), aggregate.score(), replaceLast(
                     aggregate.games(), released), aggregate.consumedPicks(),
                     aggregate.historyHash(), aggregate.winnerTeamCode(),
                     aggregate.lastActivityAt(), aggregate.expiresAt(),
-                    aggregate.commandReceipts());
+                    receipts);
             game = released;
         }
         boolean reservationValid = game.reservation() != null
@@ -164,17 +187,19 @@ final class SeriesRepository {
 
     private void cleanupExpiredAndTerminal() {
         Instant now = clock.instant();
-        ArrayList<String> remove = new ArrayList<>();
-        series.forEach((id, value) -> {
-            SeriesAggregate live = expire(value, now);
-            series.replace(id, value, live);
-            if (live.status() == SeriesStatus.EXPIRED
-                    || live.status() == SeriesStatus.CANCELLED) remove.add(id);
+        series.forEach((id, ignored) -> {
+            cleanupObserver.beforeAtomicCleanup(id);
+            series.computeIfPresent(id, (key, current) -> {
+                SeriesAggregate live = expire(current, now);
+                if (live.status() != SeriesStatus.EXPIRED
+                        && live.status() != SeriesStatus.CANCELLED) {
+                    return live;
+                }
+                createCommands.entrySet().removeIf(
+                        entry -> entry.getValue().seriesId().equals(id));
+                return null;
+            });
         });
-        remove.forEach(id -> series.computeIfPresent(id, (key, value) -> {
-            createCommands.entrySet().removeIf(entry -> entry.getValue().seriesId().equals(id));
-            return null;
-        }));
     }
 
     private static java.util.List<SeriesGame> replaceLast(
@@ -188,6 +213,12 @@ final class SeriesRepository {
     record Mutation<T>(SeriesAggregate aggregate, T result) {}
     record CreateResult(SeriesAggregate aggregate, boolean replayed) {}
     private record CreateIndex(String payloadHash, String seriesId) {}
+
+    @FunctionalInterface
+    interface CleanupObserver {
+        CleanupObserver NONE = seriesId -> { };
+        void beforeAtomicCleanup(String seriesId);
+    }
 
     static final class RepositoryFailure extends RuntimeException {
         RepositoryFailure(String code) { super(code); }

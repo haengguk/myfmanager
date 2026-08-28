@@ -30,27 +30,23 @@ public final class SeriesApiV1Facade {
             String seriesId, SeriesApiV1Dtos.DraftCreateRequest request
     ) {
         var result = lifecycle.createDraft(seriesId, request);
-        SeriesGame game = result.aggregate().currentGame();
         return new DraftResponse(responses.series(result.aggregate()),
-                responses.childEnvelope(result.aggregate(), game, result.child()),
+                responses.childEnvelope(result.aggregate(), result.game(), result.child()),
                 result.replayed());
     }
 
     public DraftResponse getDraft(String seriesId, int gameNumber) {
         var result = lifecycle.getDraft(seriesId, gameNumber);
-        SeriesGame game = result.aggregate().games().stream()
-                .filter(value -> value.gameNumber() == gameNumber).findFirst().orElseThrow();
         return new DraftResponse(responses.series(result.aggregate()),
-                responses.childEnvelope(result.aggregate(), game, result.child()), false);
+                responses.childEnvelope(result.aggregate(), result.game(), result.child()), false);
     }
 
     public DraftResponse draftAction(
             String seriesId, int gameNumber, SeriesApiV1Dtos.DraftActionRequest request
     ) {
         var result = lifecycle.draftAction(seriesId, gameNumber, request);
-        SeriesGame game = result.aggregate().currentGame();
         return new DraftResponse(responses.series(result.aggregate()),
-                responses.childEnvelope(result.aggregate(), game, result.child()),
+                responses.childEnvelope(result.aggregate(), result.game(), result.child()),
                 result.replayed());
     }
 

@@ -681,9 +681,10 @@ Series correctness는 대형 balance population이 아니라 identity/state/revi
 
 ```text
 gradlew.bat test \
-  --tests com.lolfm.application.SeriesIdentityTest \
   --tests com.lolfm.application.SeriesRepositoryTest \
   --tests com.lolfm.application.SeriesLifecycleServiceTest \
+  --tests com.lolfm.application.SeriesLifecycleHardeningTest \
+  --tests com.lolfm.draft.DraftAvailabilityJointPoolTest \
   --tests com.lolfm.controller.SeriesApiV1ControllerTest \
   --console=plain
 
@@ -704,13 +705,13 @@ gradlew.bat test \
 gradlew.bat test --console=plain
 ```
 
-`SeriesProductionV9SmokeTest`는 GEN/T1, root seed 73, BO3, managed GEN, Game 1 BLUE GEN 한 fixture만 실제 Production V9으로 실행한다. 각 player turn은 response의 첫 legal selectable champion을 제출하고 최대 3게임 안에서 completion, side 교대, game별 20 decisions/10 assignments, committed picks 10개씩의 Hard Fearless 누적, policy/profile/engine identity, compact receipt와 한 committed game full replay를 확인한다. 이 fixture의 winner나 2–1 score를 balance 판단에 사용하지 않는다.
+`SeriesProductionV9SmokeTest`는 GEN/T1, root seed 73, managed GEN, Game 1 BLUE GEN의 BO3와 BO5를 실제 Production V9으로 실행한다. 각 player turn은 response의 첫 legal selectable champion을 제출하고 required wins까지 최대 3/5게임을 진행한다. Side/controlled side/seed/history, game별 20 decisions/10 assignments, committed picks 10개씩의 Hard Fearless 누적, policy/profile/engine identity, compact receipt와 committed game full replay를 확인한다. 현재 bounded 결과는 BO3 GEN 2–1 T1/30 picks, BO5 T1 3–2 GEN/50 picks이며 승자와 score를 balance 판단에 사용하지 않는다.
 
-Repository test는 64개 concurrent create에서 exact capacity 32, create replay/conflict/index leak, Series별 atomic compute, instance isolation, GET non-keepalive, parent 120분/child 30분/lease 5분 경계를 injected Clock으로 검증한다. Lifecycle test는 cancel의 child/reservation invalidation, exact command replay와 payload conflict mutation 0을 고정한다.
+Repository/hardening test는 64개 concurrent create의 exact capacity 32, stale cleanup 대 성공 mutation의 latch race, create index, Series별 atomic compute, instance isolation, parent/child/lease 경계를 injected Clock으로 검증한다. Controllable executor는 success/failure/in-progress exact replay, same/different concurrent command, cancel 중 late success/failure, lease expiry→retry→old late success/integrity failure, receipt 255/256, full aggregate replay transition, BO3 2–0/2–1과 BO5 3–0/3–2를 고정한다. Joint-pool test는 independent five-role check가 공유 챔피언을 중복 사용할 수 있는 synthetic 반례와 정확한 열 champion 경계를 검증한다. 이 focused 묶음은 25 tests, failure/error/skip 0이다. 기존 Player Draft/Match Engine V1/Real Match/Draft 호환성 묶음은 8 suites / 58 tests, failure/error/skip 0이다.
 
-이 milestone에서는 frontend build, Playwright, large-seed distribution, calibration/holdout과 historical artifact regeneration을 실행하지 않는다. 현재 실제 결과와 제한은 [Series backend implementation](series-lifecycle-v1-backend-implementation.md)에 기록한다.
+이 milestone에서는 frontend build, Playwright, large-seed distribution, calibration/holdout과 historical artifact regeneration을 실행하지 않는다. 현재 실제 결과와 제한은 [Series backend hardening](series-lifecycle-v1-backend-hardening.md)에 기록한다.
 
-Final executable tree의 complete backend regression은 첫 실행에서 231 suites / 2,246 tests / failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 1,668.336초, Gradle wall은 27분 56초다. Clean full 뒤 변경은 문서와 보고 문구뿐이므로 full을 반복하지 않았다.
+최초 implementation executable tree의 complete backend regression은 231 suites / 2,246 tests / failures 0 / errors 0 / skipped 0이었다. 이번 hardening final production executable tree는 첫 실행에서 233 suites / 2,261 tests / failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 1,781.459초, Gradle wall은 29분 50초다. Clean full 뒤 isolated lease late-integrity assertion-only test를 강화해 affected focused만 통과했고 production source는 바뀌지 않았으므로 full을 반복하지 않았다.
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.
 

@@ -205,9 +205,63 @@ record SeriesCommandReceipt(
         String commandId,
         String commandType,
         String payloadHash,
+        SeriesCommandCompletion completion,
         long resultingSeriesRevision,
+        SeriesStatus resultingSeriesStatus,
         int gameNumber,
+        String gameId,
+        SeriesGameStatus resultingGameStatus,
         Long resultingDraftRevision,
-        String resultIdentity
+        String childId,
+        Integer childGeneration,
+        SeriesChildDraft childSnapshot,
+        String resultIdentity,
+        String errorCode,
+        Integer httpStatus,
+        boolean retryable
 ) {
+    SeriesCommandReceipt {
+        Objects.requireNonNull(commandId, "commandId");
+        Objects.requireNonNull(commandType, "commandType");
+        Objects.requireNonNull(payloadHash, "payloadHash");
+        Objects.requireNonNull(completion, "completion");
+        Objects.requireNonNull(resultingSeriesStatus, "resultingSeriesStatus");
+        Objects.requireNonNull(gameId, "gameId");
+        Objects.requireNonNull(resultingGameStatus, "resultingGameStatus");
+        if (resultingSeriesRevision < 0 || gameNumber < 1) {
+            throw new IllegalArgumentException("command receipt identity");
+        }
+        if (completion == SeriesCommandCompletion.FAILED
+                && (errorCode == null || httpStatus == null)) {
+            throw new IllegalArgumentException("failed command receipt");
+        }
+        if (completion != SeriesCommandCompletion.FAILED
+                && (errorCode != null || httpStatus != null || retryable)) {
+            throw new IllegalArgumentException("non-failed command receipt");
+        }
+        if (childSnapshot != null
+                && (!childSnapshot.childId().equals(childId)
+                || childSnapshot.generation() != childGeneration
+                || childSnapshot.revision() != resultingDraftRevision)) {
+            throw new IllegalArgumentException("command receipt child snapshot");
+        }
+    }
+
+    SeriesCommandReceipt completed(
+            SeriesCommandCompletion nextCompletion,
+            long revision,
+            SeriesStatus seriesStatus,
+            SeriesGameStatus gameStatus,
+            String identity,
+            String failureCode,
+            Integer failureHttpStatus,
+            boolean failureRetryable
+    ) {
+        return new SeriesCommandReceipt(commandId, commandType, payloadHash,
+                nextCompletion, revision, seriesStatus, gameNumber, gameId, gameStatus,
+                resultingDraftRevision, childId, childGeneration, childSnapshot, identity,
+                failureCode, failureHttpStatus, failureRetryable);
+    }
 }
+
+enum SeriesCommandCompletion { IN_PROGRESS, SUCCEEDED, FAILED }

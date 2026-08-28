@@ -1,6 +1,8 @@
 # Series Lifecycle V1 Backend Implementation
 
-상태: `SERIES_LIFECYCLE_V1_BACKEND_IMPLEMENTED_READY_FOR_HARDENING`
+상태: `SERIES_LIFECYCLE_V1_BACKEND_HARDENED_READY_FOR_FRONTEND`
+
+이 문서의 기존 수치는 최초 backend implementation milestone의 증거다. 후속 hardening에서 바뀐 동시성·idempotency 계약과 최신 검증은 [Series Lifecycle V1 Backend Hardening](series-lifecycle-v1-backend-hardening.md)에 별도로 기록한다.
 
 ## 구현 결과
 
@@ -56,9 +58,9 @@ Actual Production smoke는 GEN 대 T1, canonical root seed 73, BO3, managed GEN,
 - 5분 simulation lease expiry는 reservation을 해제하고 retryable game 상태로 전환
 - Series cancel은 child/reservation을 invalidate하고 exact command replay mutation 0
 
-Milestone은 핵심 correctness와 bounded concurrency를 고정한다. 더 강한 adversarial race, executor blocking/late-result injection, receipt-cap saturation과 process lifecycle stress는 다음 `SERIES_LIFECYCLE_V1_BACKEND_HARDENING` 범위다.
+최초 milestone은 핵심 correctness와 bounded concurrency를 고정했다. 당시 후속으로 남겼던 adversarial TTL race, executor blocking/late-result injection, failure receipt, receipt-cap saturation, replay identity와 BO5 경계는 `SERIES_LIFECYCLE_V1_BACKEND_HARDENING`에서 완료했다.
 
-## Final verification receipt
+## 최초 implementation의 Final verification receipt
 
 Final executable tree의 complete backend Gradle `test`는 첫 실행에서 통과했다.
 
@@ -74,6 +76,6 @@ Clean full 뒤에는 문서와 final report wording만 갱신했으므로 전체
 
 Frontend build, Playwright, large statistical diagnostic, calibration/holdout과 historical artifact regeneration은 이 backend-only milestone에서 실행하지 않았다.
 
-## Source integrity
+## 최초 implementation의 Source integrity
 
 Task 시작 기준 HEAD는 `ba973d02ccfaba031de6c0f4d66dbe9e1176be8c`였다. 기존 사용자 untracked prompt 세 개는 보존했다. Git add/commit/push를 수행하지 않았고 frontend/resources/gameplay tuning은 변경하지 않았다.

@@ -1,6 +1,6 @@
 # Series Lifecycle V1
 
-상태: `SERIES_LIFECYCLE_V1_BACKEND_IMPLEMENTED_READY_FOR_HARDENING`
+상태: `SERIES_LIFECYCLE_V1_BACKEND_HARDENED_READY_FOR_FRONTEND`
 
 이 문서는 [계약 스케치](series-lifecycle-v1-contract-sketch.md)에서 제안했던 Series backend 중 현재 실제 구현된 V1을 설명한다. 구현은 additive `/api/v1/series` 경계이며 기존 standalone Player Draft와 Real Match API의 의미를 바꾸지 않는다.
 
@@ -35,7 +35,7 @@ Series create
 | simulation lease | 5분 |
 | command receipts | Series당 256 |
 
-성공한 mutation만 parent activity를 연장한다. GET, stale/rejected request와 exact command replay는 keepalive가 아니다. Cancelled entry와 expired entry/create index는 다음 create에서 함께 정리한다. 완료·차단 Series도 parent TTL 뒤 EXPIRED가 되어 정리될 수 있다. Repository instance 간 상태 공유는 없다.
+성공한 mutation만 parent activity를 연장한다. GET, stale/rejected request와 exact command replay는 keepalive가 아니다. Cleanup은 각 Series key의 현재 snapshot을 `computeIfPresent` 안에서 다시 expiry 판정하고, 그 같은 원자 경계에서 terminal snapshot만 제거한다. 오래된 snapshot의 conditional replace 실패 뒤 새 snapshot을 지우는 경로는 없다. Create command index도 대응 Series가 실제로 제거되는 그 경계에서만 제거된다. Cancelled entry와 expired entry/create index는 다음 create에서 함께 정리한다. 유효한 simulation lease는 parent TTL 제거보다 우선한다. 완료·차단 Series도 parent TTL 뒤 EXPIRED가 되어 정리될 수 있다. Repository instance 간 상태 공유는 없다.
 
 이 저장소는 database가 아니다. Process restart 시 Series, child, reservation과 receipts가 모두 사라지고 multi-node coordination이나 restart recovery를 제공하지 않는다. 이 제한은 API view의 `processLocalRestartLoss=true`로도 노출한다.
 
@@ -55,23 +55,23 @@ Series child는 standalone session map을 재사용하지 않고 parent aggregat
 
 `PlayerControlledDraftEngine.startSeries`와 series-aware completion validator는 Game 2 이상과 기존 committed history를 명시적으로 받는다. AI turn은 기존 Production Auto Draft search/selector를 그대로 사용하고, player turn은 server가 제공한 legal selectable set만 허용한다. 완료 시 active Draft Meta version과 required/actual legal-role hash, 20-turn authority/evidence, final assignments를 다시 검증한다.
 
-Decisive game commit 때 양 팀 picks 10개만 누적한다. Bans, 실패, 취소, expiry, stale command와 no-result는 history를 바꾸지 않는다. 다음 game은 직전 committed picks union을 frozen exclusion으로 받는다. Pool completion preflight가 실패하면 직전 commit은 보존하고 Series/next game을 `BLOCKED/HARD_FEARLESS_LEGAL_POOL_EXHAUSTED`로 둔다.
+Decisive game commit 때 양 팀 picks 10개만 누적한다. Bans, 실패, 취소, expiry, stale command와 no-result는 history를 바꾸지 않는다. 다음 game은 직전 committed picks union을 frozen exclusion으로 받는다. Pool completion preflight는 양 팀을 독립적으로 재사용 가능한 풀로 보지 않고, shared unavailable pool에서 BLUE/RED의 열 개 role slot에 서로 다른 챔피언을 배정할 수 있는지 bounded matching으로 확인한다. 실패하면 직전 commit은 보존하고 Series/next game을 `BLOCKED/HARD_FEARLESS_LEGAL_POOL_EXHAUSTED`로 둔다.
 
 Standalone `PlayerControlledDraftEngine.start`/`validateCompleted`와 `/api/v1/player-drafts/sessions`는 계속 Game 1 + 빈 history만 허용한다. `/api/v1/real-matches`도 독립 Game 1 계약을 유지한다.
 
 ## Production V9 reservation과 commit
 
-Simulation eligibility가 모두 통과하면 짧은 per-Series mutation에서 command/payload, frozen child/input binding, reserved revision, token과 5분 lease를 기록한다. 그 뒤 repository lock 없이 실제 `PRODUCTION_MATCHUP_COMPOSITION_V1` / `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`을 실행한다.
+Simulation eligibility가 모두 통과하면 짧은 per-Series mutation에서 command/payload, frozen child/input binding, reserved revision, token과 5분 lease, `IN_PROGRESS` command receipt를 함께 기록한다. 그 뒤 repository lock 없이 실제 `PRODUCTION_MATCHUP_COMPOSITION_V1` / `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`을 실행한다. 같은 command/payload 재전송은 새 worker를 만들지 않고 기존 202 의미를 반환한다.
 
-Commit은 현재 reservation token, lease, revision, child Draft와 frozen binding을 다시 비교한다. Production executor는 authoritative roster, Draft/control/final assignment, input, policy/profile/configuration/rules/engine, resource/replay provenance, simulator/structured timeline, Random fingerprint와 output hash를 검증한다. 모두 맞는 decisive result만 한 snapshot에서 game `COMMITTED`, team-code score +1, picks 10개 누적, 다음 game 생성 또는 Series `COMPLETED`를 함께 반영한다.
+Commit은 현재 Series status/revision, exact game snapshot, game/child/generation, reservation token/command/payload/lease, child revision/Draft identity와 frozen side/seed/history/input binding을 다시 비교한다. Production executor는 authoritative roster, Draft/control/final assignment, input, policy/profile/configuration/rules/engine, resource/replay provenance, simulator/structured timeline, Random fingerprint와 output hash를 검증한다. 모두 맞는 decisive result만 한 snapshot에서 game `COMMITTED`, team-code score +1, picks 10개 누적, 다음 game 생성 또는 Series `COMPLETED`를 함께 반영한다.
 
-Runtime failure는 reservation을 해제하고 `SIMULATION_FAILED_RETRYABLE`, integrity mismatch는 `BLOCKED`, valid timeout/no winner는 `BLOCKED/NO_DECISIVE_RESULT`다. 이 세 경로는 score/history를 commit하지 않는다. Series cancel은 active child를 CANCELLED로 바꾸고 reservation을 제거하므로 late output은 commit할 수 없다.
+Runtime failure는 reservation을 해제하고 `SIMULATION_FAILED_RETRYABLE`, integrity mismatch는 `BLOCKED`, valid timeout/no winner는 `BLOCKED/NO_DECISIVE_RESULT`다. Lease 만료는 `SERIES_SIMULATION_LEASE_EXPIRED` retryable failure receipt로 고정한다. 이 경로들은 score/history를 commit하지 않으며 최초 stable code/HTTP/retryable 의미를 같은 command 재전송에서 재현한다. 실제 retry는 새 command ID와 최신 revision을 사용한다. Series cancel은 active child를 CANCELLED로 바꾸고 reservation을 제거하며 진행 중 receipt도 invalidated failure로 바꾸므로 late success와 late failure 모두 더 새 상태를 덮어쓸 수 없다.
 
 ## Compact result와 replay
 
-Aggregate에는 completed 20-turn Draft/evidence, final assignments, compact result summary, `SeriesGameReceipt`와 bounded command receipt만 남긴다. `MatchEngineV1Output`, event/snapshot timeline, HTTP DTO graph, simulator state, future/thread/exception은 보관하지 않는다. Canonical game receipt는 16KiB 이하로 검증한다.
+Aggregate에는 completed 20-turn Draft/evidence, final assignments, compact result summary, `SeriesGameReceipt`와 bounded command receipt만 남긴다. Command receipt는 `IN_PROGRESS/SUCCEEDED/FAILED`, stable result/error, exact game ID와 필요한 child ID/generation/revision의 bounded snapshot을 보관한다. 이 때문에 과거 Game 1 또는 취소 전 generation command를 재전송해도 현재 game/child와 섞지 않는다. `MatchEngineV1Output`, event/snapshot timeline, HTTP DTO graph, simulator state, future/thread/exception은 보관하지 않는다. Canonical game receipt는 16KiB 이하로 검증한다.
 
-Committed game replay는 stored frozen Draft/context로 Production V9을 새로 결정 실행하고 stored receipt를 exact 비교한 경우에만 full match response를 반환한다. Replay 전후 revision, score, history와 last activity는 같아야 한다. Current runtime/resource가 stored identity를 재현할 수 없으면 fail-closed한다.
+Committed game replay는 stored frozen Draft/context로 Production V9을 새로 결정 실행하고 stored receipt를 exact 비교한 경우에만 full match response를 반환한다. 사전 검사는 policy ID/hash, runtime profile, configuration, rules와 engine을 포함한다. Replay 전후 authoritative aggregate 전체 구조를 비교하므로 revision-neutral child expiry, lease expiry, reservation/receipt/status/terminal reason 변화도 stale view로 반환하지 않고 fail-closed한다. Current runtime/resource가 stored identity를 재현할 수 없으면 `SERIES_GAME_REPLAY_IDENTITY_UNAVAILABLE`, 실행 결과 receipt가 다르면 `SERIES_GAME_RECEIPT_MISMATCH`로 구분한다.
 
 동일한 completed simulate command 재전송은 engine을 다시 실행하지 않고 authoritative compact terminal Series/Game view를 반환한다. Full timeline이 필요한 명시적 replay endpoint와 command idempotency를 분리한 결과이며, duplicate simulation response의 `match`는 null일 수 있다.
 
@@ -96,12 +96,11 @@ Request parser는 endpoint별 exact schema/field set, enum, ID, canonical seed�
 
 ## 현재 제한과 다음 단계
 
-V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit, background job recovery, frontend와 live accessibility flow는 포함하지 않는다. Command receipt 한도는 eviction하지 않고 fail-closed한다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다.
+V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit, background job recovery, frontend와 live accessibility flow는 포함하지 않는다. Command receipt 한도 256은 eviction하지 않는다. 이미 기록된 exact replay는 한도에서도 허용하지만 신규 action/simulate/cancel은 실행·mutation 전에 fail-closed하므로 장시간 열린 Series는 terminal/cancel command도 거부될 수 있다. V2에서는 persistence와 함께 receipt compaction/retention 정책이 필요하다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다.
 
 다음 순서는 다음과 같다.
 
 ```text
-SERIES_LIFECYCLE_V1_BACKEND_HARDENING
--> SERIES_FRONTEND_V1
+SERIES_FRONTEND_V1
 -> SERIES_LIVE_E2E_AND_ACCESSIBILITY
 ```

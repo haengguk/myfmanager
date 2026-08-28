@@ -89,10 +89,13 @@ public final class SeriesLifecycleService {
                 SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
                         "CREATE_DRAFT", payload);
                 if (prior != null) {
-                    SeriesGame priorGame = findGame(aggregate, prior.gameNumber());
+                    rethrowFailure(prior);
+                    SeriesGame priorGame = receiptGame(aggregate, prior);
+                    SeriesChildDraft priorChild = receiptChild(aggregate, prior);
                     return new SeriesRepository.Mutation<>(aggregate,
-                            new ChildMutation(aggregate, priorGame.childDraft(), true, null));
+                            new ChildMutation(aggregate, priorGame, priorChild, true, null));
                 }
+                requireReceiptCapacity(aggregate);
                 ensureActive(aggregate);
                 SeriesGame game = aggregate.currentGame();
                 stale(aggregate, request.expectedRevision());
@@ -106,15 +109,22 @@ public final class SeriesLifecycleService {
                             "HARD_FEARLESS_LEGAL_POOL_EXHAUSTED", game.childGeneration(),
                             game.childDraft(), null, game.completedDraft(),
                             game.resultSummary(), game.receipt());
-                    SeriesAggregate updated = aggregate.copy(aggregate.revision() + 1,
+                    long revision = aggregate.revision() + 1;
+                    Instant now = repository.now();
+                    Map<String, SeriesCommandReceipt> receipts = putReceipt(aggregate,
+                            failedReceipt(request.clientCommandId(), "CREATE_DRAFT", payload,
+                                    revision, SeriesStatus.BLOCKED, blocked, null,
+                                    "HARD_FEARLESS_LEGAL_POOL_EXHAUSTED",
+                                    "SERIES_HARD_FEARLESS_POOL_EXHAUSTED",
+                                    HttpStatus.UNPROCESSABLE_ENTITY, false));
+                    SeriesAggregate updated = aggregate.copy(revision,
                             SeriesStatus.BLOCKED, "HARD_FEARLESS_LEGAL_POOL_EXHAUSTED",
                             aggregate.score(), replaceLast(aggregate.games(), blocked),
                             aggregate.consumedPicks(), aggregate.historyHash(),
-                            aggregate.winnerTeamCode(), repository.now(),
-                            repository.parentExpiresAt(repository.now()),
-                            aggregate.commandReceipts());
+                            aggregate.winnerTeamCode(), now,
+                            repository.parentExpiresAt(now), receipts);
                     return new SeriesRepository.Mutation<>(updated,
-                            new ChildMutation(updated, null, false,
+                            new ChildMutation(updated, blocked, null, false,
                                     "SERIES_HARD_FEARLESS_POOL_EXHAUSTED"));
                 }
                 Team blue = teams.assemble(game.blueTeamCode());
@@ -136,17 +146,19 @@ public final class SeriesLifecycleService {
                                 : SeriesGameStatus.DRAFT_ACTIVE,
                         null, generation, child, null, progress.result(), null, null);
                 long revision = aggregate.revision() + 1;
-                Map<String, SeriesCommandReceipt> receipts = addReceipt(aggregate,
-                        request.clientCommandId(), "CREATE_DRAFT", payload, revision,
-                        game.gameNumber(), child.revision(), child.childId());
+                Map<String, SeriesCommandReceipt> receipts = putReceipt(aggregate,
+                        succeededReceipt(request.clientCommandId(), "CREATE_DRAFT", payload,
+                                revision, aggregate.status(), nextGame, child,
+                                child.childId()));
                 SeriesAggregate updated = aggregate.replaceCurrentGame(nextGame, revision,
                         now, repository.parentExpiresAt(now), receipts);
                 return new SeriesRepository.Mutation<>(updated,
-                        new ChildMutation(updated, child, false, null));
+                        new ChildMutation(updated, nextGame, child, false, null));
             });
             if (result.errorCode() != null) throw unprocessable(
                     result.aggregate(), result.errorCode(), false);
-            return new ChildExecution(result.aggregate(), result.child(), result.replayed());
+            return new ChildExecution(result.aggregate(), result.game(), result.child(),
+                    result.replayed());
         } catch (SeriesRepository.RepositoryFailure error) {
             throw repositoryError(error);
         }
@@ -160,7 +172,7 @@ public final class SeriesLifecycleService {
         if (game.childDraft().status() == PlayerDraftSessionStatus.EXPIRED) {
             throw gone(aggregate, "SERIES_DRAFT_SESSION_EXPIRED");
         }
-        return new ChildExecution(aggregate, game.childDraft(), false);
+        return new ChildExecution(aggregate, game, game.childDraft(), false);
     }
 
     public ChildExecution draftAction(
@@ -181,9 +193,14 @@ public final class SeriesLifecycleService {
             ChildMutation result = repository.mutate(seriesId, aggregate -> {
                 SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
                         "DRAFT_ACTION", payload);
-                if (prior != null) return new SeriesRepository.Mutation<>(aggregate,
-                        new ChildMutation(aggregate, findGame(aggregate, gameNumber).childDraft(),
-                                true, null));
+                if (prior != null) {
+                    rethrowFailure(prior);
+                    SeriesGame priorGame = receiptGame(aggregate, prior);
+                    return new SeriesRepository.Mutation<>(aggregate,
+                            new ChildMutation(aggregate, priorGame,
+                                    receiptChild(aggregate, prior), true, null));
+                }
+                requireReceiptCapacity(aggregate);
                 ensureActive(aggregate);
                 wrongGame(aggregate, gameNumber);
                 stale(aggregate, request.expectedSeriesRevision());
@@ -222,17 +239,19 @@ public final class SeriesLifecycleService {
                         null, game.childGeneration(), nextChild, null, progress.result(),
                         null, null);
                 long revision = aggregate.revision() + 1;
-                Map<String, SeriesCommandReceipt> receipts = addReceipt(aggregate,
-                        request.clientCommandId(), "DRAFT_ACTION", payload, revision,
-                        gameNumber, nextChild.revision(), progress.result() == null
-                        ? progress.turnEvidence().getLast().stateAfterHash()
-                        : progress.result().draftIdentity());
+                Map<String, SeriesCommandReceipt> receipts = putReceipt(aggregate,
+                        succeededReceipt(request.clientCommandId(), "DRAFT_ACTION", payload,
+                                revision, aggregate.status(), nextGame, nextChild,
+                                progress.result() == null
+                                        ? progress.turnEvidence().getLast().stateAfterHash()
+                                        : progress.result().draftIdentity()));
                 SeriesAggregate updated = aggregate.replaceCurrentGame(nextGame, revision,
                         now, repository.parentExpiresAt(now), receipts);
                 return new SeriesRepository.Mutation<>(updated,
-                        new ChildMutation(updated, nextChild, false, null));
+                        new ChildMutation(updated, nextGame, nextChild, false, null));
             });
-            return new ChildExecution(result.aggregate(), result.child(), result.replayed());
+            return new ChildExecution(result.aggregate(), result.game(), result.child(),
+                    result.replayed());
         } catch (SeriesRepository.RepositoryFailure error) { throw repositoryError(error); }
     }
 
@@ -244,9 +263,13 @@ public final class SeriesLifecycleService {
                 Integer.toString(gameNumber));
         try {
             repository.mutate(seriesId, aggregate -> {
-                if (replay(aggregate, request.clientCommandId(), "CANCEL_DRAFT", payload) != null) {
+                SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
+                        "CANCEL_DRAFT", payload);
+                if (prior != null) {
+                    rethrowFailure(prior);
                     return new SeriesRepository.Mutation<>(aggregate, null);
                 }
+                requireReceiptCapacity(aggregate);
                 ensureActive(aggregate); wrongGame(aggregate, gameNumber);
                 stale(aggregate, request.expectedRevision());
                 SeriesGame game = aggregate.currentGame();
@@ -263,9 +286,10 @@ public final class SeriesLifecycleService {
                         null, null, null);
                 long revision = aggregate.revision() + 1;
                 Instant now = repository.now();
-                Map<String, SeriesCommandReceipt> receipts = addReceipt(aggregate,
-                        request.clientCommandId(), "CANCEL_DRAFT", payload, revision,
-                        gameNumber, child.revision(), child.childId());
+                Map<String, SeriesCommandReceipt> receipts = putReceipt(aggregate,
+                        succeededReceipt(request.clientCommandId(), "CANCEL_DRAFT", payload,
+                                revision, aggregate.status(), next, cancelled,
+                                child.childId()));
                 SeriesAggregate updated = aggregate.replaceCurrentGame(next, revision,
                         now, repository.parentExpiresAt(now), receipts);
                 return new SeriesRepository.Mutation<>(updated, null);
@@ -285,19 +309,27 @@ public final class SeriesLifecycleService {
             start = repository.mutate(seriesId, aggregate -> {
                 SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
                         "SIMULATE", payload);
-                if (prior != null) return new SeriesRepository.Mutation<>(aggregate,
-                        ReservationStart.replayed(aggregate, findGame(aggregate, gameNumber)));
+                if (prior != null) {
+                    rethrowFailure(prior);
+                    SeriesGame priorGame = receiptGame(aggregate, prior);
+                    if (prior.completion() == SeriesCommandCompletion.IN_PROGRESS) {
+                        SeriesSimulationReservation reservation = priorGame.reservation();
+                        if (reservation == null
+                                || !reservation.commandId().equals(prior.commandId())
+                                || !reservation.payloadHash().equals(prior.payloadHash())) {
+                            throw conflict(aggregate,
+                                    "SERIES_COMMAND_REPLAY_IDENTITY_UNAVAILABLE", false);
+                        }
+                        return new SeriesRepository.Mutation<>(aggregate,
+                                ReservationStart.inProgress(aggregate, priorGame));
+                    }
+                    return new SeriesRepository.Mutation<>(aggregate,
+                            ReservationStart.replayed(aggregate, priorGame));
+                }
+                requireReceiptCapacity(aggregate);
                 ensureActive(aggregate); wrongGame(aggregate, gameNumber);
                 SeriesGame game = aggregate.currentGame();
                 if (game.reservation() != null) {
-                    if (game.reservation().commandId().equals(request.clientCommandId())) {
-                        if (!game.reservation().payloadHash().equals(payload)) {
-                            throw conflict(aggregate,
-                                    "SERIES_COMMAND_ID_PAYLOAD_CONFLICT", false);
-                        }
-                        return new SeriesRepository.Mutation<>(aggregate,
-                                ReservationStart.inProgress(aggregate, game));
-                    }
                     throw conflict(aggregate, "SERIES_SIMULATION_ALREADY_IN_PROGRESS", true);
                 }
                 stale(aggregate, request.expectedSeriesRevision());
@@ -321,8 +353,12 @@ public final class SeriesLifecycleService {
                         SeriesGameStatus.SIMULATION_IN_PROGRESS, null,
                         game.childGeneration(), child, reservation,
                         child.progress().result(), null, null);
+                Map<String, SeriesCommandReceipt> receipts = putReceipt(aggregate,
+                        inProgressReceipt(request.clientCommandId(), "SIMULATE", payload,
+                                revision, aggregate.status(), reserved, child,
+                                reservation.token()));
                 SeriesAggregate updated = aggregate.replaceCurrentGame(reserved, revision,
-                        now, repository.parentExpiresAt(now), aggregate.commandReceipts());
+                        now, repository.parentExpiresAt(now), receipts);
                 return new SeriesRepository.Mutation<>(updated,
                         ReservationStart.execute(updated, reserved, reservation,
                                 binding(updated, reserved), child.progress().result()));
@@ -339,14 +375,16 @@ public final class SeriesLifecycleService {
             execution = matches.execute(start.binding(), start.completedDraft());
         } catch (SeriesMatchIntegrityException error) {
             SeriesAggregate blocked = finishFailure(seriesId, start,
-                    "SERIES_ENGINE_OUTPUT_INTEGRITY_FAILED", true);
-            throw error(blocked, HttpStatus.INTERNAL_SERVER_ERROR,
-                    "SERIES_ENGINE_OUTPUT_INTEGRITY_FAILED", false);
+                    "SERIES_ENGINE_OUTPUT_INTEGRITY_FAILED", true,
+                    HttpStatus.INTERNAL_SERVER_ERROR, false);
+            throw receiptFailure(blocked.commandReceipts().get(
+                    start.reservation().commandId()));
         } catch (RuntimeException error) {
             SeriesAggregate failed = finishFailure(seriesId, start,
-                    "SERIES_SIMULATION_FAILED", false);
-            throw error(failed, HttpStatus.INTERNAL_SERVER_ERROR,
-                    "SERIES_SIMULATION_FAILED", true);
+                    "SERIES_SIMULATION_FAILED", false,
+                    HttpStatus.INTERNAL_SERVER_ERROR, true);
+            throw receiptFailure(failed.commandReceipts().get(
+                    start.reservation().commandId()));
         }
 
         CommitResult committed;
@@ -354,10 +392,8 @@ public final class SeriesLifecycleService {
             committed = repository.mutate(seriesId, aggregate -> commit(
                     aggregate, start, execution, request.clientCommandId(), payload));
         } catch (SeriesRepository.RepositoryFailure error) { throw repositoryError(error); }
-        if (committed.errorCode() != null) {
-            throw error(committed.aggregate(), HttpStatus.UNPROCESSABLE_ENTITY,
-                    committed.errorCode(), false);
-        }
+        if (committed.errorCode() != null) throw receiptFailure(
+                committed.aggregate().commandReceipts().get(request.clientCommandId()));
         return new SimulationExecution(committed.aggregate(), committed.game(),
                 execution.output(), false, false);
     }
@@ -372,7 +408,10 @@ public final class SeriesLifecycleService {
             throw conflict(before, "SERIES_GAME_NOT_COMMITTED", false);
         }
         MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
-        if (!game.receipt().policyHash().equals(policy.policyHash())
+        if (!game.receipt().policyId().equals(policy.policyId())
+                || !game.receipt().policyHash().equals(policy.policyHash())
+                || !game.receipt().runtimeProfileId().equals(
+                policy.retainedRuntimeProfileId().name())
                 || !game.receipt().configurationHash().equals(policy.configurationHash())
                 || !game.receipt().engineImplementationVersion().equals(
                 policy.engineImplementationVersion())
@@ -390,10 +429,7 @@ public final class SeriesLifecycleService {
                     "SERIES_GAME_RECEIPT_MISMATCH", false);
         }
         SeriesAggregate after = get(seriesId);
-        if (after.revision() != before.revision()
-                || !after.score().equals(before.score())
-                || !after.consumedPicks().equals(before.consumedPicks())
-                || !after.lastActivityAt().equals(before.lastActivityAt())) {
+        if (!after.equals(before)) {
             throw error(before, HttpStatus.INTERNAL_SERVER_ERROR,
                     "SERIES_GAME_REPLAY_MUTATION_DETECTED", false);
         }
@@ -405,9 +441,13 @@ public final class SeriesLifecycleService {
                 Long.toString(request.expectedRevision()), request.clientCommandId());
         try {
             repository.mutate(seriesId, aggregate -> {
-                if (replay(aggregate, request.clientCommandId(), "CANCEL_SERIES", payload) != null) {
+                SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
+                        "CANCEL_SERIES", payload);
+                if (prior != null) {
+                    rethrowFailure(prior);
                     return new SeriesRepository.Mutation<>(aggregate, null);
                 }
+                requireReceiptCapacity(aggregate);
                 if (aggregate.status() == SeriesStatus.COMPLETED) {
                     throw conflict(aggregate, "SERIES_ALREADY_COMPLETED", false);
                 }
@@ -419,9 +459,6 @@ public final class SeriesLifecycleService {
                 }
                 stale(aggregate, request.expectedRevision());
                 long revision = aggregate.revision() + 1;
-                Map<String, SeriesCommandReceipt> receipts = addReceipt(aggregate,
-                        request.clientCommandId(), "CANCEL_SERIES", payload, revision,
-                        aggregate.currentGame().gameNumber(), null, "CANCELLED");
                 SeriesGame game = aggregate.currentGame();
                 SeriesChildDraft child = game.childDraft();
                 if (child != null && child.status() != PlayerDraftSessionStatus.CANCELLED
@@ -438,6 +475,24 @@ public final class SeriesLifecycleService {
                                 : SeriesGameStatus.DRAFT_CANCELLED,
                         "SERIES_CANCELLED", game.childGeneration(), child, null,
                         game.completedDraft(), game.resultSummary(), game.receipt());
+                LinkedHashMap<String, SeriesCommandReceipt> receipts = new LinkedHashMap<>(
+                        aggregate.commandReceipts());
+                if (game.reservation() != null) {
+                    SeriesCommandReceipt simulation = receipts.get(
+                            game.reservation().commandId());
+                    if (simulation != null
+                            && simulation.completion() == SeriesCommandCompletion.IN_PROGRESS) {
+                        receipts.put(simulation.commandId(), simulation.completed(
+                                SeriesCommandCompletion.FAILED, revision,
+                                SeriesStatus.CANCELLED, cancelledGame.status(),
+                                "SERIES_CANCELLED", "SERIES_SIMULATION_RESERVATION_INVALIDATED",
+                                HttpStatus.CONFLICT.value(), false));
+                    }
+                }
+                SeriesCommandReceipt cancelReceipt = succeededReceipt(
+                        request.clientCommandId(), "CANCEL_SERIES", payload, revision,
+                        SeriesStatus.CANCELLED, cancelledGame, child, "CANCELLED");
+                receipts.put(cancelReceipt.commandId(), cancelReceipt);
                 SeriesAggregate cancelled = aggregate.copy(revision, SeriesStatus.CANCELLED,
                         "CANCELLED_BY_CLIENT", aggregate.score(), replaceLast(
                         aggregate.games(), cancelledGame),
@@ -459,10 +514,12 @@ public final class SeriesLifecycleService {
         SeriesGame game = aggregate.currentGame();
         SeriesSimulationReservation reservation = game.reservation();
         Instant now = repository.now();
-        if (reservation == null || !reservation.token().equals(start.reservation().token())
+        if (reservation == null || !reservation.equals(start.reservation())
                 || !now.isBefore(reservation.leaseExpiresAt())
                 || aggregate.status() != SeriesStatus.ACTIVE
+                || aggregate.revision() != start.aggregate().revision()
                 || aggregate.revision() != reservation.reservedSeriesRevision()
+                || !game.equals(start.game())
                 || !bindingHash(aggregate, game, game.childDraft()).equals(
                 reservation.inputBindingHash())) {
             throw conflict(aggregate, "SERIES_SIMULATION_RESERVATION_INVALIDATED", false);
@@ -472,11 +529,19 @@ public final class SeriesLifecycleService {
                     "NO_DECISIVE_RESULT", game.childGeneration(), game.childDraft(), null,
                     game.completedDraft(), execution.output().resultSummary(),
                     execution.receipt());
+            LinkedHashMap<String, SeriesCommandReceipt> receipts = new LinkedHashMap<>(
+                    aggregate.commandReceipts());
+            SeriesCommandReceipt command = requireInProgressReceipt(
+                    aggregate, commandId, payload);
+            receipts.put(commandId, command.completed(SeriesCommandCompletion.FAILED,
+                    aggregate.revision(), SeriesStatus.BLOCKED, blockedGame.status(),
+                    execution.receipt().outputHash(), "SERIES_GAME_NO_DECISIVE_RESULT",
+                    HttpStatus.UNPROCESSABLE_ENTITY.value(), false));
             SeriesAggregate blocked = aggregate.copy(aggregate.revision(),
                     SeriesStatus.BLOCKED, "NO_DECISIVE_RESULT", aggregate.score(),
                     replaceLast(aggregate.games(), blockedGame), aggregate.consumedPicks(),
                     aggregate.historyHash(), null, aggregate.lastActivityAt(),
-                    aggregate.expiresAt(), aggregate.commandReceipts());
+                    aggregate.expiresAt(), receipts);
             return new SeriesRepository.Mutation<>(blocked,
                     new CommitResult(blocked, blockedGame,
                             "SERIES_GAME_NO_DECISIVE_RESULT"));
@@ -532,9 +597,12 @@ public final class SeriesLifecycleService {
             }
             games.add(next);
         }
-        Map<String, SeriesCommandReceipt> receipts = addReceipt(aggregate, commandId,
-                "SIMULATE", payload, aggregate.revision(), game.gameNumber(),
-                child.revision(), execution.receipt().outputHash());
+        LinkedHashMap<String, SeriesCommandReceipt> receipts = new LinkedHashMap<>(
+                aggregate.commandReceipts());
+        SeriesCommandReceipt command = requireInProgressReceipt(aggregate, commandId, payload);
+        receipts.put(commandId, command.completed(SeriesCommandCompletion.SUCCEEDED,
+                aggregate.revision(), status, committedGame.status(),
+                execution.receipt().outputHash(), null, null, false));
         SeriesAggregate updated = aggregate.copy(aggregate.revision(), status, reason,
                 score, games, consumed, historyHash, seriesWinner,
                 aggregate.lastActivityAt(), aggregate.expiresAt(), receipts);
@@ -543,13 +611,16 @@ public final class SeriesLifecycleService {
     }
 
     private SeriesAggregate finishFailure(
-            String seriesId, ReservationStart start, String reason, boolean blocked
+            String seriesId, ReservationStart start, String reason, boolean blocked,
+            HttpStatus httpStatus, boolean retryable
     ) {
         try {
             return repository.mutate(seriesId, aggregate -> {
                 SeriesGame game = aggregate.currentGame();
                 if (game.reservation() == null
-                        || !game.reservation().token().equals(start.reservation().token())) {
+                        || !game.reservation().equals(start.reservation())
+                        || !game.equals(start.game())
+                        || aggregate.revision() != start.aggregate().revision()) {
                     throw conflict(aggregate, "SERIES_SIMULATION_RESERVATION_INVALIDATED", false);
                 }
                 SeriesGame failed = replaceGame(game,
@@ -557,13 +628,21 @@ public final class SeriesLifecycleService {
                                 : SeriesGameStatus.SIMULATION_FAILED_RETRYABLE,
                         reason, game.childGeneration(), game.childDraft(), null,
                         game.completedDraft(), null, null);
+                LinkedHashMap<String, SeriesCommandReceipt> receipts = new LinkedHashMap<>(
+                        aggregate.commandReceipts());
+                SeriesCommandReceipt command = requireInProgressReceipt(aggregate,
+                        start.reservation().commandId(), start.reservation().payloadHash());
+                SeriesStatus nextStatus = blocked ? SeriesStatus.BLOCKED : SeriesStatus.ACTIVE;
+                receipts.put(command.commandId(), command.completed(
+                        SeriesCommandCompletion.FAILED, aggregate.revision(), nextStatus,
+                        failed.status(), reason, reason, httpStatus.value(), retryable));
                 SeriesAggregate updated = aggregate.copy(aggregate.revision(),
-                        blocked ? SeriesStatus.BLOCKED : SeriesStatus.ACTIVE,
+                        nextStatus,
                         blocked ? reason : null, aggregate.score(),
                         replaceLast(aggregate.games(), failed), aggregate.consumedPicks(),
                         aggregate.historyHash(), aggregate.winnerTeamCode(),
                         aggregate.lastActivityAt(), aggregate.expiresAt(),
-                        aggregate.commandReceipts());
+                        receipts);
                 return new SeriesRepository.Mutation<>(updated, updated);
             });
         } catch (SeriesRepository.RepositoryFailure error) { throw repositoryError(error); }
@@ -671,18 +750,78 @@ public final class SeriesLifecycleService {
         return values;
     }
 
-    private Map<String, SeriesCommandReceipt> addReceipt(
-            SeriesAggregate aggregate, String commandId, String type, String payload,
-            long revision, int gameNumber, Long draftRevision, String resultIdentity
-    ) {
+    private void requireReceiptCapacity(SeriesAggregate aggregate) {
         if (aggregate.commandReceipts().size() >= repository.maximumCommandReceipts()) {
             throw conflict(aggregate, "SERIES_COMMAND_RECEIPT_CAPACITY_REACHED", false);
         }
+    }
+
+    private static Map<String, SeriesCommandReceipt> putReceipt(
+            SeriesAggregate aggregate, SeriesCommandReceipt receipt
+    ) {
         LinkedHashMap<String, SeriesCommandReceipt> receipts = new LinkedHashMap<>(
                 aggregate.commandReceipts());
-        receipts.put(commandId, new SeriesCommandReceipt(commandId, type, payload, revision,
-                gameNumber, draftRevision, resultIdentity));
+        if (receipts.putIfAbsent(receipt.commandId(), receipt) != null) {
+            throw new IllegalStateException("Series command receipt already exists");
+        }
         return receipts;
+    }
+
+    private static SeriesCommandReceipt succeededReceipt(
+            String commandId, String type, String payload, long revision,
+            SeriesStatus seriesStatus, SeriesGame game, SeriesChildDraft child,
+            String resultIdentity
+    ) {
+        return receipt(commandId, type, payload, SeriesCommandCompletion.SUCCEEDED,
+                revision, seriesStatus, game, child, resultIdentity,
+                null, null, false);
+    }
+
+    private static SeriesCommandReceipt inProgressReceipt(
+            String commandId, String type, String payload, long revision,
+            SeriesStatus seriesStatus, SeriesGame game, SeriesChildDraft child,
+            String resultIdentity
+    ) {
+        return receipt(commandId, type, payload, SeriesCommandCompletion.IN_PROGRESS,
+                revision, seriesStatus, game, child, resultIdentity,
+                null, null, false);
+    }
+
+    private static SeriesCommandReceipt failedReceipt(
+            String commandId, String type, String payload, long revision,
+            SeriesStatus seriesStatus, SeriesGame game, SeriesChildDraft child,
+            String resultIdentity, String errorCode, HttpStatus httpStatus,
+            boolean retryable
+    ) {
+        return receipt(commandId, type, payload, SeriesCommandCompletion.FAILED,
+                revision, seriesStatus, game, child, resultIdentity,
+                errorCode, httpStatus.value(), retryable);
+    }
+
+    private static SeriesCommandReceipt receipt(
+            String commandId, String type, String payload,
+            SeriesCommandCompletion completion, long revision,
+            SeriesStatus seriesStatus, SeriesGame game, SeriesChildDraft child,
+            String resultIdentity, String errorCode, Integer httpStatus,
+            boolean retryable
+    ) {
+        return new SeriesCommandReceipt(commandId, type, payload, completion,
+                revision, seriesStatus, game.gameNumber(), game.gameId(), game.status(),
+                child == null ? null : child.revision(),
+                child == null ? null : child.childId(),
+                child == null ? null : child.generation(), child, resultIdentity,
+                errorCode, httpStatus, retryable);
+    }
+
+    private static SeriesCommandReceipt requireInProgressReceipt(
+            SeriesAggregate aggregate, String commandId, String payload
+    ) {
+        SeriesCommandReceipt receipt = aggregate.commandReceipts().get(commandId);
+        if (receipt == null || receipt.completion() != SeriesCommandCompletion.IN_PROGRESS
+                || !receipt.payloadHash().equals(payload)) {
+            throw conflict(aggregate, "SERIES_COMMAND_REPLAY_IDENTITY_UNAVAILABLE", false);
+        }
+        return receipt;
     }
 
     private static SeriesCommandReceipt replay(
@@ -694,6 +833,46 @@ public final class SeriesLifecycleService {
             throw conflict(aggregate, "SERIES_COMMAND_ID_PAYLOAD_CONFLICT", false);
         }
         return prior;
+    }
+
+    private static void rethrowFailure(SeriesCommandReceipt receipt) {
+        if (receipt.completion() == SeriesCommandCompletion.FAILED) {
+            throw receiptFailure(receipt);
+        }
+    }
+
+    private static SeriesApiV1Exception receiptFailure(SeriesCommandReceipt receipt) {
+        if (receipt == null || receipt.completion() != SeriesCommandCompletion.FAILED
+                || receipt.httpStatus() == null || receipt.errorCode() == null) {
+            throw new IllegalStateException("Series failed receipt unavailable");
+        }
+        HttpStatus status = HttpStatus.resolve(receipt.httpStatus());
+        if (status == null) status = HttpStatus.INTERNAL_SERVER_ERROR;
+        return SeriesApiV1Exception.of(status, receipt.errorCode(), null,
+                "Series 명령을 처리할 수 없습니다.", receipt.retryable(),
+                receipt.resultingSeriesRevision(), receipt.resultingSeriesStatus());
+    }
+
+    private static SeriesGame receiptGame(
+            SeriesAggregate aggregate, SeriesCommandReceipt receipt
+    ) {
+        SeriesGame game = findGame(aggregate, receipt.gameNumber());
+        if (!game.gameId().equals(receipt.gameId())) {
+            throw conflict(aggregate, "SERIES_COMMAND_REPLAY_IDENTITY_UNAVAILABLE", false);
+        }
+        return game;
+    }
+
+    private static SeriesChildDraft receiptChild(
+            SeriesAggregate aggregate, SeriesCommandReceipt receipt
+    ) {
+        SeriesChildDraft child = receipt.childSnapshot();
+        if (child == null || receipt.childId() == null || receipt.childGeneration() == null
+                || !child.childId().equals(receipt.childId())
+                || child.generation() != receipt.childGeneration()) {
+            throw conflict(aggregate, "SERIES_COMMAND_REPLAY_IDENTITY_UNAVAILABLE", false);
+        }
+        return child;
     }
 
     private static String hash(String... fields) {
@@ -801,7 +980,8 @@ public final class SeriesLifecycleService {
 
     public record CreateExecution(SeriesAggregate aggregate, boolean replayed) {}
     public record ChildExecution(
-            SeriesAggregate aggregate, SeriesChildDraft child, boolean replayed
+            SeriesAggregate aggregate, SeriesGame game, SeriesChildDraft child,
+            boolean replayed
     ) {}
     public record SimulationExecution(
             SeriesAggregate aggregate, SeriesGame game, MatchEngineV1Output output,
@@ -812,7 +992,8 @@ public final class SeriesLifecycleService {
     ) {}
 
     private record ChildMutation(
-            SeriesAggregate aggregate, SeriesChildDraft child, boolean replayed,
+            SeriesAggregate aggregate, SeriesGame game, SeriesChildDraft child,
+            boolean replayed,
             String errorCode
     ) {}
     private record ReservationStart(

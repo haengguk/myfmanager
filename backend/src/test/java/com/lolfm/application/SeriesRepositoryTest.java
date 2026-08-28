@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -107,6 +108,32 @@ class SeriesRepositoryTest {
     }
 
     @Test
+    void cancelledCleanupReleasesCapacityAndOnlyItsCreateIndex() {
+        MutableClock clock = new MutableClock(START);
+        SeriesRepository repository = repository(clock, 3);
+        SeriesAggregate cancelledBase = aggregate(repository, "cancelled");
+        SeriesAggregate cancelled = cancelledBase.copy(cancelledBase.revision(),
+                SeriesStatus.CANCELLED, "CANCELLED_BY_CLIENT", cancelledBase.score(),
+                cancelledBase.games(), cancelledBase.consumedPicks(),
+                cancelledBase.historyHash(), cancelledBase.winnerTeamCode(),
+                cancelledBase.lastActivityAt(), cancelledBase.expiresAt(),
+                cancelledBase.commandReceipts());
+        SeriesAggregate live = aggregate(repository, "live");
+        repository.create("cancelled-command", "cancelled-payload", cancelled);
+        repository.create("live-command", "live-payload", live);
+
+        repository.create("replacement-command", "replacement-payload",
+                aggregate(repository, "replacement"));
+
+        assertThat(repository.storedSeriesCount()).isEqualTo(2);
+        assertThat(repository.get(live.seriesId())).isEqualTo(live);
+        assertThat(repository.create("live-command", "live-payload",
+                aggregate(repository, "unused-live")).replayed()).isTrue();
+        assertThat(repository.create("cancelled-command", "cancelled-payload",
+                aggregate(repository, "reused-cancelled")).replayed()).isFalse();
+    }
+
+    @Test
     void childIdleExpiryAndSimulationLeaseExpiryAreMatchScopedAndRevisionNeutral() {
         MutableClock childClock = new MutableClock(START);
         SeriesRepository childRepository = repository(childClock, 2);
@@ -129,7 +156,12 @@ class SeriesRepositoryTest {
                 aggregate(leaseRepository, "lease"), leaseRepository);
         leaseRepository.create("lease-command", "lease-payload", reserved);
 
-        leaseClock.advance(Duration.ofMinutes(5));
+        leaseClock.advance(Duration.ofMinutes(5).minusSeconds(1));
+        SeriesAggregate beforeLeaseBoundary = leaseRepository.get(reserved.seriesId());
+        assertThat(beforeLeaseBoundary.currentGame().reservation()).isNotNull();
+        assertThat(beforeLeaseBoundary.commandReceipts().get("simulate").completion())
+                .isEqualTo(SeriesCommandCompletion.IN_PROGRESS);
+        leaseClock.advance(Duration.ofSeconds(1));
         SeriesAggregate leaseExpired = leaseRepository.get(reserved.seriesId());
         assertThat(leaseExpired.status()).isEqualTo(SeriesStatus.ACTIVE);
         assertThat(leaseExpired.revision()).isZero();
@@ -138,6 +170,31 @@ class SeriesRepositoryTest {
                 .isEqualTo(SeriesGameStatus.SIMULATION_FAILED_RETRYABLE);
         assertThat(leaseExpired.currentGame().reason())
                 .isEqualTo("SIMULATION_LEASE_EXPIRED");
+        assertThat(leaseExpired.commandReceipts().get("simulate").completion())
+                .isEqualTo(SeriesCommandCompletion.FAILED);
+        assertThat(leaseExpired.commandReceipts().get("simulate").errorCode())
+                .isEqualTo("SERIES_SIMULATION_LEASE_EXPIRED");
+        assertThat(leaseExpired.commandReceipts().get("simulate").retryable()).isTrue();
+        leaseClock.advance(Duration.ofSeconds(1));
+        assertThat(leaseRepository.get(reserved.seriesId())).isEqualTo(leaseExpired);
+
+        MutableClock protectionClock = new MutableClock(START);
+        SeriesRepository protectionRepository = repository(protectionClock, 2);
+        SeriesAggregate protectedByLease = withReservation(
+                aggregate(protectionRepository, "protected"), protectionRepository);
+        protectedByLease = protectedByLease.copy(protectedByLease.revision(),
+                protectedByLease.status(), protectedByLease.terminalReason(),
+                protectedByLease.score(), protectedByLease.games(),
+                protectedByLease.consumedPicks(), protectedByLease.historyHash(),
+                protectedByLease.winnerTeamCode(), protectedByLease.lastActivityAt(),
+                START.plus(Duration.ofMinutes(1)), protectedByLease.commandReceipts());
+        protectionRepository.create("protected-command", "protected-payload",
+                protectedByLease);
+        protectionClock.advance(Duration.ofMinutes(1));
+        SeriesAggregate protectedRead = protectionRepository.get(
+                protectedByLease.seriesId());
+        assertThat(protectedRead.status()).isEqualTo(SeriesStatus.ACTIVE);
+        assertThat(protectedRead.currentGame().reservation()).isNotNull();
     }
 
     @Test
@@ -165,6 +222,56 @@ class SeriesRepositoryTest {
 
         assertThat(repository.get(first.seriesId()).revision()).isEqualTo(20);
         assertThat(repository.get(second.seriesId()).revision()).isZero();
+    }
+
+    @Test
+    void cleanupCannotDeleteAConcurrentMutationThatExtendedTheParentTtl() throws Exception {
+        MutableClock clock = new MutableClock(START);
+        CountDownLatch cleanupReached = new CountDownLatch(1);
+        SeriesRepository repository = new SeriesRepository(
+                clock, new SeriesLifecycleConfiguration(
+                2, Duration.ofMinutes(120), Duration.ofMinutes(30),
+                Duration.ofMinutes(5), 256),
+                seriesId -> {
+                    if (seriesId.equals("series-original")) cleanupReached.countDown();
+                });
+        SeriesAggregate original = aggregate(repository, "original");
+        repository.create("original-command", "original-payload", original);
+        CountDownLatch mutationInsideAtomicBoundary = new CountDownLatch(1);
+        CountDownLatch allowMutationCommit = new CountDownLatch(1);
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var mutation = executor.submit(() -> repository.mutate(
+                    original.seriesId(), current -> {
+                        mutationInsideAtomicBoundary.countDown();
+                        await(allowMutationCommit);
+                        Instant activity = START.plus(Duration.ofMinutes(119));
+                        SeriesAggregate updated = current.copy(current.revision() + 1,
+                                current.status(), current.terminalReason(), current.score(),
+                                current.games(), current.consumedPicks(), current.historyHash(),
+                                current.winnerTeamCode(), activity,
+                                repository.parentExpiresAt(activity),
+                                current.commandReceipts());
+                        return new SeriesRepository.Mutation<>(updated, updated);
+                    }));
+            assertThat(mutationInsideAtomicBoundary.await(5, TimeUnit.SECONDS)).isTrue();
+            clock.advance(Duration.ofMinutes(120));
+            var create = executor.submit(() -> repository.create(
+                    "replacement-command", "replacement-payload",
+                    aggregate(repository, "replacement")));
+            assertThat(cleanupReached.await(5, TimeUnit.SECONDS)).isTrue();
+            allowMutationCommit.countDown();
+
+            assertThat(mutation.get(5, TimeUnit.SECONDS).revision()).isOne();
+            assertThat(create.get(5, TimeUnit.SECONDS).replayed()).isFalse();
+        }
+
+        SeriesAggregate live = repository.get(original.seriesId());
+        assertThat(live.revision()).isOne();
+        assertThat(live.lastActivityAt()).isEqualTo(START.plus(Duration.ofMinutes(119)));
+        assertThat(live.expiresAt()).isEqualTo(START.plus(Duration.ofMinutes(239)));
+        assertThat(repository.create("original-command", "original-payload",
+                aggregate(repository, "unused-replay")).aggregate()).isEqualTo(live);
     }
 
     private static SeriesRepository repository(MutableClock clock, int maximum) {
@@ -221,8 +328,23 @@ class SeriesRepositoryTest {
                 game.controlledSide(), game.matchSeed(), game.historyBefore(),
                 game.historyBeforeHash(), SeriesGameStatus.SIMULATION_IN_PROGRESS,
                 null, 0, null, reservation, null, null, null);
+        SeriesCommandReceipt command = new SeriesCommandReceipt(
+                "simulate", "SIMULATE", "payload", SeriesCommandCompletion.IN_PROGRESS,
+                aggregate.revision(), SeriesStatus.ACTIVE, game.gameNumber(), game.gameId(),
+                SeriesGameStatus.SIMULATION_IN_PROGRESS, null, null, null, null,
+                "token", null, null, false);
         return aggregate.replaceCurrentGame(changed, aggregate.revision(),
-                aggregate.lastActivityAt(), aggregate.expiresAt(), Map.of());
+                aggregate.lastActivityAt(), aggregate.expiresAt(),
+                Map.of(command.commandId(), command));
+    }
+
+    private static void await(CountDownLatch latch) {
+        try {
+            assertThat(latch.await(5, TimeUnit.SECONDS)).isTrue();
+        } catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(error);
+        }
     }
 
     private static final class MutableClock extends Clock {

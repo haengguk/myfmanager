@@ -298,8 +298,7 @@ public final class PlayerControlledDraftEngine {
     public boolean canCompleteSeriesDraft(Set<ChampionId> hardFearlessExclusions) {
         DraftState state = new DraftState(rules, 0, List.of(), List.of(), List.of(), List.of(),
                 Set.copyOf(hardFearlessExclusions));
-        return availability.canCompleteAfterExcluding(state, TeamSide.BLUE, null)
-                && availability.canCompleteAfterExcluding(state, TeamSide.RED, null);
+        return availability.canCompleteBothTeams(state);
     }
 
     public String activeDraftMetaVersion() {

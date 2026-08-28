@@ -40,6 +40,27 @@ public final class DraftAvailability {
                         orderedMissingPositions(assignment), pool, 0, new HashSet<>()));
     }
 
+    /**
+     * Exact shared-pool feasibility for both five-player rosters. A champion matched to one
+     * team's missing role cannot satisfy a role on the other team.
+     */
+    public boolean canCompleteBothTeams(DraftState state) {
+        List<ChampionId> pool = available(new HashSet<>(state.unavailableChampions()));
+        for (RoleAssignmentSolver.RoleAssignment blue
+                : feasibleAssignments(state.picks(TeamSide.BLUE), null)) {
+            for (RoleAssignmentSolver.RoleAssignment red
+                    : feasibleAssignments(state.picks(TeamSide.RED), null)) {
+                ArrayList<Position> missing = new ArrayList<>(
+                        orderedMissingPositions(blue));
+                missing.addAll(orderedMissingPositions(red));
+                missing.sort(Comparator.comparingInt(position -> candidateCount(
+                        pool, position)));
+                if (matchRemaining(missing, pool, 0, new HashSet<>())) return true;
+            }
+        }
+        return false;
+    }
+
     boolean canComplete(DraftState state, TeamSide side, ChampionId candidate,
                         DraftComputationContext context) {
         return context.completion(state, side, candidate, null,
@@ -164,6 +185,11 @@ public final class DraftAvailability {
             }
         }
         return false;
+    }
+
+    private int candidateCount(List<ChampionId> pool, Position position) {
+        return (int) pool.stream().filter(id -> champions.get(id).supportedPositions()
+                .contains(position)).count();
     }
 
     private static EnumSet<Position> missingPositions(RoleAssignmentSolver.RoleAssignment assignment) {
