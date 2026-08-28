@@ -7,13 +7,26 @@ import type { PlayerDraftChampionCatalogEntry } from './playerDraft.types';
 export function mergePlayerDraftChampionCatalog(
   session: PlayerDraftSimulationResponseDto['session'],
   current: Readonly<Record<string, PlayerDraftChampionCatalogEntry>> = {},
+  rolesByChampionId: Readonly<Record<string, PlayerDraftChampionCatalogEntry['roles']>> = {},
 ): Readonly<Record<string, PlayerDraftChampionCatalogEntry>> {
   const next: Record<string, PlayerDraftChampionCatalogEntry> = { ...current };
   session.selectableChampions.forEach((option) => {
-    next[option.champion.championId] = { champion: option.champion, feasibleRoles: option.feasibleRoles, unavailableReason: null };
+    const championId = option.champion.championId;
+    next[championId] = {
+      champion: option.champion,
+      roles: rolesByChampionId[championId] ?? next[championId]?.roles ?? [],
+      feasibleRoles: option.feasibleRoles,
+      unavailableReason: null,
+    };
   });
   session.unavailableChampions.forEach((option) => {
-    next[option.champion.championId] = { champion: option.champion, feasibleRoles: next[option.champion.championId]?.feasibleRoles ?? [], unavailableReason: option.reason };
+    const championId = option.champion.championId;
+    next[championId] = {
+      champion: option.champion,
+      roles: rolesByChampionId[championId] ?? next[championId]?.roles ?? [],
+      feasibleRoles: next[championId]?.feasibleRoles ?? [],
+      unavailableReason: option.reason,
+    };
   });
   return next;
 }

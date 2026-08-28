@@ -3,8 +3,11 @@ import {
   validatePlayerDraftSimulationPayload,
 } from '../src/features/real-match/player-draft/api/playerDraftApi.validation.ts';
 import {
-  playerDraftUnavailableReasonLabels,
+  playerDraftEntryMatchesRole, playerDraftUnavailableReasonLabels,
 } from '../src/features/real-match/player-draft/playerDraft.types.ts';
+import {
+  playerDraftActionWasApplied, shouldApplyPlayerDraftSession,
+} from '../src/features/real-match/player-draft/playerDraftSessionOrder.ts';
 
 const H = 'a'.repeat(64); const C = 'b'.repeat(64); const R = 'c'.repeat(64);
 const expectation = { sessionId: '00000000-0000-0000-0000-000000000073', blueTeamCode: 'GEN', redTeamCode: 'T1', controlledSide: 'BLUE', seed: '73' };
@@ -70,6 +73,10 @@ const productionPolicy = {
   policyId: 'PRODUCTION', policyHash: H, activationDecisionSchema: 'V1', activationDecisionCode: 'ACTIVE', acceptanceStatus: 'ACCEPTED', knownDiagnosticLimitation: 'fixture', knownDiagnosticLimitations: ['fixture'], statisticalHoldoutApproved: false, rollbackProfileId: 'ROLLBACK', rollbackMode: 'MANUAL', automaticFallback: false, draftSelectionPolicyId: 'AUTO', draftSelectionPolicyHash: H, runtimeProfileId: 'PRODUCTION_MATCHUP_COMPOSITION_V1', configurationHash: H, activeGameplayRulesVersion: 'V1', engineImplementationVersion: 'MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9', matchupMode: 'ACTIVE', compositionMode: 'ACTIVE', jungleClearContribution: 'DISABLED', economyCandidateActivation: false, tempoCandidateActivation: false, diagnosticsExcludedFromGameplayIdentity: true,
 };
 const simulatedSession = { ...clone(completedSession), status: 'SIMULATED' };
+const cancelledSession = {
+  ...clone(baseSession), status: 'CANCELLED', currentTurn: null,
+  selectableChampions: [], unavailableChampions: [], advisoryRecommendations: [], selectableSetIdentity: null,
+};
 const simulation = {
   schemaVersion: 'PLAYER_DRAFT_MATCH_RESPONSE_V1', session: simulatedSession,
   match: {
@@ -90,6 +97,7 @@ function rejects(label, mutate, validator = (value) => validatePlayerDraftSessio
 
 accepts('valid ACTIVE session', () => validatePlayerDraftSessionPayload(baseSession, expectation));
 accepts('valid COMPLETED session', () => validatePlayerDraftSessionPayload(completedSession, expectation));
+accepts('valid CANCELLED terminal session', () => validatePlayerDraftSessionPayload(cancelledSession, expectation));
 accepts('valid SIMULATION response', () => validatePlayerDraftSimulationPayload(simulation, expectation));
 rejects('wrong schema rejection', () => ({ ...clone(baseSession), schemaVersion: 'WRONG' }));
 rejects('invalid status rejection', () => ({ ...clone(baseSession), status: 'PAUSED' }));
@@ -99,10 +107,78 @@ rejects('duplicate champion state rejection', () => { const value = clone(comple
 rejects('recommendation selectable mismatch rejection', () => { const value = clone(baseSession); value.advisoryRecommendations[0].champion = champion('not-selectable'); return value; });
 rejects('final assignment mismatch rejection', () => { const value = clone(completedSession); value.completedDraft.finalAssignments[0].championId = 'wrong'; return value; });
 rejects('control/integrity hash mismatch rejection', () => { const value = clone(simulation); value.match.integrity.controlEvidenceHash = H; return value; }, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('CANCELLED current turn rejection', () => ({ ...clone(cancelledSession), currentTurn: clone(baseSession.currentTurn) }));
+rejects('CANCELLED selectable projection rejection', () => ({ ...clone(cancelledSession), selectableChampions: clone(baseSession.selectableChampions) }));
+rejects('unknown event actor rejection', () => {
+  const value = clone(simulation); const event = value.match.timeline.events[0];
+  event.actorPlayerId = 'player-unknown'; event.actorSide = 'BLUE'; event.actorPosition = 'TOP'; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('killer player/champion mismatch rejection', () => {
+  const value = clone(simulation); const event = value.match.timeline.events[0]; const player = value.match.teams[0].lineup[0];
+  event.killerPlayerId = player.playerId; event.killerChampionId = value.match.teams[0].lineup[1].championId; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('victim player/champion mismatch rejection', () => {
+  const value = clone(simulation); const event = value.match.timeline.events[0]; const player = value.match.teams[1].lineup[0];
+  event.victimPlayerId = player.playerId; event.victimChampionId = value.match.teams[1].lineup[1].championId; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('assistant pair length mismatch rejection', () => {
+  const value = clone(simulation); value.match.timeline.events[0].assistantPlayerIds = [value.match.teams[0].lineup[0].playerId]; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('duplicate assistant rejection', () => {
+  const value = clone(simulation); const player = value.match.teams[0].lineup[0];
+  value.match.timeline.events[0].assistantPlayerIds = [player.playerId, player.playerId];
+  value.match.timeline.events[0].assistantChampionIds = [player.championId, player.championId]; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('final team kills mismatch rejection', () => {
+  const value = clone(simulation); value.match.result.teams[0].kills += 1; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('final team gold mismatch rejection', () => {
+  const value = clone(simulation); value.match.result.teams[0].totalGold += 1; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('final player KDA mismatch rejection', () => {
+  const value = clone(simulation); value.match.result.players[0].kills += 1; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('final player CS mismatch rejection', () => {
+  const value = clone(simulation); value.match.result.players[0].cs += 1; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('final player gold mismatch rejection', () => {
+  const value = clone(simulation); value.match.result.players[0].gold += 1; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('final player XP mismatch rejection', () => {
+  const value = clone(simulation); value.match.result.players[0].totalExperience += 1; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('final player level mismatch rejection', () => {
+  const value = clone(simulation); value.match.result.players[0].level += 1; return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
+rejects('completed assignment/presentation mismatch rejection', () => {
+  const value = clone(simulation); const player = value.match.teams[0].lineup[0];
+  player.championId = value.match.teams[0].lineup[1].championId; player.champion = champion(player.championId); return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
 accepts('valid error DTO', () => validatePlayerDraftApiErrorPayload({ schemaVersion: 'PLAYER_DRAFT_API_ERROR_V1', code: 'STALE_DRAFT_REVISION', field: 'expectedRevision', message: 'stale' }));
 rejects('HTML error rejection', () => '<html>error</html>', validatePlayerDraftApiErrorPayload);
 accepts('unavailable reason Korean mapping coverage', () => {
   const expected = ['HARD_FEARLESS_EXCLUDED', 'ALREADY_BANNED', 'ALREADY_PICKED', 'PARTIAL_ROLE_ASSIGNMENT_INFEASIBLE', 'FUTURE_ROLE_COMPLETION_INFEASIBLE', 'BAN_WOULD_BREAK_FUTURE_COMPLETION'];
   if (expected.some((reason) => !playerDraftUnavailableReasonLabels[reason])) throw new Error('mapping missing');
+});
+accepts('BAN role filter uses stable catalog roles and keeps banned champions visible', () => {
+  const bannedTop = {
+    champion: champion('banned-top'), roles: ['TOP'], feasibleRoles: [], unavailableReason: 'ALREADY_BANNED',
+  };
+  const selectableTop = {
+    champion: champion('selectable-top'), roles: ['TOP'], feasibleRoles: [], unavailableReason: null,
+  };
+  if (!playerDraftEntryMatchesRole(bannedTop, 'TOP')) throw new Error('banned TOP disappeared from TOP filter');
+  if (!playerDraftEntryMatchesRole(selectableTop, 'TOP')) throw new Error('BAN option with empty feasibleRoles disappeared from TOP filter');
+  if (playerDraftEntryMatchesRole(selectableTop, 'MID')) throw new Error('TOP champion leaked into MID filter');
+});
+accepts('session ordering rejects stale revision and terminal downgrade', () => {
+  const revisionOne = { ...clone(baseSession), revision: 1 };
+  if (shouldApplyPlayerDraftSession(revisionOne, baseSession)) throw new Error('stale revision accepted');
+  if (!shouldApplyPlayerDraftSession(completedSession, simulatedSession)) throw new Error('SIMULATED transition rejected');
+  if (shouldApplyPlayerDraftSession(simulatedSession, completedSession)) throw new Error('terminal downgrade accepted');
+});
+accepts('response-loss reconciliation finds the original clientActionId', () => {
+  if (!playerDraftActionWasApplied(decisions, 'action-1')) throw new Error('accepted action not found');
+  if (playerDraftActionWasApplied(decisions, 'action-missing')) throw new Error('unknown action was treated as accepted');
 });
 if (!process.exitCode) console.log('PLAYER_DRAFT_FRONTEND_CONTRACT_VERIFICATION_PASSED');

@@ -144,7 +144,23 @@ Final boundary focused는 Player Draft engine/boundary/session simulation/API와
 
 Frontend production build, Player Draft deterministic contract, reference check/verify와 bundle 경계를 통과했다. 실제 LIVE smoke는 BLUE complete Draft→gzip simulation→Playback→Result→mixed-authority review, RED first-turn/action/cancel 204, AUTO의 Player Draft endpoint 0회를 확인했다. Backend production Java/resource/Gradle과 gameplay/profile/policy, existing reference JSON은 변경하지 않았고 frontend-only 범위이므로 backend full regression은 실행하지 않았다. 상세 구현과 제한은 [Player-controlled Draft Frontend V1](development/player-controlled-draft-frontend-v1.md)에 있다.
 
-현재 제한은 full-page reload resume, 심층 keyboard/reconnect/expiry/late-response/race audit, Draft timer/WebSocket/DB/auth, BO3/BO5와 Game 2+다. 다음 제품 작업은 `PLAYER_CONTROLLED_DRAFT_LIVE_E2E_AND_ACCESSIBILITY`이며, 그 뒤 확정된 Series 정책을 기준으로 `SERIES_LIFECYCLE_V1_BACKEND`와 `SERIES_FRONTEND_V1`을 진행한다.
+현재 제한은 full-page reload resume, Draft timer/WebSocket/DB/auth, BO3/BO5와 Game 2+다. Keyboard/reconnect transport/expiry contract/late-response/race audit은 아래 LIVE E2E/accessibility milestone에서 완료했다.
+
+### Player-controlled Draft LIVE E2E and Accessibility
+
+상태는 `PLAYER_CONTROLLED_DRAFT_LIVE_E2E_AND_ACCESSIBILITY_ACCEPTED`다.
+
+Auto와 Player Draft envelope를 분리한 채 presentation/result/timeline/event/final snapshot 의미를 canonical common validator로 공유한다. Unknown participant, player/champion/side/position binding, assistant pair, final team kills/gold와 player KDA/CS/gold/XP/level, Player Draft final assignment/presentation 변조는 Playback/Result 전에 거부된다. `ACTIVE`만 current turn과 action projection을 가지며 COMPLETED/SIMULATED/CANCELLED/EXPIRED는 null currentTurn/빈 projection이라는 terminal wire 의미로 backend/frontend/test/docs를 통일했다.
+
+Champion pool 173개는 roving tabindex 1개와 Arrow/Home/End를 사용하며 focus, selected와 confirmed를 분리한다. Turn/AI/reconciliation/완료는 polite status, 오류는 assertive alert로 구분한다. 취소 modal은 non-destructive initial focus, Tab trap, pending dialog focus/aria-busy, pending Escape 억제와 정상 restore/fallback을 제공한다. React StrictMode extra cleanup으로 valid response가 폐기되던 lifecycle guard 회귀도 actual E2E에서 발견해 setup마다 re-arm하도록 수정했다.
+
+Actual LIVE Playwright는 GEN 대 T1 seed 73으로 BLUE와 RED 각각 create 1/action 10/simulate 1, revision 10, decisions 20, PLAYER/AI 각 10, final assignment 10, Playback/Result를 통과했다. BLUE는 mixed-authority review와 SIMULATED back의 DELETE 0 증가를, RED는 최초 BLUE AI decision/RED turn 2와 Result ban portrait 10/10을 확인했다. AUTO는 기존 real-matches simulate 1/player-drafts 0과 읽기 전용 20/20을 유지했다. Response-only loss는 GET 200으로 revision 1/decisions 2를 복구했고 delayed cancel은 single DELETE 204로 종료했다. Clean flow의 page/console/runtime validation/reference fallback error는 0, 1440×900과 1280×720 horizontal overflow는 0, broken/fallback portrait는 0이다.
+
+Current V9 explicit `live:verify`는 options/response raw SHA를 기록하고 policy `78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493`, profile `PRODUCTION_MATCHUP_COMPOSITION_V1`, configuration `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d`, engine V9를 preflight한다. Historical V8 handoff와 reference는 덮어쓰지 않았고 local V9 input은 ignored `frontend/output/`에 유지한다.
+
+Frontend contract 33개, focused backend API 1 suite/5 tests, build/reference/live/bundle 검증이 통과했다. Production mapper 변경 뒤 final complete backend regression은 226 suites / 2,232 tests / failures 0 / errors 0 / skipped 0, Gradle wall 23분 16초로 한 번에 통과했다. 상세 결과는 [Player Controlled Draft LIVE E2E and Accessibility](development/player-controlled-draft-live-e2e-and-accessibility.md)에 있다.
+
+다음 제품 순서는 `SERIES_LIFECYCLE_V1_BACKEND_IMPLEMENTATION` → `SERIES_LIFECYCLE_V1_HARDENING` → `SERIES_FRONTEND_V1`이다.
 
 ### Series Lifecycle V1 contract sketch
 

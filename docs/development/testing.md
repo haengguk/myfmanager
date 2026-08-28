@@ -632,6 +632,47 @@ Playwright LIVE smoke는 seed 73과 실제 GEN/T1 options를 사용했다. BLUE-
 
 Backend production Java/resource/API/Gradle을 변경하지 않았으므로 complete backend regression은 실행하지 않았다. 이는 frontend-only 변경에 full regression을 실행하지 않는 검증 budget 원칙을 따른다.
 
+### Player-controlled Draft LIVE E2E and Accessibility
+
+Contract, browser와 backend lane을 분리해 실행했다.
+
+```text
+cd frontend
+npm run player-draft:verify
+npm run build
+npm run reference:check
+npm run reference:verify
+LOLMANAGER_REAL_MATCH_OPTIONS_PATH=frontend/output/player-draft-live-e2e/options-v9.json \
+LOLMANAGER_REAL_MATCH_RESPONSE_PATH=frontend/output/player-draft-live-e2e/response-v9.json \
+  npm run live:verify
+npm run bundle:verify
+
+cd ../backend
+gradlew.bat test --tests com.lolfm.controller.PlayerDraftApiV1ControllerTest \
+  --console=plain --no-daemon
+gradlew.bat test --console=plain --no-daemon
+```
+
+Player Draft contract script는 33개 시나리오를 통과했다. 기존 session/authority/control 검증에 CANCELLED terminal projection, unknown actor, killer/victim champion binding, assistant length/duplicate, final team kills/gold, final player KDA/CS/gold/XP/level, final assignment/presentation mismatch와 session ordering/response-loss receipt 검사를 추가했다. Auto와 Player Draft envelope는 구분하고 common match semantic helper만 공유한다.
+
+Terminal mapper focused API는 1 suite / 5 tests / failures 0 / errors 0 / skipped 0이다. Incomplete 취소가 CANCELLED/null currentTurn/빈 action projection이고 DELETE 204 empty, action/simulate 거부가 유지되는지 확인한다. Production Java 변경 뒤 final default backend regression은 226 suites / 2,232 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,377.624초, Gradle wall 23분 16초로 한 번에 통과했다.
+
+Production build는 100 modules, main JS 353.95kB(gzip 113.76kB), CSS 122.49kB(gzip 21.37kB)다. Reference check는 794,907 bytes/SHA-256 `977c7d6e015f4ebd5ecba8e24e7b95a0a6313fef2e1e69a2c396b4fab36ac15e`, reference verify는 teams 10, players 50, decisions 20, events 287/517, snapshots 59/344를 확인했다. Bundle verify는 initial 373,627 bytes, lazy reference 423,581 bytes다.
+
+명시적 current V9 `live:verify` 입력은 ignored `frontend/output/player-draft-live-e2e/`에 두었다. Options/response SHA-256은 각각 `eb82bdf43b7698802e192be5c8aa2f2d39f11a80fc81f4077eb91709b480f1f9`, `8edadba7b8e2cc08cb0b731a53c362c69fb2143bdfe6b54636aee24b7d78a7f4`다. 검증은 current policy/profile/configuration/engine, teams 10, players 50, decisions 20, assignments 10, events 376, snapshots 233, RED/2,320초와 mutation 10종을 통과했다. 기본 historical V8 artifact는 수정하거나 V9 증거로 승격하지 않았다.
+
+Playwright actual LIVE 결과는 다음과 같다.
+
+- BLUE: create 1/action 10/simulate 1, 모두 200, revision 10, decisions 20, PLAYER/AI 각 10, final assignment 10, Playback/Result/mixed review 통과
+- RED: 최초 BLUE AI decision 뒤 RED turn 2, create 1/action 10/simulate 1, 모두 200, final 20 decisions와 Result 통과
+- AUTO: real-matches simulate 1, player-drafts 0, Auto Draft 20/20
+- response loss: server commit 뒤 response만 abort, GET 200으로 revision 1/decisions 2와 다음 focus 복구
+- cancel: delayed DELETE pending 중 dialog focus/aria-busy 유지와 Escape 억제, DELETE 1회 204 뒤 설정 복귀
+- viewport: 1440×900과 1280×720 모두 horizontal overflow 0, champion 173개/grid Tab stop 1개
+- clean BLUE/RED/AUTO page/console/runtime validation/reference fallback error 0; Result ban portrait 10/10, broken/fallback 0
+
+Gzip은 완료된 RED session receipt 재조회에서 HTTP 200, `Content-Encoding: gzip`과 `Vary: ... accept-encoding`으로 확인했다. Browser fault interception은 transport response만 유실했고 domain payload를 만들지 않았다. 실제 30분 expiry sleep과 대형 population은 실행하지 않았다. 상세 focus trace, 제한과 artifact 정책은 [LIVE E2E/accessibility 문서](player-controlled-draft-live-e2e-and-accessibility.md)에 있다.
+
 ## Generated Reports
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.

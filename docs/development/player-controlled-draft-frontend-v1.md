@@ -39,7 +39,7 @@ AUTO와 REFERENCE의 기존 경로는 분리돼 있다. AUTO는 계속 `REAL_MAT
 
 `player-draft/` 아래에 전용 DTO, strict validator, HTTP client, adapter와 view model을 분리했다. create/get/action/simulate/delete 다섯 endpoint는 각각의 timeout과 `AbortSignal`을 사용한다. 브라우저 표준 gzip 협상을 사용하며 수동 압축 해제는 하지 않는다.
 
-모든 정상 응답과 오류 응답은 `unknown`에서 검증한다. Session schema·UUID·revision·status·team/roster·seed·Game 1·policy/hash, turn/decision 순서와 PLAYER/AI evidence, selectable/unavailable/recommendation projection, completed final assignment, simulation의 session/Draft/control/integrity 결속을 확인한다. Player Draft match payload는 기존 `REAL_MATCH_RESPONSE_V1`로 cast하지 않고 Player Draft 전용 검증을 통과한 뒤 common team/result/timeline adapter에만 전달한다.
+모든 정상 응답과 오류 응답은 `unknown`에서 검증한다. Session schema·UUID·revision·status·team/roster·seed·Game 1·policy/hash, turn/decision 순서와 PLAYER/AI evidence, selectable/unavailable/recommendation projection, completed final assignment, simulation의 session/Draft/control/integrity 결속을 확인한다. Player Draft match payload는 기존 `REAL_MATCH_RESPONSE_V1`로 cast하지 않는다. Envelope 검증 뒤 Auto와 공유하는 presentation participant/champion binding, event actor/killer/victim/assistant, final snapshot/result 의미는 canonical common semantic validator를 통과한 뒤에만 common adapter로 전달한다.
 
 ## Session, idempotency와 retry
 
@@ -51,7 +51,7 @@ AUTO와 REFERENCE의 기존 경로는 분리돼 있다. AUTO는 계속 `REAL_MAT
 
 양쪽 패널은 authoritative roster와 ordered ban/pick 슬롯을 분리한다. 진행 중 pick order를 선수 position으로 추론하지 않으며, 완료 전에는 선수와 챔피언을 임의로 결속하지 않는다. 중앙 작업 영역은 한글 이름 우선 champion pool, 한글/영문/ID 검색, feasible-role 필터, advisory top 3, 선택 preview와 명시적 BAN/PICK 확정으로 구성한다.
 
-Champion은 모두 native button이며 selectable과 unavailable을 색뿐 아니라 문구·상태·한국어 사유로 구분한다. role filter의 `feasibleRoles`는 탐색 표시일 뿐 legality나 최종 position 계산에 사용하지 않는다. Turn history는 순서, side, action, champion과 `PLAYER`/`AI` authority를 구조화된 필드로 표시한다. 현재 turn과 네트워크 상태는 live region으로 알리고, modal은 열릴 때 focus를 이동하고 닫힐 때 원래 control로 복귀한다.
+Champion은 모두 native button이며 selectable과 unavailable을 색뿐 아니라 문구·상태·한국어 사유로 구분한다. Pool은 roving tabindex와 Arrow/Home/End 이동을 사용해 173개 tile을 모두 Tab으로 지나지 않으며 focus, selection과 explicit confirm을 분리한다. role filter의 `feasibleRoles`는 탐색 표시일 뿐 legality나 최종 position 계산에 사용하지 않는다. Turn history는 순서, side, action, champion과 `PLAYER`/`AI` authority를 구조화된 필드로 표시한다. 현재 turn·결정 수·네트워크 상태는 중복을 제한한 polite live region으로, 오류는 assertive alert로 알린다. Modal은 focus trap, pending dialog focus, Escape/restore/fallback 의미를 갖는다.
 
 Motion은 turn 강조, 새 결정 reveal, 선택→확정 전환으로 제한하며 `prefers-reduced-motion`에서 제거한다. 1440×900에서는 양 팀/중앙 workspace/기록을 함께 보이고, 1280×720과 좁은 화면에서는 workspace를 우선한 세로 fallback으로 수평 page overflow를 만들지 않는다.
 
@@ -82,4 +82,4 @@ Backend production Java/resource/Gradle은 변경하지 않았으므로 complete
 - full page reload 뒤 session resume와 local persistence는 없다.
 - Draft timer, WebSocket/progress streaming, 자동 penalty, 인증/권한, DB 저장은 없다.
 - Game 1 단판만 지원하며 BO3/BO5, Game 2+, 누적 Hard Fearless와 series score는 후속 범위다.
-- full keyboard journey, focus-order audit, reconnect/expiry/late response, 반복 simulate/cancel race는 `PLAYER_CONTROLLED_DRAFT_LIVE_E2E_AND_ACCESSIBILITY`에서 확장한다.
+- Full page reload resume와 durable persistence는 여전히 없지만 keyboard journey, response loss/stale/late guard와 cancel pending audit은 [LIVE E2E/accessibility](player-controlled-draft-live-e2e-and-accessibility.md)에서 완료했다.

@@ -58,7 +58,8 @@ public final class PlayerDraftApiV1ResponseMapper {
             selection = drafts.view(view.progress(), blueContext, redContext);
         }
         var state = view.progress().state();
-        var current = state.complete() ? null : new PlayerDraftApiV1Dtos.CurrentTurn(
+        var current = view.status() != PlayerDraftSessionStatus.ACTIVE
+                ? null : new PlayerDraftApiV1Dtos.CurrentTurn(
                 state.currentTurn().number(), state.currentTurn().side(),
                 state.currentTurn().actionType());
         return new PlayerDraftApiV1Dtos.SessionResponse(

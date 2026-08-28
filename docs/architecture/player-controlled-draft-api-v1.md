@@ -34,6 +34,8 @@ Start request는 `PLAYER_DRAFT_START_REQUEST_V1`과 `blueTeamCode`, `redTeamCode
 - 전체 selectable/unavailable champion presentation, feasible role과 advisory recommendation
 - 완료 후 final role/player assignment, Draft identity와 control evidence hash
 
+Wire projection은 status에 따라 닫힌 의미를 갖는다. `ACTIVE`만 non-null `currentTurn`과 selectable/unavailable/recommendation projection을 가질 수 있다. `COMPLETED`, `SIMULATED`, `CANCELLED`, `EXPIRED`는 모두 `currentTurn == null`이며 action selection projection을 내보내지 않는다. 따라서 incomplete Draft를 취소한 뒤에도 이전 turn을 terminal session의 현재 행동처럼 노출하지 않는다.
+
 제어 정책 SHA-256은 `8f6488f07c44a6529e88bd022fff3124458a8237cc919bd7dd3e140eaa4a0752`다. Gameplay evidence hash는 `clientActionId`, session ID, revision과 wall-clock 시간을 제외한다. 따라서 동일 gameplay transcript는 HTTP retry identity가 달라도 같은 Draft/control/input/replay identity를 만든다.
 
 ## Session and concurrency
@@ -73,7 +75,7 @@ Receipt는 match/policy/profile/configuration/engine/rules, input/replay/resourc
 
 ## Verification
 
-Final boundary focused lane은 engine/boundary/session simulation/API/Match Engine contract 5 suites / 36 tests / failures 0 / errors 0 / skipped 0으로 통과했다. 최종 executable production tree의 새 complete backend regression은 226 suites / 2,232 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,034.299초, Gradle wall 17분 29초로 첫 실행에서 통과했다. 기존 전체 회귀 수치는 재사용하지 않았다. API schema, session memory/capacity/receipt/retry, Production V9/profile/gameplay는 바꾸지 않았고 frontend 및 대형 diagnostic은 실행하지 않았다.
+Final boundary focused lane은 engine/boundary/session simulation/API/Match Engine contract 5 suites / 36 tests / failures 0 / errors 0 / skipped 0으로 통과했다. LIVE E2E/accessibility hardening의 terminal mapper focused API lane은 1 suite / 5 tests / failures 0 / errors 0 / skipped 0이고, 최종 executable production tree의 complete backend regression은 226 suites / 2,232 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,377.624초, Gradle wall 23분 16초로 한 번에 통과했다. 기존 전체 회귀 수치는 재사용하지 않았다. Session memory/capacity/receipt/retry, Production V9/profile/gameplay는 바꾸지 않았고 대형 diagnostic은 실행하지 않았다.
 
 ## Errors and limitations
 

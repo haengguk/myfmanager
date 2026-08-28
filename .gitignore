@@ -40,6 +40,7 @@ out/
 *.log
 *.pid
 /output/
+/frontend/output/
 /.playwright-cli/
 
 ### Frontend dependencies and generated output ###

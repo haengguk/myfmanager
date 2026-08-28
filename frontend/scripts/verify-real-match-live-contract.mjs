@@ -1,22 +1,68 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, extname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 
 const FRONTEND_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REPOSITORY_DIR = resolve(FRONTEND_DIR, '..');
+const HANDOFF_DIR = process.env.LOLMANAGER_REAL_MATCH_HANDOFF_DIR
+  ? resolve(REPOSITORY_DIR, process.env.LOLMANAGER_REAL_MATCH_HANDOFF_DIR)
+  : null;
 const OPTIONS_PATH = resolve(
   REPOSITORY_DIR,
   process.env.LOLMANAGER_REAL_MATCH_OPTIONS_PATH
-    ?? 'backend/build/reports/real-match-api-v1/real-match-api-v1-options-example.json',
+    ?? (HANDOFF_DIR ? resolve(HANDOFF_DIR, 'real-match-api-v1-options-example.json')
+      : 'backend/build/reports/real-match-api-v1/real-match-api-v1-options-example.json'),
 );
 const RESPONSE_PATH = resolve(
   REPOSITORY_DIR,
   process.env.LOLMANAGER_REAL_MATCH_RESPONSE_PATH
-    ?? 'backend/build/reports/real-match-api-v1/real-match-api-v1-fixed-response.json',
+    ?? (HANDOFF_DIR ? resolve(HANDOFF_DIR, 'real-match-api-v1-fixed-response.json')
+      : 'backend/build/reports/real-match-api-v1/real-match-api-v1-fixed-response.json'),
 );
 const invariant = (condition, message) => { if (!condition) throw new Error(`[real-match-live-contract] ${message}`); };
 const readSource = (path) => readFileSync(resolve(FRONTEND_DIR, path), 'utf8');
+const rawSha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
+const EXPECTED_V9 = {
+  policyId: 'MATCH_ENGINE_V1_MATCHUP_COMPOSITION_ACCEPTED_PRODUCTION_POLICY',
+  policyHash: '78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493',
+  runtimeProfileId: 'PRODUCTION_MATCHUP_COMPOSITION_V1',
+  configurationHash: 'caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d',
+  engineImplementationVersion: 'MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9',
+};
+
+function parseArtifact(bytes, path) {
+  try { return JSON.parse(bytes.toString('utf8')); }
+  catch (error) {
+    const summary = error instanceof Error ? error.message : String(error);
+    throw new Error(`[real-match-live-contract] JSON을 해석할 수 없습니다: ${path} (${summary})`);
+  }
+}
+
+function preflightV9(options, response) {
+  const optionPolicy = options?.productionPolicy;
+  const responseIntegrity = response?.integrity;
+  const mismatches = [
+    ['options policyId', optionPolicy?.policyId, EXPECTED_V9.policyId],
+    ['options policyHash', optionPolicy?.policyHash, EXPECTED_V9.policyHash],
+    ['options runtimeProfileId', optionPolicy?.runtimeProfileId, EXPECTED_V9.runtimeProfileId],
+    ['options configurationHash', optionPolicy?.configurationHash, EXPECTED_V9.configurationHash],
+    ['options engineImplementationVersion', optionPolicy?.engineImplementationVersion, EXPECTED_V9.engineImplementationVersion],
+    ['response policyId', responseIntegrity?.policyId, EXPECTED_V9.policyId],
+    ['response policyHash', responseIntegrity?.policyHash, EXPECTED_V9.policyHash],
+    ['response runtimeProfileId', responseIntegrity?.runtimeProfileId, EXPECTED_V9.runtimeProfileId],
+    ['response configurationHash', responseIntegrity?.configurationHash, EXPECTED_V9.configurationHash],
+    ['response engineImplementationVersion', responseIntegrity?.engineImplementationVersion, EXPECTED_V9.engineImplementationVersion],
+  ].filter(([, actual, expected]) => actual !== expected);
+  if (!mismatches.length) return;
+  const summary = mismatches.map(([label, actual, expected]) => `${label}: ${String(actual)} (expected ${expected})`).join('; ');
+  throw new Error(
+    `[real-match-live-contract] 현재 Production V9 handoff가 아닙니다. ${summary}. `
+      + '기존 V8/BASELINE artifact를 승격하지 말고 LOLMANAGER_REAL_MATCH_HANDOFF_DIR 또는 '
+      + 'LOLMANAGER_REAL_MATCH_OPTIONS_PATH/LOLMANAGER_REAL_MATCH_RESPONSE_PATH로 검증할 V9 입력을 명시하세요.',
+  );
+}
 
 async function loadRuntimeContract() {
   const bundled = await build({
@@ -51,8 +97,11 @@ async function loadRuntimeContract() {
 }
 
 const runtime = await loadRuntimeContract();
-const optionsPayload = JSON.parse(readFileSync(OPTIONS_PATH, 'utf8'));
-const responsePayload = JSON.parse(readFileSync(RESPONSE_PATH, 'utf8'));
+const optionsBytes = readFileSync(OPTIONS_PATH); const responseBytes = readFileSync(RESPONSE_PATH);
+const optionsSha256 = rawSha256(optionsBytes); const responseSha256 = rawSha256(responseBytes);
+const optionsPayload = parseArtifact(optionsBytes, OPTIONS_PATH);
+const responsePayload = parseArtifact(responseBytes, RESPONSE_PATH);
+preflightV9(optionsPayload, responsePayload);
 const request = {
   schemaVersion: 'REAL_MATCH_SIMULATE_REQUEST_V1',
   blueTeamCode: 'GEN',
@@ -60,8 +109,14 @@ const request = {
   seed: '73',
 };
 
-const options = runtime.validateRealMatchOptionsPayload(optionsPayload);
-const response = runtime.validateRealMatchResponsePayload(responsePayload, request);
+let options; let response;
+try {
+  options = runtime.validateRealMatchOptionsPayload(optionsPayload);
+  response = runtime.validateRealMatchResponsePayload(responsePayload, request);
+} catch (error) {
+  const summary = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  throw new Error(`[real-match-live-contract] V9 artifact 계약 검증 실패: ${summary}. options=${OPTIONS_PATH} response=${RESPONSE_PATH}`);
+}
 const setupOptions = runtime.createLiveMatchSetupOptions(options);
 const selection = {
   blueTeamId: request.blueTeamCode,
@@ -79,21 +134,13 @@ const session = runtime.createLiveMatchSession(response, setupOptions, selection
   runtimeValidationMs: 0,
   requestStartedAt: 0,
 });
-const expectedFixedResult = process.env.LOLMANAGER_REAL_MATCH_RESPONSE_PATH
-  ? {
-      events: 376,
-      snapshots: 233,
-      winner: 'RED',
-      durationSeconds: 2320,
-      runtimeProfile: 'PRODUCTION_MATCHUP_COMPOSITION_V1',
-    }
-  : {
-      events: 517,
-      snapshots: 344,
-      winner: 'BLUE',
-      durationSeconds: 3430,
-      runtimeProfile: 'BASELINE_V1',
-    };
+const expectedFixedResult = {
+  events: response.timeline.events.length,
+  snapshots: response.timeline.snapshots.length,
+  winner: response.timeline.winner,
+  durationSeconds: response.timeline.durationSeconds,
+  runtimeProfile: EXPECTED_V9.runtimeProfileId,
+};
 
 invariant(options.teams.length === 10, '실제 Options validator가 10개 팀을 확인하지 못했습니다.');
 invariant(options.teams.flatMap((team) => team.lineup).length === 50, '실제 Options validator 결과가 50명이 아닙니다.');
@@ -186,3 +233,6 @@ for (const path of liveSourceFiles) {
 }
 
 console.log(`[real-match-live-contract] OK actual-validator=true actual-adapter=true teams=10 players=50 decisions=20 assignments=10 events=${session.playback.events.length} snapshots=${session.playback.snapshots.length} fixed=${session.playback.winner}/${session.playback.durationSeconds}s mutations=10`);
+console.log(`[real-match-live-contract] INPUT options=${OPTIONS_PATH} sha256=${optionsSha256}`);
+console.log(`[real-match-live-contract] INPUT response=${RESPONSE_PATH} sha256=${responseSha256}`);
+console.log(`[real-match-live-contract] V9 policy=${EXPECTED_V9.policyHash} profile=${response.integrity.runtimeProfileId} engine=${response.integrity.engineImplementationVersion}`);

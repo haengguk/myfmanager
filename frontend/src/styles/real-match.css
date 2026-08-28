@@ -689,6 +689,7 @@
 
 .pd-modal-backdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: var(--rm-overlay); }
 .pd-cancel-dialog { width: min(470px, 100%); padding: 24px; border: 1px solid var(--rm-border-strong); background: var(--rm-surface); box-shadow: var(--lm-shadow); text-align: center; }
+.pd-cancel-dialog:focus { outline: 2px solid var(--lm-focus); outline-offset: 3px; }
 .pd-dialog-mark { width: 42px; height: 42px; display: grid; place-items: center; margin: 0 auto; border: 1px solid var(--rm-danger); border-radius: 50%; color: var(--rm-danger); font-size: 18px; }
 .pd-cancel-dialog h2 { margin: 13px 0 5px; font-size: 19px; }
 .pd-cancel-dialog > p { margin: 0; color: var(--rm-muted); }
@@ -1060,4 +1061,82 @@
   .pd-complete-mark { width: 38px; height: 38px; }
   .pd-completed-workspace h1 { margin-top: 1px; font-size: 23px; }
   .pd-completed-workspace dl { margin: 10px 0; }
+}
+
+/* Player-controlled Draft uses the approved 02_DRAFT_ROOM production frame. */
+.pd-draft-app {
+  grid-template-areas: none;
+  grid-template-rows: 44px 112px minmax(0, 1fr);
+}
+.pd-draft-app > .rm-utility-bar,
+.pd-draft-app > .rm-match-header,
+.pd-draft-app > .rm-draft-stage { grid-area: auto; }
+.pd-player-draft-board { grid-template-rows: 44px 42px minmax(0, 1fr) 88px; }
+.pd-player-draft-board .rm-inline-status.is-error { color: var(--rm-danger); }
+.pd-player-draft-board .rm-champion-card { grid-template-rows: minmax(0, 1fr) 15px; gap: 2px; overflow: hidden; padding: 4px; }
+.pd-player-draft-board .rm-champion-card .rm-portrait { width: auto; min-width: 0; height: 100%; min-height: 0; aspect-ratio: 1; justify-self: center; }
+.pd-player-draft-board .rm-champion-card .champion-portrait,
+.pd-player-draft-board .rm-champion-card .champion-fallback { object-fit: contain; object-position: center; }
+.pd-player-draft-board .rm-champion-meta { min-width: 0; display: flex; align-items: center; gap: 3px; }
+.pd-player-draft-board .rm-champion-name { min-width: 0; flex: 1; }
+.pd-player-draft-board .rm-disabled-reason { position: static; flex: 0 0 auto; padding: 0 3px; font-size: 8px; line-height: 13px; white-space: nowrap; }
+.pd-player-draft-board .rm-champion-card.is-unavailable { cursor: not-allowed; }
+.pd-player-draft-board .rm-champion-card.is-unavailable .rm-portrait,
+.pd-player-draft-board .rm-champion-card.is-unavailable .rm-champion-name { opacity: .32; }
+.pd-player-draft-board .rm-champion-card.is-unavailable:focus-visible { box-shadow: inset 0 0 0 1px var(--rm-border-strong); }
+.pd-player-draft-board .rm-board-overlay .rm-spinner { width: 28px; height: 28px; }
+.pd-player-draft-board .rm-board-overlay .rm-state-badge { color: var(--rm-danger); }
+.pd-player-draft-board .rm-selection-actions .rm-primary-action { min-width: 146px; }
+.pd-draft-app .rm-player-slot .rm-state-badge.is-current { white-space: normal; text-align: center; }
+.pd-draft-app .pd-completed-workspace { background: var(--rm-bg); }
+.pd-draft-app .rm-ban-slot .champion-portrait,
+.pd-draft-app .rm-ban-slot .champion-fallback,
+.rm-result-bans .champion-portrait,
+.rm-result-bans .champion-fallback {
+  min-width: 0;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+.pd-draft-app .rm-ban-slot .champion-portrait,
+.rm-result-bans .champion-portrait { display: block; }
+
+.pd-developer-view {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 74px 96px minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--rm-bg);
+}
+.pd-developer-view > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--rm-border);
+  background: var(--rm-surface);
+}
+.pd-developer-view > header span:first-child { color: var(--rm-accent); font: 700 9px/1 var(--lm-font-mono); letter-spacing: .1em; }
+.pd-developer-view > header h1 { margin: 5px 0 0; font-size: 20px; }
+.pd-developer-facts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 0; border-bottom: 1px solid var(--rm-border); }
+.pd-developer-facts > div { min-width: 0; display: grid; align-content: center; padding: 12px 14px; border-right: 1px solid var(--rm-border); }
+.pd-developer-facts > div:last-child { border-right: 0; }
+.pd-developer-facts dt { color: var(--rm-muted-2); font-size: 9px; font-weight: 700; }
+.pd-developer-facts dd { margin: 5px 0 0; overflow: hidden; color: var(--rm-fg); font: 700 10px/1.2 var(--lm-font-mono); text-overflow: ellipsis; white-space: nowrap; }
+.pd-developer-view > .pd-history { grid-area: auto; grid-template-rows: 42px minmax(0, 1fr); }
+.pd-developer-view > .pd-history ol { grid-template-columns: repeat(10, minmax(88px, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); overflow: hidden; }
+.pd-developer-view > .pd-history li { grid-template-rows: minmax(40px, 1fr) 16px 14px; }
+.pd-developer-view > .pd-history .pd-history-portrait { width: min(56px, 100%); height: min(56px, 100%); }
+
+.pd-terminal-app { grid-template-rows: 44px minmax(0, 1fr); }
+.pd-terminal-app > .pd-terminal-state { grid-row: 2; height: auto; }
+
+@media (max-height: 760px) {
+  .pd-draft-app { grid-template-rows: 42px 104px minmax(0, 1fr); }
+  .pd-player-draft-board { grid-template-rows: 39px 36px minmax(0, 1fr) 74px; }
+  .pd-developer-view { grid-template-rows: 60px 78px minmax(0, 1fr); }
 }

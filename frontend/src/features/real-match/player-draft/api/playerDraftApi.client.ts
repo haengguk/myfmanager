@@ -1,4 +1,5 @@
 import type { MatchRequestStage } from '../../api/realMatchApi.types';
+import type { Position } from '../../realMatch.contract';
 import { realMatchConfig } from '../../realMatch.config';
 import type {
   PlayerDraftActionRequestDto, PlayerDraftApiErrorDto, PlayerDraftSessionExpectation,
@@ -84,6 +85,43 @@ async function sessionRequest(
 
 function endpoint(sessionId = ''): string {
   return `${realMatchConfig.apiBaseUrl}/api/v1/player-drafts/sessions${sessionId ? `/${encodeURIComponent(sessionId)}` : ''}`;
+}
+
+const CHAMPION_POSITIONS = new Set<Position>(['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT']);
+let cachedChampionRoleCatalog: Readonly<Record<string, readonly Position[]>> | null = null;
+
+function championRoleCatalog(payload: unknown): Readonly<Record<string, readonly Position[]>> {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new PlayerDraftApiFailure('CONTRACT', '챔피언 포지션 응답 형식이 올바르지 않습니다.');
+  const champions = (payload as Record<string, unknown>).champions;
+  if (!Array.isArray(champions) || champions.length === 0) throw new PlayerDraftApiFailure('CONTRACT', '챔피언 포지션 목록이 비어 있습니다.');
+  const result: Record<string, readonly Position[]> = {};
+  champions.forEach((value, index) => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new PlayerDraftApiFailure('CONTRACT', `챔피언 포지션 ${index + 1}번 항목이 올바르지 않습니다.`);
+    const item = value as Record<string, unknown>; const id = item.id;
+    if (typeof id !== 'string' || id.trim() === '' || result[id]) throw new PlayerDraftApiFailure('CONTRACT', `챔피언 포지션 ${index + 1}번 ID가 없거나 중복되었습니다.`);
+    if (!Array.isArray(item.supportedPositions)) throw new PlayerDraftApiFailure('CONTRACT', `${id}의 지원 포지션 목록이 올바르지 않습니다.`);
+    const values = [item.primaryPosition, ...item.supportedPositions];
+    const roles = [...new Set(values.map((role) => {
+      if (typeof role !== 'string' || !CHAMPION_POSITIONS.has(role as Position)) throw new PlayerDraftApiFailure('CONTRACT', `${id}의 포지션 값이 올바르지 않습니다.`);
+      return role as Position;
+    }))];
+    if (roles.length === 0) throw new PlayerDraftApiFailure('CONTRACT', `${id}의 포지션이 비어 있습니다.`);
+    result[id] = roles;
+  });
+  return result;
+}
+
+export async function fetchPlayerDraftChampionRoleCatalog(signal: AbortSignal): Promise<Readonly<Record<string, readonly Position[]>>> {
+  if (cachedChampionRoleCatalog) return cachedChampionRoleCatalog;
+  const context = abortContext(signal, realMatchConfig.playerDraftSessionTimeoutMs);
+  try {
+    const response = await fetch(`${realMatchConfig.apiBaseUrl}/api/champions`, { headers: { Accept: 'application/json' }, signal: context.signal });
+    const raw = await response.text();
+    if (!response.ok) throw new PlayerDraftApiFailure('BACKEND', `챔피언 포지션 목록을 불러오지 못했습니다. (HTTP ${response.status})`, response.status);
+    cachedChampionRoleCatalog = championRoleCatalog(parseJson(raw));
+    return cachedChampionRoleCatalog;
+  } catch (error) { throw normalizeFailure(error, context, 'session'); }
+  finally { context.cleanup(); }
 }
 
 export function createPlayerDraftSession(request: PlayerDraftStartRequestDto, signal: AbortSignal): Promise<PlayerDraftSessionResponseDto> {

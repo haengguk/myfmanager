@@ -1,20 +1,18 @@
 import { ChampionPortrait } from '../../../components/champion/ChampionPortrait';
-import { TeamEmblem } from '../MatchChrome';
 import type { MatchRosterPlayerViewModel } from '../matchSession.types';
 import type { TeamSide } from '../realMatch.contract';
 import type { PlayerDraftCompletedDraftDto } from './api/playerDraftApi.types';
 import type { PlayerDraftChampionCatalogEntry } from './playerDraft.types';
 
-const POSITION_LABELS = { TOP: '탑', JUNGLE: '정글', MID: '미드', ADC: '원딜', SUPPORT: '서포터' } as const;
-
-function DraftPortrait({ championId, catalog, compact = false }: {
-  championId: string; catalog: Readonly<Record<string, PlayerDraftChampionCatalogEntry>>; compact?: boolean;
+function ChampionSlotPortrait({ championId, catalog }: {
+  championId: string | null;
+  catalog: Readonly<Record<string, PlayerDraftChampionCatalogEntry>>;
 }) {
-  const champion = catalog[championId]?.champion;
+  const champion = championId ? catalog[championId]?.champion : null;
   return (
-    <span className={compact ? 'pd-mini-portrait' : 'pd-pick-portrait'} title={champion?.displayNameKo ?? championId}>
-      <ChampionPortrait name={champion?.displayNameKo ?? championId} portraitUrl={champion?.portraitUrl ?? ''} />
-    </span>
+    <div className={`rm-portrait rm-slot-portrait${champion ? '' : ' is-empty'}`}>
+      {champion ? <ChampionPortrait name={champion.displayNameKo} portraitUrl={champion.portraitUrl} /> : <span>미선택</span>}
+    </div>
   );
 }
 
@@ -25,44 +23,46 @@ export function PlayerDraftTeamPanel({ side, teamCode, roster, bans, picks, cont
   completedDraft: PlayerDraftCompletedDraftDto | null;
 }) {
   return (
-    <aside className={`pd-team-panel rm-side-${side.toLowerCase()}`} aria-labelledby={`pd-${side.toLowerCase()}-team`}>
-      <header>
-        <TeamEmblem side={side} code={teamCode} />
-        <div><span>{side} SIDE</span><h2 id={`pd-${side.toLowerCase()}-team`}>{teamCode}</h2></div>
-        <span className="pd-authority-badge">{controlledSide === side ? 'PLAYER · 내 선택' : 'AI · 자동 대응'}</span>
+    <aside className={`rm-draft-side rm-side-${side.toLowerCase()}`} aria-label={`${teamCode} ${side === 'BLUE' ? '블루' : '레드'} 진영 선수와 픽`}>
+      <header className="rm-draft-side-head">
+        <strong>{teamCode} 선수·픽</strong>
+        <span title={controlledSide === side ? 'PLAYER 제어 진영' : 'AI 자동 대응 진영'}>{completedDraft ? 'TOP → SUPPORT' : '픽 순서 · 배치 대기'}</span>
       </header>
-      <section className="pd-team-section" aria-label={`${teamCode} 로스터`}>
-        <h3>{completedDraft ? '최종 포지션 배치' : '선발 로스터'}</h3>
-        <div className="pd-roster-list">
-          {roster.map((player) => {
-            const assignment = completedDraft?.finalAssignments.find((item) => item.playerId === player.playerId);
-            const champion = assignment ? catalog[assignment.championId]?.champion : null;
-            return <div className="pd-roster-row" key={player.playerId}>
-              {assignment ? <DraftPortrait championId={assignment.championId} catalog={catalog} /> : <span className="pd-position-mark">{player.position.slice(0, 2)}</span>}
-              <span><small>{POSITION_LABELS[player.position]}</small><strong>{player.playerName}</strong></span>
-              {champion ? <em>{champion.displayNameKo}</em> : null}
-            </div>;
-          })}
-        </div>
-      </section>
-      <section className="pd-team-section">
-        <h3>픽 순서 <span>{picks.length} / 5</span></h3>
-        <div className="pd-pick-slots">
+      <div className="rm-draft-roster">
+        {roster.map((player, index) => {
+          const assignment = completedDraft?.finalAssignments.find((item) => item.playerId === player.playerId);
+          const championId = assignment?.championId ?? (!completedDraft ? picks[index] ?? null : null);
+          const champion = championId ? catalog[championId]?.champion : null;
+          const pendingAssignment = !completedDraft && Boolean(championId);
+          return (
+            <article className="rm-player-slot" key={player.playerId}>
+              <ChampionSlotPortrait championId={championId} catalog={catalog} />
+              <div className="rm-slot-copy">
+                <div className="rm-slot-meta">
+                  <span className="rm-slot-role">{pendingAssignment ? `PICK ${index + 1}` : player.position}</span>
+                  <span className={`rm-state-badge${assignment ? ' is-confirmed' : pendingAssignment ? ' is-current' : ''}`}>
+                    {assignment ? '선택 확정' : pendingAssignment ? '포지션 미확정' : '선택 대기'}
+                  </span>
+                </div>
+                <h3>{pendingAssignment ? champion?.displayNameKo ?? championId : player.playerName}</h3>
+                <span className="rm-slot-champion">
+                  {assignment ? champion?.displayNameKo ?? championId : pendingAssignment ? '20턴 완료 후 선수 배치 확정' : '챔피언 선택 대기'}
+                </span>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      <section className="rm-bans" aria-label={`${teamCode} 밴`}>
+        <header><strong>{side} 밴</strong><span>{bans.length} / 5</span></header>
+        <div className="rm-ban-list">
           {Array.from({ length: 5 }, (_, index) => {
-            const championId = picks[index]; const champion = championId ? catalog[championId]?.champion : null;
-            return <div className={championId ? 'is-filled' : ''} key={`${side}-pick-${index}`}>
-              {championId ? <DraftPortrait championId={championId} catalog={catalog} /> : <span>{index + 1}</span>}
-              <small>{champion?.displayNameKo ?? '대기'}</small>
-            </div>;
-          })}
-        </div>
-      </section>
-      <section className="pd-team-section pd-ban-section">
-        <h3>밴 <span>{bans.length} / 5</span></h3>
-        <div className="pd-ban-list">
-          {Array.from({ length: 5 }, (_, index) => {
-            const championId = bans[index];
-            return championId ? <DraftPortrait compact championId={championId} catalog={catalog} key={`${side}-ban-${championId}`} /> : <span className="pd-empty-ban" key={`${side}-ban-${index}`}>{index + 1}</span>;
+            const championId = bans[index]; const champion = championId ? catalog[championId]?.champion : null;
+            return (
+              <div className="rm-ban-slot" key={`${side}-ban-${index}`} title={championId ? `${index + 1}번째 밴: ${champion?.displayNameKo ?? championId}` : `${index + 1}번째 밴 빈 슬롯`}>
+                {championId ? <><span className="rm-ban-order">{index + 1}</span>{champion ? <ChampionPortrait name={champion.displayNameKo} portraitUrl={champion.portraitUrl} /> : <strong>{championId.slice(0, 3).toUpperCase()}</strong>}</> : index + 1}
+              </div>
+            );
           })}
         </div>
       </section>

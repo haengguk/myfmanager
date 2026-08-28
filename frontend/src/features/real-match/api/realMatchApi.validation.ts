@@ -5,6 +5,7 @@ import type {
 import type {
   RealMatchApiErrorDto, RealMatchOptionsDto, RealMatchResponseDto, RealMatchSimulateRequestDto,
 } from './realMatchApi.types';
+import { validateCommonMatchSemantics } from './commonMatchSemantic.validation.ts';
 
 type JsonRecord = Record<string, unknown>;
 type PresentationPlayerIdentity = { side: TeamSide; position: Position; championId: string };
@@ -585,6 +586,14 @@ export function validateRealMatchResponsePayload(value: unknown, request: RealMa
       if (player[key] !== resultPlayer[key]) fail(`$.timeline.snapshots[last].players[].${key}`, '최종 선수 결과와 일치하지 않습니다.');
     }
   }
+
+  validateCommonMatchSemantics({
+    teams: root.teams,
+    result: root.result,
+    timeline: root.timeline,
+    assignments,
+    paths: { teams: '$.teams', result: '$.result', timeline: '$.timeline', assignments: '$.draft.finalAssignments' },
+  }, fail);
 
   validateIntegrity(root.integrity);
   const integrity = record(root.integrity, '$.integrity');

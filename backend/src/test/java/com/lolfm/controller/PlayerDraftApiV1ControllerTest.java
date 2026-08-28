@@ -181,7 +181,13 @@ class PlayerDraftApiV1ControllerTest {
         String sessionId = started.path("sessionId").asText();
         mvc.perform(delete("/api/v1/player-drafts/sessions/" + sessionId))
                 .andExpect(status().isNoContent());
-        assertThat(getSession(sessionId).path("status").asText()).isEqualTo("CANCELLED");
+        JsonNode cancelled = getSession(sessionId);
+        assertThat(cancelled.path("status").asText()).isEqualTo("CANCELLED");
+        assertThat(cancelled.path("currentTurn").isNull()).isTrue();
+        assertThat(cancelled.path("selectableChampions")).isEmpty();
+        assertThat(cancelled.path("unavailableChampions")).isEmpty();
+        assertThat(cancelled.path("advisoryRecommendations")).isEmpty();
+        assertThat(cancelled.path("selectableSetIdentity").isNull()).isTrue();
         action(sessionId, actionBody(0, "cancelled", firstSelectable(started)), 409);
     }
 

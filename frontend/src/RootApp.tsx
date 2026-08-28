@@ -13,11 +13,12 @@ import type { MatchSessionViewModel, MatchSetupOptionsViewModel, MatchSetupSelec
 import { realMatchConfig } from './features/real-match/realMatch.config';
 import { MatchSetupPage } from './features/real-match/setup/MatchSetupPage';
 import { MatchResultPage } from './features/real-match/result/MatchResultPage';
-import { createPlayerDraftSession } from './features/real-match/player-draft/api/playerDraftApi.client';
+import { createPlayerDraftSession, fetchPlayerDraftChampionRoleCatalog } from './features/real-match/player-draft/api/playerDraftApi.client';
 import type { PlayerDraftSessionResponseDto } from './features/real-match/player-draft/api/playerDraftApi.types';
 import { createPlayerDraftMatchSession, mergePlayerDraftChampionCatalog } from './features/real-match/player-draft/playerDraft.adapter';
 import { PlayerDraftRoomPage } from './features/real-match/player-draft/PlayerDraftRoomPage';
 import type { PlayerDraftScreenState } from './features/real-match/player-draft/playerDraft.types';
+import { shouldApplyPlayerDraftSession } from './features/real-match/player-draft/playerDraftSessionOrder';
 import { AppShell } from './layout/AppShell';
 import type { AppSection } from './layout/Sidebar';
 
@@ -104,13 +105,14 @@ function RootApp() {
       if (selection.draftMode === 'PLAYER_CONTROLLED') {
         if (options.source !== 'LIVE') throw new Error('직접 밴픽은 LIVE 데이터에서만 사용할 수 있습니다.');
         onStage('CONNECTING');
+        const rolesByChampionId = await fetchPlayerDraftChampionRoleCatalog(controller.signal);
         const session = await createPlayerDraftSession({
           schemaVersion: 'PLAYER_DRAFT_START_REQUEST_V1', blueTeamCode: selection.blueTeamId,
           redTeamCode: selection.redTeamId, controlledSide: selection.controlledSide, seed: selection.seed,
         }, controller.signal);
         if (controller.signal.aborted || requestId !== matchRequestSequenceRef.current) throw new DOMException('Stale player Draft response', 'AbortError');
         onStage('NORMALIZING');
-        setPlayerDraftState({ session, options, selection, championsById: mergePlayerDraftChampionCatalog(session) });
+        setPlayerDraftState({ session, options, selection, championsById: mergePlayerDraftChampionCatalog(session, {}, rolesByChampionId) });
         setDraftReturnScreen('setup'); setActiveScreen('player-draft');
         return;
       }
@@ -136,9 +138,12 @@ function RootApp() {
   };
 
   const updatePlayerDraftSession = useCallback((session: PlayerDraftSessionResponseDto) => {
-    setPlayerDraftState((current) => current ? {
-      ...current, session, championsById: mergePlayerDraftChampionCatalog(session, current.championsById),
-    } : current);
+    setPlayerDraftState((current) => {
+      if (!current || !shouldApplyPlayerDraftSession(current.session, session)) return current;
+      return {
+        ...current, session, championsById: mergePlayerDraftChampionCatalog(session, current.championsById),
+      };
+    });
   }, []);
 
   if (activeScreen === 'setup') {
