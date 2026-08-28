@@ -1,0 +1,107 @@
+# Series Lifecycle V1
+
+상태: `SERIES_LIFECYCLE_V1_BACKEND_IMPLEMENTED_READY_FOR_HARDENING`
+
+이 문서는 [계약 스케치](series-lifecycle-v1-contract-sketch.md)에서 제안했던 Series backend 중 현재 실제 구현된 V1을 설명한다. 구현은 additive `/api/v1/series` 경계이며 기존 standalone Player Draft와 Real Match API의 의미를 바꾸지 않는다.
+
+## 제품 의미
+
+Backend가 이제 한 BO3/BO5의 참가 팀, 점수, game 순서, side, seed, 누적 Hard Fearless history, child Draft, simulation reservation과 result commit을 하나의 authoritative aggregate로 소유한다. Client가 winner, score, game seed, history, production profile 또는 completed result를 제출할 수 없다.
+
+한 game의 정상 흐름은 다음과 같다.
+
+```text
+Series create
+  -> frozen game(side/seed/history)
+  -> parent-bound Player Draft 20 turns
+  -> short atomic reservation
+  -> lock 밖 Production V9 execution
+  -> reservation/input/output compare
+  -> game + score + 10 picks atomic commit
+  -> next frozen game 또는 Series completion
+```
+
+## Aggregate와 repository
+
+`SeriesAggregate`는 immutable snapshot이고 `SeriesRepository`만 process-local map을 소유한다. Mutation은 `ConcurrentHashMap.compute`의 Series ID별 경계에서 snapshot을 교체하므로 서로 다른 Series 실행을 global lock으로 직렬화하지 않는다. Global synchronization은 create cleanup, command index와 정확한 capacity 32를 함께 관리할 때만 사용한다.
+
+기본 운영 한계는 `SeriesLifecycleConfiguration` 한 곳에 있다.
+
+| 항목 | V1 값 |
+| --- | ---: |
+| retained Series | 32 |
+| parent sliding TTL | 120분 |
+| child idle TTL | 30분, parent expiry 이내 |
+| simulation lease | 5분 |
+| command receipts | Series당 256 |
+
+성공한 mutation만 parent activity를 연장한다. GET, stale/rejected request와 exact command replay는 keepalive가 아니다. Cancelled entry와 expired entry/create index는 다음 create에서 함께 정리한다. 완료·차단 Series도 parent TTL 뒤 EXPIRED가 되어 정리될 수 있다. Repository instance 간 상태 공유는 없다.
+
+이 저장소는 database가 아니다. Process restart 시 Series, child, reservation과 receipts가 모두 사라지고 multi-node coordination이나 restart recovery를 제공하지 않는다. 이 제한은 API view의 `processLocalRestartLoss=true`로도 노출한다.
+
+## BO3/BO5, side와 seed
+
+- BO3는 2선승/최대 3게임, BO5는 3선승/최대 5게임이다.
+- 점수는 BLUE/RED가 아니라 `{teamCode -> wins}`다.
+- Game 1 BLUE는 create request의 참가 team code로 고정하고 이후 game은 BLUE/RED를 단순 교대한다.
+- `managedTeamCode`는 Series 전체에서 고정하며 `controlledSide`는 각 game의 frozen mapping에서 server가 계산한다.
+- Root seed는 canonical signed-long decimal string만 받는다. `+73`, `073`, `-0`, 공백, JSON number와 범위 초과를 거부한다.
+- Series/game/child ID는 versioned canonical SHA-256으로 결정적으로 파생한다. UUID와 wall clock은 gameplay identity에 들어가지 않는다.
+- Game seed는 `SERIES_GAME_SEED_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1`으로 파생한다. 입력에는 Series ID, root seed, game number, side/team mapping, managed team과 history-before hash가 포함된다.
+
+## Series-owned Player Draft와 Hard Fearless
+
+Series child는 standalone session map을 재사용하지 않고 parent aggregate 안에 보관된다. Binding은 Series/game ID, actual game number, BLUE/RED team code, controlled side, derived seed, sorted prior exclusions와 history hash를 포함한다. Parent revision과 child revision을 모두 검사한다.
+
+`PlayerControlledDraftEngine.startSeries`와 series-aware completion validator는 Game 2 이상과 기존 committed history를 명시적으로 받는다. AI turn은 기존 Production Auto Draft search/selector를 그대로 사용하고, player turn은 server가 제공한 legal selectable set만 허용한다. 완료 시 active Draft Meta version과 required/actual legal-role hash, 20-turn authority/evidence, final assignments를 다시 검증한다.
+
+Decisive game commit 때 양 팀 picks 10개만 누적한다. Bans, 실패, 취소, expiry, stale command와 no-result는 history를 바꾸지 않는다. 다음 game은 직전 committed picks union을 frozen exclusion으로 받는다. Pool completion preflight가 실패하면 직전 commit은 보존하고 Series/next game을 `BLOCKED/HARD_FEARLESS_LEGAL_POOL_EXHAUSTED`로 둔다.
+
+Standalone `PlayerControlledDraftEngine.start`/`validateCompleted`와 `/api/v1/player-drafts/sessions`는 계속 Game 1 + 빈 history만 허용한다. `/api/v1/real-matches`도 독립 Game 1 계약을 유지한다.
+
+## Production V9 reservation과 commit
+
+Simulation eligibility가 모두 통과하면 짧은 per-Series mutation에서 command/payload, frozen child/input binding, reserved revision, token과 5분 lease를 기록한다. 그 뒤 repository lock 없이 실제 `PRODUCTION_MATCHUP_COMPOSITION_V1` / `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`을 실행한다.
+
+Commit은 현재 reservation token, lease, revision, child Draft와 frozen binding을 다시 비교한다. Production executor는 authoritative roster, Draft/control/final assignment, input, policy/profile/configuration/rules/engine, resource/replay provenance, simulator/structured timeline, Random fingerprint와 output hash를 검증한다. 모두 맞는 decisive result만 한 snapshot에서 game `COMMITTED`, team-code score +1, picks 10개 누적, 다음 game 생성 또는 Series `COMPLETED`를 함께 반영한다.
+
+Runtime failure는 reservation을 해제하고 `SIMULATION_FAILED_RETRYABLE`, integrity mismatch는 `BLOCKED`, valid timeout/no winner는 `BLOCKED/NO_DECISIVE_RESULT`다. 이 세 경로는 score/history를 commit하지 않는다. Series cancel은 active child를 CANCELLED로 바꾸고 reservation을 제거하므로 late output은 commit할 수 없다.
+
+## Compact result와 replay
+
+Aggregate에는 completed 20-turn Draft/evidence, final assignments, compact result summary, `SeriesGameReceipt`와 bounded command receipt만 남긴다. `MatchEngineV1Output`, event/snapshot timeline, HTTP DTO graph, simulator state, future/thread/exception은 보관하지 않는다. Canonical game receipt는 16KiB 이하로 검증한다.
+
+Committed game replay는 stored frozen Draft/context로 Production V9을 새로 결정 실행하고 stored receipt를 exact 비교한 경우에만 full match response를 반환한다. Replay 전후 revision, score, history와 last activity는 같아야 한다. Current runtime/resource가 stored identity를 재현할 수 없으면 fail-closed한다.
+
+동일한 completed simulate command 재전송은 engine을 다시 실행하지 않고 authoritative compact terminal Series/Game view를 반환한다. Full timeline이 필요한 명시적 replay endpoint와 command idempotency를 분리한 결과이며, duplicate simulation response의 `match`는 null일 수 있다.
+
+## REST API
+
+Base path는 `/api/v1/series`다.
+
+| Method/path | 의미 |
+| --- | --- |
+| `POST /api/v1/series` | create 201, exact create replay 200 |
+| `GET /api/v1/series/{seriesId}` | authoritative current view |
+| `POST .../games/current/draft-session` | child create 201, exact replay 200 |
+| `GET .../games/{gameNumber}/draft-session` | parent binding 포함 child view |
+| `POST .../draft-session/actions` | exact parent/child revision의 player action |
+| `DELETE .../draft-session` | child cancel 204 empty |
+| `POST .../simulate` | committed 200, same in-progress 202 |
+| `GET .../games/{gameNumber}` | compact game/result/receipt view |
+| `POST .../games/{gameNumber}/replay` | no-commit deterministic full replay |
+| `DELETE /api/v1/series/{seriesId}` | Series cancel 204 empty |
+
+Request parser는 endpoint별 exact schema/field set, enum, ID, canonical seed와 revision을 검사한다. Unknown field로 score/winner/history/profile/game seed/output을 주입하면 거부한다. Error는 `SERIES_API_ERROR_V1`의 stable code, field, retryable, current revision/status로 반환하며 내부 stack/path/raw payload는 노출하지 않는다.
+
+## 현재 제한과 다음 단계
+
+V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit, background job recovery, frontend와 live accessibility flow는 포함하지 않는다. Command receipt 한도는 eviction하지 않고 fail-closed한다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다.
+
+다음 순서는 다음과 같다.
+
+```text
+SERIES_LIFECYCLE_V1_BACKEND_HARDENING
+-> SERIES_FRONTEND_V1
+-> SERIES_LIVE_E2E_AND_ACCESSIBILITY
+```

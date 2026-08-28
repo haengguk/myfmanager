@@ -67,7 +67,29 @@ public final class PlayerControlledDraftEngine {
         if (selectionContext.seriesGameNumber() != 1) {
             throw new IllegalArgumentException("Player Draft V1 supports Game 1 only");
         }
-        DraftState fresh = DraftState.fresh(rules, new SeriesDraftHistory());
+        return startSeries(blue, red, selectionContext, controlledSide, Set.of());
+    }
+
+    /**
+     * Parent-owned Series entry point. The standalone API remains Game-1-only; callers of this
+     * method must bind the explicit game number and immutable history in their parent aggregate.
+     */
+    public Progress startSeries(
+            DraftTeamContext blue,
+            DraftTeamContext red,
+            DraftSelectionContext selectionContext,
+            TeamSide controlledSide,
+            Set<ChampionId> hardFearlessExclusions
+    ) {
+        Objects.requireNonNull(selectionContext, "selectionContext");
+        Set<ChampionId> exclusions = Set.copyOf(hardFearlessExclusions);
+        if (!selectionContext.seriesHistoryBeforeHash().equals(
+                com.lolfm.application.RealDraftSelectionContextFactory.seriesHistoryHash(
+                        selectionContext.seriesGameNumber() - 1, exclusions))) {
+            throw new IllegalArgumentException("SERIES_DRAFT_HISTORY_CONTEXT_MISMATCH");
+        }
+        DraftState fresh = new DraftState(
+                rules, 0, List.of(), List.of(), List.of(), List.of(), exclusions);
         return advanceAi(new Progress(controlledSide, fresh, List.of(), null),
                 blue, red, selectionContext);
     }
@@ -172,7 +194,27 @@ public final class PlayerControlledDraftEngine {
             DraftTeamContext red,
             DraftSelectionContext selectionContext
     ) {
+        if (selectionContext.seriesGameNumber() != 1) {
+            throw new IllegalArgumentException("Player Draft V1 supports Game 1 only");
+        }
+        validateCompletedSeries(result, blue, red, selectionContext, Set.of());
+    }
+
+    /** Reconstructs a completed parent-bound Series Draft without relaxing standalone V1. */
+    public void validateCompletedSeries(
+            PlayerControlledDraftResult result,
+            DraftTeamContext blue,
+            DraftTeamContext red,
+            DraftSelectionContext selectionContext,
+            Set<ChampionId> expectedHardFearlessExclusions
+    ) {
         Objects.requireNonNull(result, "result");
+        Set<ChampionId> expectedExclusions = Set.copyOf(expectedHardFearlessExclusions);
+        if (!selectionContext.seriesHistoryBeforeHash().equals(
+                com.lolfm.application.RealDraftSelectionContextFactory.seriesHistoryHash(
+                        selectionContext.seriesGameNumber() - 1, expectedExclusions))) {
+            throw new IllegalArgumentException("SERIES_DRAFT_HISTORY_CONTEXT_MISMATCH");
+        }
         DraftMetaCatalog activeMeta = resources.meta();
         if (!activeMeta.metaVersion().equals(result.draftMetaVersion())
                 || !activeMeta.requiredLegalRoleKeyHash().equals(
@@ -183,7 +225,7 @@ public final class PlayerControlledDraftEngine {
                     "PLAYER_DRAFT_META_RESOURCE_IDENTITY_MISMATCH");
         }
         if (!rules.equals(result.ruleSet()) || result.controlledSide() == null
-                || !result.hardFearlessExclusions().isEmpty()) {
+                || !result.hardFearlessExclusions().equals(expectedExclusions)) {
             throw new IllegalArgumentException("PLAYER_DRAFT_RULE_OR_SERIES_CONTEXT_MISMATCH");
         }
         DraftState state = new DraftState(rules, 0, List.of(), List.of(), List.of(),
@@ -250,6 +292,26 @@ public final class PlayerControlledDraftEngine {
             throw new IllegalArgumentException("PLAYER_DRAFT_FINAL_ASSIGNMENT_MISMATCH");
         }
         result.controlEvidence();
+    }
+
+    /** Exact legal-pool preflight used before a parent Series creates its next child Draft. */
+    public boolean canCompleteSeriesDraft(Set<ChampionId> hardFearlessExclusions) {
+        DraftState state = new DraftState(rules, 0, List.of(), List.of(), List.of(), List.of(),
+                Set.copyOf(hardFearlessExclusions));
+        return availability.canCompleteAfterExcluding(state, TeamSide.BLUE, null)
+                && availability.canCompleteAfterExcluding(state, TeamSide.RED, null);
+    }
+
+    public String activeDraftMetaVersion() {
+        return resources.meta().metaVersion();
+    }
+
+    public String activeRequiredLegalRoleKeyHash() {
+        return resources.meta().requiredLegalRoleKeyHash();
+    }
+
+    public String activeActualLegalRoleKeyHash() {
+        return resources.meta().actualLegalRoleKeyHash();
     }
 
     private Progress advanceAi(

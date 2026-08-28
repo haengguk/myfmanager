@@ -1,0 +1,13 @@
+package com.lolfm.application;
+
+public enum SeriesGameStatus {
+    DRAFT_PENDING,
+    DRAFT_ACTIVE,
+    DRAFT_COMPLETED,
+    SIMULATION_IN_PROGRESS,
+    SIMULATION_FAILED_RETRYABLE,
+    BLOCKED,
+    COMMITTED,
+    DRAFT_CANCELLED,
+    DRAFT_EXPIRED
+}

@@ -6,6 +6,7 @@ import com.lolfm.draft.DraftTeamContext;
 import com.lolfm.draft.PlayerControlledDraftEngine;
 import com.lolfm.draft.PlayerControlledDraftResult;
 import com.lolfm.player.LckTeamAssembler;
+import com.lolfm.simulator.TeamSide;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
@@ -56,6 +57,34 @@ public final class PlayerControlledDraftMatchInputBoundary {
                 blueTeamCode, blueTeam, redTeamCode, redTeam, matchSeed, result));
     }
 
+    MatchEngineV1Input validateAndCreateSeriesInput(
+            SeriesPlayerDraftBinding binding,
+            PlayerControlledDraftResult result
+    ) {
+        Objects.requireNonNull(binding, "binding");
+        Objects.requireNonNull(result, "result");
+        String blueTeamCode = canonicalTeamCode(binding.blueTeamCode(), "blueTeamCode");
+        String redTeamCode = canonicalTeamCode(binding.redTeamCode(), "redTeamCode");
+        if (blueTeamCode.equals(redTeamCode)) {
+            throw new IllegalArgumentException("PLAYER_DRAFT_TEAM_IDENTITY_COLLISION");
+        }
+        Team blueTeam = teams.assemble(blueTeamCode);
+        Team redTeam = teams.assemble(redTeamCode);
+        DraftTeamContext blueContext = DraftTeamContext.from(blueTeam);
+        DraftTeamContext redContext = DraftTeamContext.from(redTeam);
+        DraftSelectionContext selectionContext = RealDraftSelectionContextFactory.create(
+                binding.matchSeed(), blueTeamCode, blueTeam, redTeamCode, redTeam,
+                binding.gameNumber(), binding.hardFearlessExclusions());
+        if (!selectionContext.seriesHistoryBeforeHash().equals(binding.historyBeforeHash())
+                || result.controlledSide() != binding.controlledSide()) {
+            throw new IllegalArgumentException("SERIES_DRAFT_BINDING_MISMATCH");
+        }
+        drafts.validateCompletedSeries(result, blueContext, redContext, selectionContext,
+                binding.hardFearlessExclusions());
+        return inputs.fromValidatedSeriesPlayerControlledDraft(new ValidatedSeriesDraft(
+                binding, blueTeam, redTeam, result));
+    }
+
     /** Only this enclosing validator can construct the token accepted by the unchecked projector. */
     static final class ValidatedDraft {
         private final String blueTeamCode;
@@ -100,6 +129,53 @@ public final class PlayerControlledDraftMatchInputBoundary {
 
         PlayerControlledDraftResult result() {
             return result;
+        }
+    }
+
+    static final class ValidatedSeriesDraft {
+        private final SeriesPlayerDraftBinding binding;
+        private final Team blueTeam;
+        private final Team redTeam;
+        private final PlayerControlledDraftResult result;
+
+        private ValidatedSeriesDraft(
+                SeriesPlayerDraftBinding binding,
+                Team blueTeam,
+                Team redTeam,
+                PlayerControlledDraftResult result
+        ) {
+            this.binding = binding;
+            this.blueTeam = blueTeam;
+            this.redTeam = redTeam;
+            this.result = result;
+        }
+
+        SeriesPlayerDraftBinding binding() { return binding; }
+        Team blueTeam() { return blueTeam; }
+        Team redTeam() { return redTeam; }
+        PlayerControlledDraftResult result() { return result; }
+    }
+
+    record SeriesPlayerDraftBinding(
+            String seriesId,
+            String gameId,
+            int gameNumber,
+            String blueTeamCode,
+            String redTeamCode,
+            TeamSide controlledSide,
+            long matchSeed,
+            Set<com.lolfm.champion.ChampionId> hardFearlessExclusions,
+            String historyBeforeHash
+    ) {
+        SeriesPlayerDraftBinding {
+            seriesId = required(seriesId, "seriesId");
+            gameId = required(gameId, "gameId");
+            if (gameNumber < 1) throw new IllegalArgumentException("gameNumber");
+            Objects.requireNonNull(controlledSide, "controlledSide");
+            hardFearlessExclusions = Set.copyOf(hardFearlessExclusions);
+            if (historyBeforeHash == null || !historyBeforeHash.matches("[0-9a-f]{64}")) {
+                throw new IllegalArgumentException("historyBeforeHash");
+            }
         }
     }
 

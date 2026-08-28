@@ -136,6 +136,20 @@ Final boundary focused는 Player Draft engine/boundary/session simulation/API와
 
 직전 session hardening에서 실행한 별도 `localhost:8098` bootRun smoke는 RED-controlled session 생성, turn 1 AI→turn 2 PLAYER 시작, player action 10회와 20 decisions 완료, first/repeat Production V9 simulate를 확인했다. 두 응답의 final Draft/assignment, input/replay, simulator/structured timeline, Random draw/hash, output와 winner/duration identity는 exact였고 output hash는 `857f6b371ffd01f4ad5bd80f3032e3c84bdd86add99a57b1eb00d080976ea0ee`, Random draw count 4,676, BLUE 승리, 2,230초였다. DELETE 204 뒤 임시 session과 서버를 종료했다. 이번 final boundary milestone에서는 live smoke, frontend build, 대형 diagnostic, calibration/holdout과 historical artifact 재생성을 실행하지 않았다.
 
+### Series Lifecycle V1 backend
+
+상태는 `SERIES_LIFECYCLE_V1_BACKEND_IMPLEMENTED_READY_FOR_HARDENING`이다.
+
+새 additive `/api/v1/series` backend가 BO3/BO5의 team-code score, current game, fixed managed team, game별 alternating side, deterministic root-to-game seed, Series-owned Player Draft, cumulative Hard Fearless history와 Production V9 result commit을 authoritative하게 소유한다. Client는 winner, score, history, game seed, profile 또는 result를 제출할 수 없다.
+
+Repository는 immutable aggregate snapshot을 Series ID별 `ConcurrentHashMap.compute` 경계에서 교체한다. Maximum retained 32, parent sliding TTL 120분, child idle TTL 30분, simulation lease 5분, command receipts 256은 dedicated lifecycle configuration이 소유한다. Long-running Production V9 execution은 repository lock 밖에서 수행하고 reservation token/revision/frozen input을 다시 비교한 뒤 decisive game, score, picks 10개와 next game/completion을 한 번에 commit한다. Runtime failure/no-result/integrity failure/cancel/expiry/duplicate/stale path는 score/history를 commit하지 않는다.
+
+Committed aggregate는 20-turn Draft/evidence, final assignments, compact result/receipt만 보관하고 full output/event/snapshot timeline은 보관하지 않는다. Explicit replay endpoint는 stored frozen context로 current Production V9을 fresh deterministic execution해 exact receipt가 같은 경우에만 full response를 반환하며 revision/score/history/activity를 바꾸지 않는다.
+
+실제 GEN/T1 root seed 73 BO3 smoke는 3 committed games, GEN 2–1 T1, cumulative picks 30으로 완료했다. 매 game은 decisions 20/final assignments 10이고 policy/profile/engine은 current production identity와 exact였다. 이는 wiring fixture이며 balance 증거가 아니다. Repository/API/lifecycle focused와 기존 Player Draft/Match Engine/Real Match/Auto Draft/Hard Fearless affected 회귀는 모두 failure/error/skip 0으로 통과했다. Final executable tree의 complete backend regression은 첫 실행에서 231 suites / 2,246 tests / failures 0 / errors 0 / skipped 0, aggregate XML 1,668.336초, Gradle wall 27분 56초로 통과했다. 상세 수치는 [implementation 결과](development/series-lifecycle-v1-backend-implementation.md)에 기록한다.
+
+현재는 process-local single-node이며 restart recovery, persistence/save-load, auth/ownership, multi-node coordination과 Series frontend가 없다. Standalone `/api/v1/player-drafts/sessions`는 계속 Game 1 + 빈 history이고 `/api/v1/real-matches`도 독립 Game 1 semantics를 유지한다. 다음 순서는 `SERIES_LIFECYCLE_V1_BACKEND_HARDENING -> SERIES_FRONTEND_V1 -> SERIES_LIVE_E2E_AND_ACCESSIBILITY`다. 상세 구조는 [Series Lifecycle V1](architecture/series-lifecycle-v1.md)에 있다.
+
 ### Player-controlled Draft Frontend V1
 
 상태는 `PLAYER_CONTROLLED_DRAFT_FRONTEND_V1_ACCEPTED`다. LIVE 경기 설정에 기존 AUTO와 분리된 직접 밴픽 mode와 BLUE/RED controlled side를 추가했다. 직접 밴픽은 전용 strict DTO/validator/client 경계로 실제 session을 만들고, backend legal champion 전체·advisory top 3·구조화된 unavailable reason을 사용해 player action과 AI follow-up을 20턴까지 진행한다. Revision과 logical `clientActionId`, stale refresh, 동일 session retry, explicit cancel 204 의미를 보존한다.

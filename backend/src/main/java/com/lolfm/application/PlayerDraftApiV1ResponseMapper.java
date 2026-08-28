@@ -103,6 +103,13 @@ public final class PlayerDraftApiV1ResponseMapper {
             PlayerDraftSessionView session, MatchEngineV1Output output
     ) {
         PlayerDraftApiV1Dtos.SessionResponse sessionResponse = session(session);
+        return new PlayerDraftApiV1Dtos.SimulationResponse(
+                PlayerDraftApiV1Dtos.SIMULATION_RESPONSE_SCHEMA, sessionResponse,
+                matchPayload(output));
+    }
+
+    /** Shared mixed-authority match projection for the distinct Series envelope. */
+    public PlayerDraftApiV1Dtos.MatchPayload matchPayload(MatchEngineV1Output output) {
         RealMatchApiV1ResponseMapper.SharedMatchComponents common =
                 commonMatches.sharedMatchComponents(output);
         SimulationExecutionProvenance execution = output.executionProvenance();
@@ -128,12 +135,10 @@ public final class PlayerDraftApiV1ResponseMapper {
                         output.outputHash(), new RealMatchApiV1Dtos.RandomFingerprint(
                         random.schemaVersion(), random.randomDrawCount(),
                         random.randomTraceHash(), random.randomTraceHashAlgorithm()), true);
-        return new PlayerDraftApiV1Dtos.SimulationResponse(
-                PlayerDraftApiV1Dtos.SIMULATION_RESPONSE_SCHEMA, sessionResponse,
-                new PlayerDraftApiV1Dtos.MatchPayload(
+        return new PlayerDraftApiV1Dtos.MatchPayload(
                         PlayerDraftApiV1Dtos.MATCH_PAYLOAD_SCHEMA, output.matchIdentity(),
                         Long.toString(execution.matchSeed()), common.productionPolicy(),
-                        common.teams(), draft, common.result(), common.timeline(), integrity));
+                        common.teams(), draft, common.result(), common.timeline(), integrity);
     }
 
     private PlayerDraftApiV1Dtos.CompletedDraft completed(

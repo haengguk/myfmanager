@@ -28,4 +28,12 @@ public final class RealDraftSelectionContextFactory {
                 SimulationProvenanceService.seriesHistoryHash(
                         seriesGameNumber - 1, exclusionsBeforeDraft));
     }
+
+    /** Public canonical history identity for parent-owned Draft integrations. */
+    public static String seriesHistoryHash(
+            int committedGameCount, Set<ChampionId> exclusionsBeforeDraft
+    ) {
+        return SimulationProvenanceService.seriesHistoryHash(
+                committedGameCount, Set.copyOf(exclusionsBeforeDraft));
+    }
 }
