@@ -1,6 +1,6 @@
 # Project Status
 
-이 문서는 2026-08-27 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-08-30 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
 ## Current Production Snapshot
 
@@ -138,17 +138,17 @@ Final boundary focused는 Player Draft engine/boundary/session simulation/API와
 
 ### Series Lifecycle V1 backend
 
-상태는 `SERIES_LIFECYCLE_V1_BACKEND_HARDENED_READY_FOR_FRONTEND`다.
+상태는 `SERIES_LIFECYCLE_V1_FRONTEND_READY`다.
 
 새 additive `/api/v1/series` backend가 BO3/BO5의 team-code score, current game, fixed managed team, game별 alternating side, deterministic root-to-game seed, Series-owned Player Draft, cumulative Hard Fearless history와 Production V9 result commit을 authoritative하게 소유한다. Client는 winner, score, history, game seed, profile 또는 result를 제출할 수 없다.
 
 Repository는 immutable aggregate snapshot을 Series ID별 `ConcurrentHashMap.compute` 경계에서 교체한다. Maximum retained 32, parent sliding TTL 120분, child idle TTL 30분, simulation lease 5분, command receipts 256은 dedicated lifecycle configuration이 소유한다. TTL cleanup은 current snapshot의 expiry 판정과 제거를 같은 key 원자 경계에서 수행해 성공 mutation을 stale 판단으로 삭제하지 않는다. Long-running Production V9 execution은 repository lock 밖에서 수행하고 exact Series/game/child/reservation/frozen input을 다시 비교한 뒤 decisive game, score, picks 10개와 next game/completion을 한 번에 commit한다.
 
-Command receipt는 진행 중/성공/실패 의미와 exact game/child/generation을 고정한다. 같은 command/payload는 engine/mutation 0으로 최초 의미를 재현하고, 다른 payload는 deterministic conflict다. Capacity는 실행/상태 변경 전에 검사하며 256개 no-eviction을 넘지 않는다. Cancel/lease expiry 뒤 late success/failure는 더 새 상태를 commit하지 못한다. Committed aggregate는 20-turn Draft/evidence, final assignments, compact result/receipt만 보관하고 full output/event/snapshot timeline은 보관하지 않는다. Explicit replay endpoint는 stored frozen context로 current Production V9을 fresh deterministic execution해 exact receipt가 같은 경우에만 full response를 반환하고, 전후 aggregate 전체 identity가 바뀌면 stale view 대신 fail-closed한다.
+Command receipt는 진행 중/성공/실패 의미와 exact game/child/generation을 고정한다. 같은 command/payload는 engine/mutation 0으로 최초 code/HTTP/retryable을 재현하고, public error의 `currentRevision/currentStatus`는 replay 시점의 authoritative aggregate를 반환한다. Receipt가 보존하는 historical resulting revision/status는 이 public current 의미와 분리된다. 다른 payload는 deterministic conflict다. Capacity는 실행/상태 변경 전에 검사하며 256개 no-eviction을 넘지 않는다. Service와 response projection은 같은 lifecycle configuration의 capacity 판정을 사용하므로 256개에서는 신규 mutation을 `allowedCommands`에 표시하지 않고 `GET`만 남긴다. 기존 exact command replay는 새 receipt가 없어 계속 허용한다. Cancel/lease expiry 뒤 late success/failure는 더 새 상태를 commit하지 못한다. Committed aggregate는 20-turn Draft/evidence, final assignments, compact result/receipt만 보관하고 full output/event/snapshot timeline은 보관하지 않는다. Explicit replay endpoint는 stored frozen context로 current Production V9을 fresh deterministic execution해 exact receipt가 같은 경우에만 full response를 반환하고, 전후 aggregate 전체 identity가 바뀌면 stale view 대신 fail-closed한다.
 
-Shared unavailable pool의 양 팀 열 role slot을 joint matching하는 preflight를 추가했다. Deterministic state machine은 BO3 2–0/2–1, BO5 3–0/3–2, Game 5 history 40→50과 Game 4/6 미생성을 통과했다. 실제 GEN/T1 root seed 73 smoke는 BO3 3 games/GEN 2–1 T1/30 picks, BO5 5 games/T1 3–2 GEN/50 picks로 완료했다. 매 game은 decisions 20/final assignments 10이고 policy/profile/engine은 current production identity와 exact였다. 이는 wiring fixture이며 balance 증거가 아니다. Hardening focused 25 tests, 기존 호환성 8 suites/58 tests와 actual Production smoke 2 tests는 failure/error/skip 0이다. Final complete backend regression은 첫 실행에서 233 suites/2,261 tests, failures/errors/skipped 0, Gradle wall 29분 50초로 통과했다. 상세 수치는 [hardening 결과](development/series-lifecycle-v1-backend-hardening.md)에 기록한다.
+Shared unavailable pool의 양 팀 열 role slot을 joint matching하는 preflight를 추가했다. Deterministic state machine은 BO3 2–0/2–1, BO5 3–0/3–2, Game 5 history 40→50과 Game 4/6 미생성을 통과했다. 실제 GEN/T1 root seed 73 smoke는 BO3 3 games/GEN 2–1 T1/30 picks, BO5 5 games/T1 3–2 GEN/50 picks로 완료했다. 매 game은 decisions 20/final assignments 10이고 policy/profile/engine은 current production identity와 exact였다. 이는 wiring fixture이며 balance 증거가 아니다. Frontend-readiness focused는 5 suites/27 tests, 최종 핵심 재확인은 2 suites/15 tests로 모두 clean했다. Final complete backend regression은 첫 실행에서 234 suites/2,266 tests, failures/errors/skipped 0, aggregate JUnit XML 1,931.403초, Gradle wall 17분 12초로 통과했다. 상세 수치는 [frontend readiness 결과](development/series-lifecycle-v1-frontend-readiness-hardening.md)에 기록한다.
 
-현재는 process-local single-node이며 restart recovery, persistence/save-load, auth/ownership, multi-node coordination과 Series frontend가 없다. Receipt는 256개 no-eviction이라 한도 도달 뒤 신규 cancel도 fail-closed할 수 있다. Standalone `/api/v1/player-drafts/sessions`는 계속 Game 1 + 빈 history이고 `/api/v1/real-matches`도 독립 Game 1 semantics를 유지한다. 다음 순서는 `SERIES_FRONTEND_V1 -> SERIES_LIVE_E2E_AND_ACCESSIBILITY`다. 상세 구조는 [Series Lifecycle V1](architecture/series-lifecycle-v1.md)에 있다.
+현재는 process-local single-node이며 restart recovery, persistence/save-load, auth/ownership, multi-node coordination과 Series frontend가 없다. Receipt는 256개 no-eviction이라 한도 도달 뒤 신규 cancel도 fail-closed하며 public `allowedCommands`도 이를 그대로 반영한다. Standalone `/api/v1/player-drafts/sessions`는 계속 Game 1 + 빈 history이고 `/api/v1/real-matches`도 독립 Game 1 semantics를 유지한다. 다음 순서는 `SERIES_FRONTEND_V1 -> SERIES_LIVE_E2E_AND_ACCESSIBILITY`다. 상세 구조는 [Series Lifecycle V1](architecture/series-lifecycle-v1.md)에 있다.
 
 ### Player-controlled Draft Frontend V1
 
@@ -536,7 +536,7 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 2. Player Draft browser E2E, keyboard/a11y와 reconnect/expiry UX를 검증한다.
 3. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
 4. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
-5. `SERIES_LIFECYCLE_V1_CONTRACT_SKETCH`는 준비됐다. 후속 backend는 domain/repository → parent-bound Player Draft → Production V9 atomic match commit/API → hardening 순서로 구현하고, 그 뒤 `SERIES_FRONTEND_V1`을 연결한다. Save/Career/Season persistence는 별도 범위다.
+5. `SERIES_LIFECYCLE_V1_FRONTEND_READY`까지 완료됐다. 다음은 authoritative revision/status/allowedCommands를 그대로 소비하는 `SERIES_FRONTEND_V1`, 그 다음은 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`다. Save/Career/Season persistence는 별도 범위다.
 6. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 7. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 8. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
@@ -613,4 +613,4 @@ Pre-Jungle V2 생성 당시 production source/resource/build guard는 456 files 
 
 ## Last Updated
 
-2026-08-27 (Asia/Seoul)
+2026-08-30 (Asia/Seoul)

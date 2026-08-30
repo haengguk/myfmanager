@@ -1,6 +1,6 @@
 # Series Lifecycle V1
 
-상태: `SERIES_LIFECYCLE_V1_BACKEND_HARDENED_READY_FOR_FRONTEND`
+상태: `SERIES_LIFECYCLE_V1_FRONTEND_READY`
 
 이 문서는 [계약 스케치](series-lifecycle-v1-contract-sketch.md)에서 제안했던 Series backend 중 현재 실제 구현된 V1을 설명한다. 구현은 additive `/api/v1/series` 경계이며 기존 standalone Player Draft와 Real Match API의 의미를 바꾸지 않는다.
 
@@ -65,7 +65,7 @@ Simulation eligibility가 모두 통과하면 짧은 per-Series mutation에서 c
 
 Commit은 현재 Series status/revision, exact game snapshot, game/child/generation, reservation token/command/payload/lease, child revision/Draft identity와 frozen side/seed/history/input binding을 다시 비교한다. Production executor는 authoritative roster, Draft/control/final assignment, input, policy/profile/configuration/rules/engine, resource/replay provenance, simulator/structured timeline, Random fingerprint와 output hash를 검증한다. 모두 맞는 decisive result만 한 snapshot에서 game `COMMITTED`, team-code score +1, picks 10개 누적, 다음 game 생성 또는 Series `COMPLETED`를 함께 반영한다.
 
-Runtime failure는 reservation을 해제하고 `SIMULATION_FAILED_RETRYABLE`, integrity mismatch는 `BLOCKED`, valid timeout/no winner는 `BLOCKED/NO_DECISIVE_RESULT`다. Lease 만료는 `SERIES_SIMULATION_LEASE_EXPIRED` retryable failure receipt로 고정한다. 이 경로들은 score/history를 commit하지 않으며 최초 stable code/HTTP/retryable 의미를 같은 command 재전송에서 재현한다. 실제 retry는 새 command ID와 최신 revision을 사용한다. Series cancel은 active child를 CANCELLED로 바꾸고 reservation을 제거하며 진행 중 receipt도 invalidated failure로 바꾸므로 late success와 late failure 모두 더 새 상태를 덮어쓸 수 없다.
+Runtime failure는 reservation을 해제하고 `SIMULATION_FAILED_RETRYABLE`, integrity mismatch는 `BLOCKED`, valid timeout/no winner는 `BLOCKED/NO_DECISIVE_RESULT`다. Lease 만료는 `SERIES_SIMULATION_LEASE_EXPIRED` retryable failure receipt로 고정한다. 이 경로들은 score/history를 commit하지 않으며 최초 stable code/HTTP/retryable 의미를 같은 command 재전송에서 재현한다. Failed receipt의 historical resulting revision/status도 내부 evidence로 그대로 보존한다. 다만 public error의 `currentRevision/currentStatus`는 exact replay를 처리하는 시점의 현재 aggregate에서 가져오므로 이후 retry 성공, 다음 game, completion 또는 cancel을 과거 상태로 되돌려 표시하지 않는다. 실제 retry는 새 command ID와 최신 revision을 사용한다. Series cancel은 active child를 CANCELLED로 바꾸고 reservation을 제거하며 진행 중 receipt도 invalidated failure로 바꾸므로 late success와 late failure 모두 더 새 상태를 덮어쓸 수 없다.
 
 ## Compact result와 replay
 
@@ -92,11 +92,11 @@ Base path는 `/api/v1/series`다.
 | `POST .../games/{gameNumber}/replay` | no-commit deterministic full replay |
 | `DELETE /api/v1/series/{seriesId}` | Series cancel 204 empty |
 
-Request parser는 endpoint별 exact schema/field set, enum, ID, canonical seed와 revision을 검사한다. Unknown field로 score/winner/history/profile/game seed/output을 주입하면 거부한다. Error는 `SERIES_API_ERROR_V1`의 stable code, field, retryable, current revision/status로 반환하며 내부 stack/path/raw payload는 노출하지 않는다.
+Request parser는 endpoint별 exact schema/field set, enum, ID, canonical seed와 revision을 검사한다. Unknown field로 score/winner/history/profile/game seed/output을 주입하면 거부한다. Error는 `SERIES_API_ERROR_V1`의 stable code, field, retryable, current revision/status로 반환하며 내부 stack/path/raw payload는 노출하지 않는다. `allowedCommands`도 같은 `SeriesLifecycleConfiguration`의 receipt capacity를 사용한다. 256개 한도에서는 일반적인 신규 mutation을 제거하고 `GET`만 광고하지만, 이미 존재하는 exact command ID replay는 새 receipt를 만들지 않으므로 계속 처리한다.
 
 ## 현재 제한과 다음 단계
 
-V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit, background job recovery, frontend와 live accessibility flow는 포함하지 않는다. Command receipt 한도 256은 eviction하지 않는다. 이미 기록된 exact replay는 한도에서도 허용하지만 신규 action/simulate/cancel은 실행·mutation 전에 fail-closed하므로 장시간 열린 Series는 terminal/cancel command도 거부될 수 있다. V2에서는 persistence와 함께 receipt compaction/retention 정책이 필요하다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다.
+V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit, background job recovery, frontend와 live accessibility flow는 포함하지 않는다. Command receipt 한도 256은 eviction하지 않는다. 이미 기록된 exact replay는 한도에서도 허용하지만 신규 action/simulate/cancel은 실행·mutation 전에 fail-closed하고 `allowedCommands`에도 나타나지 않으므로 장시간 열린 Series는 terminal/cancel command도 거부될 수 있다. V2에서는 persistence와 함께 receipt compaction/retention 정책이 필요하다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다. Frontend-readiness 보강과 검증은 [Series Lifecycle V1 Frontend Readiness Hardening](../development/series-lifecycle-v1-frontend-readiness-hardening.md)에 기록한다.
 
 다음 순서는 다음과 같다.
 

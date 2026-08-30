@@ -13,15 +13,19 @@ public final class SeriesApiV1ResponseMapper {
     private final LckTeamAssembler teams;
     private final PlayerDraftApiV1ResponseMapper playerDrafts;
     private final com.lolfm.draft.PlayerControlledDraftEngine draftEngine;
+    private final SeriesLifecycleConfiguration lifecycleConfiguration;
 
     public SeriesApiV1ResponseMapper(
             LckTeamAssembler teams,
             PlayerDraftApiV1ResponseMapper playerDrafts,
-            com.lolfm.draft.PlayerControlledDraftEngine draftEngine
+            com.lolfm.draft.PlayerControlledDraftEngine draftEngine,
+            SeriesLifecycleConfiguration lifecycleConfiguration
     ) {
         this.teams = Objects.requireNonNull(teams, "teams");
         this.playerDrafts = Objects.requireNonNull(playerDrafts, "playerDrafts");
         this.draftEngine = Objects.requireNonNull(draftEngine, "draftEngine");
+        this.lifecycleConfiguration = Objects.requireNonNull(
+                lifecycleConfiguration, "lifecycleConfiguration");
     }
 
     public SeriesApiV1Dtos.SeriesView series(SeriesAggregate aggregate) {
@@ -113,7 +117,11 @@ public final class SeriesApiV1ResponseMapper {
                 summary.durationSeconds(), kills, gold);
     }
 
-    private static List<String> allowedCommands(SeriesAggregate aggregate) {
+    private List<String> allowedCommands(SeriesAggregate aggregate) {
+        if (!lifecycleConfiguration.canCreateCommandReceipt(
+                aggregate.commandReceipts().size())) {
+            return List.of("GET");
+        }
         if (aggregate.status() == SeriesStatus.ACTIVE) {
             SeriesGame game = aggregate.currentGame();
             if (game.reservation() != null) return List.of("GET", "CANCEL_SERIES");

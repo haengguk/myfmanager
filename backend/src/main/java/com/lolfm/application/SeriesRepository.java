@@ -47,7 +47,9 @@ final class SeriesRepository {
     Instant reservationExpiresAt(Instant created) {
         return created.plus(configuration.simulationLease());
     }
-    int maximumCommandReceipts() { return configuration.maximumCommandReceipts(); }
+    boolean canCreateCommandReceipt(int currentReceiptCount) {
+        return configuration.canCreateCommandReceipt(currentReceiptCount);
+    }
 
     CreateResult create(String commandId, String payloadHash, SeriesAggregate aggregate) {
         synchronized (capacityBoundary) {

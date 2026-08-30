@@ -89,7 +89,7 @@ public final class SeriesLifecycleService {
                 SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
                         "CREATE_DRAFT", payload);
                 if (prior != null) {
-                    rethrowFailure(prior);
+                    rethrowFailure(aggregate, prior);
                     SeriesGame priorGame = receiptGame(aggregate, prior);
                     SeriesChildDraft priorChild = receiptChild(aggregate, prior);
                     return new SeriesRepository.Mutation<>(aggregate,
@@ -194,7 +194,7 @@ public final class SeriesLifecycleService {
                 SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
                         "DRAFT_ACTION", payload);
                 if (prior != null) {
-                    rethrowFailure(prior);
+                    rethrowFailure(aggregate, prior);
                     SeriesGame priorGame = receiptGame(aggregate, prior);
                     return new SeriesRepository.Mutation<>(aggregate,
                             new ChildMutation(aggregate, priorGame,
@@ -266,7 +266,7 @@ public final class SeriesLifecycleService {
                 SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
                         "CANCEL_DRAFT", payload);
                 if (prior != null) {
-                    rethrowFailure(prior);
+                    rethrowFailure(aggregate, prior);
                     return new SeriesRepository.Mutation<>(aggregate, null);
                 }
                 requireReceiptCapacity(aggregate);
@@ -310,7 +310,7 @@ public final class SeriesLifecycleService {
                 SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
                         "SIMULATE", payload);
                 if (prior != null) {
-                    rethrowFailure(prior);
+                    rethrowFailure(aggregate, prior);
                     SeriesGame priorGame = receiptGame(aggregate, prior);
                     if (prior.completion() == SeriesCommandCompletion.IN_PROGRESS) {
                         SeriesSimulationReservation reservation = priorGame.reservation();
@@ -377,13 +377,13 @@ public final class SeriesLifecycleService {
             SeriesAggregate blocked = finishFailure(seriesId, start,
                     "SERIES_ENGINE_OUTPUT_INTEGRITY_FAILED", true,
                     HttpStatus.INTERNAL_SERVER_ERROR, false);
-            throw receiptFailure(blocked.commandReceipts().get(
+            throw receiptFailure(blocked, blocked.commandReceipts().get(
                     start.reservation().commandId()));
         } catch (RuntimeException error) {
             SeriesAggregate failed = finishFailure(seriesId, start,
                     "SERIES_SIMULATION_FAILED", false,
                     HttpStatus.INTERNAL_SERVER_ERROR, true);
-            throw receiptFailure(failed.commandReceipts().get(
+            throw receiptFailure(failed, failed.commandReceipts().get(
                     start.reservation().commandId()));
         }
 
@@ -393,7 +393,8 @@ public final class SeriesLifecycleService {
                     aggregate, start, execution, request.clientCommandId(), payload));
         } catch (SeriesRepository.RepositoryFailure error) { throw repositoryError(error); }
         if (committed.errorCode() != null) throw receiptFailure(
-                committed.aggregate().commandReceipts().get(request.clientCommandId()));
+                committed.aggregate(), committed.aggregate().commandReceipts().get(
+                        request.clientCommandId()));
         return new SimulationExecution(committed.aggregate(), committed.game(),
                 execution.output(), false, false);
     }
@@ -444,7 +445,7 @@ public final class SeriesLifecycleService {
                 SeriesCommandReceipt prior = replay(aggregate, request.clientCommandId(),
                         "CANCEL_SERIES", payload);
                 if (prior != null) {
-                    rethrowFailure(prior);
+                    rethrowFailure(aggregate, prior);
                     return new SeriesRepository.Mutation<>(aggregate, null);
                 }
                 requireReceiptCapacity(aggregate);
@@ -751,7 +752,7 @@ public final class SeriesLifecycleService {
     }
 
     private void requireReceiptCapacity(SeriesAggregate aggregate) {
-        if (aggregate.commandReceipts().size() >= repository.maximumCommandReceipts()) {
+        if (!repository.canCreateCommandReceipt(aggregate.commandReceipts().size())) {
             throw conflict(aggregate, "SERIES_COMMAND_RECEIPT_CAPACITY_REACHED", false);
         }
     }
@@ -835,13 +836,17 @@ public final class SeriesLifecycleService {
         return prior;
     }
 
-    private static void rethrowFailure(SeriesCommandReceipt receipt) {
+    private static void rethrowFailure(
+            SeriesAggregate currentAggregate, SeriesCommandReceipt receipt
+    ) {
         if (receipt.completion() == SeriesCommandCompletion.FAILED) {
-            throw receiptFailure(receipt);
+            throw receiptFailure(currentAggregate, receipt);
         }
     }
 
-    private static SeriesApiV1Exception receiptFailure(SeriesCommandReceipt receipt) {
+    private static SeriesApiV1Exception receiptFailure(
+            SeriesAggregate currentAggregate, SeriesCommandReceipt receipt
+    ) {
         if (receipt == null || receipt.completion() != SeriesCommandCompletion.FAILED
                 || receipt.httpStatus() == null || receipt.errorCode() == null) {
             throw new IllegalStateException("Series failed receipt unavailable");
@@ -850,7 +855,7 @@ public final class SeriesLifecycleService {
         if (status == null) status = HttpStatus.INTERNAL_SERVER_ERROR;
         return SeriesApiV1Exception.of(status, receipt.errorCode(), null,
                 "Series 명령을 처리할 수 없습니다.", receipt.retryable(),
-                receipt.resultingSeriesRevision(), receipt.resultingSeriesStatus());
+                currentAggregate.revision(), currentAggregate.status());
     }
 
     private static SeriesGame receiptGame(

@@ -255,6 +255,22 @@ class SeriesLifecycleHardeningTest {
             assertThat(retry.game().status()).isEqualTo(SeriesGameStatus.COMMITTED);
             assertThat(matches.calls()).isEqualTo(2);
 
+            SeriesAggregate afterRetry = lifecycle.get(aggregate.seriesId());
+            assertThatThrownBy(() -> lifecycle.simulate(
+                    aggregate.seriesId(), 1, oldRequest))
+                    .isInstanceOfSatisfying(SeriesApiV1Exception.class, error -> {
+                        assertThat(error.code()).isEqualTo(
+                                "SERIES_SIMULATION_LEASE_EXPIRED");
+                        assertThat(error.status()).isEqualTo(HttpStatus.CONFLICT);
+                        assertThat(error.retryable()).isTrue();
+                        assertThat(error.currentRevision()).isEqualTo(
+                                afterRetry.revision());
+                        assertThat(error.currentStatus()).isEqualTo(
+                                afterRetry.status());
+                    });
+            assertThat(matches.calls()).isEqualTo(2);
+            assertThat(lifecycle.get(aggregate.seriesId())).isEqualTo(afterRetry);
+
             matches.releaseFirst();
             assertThatThrownBy(() -> get(oldWorker))
                     .isInstanceOfSatisfying(SeriesApiV1Exception.class, error ->
@@ -315,6 +331,120 @@ class SeriesLifecycleHardeningTest {
     }
 
     @Test
+    void retryableFailureReplayKeepsOriginalFailureAndReportsAdvancedCurrentAggregate() {
+        MutableClock clock = new MutableClock(START);
+        SeriesRepository repository = repository(clock, 256);
+        PlayerControlledDraftEngine drafts = mock(PlayerControlledDraftEngine.class);
+        when(drafts.canCompleteSeriesDraft(anySet())).thenReturn(true);
+        RuntimeThenWinnerExecutor matches = new RuntimeThenWinnerExecutor();
+        SeriesAggregate oneWin = afterOneCommittedGame(repository, null);
+        SeriesGame readyGameTwo = completedGame(oneWin.currentGame(), 2);
+        SeriesAggregate aggregate = oneWin.replaceCurrentGame(
+                readyGameTwo, oneWin.revision(), oneWin.lastActivityAt(),
+                oneWin.expiresAt(), Map.of());
+        repository.create("create-series", "series-payload", aggregate);
+        SeriesLifecycleService lifecycle = service(repository, drafts, matches);
+        var failedRequest = simulateRequest(aggregate, "failed-command");
+
+        assertThatThrownBy(() -> lifecycle.simulate(
+                aggregate.seriesId(), 2, failedRequest))
+                .isInstanceOfSatisfying(SeriesApiV1Exception.class, error -> {
+                    assertThat(error.code()).isEqualTo("SERIES_SIMULATION_FAILED");
+                    assertThat(error.status()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+                    assertThat(error.retryable()).isTrue();
+                });
+        SeriesAggregate failed = lifecycle.get(aggregate.seriesId());
+
+        lifecycle.simulate(aggregate.seriesId(), 2,
+                new SeriesApiV1Dtos.SimulateRequest(
+                        SeriesApiV1Dtos.SIMULATE_REQUEST_SCHEMA, failed.revision(),
+                        failed.currentGame().childDraft().revision(), "retry-command"));
+        SeriesAggregate advanced = lifecycle.get(aggregate.seriesId());
+        assertThat(advanced.revision()).isGreaterThan(failed.revision());
+        assertThat(advanced.currentGame().gameNumber()).isEqualTo(2);
+        assertThat(advanced.status()).isEqualTo(SeriesStatus.COMPLETED);
+        assertThat(advanced.commandReceipts().get("failed-command")
+                .resultingSeriesRevision()).isEqualTo(failed.revision());
+        assertThat(advanced.commandReceipts().get("failed-command")
+                .resultingSeriesStatus()).isEqualTo(failed.status());
+
+        assertThatThrownBy(() -> lifecycle.simulate(
+                aggregate.seriesId(), 2, failedRequest))
+                .isInstanceOfSatisfying(SeriesApiV1Exception.class, error -> {
+                    assertThat(error.code()).isEqualTo("SERIES_SIMULATION_FAILED");
+                    assertThat(error.status()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+                    assertThat(error.retryable()).isTrue();
+                    assertThat(error.currentRevision()).isEqualTo(advanced.revision());
+                    assertThat(error.currentStatus()).isEqualTo(advanced.status());
+                });
+        assertThat(matches.calls()).isEqualTo(2);
+        assertThat(lifecycle.get(aggregate.seriesId())).isEqualTo(advanced);
+    }
+
+    @Test
+    void blockedFailureReplayKeepsOriginalFailureAndReportsCancelledCurrentAggregate() {
+        MutableClock clock = new MutableClock(START);
+        SeriesRepository repository = repository(clock, 256);
+        PlayerControlledDraftEngine drafts = mock(PlayerControlledDraftEngine.class);
+        when(drafts.canCompleteSeriesDraft(anySet())).thenReturn(true);
+        NoResultExecutor matches = new NoResultExecutor();
+        SeriesAggregate aggregate = createWithCompletedCurrentGame(
+                repository, drafts, SeriesFormat.BO3, Map.of());
+        SeriesLifecycleService lifecycle = service(repository, drafts, matches);
+        var failedRequest = simulateRequest(aggregate, "blocked-command");
+
+        assertThatThrownBy(() -> lifecycle.simulate(
+                aggregate.seriesId(), 1, failedRequest))
+                .isInstanceOfSatisfying(SeriesApiV1Exception.class, error -> {
+                    assertThat(error.code()).isEqualTo(
+                            "SERIES_GAME_NO_DECISIVE_RESULT");
+                    assertThat(error.status()).isEqualTo(
+                            HttpStatus.UNPROCESSABLE_ENTITY);
+                    assertThat(error.retryable()).isFalse();
+                });
+        SeriesAggregate blocked = lifecycle.get(aggregate.seriesId());
+        lifecycle.cancel(aggregate.seriesId(), new SeriesApiV1Dtos.CancelRequest(
+                SeriesApiV1Dtos.CANCEL_REQUEST_SCHEMA, blocked.revision(),
+                "cancel-blocked"));
+        SeriesAggregate cancelled = lifecycle.get(aggregate.seriesId());
+        assertThat(cancelled.commandReceipts().get("blocked-command")
+                .resultingSeriesRevision()).isEqualTo(blocked.revision());
+        assertThat(cancelled.commandReceipts().get("blocked-command")
+                .resultingSeriesStatus()).isEqualTo(SeriesStatus.BLOCKED);
+
+        assertThatThrownBy(() -> lifecycle.simulate(
+                aggregate.seriesId(), 1, failedRequest))
+                .isInstanceOfSatisfying(SeriesApiV1Exception.class, error -> {
+                    assertThat(error.code()).isEqualTo(
+                            "SERIES_GAME_NO_DECISIVE_RESULT");
+                    assertThat(error.status()).isEqualTo(
+                            HttpStatus.UNPROCESSABLE_ENTITY);
+                    assertThat(error.retryable()).isFalse();
+                    assertThat(error.currentRevision()).isEqualTo(
+                            cancelled.revision());
+                    assertThat(error.currentStatus()).isEqualTo(SeriesStatus.CANCELLED);
+                });
+        assertThat(matches.calls()).isOne();
+        assertThat(lifecycle.get(aggregate.seriesId())).isEqualTo(cancelled);
+
+        assertThatThrownBy(() -> lifecycle.simulate(
+                aggregate.seriesId(), 1,
+                new SeriesApiV1Dtos.SimulateRequest(
+                        SeriesApiV1Dtos.SIMULATE_REQUEST_SCHEMA,
+                        failedRequest.expectedSeriesRevision() + 1,
+                        failedRequest.expectedDraftRevision(),
+                        failedRequest.clientCommandId())))
+                .isInstanceOfSatisfying(SeriesApiV1Exception.class, error -> {
+                    assertThat(error.code()).isEqualTo(
+                            "SERIES_COMMAND_ID_PAYLOAD_CONFLICT");
+                    assertThat(error.currentRevision()).isEqualTo(cancelled.revision());
+                    assertThat(error.currentStatus()).isEqualTo(SeriesStatus.CANCELLED);
+                });
+        assertThat(matches.calls()).isOne();
+        assertThat(lifecycle.get(aggregate.seriesId())).isEqualTo(cancelled);
+    }
+
+    @Test
     void receiptCapacityPreflightAllowsExactReplayAndPrioritizesPayloadConflict() {
         MutableClock clock = new MutableClock(START);
         SeriesRepository repository = repository(clock, 256);
@@ -360,6 +490,14 @@ class SeriesLifecycleHardeningTest {
                 new SeriesApiV1Dtos.DraftActionRequest(
                         SeriesApiV1Dtos.DRAFT_ACTION_REQUEST_SCHEMA,
                         beforeRejected.revision(), 0, "action-at-capacity", "g1b0")))
+                .isInstanceOfSatisfying(SeriesApiV1Exception.class, error ->
+                        assertThat(error.code()).isEqualTo(
+                                "SERIES_COMMAND_RECEIPT_CAPACITY_REACHED"));
+        assertThatThrownBy(() -> lifecycle.cancelDraft(aggregate.seriesId(),
+                beforeRejected.currentGame().gameNumber(),
+                new SeriesApiV1Dtos.DraftCancelRequest(
+                        SeriesApiV1Dtos.DRAFT_CANCEL_REQUEST_SCHEMA,
+                        beforeRejected.revision(), "cancel-draft-at-capacity")))
                 .isInstanceOfSatisfying(SeriesApiV1Exception.class, error ->
                         assertThat(error.code()).isEqualTo(
                                 "SERIES_COMMAND_RECEIPT_CAPACITY_REACHED"));
@@ -461,19 +599,27 @@ class SeriesLifecycleHardeningTest {
         SeriesLifecycleService lifecycle = service(repository, drafts, matches);
         var request = simulateRequest(aggregate, "failed-command");
 
-        for (int attempt = 0; attempt < 2; attempt++) {
-            assertThatThrownBy(() -> lifecycle.simulate(
-                    aggregate.seriesId(), 1, request))
-                    .isInstanceOfSatisfying(SeriesApiV1Exception.class, error -> {
-                        assertThat(error.code()).isEqualTo(expectedCode);
-                        assertThat(error.retryable()).isEqualTo(retryable);
-                    });
-        }
-        assertThat(matches.calls()).isOne();
+        assertThatThrownBy(() -> lifecycle.simulate(
+                aggregate.seriesId(), 1, request))
+                .isInstanceOfSatisfying(SeriesApiV1Exception.class, error -> {
+                    assertThat(error.code()).isEqualTo(expectedCode);
+                    assertThat(error.retryable()).isEqualTo(retryable);
+                });
         SeriesAggregate failed = repository.get(aggregate.seriesId());
         assertThat(failed.status()).isEqualTo(expectedStatus);
         assertThat(failed.commandReceipts().get("failed-command").completion())
                 .isEqualTo(SeriesCommandCompletion.FAILED);
+
+        assertThatThrownBy(() -> lifecycle.simulate(
+                aggregate.seriesId(), 1, request))
+                .isInstanceOfSatisfying(SeriesApiV1Exception.class, error -> {
+                    assertThat(error.code()).isEqualTo(expectedCode);
+                    assertThat(error.retryable()).isEqualTo(retryable);
+                    assertThat(error.currentRevision()).isEqualTo(failed.revision());
+                    assertThat(error.currentStatus()).isEqualTo(failed.status());
+                });
+        assertThat(matches.calls()).isOne();
+        assertThat(repository.get(aggregate.seriesId())).isEqualTo(failed);
     }
 
     private static void assertSeries(
@@ -831,6 +977,21 @@ class SeriesLifecycleHardeningTest {
         ) {
             calls.incrementAndGet();
             throw new IllegalStateException("runtime");
+        }
+        @Override public int calls() { return calls.get(); }
+    }
+
+    private static final class RuntimeThenWinnerExecutor implements CountingExecutor {
+        private final AtomicInteger calls = new AtomicInteger();
+        @Override public SeriesMatchExecutor.Execution execute(
+                PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding binding,
+                PlayerControlledDraftResult draft
+        ) {
+            if (calls.incrementAndGet() == 1) {
+                throw new IllegalStateException("runtime");
+            }
+            return execution(binding, binding.blueTeamCode().equals("GEN")
+                    ? TeamSide.BLUE : TeamSide.RED);
         }
         @Override public int calls() { return calls.get(); }
     }

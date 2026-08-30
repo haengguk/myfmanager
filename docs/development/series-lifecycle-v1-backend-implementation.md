@@ -1,8 +1,8 @@
 # Series Lifecycle V1 Backend Implementation
 
-상태: `SERIES_LIFECYCLE_V1_BACKEND_HARDENED_READY_FOR_FRONTEND`
+상태: `SERIES_LIFECYCLE_V1_FRONTEND_READY`
 
-이 문서의 기존 수치는 최초 backend implementation milestone의 증거다. 후속 hardening에서 바뀐 동시성·idempotency 계약과 최신 검증은 [Series Lifecycle V1 Backend Hardening](series-lifecycle-v1-backend-hardening.md)에 별도로 기록한다.
+이 문서의 기존 수치는 최초 backend implementation milestone의 증거다. 후속 hardening에서 바뀐 동시성·idempotency 계약은 [Series Lifecycle V1 Backend Hardening](series-lifecycle-v1-backend-hardening.md), frontend가 신뢰할 최종 current-state/capacity 계약은 [Series Lifecycle V1 Frontend Readiness Hardening](series-lifecycle-v1-frontend-readiness-hardening.md)에 별도로 기록한다.
 
 ## 구현 결과
 

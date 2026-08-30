@@ -49,4 +49,11 @@ public final class SeriesLifecycleConfiguration {
     public Duration childIdleTtl() { return childIdleTtl; }
     public Duration simulationLease() { return simulationLease; }
     public int maximumCommandReceipts() { return maximumCommandReceipts; }
+
+    public boolean canCreateCommandReceipt(int currentReceiptCount) {
+        if (currentReceiptCount < 0) {
+            throw new IllegalArgumentException("currentReceiptCount");
+        }
+        return currentReceiptCount < maximumCommandReceipts;
+    }
 }

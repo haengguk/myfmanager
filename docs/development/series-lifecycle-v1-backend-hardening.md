@@ -1,6 +1,8 @@
 # Series Lifecycle V1 Backend Hardening
 
-상태: `SERIES_LIFECYCLE_V1_BACKEND_HARDENED_READY_FOR_FRONTEND`
+상태: `SERIES_LIFECYCLE_V1_FRONTEND_READY`
+
+이 문서의 수치와 source integrity는 backend hardening milestone 당시 기록이다. 후속 [Frontend Readiness Hardening](series-lifecycle-v1-frontend-readiness-hardening.md)이 failed replay의 public current-state 의미와 capacity-aware `allowedCommands`를 완결했다.
 
 ## 목적과 최초 implementation과의 구분
 
@@ -26,11 +28,15 @@ Receipt completion은 `IN_PROGRESS`, `SUCCEEDED`, `FAILED`다. Simulation reserv
 
 같은 command ID와 canonical payload는 최초 성공/실패/진행 중 의미를 재현하고 엔진 실행과 mutation을 추가하지 않는다. 다른 type/payload reuse는 capacity/status보다 먼저 `SERIES_COMMAND_ID_PAYLOAD_CONFLICT`다. 실제 retryable failure 재시도는 새 command ID와 최신 revision을 사용한다.
 
+후속 frontend-readiness 계약에서 receipt가 보존하는 historical resulting revision/status와 public error의 `currentRevision/currentStatus`를 분리했다. 따라서 최초 code/HTTP/retryable은 그대로 재현하면서 public current fields는 replay 시점 aggregate를 나타낸다.
+
 ### Receipt capacity
 
 V1 한도 256과 no-eviction 결정을 유지한다. 새 receipt가 필요한 모든 state-changing command는 Draft/Match 실행과 mutation 전에 capacity를 검사한다. 255개 상태의 simulation은 256번째 `IN_PROGRESS` receipt를 만들 수 있고 terminal 결과는 같은 slot을 갱신한다. 256개 상태에서도 exact replay는 허용하지만 신규 Draft/action/simulate/cancel은 mutation 0, executor 0으로 `SERIES_COMMAND_RECEIPT_CAPACITY_REACHED`를 반환한다.
 
 No-eviction은 단순하고 결정론적이지만 terminal/cancel UX도 한도에서 fail-closed할 수 있다. 장기 보존과 compaction은 persistence를 도입하는 V2 과제다.
+
+후속 frontend-readiness projection은 같은 lifecycle configuration의 capacity 판정을 사용한다. 256개에서는 `allowedCommands`가 신규 mutation을 더 이상 광고하지 않고 `GET`만 남기며, 특정 기존 command ID의 exact replay는 계속 허용한다.
 
 ### Reservation, lease, cancel과 late output
 
