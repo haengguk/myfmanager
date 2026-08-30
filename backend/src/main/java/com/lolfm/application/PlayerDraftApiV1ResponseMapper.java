@@ -55,7 +55,9 @@ public final class PlayerDraftApiV1ResponseMapper {
         DraftTeamContext redContext = DraftTeamContext.from(red);
         PlayerControlledDraftEngine.SelectionView selection = null;
         if (view.status() == PlayerDraftSessionStatus.ACTIVE) {
-            selection = drafts.view(view.progress(), blueContext, redContext);
+            selection = view.selectionView() == null
+                    ? drafts.view(view.progress(), blueContext, redContext)
+                    : view.selectionView();
         }
         var state = view.progress().state();
         var current = view.status() != PlayerDraftSessionStatus.ACTIVE

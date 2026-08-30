@@ -32,10 +32,17 @@ public final class DraftAvailability {
     public boolean canCompleteAfterExcluding(
             DraftState state, TeamSide side, ChampionId excludedChampion
     ) {
+        return canCompleteAfterExcluding(state, side, excludedChampion, null);
+    }
+
+    boolean canCompleteAfterExcluding(
+            DraftState state, TeamSide side, ChampionId excludedChampion,
+            DraftComputationContext context
+    ) {
         Set<ChampionId> unavailable = new HashSet<>(state.unavailableChampions());
         if (excludedChampion != null) unavailable.add(excludedChampion);
         List<ChampionId> pool = available(unavailable);
-        return feasibleAssignments(state.picks(side), null).stream()
+        return feasibleAssignments(state.picks(side), context).stream()
                 .anyMatch(assignment -> matchRemaining(
                         orderedMissingPositions(assignment), pool, 0, new HashSet<>()));
     }

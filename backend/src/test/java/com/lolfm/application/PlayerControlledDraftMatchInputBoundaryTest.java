@@ -246,6 +246,134 @@ class PlayerControlledDraftMatchInputBoundaryTest {
         assertRejected(completed, 73L, "GEN", "DK");
     }
 
+    @Test
+    void trustedCompletionBindingAcceptsOnlyItsExactServerOwnedResultAndContext() {
+        PlayerDraftCompletionBinding binding = boundary.bindStandalone(
+                "session-a", 10, "GEN", "T1", TeamSide.BLUE, 73L, completed);
+        MatchEngineV1Input input = boundary.validateAndCreateTrustedStandaloneInput(
+                binding, "session-a", 10, "GEN", "T1", TeamSide.BLUE, 73L, completed);
+        assertThat(input.inputHash()).isEqualTo(binding.inputHash());
+
+        assertTrustedRejected(null, "session-a", 10, "GEN", "T1",
+                TeamSide.BLUE, 73L, completed);
+        assertTrustedRejected(binding, "session-b", 10, "GEN", "T1",
+                TeamSide.BLUE, 73L, completed);
+        assertTrustedRejected(binding, "session-a", 11, "GEN", "T1",
+                TeamSide.BLUE, 73L, completed);
+        assertTrustedRejected(binding, "session-a", 10, "DK", "T1",
+                TeamSide.BLUE, 73L, completed);
+        assertTrustedRejected(binding, "session-a", 10, "GEN", "T1",
+                TeamSide.RED, 73L, completed);
+        assertTrustedRejected(binding, "session-a", 10, "GEN", "T1",
+                TeamSide.BLUE, 74L, completed);
+
+        PlayerControlledDraftResult copied = copy(
+                completed.turnEvidence(), completed.blueFinalRoleAssignments(),
+                completed.redFinalRoleAssignments(), completed.matchChampionAssignments());
+        assertTrustedRejected(binding, "session-a", 10, "GEN", "T1",
+                TeamSide.BLUE, 73L, copied);
+    }
+
+    @Test
+    void trustedCompletionBindingRejectsForgedIdentityMetaRosterPolicyAndInputHashes() {
+        PlayerDraftCompletionBinding binding = boundary.bindStandalone(
+                "session-a", 10, "GEN", "T1", TeamSide.BLUE, 73L, completed);
+        for (String field : List.of(
+                "scope", "owner", "generation", "revision", "blue", "red", "side",
+                "seed", "game", "exclusions", "history", "draftIdentity",
+                "controlEvidence", "rule", "meta", "requiredRoles", "actualRoles",
+                "input", "roster", "decision", "assignment", "finalDraft", "policy")) {
+            PlayerDraftCompletionBinding forged = tamper(binding, field);
+            assertTrustedRejected(forged, "session-a", 10, "GEN", "T1",
+                    TeamSide.BLUE, 73L, completed);
+        }
+    }
+
+    @Test
+    void seriesTrustedBindingIsChildGenerationRevisionHistoryAndSeriesBound() {
+        var parent = new PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding(
+                "series-a", "game-a", 1, "GEN", "T1", TeamSide.BLUE, 73L,
+                Set.of(), SimulationProvenanceService.seriesHistoryHash(0, Set.of()));
+        PlayerDraftCompletionBinding binding = boundary.bindSeries(
+                parent, "child-a", 2, 10, completed);
+        MatchEngineV1Input input = boundary.validateAndCreateTrustedSeriesInput(
+                parent, "child-a", 2, 10, binding, completed);
+        assertThat(input.inputHash()).isEqualTo(binding.inputHash());
+
+        assertThatThrownBy(() -> boundary.validateAndCreateTrustedSeriesInput(
+                new PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding(
+                        "series-b", "game-a", 1, "GEN", "T1", TeamSide.BLUE, 73L,
+                        Set.of(), parent.historyBeforeHash()),
+                "child-a", 2, 10, binding, completed))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> boundary.validateAndCreateTrustedSeriesInput(
+                parent, "child-a", 3, 10, binding, completed))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> boundary.validateAndCreateTrustedSeriesInput(
+                parent, "child-a", 2, 9, binding, completed))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> boundary.validateAndCreateTrustedSeriesInput(
+                new PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding(
+                        "series-a", "game-a", 2, "GEN", "T1", TeamSide.BLUE, 73L,
+                        Set.of(new com.lolfm.champion.ChampionId("aatrox")),
+                        SimulationProvenanceService.seriesHistoryHash(1,
+                                Set.of(new com.lolfm.champion.ChampionId("aatrox")))),
+                "child-a", 2, 10, binding, completed))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private void assertTrustedRejected(
+            PlayerDraftCompletionBinding binding, String sessionId, long revision,
+            String blueCode, String redCode, TeamSide side, long seed,
+            PlayerControlledDraftResult result
+    ) {
+        assertThatThrownBy(() -> boundary.validateAndCreateTrustedStandaloneInput(
+                binding, sessionId, revision, blueCode, redCode, side, seed, result))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    private static PlayerDraftCompletionBinding tamper(
+            PlayerDraftCompletionBinding value, String field
+    ) {
+        MatchEngineV1Policy.Requirement policy = value.productionPolicy();
+        MatchEngineV1Policy.Requirement forgedPolicy = new MatchEngineV1Policy.Requirement(
+                policy.policyId(), policy.draftSelectionPolicyId(),
+                policy.draftSelectionPolicyHash(), policy.runtimeProfileId(),
+                policy.configurationHash(), true, policy.tempoCandidateActivation());
+        String hash = differentHash(value.inputHash());
+        return new PlayerDraftCompletionBinding(
+                field.equals("scope") ? PlayerDraftCompletionBinding.SERIES : value.scope(),
+                field.equals("owner") ? "session-b" : value.ownerId(),
+                field.equals("generation") ? 2 : value.generation(),
+                field.equals("revision") ? value.completionRevision() + 1
+                        : value.completionRevision(),
+                field.equals("blue") ? "DK" : value.blueTeamCode(),
+                field.equals("red") ? "HLE" : value.redTeamCode(),
+                field.equals("side") ? value.controlledSide().opposite()
+                        : value.controlledSide(),
+                field.equals("seed") ? value.matchSeed() + 1 : value.matchSeed(),
+                field.equals("game") ? 2 : value.seriesGameNumber(),
+                field.equals("exclusions")
+                        ? Set.of(new com.lolfm.champion.ChampionId("aatrox"))
+                        : value.hardFearlessExclusions(),
+                field.equals("history") ? hash : value.historyBeforeHash(),
+                value.trustedResult(),
+                field.equals("draftIdentity") ? hash : value.draftIdentity(),
+                field.equals("controlEvidence") ? hash : value.controlEvidenceHash(),
+                field.equals("rule") ? value.draftRuleIdentity() + "-forged"
+                        : value.draftRuleIdentity(),
+                field.equals("meta") ? value.draftMetaVersion() + "-forged"
+                        : value.draftMetaVersion(),
+                field.equals("requiredRoles") ? hash : value.requiredLegalRoleKeyHash(),
+                field.equals("actualRoles") ? hash : value.actualLegalRoleKeyHash(),
+                field.equals("input") ? hash : value.inputHash(),
+                field.equals("roster") ? hash : value.rosterIdentityHash(),
+                field.equals("decision") ? hash : value.draftDecisionHash(),
+                field.equals("assignment") ? hash : value.finalAssignmentHash(),
+                field.equals("finalDraft") ? hash : value.finalDraftHash(),
+                field.equals("policy") ? forgedPolicy : value.productionPolicy());
+    }
+
     private PlayerControlledDraftResult withTurn(
             int index, DraftTurnControlEvidence replacement
     ) {

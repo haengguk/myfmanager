@@ -130,17 +130,28 @@ public final class SeriesLifecycleService {
                 Team blue = teams.assemble(game.blueTeamCode());
                 Team red = teams.assemble(game.redTeamCode());
                 DraftSelectionContext context = selectionContext(game, blue, red);
-                PlayerControlledDraftEngine.Progress progress = drafts.startSeries(
-                        DraftTeamContext.from(blue), DraftTeamContext.from(red), context,
-                        game.controlledSide(), Set.copyOf(game.historyBefore()));
+                DraftTeamContext blueContext = DraftTeamContext.from(blue);
+                DraftTeamContext redContext = DraftTeamContext.from(red);
+                var computation = drafts.newInteractiveComputationContext();
+                PlayerControlledDraftEngine.Progress progress = drafts.startSeriesInteractive(
+                        blueContext, redContext, context,
+                        game.controlledSide(), Set.copyOf(game.historyBefore()), computation);
                 Instant now = repository.now();
                 int generation = game.childGeneration() + 1;
+                String childId = SeriesIdentity.childId(
+                        seriesId, game.gameNumber(), generation);
+                var projection = progress.complete() ? null
+                        : drafts.project(progress, blueContext, redContext, computation);
+                PlayerDraftCompletionBinding completionBinding = progress.complete()
+                        ? matches.bind(binding(aggregate, game), childId, generation, 0,
+                                progress.result()) : null;
                 SeriesChildDraft child = new SeriesChildDraft(
-                        SeriesIdentity.childId(seriesId, game.gameNumber(), generation),
+                        childId,
                         generation, 0, progress.complete() ? PlayerDraftSessionStatus.COMPLETED
                         : PlayerDraftSessionStatus.ACTIVE, now, now,
                         repository.childExpiresAt(now, repository.parentExpiresAt(now)),
-                        progress);
+                        progress, projection, completionBinding,
+                        progress.complete() ? null : computation);
                 SeriesGame nextGame = replaceGame(game,
                         progress.complete() ? SeriesGameStatus.DRAFT_COMPLETED
                                 : SeriesGameStatus.DRAFT_ACTIVE,
@@ -211,11 +222,20 @@ public final class SeriesLifecycleService {
                 }
                 Team blue = teams.assemble(game.blueTeamCode());
                 Team red = teams.assemble(game.redTeamCode());
+                DraftTeamContext blueContext = DraftTeamContext.from(blue);
+                DraftTeamContext redContext = DraftTeamContext.from(red);
                 PlayerControlledDraftEngine.Progress progress;
+                var computation = child.computationContext() == null
+                        ? drafts.newInteractiveComputationContext()
+                        : child.computationContext();
                 try {
-                    progress = drafts.select(child.progress(), DraftTeamContext.from(blue),
-                            DraftTeamContext.from(red), selectionContext(game, blue, red),
-                            champion, request.clientCommandId());
+                    var currentProjection = child.selectionProjection() == null
+                            ? drafts.project(child.progress(), blueContext, redContext,
+                                    computation)
+                            : child.selectionProjection();
+                    progress = drafts.selectProjected(child.progress(), blueContext,
+                            redContext, selectionContext(game, blue, red), currentProjection,
+                            champion, request.clientCommandId(), computation);
                 } catch (IllegalArgumentException error) {
                     if (error.getMessage() != null
                             && error.getMessage().startsWith("Unknown ChampionId")) {
@@ -227,12 +247,21 @@ public final class SeriesLifecycleService {
                     throw unprocessable(aggregate, "SERIES_ILLEGAL_DRAFT_SELECTION", false);
                 }
                 Instant now = repository.now();
+                long nextDraftRevision = child.revision() + 1;
+                var nextProjection = progress.complete() ? null
+                        : drafts.project(progress, blueContext, redContext, computation);
+                PlayerDraftCompletionBinding completionBinding = progress.complete()
+                        ? matches.bind(binding(aggregate, game), child.childId(),
+                                child.generation(), nextDraftRevision, progress.result()) : null;
                 SeriesChildDraft nextChild = new SeriesChildDraft(child.childId(),
-                        child.generation(), child.revision() + 1,
+                        child.generation(), nextDraftRevision,
                         progress.complete() ? PlayerDraftSessionStatus.COMPLETED
                                 : PlayerDraftSessionStatus.ACTIVE,
                         child.createdAt(), now,
-                        repository.childExpiresAt(now, repository.parentExpiresAt(now)), progress);
+                        repository.childExpiresAt(now, repository.parentExpiresAt(now)),
+                        progress, nextProjection, completionBinding,
+                        progress.complete() ? null : computation);
+                if (progress.complete()) computation.clear();
                 SeriesGame nextGame = replaceGame(game,
                         progress.complete() ? SeriesGameStatus.DRAFT_COMPLETED
                                 : SeriesGameStatus.DRAFT_ACTIVE,
@@ -372,7 +401,12 @@ public final class SeriesLifecycleService {
 
         SeriesMatchExecutor.Execution execution;
         try {
-            execution = matches.execute(start.binding(), start.completedDraft());
+            SeriesChildDraft child = start.game().childDraft();
+            execution = child != null && child.completionBinding() != null
+                    ? matches.executeTrusted(start.binding(), child.childId(),
+                            child.generation(), child.revision(), child.completionBinding(),
+                            start.completedDraft())
+                    : matches.execute(start.binding(), start.completedDraft());
         } catch (SeriesMatchIntegrityException error) {
             SeriesAggregate blocked = finishFailure(seriesId, start,
                     "SERIES_ENGINE_OUTPUT_INTEGRITY_FAILED", true,
@@ -421,7 +455,14 @@ public final class SeriesLifecycleService {
             throw conflict(before, "SERIES_GAME_REPLAY_IDENTITY_UNAVAILABLE", false);
         }
         SeriesMatchExecutor.Execution replay;
-        try { replay = matches.execute(binding(before, game), game.completedDraft()); }
+        try {
+            SeriesChildDraft child = game.childDraft();
+            replay = child != null && child.completionBinding() != null
+                    ? matches.executeTrusted(binding(before, game), child.childId(),
+                            child.generation(), child.revision(), child.completionBinding(),
+                            game.completedDraft())
+                    : matches.execute(binding(before, game), game.completedDraft());
+        }
         catch (RuntimeException error) {
             throw conflict(before, "SERIES_GAME_REPLAY_IDENTITY_UNAVAILABLE", false);
         }
@@ -562,7 +603,8 @@ public final class SeriesLifecycleService {
         SeriesChildDraft child = game.childDraft();
         SeriesChildDraft simulated = new SeriesChildDraft(child.childId(), child.generation(),
                 child.revision(), PlayerDraftSessionStatus.SIMULATED, child.createdAt(),
-                child.lastActivityAt(), child.expiresAt(), child.progress());
+                child.lastActivityAt(), child.expiresAt(), child.progress(), null,
+                child.completionBinding(), null);
         SeriesGame committedGame = replaceGame(game, SeriesGameStatus.COMMITTED, null,
                 game.childGeneration(), simulated, null, game.completedDraft(),
                 execution.output().resultSummary(), execution.receipt());

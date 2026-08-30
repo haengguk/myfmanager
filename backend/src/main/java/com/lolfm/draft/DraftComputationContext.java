@@ -172,6 +172,14 @@ final class DraftComputationContext {
                 plannerCandidateLocalReuses, peakEntries);
     }
 
+    void clear() {
+        roleAssignments.clear();
+        candidatePositions.clear();
+        pickedPositions.clear();
+        completion.clear();
+        poolHealth.clear();
+    }
+
     private void updatePeakEntries() {
         peakEntries = Math.max(peakEntries, roleAssignments.size()
                 + candidatePositions.size() + pickedPositions.size()

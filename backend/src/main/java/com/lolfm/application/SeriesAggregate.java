@@ -174,18 +174,34 @@ record SeriesChildDraft(
         Instant createdAt,
         Instant lastActivityAt,
         Instant expiresAt,
-        PlayerControlledDraftEngine.Progress progress
+        PlayerControlledDraftEngine.Progress progress,
+        PlayerControlledDraftEngine.AuthoritativeSelectionProjection selectionProjection,
+        PlayerDraftCompletionBinding completionBinding,
+        PlayerControlledDraftEngine.InteractiveComputationContext computationContext
 ) {
+    SeriesChildDraft(
+            String childId, int generation, long revision, PlayerDraftSessionStatus status,
+            Instant createdAt, Instant lastActivityAt, Instant expiresAt,
+            PlayerControlledDraftEngine.Progress progress
+    ) {
+        this(childId, generation, revision, status, createdAt, lastActivityAt, expiresAt,
+                progress, null, null, null);
+    }
+
     SeriesChildDraft {
         if (generation < 1 || revision < 0) throw new IllegalArgumentException("child identity");
         Objects.requireNonNull(status, "status");
         Objects.requireNonNull(progress, "progress");
+        if (selectionProjection != null && !selectionProjection.belongsTo(progress)) {
+            throw new IllegalArgumentException("SERIES_DRAFT_SELECTION_PROJECTION_MISMATCH");
+        }
     }
 
     PlayerDraftSessionView view(SeriesGame game) {
         return new PlayerDraftSessionView(childId, revision, status,
                 game.blueTeamCode(), game.redTeamCode(), game.controlledSide(),
-                game.matchSeed(), game.gameNumber(), createdAt, expiresAt, progress);
+                game.matchSeed(), game.gameNumber(), createdAt, expiresAt, progress,
+                selectionProjection == null ? null : selectionProjection.view());
     }
 }
 

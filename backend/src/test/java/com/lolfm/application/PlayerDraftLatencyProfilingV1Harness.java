@@ -207,9 +207,10 @@ public final class PlayerDraftLatencyProfilingV1Harness {
         long lookupAndCompletedValidationNanos = elapsed(lookupStart, captureTimings);
 
         long inputStart = tick(captureTimings);
-        MatchEngineV1Input input = inputs.validateAndCreateInput(
-                completed.blueTeamCode(), completed.redTeamCode(), completed.matchSeed(),
-                completed.progress().result());
+        MatchEngineV1Input input = inputs.validateAndCreateTrustedStandaloneInput(
+                completed.completionBinding(), completed.sessionId(), completed.revision(),
+                completed.blueTeamCode(), completed.redTeamCode(), completed.controlledSide(),
+                completed.matchSeed(), completed.progress().result());
         long inputValidationNanos = elapsed(inputStart, captureTimings);
 
         long engineStart = tick(captureTimings);

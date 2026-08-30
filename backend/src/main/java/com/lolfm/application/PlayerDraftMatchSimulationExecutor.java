@@ -25,8 +25,9 @@ final class PlayerDraftMatchSimulationExecutor {
     Execution execute(PlayerDraftSession session) {
         MatchEngineV1Input input;
         try {
-            input = inputs.validateAndCreateInput(
-                    session.blueTeamCode(), session.redTeamCode(),
+            input = inputs.validateAndCreateTrustedStandaloneInput(
+                    session.completionBinding(), session.sessionId(), session.revision(),
+                    session.blueTeamCode(), session.redTeamCode(), session.controlledSide(),
                     session.matchSeed(), session.progress().result());
         } catch (IllegalArgumentException error) {
             throw PlayerDraftApiV1Exception.unprocessable(
@@ -43,6 +44,15 @@ final class PlayerDraftMatchSimulationExecutor {
         } catch (RuntimeException error) {
             throw PlayerDraftApiV1Exception.internal(error);
         }
+    }
+
+    PlayerDraftCompletionBinding bind(
+            String sessionId, long completionRevision, String blueTeamCode,
+            String redTeamCode, com.lolfm.simulator.TeamSide controlledSide,
+            long matchSeed, com.lolfm.draft.PlayerControlledDraftResult result
+    ) {
+        return inputs.bindStandalone(sessionId, completionRevision, blueTeamCode,
+                redTeamCode, controlledSide, matchSeed, result);
     }
 
     private void validateOutput(PlayerDraftSession session, MatchEngineV1Output output) {

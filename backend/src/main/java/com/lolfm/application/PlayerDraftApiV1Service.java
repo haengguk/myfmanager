@@ -52,14 +52,25 @@ public final class PlayerDraftApiV1Service {
         DraftTeamContext redContext = DraftTeamContext.from(red);
         DraftSelectionContext selectionContext = selectionContext(
                 request.blueTeamCode(), blue, request.redTeamCode(), red, seed);
-        PlayerControlledDraftEngine.Progress progress = drafts.start(
-                blueContext, redContext, selectionContext, request.controlledSide());
+        var computation = drafts.newInteractiveComputationContext();
+        PlayerControlledDraftEngine.Progress progress = drafts.startInteractive(
+                blueContext, redContext, selectionContext, request.controlledSide(),
+                computation);
+        PlayerControlledDraftEngine.AuthoritativeSelectionProjection projection =
+                progress.complete() ? null
+                        : drafts.project(progress, blueContext, redContext, computation);
         Instant created = sessions.now();
+        String sessionId = UUID.randomUUID().toString();
+        PlayerDraftCompletionBinding binding = progress.complete()
+                ? simulations.bind(sessionId, 0, request.blueTeamCode(),
+                        request.redTeamCode(), request.controlledSide(), seed,
+                        progress.result()) : null;
         PlayerDraftSession session = new PlayerDraftSession(
-                UUID.randomUUID().toString(), 0, progress.complete()
+                sessionId, 0, progress.complete()
                 ? PlayerDraftSessionStatus.COMPLETED : PlayerDraftSessionStatus.ACTIVE,
                 request.blueTeamCode(), request.redTeamCode(), request.controlledSide(),
-                seed, created, sessions.expiresAt(created), progress, Map.of(), null);
+                seed, created, sessions.expiresAt(created), progress, projection, binding,
+                progress.complete() ? null : computation, Map.of(), null);
         try {
             return sessions.create(session).view();
         } catch (PlayerDraftSessionRepository.RepositoryFailure error) {
@@ -103,7 +114,7 @@ public final class PlayerDraftApiV1Service {
                     }
                     PlayerDraftSessionView replay = session.view(
                             prior.resultingRevision(), prior.resultingStatus(),
-                            prior.resultingProgress());
+                            prior.resultingProgress(), prior.resultingProjection());
                     return new PlayerDraftSessionRepository.Mutation<>(session, replay);
                 }
                 ensureActionable(session);
@@ -120,9 +131,17 @@ public final class PlayerDraftApiV1Service {
                         session.blueTeamCode(), blue, session.redTeamCode(), red,
                         session.matchSeed());
                 PlayerControlledDraftEngine.Progress progress;
+                var computation = session.computationContext() == null
+                        ? drafts.newInteractiveComputationContext()
+                        : session.computationContext();
                 try {
-                    progress = drafts.select(session.progress(), blueContext, redContext,
-                            context, championId, request.clientActionId());
+                    var currentProjection = session.selectionProjection() == null
+                            ? drafts.project(session.progress(), blueContext, redContext,
+                                    computation)
+                            : session.selectionProjection();
+                    progress = drafts.selectProjected(session.progress(), blueContext,
+                            redContext, context, currentProjection, championId,
+                            request.clientActionId(), computation);
                 } catch (IllegalArgumentException error) {
                     String message = error.getMessage();
                     if (message != null && message.startsWith("Unknown ChampionId")) {
@@ -137,12 +156,22 @@ public final class PlayerDraftApiV1Service {
                 long nextRevision = session.revision() + 1;
                 PlayerDraftSessionStatus status = progress.complete()
                         ? PlayerDraftSessionStatus.COMPLETED : PlayerDraftSessionStatus.ACTIVE;
+                PlayerControlledDraftEngine.AuthoritativeSelectionProjection nextProjection =
+                        progress.complete() ? null
+                                : drafts.project(progress, blueContext, redContext, computation);
+                PlayerDraftCompletionBinding completionBinding = progress.complete()
+                        ? simulations.bind(session.sessionId(), nextRevision,
+                                session.blueTeamCode(), session.redTeamCode(),
+                                session.controlledSide(), session.matchSeed(),
+                                progress.result()) : null;
                 LinkedHashMap<String, PlayerDraftSession.ActionReceipt> receipts =
                         new LinkedHashMap<>(session.actionReceipts());
                 receipts.put(request.clientActionId(), new PlayerDraftSession.ActionReceipt(
-                        request.expectedRevision(), championId, nextRevision, status, progress));
+                        request.expectedRevision(), championId, nextRevision, status, progress,
+                        nextProjection));
                 PlayerDraftSession updated = session.withAction(
-                        nextRevision, progress, receipts);
+                        nextRevision, progress, nextProjection, completionBinding,
+                        computation, receipts);
                 return new PlayerDraftSessionRepository.Mutation<>(updated, updated.view());
             });
         } catch (PlayerDraftSessionRepository.RepositoryFailure error) {

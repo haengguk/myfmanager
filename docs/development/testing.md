@@ -830,3 +830,18 @@ Focused 92 tests, serialization fresh-JVM A/B, Auto Draft probe A/B, DRY_RUN smo
 공식 calibration은 4개 fresh JVM에서 fixture 100, production Auto Draft 400, core rows 1,200, paired rows 800, replay 300, instrumentation parity 300을 생성했다. 네 worker identity는 모두 달랐고 checkpoint/sidecar 100/100과 receipt 4/4를 finalizer가 인증했다. Artifact-only finalizer proof는 `gameplayExecutionCountBefore=0`, `After=0`, `coreSimulationCount=0`이다.
 
 Calibration exact integrity와 Composition causal gate는 통과했지만 Matchup 공개 divergence 400쌍 중 exact direct action cause는 1, indirect prior-state cause는 0, unresolved snapshot cause는 399였다. `UNRESOLVED_SNAPSHOT_CAUSE` exact-zero gate 때문에 상태는 `MATCH_ENGINE_V9_FRESH_REQUALIFICATION_V2_BLOCKED_HOLDOUT_NOT_CONSUMED`이다. `calibration-operational-gate-failed.json`은 `holdoutAuthorized=false`를 고정하며 authorization/start/completion과 holdout checkpoint/receipt는 생성되지 않았다. Final A/B, promotion과 recursive `SHA256SUMS.txt`도 도달하지 않았으므로 존재하지 않는다. 자세한 수치와 후속 경계는 [fresh 재검증 V2](match-engine-v9-auto-draft-matchup-composition-fresh-requalification-v2.md)에 있다.
+
+### Player Draft interactive/simulation performance hardening V1
+
+Player Draft 성능 검증은 동일 GEN–T1/73 BLUE/RED 10-action script의 paired direct backend와 actual Chromium을 사용한다. Completed Draft fast path, revision projection reuse, exact replay, standalone/Series 변조 거부와 cross-session 격리는 focused lane에서 먼저 검증하고, frontend contract/build와 LIVE BLUE/RED를 확인한 뒤 final executable production tree에서 complete backend regression을 한 번 실행한다.
+
+```text
+gradlew.bat test --tests com.lolfm.draft.PlayerControlledDraftEngineTest --tests com.lolfm.application.PlayerControlledDraftMatchInputBoundaryTest --tests com.lolfm.application.PlayerDraftProjectionReuseTest --tests com.lolfm.application.PlayerDraftSimulationHardeningTest --tests com.lolfm.application.PlayerDraftSessionRepositoryTest --tests com.lolfm.application.SeriesLifecycleHardeningTest --tests com.lolfm.application.SeriesProductionV9SmokeTest --console=plain
+npm run player-draft:verify
+npm run build
+gradlew.bat test --no-daemon --console=plain
+```
+
+Paired diagnostic와 artifact 생성은 명시적으로만 실행하며 default correctness test에서 대규모 표본을 만들지 않는다. Artifact는 `backend/build/reports/player-draft-performance-hardening-v1/`에 두고 historical profiling report는 덮어쓰지 않는다. 자세한 설계와 acceptance는 [Player Draft performance hardening V1](player-draft-interactive-and-simulation-performance-hardening-v1.md)에 있다.
+
+최종 focused 경계는 7 suites / 44 tests를 clean pass했고, frontend contract 33 scenarios와 production build 101 modules도 통과했다. Final executable tree의 complete backend regression은 첫 실행에서 238 suites / 2,274 tests / failures 0 / errors 0 / skipped 2, aggregate XML 871.674초와 Gradle wall 14분 43초로 통과했다. 두 skip은 explicit 환경 변수로만 실행하는 latency profiling/performance paired diagnostic이며 correctness 누락이 아니다. Full 뒤에는 executable production tree를 바꾸지 않았다.

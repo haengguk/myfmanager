@@ -7,10 +7,31 @@ import org.springframework.stereotype.Component;
 
 /** Test-substitutable execution boundary; production implementation exposes no profile selector. */
 interface SeriesMatchExecutor {
+    default PlayerDraftCompletionBinding bind(
+            PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding parent,
+            String childId,
+            int generation,
+            long completionRevision,
+            PlayerControlledDraftResult completedDraft
+    ) {
+        return null;
+    }
+
     Execution execute(
             PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding binding,
             PlayerControlledDraftResult completedDraft
     );
+
+    default Execution executeTrusted(
+            PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding parent,
+            String childId,
+            int generation,
+            long completionRevision,
+            PlayerDraftCompletionBinding completionBinding,
+            PlayerControlledDraftResult completedDraft
+    ) {
+        return execute(parent, completedDraft);
+    }
 
     record Execution(MatchEngineV1Input input, MatchEngineV1Output output,
                      SeriesGameReceipt receipt) {
@@ -39,6 +60,18 @@ final class ProductionSeriesMatchExecutor implements SeriesMatchExecutor {
     }
 
     @Override
+    public PlayerDraftCompletionBinding bind(
+            PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding parent,
+            String childId,
+            int generation,
+            long completionRevision,
+            PlayerControlledDraftResult completedDraft
+    ) {
+        return inputs.bindSeries(parent, childId, generation, completionRevision,
+                completedDraft);
+    }
+
+    @Override
     public Execution execute(
             PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding binding,
             PlayerControlledDraftResult completedDraft
@@ -46,6 +79,23 @@ final class ProductionSeriesMatchExecutor implements SeriesMatchExecutor {
         MatchEngineV1Input input = inputs.validateAndCreateSeriesInput(binding, completedDraft);
         MatchEngineV1Output output = matches.execute(input, SimulationInstrumentation.enabled());
         validate(binding, input, output);
+        return new Execution(input, output, SeriesGameReceipt.from(output));
+    }
+
+    @Override
+    public Execution executeTrusted(
+            PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding parent,
+            String childId,
+            int generation,
+            long completionRevision,
+            PlayerDraftCompletionBinding completionBinding,
+            PlayerControlledDraftResult completedDraft
+    ) {
+        MatchEngineV1Input input = inputs.validateAndCreateTrustedSeriesInput(parent,
+                childId, generation, completionRevision, completionBinding, completedDraft);
+        MatchEngineV1Output output = matches.execute(
+                input, SimulationInstrumentation.enabled());
+        validate(parent, input, output);
         return new Execution(input, output, SeriesGameReceipt.from(output));
     }
 

@@ -52,6 +52,7 @@ export function markPlayerDraftLatency(
   correlationId: string,
   detail: PlayerDraftLatencyDetail | (() => PlayerDraftLatencyDetail) = {},
 ): void {
+  if (typeof window === 'undefined') return;
   const observer = window.__LOLMANAGER_PLAYER_DRAFT_LATENCY_OBSERVER_V1__;
   if (typeof observer !== 'function') return;
   try {

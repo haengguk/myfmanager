@@ -64,10 +64,22 @@ public final class PlayerControlledDraftEngine {
             DraftSelectionContext selectionContext,
             TeamSide controlledSide
     ) {
+        return startInteractive(blue, red, selectionContext, controlledSide,
+                newInteractiveComputationContext());
+    }
+
+    public Progress startInteractive(
+            DraftTeamContext blue,
+            DraftTeamContext red,
+            DraftSelectionContext selectionContext,
+            TeamSide controlledSide,
+            InteractiveComputationContext computation
+    ) {
         if (selectionContext.seriesGameNumber() != 1) {
             throw new IllegalArgumentException("Player Draft V1 supports Game 1 only");
         }
-        return startSeries(blue, red, selectionContext, controlledSide, Set.of());
+        return startSeriesInteractive(blue, red, selectionContext, controlledSide,
+                Set.of(), computation);
     }
 
     /**
@@ -81,7 +93,20 @@ public final class PlayerControlledDraftEngine {
             TeamSide controlledSide,
             Set<ChampionId> hardFearlessExclusions
     ) {
+        return startSeriesInteractive(blue, red, selectionContext, controlledSide,
+                hardFearlessExclusions, newInteractiveComputationContext());
+    }
+
+    public Progress startSeriesInteractive(
+            DraftTeamContext blue,
+            DraftTeamContext red,
+            DraftSelectionContext selectionContext,
+            TeamSide controlledSide,
+            Set<ChampionId> hardFearlessExclusions,
+            InteractiveComputationContext computation
+    ) {
         Objects.requireNonNull(selectionContext, "selectionContext");
+        Objects.requireNonNull(computation, "computation");
         Set<ChampionId> exclusions = Set.copyOf(hardFearlessExclusions);
         if (!selectionContext.seriesHistoryBeforeHash().equals(
                 com.lolfm.application.RealDraftSelectionContextFactory.seriesHistoryHash(
@@ -91,7 +116,7 @@ public final class PlayerControlledDraftEngine {
         DraftState fresh = new DraftState(
                 rules, 0, List.of(), List.of(), List.of(), List.of(), exclusions);
         return advanceAi(new Progress(controlledSide, fresh, List.of(), null),
-                blue, red, selectionContext);
+                blue, red, selectionContext, computation.context);
     }
 
     public Progress select(
@@ -102,7 +127,36 @@ public final class PlayerControlledDraftEngine {
             ChampionId championId,
             String clientActionId
     ) {
+        return selectProjected(progress, blue, red, selectionContext,
+                project(progress, blue, red), championId, clientActionId);
+    }
+
+    /** Uses the immutable projection issued for this exact Progress object. */
+    public Progress selectProjected(
+            Progress progress,
+            DraftTeamContext blue,
+            DraftTeamContext red,
+            DraftSelectionContext selectionContext,
+            AuthoritativeSelectionProjection projection,
+            ChampionId championId,
+            String clientActionId
+    ) {
+        return selectProjected(progress, blue, red, selectionContext, projection,
+                championId, clientActionId, newInteractiveComputationContext());
+    }
+
+    public Progress selectProjected(
+            Progress progress,
+            DraftTeamContext blue,
+            DraftTeamContext red,
+            DraftSelectionContext selectionContext,
+            AuthoritativeSelectionProjection projection,
+            ChampionId championId,
+            String clientActionId,
+            InteractiveComputationContext computation
+    ) {
         Objects.requireNonNull(progress, "progress");
+        Objects.requireNonNull(computation, "computation");
         if (progress.complete()) throw new IllegalStateException("PLAYER_DRAFT_ALREADY_COMPLETE");
         DraftState state = progress.state();
         DraftTurn turn = state.currentTurn();
@@ -110,7 +164,8 @@ public final class PlayerControlledDraftEngine {
             throw new IllegalStateException("PLAYER_DRAFT_NOT_PLAYER_TURN");
         }
         champions.get(championId);
-        SelectionView view = view(progress, blue, red);
+        SelectionView view = Objects.requireNonNull(projection, "projection")
+                .requireFor(progress);
         if (!view.selectableChampionIds().contains(championId)) {
             PlayerDraftUnavailableReason reason = view.unavailable().stream()
                     .filter(value -> value.championId().equals(championId))
@@ -133,20 +188,53 @@ public final class PlayerControlledDraftEngine {
         ArrayList<DraftTurnControlEvidence> turns = new ArrayList<>(progress.turnEvidence());
         turns.add(evidence);
         return advanceAi(new Progress(progress.controlledSide(), afterState, turns, null),
-                blue, red, selectionContext);
+                blue, red, selectionContext, computation.context);
     }
 
     public SelectionView view(
             Progress progress, DraftTeamContext blue, DraftTeamContext red
     ) {
+        return project(progress, blue, red).view();
+    }
+
+    /** Computes the complete legal/unavailable/recommendation projection once per revision. */
+    public AuthoritativeSelectionProjection project(
+            Progress progress, DraftTeamContext blue, DraftTeamContext red
+    ) {
+        return project(progress, blue, red, newInteractiveComputationContext());
+    }
+
+    public AuthoritativeSelectionProjection project(
+            Progress progress,
+            DraftTeamContext blue,
+            DraftTeamContext red,
+            InteractiveComputationContext computation
+    ) {
+        Objects.requireNonNull(progress, "progress");
+        Objects.requireNonNull(computation, "computation");
         if (progress.complete()) {
-            return new SelectionView(List.of(), List.of(), List.of(),
-                    selectableSetIdentity(progress.state(), List.of()));
+            return new AuthoritativeSelectionProjection(progress,
+                    new SelectionView(List.of(), List.of(), List.of(),
+                            selectableSetIdentity(progress.state(), List.of())));
         }
         DraftState state = progress.state();
         if (state.currentTurn().side() != progress.controlledSide()) {
             throw new IllegalStateException("Player Draft must be advanced to a player turn");
         }
+        SelectionAvailability selection = selectionAvailability(
+                progress, computation.context);
+        List<Recommendation> recommendations = recommendations(
+                state, blue, red, computation.context);
+        return new AuthoritativeSelectionProjection(progress,
+                new SelectionView(selection.selectable(), selection.unavailable(),
+                        recommendations, selectableSetIdentity(
+                        state, selection.selectableChampionIds())));
+    }
+
+    private SelectionAvailability selectionAvailability(
+            Progress progress, DraftComputationContext computation
+    ) {
+        DraftState state = progress.state();
         ArrayList<SelectableChampion> selectable = new ArrayList<>();
         ArrayList<UnavailableChampion> unavailable = new ArrayList<>();
         for (ChampionDefinition champion : champions.all().stream()
@@ -159,33 +247,35 @@ public final class PlayerControlledDraftEngine {
             }
             if (state.currentTurn().actionType() == DraftActionType.PICK) {
                 Set<Position> feasible = assignments.feasibleCandidatePositions(
-                                state.picks(progress.controlledSide()), id).stream()
+                                state.picks(progress.controlledSide()), id,
+                                computation).stream()
                         .filter(position -> availability.canCompleteWithCandidateAtRole(
-                                state, progress.controlledSide(), id, position))
+                                state, progress.controlledSide(), id, position,
+                                computation))
                         .collect(java.util.stream.Collectors.toUnmodifiableSet());
                 if (feasible.isEmpty()) {
                     unavailable.add(new UnavailableChampion(
                             id, PlayerDraftUnavailableReason.PARTIAL_ROLE_ASSIGNMENT_INFEASIBLE));
-                } else if (!availability.canComplete(state, progress.controlledSide(), id)) {
+                } else if (!availability.canComplete(
+                        state, progress.controlledSide(), id, computation)) {
                     unavailable.add(new UnavailableChampion(
                             id, PlayerDraftUnavailableReason.FUTURE_ROLE_COMPLETION_INFEASIBLE));
                 } else {
                     selectable.add(new SelectableChampion(id, feasible));
                 }
             } else if (!availability.canCompleteAfterExcluding(
-                    state, TeamSide.BLUE, id)
-                    || !availability.canCompleteAfterExcluding(state, TeamSide.RED, id)) {
+                    state, TeamSide.BLUE, id, computation)
+                    || !availability.canCompleteAfterExcluding(
+                    state, TeamSide.RED, id, computation)) {
                 unavailable.add(new UnavailableChampion(
                         id, PlayerDraftUnavailableReason.BAN_WOULD_BREAK_FUTURE_COMPLETION));
             } else {
                 selectable.add(new SelectableChampion(id, Set.of()));
             }
         }
-        List<Recommendation> recommendations = recommendations(state, blue, red);
         List<ChampionId> selectableIds = selectable.stream()
                 .map(SelectableChampion::championId).toList();
-        return new SelectionView(selectable, unavailable, recommendations,
-                selectableSetIdentity(state, selectableIds));
+        return new SelectionAvailability(selectable, unavailable, selectableIds);
     }
 
     public void validateCompleted(
@@ -305,6 +395,10 @@ public final class PlayerControlledDraftEngine {
         return resources.meta().metaVersion();
     }
 
+    public String activeDraftRuleIdentity() {
+        return rules.identity();
+    }
+
     public String activeRequiredLegalRoleKeyHash() {
         return resources.meta().requiredLegalRoleKeyHash();
     }
@@ -313,16 +407,20 @@ public final class PlayerControlledDraftEngine {
         return resources.meta().actualLegalRoleKeyHash();
     }
 
+    public InteractiveComputationContext newInteractiveComputationContext() {
+        return new InteractiveComputationContext(DraftComputationContext.cached());
+    }
+
     private Progress advanceAi(
             Progress progress,
             DraftTeamContext blue,
             DraftTeamContext red,
-            DraftSelectionContext selectionContext
+            DraftSelectionContext selectionContext,
+            DraftComputationContext context
     ) {
         DraftState state = progress.state();
         ArrayList<DraftTurnControlEvidence> evidence =
                 new ArrayList<>(progress.turnEvidence());
-        DraftComputationContext context = DraftComputationContext.cached();
         while (!state.complete() && state.currentTurn().side() != progress.controlledSide()) {
             DraftTurn turn = state.currentTurn();
             String before = DraftStateHasher.hash(state);
@@ -365,14 +463,15 @@ public final class PlayerControlledDraftEngine {
     }
 
     private List<Recommendation> recommendations(
-            DraftState state, DraftTeamContext blue, DraftTeamContext red
+            DraftState state, DraftTeamContext blue, DraftTeamContext red,
+            DraftComputationContext context
     ) {
         ShallowDraftSearch.SearchResult evaluated = search.evaluate(
-                state, blue, red, DraftComputationContext.cached());
+                state, blue, red, context);
         ArrayList<Recommendation> result = new ArrayList<>();
         int rank = 1;
         for (DraftSearchCandidate candidate : evaluated.rankedCandidates().stream()
-                .filter(value -> isLegal(state, value.championId()))
+                .filter(value -> isLegal(state, value.championId(), context))
                 .limit(3).toList()) {
             result.add(new Recommendation(
                     candidate.championId(), rank++, candidate.immediateScore(),
@@ -381,15 +480,20 @@ public final class PlayerControlledDraftEngine {
         return List.copyOf(result);
     }
 
-    private boolean isLegal(DraftState state, ChampionId id) {
+    private boolean isLegal(
+            DraftState state, ChampionId id, DraftComputationContext context
+    ) {
         if (fixedUnavailableReason(state, id) != null) return false;
         if (state.currentTurn().actionType() == DraftActionType.PICK) {
             return !assignments.feasibleCandidatePositions(
-                    state.picks(state.currentTurn().side()), id).isEmpty()
-                    && availability.canComplete(state, state.currentTurn().side(), id);
+                    state.picks(state.currentTurn().side()), id, context).isEmpty()
+                    && availability.canComplete(
+                    state, state.currentTurn().side(), id, context);
         }
-        return availability.canCompleteAfterExcluding(state, TeamSide.BLUE, id)
-                && availability.canCompleteAfterExcluding(state, TeamSide.RED, id);
+        return availability.canCompleteAfterExcluding(
+                state, TeamSide.BLUE, id, context)
+                && availability.canCompleteAfterExcluding(
+                state, TeamSide.RED, id, context);
     }
 
     private static PlayerDraftUnavailableReason fixedUnavailableReason(
@@ -484,6 +588,18 @@ public final class PlayerControlledDraftEngine {
     ) {
     }
 
+    private record SelectionAvailability(
+            List<SelectableChampion> selectable,
+            List<UnavailableChampion> unavailable,
+            List<ChampionId> selectableChampionIds
+    ) {
+        private SelectionAvailability {
+            selectable = List.copyOf(selectable);
+            unavailable = List.copyOf(unavailable);
+            selectableChampionIds = List.copyOf(selectableChampionIds);
+        }
+    }
+
     public record SelectionView(
             List<SelectableChampion> selectable,
             List<UnavailableChampion> unavailable,
@@ -502,6 +618,46 @@ public final class PlayerControlledDraftEngine {
 
         public List<ChampionId> selectableChampionIds() {
             return selectable.stream().map(SelectableChampion::championId).toList();
+        }
+    }
+
+    /** Opaque, immutable token; callers cannot manufacture one for another Progress. */
+    public static final class AuthoritativeSelectionProjection {
+        private final Progress progress;
+        private final SelectionView view;
+
+        private AuthoritativeSelectionProjection(Progress progress, SelectionView view) {
+            this.progress = Objects.requireNonNull(progress, "progress");
+            this.view = Objects.requireNonNull(view, "view");
+        }
+
+        public SelectionView view() {
+            return view;
+        }
+
+        public boolean belongsTo(Progress candidate) {
+            return progress == candidate;
+        }
+
+        private SelectionView requireFor(Progress candidate) {
+            if (!belongsTo(candidate)) {
+                throw new IllegalArgumentException(
+                        "PLAYER_DRAFT_SELECTION_PROJECTION_BINDING_MISMATCH");
+            }
+            return view;
+        }
+    }
+
+    /** Bounded mutable memoization owned by one session or Series child only. */
+    public static final class InteractiveComputationContext {
+        private final DraftComputationContext context;
+
+        private InteractiveComputationContext(DraftComputationContext context) {
+            this.context = Objects.requireNonNull(context, "context");
+        }
+
+        public void clear() {
+            context.clear();
         }
     }
 }
