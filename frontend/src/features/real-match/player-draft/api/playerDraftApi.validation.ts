@@ -1,5 +1,6 @@
 import type { DraftActionType, Position, TeamSide } from '../../realMatch.contract';
 import { validateCommonMatchSemantics } from '../../api/commonMatchSemantic.validation.ts';
+import { markPlayerDraftLatency } from '../playerDraftLatencyObserver.ts';
 import type {
   PlayerDraftApiErrorDto, PlayerDraftDecisionAuthority, PlayerDraftSessionExpectation,
   PlayerDraftSessionResponseDto, PlayerDraftSimulationResponseDto, PlayerDraftTurnEvidenceDto,
@@ -451,6 +452,7 @@ export function validatePlayerDraftSimulationPayload(value: unknown, expectation
   if (signedInt64(match.seed, '$.match.seed') !== session.seed) fail('$.match.seed', 'session seed와 일치해야 합니다.');
   const production = validateProductionPolicy(match.productionPolicy, '$.match.productionPolicy');
   const common = validateCommonMatch(match, expectation, session.completedDraft.finalAssignments);
+  markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_COMMON_SEMANTIC_VALIDATION_START', expectation.sessionId ?? 'UNBOUND_SESSION');
   validateCommonMatchSemantics({
     teams: match.teams,
     result: match.result,
@@ -461,6 +463,7 @@ export function validatePlayerDraftSimulationPayload(value: unknown, expectation
       assignments: '$.session.completedDraft.finalAssignments',
     },
   }, fail);
+  markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_COMMON_SEMANTIC_VALIDATION_COMPLETE', expectation.sessionId ?? 'UNBOUND_SESSION');
   const draft = record(match.draft, '$.match.draft');
   const draftIdentity = sha(draft.draftIdentity, '$.match.draft.draftIdentity'); const finalDraftHash = sha(draft.finalDraftHash, '$.match.draft.finalDraftHash'); const finalAssignmentHash = sha(draft.finalAssignmentHash, '$.match.draft.finalAssignmentHash');
   if (draftIdentity !== session.completedDraft.draftIdentity) fail('$.match.draft.draftIdentity', 'completed Draft identity와 일치해야 합니다.');

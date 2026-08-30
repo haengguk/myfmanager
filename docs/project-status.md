@@ -176,6 +176,18 @@ Frontend contract 33개, focused backend API 1 suite/5 tests, build/reference/li
 
 Series backend implementation과 hardening이 완료됐으므로 다음 제품 순서는 `SERIES_FRONTEND_V1` → `SERIES_LIVE_E2E_AND_ACCESSIBILITY`다.
 
+### Player Draft interactive and simulation latency profiling V1
+
+상태는 `PLAYER_DRAFT_INTERACTIVE_AND_SIMULATION_LATENCY_PROFILE_CAPTURED`다. 기존 action 2~3초와 simulate 약 10초 기록을 원인으로 가정하지 않고, GEN/T1 seed 73의 BLUE/RED controlled flow를 backend phase, HTTP/CDP, browser parse/validation/normalization/React/DOM으로 분해했다. Last Draft action과 explicit simulate는 별도 요청이고, cold와 warm도 분리했다.
+
+Current-source cold Chromium action 20건은 38.3~1,440.3ms, 중앙값 502.25ms였다. Direct 50건에서 ACTIVE response projection 중앙값 149.894ms가 가장 컸고 AI follow-up 137.195ms가 근접한 보조 병목이었다. AI follow-up 0/1/2개 service 중앙값은 148.900/337.972/470.112ms이고 repository exact replay lookup/lock/idempotency 근사는 0.033ms였다. Projection은 다음 PLAYER turn의 full legal pool/unavailable/advisory를 다시 계산한다. Action browser parse/validation은 주 병목이 아니었다.
+
+Cold Chromium simulate click→Playback은 BLUE 5,092.9ms, RED 6,814.5ms였다. Direct first service 중앙값은 4,301.066ms이며 completed Draft/input validation 3,480.430ms가 Production V9 576.383ms보다 컸다. 입력 경계는 20턴의 PLAYER legal pool과 AI authoritative trace를 처음부터 재생하고 final role/assignment를 다시 검증한다. Exact retry도 compact output cache가 아니라 V9을 fresh 재실행하고 receipt equality를 확인해 중앙값 4,114.124ms였다. Gzip body는 browser run별 479,655/2,220,596 bytes, decoded JSON은 5,655,202/26,712,924 bytes였고, 서로 다른 Draft/timeline 때문에 side 효과로 일반화하지 않는다.
+
+Profiling ON/OFF의 Draft/gameplay/input/timeline/Random/output identity는 exact했고 public API timing field, tuning, cache, gameplay와 UI 동작은 바꾸지 않았다. Backend production Java/resource/Gradle/runtime을 건드리지 않았으므로 focused parity와 diagnostic만 실행했고, frontend 기본-OFF observational hook은 production build와 actual LIVE로 검증했다. 공식 artifact는 action 50, AI 48, simulation 10, browser 22 rows이며 manifest raw SHA-256은 `3009861416762f3ee61a56624d3cd1762bac0ab889d2f6a8092404c40e820d46`다.
+
+다음 우선순위는 `PLAYER_DRAFT_SIMULATION_INPUT_VALIDATION_PERFORMANCE_HARDENING_V1`과 `PLAYER_DRAFT_SESSION_PROJECTION_PERFORMANCE_HARDENING_V1`이다. 그 뒤 AI turn, compact payload/Web Worker, async progress를 각각 별도 계약으로 검토한다. 이번 milestone은 profiling만 수행했으므로 latency 자체는 줄이지 않았다. Standalone과 Series-owned child Draft가 completed validation과 selector/Match Engine 경계를 공유하지만 Series end-to-end 수치는 아직 측정하지 않았다. 상세 내용은 [Player Draft latency profiling V1](development/player-draft-interactive-and-simulation-latency-profiling-v1.md)에 있다.
+
 ### Series Lifecycle V1 contract sketch
 
 상태는 `SERIES_LIFECYCLE_V1_CONTRACT_SKETCH_READY`다. [Series Lifecycle V1 Contract Sketch](architecture/series-lifecycle-v1-contract-sketch.md)는 현재 caller-owned `SeriesDraftHistory`, Match Engine V1의 game number/history/input binding과 standalone Player Draft 기반을 확인하고, 향후 backend-owned BO3/BO5 aggregate의 team-code score, game별 side/seed/history, parent-bound child Draft, Production V9 simulate-and-commit, compact receipt, revision/idempotency/concurrency/expiry와 additive Series API/frontend view를 설계했다.
@@ -532,8 +544,8 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 
 ## Pending
 
-1. Player Draft frontend V1에서 team/side/seed setup, legal pool, advisory와 turn authority를 표시하고 complete→explicit simulate 흐름을 연결한다.
-2. Player Draft browser E2E, keyboard/a11y와 reconnect/expiry UX를 검증한다.
+1. Player Draft completed transcript의 fail-closed authority/legal-pool/AI-trace/final-role 의미를 보존하면서 simulation input validation의 반복 계산을 줄이는 `PLAYER_DRAFT_SIMULATION_INPUT_VALIDATION_PERFORMANCE_HARDENING_V1`을 설계한다.
+2. ACTIVE session response의 full legal pool/advisory 재계산을 줄이는 `PLAYER_DRAFT_SESSION_PROJECTION_PERFORMANCE_HARDENING_V1`을 우선 검토하고, 이후 `PLAYER_DRAFT_AI_TURN_PERFORMANCE_HARDENING_V1`을 별도 진행한다.
 3. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
 4. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
 5. `SERIES_LIFECYCLE_V1_FRONTEND_READY`까지 완료됐다. 다음은 authoritative revision/status/allowedCommands를 그대로 소비하는 `SERIES_FRONTEND_V1`, 그 다음은 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`다. Save/Career/Season persistence는 별도 범위다.

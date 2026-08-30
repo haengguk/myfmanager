@@ -9,6 +9,7 @@ import {
   PlayerDraftContractError, validatePlayerDraftApiErrorPayload, validatePlayerDraftSessionPayload,
   validatePlayerDraftSimulationPayload,
 } from './playerDraftApi.validation';
+import { markPlayerDraftLatency } from '../playerDraftLatencyObserver';
 
 export type PlayerDraftFailureKind = 'NETWORK' | 'CANCELLED' | 'TIMEOUT' | 'BACKEND' | 'INVALID_JSON' | 'CONTRACT';
 
@@ -73,12 +74,24 @@ function normalizeFailure(error: unknown, context: AbortContext, operation: 'ses
 async function sessionRequest(
   url: string, init: RequestInit, expectation: PlayerDraftSessionExpectation,
   signal: AbortSignal, operation: 'session' | 'action', timeoutMs: number,
+  profilingCorrelationId: string | null = null,
 ): Promise<PlayerDraftSessionResponseDto> {
   const context = abortContext(signal, timeoutMs);
   try {
+    if (profilingCorrelationId) markPlayerDraftLatency('PLAYER_ACTION_FETCH_START', profilingCorrelationId);
     const response = await fetch(url, { ...init, headers: { Accept: 'application/json', ...(init.headers ?? {}) }, signal: context.signal });
-    const raw = await response.text(); if (!response.ok) throw backendFailure(raw, response.status);
-    return validatePlayerDraftSessionPayload(parseJson(raw), expectation);
+    if (profilingCorrelationId) markPlayerDraftLatency('PLAYER_ACTION_RESPONSE_HEADERS', profilingCorrelationId, { status: response.status });
+    if (profilingCorrelationId) markPlayerDraftLatency('PLAYER_ACTION_RESPONSE_BODY_START', profilingCorrelationId);
+    const raw = await response.text();
+    if (profilingCorrelationId) markPlayerDraftLatency('PLAYER_ACTION_RESPONSE_BODY_COMPLETE', profilingCorrelationId, () => ({ decodedBytes: new Blob([raw]).size }));
+    if (!response.ok) throw backendFailure(raw, response.status);
+    if (profilingCorrelationId) markPlayerDraftLatency('PLAYER_ACTION_JSON_PARSE_START', profilingCorrelationId);
+    const parsed = parseJson(raw);
+    if (profilingCorrelationId) markPlayerDraftLatency('PLAYER_ACTION_JSON_PARSE_COMPLETE', profilingCorrelationId);
+    if (profilingCorrelationId) markPlayerDraftLatency('PLAYER_ACTION_VALIDATION_START', profilingCorrelationId);
+    const validated = validatePlayerDraftSessionPayload(parsed, expectation);
+    if (profilingCorrelationId) markPlayerDraftLatency('PLAYER_ACTION_VALIDATION_COMPLETE', profilingCorrelationId);
+    return validated;
   } catch (error) { throw normalizeFailure(error, context, operation); }
   finally { context.cleanup(); }
 }
@@ -139,7 +152,7 @@ export function submitPlayerDraftAction(expectation: PlayerDraftSessionExpectati
   if (!expectation.sessionId) throw new Error('sessionId is required');
   return sessionRequest(`${endpoint(expectation.sessionId)}/actions`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request),
-  }, expectation, signal, 'action', realMatchConfig.playerDraftActionTimeoutMs);
+  }, expectation, signal, 'action', realMatchConfig.playerDraftActionTimeoutMs, request.clientActionId);
 }
 
 export interface PlayerDraftSimulationResult {
@@ -153,15 +166,18 @@ export async function simulatePlayerDraftMatch(
   if (!expectation.sessionId) throw new Error('sessionId is required');
   const context = abortContext(signal, realMatchConfig.simulateTimeoutMs); const requestStartedAt = performance.now();
   try {
-    onStage('CONNECTING');
+    onStage('CONNECTING'); markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_FETCH_START', expectation.sessionId);
     const response = await fetch(`${endpoint(expectation.sessionId)}/simulate`, {
       method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ schemaVersion: 'PLAYER_DRAFT_SIMULATE_REQUEST_V1' }), signal: context.signal,
     });
-    onStage('DOWNLOADING'); const raw = await response.text(); const requestAndDownloadMs = performance.now() - requestStartedAt;
+    markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_RESPONSE_HEADERS', expectation.sessionId, { status: response.status });
+    onStage('DOWNLOADING'); markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_RESPONSE_BODY_START', expectation.sessionId);
+    const raw = await response.text(); const requestAndDownloadMs = performance.now() - requestStartedAt;
+    markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_RESPONSE_BODY_COMPLETE', expectation.sessionId, () => ({ decodedBytes: new Blob([raw]).size }));
     if (!response.ok) throw backendFailure(raw, response.status);
-    const payloadBytes = new Blob([raw]).size; onStage('PARSING'); const parseStarted = performance.now(); const parsed = parseJson(raw); const jsonParseMs = performance.now() - parseStarted;
-    onStage('VALIDATING'); const validationStarted = performance.now(); const validated = validatePlayerDraftSimulationPayload(parsed, expectation); const runtimeValidationMs = performance.now() - validationStarted;
+    const payloadBytes = new Blob([raw]).size; onStage('PARSING'); markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_JSON_PARSE_START', expectation.sessionId); const parseStarted = performance.now(); const parsed = parseJson(raw); const jsonParseMs = performance.now() - parseStarted; markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_JSON_PARSE_COMPLETE', expectation.sessionId);
+    onStage('VALIDATING'); markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_VALIDATION_START', expectation.sessionId); const validationStarted = performance.now(); const validated = validatePlayerDraftSimulationPayload(parsed, expectation); const runtimeValidationMs = performance.now() - validationStarted; markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_VALIDATION_COMPLETE', expectation.sessionId);
     return { response: validated, performance: { payloadBytes, requestAndDownloadMs, jsonParseMs, runtimeValidationMs, requestStartedAt } };
   } catch (error) { throw normalizeFailure(error, context, 'simulation'); }
   finally { context.cleanup(); }

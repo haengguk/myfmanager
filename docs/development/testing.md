@@ -673,6 +673,33 @@ Playwright actual LIVE 결과는 다음과 같다.
 
 Gzip은 완료된 RED session receipt 재조회에서 HTTP 200, `Content-Encoding: gzip`과 `Vary: ... accept-encoding`으로 확인했다. Browser fault interception은 transport response만 유실했고 domain payload를 만들지 않았다. 실제 30분 expiry sleep과 대형 population은 실행하지 않았다. 상세 focus trace, 제한과 artifact 정책은 [LIVE E2E/accessibility 문서](player-controlled-draft-live-e2e-and-accessibility.md)에 있다.
 
+### Player Draft interactive and simulation latency profiling V1
+
+이 profiling은 correctness test에 대형 통계를 넣지 않고 explicit diagnostic lane으로만 실행한다.
+
+```text
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.application.PlayerDraftLatencyProfilingV1HarnessTest \
+  --console=plain --no-daemon
+
+set LOLMANAGER_RUN_PLAYER_DRAFT_LATENCY_PROFILE_V1=1
+set LOLMANAGER_PROFILE_HEAD=<current-head>
+set LOLMANAGER_PROFILE_SOURCE_IDENTITY=<owned-source-identity>
+gradlew.bat test \
+  --tests com.lolfm.application.PlayerDraftLatencyProfilingV1DiagnosticTest \
+  --console=plain --no-daemon --rerun-tasks
+
+cd ../frontend
+npm run build
+```
+
+Focused parity는 session ID를 제외한 20개 decision/authority/champion/final assignment, selection/control evidence, Match Engine input, production profile/configuration, replay/resource provenance, simulator/structured timeline, Random fingerprint, output hash, winner/duration/events/snapshots를 profiling ON/OFF exact 비교한다. Diagnostic test는 기본 input 위치의 actual Chromium JSON을 읽고 GEN/T1 seed 73의 BLUE direct cold 1회, BLUE/RED warm 각 2회, first/exact retry와 small JFR을 사용한다. Gradle은 환경 변수와 report directory 이동을 task input으로 보지 않으므로 공식 재생성에는 `--rerun-tasks`를 명시한다. Actual Chromium은 side별 fresh `bootRun`, Vite LIVE provider, disabled cache로 10 action + explicit simulate를 별도 측정하며 REFERENCE fallback을 허용하지 않는다.
+
+공식 artifact는 `backend/build/reports/player-draft-interactive-simulation-latency-profiling-v1/`에 생성된다. Action 50 rows, AI turn 48 rows, simulation 10 rows, browser 22 rows와 canonical JSON/analysis/SHA manifest를 검증한다. Backend 세부 phase는 영구 production timer의 nested 합계가 아니라 exact semantic replay이므로 service total에 더하지 않는다. Timing percentile은 작은 deterministic 표본의 기술 통계이고 fresh JVM byte-equality gate가 아니다.
+
+최종 focused parity와 artifact diagnostic, frontend production build, actual BLUE/RED LIVE flow가 모두 통과했다. Backend production Java/resource/Gradle/runtime/API는 변경하지 않아 complete backend regression은 실행하지 않았다. Frontend production TypeScript의 기본 OFF observer는 build와 LIVE flow로 검증했다. 상세 수치와 해석은 [Player Draft latency profiling V1](player-draft-interactive-and-simulation-latency-profiling-v1.md)에 있다.
+
 ## Generated Reports
 
 ### Series Lifecycle V1 backend

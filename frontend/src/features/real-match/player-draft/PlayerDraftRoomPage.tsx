@@ -14,6 +14,7 @@ import { PlayerDraftHeader } from './PlayerDraftHeader';
 import { PlayerDraftTeamPanel } from './PlayerDraftTeamPanel';
 import type { PlayerDraftScreenState } from './playerDraft.types';
 import { playerDraftActionWasApplied, shouldApplyPlayerDraftSession } from './playerDraftSessionOrder';
+import { markPlayerDraftLatency } from './playerDraftLatencyObserver';
 
 const STAGE_LABELS: Readonly<Record<MatchRequestStage, string>> = {
   CONNECTING: '서버 계산 대기', DOWNLOADING: '응답 다운로드', PARSING: 'JSON 해석', VALIDATING: '응답 검증', NORMALIZING: '화면 데이터 준비',
@@ -55,6 +56,7 @@ export function PlayerDraftRoomPage({ state, onSessionChange, onSimulationComple
   const actionControllerRef = useRef<AbortController | null>(null); const simulationControllerRef = useRef<AbortController | null>(null); const refreshControllerRef = useRef<AbortController | null>(null); const cancelControllerRef = useRef<AbortController | null>(null);
   const actionPendingRef = useRef(false); const simulationPendingRef = useRef(false); const refreshPendingRef = useRef(false); const cancelPendingRef = useRef(false);
   const sessionRef = useRef(session); const mountedRef = useRef(true);
+  const pendingDomCorrelationRef = useRef<string | null>(null);
   const actionSequenceRef = useRef(0); const simulationSequenceRef = useRef(0); const refreshSequenceRef = useRef(0); const cancelSequenceRef = useRef(0);
   const blueTeam = teamForSide(state, 'BLUE'); const redTeam = teamForSide(state, 'RED');
 
@@ -63,6 +65,14 @@ export function PlayerDraftRoomPage({ state, onSessionChange, onSimulationComple
     if (session.decisions.length > previousDecisionCountRef.current) setRevealFrom(previousDecisionCountRef.current);
     previousDecisionCountRef.current = session.decisions.length;
     setSelectedChampionId(null); setLogicalAction(null);
+    const correlationId = pendingDomCorrelationRef.current;
+    if (correlationId) {
+      markPlayerDraftLatency('PLAYER_ACTION_DOM_STABLE', correlationId, {
+        revision: session.revision, decisionCount: session.decisions.length,
+        status: session.status, nextTurn: session.currentTurn?.turn ?? null,
+      });
+      pendingDomCorrelationRef.current = null;
+    }
   }, [session.currentTurn?.turn, session.decisions.length]);
   useEffect(() => {
     // React StrictMode intentionally runs an extra setup/cleanup cycle in development.
@@ -74,8 +84,9 @@ export function PlayerDraftRoomPage({ state, onSessionChange, onSimulationComple
     };
   }, []);
 
-  const applySession = useCallback((next: PlayerDraftSessionResponseDto) => {
+  const applySession = useCallback((next: PlayerDraftSessionResponseDto, correlationId: string | null = null) => {
     if (!mountedRef.current || !shouldApplyPlayerDraftSession(sessionRef.current, next)) return false;
+    pendingDomCorrelationRef.current = correlationId;
     sessionRef.current = next; onSessionChange(next); return true;
   }, [onSessionChange]);
 
@@ -111,6 +122,8 @@ export function PlayerDraftRoomPage({ state, onSessionChange, onSimulationComple
     if (!currentSession.currentTurn || !selectedChampionId || actionPendingRef.current || simulationPendingRef.current || cancelPendingRef.current || refreshPendingRef.current) return;
     const pending = logicalAction?.turn === currentSession.currentTurn.turn && logicalAction.championId === selectedChampionId
       ? logicalAction : { turn: currentSession.currentTurn.turn, championId: selectedChampionId, clientActionId: crypto.randomUUID() };
+    markPlayerDraftLatency('PLAYER_ACTION_CONFIRM_INPUT', pending.clientActionId, { turn: currentSession.currentTurn.turn, championId: selectedChampionId });
+    markPlayerDraftLatency('PLAYER_ACTION_REQUEST_PREPARED', pending.clientActionId, { turn: pending.turn, championId: pending.championId, expectedRevision: currentSession.revision });
     setLogicalAction(pending); actionPendingRef.current = true; setActionPending(true); setError(null); setStatusMessage('선택을 제출했습니다. 상대 AI가 다음 내 턴까지 계산하고 있습니다.');
     const requestSequence = ++actionSequenceRef.current;
     const controller = new AbortController(); actionControllerRef.current = controller;
@@ -120,7 +133,7 @@ export function PlayerDraftRoomPage({ state, onSessionChange, onSimulationComple
         clientActionId: pending.clientActionId, championId: pending.championId,
       }, controller.signal);
       if (controller.signal.aborted || requestSequence !== actionSequenceRef.current) return;
-      if (applySession(next)) {
+      if (applySession(next, pending.clientActionId)) {
         setLogicalAction(null); setSelectedChampionId(null);
         setStatusMessage(next.status === 'COMPLETED' ? '20턴 Draft가 완료되었습니다. 최종 포지션 배치를 확인하세요.' : `AI 응답을 반영했습니다. TURN ${next.currentTurn?.turn ?? next.decisions.length}에서 선택하세요.`);
       }
@@ -144,6 +157,7 @@ export function PlayerDraftRoomPage({ state, onSessionChange, onSimulationComple
   const simulate = async () => {
     const currentSession = sessionRef.current;
     if (simulationPendingRef.current || actionPendingRef.current || cancelPendingRef.current || refreshPendingRef.current || currentSession.status !== 'COMPLETED') return;
+    markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_CLICK', currentSession.sessionId, { revision: currentSession.revision, decisionCount: currentSession.decisions.length });
     const requestSequence = ++simulationSequenceRef.current;
     const controller = new AbortController(); simulationControllerRef.current = controller; simulationPendingRef.current = true; setSimulationPending(true); setSimulationStage('CONNECTING'); setError(null);
     try {

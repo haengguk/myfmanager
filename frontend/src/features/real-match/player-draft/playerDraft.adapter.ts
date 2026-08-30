@@ -3,6 +3,7 @@ import type { MatchSessionViewModel, MatchSetupOptionsViewModel, MatchSetupSelec
 import type { PlayerDraftSimulationResult } from './api/playerDraftApi.client';
 import type { PlayerDraftSimulationResponseDto } from './api/playerDraftApi.types';
 import type { PlayerDraftChampionCatalogEntry } from './playerDraft.types';
+import { markPlayerDraftLatency } from './playerDraftLatencyObserver';
 
 export function mergePlayerDraftChampionCatalog(
   session: PlayerDraftSimulationResponseDto['session'],
@@ -71,9 +72,11 @@ export function createPlayerDraftMatchSession(
   options: MatchSetupOptionsViewModel,
   selection: MatchSetupSelection,
 ): MatchSessionViewModel {
+  const correlationId = simulation.response.session.sessionId;
+  markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_NORMALIZATION_START', correlationId);
   const completed = simulation.response.session.completedDraft;
   if (!completed) throw new Error('완료된 Player Draft assignment가 필요합니다.');
-  return createLiveMatchSessionFromCommon(
+  const result = createLiveMatchSessionFromCommon(
     toCommonSource(simulation.response), options, selection, simulation.performance,
     {
       mode: 'PLAYER_CONTROLLED', sessionId: simulation.response.session.sessionId,
@@ -82,4 +85,6 @@ export function createPlayerDraftMatchSession(
       draftIdentity: completed.draftIdentity,
     },
   );
+  markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_NORMALIZATION_COMPLETE', correlationId, { normalizationMs: result.performance.normalizationMs });
+  return result;
 }

@@ -19,6 +19,7 @@ import { createPlayerDraftMatchSession, mergePlayerDraftChampionCatalog } from '
 import { PlayerDraftRoomPage } from './features/real-match/player-draft/PlayerDraftRoomPage';
 import type { PlayerDraftScreenState } from './features/real-match/player-draft/playerDraft.types';
 import { shouldApplyPlayerDraftSession } from './features/real-match/player-draft/playerDraftSessionOrder';
+import { markPlayerDraftLatency } from './features/real-match/player-draft/playerDraftLatencyObserver';
 import { AppShell } from './layout/AppShell';
 import type { AppSection } from './layout/Sidebar';
 
@@ -140,8 +141,12 @@ function RootApp() {
   const updatePlayerDraftSession = useCallback((session: PlayerDraftSessionResponseDto) => {
     setPlayerDraftState((current) => {
       if (!current || !shouldApplyPlayerDraftSession(current.session, session)) return current;
+      const correlationId = [...session.decisions].reverse().find((decision) => decision.authority === 'PLAYER')?.playerSelectionEvidence?.clientActionId ?? null;
+      if (correlationId) markPlayerDraftLatency('PLAYER_ACTION_STATE_ADAPTER_START', correlationId);
+      const championsById = mergePlayerDraftChampionCatalog(session, current.championsById);
+      if (correlationId) markPlayerDraftLatency('PLAYER_ACTION_STATE_ADAPTER_COMPLETE', correlationId);
       return {
-        ...current, session, championsById: mergePlayerDraftChampionCatalog(session, current.championsById),
+        ...current, session, championsById,
       };
     });
   }, []);
@@ -160,6 +165,8 @@ function RootApp() {
   if (activeScreen === 'player-draft' && playerDraftState) {
     return <PlayerDraftRoomPage state={playerDraftState} onSessionChange={updatePlayerDraftSession}
       onSimulationComplete={(simulation) => {
+        const correlationId = simulation.response.session.sessionId;
+        markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_REACT_STATE_START', correlationId);
         const session = createPlayerDraftMatchSession(simulation, playerDraftState.options, playerDraftState.selection);
         setMatchSession(session);
         setPlayerDraftState((current) => current ? {
@@ -167,6 +174,7 @@ function RootApp() {
           championsById: mergePlayerDraftChampionCatalog(simulation.response.session, current.championsById),
         } : current);
         playbackNavigationStartedAtRef.current = performance.now(); setDraftReturnScreen('playback'); setActiveScreen('playback');
+        markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_REACT_STATE_COMPLETE', correlationId);
       }}
       onCancelled={() => { setPlayerDraftState(null); setMatchSession(null); setDraftReturnScreen('setup'); setActiveScreen('setup'); }}
       onReviewBack={() => setActiveScreen(draftReturnScreen)} />;
@@ -179,6 +187,9 @@ function RootApp() {
       onFirstPaint={() => {
         if (measuredPlaybackSessionsRef.current.has(matchSession.sessionId)) return;
         measuredPlaybackSessionsRef.current.add(matchSession.sessionId);
+        if (matchSession.draftOrigin.mode === 'PLAYER_CONTROLLED') {
+          markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_PLAYBACK_DOM_STABLE', matchSession.draftOrigin.sessionId, { matchIdentity: matchSession.sessionId });
+        }
         const memory = (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number } }).memory;
         console.info('[real-match-first-playback]', JSON.stringify({
           matchIdentity: matchSession.sessionId,
