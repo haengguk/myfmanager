@@ -8,7 +8,11 @@ import {
   validateSeriesViewPayload,
 } from '../src/features/real-match/series/api/seriesApi.validation.ts';
 import { createSeriesRequest, shouldApplySeries } from '../src/features/real-match/series/series.adapter.ts';
-import { clearSeriesPointer, readSeriesPointer, writeSeriesPointer } from '../src/features/real-match/series/series.pointer.ts';
+import { clearSeriesPointer, readSeriesPointer, seriesPointerRecoveryAction, writeSeriesPointer } from '../src/features/real-match/series/series.pointer.ts';
+import {
+  finishSeriesCommand, reconcileSeriesCancel, reconcileSeriesDraftCancel,
+  seriesCancelCommand, seriesDraftCancelCommand, tryBeginSeriesCommand,
+} from '../src/features/real-match/series/seriesCommandReconciliation.ts';
 
 const H = 'a'.repeat(64); const G = 'b'.repeat(64); const D = 'c'.repeat(64);
 const seriesId = `series_${H}`; const gameId = (number) => `game_${String(number).repeat(64).slice(0, 64)}`;
@@ -149,6 +153,27 @@ rejects('history count mismatch rejection', () => ({ ...clone(committedSeries), 
 rejects('child binding/session mismatch rejection', () => { const value = clone(active); value.envelope.binding.gameId = gameId(2); return { series: value.base, draftSession: value.envelope, replayed: false }; }, validateSeriesDraftResponsePayload);
 rejects('invalid allowed command rejection', () => ({ ...clone(pendingBo3), allowedCommands: ['SIMULATE_GAME'] }));
 rejects('winner/required wins mismatch rejection', () => ({ ...clone(terminalSeries('BO3', 2)), score: { DK: 1, HLE: 1 } }));
+rejects('game winners 1:1 but score 2:0 rejection', () => {
+  const value = clone(terminalSeries('BO3', 2));
+  value.games[1].result.winnerTeamCode = 'HLE'; value.games[1].result.winnerSide = 'BLUE';
+  return value;
+});
+rejects('game winners 2:0 but score 1:1 rejection', () => ({ ...clone(terminalSeries('BO3', 2)), score: { DK: 1, HLE: 1 } }));
+rejects('ACTIVE at required wins rejection', () => {
+  const value = clone(terminalSeries('BO3', 2)); value.status = 'ACTIVE'; value.winnerTeamCode = null; value.allowedCommands = ['GET']; return value;
+});
+rejects('COMPLETED winner and game tally mismatch rejection', () => {
+  const value = clone(terminalSeries('BO3', 2)); value.winnerTeamCode = 'HLE'; return value;
+});
+rejects('result and receipt on DRAFT_PENDING rejection', () => {
+  const value = clone(pendingBo3); value.games[0].result = compact; value.games[0].receipt = receipt; return value;
+});
+rejects('COMMITTED missing result rejection', () => {
+  const value = clone(committedSeries); value.games[0].result = null; return value;
+});
+rejects('COMMITTED missing receipt rejection', () => {
+  const value = clone(committedSeries); value.games[0].receipt = null; return value;
+});
 rejects('compact result team map mismatch rejection', () => { const value = clone(committedSeries); value.games[0].result.teamGold = { DK: 2500, KT: 2500 }; return value; });
 rejects('compact receipt mismatch rejection', () => { const value = clone(committedSeries); value.games[0].receipt.outputHash = 'not-a-hash'; return value; });
 rejects('production identity mismatch rejection', () => { const value = clone(pendingBo3); value.productionIdentity.policyHash = 'bad'; return value; });
@@ -159,6 +184,40 @@ accepts('stale revision ordering rejection', () => { const next = { ...clone(pen
 accepts('sessionStorage pointer resumes by Series ID only', () => {
   const values = new Map(); const storage = { getItem: (key) => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: (key) => values.delete(key) };
   writeSeriesPointer(storage, seriesId); if (readSeriesPointer(storage) !== seriesId || values.size !== 1) throw new Error('pointer mismatch'); clearSeriesPointer(storage); if (readSeriesPointer(storage) !== null) throw new Error('pointer not cleared');
+});
+accepts('pointer recovery uses structured failure kind and code', () => {
+  if (seriesPointerRecoveryAction({ kind: 'NETWORK', code: null }) !== 'KEEP_RETRYABLE') throw new Error('network pointer policy');
+  if (seriesPointerRecoveryAction({ kind: 'CONTRACT', code: null }) !== 'KEEP_VERSION_ERROR') throw new Error('contract pointer policy');
+  if (seriesPointerRecoveryAction({ kind: 'BACKEND', code: 'SERIES_NOT_FOUND' }) !== 'CLEAR_NOT_FOUND') throw new Error('not-found pointer policy');
+  if (seriesPointerRecoveryAction({ kind: 'BACKEND', code: 'SERIES_EXPIRED' }) !== 'CLEAR_EXPIRED') throw new Error('expired pointer policy');
+});
+accepts('Series cancel keeps one command ID and reconciles response loss', () => {
+  let generated = 0;
+  const first = seriesCancelCommand(null, { seriesId, expectedRevision: pendingBo3.revision }, () => `cancel-${++generated}`);
+  const replay = seriesCancelCommand(first, { seriesId, expectedRevision: pendingBo3.revision }, () => `cancel-${++generated}`);
+  if (first !== replay || generated !== 1 || reconcileSeriesCancel(pendingBo3, first) !== 'RETRY_SAME_COMMAND') throw new Error('logical Series cancel replay mismatch');
+  const cancelled = clone(pendingBo3); cancelled.status = 'CANCELLED'; cancelled.terminalReason = 'CANCELLED_BY_CLIENT'; cancelled.revision = 1; cancelled.allowedCommands = ['GET'];
+  const before = JSON.stringify(cancelled); if (reconcileSeriesCancel(cancelled, first) !== 'SUCCEEDED' || JSON.stringify(cancelled) !== before) throw new Error('cancel reconciliation mutated authority');
+  const changed = seriesCancelCommand(first, { seriesId, expectedRevision: 1 }, () => `cancel-${++generated}`);
+  if (changed.clientCommandId === first.clientCommandId || generated !== 2) throw new Error('command reused across revisions');
+});
+accepts('child cancel keeps exact target identity and reconciles cancelled child', () => {
+  let generated = 0; const session = active.envelope.session;
+  const target = { seriesId, gameNumber: 1, expectedRevision: active.base.revision, draftSessionId: session.sessionId, draftRevision: session.revision };
+  const first = seriesDraftCancelCommand(null, target, () => `child-cancel-${++generated}`);
+  const replay = seriesDraftCancelCommand(first, target, () => `child-cancel-${++generated}`);
+  if (first !== replay || generated !== 1 || reconcileSeriesDraftCancel(active.base, session, first) !== 'RETRY_SAME_COMMAND') throw new Error('logical child cancel replay mismatch');
+  const cancelled = clone(active.base); cancelled.revision += 1; cancelled.games[0].status = 'DRAFT_CANCELLED'; cancelled.games[0].childDraftStatus = 'CANCELLED'; cancelled.activeDraftSession.session.status = 'CANCELLED'; cancelled.allowedCommands = ['CREATE_DRAFT_SESSION', 'CANCEL_SERIES'];
+  if (reconcileSeriesDraftCancel(cancelled, session, first) !== 'SUCCEEDED') throw new Error('child cancel did not converge');
+  const differentGame = seriesDraftCancelCommand(first, { ...target, gameNumber: 2 }, () => `child-cancel-${++generated}`);
+  if (differentGame.clientCommandId === first.clientCommandId) throw new Error('child command reused across games');
+});
+accepts('pending double click admits one request', () => {
+  const pending = { current: false }; let requestCount = 0;
+  if (tryBeginSeriesCommand(pending)) requestCount += 1;
+  if (tryBeginSeriesCommand(pending)) requestCount += 1;
+  if (requestCount !== 1) throw new Error(`request count ${requestCount}`);
+  finishSeriesCommand(pending); if (!tryBeginSeriesCommand(pending)) throw new Error('pending gate did not reopen');
 });
 
 if (!process.exitCode) console.log('SERIES_FRONTEND_CONTRACT_VERIFICATION_PASSED');

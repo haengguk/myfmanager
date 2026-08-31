@@ -250,7 +250,10 @@ export function PlayerDraftRoomPage<TSimulation = PlayerDraftSimulationResult>({
       setCancelOpen(false); onCancelled();
     } catch (cancelFailure) {
       if (requestSequence !== cancelSequenceRef.current || !mountedRef.current) return;
-      const failure = cancelFailure instanceof PlayerDraftApiFailure ? cancelFailure.userMessage : 'Draft 취소 여부를 확인하지 못했습니다.'; setCancelError(`${failure} 세션은 만료 시점까지 서버에 남아 있을 수 있습니다.`);
+      const normalized = transport.failure(cancelFailure);
+      const message = normalized?.userMessage
+        ?? (cancelFailure instanceof PlayerDraftApiFailure ? cancelFailure.userMessage : 'Draft 취소 여부를 확인하지 못했습니다.');
+      setCancelError(`${message} 서버 작업은 완료됐을 수 있으므로 같은 취소 작업으로 다시 확인할 수 있습니다.`);
     } finally {
       if (cancelControllerRef.current === controller) cancelControllerRef.current = null;
       if (requestSequence === cancelSequenceRef.current) { cancelPendingRef.current = false; setCancelPending(false); }

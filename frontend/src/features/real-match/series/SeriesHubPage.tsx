@@ -4,6 +4,10 @@ import { SeriesApiFailure, cancelSeries, createSeriesDraft, getSeries } from './
 import type { SeriesChildDraftEnvelopeDto, SeriesViewDto } from './api/seriesApi.types';
 import { SeriesCancelDialog } from './SeriesCancelDialog';
 import { SeriesContextBar } from './SeriesContextBar';
+import {
+  finishSeriesCommand, isAmbiguousSeriesFailure, reconcileSeriesCancel, seriesCancelCommand,
+  tryBeginSeriesCommand, type SeriesCancelCommand,
+} from './seriesCommandReconciliation';
 import type { SeriesScreenState } from './series.types';
 
 const TERMINAL_COPY: Readonly<Record<Exclude<SeriesViewDto['status'], 'ACTIVE'>, string>> = {
@@ -25,16 +29,21 @@ export function SeriesHubPage({ state, onBack, onStateChange, onStartDraft, onOp
   const [error, setError] = useState<string | null>(null); const [cancelOpen, setCancelOpen] = useState(false);
   const [returnFocus, setReturnFocus] = useState<HTMLElement | null>(null); const controllerRef = useRef<AbortController | null>(null);
   const draftCommandRef = useRef<{ revision: number; id: string } | null>(null);
+  const cancelCommandRef = useRef<SeriesCancelCommand | null>(null); const pendingRef = useRef(false);
   const commands = new Set(state.series.allowedCommands); const current = state.series.games[state.series.games.length - 1];
   const winner = state.series.winnerTeamCode;
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
   const run = async (kind: typeof pending, operation: (signal: AbortSignal) => Promise<void>) => {
-    if (pending) return; const controller = new AbortController(); controllerRef.current = controller; setPending(kind); setError(null);
+    if (!tryBeginSeriesCommand(pendingRef)) return;
+    const controller = new AbortController(); controllerRef.current = controller; setPending(kind); setError(null);
     try { await operation(controller.signal); }
     catch (cause) { setError(cause instanceof SeriesApiFailure ? cause.userMessage : '시리즈 요청을 완료하지 못했습니다.'); }
-    finally { if (controllerRef.current === controller) controllerRef.current = null; setPending(null); }
+    finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
+      finishSeriesCommand(pendingRef); setPending(null);
+    }
   };
   const createDraft = () => run('DRAFT', async (signal) => {
     const logical = draftCommandRef.current?.revision === state.series.revision
@@ -54,10 +63,31 @@ export function SeriesHubPage({ state, onBack, onStateChange, onStartDraft, onOp
     const series = await getSeries(state.series.seriesId, signal); onStateChange(series, series.activeDraftSession);
   });
   const confirmCancel = () => run('CANCEL', async (signal) => {
-    await cancelSeries(state.series.seriesId, {
-      schemaVersion: 'SERIES_CANCEL_REQUEST_V1', expectedRevision: state.series.revision, clientCommandId: crypto.randomUUID(),
-    }, signal);
-    const series = await getSeries(state.series.seriesId, signal); onStateChange(series, series.activeDraftSession); setCancelOpen(false);
+    const logical = seriesCancelCommand(cancelCommandRef.current, {
+      seriesId: state.series.seriesId, expectedRevision: state.series.revision,
+    }, () => crypto.randomUUID());
+    cancelCommandRef.current = logical;
+    try {
+      await cancelSeries(logical.seriesId, {
+        schemaVersion: 'SERIES_CANCEL_REQUEST_V1', expectedRevision: logical.expectedRevision,
+        clientCommandId: logical.clientCommandId,
+      }, signal);
+    } catch (cause) {
+      if (!(cause instanceof SeriesApiFailure) || !isAmbiguousSeriesFailure(cause.kind)) {
+        cancelCommandRef.current = null; throw cause;
+      }
+    }
+    const series = await getSeries(logical.seriesId, signal);
+    onStateChange(series, series.activeDraftSession);
+    const reconciliation = reconcileSeriesCancel(series, logical);
+    if (reconciliation === 'SUCCEEDED') {
+      cancelCommandRef.current = null; setCancelOpen(false); return;
+    }
+    if (reconciliation === 'RETRY_SAME_COMMAND') {
+      throw new SeriesApiFailure('NETWORK', '취소 응답이 유실되었을 수 있으나 서버에는 아직 취소 전 상태입니다. 같은 취소 작업 ID를 유지했습니다. 다시 확인하면 중복 작업 없이 재전송합니다.');
+    }
+    cancelCommandRef.current = null; setCancelOpen(false);
+    throw new SeriesApiFailure('BACKEND', '취소 확인 중 시리즈가 다른 상태로 진행되었습니다. 최신 서버 상태를 반영했으며 새 취소 명령을 자동으로 만들지 않았습니다.');
   });
 
   return <div className="sr-hub-app" aria-busy={pending !== null}>
@@ -79,12 +109,12 @@ export function SeriesHubPage({ state, onBack, onStateChange, onStartDraft, onOp
       <aside className="sr-hub-actions" aria-label="시리즈 작업">
         <h2>시리즈 관리</h2><p>점수·진영·다음 game·피어리스 제외는 최신 서버 view만 사용합니다.</p>
         <button type="button" disabled={pending !== null} onClick={refresh}>{pending === 'REFRESH' ? '확인 중…' : '서버 상태 새로고침'}</button>
-        {commands.has('CANCEL_SERIES') ? <button type="button" className="is-danger" disabled={pending !== null} onClick={(event) => { setReturnFocus(event.currentTarget); setCancelOpen(true); }}>시리즈 전체 취소</button> : null}
+        {commands.has('CANCEL_SERIES') ? <button type="button" className="is-danger" disabled={pending !== null} onClick={(event) => { setReturnFocus(event.currentTarget); setError(null); setCancelOpen(true); }}>시리즈 전체 취소</button> : null}
         {['COMPLETED', 'CANCELLED', 'EXPIRED'].includes(state.series.status) ? <button className="rm-primary-action" type="button" onClick={onNewSeries}>새 시리즈 시작</button> : null}
         <small>페이지를 닫아도 자동 취소하지 않습니다. 같은 탭 새로고침은 Series ID로 서버 상태를 복구합니다.</small>
       </aside>
       {error ? <div className="sr-hub-error" role="alert"><strong>요청을 완료하지 못했습니다</strong><p>{error}</p></div> : null}
     </main>
-    <SeriesCancelDialog open={cancelOpen} pending={pending === 'CANCEL'} error={pending === 'CANCEL' ? error : null} returnFocus={returnFocus} onClose={() => setCancelOpen(false)} onConfirm={confirmCancel} />
+    <SeriesCancelDialog open={cancelOpen} pending={pending === 'CANCEL'} error={cancelOpen ? error : null} returnFocus={returnFocus} onClose={() => { if (!pendingRef.current) setCancelOpen(false); }} onConfirm={confirmCancel} />
   </div>;
 }

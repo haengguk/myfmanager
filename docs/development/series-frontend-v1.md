@@ -74,7 +74,7 @@ npm run bundle:verify
 - 1440×900과 1280×720: horizontal overflow 0, score/context/Draft/취소 dialog 주요 레이아웃 확인
 - 실제 simulation 응답의 gzip 전송과 console error 0 확인
 
-실제 smoke의 simulation은 모두 HTTP 200으로 완료돼 live 202를 강제로 만들지는 못했다. 202 reservation response, bounded polling, compact-result replay와 stale/loss reconciliation은 deterministic contract에서 검증했다. 실제 지연 worker와 response-loss 조합의 네트워크·키보드 심화 검증은 다음 `SERIES_LIVE_E2E_AND_ACCESSIBILITY` 범위다.
+후속 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`에서 실제 backend reservation 중 동일 command replay로 HTTP 202를 만들고, browser GET polling과 committed replay를 확인했다. 실제 cancel/simulate response-loss 뒤에도 authoritative GET과 replay만 수행하며 새 논리 command를 자동 생성하지 않도록 보강했다. 점수/결과 strict validation, pointer not-found/expired 분기, modal pending focus와 live region도 함께 승인했다. 상세 증거는 [Series LIVE E2E and Accessibility](series-live-e2e-and-accessibility.md)에 있다.
 
 이번 작업은 frontend source, scripts와 문서만 대상으로 했다. Backend production/test 변경은 하지 않았고, 따라서 이번 작업을 위한 backend full regression은 실행하지 않았다. 저장소에 이미 존재하던 다른 backend 변경도 보존했다.
 
@@ -83,4 +83,4 @@ npm run bundle:verify
 - Backend process restart recovery, DB/save-load, auth/ownership과 multi-node coordination은 없다.
 - Background progress/WebSocket은 없으며 202는 bounded GET polling으로 재조정한다.
 - Long-running Series의 command receipt 256 no-eviction 제한은 backend 의미를 그대로 따른다.
-- 다음 단계는 실제 202/response-loss 주입, 전 keyboard-only journey와 screen-reader announcement를 포함한 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`다.
+- 실제 screen reader별 음성 품질, 운영 TTL 120분을 기다리는 wall-clock EXPIRED와 process restart/persistence/auth는 후속 수동·backend 범위다.

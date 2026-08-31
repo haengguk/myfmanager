@@ -16,6 +16,11 @@ export function SeriesContextBar({ series, catalog, onOpenGame }: {
   const game = series.games.find((candidate) => candidate.gameNumber === series.currentGameNumber) ?? series.games[series.games.length - 1];
   return (
     <header className="sr-context-bar">
+      <div className="lm-sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {series.format} Game {series.currentGameNumber}, {STATUS_LABELS[series.status]}, 관리 팀 {series.managedTeamCode} {game.controlledSide},
+        점수 {series.teams.map((team) => `${team.teamCode} ${series.score[team.teamCode]}`).join(', ')},
+        하드 피어리스 제외 {series.excludedChampionIds.length}개
+      </div>
       <div className="sr-context-heading">
         <div><span>SERIES DESK</span><h1>{series.format} · Game {series.currentGameNumber}</h1></div>
         <dl>

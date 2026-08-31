@@ -158,7 +158,17 @@ LIVE 경기 준비에서 임의의 두 팀, 관리 팀, BO3/BO5, Game 1 side와 
 
 Deterministic Series contract, 기존 Player Draft 33 scenarios, production build, reference check/verify와 bundle boundary가 통과했다. 실제 BFX–BRO BO3는 3 games/2–1/Hard Fearless 30 picks/최종 BFX 승리까지 완료했고, DK–HLE BO5는 Game 1 RED commit→Game 2 BLUE child와 이전 pick 비활성→child/Series cancel 204를 확인했다. Standalone Player Draft와 AUTO의 endpoint 격리, pointer reload, 1440×900·1280×720 overflow 0, console error 0도 확인했다. Live simulation은 모두 200이라 202/response-loss는 contract로 검증했고 actual delayed worker journey는 다음 accessibility milestone에 남겼다.
 
-Backend production/test는 이번 frontend 작업에서 변경하지 않았고 backend full regression도 실행하지 않았다. 다음 순서는 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`다. 상세 구현과 제한은 [Series Frontend V1](development/series-frontend-v1.md)에 있다.
+Backend production/test는 이번 frontend 작업에서 변경하지 않았고 backend full regression도 실행하지 않았다. 상세 구현과 제한은 [Series Frontend V1](development/series-frontend-v1.md)에 있다.
+
+### Series LIVE E2E and Accessibility
+
+상태는 `SERIES_LIVE_E2E_AND_ACCESSIBILITY_ACCEPTED`다.
+
+Series/child cancel과 simulate response-loss는 revision/대상에 결속한 하나의 논리 command ID를 유지하고, 불명확한 응답 뒤 authoritative GET으로 먼저 조정한다. Committed winner tally와 score, required wins/status, result/receipt를 exact validation하며, pointer not-found/expired와 retryable network/version 오류를 분리한다. 취소 modal의 초기 포커스·trap·pending Escape 차단·오류 alert/restore와 Series context polite live region도 보강했다.
+
+실제 LIVE에서 DK–HLE Game 1 정상 commit, BFX–BRO BO3 2–1/Hard Fearless 30, reservation 중 동일 simulate command의 HTTP 202→GET polling→replay, simulate/child/Series cancel response-loss 뒤 중복 mutation 0을 확인했다. Active reload, network pointer 유지, 실제 404 pointer 제거, keyboard-only 주요 Draft action, 1280×720·1440×900 overflow 0와 reduced-motion을 통과했다. AUTO 200과 standalone Player Draft create/action/cancel도 전용 endpoint만 사용했다.
+
+Frontend contract/build/reference/bundle lane을 통과했고 backend production/test는 변경하지 않아 backend full regression은 실행하지 않았다. 실제 wall-clock EXPIRED, screen reader 제품별 음성, backend persistence/auth/multi-node는 남은 제한이다. 상세 증거는 [Series LIVE E2E and Accessibility](development/series-live-e2e-and-accessibility.md)에 있다.
 
 ### Player-controlled Draft Frontend V1
 

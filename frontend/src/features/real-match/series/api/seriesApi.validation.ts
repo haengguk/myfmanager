@@ -142,7 +142,7 @@ function validateReceipt(value: unknown, path: string): void {
   integer(source.randomDrawCount, `${path}.randomDrawCount`);
 }
 
-function validateResult(value: unknown, teams: readonly string[], game: JsonRecord, path: string): void {
+function validateResult(value: unknown, teams: readonly string[], game: JsonRecord, path: string): string | null {
   const source = record(value, path);
   exact(source, ['winnerTeamCode', 'winnerSide', 'endReason', 'durationSeconds', 'teamKills', 'teamGold'], path);
   const winnerCode = source.winnerTeamCode === null ? null : text(source.winnerTeamCode, `${path}.winnerTeamCode`);
@@ -155,6 +155,7 @@ function validateResult(value: unknown, teams: readonly string[], game: JsonReco
   text(source.endReason, `${path}.endReason`); integer(source.durationSeconds, `${path}.durationSeconds`, 1);
   validateIntegerMap(source.teamKills, teams, `${path}.teamKills`);
   validateIntegerMap(source.teamGold, teams, `${path}.teamGold`);
+  return winnerCode;
 }
 
 function validateGame(value: unknown, teams: readonly string[], managed: string, expectedNumber: number, path: string): SeriesGameViewDto {
@@ -181,9 +182,16 @@ function validateGame(value: unknown, teams: readonly string[], managed: string,
   const childRevision = source.childDraftRevision === null ? null : integer(source.childDraftRevision, `${path}.childDraftRevision`);
   if ([childId, childStatus, childRevision].filter((entry) => entry !== null).length !== 0
     && [childId, childStatus, childRevision].some((entry) => entry === null)) fail(path, 'child Draft identity/status/revision은 함께 존재해야 합니다.');
-  if (source.result !== null) validateResult(source.result, teams, source, `${path}.result`);
+  const resultWinner = source.result === null ? null : validateResult(source.result, teams, source, `${path}.result`);
   if (source.receipt !== null) validateReceipt(source.receipt, `${path}.receipt`);
-  if (status === 'COMMITTED' && (source.result === null || source.receipt === null)) fail(path, 'COMMITTED game에는 compact result와 receipt가 필요합니다.');
+  if ((source.result === null) !== (source.receipt === null)) fail(path, 'compact result와 receipt는 함께 존재해야 합니다.');
+  if (status === 'COMMITTED' && (source.result === null || source.receipt === null || resultWinner === null)) {
+    fail(path, 'COMMITTED game에는 승자가 있는 compact result와 receipt가 필요합니다.');
+  }
+  if (status !== 'COMMITTED' && status !== 'BLOCKED' && (source.result !== null || source.receipt !== null)) {
+    fail(path, `${status} game에는 compact result/receipt가 존재할 수 없습니다.`);
+  }
+  if (status === 'BLOCKED' && resultWinner !== null) fail(`${path}.result.winnerTeamCode`, 'BLOCKED game의 compact result는 승자를 가질 수 없습니다.');
   return value as SeriesGameViewDto;
 }
 
@@ -254,6 +262,9 @@ export function validateSeriesViewPayload(value: unknown): SeriesViewDto {
   const managed = text(root.managedTeamCode, '$.managedTeamCode'); const opponent = text(root.opponentTeamCode, '$.opponentTeamCode');
   if (!teamCodes.includes(managed) || !teamCodes.includes(opponent) || managed === opponent) fail('$', 'managed/opponent identity는 참가 팀에 정확히 결속돼야 합니다.');
   const score = validateIntegerMap(root.score, teamCodes, '$.score');
+  teamCodes.forEach((teamCode) => {
+    if (score[teamCode] > winsRequired) fail(`$.score.${teamCode}`, 'format required wins를 초과할 수 없습니다.');
+  });
   const currentGameNumber = integer(root.currentGameNumber, '$.currentGameNumber', 1);
   signedInt64(root.rootSeed, '$.rootSeed'); text(root.seedDerivationAlgorithm, '$.seedDerivationAlgorithm'); const currentSeed = signedInt64(root.currentGameSeed, '$.currentGameSeed');
   const excluded = uniqueStrings(root.excludedChampionIds, '$.excludedChampionIds', true); sha(root.seriesHistoryBeforeHash, '$.seriesHistoryBeforeHash');
@@ -264,6 +275,17 @@ export function validateSeriesViewPayload(value: unknown): SeriesViewDto {
   if (current.gameNumber !== currentGameNumber || current.matchSeed !== currentSeed) fail('$.currentGameNumber', 'ordered games의 current game/seed와 일치해야 합니다.');
   const committed = games.filter((game) => game.status === 'COMMITTED');
   if (Object.values(score).reduce((sum, wins) => sum + wins, 0) !== committed.length) fail('$.score', 'committed game 수와 team-code score 합이 일치해야 합니다.');
+  const winnerTally = Object.fromEntries(teamCodes.map((teamCode) => [teamCode, 0])) as Record<string, number>;
+  committed.forEach((game) => {
+    const winnerTeamCode = game.result?.winnerTeamCode;
+    if (winnerTeamCode === null || winnerTeamCode === undefined || !teamCodes.includes(winnerTeamCode)) {
+      fail(`$.games[${game.gameNumber - 1}].result.winnerTeamCode`, 'COMMITTED game의 참가 팀 승자가 필요합니다.');
+    }
+    winnerTally[winnerTeamCode] += 1;
+  });
+  teamCodes.forEach((teamCode) => {
+    if (score[teamCode] !== winnerTally[teamCode]) fail(`$.score.${teamCode}`, 'COMMITTED game winner 집계와 정확히 일치해야 합니다.');
+  });
   if (excluded.length !== committed.length * 10) fail('$.excludedChampionIds', 'committed game당 정확히 10개 pick이 누적돼야 합니다.');
   if (root.activeDraftSession !== null) validateChild(root.activeDraftSession, partial, current, '$.activeDraftSession');
   if ((root.activeDraftSession === null) !== (current.childDraftSessionId === null)) fail('$.activeDraftSession', 'current game child projection과 일치해야 합니다.');
@@ -276,8 +298,9 @@ export function validateSeriesViewPayload(value: unknown): SeriesViewDto {
   if (new Set(commands).size !== commands.length) fail('$.allowedCommands', '명령은 중복될 수 없습니다.');
   const winner = root.winnerTeamCode === null ? null : text(root.winnerTeamCode, '$.winnerTeamCode');
   if (status === 'COMPLETED') {
-    if (winner === null || !teamCodes.includes(winner) || score[winner] < winsRequired) fail('$.winnerTeamCode', 'COMPLETED Series의 authoritative winner가 필요합니다.');
+    if (winner === null || !teamCodes.includes(winner) || score[winner] !== winsRequired || winnerTally[winner] !== winsRequired) fail('$.winnerTeamCode', 'COMPLETED Series winner는 required wins와 game winner 집계에 정확히 일치해야 합니다.');
   } else if (winner !== null) fail('$.winnerTeamCode', 'COMPLETED 이전에는 winner가 없어야 합니다.');
+  if (status === 'ACTIVE' && teamCodes.some((teamCode) => score[teamCode] >= winsRequired)) fail('$.status', 'required wins에 도달한 Series는 ACTIVE일 수 없습니다.');
   if (status !== 'ACTIVE' && status !== 'BLOCKED' && commands.some((command) => command !== 'GET')) fail('$.allowedCommands', 'terminal Series는 GET만 허용할 수 있습니다.');
   instant(root.createdAt, '$.createdAt'); instant(root.lastActivityAt, '$.lastActivityAt'); instant(root.expiresAt, '$.expiresAt');
   if (bool(root.processLocalRestartLoss, '$.processLocalRestartLoss') !== true) fail('$.processLocalRestartLoss', 'V1 process-local restart loss는 true여야 합니다.');

@@ -785,6 +785,14 @@ npm run bundle:verify
 
 Live Production V9 simulation은 모두 HTTP 200으로 끝나 actual 202를 강제하지 않았다. 202 polling, compact commit replay와 response-loss reconciliation은 synthetic contract에서 검증했고, 실제 delayed worker/response-loss와 전체 keyboard/screen-reader journey는 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`에 남긴다. Frontend-only 작업이므로 이번 milestone을 위한 backend full regression은 실행하지 않았다. 상세 결과는 [Series Frontend V1](series-frontend-v1.md)에 있다.
 
+### Series LIVE E2E and Accessibility
+
+Series transport/accessibility hardening은 위 여섯 frontend 명령을 그대로 final lane으로 사용한다. `series:verify`는 committed winner tally와 score exact equality, ACTIVE/COMPLETED required-win/status, result/receipt pairing, pointer error classification, Series/child cancel logical command binding과 double-submit request count를 추가로 검증한다.
+
+Actual Playwright는 DK–HLE 정상 Game 1과 BFX–BRO complete BO3, 동일 simulate command의 실제 reservation 202, simulate/child cancel/Series cancel 응답 손실 뒤 GET reconciliation, active pointer reload/network 유지/실제 not-found 제거를 확인했다. 1280×720·1440×900 horizontal overflow 0, modal viewport/focus, reduced-motion `0.00001s`, live region role/name을 DOM으로 검증했다. AUTO는 `/api/v1/real-matches/simulate`, standalone 직접 Draft는 `/api/v1/player-drafts/sessions` create/action/cancel만 사용해 endpoint 격리도 재확인했다.
+
+의도적으로 response CORS를 차단한 요청의 browser error는 fault evidence로 따로 기록하고 clean 정상/202 flow의 console/page/runtime validation error 0과 섞지 않는다. 실제 backend Java/resource/Gradle/runtime은 변경하지 않았으므로 backend full regression은 실행하지 않는다. 상세 ID, status, request count와 제한은 [Series LIVE E2E and Accessibility](series-live-e2e-and-accessibility.md)에 있다.
+
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.
 
 - `backend/build/`, `backend/bin/`
