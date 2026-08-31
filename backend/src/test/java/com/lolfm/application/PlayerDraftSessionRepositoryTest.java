@@ -194,7 +194,7 @@ class PlayerDraftSessionRepositoryTest {
                 SimulationReceipt.SCHEMA, "PLAYER_CONTROLLED_DRAFT:GEN:T1:GAME:1:SEED:73",
                 "policy", hash, "PRODUCTION_MATCHUP_COMPOSITION_V1", hash,
                 "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9",
-                "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3", hash, hash, hash, hash, hash,
+                "MATCH_SIMULATOR_PRE_JUNGLE_RULES_V4", hash, hash, hash, hash, hash,
                 hash, "PLAYER_CONTROLLED_DRAFT_V1", hash, hash, hash, hash, hash,
                 SimulationRandomFingerprint.SCHEMA, 100L, hash,
                 SimulationRandomFingerprint.TRACE_HASH_ALGORITHM,

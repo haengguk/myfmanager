@@ -36,7 +36,7 @@ class RealJungleEconomyCandidateIntegrationTest {
         assertThat(candidate.executionProvenance().activeGameplayRulesVersion())
                 .isEqualTo(SimulationRuntimeProfiles
                         .JUNGLE_ECONOMY_ACTIVE_GAMEPLAY_RULES_VERSION)
-                .isEqualTo("MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3");
+                .isEqualTo("MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V4");
         assertThat(candidate.executionProvenance().resourceProvenance()
                 .jungleClearGameplayEnabledProfileCount()).isEqualTo(51);
         assertThat(candidate.playerIdsByMatchSlot()).hasSize(10);

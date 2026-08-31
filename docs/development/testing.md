@@ -153,6 +153,16 @@ Diagnostic 결과를 normal unit-test assertion으로 옮기려면 먼저 그것
 
 구조물 correctness는 `StructureEngineRedesignTest`와 관련 resolver/integration suite에서 explicit cross-lane target, 3인 base minimum, 종료 guard, duplicate mutation/reward/Random 0회, display-name isolation, HP/plate/partial damage, local defender/backdoor, wave/attacker/defender stop, 180초·40% 넥서스 포탑 재생성, post-fight 연속 종료와 structured snapshot/event를 deterministic invariant로 검증한다. `MatchEngineV1CrossJvmDeterminismTest`는 새 enum set/map과 구조물 상태의 process-level canonical order를 별도로 검증한다.
 
+Base siege strategic coherence hardening은 production 변경 전에 `BaseSiegeStrategicCoherenceTest.previousTickNexusEmergencyStopsActiveLowerTierSiegeBeforeMutation`을 추가해 기존 active lower-tier siege가 자기 Nexus 노출 다음 tick에도 실제 HP를 깎는 실패를 확인했다. 수정 뒤 이 suite의 8 tests는 다음을 고정한다.
+
+- 이전 tick부터 존재한 `NEXUS_THREAT`에서 Baron 여부와 무관하게 OUTER/INNER/INHIBITOR_TURRET/INHIBITOR continuation 중단
+- damage/gold/plate/attack sequence/wave/structure slot 추가 변이 0, 공통 activity release와 FARM expiry 비연장, duplicate call 멱등성
+- BLUE/RED mirror와 동일 tick 신규 위협의 소급 취소 금지, 다음 tick 양측 동일 반영
+- 안전한 base-race 계약 부재 시 Nexus continuation fail-closed, 안전한 자기 기지의 no-kill Baron Nexus finish 보존
+- diagnostics ON/OFF 및 반복 실행의 structured decision exact equality, Nexus finish 이후 추가 structure event/mutation 0
+
+영향 범위 검증은 새 suite와 `StructureEngineRedesignTest`, `LateGameStructureBranchTest`, structure slot/causality/target, `MatchSimulatorSmokeTest`, runtime profile, Match Engine V1 contract, Jungle candidate provenance, same-seed와 cross-JVM 결정성의 13 suites / 115 tests를 실행해 failures/errors/skipped 0으로 통과했다. 공통 gameplay 의미를 구분하기 위해 active rules는 Pre-Jungle/Jungle Economy/Jungle Tempo 각각 V4/V4/V3으로 올렸고 production policy hash는 `3afaa399f7c2b20a940c7cfd7510f6c7962ba43eec575cc75ed55218d53f0ce9`로 재계산했다. Profile activation, configuration hash, engine V9, tuning 값은 바꾸지 않았다.
+
 분포 관측은 기본 `test`에 넣지 않고 다음 전용 task로 실행한다.
 
 ```bash
@@ -162,7 +172,7 @@ cd backend
 
 이 diagnostic은 첫 구조물 피해/첫 포탑/기지 개방/경기 종료 분포, 넥서스 포탑 철거 뒤 넥서스 연결, kill 사이 구조물 연속 철거와 duplicate event ID, 비정상 HP, source 누락, 보호 중 넥서스 파괴, 종료 뒤 mutation을 structured field만으로 집계한다. Event message나 frontend text는 읽지 않으며 production tuning의 assertion oracle로 사용하지 않는다.
 
-V9 provenance/profile/API/압축/artifact-boundary/cross-JVM 집중 검증은 clean pass했다. 최종 production tree의 complete backend regression은 205 suites / 2,132 tests / failures 0 / errors 0 / skipped 0, Gradle wall 11분 11초로 통과했다. 이 실행은 앞선 clean full 뒤 구조물 의미 변경이 여전히 V8/rules V2로 표시되는 production provenance 결함을 발견해 V9/rules V3·V2로 고친 후 수행한 예외적 세 번째 full이다. Profile 전체의 replay/output identity가 바뀌므로 focused evidence만으로는 충분하지 않았다. 이 최종 pass 뒤에는 Markdown만 갱신했다.
+최종 executable production tree의 complete backend regression은 첫 실행에서 239 suites / 2,282 tests / failures 0 / errors 0 / skipped 2, aggregate JUnit XML 2,041.953초, Gradle wall 18분 28초로 통과했다. 이번 hardening을 위한 full regression은 이 한 번뿐이며, 이후에는 Markdown만 갱신했다. Balance 수치를 바꾸지 않았고 correctness가 focused/integration에서 충분히 증명됐으므로 200-seed structure diagnostic, 대규모 calibration/holdout과 historical artifact 재생성은 실행하지 않았다.
 
 ## Pre-Jungle Runtime Baseline
 
@@ -750,11 +760,30 @@ gradlew.bat test \
 
 Repository/hardening test는 64개 concurrent create의 exact capacity 32, stale cleanup 대 성공 mutation의 latch race, create index, Series별 atomic compute, instance isolation, parent/child/lease 경계를 injected Clock으로 검증한다. Controllable executor는 success/failure/in-progress exact replay, same/different concurrent command, cancel 중 late success/failure, lease expiry→retry→old late success/integrity failure, receipt 255/256, full aggregate replay transition, BO3 2–0/2–1과 BO5 3–0/3–2를 고정한다. Joint-pool test는 independent five-role check가 공유 챔피언을 중복 사용할 수 있는 synthetic 반례와 정확한 열 champion 경계를 검증한다. 이 focused 묶음은 25 tests, failure/error/skip 0이다. 기존 Player Draft/Match Engine V1/Real Match/Draft 호환성 묶음은 8 suites / 58 tests, failure/error/skip 0이다.
 
-이 milestone에서는 frontend build, Playwright, large-seed distribution, calibration/holdout과 historical artifact regeneration을 실행하지 않는다. 현재 실제 결과와 제한은 [Series backend hardening](series-lifecycle-v1-backend-hardening.md)에 기록한다.
+이 backend milestone에서는 frontend build, Playwright, large-seed distribution, calibration/holdout과 historical artifact regeneration을 실행하지 않았다. 현재 실제 결과와 제한은 [Series backend hardening](series-lifecycle-v1-backend-hardening.md)에 기록한다.
 
 최초 implementation executable tree의 complete backend regression은 231 suites / 2,246 tests / failures 0 / errors 0 / skipped 0이었다. 이번 hardening final production executable tree는 첫 실행에서 233 suites / 2,261 tests / failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 1,781.459초, Gradle wall은 29분 50초다. Clean full 뒤 isolated lease late-integrity assertion-only test를 강화해 affected focused만 통과했고 production source는 바뀌지 않았으므로 full을 반복하지 않았다.
 
 후속 frontend-readiness final executable tree의 complete backend regression은 첫 실행에서 234 suites / 2,266 tests / failures 0 / errors 0 / skipped 0으로 통과했다. Aggregate JUnit XML은 1,931.403초, Gradle wall은 17분 12초다. Clean full 뒤에는 문서만 갱신했으므로 complete regression을 반복하지 않았다. 상세 계약은 [Series frontend readiness hardening](series-lifecycle-v1-frontend-readiness-hardening.md)에 기록한다.
+
+### Series Frontend V1
+
+Series frontend의 deterministic contract lane은 다음과 같다.
+
+```text
+npm run series:verify
+npm run player-draft:verify
+npm run build
+npm run reference:check
+npm run reference:verify
+npm run bundle:verify
+```
+
+`series:verify`는 arbitrary DK/HLE BO3/BO5 fixture로 exact create/current game/child/action/simulate 200·202/replay/commit/completion schema, Game 2+ binding, team-code score, cumulative Hard Fearless와 production identity를 검증한다. 202의 null match/reservation, stale revision ordering, pointer round trip과 malformed mutation 거부도 포함한다. 기존 Player Draft 33 scenarios, reference source/raw checksum, reference semantics와 lazy bundle boundary는 별도 명령으로 그대로 통과했다.
+
+실제 LIVE browser smoke는 BFX–BRO BO3에서 관리 BFX/Game 1 BLUE/root 73으로 3 games, score 2–1, Hard Fearless 0→10→20과 final winner를 확인했다. DK–HLE BO5에서는 관리 DK/Game 1 RED, Game 1 commit, Game 2 BLUE child, previous picks의 structured unavailable reason, child/Series 각각 DELETE 204를 확인했다. Standalone Player Draft는 자체 session/action 10/simulate endpoint만, AUTO는 real-matches simulate endpoint만 호출했다. Series pointer reload는 같은 ID/revision/status를 GET으로 복구했다. 1440×900과 1280×720에서 horizontal overflow는 0이고 browser console error도 0이었다.
+
+Live Production V9 simulation은 모두 HTTP 200으로 끝나 actual 202를 강제하지 않았다. 202 polling, compact commit replay와 response-loss reconciliation은 synthetic contract에서 검증했고, 실제 delayed worker/response-loss와 전체 keyboard/screen-reader journey는 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`에 남긴다. Frontend-only 작업이므로 이번 milestone을 위한 backend full regression은 실행하지 않았다. 상세 결과는 [Series Frontend V1](series-frontend-v1.md)에 있다.
 
 다음은 검증 결과 또는 일시 artifact이며 correctness input이나 source of truth가 아니다.
 

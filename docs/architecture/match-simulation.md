@@ -39,7 +39,7 @@ Draft scoring/search 자체는 Random을 사용하지 않는다. 선수별 champ
 
 Diagnostics는 gameplay configuration 밖의 instrumentation이다. ON/OFF가 `SimulationOptions.diagnosticsEnabled`만 바꾸며 configuration/replay hash와 timeline을 바꾸지 않는 exact equality test가 있다.
 
-Baseline, Matchup-only, Full candidate와 production profile은 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2`를 사용한다. V3/V2 갱신은 V9 구조물 내구도·지속 공성 규칙이 모든 profile에 공통으로 적용된 사실을 식별한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
+Baseline, Matchup-only, Full candidate와 production profile은 `activeGameplayRulesVersion=MATCH_SIMULATOR_PRE_JUNGLE_RULES_V4`를 공유한다. Pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V4`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V3`를 사용한다. 이 갱신은 V9 구조물 내구도·지속 공성에 더해 active siege의 tick-start 자기 기지 비상 판정이 모든 profile에 공통으로 적용된 사실을 식별한다. 이 version은 profile의 configuration hash와 별개로, configuration 밖의 공통 production rule semantics를 식별한다.
 
 ## Match Engine V1 Policy Boundary
 
@@ -54,7 +54,7 @@ V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal ch
 - `configurationHash`: profile ID와 diagnostics를 제외한 field-complete gameplay configuration만 SHA-256으로 고정한다.
 - `resourceProvenanceHash`: Champion manifest/catalog/Power/Matchup/Composition/Jungle Clear, Player Identity/Ratings/Proficiency, Draft Meta의 version/path/raw SHA와 semantic hashes를 고정한다.
 - `engineImplementationVersion`: simulator 구현 계열을 식별한다. 현재 `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9`다. V8은 authoritative player rating/proficiency 실행을 추가했고, V9은 명시적 구조물 target, 전체 구조물 HP, match-scoped 지속 공성/웨이브, 구조화된 중복 방어와 넥서스 포탑 재생성을 통합했다.
-- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. Baseline, Matchup-only, Full candidate와 production profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2`다.
+- `activeGameplayRulesVersion`: 선택한 profile이 사용하는 공통 gameplay rule semantics를 식별한다. Baseline, Matchup-only, Full candidate와 production profile은 `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V4`, pure-JRM Jungle Economy candidate는 `MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V4`, Jungle Tempo candidate는 `MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V3`다.
 - `replayProvenanceHash`: configuration, engine implementation, active gameplay rules, resource snapshot, side/team/roster, seed, series-history-before, Draft rules/scoring/selection policy, selection trace hash, ordered draft decision, final draft와 final assignment를 고정한다. Profile alias와 instrumentation은 제외한다. Match Engine V1은 이 legacy identity와 전체 `MatchEngineV1Input.inputHash`를 별도 V1 replay binding으로 다시 묶어 명시적 rating/proficiency snapshot도 재현 입력에 포함한다.
 - `timelineHash`: sorted-property/map-key canonical JSON으로 complete events/snapshots/winner/duration output을 고정한다.
 - `randomFingerprint`: match의 seeded `Random.next(bits)` draw count와 resolver context/value의 ordered SHA-256을 기록한다. Gameplay input이 아닌 observational output이므로 configuration/replay hash에는 넣지 않는다.
@@ -100,14 +100,14 @@ V1은 invalid roster/position/player/final assignment/Draft/policy와 illegal ch
 한 tick은 10초다. `MatchSimulator`의 실제 순서는 다음과 같다.
 
 1. 시간을 증가시키고 Baron buff, player activity, mid/late macro plan을 만료한다.
-2. major-combat participant와 structure-action per-tick registry를 비우고 recent objective control을 감쇠한다.
+2. major-combat participant와 structure-action per-tick registry를 비우고 구조물 respawn lifecycle event를 배출한 뒤 recent objective control을 감쇠한다.
 3. 양 팀 passive gold를 지급한다.
 4. lane pressure를 갱신한다.
 5. BLUE, RED 순서로 position economy/FARM을 처리하고 progression economy event를 배출한다. Jungle Economy ON에서는 기존 player iteration 위치에서 JUNGLE만 unified resolver가 CS/gold/XP를 함께 처리한다. Jungle Tempo candidate에서는 이 단계의 actual successful outcome만 같은 side의 tempo credit을 갱신한다.
 6. 첫 combat priority를 실행한다: Jungle Gank → Roam → Lane Combat.
 7. objective spawn state를 갱신한다.
 8. 앞선 actual attempt가 없으면 generic Skirmish를, 그마저 없으면 scheduled Teamfight를 평가하고 teamfight 승자의 objective control을 갱신한다.
-9. lane-phase outer siege를 처리한다.
+9. 이전 tick부터 이어진 양 팀 active siege의 tick-start continuation/stop 판정을 모두 먼저 계산하고, 중단을 적용한 뒤 허용된 지속 공성과 lane-phase outer siege를 처리한다.
 10. Teamfight outcome이 있으면 post-fight objective와 post-fight push window를 순서대로 처리한다.
 11. match가 끝나지 않았고 post-fight objective가 없으면 일반 objective attempt를 평가한다. responder가 `CONTEST`할 수 있는 것은 이 tick에 major combat이 아직 없을 때뿐이다.
 12. lane-to-mid-game 및 late-game transition을 평가한다.
@@ -162,6 +162,10 @@ actual attempt는 `NO_KILL` 결과여도 action state, FARM block, pressure cost
 공성은 eligibility를 모두 통과한 뒤에만 시작하고 그 전에는 Random, activity, FARM block, 구조물 slot을 소비하지 않는다. 일반/Baron/post-fight 공성은 해당 lane의 준비된 wave와 실제 생존 참가자를 요구하며 local defender 수에 따라 피해가 감소한다. Base 목표는 최소 3명이 필요하고, 미달이면 일반 lane 경로로 fallthrough하지 않는다. Wave가 없는 backdoor는 별도 mode로 10% 피해와 한 번의 공격 기회만 허용한다.
 
 `BaseSiegeState`는 한타 승리당 구조물 하나로 끊지 않고 10초 간격의 다음 공격으로 이어진다. 공격자 사망, 수비자 복귀, wave 소멸, 공격 기회/기간 만료, 보호된 target 또는 match 종료가 공성을 중단한다. 마지막 넥서스 포탑을 파괴한 wave에는 제한된 nexus commit 기회가 생겨 현실적인 `억제기 → 쌍둥이 → 넥서스` 전환을 허용한다. 한 tick에는 한 구조물 mutation만 발생한다.
+
+Active siege continuation은 구조물 mutation 전에 양 진영을 두 단계로 평가한다. 첫 단계가 `BaseThreatEvaluator`의 자기 기지 snapshot과 상대 active Nexus target을 읽어 모든 due siege의 결정을 고정하고, 두 번째 단계가 tick-start stop을 먼저 적용한 뒤 허용된 공격만 실행한다. 따라서 같은 tick 안에서 마지막 넥서스 포탑이 새로 파괴돼 만들어진 위협은 그 tick의 반대편 합법 행동을 소급 취소하지 않고 다음 tick부터 적용되며, `TeamSide.values()`의 BLUE-first 순서는 eligibility가 아니다.
+
+Tick 시작에 자기 넥서스가 이미 노출됐거나 직접 위협받는 팀의 OUTER/INNER/INHIBITOR_TURRET/INHIBITOR 지속 공성은 `OWN_BASE_EMERGENCY`로 damage·gold·plate·attack sequence·Random 소비 전에 중단한다. `StructureActionData`는 `ownBaseThreatLevelAtDecision`, `strategicContinuationDecision`, nullable `strategicallyAllowed`를 additive하게 노출한다. 안전한 structured base-race commit 계약은 아직 없으므로 자기 기지 emergency 중 상대 Nexus continuation도 V1에서는 `BASE_RACE_REJECTED_FAIL_CLOSED`로 중단한다. 반대로 자기 기지가 안전하면 kill count와 무관하게 유효한 Baron wave의 넥서스 마무리는 계속 허용한다.
 
 Counter-gank는 독립적인 parallel combat이 아니라 selected Jungle Gank attempt 안에서 resolver response로 실행된다. Objective fight와 late-game siege도 기존 teamfight/common kill path를 재사용한다.
 

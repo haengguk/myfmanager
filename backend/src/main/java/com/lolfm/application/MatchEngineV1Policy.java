@@ -40,7 +40,7 @@ public final class MatchEngineV1Policy {
     public static final String ROLLBACK_MODE = "EXPLICIT_VERSIONED_POLICY_CHANGE_ONLY";
     public static final boolean AUTOMATIC_FALLBACK = false;
     public static final String APPROVED_POLICY_SHA256 =
-            "78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493";
+            "3afaa399f7c2b20a940c7cfd7510f6c7962ba43eec575cc75ed55218d53f0ce9";
     /** Historical Final 13G evidence identity; retained for audit compatibility only. */
     public static final String FINAL_13G_B_MANIFEST_SHA256 =
             "bd9a9cf3b089cfc76fceb0311094c1b70232278404f5675c42d89849d927bc98";

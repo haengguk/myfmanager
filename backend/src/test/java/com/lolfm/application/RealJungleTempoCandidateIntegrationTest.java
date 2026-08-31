@@ -36,7 +36,7 @@ class RealJungleTempoCandidateIntegrationTest {
         assertThat(candidate.executionProvenance().activeGameplayRulesVersion())
                 .isEqualTo(SimulationRuntimeProfiles
                         .JUNGLE_TEMPO_ACTIVE_GAMEPLAY_RULES_VERSION)
-                .isEqualTo("MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2");
+                .isEqualTo("MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V3");
         assertThat(candidate.executionProvenance().engineImplementationVersion())
                 .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
         assertThat(candidate.executionProvenance().resourceProvenance()

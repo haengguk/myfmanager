@@ -11,5 +11,6 @@ public enum SiegeStopReason {
     WAVE_LOST,
     TARGET_PROTECTED,
     NO_TARGET,
-    REPLACED
+    REPLACED,
+    OWN_BASE_EMERGENCY
 }

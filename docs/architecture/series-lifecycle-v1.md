@@ -1,12 +1,12 @@
 # Series Lifecycle V1
 
-상태: `SERIES_LIFECYCLE_V1_FRONTEND_READY`
+상태: `SERIES_FRONTEND_V1_ACCEPTED`
 
 이 문서는 [계약 스케치](series-lifecycle-v1-contract-sketch.md)에서 제안했던 Series backend 중 현재 실제 구현된 V1을 설명한다. 구현은 additive `/api/v1/series` 경계이며 기존 standalone Player Draft와 Real Match API의 의미를 바꾸지 않는다.
 
 ## 제품 의미
 
-Backend가 이제 한 BO3/BO5의 참가 팀, 점수, game 순서, side, seed, 누적 Hard Fearless history, child Draft, simulation reservation과 result commit을 하나의 authoritative aggregate로 소유한다. Client가 winner, score, game seed, history, production profile 또는 completed result를 제출할 수 없다.
+Backend가 한 BO3/BO5의 참가 팀, 점수, game 순서, side, seed, 누적 Hard Fearless history, child Draft, simulation reservation과 result commit을 하나의 authoritative aggregate로 소유한다. Frontend는 LIVE 팀 중 관리 팀과 상대, BO3/BO5, Game 1 side와 signed-long root seed를 받아 이 aggregate를 만들고, server가 내려 준 score/current game/side/history/`allowedCommands`를 그대로 표시한다. Client가 winner, score, game seed, history, production profile 또는 completed result를 제출할 수 없다.
 
 한 game의 정상 흐름은 다음과 같다.
 
@@ -94,13 +94,18 @@ Base path는 `/api/v1/series`다.
 
 Request parser는 endpoint별 exact schema/field set, enum, ID, canonical seed와 revision을 검사한다. Unknown field로 score/winner/history/profile/game seed/output을 주입하면 거부한다. Error는 `SERIES_API_ERROR_V1`의 stable code, field, retryable, current revision/status로 반환하며 내부 stack/path/raw payload는 노출하지 않는다. `allowedCommands`도 같은 `SeriesLifecycleConfiguration`의 receipt capacity를 사용한다. 256개 한도에서는 일반적인 신규 mutation을 제거하고 `GET`만 광고하지만, 이미 존재하는 exact command ID replay는 새 receipt를 만들지 않으므로 계속 처리한다.
 
+## Frontend 소비 경계
+
+Series frontend는 기존 AUTO와 standalone Player Draft를 대체하지 않는다. 설정 화면에서 Series를 명시적으로 선택했을 때만 `/api/v1/series`를 사용한다. 각 game의 직접 밴픽은 동일한 Player Draft workspace를 재사용하지만 요청은 Series-owned child endpoint로만 보내며, standalone `/api/v1/player-drafts/sessions`와 섞지 않는다. Draft 완료 뒤 simulation의 200은 full match를 즉시 재생하고, 202는 visibility-aware bounded polling으로 authoritative Series를 다시 조회한다. Compact commit만 복구된 경우에는 해당 game replay endpoint를 명시적으로 호출해 full timeline을 얻는다.
+
+브라우저에는 active Series ID 하나만 `sessionStorage`에 보관한다. Reload 시 GET으로 score, current game, side, history, child state와 capabilities를 다시 구성하며, score나 Draft transcript를 로컬에서 복원하지 않는다. 응답 revision이 현재보다 오래되면 화면 상태에 반영하지 않는다. UI 구조와 실제 검증 결과는 [Series Frontend V1](../development/series-frontend-v1.md)에 기록한다.
+
 ## 현재 제한과 다음 단계
 
-V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit, background job recovery, frontend와 live accessibility flow는 포함하지 않는다. Command receipt 한도 256은 eviction하지 않는다. 이미 기록된 exact replay는 한도에서도 허용하지만 신규 action/simulate/cancel은 실행·mutation 전에 fail-closed하고 `allowedCommands`에도 나타나지 않으므로 장시간 열린 Series는 terminal/cancel command도 거부될 수 있다. V2에서는 persistence와 함께 receipt compaction/retention 정책이 필요하다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다. Frontend-readiness 보강과 검증은 [Series Lifecycle V1 Frontend Readiness Hardening](../development/series-lifecycle-v1-frontend-readiness-hardening.md)에 기록한다.
+V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit과 background job recovery는 포함하지 않는다. Process restart 뒤 browser pointer만 남아 있어도 Series 자체는 복구되지 않는다. Command receipt 한도 256은 eviction하지 않는다. 이미 기록된 exact replay는 한도에서도 허용하지만 신규 action/simulate/cancel은 실행·mutation 전에 fail-closed하고 `allowedCommands`에도 나타나지 않으므로 장시간 열린 Series는 terminal/cancel command도 거부될 수 있다. V2에서는 persistence와 함께 receipt compaction/retention 정책이 필요하다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다. Frontend-readiness 보강과 검증은 [Series Lifecycle V1 Frontend Readiness Hardening](../development/series-lifecycle-v1-frontend-readiness-hardening.md)에 기록한다.
 
 다음 순서는 다음과 같다.
 
 ```text
-SERIES_FRONTEND_V1
--> SERIES_LIVE_E2E_AND_ACCESSIBILITY
+SERIES_LIVE_E2E_AND_ACCESSIBILITY
 ```

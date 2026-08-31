@@ -104,7 +104,7 @@ V1은 다음 runtime만 허용한다.
 | Contract | `MATCH_ENGINE_CONTRACT_V1` |
 | Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V3` |
 | Policy | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_ACCEPTED_PRODUCTION_POLICY` |
-| Policy hash | `78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493` |
+| Policy hash | `3afaa399f7c2b20a940c7cfd7510f6c7962ba43eec575cc75ed55218d53f0ce9` |
 | Activation decision | `PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION` |
 | Acceptance status | `PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT` |
 | Ordered known limitations | Matchup causal lineage 399/400 unresolved; Composition Nexus/ending 9.25% sensitivity > proposed 7.5% tolerance |
@@ -114,7 +114,7 @@ V1은 다음 runtime만 허용한다.
 | Draft selection policy hash | `b4645a9897329b6b0d50405a22ef788885a40ecede4b0fedd04e168211cf75cc` |
 | Runtime profile | `PRODUCTION_MATCHUP_COMPOSITION_V1` |
 | Configuration hash | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
-| Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3` |
+| Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V4` |
 | Engine | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9` |
 | Matchup / Composition | `GEOMETRIC_V2` / `PRODUCTION_V2` |
 | Jungle contribution | `DISABLED_NOT_INTEGRATED` |

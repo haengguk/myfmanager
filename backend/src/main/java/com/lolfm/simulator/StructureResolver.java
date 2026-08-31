@@ -1,5 +1,6 @@
 package com.lolfm.simulator;
 
+import com.lolfm.domain.BaseThreatSnapshot;
 import com.lolfm.domain.MatchEvent;
 import com.lolfm.domain.MatchEventType;
 import com.lolfm.domain.OuterTurretSiegeData;
@@ -7,6 +8,7 @@ import com.lolfm.domain.Position;
 import com.lolfm.domain.StructureActionData;
 import com.lolfm.domain.StructureActionPhase;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class StructureResolver {
+    private final BaseThreatEvaluator baseThreatEvaluator = new BaseThreatEvaluator();
 
     public boolean canAttemptSiege(GameState state, StructureAttackRequest request) {
         if (state.isFinished()) return false;
@@ -190,25 +193,48 @@ public class StructureResolver {
     public void resolveActiveSieges(GameState state, List<MatchEvent> events) {
         if (state.isFinished()) return;
         int time = state.getCurrentTimeSeconds();
+        EnumMap<TeamSide, ContinuationEvaluation> evaluations =
+                new EnumMap<>(TeamSide.class);
         for (TeamSide side : TeamSide.values()) {
             BaseSiegeState siege = state.getBaseSiegeState(side);
             if (!siege.isActive() || time < siege.getNextAttackAtSeconds()) continue;
-            SiegeStopReason stop = continuationStopReason(state, siege);
-            if (stop != null) {
-                siege.stop(stop);
+            ContinuationDecision decision = strategicContinuationDecision(state, siege);
+            evaluations.put(side, new ContinuationEvaluation(
+                    decision, continuationStopReason(state, siege, decision)));
+        }
+
+        // Apply every tick-start stop before any permitted continuation mutates structures.
+        for (TeamSide side : TeamSide.values()) {
+            ContinuationEvaluation evaluation = evaluations.get(side);
+            if (evaluation == null || evaluation.stopReason() == null) continue;
+            BaseSiegeState siege = state.getBaseSiegeState(side);
+            if (!siege.isActive()) continue;
+            siege.stop(evaluation.stopReason());
+            releaseSiegeActivities(state, siege);
+            events.add(createSiegeStopEvent(
+                    state, siege, evaluation.stopReason(), evaluation.decision()));
+        }
+
+        for (TeamSide side : TeamSide.values()) {
+            ContinuationEvaluation evaluation = evaluations.get(side);
+            if (evaluation == null || evaluation.stopReason() != null) continue;
+            BaseSiegeState siege = state.getBaseSiegeState(side);
+            if (!siege.isActive()) continue;
+            if (state.isFinished()) {
+                siege.stop(SiegeStopReason.MATCH_FINISHED);
                 releaseSiegeActivities(state, siege);
-                events.add(createSiegeStopEvent(state, siege, stop));
                 continue;
             }
             StructureAttackRequest request = StructureAttackRequest.continuation(siege);
             Optional<StructureAttackResult> attack = attemptSiege(state, request);
             if (attack.isPresent()) {
-                addAttackEvents(state, attack.get(), events);
+                addAttackEvents(state, attack.get(), events, null, evaluation.decision());
             } else if (siege.isActive()) {
                 siege.stop(SiegeStopReason.TARGET_PROTECTED);
                 releaseSiegeActivities(state, siege);
                 events.add(createSiegeStopEvent(
-                        state, siege, SiegeStopReason.TARGET_PROTECTED));
+                        state, siege, SiegeStopReason.TARGET_PROTECTED,
+                        evaluation.decision()));
             }
         }
     }
@@ -220,7 +246,7 @@ public class StructureResolver {
                     StructureActionPhase.RESPAWNED, target.stableId(), target.kind(), target.lane(),
                     target.towerTier(), target.nexusTurretIndex(), null, fact.defendingSide(),
                     null, 0, 0, fact.currentHealth(), fact.maxHealth(), 0, false,
-                    Set.of(), false, false, false, null);
+                    Set.of(), false, false, false, null, null, null, null);
             MatchEvent event = baseEvent(fact.timeSeconds(), MatchEventType.STRUCTURE_ACTION,
                     "넥서스 포탑이 40% 체력으로 재생성됐습니다.", target, null, null);
             event.setActionId("STRUCTURE_RESPAWN:" + fact.timeSeconds() + ":" + target.stableId());
@@ -236,6 +262,12 @@ public class StructureResolver {
 
     public void addAttackEvents(GameState state, StructureAttackResult result,
                                 List<MatchEvent> events, OuterTurretSiegeData outerSiege) {
+        addAttackEvents(state, result, events, outerSiege, null);
+    }
+
+    private void addAttackEvents(GameState state, StructureAttackResult result,
+                                 List<MatchEvent> events, OuterTurretSiegeData outerSiege,
+                                 ContinuationDecision continuationDecision) {
         StructureTargetId target = result.target();
         StructureActionPhase phase = result.destroyed()
                 ? StructureActionPhase.DESTROYED
@@ -248,7 +280,10 @@ public class StructureResolver {
                 result.healthAfter(), maxHealth(state, target), result.platesClaimed(),
                 result.firstTurretBonus(), result.participants(),
                 result.mode() != StructureAttackMode.BACKDOOR,
-                result.mode() == StructureAttackMode.BACKDOOR, result.siegeContinues(), null);
+                result.mode() == StructureAttackMode.BACKDOOR, result.siegeContinues(), null,
+                continuationDecision == null ? null : continuationDecision.ownBaseThreatLevel(),
+                continuationDecision == null ? null : continuationDecision.reason(),
+                continuationDecision == null ? null : continuationDecision.allowed());
         MatchEvent event;
         if (result.destroyed()) {
             event = createStructureEvent(state, result.destruction());
@@ -596,7 +631,8 @@ public class StructureResolver {
                 StructureKind.NEXUS, null, null, time, reason, true, source, null));
     }
 
-    private SiegeStopReason continuationStopReason(GameState state, BaseSiegeState siege) {
+    private SiegeStopReason continuationStopReason(
+            GameState state, BaseSiegeState siege, ContinuationDecision decision) {
         int time = state.getCurrentTimeSeconds();
         if (state.isFinished()) return SiegeStopReason.MATCH_FINISHED;
         if (time >= siege.getExpiresAtSeconds()) return SiegeStopReason.EXPIRED;
@@ -630,11 +666,13 @@ public class StructureResolver {
                 && !state.getTeamState(siege.getAttackingSide()).hasActiveBaronBuff(time)) {
             return SiegeStopReason.DEFENDERS_RETURNED;
         }
+        if (!decision.allowed()) return SiegeStopReason.OWN_BASE_EMERGENCY;
         return null;
     }
 
     private MatchEvent createSiegeStopEvent(GameState state, BaseSiegeState siege,
-                                            SiegeStopReason reason) {
+                                            SiegeStopReason reason,
+                                            ContinuationDecision continuationDecision) {
         StructureTargetId target = siege.getCurrentTarget();
         StructureActionPhase phase = reason == SiegeStopReason.DEFENDERS_RETURNED
                 ? StructureActionPhase.REPELLED : StructureActionPhase.ABORTED;
@@ -651,8 +689,32 @@ public class StructureResolver {
                 target.nexusTurretIndex(), siege.getAttackingSide(), target.defendingSide(),
                 siege.getSource(), currentHealth(state, target), 0, currentHealth(state, target),
                 maxHealth(state, target), 0, false, siege.getParticipants(),
-                false, siege.getMode() == StructureAttackMode.BACKDOOR, false, reason));
+                false, siege.getMode() == StructureAttackMode.BACKDOOR, false, reason,
+                continuationDecision.ownBaseThreatLevel(), continuationDecision.reason(),
+                continuationDecision.allowed()));
         return event;
+    }
+
+    private ContinuationDecision strategicContinuationDecision(
+            GameState state, BaseSiegeState siege) {
+        TeamSide attackingSide = siege.getAttackingSide();
+        BaseThreatSnapshot ownBaseThreat = baseThreatEvaluator.evaluate(state, attackingSide);
+        BaseSiegeState opposingSiege = state.getBaseSiegeState(attackingSide.opposite());
+        boolean ownNexusUnderAttack = opposingSiege.isActive()
+                && opposingSiege.getCurrentTarget().kind() == StructureKind.NEXUS
+                && opposingSiege.getCurrentTarget().defendingSide() == attackingSide;
+        boolean emergency = ownBaseThreat.overallLevel() == BaseThreatLevel.NEXUS_THREAT
+                || ownNexusUnderAttack;
+        if (!emergency) {
+            return new ContinuationDecision(
+                    ownBaseThreat.overallLevel(), SiegeContinuationDecisionReason.CONTINUATION_ALLOWED,
+                    true);
+        }
+        SiegeContinuationDecisionReason reason = siege.getCurrentTarget().kind()
+                == StructureKind.NEXUS
+                ? SiegeContinuationDecisionReason.BASE_RACE_REJECTED_FAIL_CLOSED
+                : SiegeContinuationDecisionReason.LOWER_VALUE_SIEGE_ABORTED_FOR_BASE_DEFENSE;
+        return new ContinuationDecision(ownBaseThreat.overallLevel(), reason, false);
     }
 
     private MatchEvent baseEvent(int time, MatchEventType type, String message,
@@ -765,5 +827,18 @@ public class StructureResolver {
             case MID -> "미드";
             case BOT -> "바텀";
         };
+    }
+
+    private record ContinuationDecision(
+            BaseThreatLevel ownBaseThreatLevel,
+            SiegeContinuationDecisionReason reason,
+            boolean allowed
+    ) {
+    }
+
+    private record ContinuationEvaluation(
+            ContinuationDecision decision,
+            SiegeStopReason stopReason
+    ) {
     }
 }

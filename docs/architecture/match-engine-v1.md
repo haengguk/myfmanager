@@ -11,10 +11,10 @@
 | Contract schema | `MATCH_ENGINE_CONTRACT_V1` |
 | Policy schema | `MATCH_ENGINE_V1_PRODUCTION_POLICY_V3` |
 | Policy | `MATCH_ENGINE_V1_MATCHUP_COMPOSITION_ACCEPTED_PRODUCTION_POLICY` |
-| Policy hash | `78c3bb1cffe2cd90a1f7acab6923a1813fea40acd135186ff522eabf95d38493` |
+| Policy hash | `3afaa399f7c2b20a940c7cfd7510f6c7962ba43eec575cc75ed55218d53f0ce9` |
 | Runtime profile | `PRODUCTION_MATCHUP_COMPOSITION_V1` |
 | Configuration hash | `caaf76274dc148040b0a95eae1ed5181790b2fc840f45af9b109ea7951c1fd5d` |
-| Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3` |
+| Gameplay rules | `MATCH_SIMULATOR_PRE_JUNGLE_RULES_V4` |
 | Current engine implementation | `MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9` |
 | Matchup / Composition / Jungle contribution | `GEOMETRIC_V2` / `PRODUCTION_V2` / `DISABLED_NOT_INTEGRATED` |
 | Economy / Tempo candidate activation | `false` / `false` |
@@ -26,7 +26,7 @@
 
 `SimulationOptions.productionDefaults()`는 Matchup `GEOMETRIC_V2`, Composition `PRODUCTION_V2`를 사용하는 저수준 constructor default다. 값은 현재 profile과 정렬되지만 이름이나 값의 일치가 제품 authority를 뜻하지 않는다. 권한은 `MatchEngineV1Policy`가 단독으로 소유하고 snapshot의 `lowLevelProductionDefaultsAuthoritativeApplicationDefault`는 `false`다.
 
-이 표는 현재 application policy를 설명한다. ordered risk code의 두 번째 값은 paired calibration의 Matchup-only와 Full 사이 final Nexus/ending signature가 9.25%에서 달랐다는 뜻이며, 넥서스를 9.25% 더 파괴했다는 뜻이 아니다. 7.5%도 직전 proposed tolerance이지 통계적 진리나 새 승인 gate가 아니다. 아래 Freeze Evidence는 Match Engine V1 경계를 처음 고정했을 때의 historical V6 baseline artifact이며 재생성하지 않는다. 이후 production implementation은 player ratings/ability profile의 V8과 구조물 HP·지속 공성·구조화 이벤트의 V9로 진화했다. `BASELINE_V1`은 explicit rollback profile로 보존하며 기존 V8 frontend handoff는 historical reference이고 현재 V9 실행 oracle이 아니다.
+이 표는 현재 application policy를 설명한다. V4 rules와 새 policy hash는 profile 활성화나 configuration 변경이 아니라 V9 active siege의 자기 기지 비상 중단 의미를 replay provenance에 구분한 결과다. ordered risk code의 두 번째 값은 paired calibration의 Matchup-only와 Full 사이 final Nexus/ending signature가 9.25%에서 달랐다는 뜻이며, 넥서스를 9.25% 더 파괴했다는 뜻이 아니다. 7.5%도 직전 proposed tolerance이지 통계적 진리나 새 승인 gate가 아니다. 아래 Freeze Evidence는 Match Engine V1 경계를 처음 고정했을 때의 historical V6 baseline artifact이며 재생성하지 않는다. 이후 production implementation은 player ratings/ability profile의 V8과 구조물 HP·지속 공성·구조화 이벤트의 V9로 진화했다. `BASELINE_V1`은 explicit rollback profile로 보존하며 기존 V8 frontend handoff는 historical reference이고 현재 V9 실행 oracle이 아니다.
 
 ## Immutable Input
 

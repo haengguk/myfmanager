@@ -24,7 +24,7 @@ class SimulationRuntimeProfilesTest {
                     default -> true;
                 }))
                 .extracting(ResolvedSimulationRuntimeProfile::activeGameplayRulesVersion)
-                .containsOnly("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V3");
+                .containsOnly("MATCH_SIMULATOR_PRE_JUNGLE_RULES_V4");
         assertExactCommonGameplay(profiles.get(SimulationRuntimeProfileId.BASELINE_V1));
         assertExactCommonGameplay(
                 profiles.get(SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1));
@@ -36,14 +36,14 @@ class SimulationRuntimeProfilesTest {
                 SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1);
         assertExactCommonGameplayExceptJungle(jungleEconomy);
         assertThat(jungleEconomy.activeGameplayRulesVersion())
-                .isEqualTo("MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V3");
+                .isEqualTo("MATCH_SIMULATOR_JUNGLE_ECONOMY_RULES_V4");
         assertThat(jungleEconomy.gameplayConfiguration().jungleClearContribution())
                 .isEqualTo(JungleClearContribution.ECONOMY_V1);
         ResolvedSimulationRuntimeProfile jungleTempo = profiles.get(
                 SimulationRuntimeProfileId.FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1);
         assertExactCommonGameplayExceptJungle(jungleTempo);
         assertThat(jungleTempo.activeGameplayRulesVersion())
-                .isEqualTo("MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V2");
+                .isEqualTo("MATCH_SIMULATOR_JUNGLE_TEMPO_RULES_V3");
         assertThat(jungleTempo.gameplayConfiguration().jungleClearContribution())
                 .isEqualTo(JungleClearContribution.ECONOMY_AND_GANK_TEMPO_V1);
 

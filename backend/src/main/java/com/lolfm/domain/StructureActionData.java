@@ -1,6 +1,8 @@
 package com.lolfm.domain;
 
+import com.lolfm.simulator.BaseThreatLevel;
 import com.lolfm.simulator.Lane;
+import com.lolfm.simulator.SiegeContinuationDecisionReason;
 import com.lolfm.simulator.SiegeStopReason;
 import com.lolfm.simulator.StructureActionSource;
 import com.lolfm.simulator.StructureKind;
@@ -29,7 +31,10 @@ public record StructureActionData(
         boolean wavePresent,
         boolean backdoorProtected,
         boolean siegeContinues,
-        SiegeStopReason stopReason
+        SiegeStopReason stopReason,
+        BaseThreatLevel ownBaseThreatLevelAtDecision,
+        SiegeContinuationDecisionReason strategicContinuationDecision,
+        Boolean strategicallyAllowed
 ) {
     public StructureActionData {
         participants = DeterministicEnumSet.copyOfNullable(Position.class, participants);
