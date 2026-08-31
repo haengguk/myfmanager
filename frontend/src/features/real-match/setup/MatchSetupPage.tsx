@@ -37,10 +37,11 @@ function errorMessage(error: unknown): string {
   return '경기 데이터를 준비하지 못했습니다. 서버 연결 상태를 확인하세요.';
 }
 
-export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancelStart }: {
+export function MatchSetupPage({ dataSource, onBack, onLegacy, onSeries, onStart, onCancelStart }: {
   dataSource: MatchDataSource;
   onBack: () => void;
   onLegacy: () => void;
+  onSeries: () => void;
   onStart: (selection: MatchSetupSelection, options: MatchSetupOptionsViewModel, onStage: (stage: MatchRequestStage) => void) => Promise<void>;
   onCancelStart: () => void;
 }) {
@@ -109,8 +110,7 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
     blueTeamId, redTeamId, seed, gameNumber: displayOptions.gameNumber,
     seriesType: displayOptions.seriesType, draftMode, controlledSide,
   };
-  const optionsReady = Boolean(options && !optionsLoading && !optionsError
-    && (options.source === 'LIVE' ? options.teams.length === 10 : options.teams.length >= 2));
+  const optionsReady = Boolean(options && !optionsLoading && !optionsError && options.teams.length >= 2);
   const referenceSelectionReady = !options || options.source !== 'REFERENCE'
     || (blueTeamId === options.defaultBlueTeamCode
       && redTeamId === options.defaultRedTeamCode
@@ -179,7 +179,7 @@ export function MatchSetupPage({ dataSource, onBack, onLegacy, onStart, onCancel
 
   return (
     <div className="rm-setup-app">
-      <MatchSetupHeader options={displayOptions} draftMode={draftMode} onBack={onBack} onLegacy={onLegacy} />
+      <MatchSetupHeader options={displayOptions} draftMode={draftMode} onBack={onBack} onLegacy={onLegacy} onSeries={onSeries} />
       <main className="rm-setup-stage">
         <TeamSelectionPanel side="BLUE" teams={displayOptions.teams} selectedTeamId={blueTeamId} selectedTeam={selected(blueTeamId)}
           oppositeTeamId={redTeamId} disabled={creating} optionsLoading={optionsLoading} optionsError={Boolean(optionsError)}

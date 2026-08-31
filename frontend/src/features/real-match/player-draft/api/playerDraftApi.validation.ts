@@ -40,6 +40,7 @@ const STRUCTURE_KINDS = ['TOWER', 'INHIBITOR', 'NEXUS_TURRET', 'NEXUS'] as const
 const TOWER_TIERS = ['OUTER', 'INNER', 'INHIBITOR'] as const;
 const ACTIVITIES = ['DEFAULT_ROLE', 'ROAMING', 'SIEGING'] as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const SERIES_CHILD_ID = /^draft_[0-9a-f]{64}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const CLIENT_ACTION_ID = /^[A-Za-z0-9._:-]{1,100}$/;
 const TEAM_CODE = /^[A-Z0-9]{2,5}$/;
@@ -112,6 +113,13 @@ function sha(value: unknown, path: string): string {
 function uuid(value: unknown, path: string): string {
   const result = text(value, path);
   if (!UUID.test(result)) fail(path, 'canonical UUID 형식이 필요합니다.');
+  return result;
+}
+function sessionIdentity(value: unknown, expectation: PlayerDraftSessionExpectation, path: string): string {
+  const result = text(value, path);
+  const pattern = expectation.sessionIdentity === 'SERIES_CHILD' ? SERIES_CHILD_ID : UUID;
+  if (!pattern.test(result)) fail(path, expectation.sessionIdentity === 'SERIES_CHILD'
+    ? 'Series child Draft ID 형식이 필요합니다.' : 'canonical UUID 형식이 필요합니다.');
   return result;
 }
 function exactSet(values: readonly string[], expected: readonly string[], path: string): void {
@@ -229,7 +237,7 @@ function validateAssignments(value: unknown, picks: Record<TeamSide, readonly st
 
 export function validatePlayerDraftSessionPayload(value: unknown, expectation: PlayerDraftSessionExpectation): PlayerDraftSessionResponseDto {
   const root = record(value, '$'); literal(root.schemaVersion, 'PLAYER_DRAFT_SESSION_V1', '$.schemaVersion');
-  const sessionId = uuid(root.sessionId, '$.sessionId');
+  const sessionId = sessionIdentity(root.sessionId, expectation, '$.sessionId');
   if (expectation.sessionId && sessionId !== expectation.sessionId) fail('$.sessionId', '요청 session과 일치하지 않습니다.');
   const revision = integer(root.revision, '$.revision');
   const status = oneOf(root.status, STATUSES, '$.status');
@@ -249,7 +257,10 @@ export function validatePlayerDraftSessionPayload(value: unknown, expectation: P
   if (controlledSide !== expectation.controlledSide) fail('$.controlledSide', '요청 controlled side와 일치하지 않습니다.');
   const seed = signedInt64(root.seed, '$.seed');
   if (seed !== expectation.seed) fail('$.seed', '요청 seed와 일치하지 않습니다.');
-  if (integer(root.seriesGameNumber, '$.seriesGameNumber', 1) !== 1) fail('$.seriesGameNumber', '현재는 Game 1만 지원합니다.');
+  const expectedGameNumber = expectation.seriesGameNumber ?? 1;
+  if (integer(root.seriesGameNumber, '$.seriesGameNumber', 1) !== expectedGameNumber) {
+    fail('$.seriesGameNumber', `요청한 Game ${expectedGameNumber}과 일치해야 합니다.`);
+  }
   validateRule(root.draftRules, '$.draftRules'); validatePolicy(root.draftScoringPolicy, '$.draftScoringPolicy');
   validatePolicy(root.autoDraftSelectionPolicy, '$.autoDraftSelectionPolicy'); validatePolicy(root.playerControlPolicy, '$.playerControlPolicy');
   sha(root.stateHash, '$.stateHash');
@@ -258,6 +269,11 @@ export function validatePlayerDraftSessionPayload(value: unknown, expectation: P
   const blueBans = strings(state.blueBans, '$.state.blueBans'); const redBans = strings(state.redBans, '$.state.redBans');
   const bluePicks = strings(state.bluePicks, '$.state.bluePicks'); const redPicks = strings(state.redPicks, '$.state.redPicks');
   const fearless = strings(state.hardFearlessExclusions, '$.state.hardFearlessExclusions');
+  if (expectation.hardFearlessExclusions) {
+    exactArray(fearless, expectation.hardFearlessExclusions, '$.state.hardFearlessExclusions');
+  } else if (fearless.length !== 0) {
+    fail('$.state.hardFearlessExclusions', 'standalone Game 1에는 누적 제외 챔피언이 없어야 합니다.');
+  }
   for (const [name, values, max] of [['blueBans', blueBans, 5], ['redBans', redBans, 5], ['bluePicks', bluePicks, 5], ['redPicks', redPicks, 5]] as const) {
     if (values.length > max || new Set(values).size !== values.length) fail(`$.state.${name}`, '중복 없이 최대 5개여야 합니다.');
   }

@@ -28,6 +28,12 @@ export function PlayerDraftHeader({ session, options, blueTeam, redTeam, catalog
   catalog: Readonly<Record<string, PlayerDraftChampionCatalogEntry>>;
 }) {
   const turn = session.currentTurn;
+  const hardFearlessExclusions = session.state.hardFearlessExclusions;
+  const hardFearlessDensity = hardFearlessExclusions.length > 20
+    ? ' is-compact'
+    : hardFearlessExclusions.length > 10
+      ? ' is-condensed'
+      : '';
   const phaseLabel = turn ? (turn.actionType === 'BAN' ? '밴 단계' : '픽 단계') : '밴픽 완료';
   const turnLabel = turn
     ? `${turn.teamSide} · ${turn.actionType === 'BAN' ? '밴 선택' : '픽 선택'} 차례`
@@ -39,14 +45,16 @@ export function PlayerDraftHeader({ session, options, blueTeam, redTeam, catalog
         <div className="rm-clock-meta"><strong>Game {options.gameNumber}</strong><span>·</span><span>{options.seriesType}</span><span>·</span><span>{phaseLabel}</span></div>
         <div className="rm-timer" aria-live="polite">{String(turn?.turn ?? session.decisions.length).padStart(2, '0')}</div>
         <div className="rm-turn-copy">{turnLabel}</div>
-        <div className="rm-fearless-row" aria-label="하드 피어리스 제외 챔피언">
-          {session.state.hardFearlessExclusions.length ? <>
-            <span>하드 피어리스</span>
-            {session.state.hardFearlessExclusions.slice(0, 5).map((championId) => {
-              const champion = catalog[championId]?.champion;
-              return <span className="rm-portrait" title={champion?.displayNameKo ?? championId} key={championId}><ChampionPortrait name={champion?.displayNameKo ?? championId} portraitUrl={champion?.portraitUrl ?? ''} /></span>;
-            })}
-          </> : <span>Game {options.gameNumber} · 피어리스 제외 챔피언 없음</span>}
+        <div className={`rm-fearless-row${hardFearlessDensity}`} aria-label={`하드 피어리스 제외 챔피언 ${hardFearlessExclusions.length}개`}>
+          {hardFearlessExclusions.length ? <>
+            <span className="rm-fearless-label">피어리스 <b>{hardFearlessExclusions.length}</b></span>
+            <span className="rm-fearless-portraits" role="list">
+              {hardFearlessExclusions.map((championId) => {
+                const champion = catalog[championId]?.champion;
+                return <span role="listitem" className="rm-portrait" title={champion?.displayNameKo ?? championId} key={championId}><ChampionPortrait name={champion?.displayNameKo ?? championId} portraitUrl={champion?.portraitUrl ?? ''} /></span>;
+              })}
+            </span>
+          </> : <span className="rm-fearless-empty">Game {options.gameNumber} · 피어리스 제외 챔피언 없음</span>}
         </div>
       </div>
       <TeamHeader side="RED" team={redTeam} gameNumber={options.gameNumber} seasonLabel={options.seasonLabel} />

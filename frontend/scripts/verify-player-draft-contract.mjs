@@ -10,14 +10,14 @@ import {
 } from '../src/features/real-match/player-draft/playerDraftSessionOrder.ts';
 
 const H = 'a'.repeat(64); const C = 'b'.repeat(64); const R = 'c'.repeat(64);
-const expectation = { sessionId: '00000000-0000-0000-0000-000000000073', blueTeamCode: 'GEN', redTeamCode: 'T1', controlledSide: 'BLUE', seed: '73' };
+export const expectation = { sessionId: '00000000-0000-0000-0000-000000000073', blueTeamCode: 'GEN', redTeamCode: 'T1', controlledSide: 'BLUE', seed: '73' };
 const turns = [
   ['BLUE', 'BAN'], ['RED', 'BAN'], ['BLUE', 'BAN'], ['RED', 'BAN'], ['BLUE', 'BAN'], ['RED', 'BAN'],
   ['BLUE', 'PICK'], ['RED', 'PICK'], ['RED', 'PICK'], ['BLUE', 'PICK'], ['BLUE', 'PICK'], ['RED', 'PICK'],
   ['RED', 'BAN'], ['BLUE', 'BAN'], ['RED', 'BAN'], ['BLUE', 'BAN'], ['RED', 'PICK'], ['BLUE', 'PICK'], ['BLUE', 'PICK'], ['RED', 'PICK'],
 ];
 const positions = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'];
-const clone = (value) => structuredClone(value);
+export const clone = (value) => structuredClone(value);
 const champion = (id) => ({ championId: id, displayNameKo: `챔피언 ${id}`, displayNameEn: `Champion ${id}`, portraitUrl: `https://example.test/${id}.png` });
 const policy = (id) => ({ policyId: id, policyHash: H });
 const poolEntry = (id) => ({ championId: id, canonicalRank: 1, rawFinalSearchScore: 1, canonicalFinalScore: 1, canonicalScoreLoss: 0, rankWeight: 70 });
@@ -41,7 +41,7 @@ const decisions = turns.map((_, index) => decision(index));
 const ids = (teamSide, actionType) => decisions.filter((item) => item.teamSide === teamSide && item.actionType === actionType).map((item) => item.championId);
 const state = { blueBans: ids('BLUE', 'BAN'), redBans: ids('RED', 'BAN'), bluePicks: ids('BLUE', 'PICK'), redPicks: ids('RED', 'PICK'), hardFearlessExclusions: [] };
 const assignments = ['BLUE', 'RED'].flatMap((teamSide) => positions.map((position, index) => ({ playerId: `${teamSide.toLowerCase()}-${position.toLowerCase()}`, teamSide, position, championId: state[teamSide === 'BLUE' ? 'bluePicks' : 'redPicks'][index] })));
-const baseSession = {
+export const baseSession = {
   schemaVersion: 'PLAYER_DRAFT_SESSION_V1', sessionId: expectation.sessionId, revision: 0, status: 'ACTIVE',
   teams: [{ teamSide: 'BLUE', teamCode: 'GEN', displayName: 'Gen.G' }, { teamSide: 'RED', teamCode: 'T1', displayName: 'T1' }],
   controlledSide: 'BLUE', seed: '73', seriesGameNumber: 1, draftRules: { identity: 'PROFESSIONAL_DRAFT', hash: H },
@@ -52,7 +52,7 @@ const baseSession = {
   advisoryRecommendations: ['champion-a', 'champion-b', 'champion-c'].map((id, index) => ({ champion: champion(id), advisoryRank: index + 1, immediateScore: 3 - index, continuationScore: 2 - index, finalSearchScore: 5 - index, advisoryOnly: true })),
   selectableSetIdentity: H, stateHash: H, completedDraft: null,
 };
-const completedSession = {
+export const completedSession = {
   ...clone(baseSession), revision: 10, status: 'COMPLETED', currentTurn: null, state, decisions,
   selectableChampions: [], unavailableChampions: [], advisoryRecommendations: [], selectableSetIdentity: null,
   completedDraft: { draftIdentity: H, controlEvidenceSchema: 'PLAYER_DRAFT_CONTROL_EVIDENCE_V1', controlEvidenceHash: C, controlEvidenceHashAlgorithm: 'SHA-256', finalAssignments: assignments },
@@ -72,12 +72,12 @@ const snapshot = (timeSeconds) => ({ timeSeconds, blueTeam: { ...teamResult('BLU
 const productionPolicy = {
   policyId: 'PRODUCTION', policyHash: H, activationDecisionSchema: 'V1', activationDecisionCode: 'ACTIVE', acceptanceStatus: 'ACCEPTED', knownDiagnosticLimitation: 'fixture', knownDiagnosticLimitations: ['fixture'], statisticalHoldoutApproved: false, rollbackProfileId: 'ROLLBACK', rollbackMode: 'MANUAL', automaticFallback: false, draftSelectionPolicyId: 'AUTO', draftSelectionPolicyHash: H, runtimeProfileId: 'PRODUCTION_MATCHUP_COMPOSITION_V1', configurationHash: H, activeGameplayRulesVersion: 'V1', engineImplementationVersion: 'MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9', matchupMode: 'ACTIVE', compositionMode: 'ACTIVE', jungleClearContribution: 'DISABLED', economyCandidateActivation: false, tempoCandidateActivation: false, diagnosticsExcludedFromGameplayIdentity: true,
 };
-const simulatedSession = { ...clone(completedSession), status: 'SIMULATED' };
+export const simulatedSession = { ...clone(completedSession), status: 'SIMULATED' };
 const cancelledSession = {
   ...clone(baseSession), status: 'CANCELLED', currentTurn: null,
   selectableChampions: [], unavailableChampions: [], advisoryRecommendations: [], selectableSetIdentity: null,
 };
-const simulation = {
+export const simulation = {
   schemaVersion: 'PLAYER_DRAFT_MATCH_RESPONSE_V1', session: simulatedSession,
   match: {
     schemaVersion: 'PLAYER_DRAFT_MATCH_PAYLOAD_V1', matchIdentity: 'match-73', seed: '73', productionPolicy,

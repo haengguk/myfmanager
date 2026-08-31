@@ -1,9 +1,10 @@
-import { createLiveMatchSessionFromCommon, type CommonLiveMatchSource } from '../liveMatchSession.adapter';
+import { createLiveMatchSessionFromCommon, type CommonLiveMatchSource } from '../liveMatchSession.adapter.ts';
 import type { MatchSessionViewModel, MatchSetupOptionsViewModel, MatchSetupSelection } from '../matchSession.types';
 import type { PlayerDraftSimulationResult } from './api/playerDraftApi.client';
-import type { PlayerDraftSimulationResponseDto } from './api/playerDraftApi.types';
+import type { PlayerDraftMatchPayloadDto, PlayerDraftSessionResponseDto, PlayerDraftSimulationResponseDto } from './api/playerDraftApi.types';
 import type { PlayerDraftChampionCatalogEntry } from './playerDraft.types';
-import { markPlayerDraftLatency } from './playerDraftLatencyObserver';
+import type { PlayerDraftChampionCatalogResource } from './api/playerDraftApi.client';
+import { markPlayerDraftLatency } from './playerDraftLatencyObserver.ts';
 
 export function mergePlayerDraftChampionCatalog(
   session: PlayerDraftSimulationResponseDto['session'],
@@ -30,6 +31,20 @@ export function mergePlayerDraftChampionCatalog(
     };
   });
   return next;
+}
+
+export function createPlayerDraftChampionCatalog(
+  resource: PlayerDraftChampionCatalogResource,
+): Readonly<Record<string, PlayerDraftChampionCatalogEntry>> {
+  return Object.fromEntries(Object.entries(resource.presentationsByChampionId).map(([championId, champion]) => [
+    championId,
+    {
+      champion,
+      roles: resource.rolesByChampionId[championId] ?? [],
+      feasibleRoles: [],
+      unavailableReason: null,
+    } satisfies PlayerDraftChampionCatalogEntry,
+  ]));
 }
 
 function toCommonSource(response: PlayerDraftSimulationResponseDto): CommonLiveMatchSource {
@@ -67,24 +82,40 @@ function toCommonSource(response: PlayerDraftSimulationResponseDto): CommonLiveM
   };
 }
 
-export function createPlayerDraftMatchSession(
-  simulation: PlayerDraftSimulationResult,
+export function createPlayerDraftMatchSessionFromPayload(
+  session: PlayerDraftSessionResponseDto,
+  match: PlayerDraftMatchPayloadDto,
+  performance: PlayerDraftSimulationResult['performance'],
   options: MatchSetupOptionsViewModel,
   selection: MatchSetupSelection,
 ): MatchSessionViewModel {
-  const correlationId = simulation.response.session.sessionId;
+  const correlationId = session.sessionId;
   markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_NORMALIZATION_START', correlationId);
-  const completed = simulation.response.session.completedDraft;
+  const completed = session.completedDraft;
   if (!completed) throw new Error('완료된 Player Draft assignment가 필요합니다.');
+  const response: PlayerDraftSimulationResponseDto = {
+    schemaVersion: 'PLAYER_DRAFT_MATCH_RESPONSE_V1', session, match,
+  };
   const result = createLiveMatchSessionFromCommon(
-    toCommonSource(simulation.response), options, selection, simulation.performance,
+    toCommonSource(response), options, selection, performance,
     {
-      mode: 'PLAYER_CONTROLLED', sessionId: simulation.response.session.sessionId,
-      controlledSide: simulation.response.session.controlledSide,
+      mode: 'PLAYER_CONTROLLED', sessionId: session.sessionId,
+      controlledSide: session.controlledSide,
       controlEvidenceHash: completed.controlEvidenceHash,
       draftIdentity: completed.draftIdentity,
     },
   );
   markPlayerDraftLatency('PLAYER_DRAFT_SIMULATE_NORMALIZATION_COMPLETE', correlationId, { normalizationMs: result.performance.normalizationMs });
   return result;
+}
+
+export function createPlayerDraftMatchSession(
+  simulation: PlayerDraftSimulationResult,
+  options: MatchSetupOptionsViewModel,
+  selection: MatchSetupSelection,
+): MatchSessionViewModel {
+  return createPlayerDraftMatchSessionFromPayload(
+    simulation.response.session, simulation.response.match, simulation.performance,
+    options, selection,
+  );
 }

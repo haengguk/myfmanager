@@ -49,9 +49,8 @@ function sourceLabel(options: RealMatchOptionsDto): string {
 }
 
 export function createLiveMatchSetupOptions(source: RealMatchOptionsDto): MatchSetupOptionsViewModel {
-  const codes = new Set(source.teams.map((team) => team.teamCode));
-  const defaultBlueTeamCode = codes.has('GEN') ? 'GEN' : source.teams[0].teamCode;
-  const defaultRedTeamCode = codes.has('T1') && defaultBlueTeamCode !== 'T1' ? 'T1' : source.teams.find((team) => team.teamCode !== defaultBlueTeamCode)!.teamCode;
+  const defaultBlueTeamCode = source.teams[0].teamCode;
+  const defaultRedTeamCode = source.teams.find((team) => team.teamCode !== defaultBlueTeamCode)!.teamCode;
   return {
     source: 'LIVE',
     sourceLabel: sourceLabel(source),

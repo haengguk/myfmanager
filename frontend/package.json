@@ -12,6 +12,7 @@
     "reference:verify": "node scripts/verify-real-match-ui-contract.mjs",
     "live:verify": "node scripts/verify-real-match-live-contract.mjs",
     "player-draft:verify": "node --experimental-strip-types scripts/verify-player-draft-contract.mjs",
+    "series:verify": "node --experimental-strip-types scripts/verify-series-contract.mjs",
     "bundle:verify": "node scripts/verify-real-match-bundle.mjs"
   },
   "dependencies": {

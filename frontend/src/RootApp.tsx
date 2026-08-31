@@ -7,28 +7,47 @@ import { InboxPage } from './features/inbox/InboxPage';
 import type { ToastMessage } from './features/inbox/inbox.types';
 import { DraftRoomPage } from './features/real-match/draft/DraftRoomPage';
 import { MatchPlaybackPage } from './features/real-match/playback/MatchPlaybackPage';
-import { createMatchSession } from './features/real-match/matchDataSource';
+import { createMatchSession, loadMatchSetupOptions } from './features/real-match/matchDataSource';
 import type { MatchRequestStage } from './features/real-match/api/realMatchApi.types';
 import type { MatchSessionViewModel, MatchSetupOptionsViewModel, MatchSetupSelection } from './features/real-match/matchSession.types';
 import { realMatchConfig } from './features/real-match/realMatch.config';
 import { MatchSetupPage } from './features/real-match/setup/MatchSetupPage';
 import { MatchResultPage } from './features/real-match/result/MatchResultPage';
-import { createPlayerDraftSession, fetchPlayerDraftChampionRoleCatalog } from './features/real-match/player-draft/api/playerDraftApi.client';
+import { createPlayerDraftSession, fetchPlayerDraftChampionCatalog, fetchPlayerDraftChampionRoleCatalog } from './features/real-match/player-draft/api/playerDraftApi.client';
 import type { PlayerDraftSessionResponseDto } from './features/real-match/player-draft/api/playerDraftApi.types';
-import { createPlayerDraftMatchSession, mergePlayerDraftChampionCatalog } from './features/real-match/player-draft/playerDraft.adapter';
+import { createPlayerDraftChampionCatalog, createPlayerDraftMatchSession, mergePlayerDraftChampionCatalog } from './features/real-match/player-draft/playerDraft.adapter';
 import { PlayerDraftRoomPage } from './features/real-match/player-draft/PlayerDraftRoomPage';
 import type { PlayerDraftScreenState } from './features/real-match/player-draft/playerDraft.types';
 import { shouldApplyPlayerDraftSession } from './features/real-match/player-draft/playerDraftSessionOrder';
 import { markPlayerDraftLatency } from './features/real-match/player-draft/playerDraftLatencyObserver';
+import { getSeries, replaySeriesGame, SeriesApiFailure } from './features/real-match/series/api/seriesApi.client';
+import type { SeriesChildDraftEnvelopeDto, SeriesSimulationResult, SeriesViewDto } from './features/real-match/series/api/seriesApi.types';
+import { createSeriesMatchSession, createSeriesScreenState, shouldApplySeries } from './features/real-match/series/series.adapter';
+import type { SeriesScreenState } from './features/real-match/series/series.types';
+import { clearSeriesPointer, readSeriesPointer, writeSeriesPointer } from './features/real-match/series/series.pointer';
+import { SeriesSetupPage } from './features/real-match/series/SeriesSetupPage';
+import { SeriesHubPage } from './features/real-match/series/SeriesHubPage';
+import { SeriesDraftRoomPage } from './features/real-match/series/SeriesDraftRoomPage';
+import { SeriesDraftReviewPage } from './features/real-match/series/SeriesDraftReviewPage';
+import { SeriesContextBar } from './features/real-match/series/SeriesContextBar';
 import { AppShell } from './layout/AppShell';
 import type { AppSection } from './layout/Sidebar';
 
-type ActiveScreen = AppSection | 'setup' | 'draft' | 'player-draft' | 'playback' | 'result';
+type ActiveScreen = AppSection | 'setup' | 'draft' | 'player-draft' | 'playback' | 'result'
+  | 'series-setup' | 'series-hub' | 'series-draft' | 'series-draft-review' | 'series-playback' | 'series-result';
+
+function waitFor(milliseconds: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(resolve, milliseconds);
+    signal.addEventListener('abort', () => { window.clearTimeout(timer); reject(new DOMException('Series wait aborted', 'AbortError')); }, { once: true });
+  });
+}
 
 function RootApp() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('inbox');
   const [matchSession, setMatchSession] = useState<MatchSessionViewModel | null>(null);
   const [playerDraftState, setPlayerDraftState] = useState<PlayerDraftScreenState | null>(null);
+  const [seriesState, setSeriesState] = useState<SeriesScreenState | null>(null);
   const [draftReturnScreen, setDraftReturnScreen] = useState<ActiveScreen>('setup');
   const [searchValue, setSearchValue] = useState('');
   const [gameTime, setGameTime] = useState('오후 1:42');
@@ -36,6 +55,8 @@ function RootApp() {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const toastTimerRef = useRef<number | null>(null);
   const matchRequestRef = useRef<AbortController | null>(null);
+  const seriesRequestRef = useRef<AbortController | null>(null);
+  const seriesRestoreStartedRef = useRef(false);
   const matchRequestSequenceRef = useRef(0);
   const measuredPlaybackSessionsRef = useRef<Set<string>>(new Set());
   const playbackNavigationStartedAtRef = useRef<number | null>(null);
@@ -53,13 +74,41 @@ function RootApp() {
     toastTimerRef.current = window.setTimeout(() => setToast(null), 2800);
   }, []);
 
+  useEffect(() => {
+    if (seriesRestoreStartedRef.current) return;
+    seriesRestoreStartedRef.current = true;
+    const seriesId = readSeriesPointer(window.sessionStorage);
+    if (!seriesId) return;
+    const controller = new AbortController(); seriesRequestRef.current = controller;
+    Promise.all([
+      getSeries(seriesId, controller.signal),
+      loadMatchSetupOptions('LIVE', controller.signal),
+      fetchPlayerDraftChampionCatalog(controller.signal),
+    ]).then(([series, options, catalogResource]) => {
+      if (controller.signal.aborted) return;
+      let catalog = createPlayerDraftChampionCatalog(catalogResource);
+      if (series.activeDraftSession) catalog = mergePlayerDraftChampionCatalog(series.activeDraftSession.session, catalog, catalogResource.rolesByChampionId);
+      setSeriesState(createSeriesScreenState(series, options, catalog));
+      setActiveScreen('series-hub');
+      showToast('시리즈 복구 완료', `${series.format} Game ${series.currentGameNumber} · revision ${series.revision} 상태를 서버에서 불러왔습니다.`);
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted) return;
+      const message = error instanceof SeriesApiFailure ? error.userMessage : '저장된 Series ID를 서버에서 복구하지 못했습니다.';
+      showToast('시리즈 복구 보류', `${message} Series ID는 유지했으므로 새로고침하면 다시 확인합니다.`);
+    }).finally(() => { if (seriesRequestRef.current === controller) seriesRequestRef.current = null; });
+    return () => { controller.abort(); seriesRestoreStartedRef.current = false; };
+  }, [showToast]);
+
   useEffect(() => () => {
     if (toastTimerRef.current !== null) window.clearTimeout(toastTimerRef.current);
     matchRequestRef.current?.abort();
+    seriesRequestRef.current?.abort();
   }, []);
 
   useEffect(() => {
-    document.title = activeScreen === 'setup'
+    document.title = activeScreen.startsWith('series-')
+      ? 'lolmanager — BO3 / BO5 Series'
+      : activeScreen === 'setup'
       ? 'lolmanager — Match Setup'
       : activeScreen === 'draft'
       ? 'lolmanager — 자동 Draft 결과'
@@ -151,8 +200,158 @@ function RootApp() {
     });
   }, []);
 
+  const updateSeriesState = useCallback((series: SeriesViewDto, draft: SeriesChildDraftEnvelopeDto | null, session?: PlayerDraftSessionResponseDto) => {
+    writeSeriesPointer(window.sessionStorage, series.seriesId);
+    setSeriesState((current) => {
+      if (!current || !shouldApplySeries(current.series, series)) return current;
+      const projectedSession = session ?? draft?.session ?? null;
+      return {
+        ...current, series, draft,
+        championsById: projectedSession ? mergePlayerDraftChampionCatalog(projectedSession, current.championsById) : current.championsById,
+      };
+    });
+  }, []);
+
+  const initializeSeries = useCallback(async (series: SeriesViewDto, options: MatchSetupOptionsViewModel) => {
+    const controller = new AbortController(); seriesRequestRef.current?.abort(); seriesRequestRef.current = controller;
+    try {
+      const resource = await fetchPlayerDraftChampionCatalog(controller.signal);
+      let catalog = createPlayerDraftChampionCatalog(resource);
+      if (series.activeDraftSession) catalog = mergePlayerDraftChampionCatalog(series.activeDraftSession.session, catalog, resource.rolesByChampionId);
+      writeSeriesPointer(window.sessionStorage, series.seriesId);
+      setSeriesState(createSeriesScreenState(series, options, catalog)); setActiveScreen('series-hub');
+    } catch (error) {
+      showToast('챔피언 카탈로그 확인 필요', error instanceof Error ? error.message : '챔피언 카탈로그를 불러오지 못했습니다.');
+      writeSeriesPointer(window.sessionStorage, series.seriesId);
+      setSeriesState(createSeriesScreenState(series, options, {})); setActiveScreen('series-hub');
+    } finally { if (seriesRequestRef.current === controller) seriesRequestRef.current = null; }
+  }, [showToast]);
+
+  const presentSeriesMatch = useCallback((
+    series: SeriesViewDto,
+    child: SeriesChildDraftEnvelopeDto,
+    match: Parameters<typeof createSeriesMatchSession>[3],
+    requestPerformance: Parameters<typeof createSeriesMatchSession>[5],
+  ) => {
+    setSeriesState((current) => {
+      if (!current || !shouldApplySeries(current.series, series)) return current;
+      const game = series.games.find((candidate) => candidate.gameNumber === child.binding.gameNumber);
+      if (!game) return current;
+      const matchSession = createSeriesMatchSession(series, game, child, match, current.options, requestPerformance);
+      return {
+        ...current, series, draft: series.activeDraftSession, reviewDraft: child, matchSession,
+        matchGameNumber: game.gameNumber,
+        championsById: mergePlayerDraftChampionCatalog(child.session, current.championsById),
+      };
+    });
+    playbackNavigationStartedAtRef.current = performance.now(); setActiveScreen('series-playback');
+  }, []);
+
+  const openSeriesGame = useCallback(async (gameNumber: number) => {
+    if (!seriesState) return;
+    const controller = new AbortController(); seriesRequestRef.current?.abort(); seriesRequestRef.current = controller;
+    showToast('경기 재생 준비', `Game ${gameNumber}의 full replay를 서버에서 검증하고 있습니다.`);
+    try {
+      const replay = await replaySeriesGame(seriesState.series.seriesId, gameNumber, {
+        schemaVersion: 'SERIES_GAME_REPLAY_REQUEST_V1', clientCommandId: crypto.randomUUID(),
+      }, controller.signal);
+      presentSeriesMatch(replay.response.series, replay.draftSession, replay.response.match, replay.performance);
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      showToast('경기 재생 불가', error instanceof SeriesApiFailure ? error.userMessage : 'Game replay를 준비하지 못했습니다.');
+    } finally { if (seriesRequestRef.current === controller) seriesRequestRef.current = null; }
+  }, [presentSeriesMatch, seriesState, showToast]);
+
+  const reconcileSeriesSimulation = useCallback(async (seriesId: string, gameNumber: number) => {
+    const controller = new AbortController(); seriesRequestRef.current?.abort(); seriesRequestRef.current = controller;
+    try {
+      for (const delay of [500, 800, 1200, 1800, 2500, 3500]) {
+        if (document.hidden) { showToast('백그라운드 확인 중단', '탭이 다시 보이면 시리즈 허브에서 서버 상태를 새로고침하세요.'); return; }
+        await waitFor(delay, controller.signal);
+        const series = await getSeries(seriesId, controller.signal); updateSeriesState(series, series.activeDraftSession);
+        const game = series.games.find((candidate) => candidate.gameNumber === gameNumber);
+        if (!game) throw new Error('commit 대상 game을 찾을 수 없습니다.');
+        if (game.status === 'COMMITTED') {
+          const replay = await replaySeriesGame(seriesId, gameNumber, {
+            schemaVersion: 'SERIES_GAME_REPLAY_REQUEST_V1', clientCommandId: crypto.randomUUID(),
+          }, controller.signal);
+          presentSeriesMatch(replay.response.series, replay.draftSession, replay.response.match, replay.performance); return;
+        }
+        if (game.status === 'SIMULATION_FAILED_RETRYABLE' || game.status === 'BLOCKED' || series.status !== 'ACTIVE') {
+          setActiveScreen('series-hub'); showToast('경기 실행 상태 변경', game.reason ?? '서버의 최신 시리즈 상태를 확인하세요.'); return;
+        }
+      }
+      showToast('계산 계속 진행 중', '자동 확인 횟수를 마쳤습니다. 시리즈 허브에서 명시적으로 새로고침할 수 있습니다.');
+    } catch (error) {
+      if (!controller.signal.aborted) showToast('상태 확인 실패', error instanceof SeriesApiFailure ? error.userMessage : '경기 실행 상태를 확인하지 못했습니다.');
+    } finally { if (seriesRequestRef.current === controller) seriesRequestRef.current = null; }
+  }, [presentSeriesMatch, showToast, updateSeriesState]);
+
+  const handleSeriesSimulation = useCallback((result: SeriesSimulationResult) => {
+    updateSeriesState(result.response.series, result.response.series.activeDraftSession, result.draftSession?.session);
+    const gameNumber = result.response.game.gameNumber;
+    if (result.status === 202) {
+      showToast('경기 계산 진행 중', `Game ${gameNumber} reservation을 확인했습니다. 중복 실행 없이 서버 상태를 조회합니다.`);
+      void reconcileSeriesSimulation(result.response.series.seriesId, gameNumber); return;
+    }
+    if (result.response.match && result.draftSession) {
+      presentSeriesMatch(result.response.series, result.draftSession, result.response.match, result.performance); return;
+    }
+    showToast('전체 재생 복원', `Game ${gameNumber}은 compact 응답입니다. explicit replay로 전체 타임라인을 준비합니다.`);
+    void openSeriesGame(gameNumber);
+  }, [openSeriesGame, presentSeriesMatch, reconcileSeriesSimulation, showToast, updateSeriesState]);
+
+  if (activeScreen === 'series-setup') {
+    return <SeriesSetupPage onBack={() => setActiveScreen('setup')} onCreated={(series, options) => { void initializeSeries(series, options); }} />;
+  }
+
+  if (activeScreen === 'series-hub' && seriesState) {
+    return <SeriesHubPage state={seriesState} onBack={() => setActiveScreen('setup')}
+      onStateChange={updateSeriesState} onStartDraft={() => setActiveScreen('series-draft')}
+      onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }}
+      onNewSeries={() => { clearSeriesPointer(window.sessionStorage); setSeriesState(null); setActiveScreen('series-setup'); }} />;
+  }
+
+  if (activeScreen === 'series-draft' && seriesState?.draft) {
+    return <SeriesDraftRoomPage state={seriesState} onStateChange={updateSeriesState}
+      onSimulation={handleSeriesSimulation} onHub={() => setActiveScreen('series-hub')}
+      onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }} />;
+  }
+
+  if (activeScreen === 'series-draft-review' && seriesState?.reviewDraft) {
+    return <SeriesDraftReviewPage state={seriesState} onBack={() => setActiveScreen(draftReturnScreen === 'series-result' ? 'series-result' : 'series-playback')}
+      onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }} />;
+  }
+
+  if (activeScreen === 'series-playback' && seriesState?.matchSession) {
+    const session = seriesState.matchSession;
+    return <div className="sr-match-shell"><SeriesContextBar series={seriesState.series} catalog={seriesState.championsById} onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }} />
+      <MatchPlaybackPage viewModel={session.playback} draftContextLabel={`Series Game ${seriesState.matchGameNumber} · 직접 Draft`}
+        onBack={() => setActiveScreen('series-hub')} onDraft={() => { setDraftReturnScreen('series-playback'); setActiveScreen('series-draft-review'); }}
+        onComplete={() => setActiveScreen('series-result')} /></div>;
+  }
+
+  if (activeScreen === 'series-result' && seriesState?.matchSession) {
+    const session = seriesState.matchSession;
+    return <div className="sr-match-shell"><SeriesContextBar series={seriesState.series} catalog={seriesState.championsById} onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }} />
+      <MatchResultPage result={session.result} championsById={session.playback.championsById}
+        draftContextLabel={`Series Game ${seriesState.matchGameNumber} · 직접 Draft`}
+        onBack={() => setActiveScreen('series-hub')} onDraft={() => { setDraftReturnScreen('series-result'); setActiveScreen('series-draft-review'); }}
+        onPlayback={() => setActiveScreen('series-playback')} onRerun={() => setActiveScreen('series-playback')}
+        onNewMatch={() => { setSeriesState((current) => current ? { ...current, draft: current.series.activeDraftSession, matchSession: null, matchGameNumber: null } : current); setActiveScreen('series-hub'); }} />
+    </div>;
+  }
+
+  if (activeScreen.startsWith('series-')) {
+    if (!seriesState) return <SeriesSetupPage onBack={() => setActiveScreen('setup')} onCreated={(series, options) => { void initializeSeries(series, options); }} />;
+    return <SeriesHubPage state={seriesState} onBack={() => setActiveScreen('setup')}
+      onStateChange={updateSeriesState} onStartDraft={() => setActiveScreen('series-draft')}
+      onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }}
+      onNewSeries={() => { clearSeriesPointer(window.sessionStorage); setSeriesState(null); setActiveScreen('series-setup'); }} />;
+  }
+
   if (activeScreen === 'setup') {
-    return <MatchSetupPage dataSource={realMatchConfig.dataSource} onBack={() => { cancelMatchRequest(); setActiveScreen('inbox'); }} onLegacy={() => { cancelMatchRequest(); setActiveScreen('match'); }} onStart={startMatch} onCancelStart={cancelMatchRequest} />;
+    return <MatchSetupPage dataSource={realMatchConfig.dataSource} onBack={() => { cancelMatchRequest(); setActiveScreen('inbox'); }} onLegacy={() => { cancelMatchRequest(); setActiveScreen('match'); }} onSeries={() => setActiveScreen('series-setup')} onStart={startMatch} onCancelStart={cancelMatchRequest} />;
   }
 
   if (activeScreen === 'draft' && matchSession) {
@@ -208,10 +407,10 @@ function RootApp() {
   }
 
   if (activeScreen === 'draft' || activeScreen === 'player-draft' || activeScreen === 'playback' || activeScreen === 'result') {
-    return <MatchSetupPage dataSource={realMatchConfig.dataSource} onBack={() => setActiveScreen('inbox')} onLegacy={() => setActiveScreen('match')} onStart={startMatch} onCancelStart={cancelMatchRequest} />;
+    return <MatchSetupPage dataSource={realMatchConfig.dataSource} onBack={() => setActiveScreen('inbox')} onLegacy={() => setActiveScreen('match')} onSeries={() => setActiveScreen('series-setup')} onStart={startMatch} onCancelStart={cancelMatchRequest} />;
   }
 
-  const activeSection: AppSection = activeScreen;
+  const activeSection: AppSection = activeScreen === 'inbox' ? 'inbox' : 'match';
 
   return (
     <>

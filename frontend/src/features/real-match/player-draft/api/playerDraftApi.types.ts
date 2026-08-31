@@ -70,7 +70,7 @@ export interface PlayerDraftCompletedDraftDto {
 export interface PlayerDraftSessionResponseDto {
   schemaVersion: 'PLAYER_DRAFT_SESSION_V1'; sessionId: string; revision: number;
   status: PlayerDraftSessionStatus; teams: readonly PlayerDraftTeamIdentityDto[];
-  controlledSide: TeamSide; seed: string; seriesGameNumber: 1;
+  controlledSide: TeamSide; seed: string; seriesGameNumber: number;
   draftRules: PlayerDraftRuleIdentityDto; draftScoringPolicy: PlayerDraftPolicyIdentityDto;
   autoDraftSelectionPolicy: PlayerDraftPolicyIdentityDto; playerControlPolicy: PlayerDraftPolicyIdentityDto;
   currentTurn: PlayerDraftCurrentTurnDto | null; state: PlayerDraftStateDto;
@@ -119,4 +119,7 @@ export interface PlayerDraftApiErrorDto {
 
 export interface PlayerDraftSessionExpectation {
   sessionId?: string; blueTeamCode: string; redTeamCode: string; controlledSide: TeamSide; seed: string;
+  seriesGameNumber?: number;
+  hardFearlessExclusions?: readonly string[];
+  sessionIdentity?: 'STANDALONE' | 'SERIES_CHILD';
 }
