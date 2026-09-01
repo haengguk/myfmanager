@@ -1,10 +1,21 @@
 # AI vs AI League Simulation V1 Contract Sketch
 
-상태: `AI_VS_AI_LEAGUE_SIMULATION_V1_PLAYER_SERIES_HANDOFF_IMPLEMENTED_READY_FOR_PERSISTENCE_AND_JOBS`
+## Batch 4 durable implementation amendment
+
+Batch 4는 이 설계의 local single-node relational reference를 구현했다. Frozen domain과 canonical
+seed/receipt hash는 변경하지 않고 H2/Flyway, durable lifecycle, League-bound Series checkpoint,
+FULL_AUTO lease/fencing/retry worker와 receipt/outbox/application ledger를 추가했다. Public League
+HTTP API/frontend는 계속 후속 batch 범위다. 구현·복구·retention 상세는
+[AI League V1 Persistence and Jobs](../development/ai-vs-ai-league-simulation-v1-persistence-and-jobs.md)를
+따른다.
+
+상태: `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS_IMPLEMENTED_READY_FOR_API`
 
 이 문서는 AI 팀끼리만 경기하는 기능을 넘어, 한 관리 팀의 경기는 플레이어가 직접 Draft하고 나머지 경기는 AI가 자동 진행하는 Hybrid Season V1의 구현 계약을 고정한다. 제품 결정의 canonical 목록은 [AI vs AI League Simulation V1 Product Decisions](ai-vs-ai-league-simulation-v1-product-decisions.md)에 있으며, 이 문서는 그 결정을 aggregate, 상태 기계, persistence, API와 frontend handoff로 구체화한다.
 
-Batch 1의 Season/schedule/standings domain, Batch 2의 synchronous FULL_AUTO runner와 Batch 3의 process-local Player Series handoff/canonical receipt proof gate는 구현됐다. 교체 가능한 persistence port는 있지만 relational adapter, durable worker/job, migration/outbox, restart recovery, League API와 frontend가 구현됐다는 뜻은 아니다.
+Batch 1의 Season/schedule/standings domain, Batch 2의 synchronous FULL_AUTO runner, Batch 3의
+Player Series handoff/canonical receipt proof와 Batch 4의 local single-node relational
+persistence/job/restart 경계까지 구현됐다. League API와 frontend는 아직 구현되지 않았다.
 
 ## 현재 코드 감사와 경계 판정
 
@@ -202,11 +213,13 @@ Batch 2 구현은 기존 `RealDraftMatchOrchestrator`의 Production Auto Draft/V
 Batch 3의 내부 `LeaguePlayerSeriesHandoffService`는 다음 순서를 실제 구현한다.
 
 1. League가 현재 Season revision, current round, fixture status와 `executionMode=PLAYER_CONTROLLED`를 검증한다.
-2. server가 immutable `LeagueFixtureSeriesBindingV1`을 만들고 `LeaguePlayerSeriesBindingPort`에 기록한다. 현재 adapter는 process-local이며 durable DB 기록이 아니다.
+2. server가 immutable `LeagueFixtureSeriesBindingV1`을 만들고 JDBC
+   `LeaguePlayerSeriesBindingPort`에 canonical bytes/hash와 함께 기록한다.
 3. `LeaguePlayerSeriesKernelPort`가 기존 Series/Player Draft/Production V9 kernel로 `LEAGUE_BOUND` Series를 만들거나 같은 binding으로 재개한다.
 4. player는 자기 side의 Draft 선택만 제출한다. opponent AI, side, seed, history와 Production identity는 server가 소유한다.
 5. decisive Series completion을 server가 replay 검증해 V1 core와 `LeagueFixtureCompletionReceiptV2`를 생성한다.
-6. verified completion token만 standings에 전달한다. 현재 exactly-once는 aggregate/port의 process-local 의미이며 durable outbox 연결은 Batch 4 소유다.
+6. verified completion만 receipt/outbox transaction에 기록하고 consumer가 재검증한 뒤 durable
+   application ledger로 standings를 최대 한 번 반영한다.
 
 League 진입에서는 standalone `SeriesSetupPage`를 거치지 않는다. player는 opponent, format, Game 1 side, root seed, profile 또는 fixture를 다시 고를 수 없다.
 
@@ -224,7 +237,7 @@ League 진입에서는 standalone `SeriesSetupPage`를 거치지 않는다. play
 - initial Hard Fearless history와 hash
 - created/reconciled status와 durable revision
 
-public client는 이 필드를 생성하거나 다시 제출해 덮어쓸 수 없다. `LeagueFixtureSeriesBindingV1`의 constructor는 private이고 내부 start command에는 League/Season/fixture/revision/command ID만 있다. Binding canonical value는 explicit ordered UTF-8/SHA-256이며 fresh JVM에서 byte/hash exact를 통과했다. 다만 현재 adapter가 이 값을 DB에 저장하지 않으므로 실제 process restart 복구는 제공하지 않는다.
+public client는 이 필드를 생성하거나 다시 제출해 덮어쓸 수 없다. `LeagueFixtureSeriesBindingV1`의 constructor는 private이고 내부 start command에는 League/Season/fixture/revision/command ID만 있다. Binding canonical value는 explicit ordered UTF-8/SHA-256이며 fresh JVM에서 byte/hash exact를 통과했다. Batch 4의 JDBC adapter는 canonical value와 command receipt를 저장하고 process restart 뒤 같은 binding을 재검증해 복구한다.
 
 ### 생성, 취소와 복구 권위
 
@@ -232,10 +245,10 @@ public client는 이 필드를 생성하거나 다시 제출해 덮어쓸 수 �
 2. team/format/Game 1 side/root seed와 frozen production identity는 Schedule/Season authority가 고정한다.
 3. 기존 일반 `/api/v1/series` create는 League binding/origin/fixture identity를 받지 않고 계속 `STANDALONE`만 만든다. Batch 3에는 League REST endpoint가 없으며 내부 handoff만 `LEAGUE_BOUND` Series를 생성한다. Exact command replay는 같은 binding/Series를 재개하고 payload conflict는 거부한다.
 4. 결과는 frontend 제출이 아니라 completed Series aggregate와 stored binding에서 server가 만든 receipt로 전달한다.
-5. 현재 process 안에서는 completion pending/verified 상태와 stored V2 receipt로 exact replay 시 Match Engine 실행과 standings delta를 0으로 만든다. Series completion과 League commit 사이 process crash 복구는 아직 없다.
-6. 후속 outbox event/command replay는 receipt application ledger의 idempotency key로 standings를 다시 더하지 않아야 한다.
+5. completion pending/verified 상태와 stored V2 receipt로 exact replay 시 Match Engine 실행과 standings delta를 0으로 만든다. Series completion과 League commit 사이 process crash는 durable checkpoint, receipt/outbox와 application ledger로 복구한다.
+6. outbox event/command replay는 receipt application ledger의 idempotency key로 standings를 다시 더하지 않는다.
 7. League-bound child/Series 취소는 fixture를 `PLAYER_SERIES_RESTART_REQUIRED`로 두고 standings를 바꾸지 않는다. bound Series 화면에는 standalone `CANCEL_SERIES`를 Season cancel처럼 노출하지 않는다. Season cancel만 fixture를 `CANCELLED`로 만든다. 기존 standalone Series cancel 의미는 유지한다.
-8. 현재 process에서 binding/Series 불일치는 새 Series를 조용히 만들지 않고 `PLAYER_SERIES_RESTART_REQUIRED` 또는 `BLOCKED`로 간다. Process restart 복구는 Batch 4 relational adapter가 binding, Draft/game progress와 receipt를 영속한 뒤에만 가능하다.
+8. binding/Series 불일치는 새 Series를 조용히 만들지 않고 `PLAYER_SERIES_RESTART_REQUIRED` 또는 `BLOCKED`로 간다. Batch 4 relational adapter는 binding, Draft/game progress와 receipt를 영속해 process restart 복구를 제공한다.
 
 ## Unified completion receipt와 standings atomicity
 
@@ -256,7 +269,7 @@ Frontend는 receipt를 만들거나 winner/score/standings와 함께 제출하�
 
 ### 선택한 commit 모델
 
-최종 V1 제품 모델은 **server-side durable completion receipt + transactional outbox + idempotent League consumer**다. Batch 3은 이 모델의 canonical value, verifier와 교체 가능한 port까지만 구현했고 durable transaction/outbox는 아직 없다.
+최종 V1 제품 모델은 **server-side durable completion receipt + transactional outbox + idempotent League consumer**다. Batch 3은 canonical value, verifier와 교체 가능한 port까지 구현했고, Batch 4가 durable transaction/outbox와 consumer/application ledger를 완성했다.
 
 검토한 선택지는 다음 세 가지다.
 
@@ -348,7 +361,9 @@ League V1은 다음을 relational persistence에 저장한다.
 - unified fixture completion receipt, outbox와 standings application ledger
 - authoritative standings projection
 
-구현은 repository port/adapter로 domain과 DB 선택을 분리한다. DB 제품, dependency, migration schema와 deployment topology는 persistence batch에서 정한다. 이 문서 작업에서는 dependency나 schema를 추가하지 않는다.
+구현은 repository port/adapter로 domain과 DB 선택을 분리한다. Batch 4 reference stack은 Spring
+JDBC, Flyway V1→V2 migration과 file-backed H2이며, test는 독립 in-memory/temporary-file H2를
+사용한다. 이는 local single-node durable runtime이지 multi-node production DB adapter가 아니다.
 
 Process restart 뒤에는 lease를 만료/재조정하고, 같은 frozen identity와 checkpoint에서 job을 재개하거나 retry한다. Player Series는 durable binding/progress로 재개한다. 브라우저 pointer는 편의 정보일 뿐 복구 authority가 아니다.
 
@@ -435,14 +450,16 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 
 ## Correctness matrix
 
-이 표는 구현 batch의 최소 focused verification 인계다. Batch 1의 Hybrid mapping/schedule/standings, Batch 2의 synchronous FULL_AUTO runner, Batch 3의 Player binding/start/resume/completion proof는 focused/fresh-JVM/Production V9/full regression을 완료했다. Persistence crash 경계부터는 후속 batch에서 검증한다.
+이 표는 구현 batch의 최소 focused verification 인계다. Batch 1~3 경계와 Batch 4의 migration,
+concurrency, lease/retry, outbox/exactly-once, restart 및 actual Production V9 smoke가
+focused/fresh-JVM/full regression을 완료했다. Public API/frontend 경계부터는 후속 batch다.
 
 | 영역 | 필수 시나리오 | Frozen expected result |
 |---|---|---|
 | Hybrid mapping | 관리 팀 포함/미포함 fixture, spectator mode, null/unknown/snapshot-mismatch managed team | mode와 managed team으로 execution mode가 exact 결정되고 생성 뒤 불변; invalid 조합은 freeze 전 거부 |
 | Batch exclusion | `RUN_NEXT_ROUND`/`RUN_ALL`, direct lease, 관리 경기만 남은 round | Player fixture는 queue/lease/AI attempt 0, `WAITING_FOR_PLAYER`는 failure 0, Player 완료 전 Round completion 0 |
-| Player binding | start, duplicate same command, payload tamper, process-local resume, cross-fixture/Season request와 receipt | 같은 command는 같은 Series를 반환하고 하나의 canonical binding만 존재; team/format/side/root seed/resource 변조와 receipt 재사용 거부. DB durability/restart resume은 Batch 4 |
-| Completion handoff | success, frontend winner/score 부재, cancel/blocked/no-decisive, duplicate/stale/cross binding | verified completed server receipt만 반영; 나머지는 standings 0, canonical receipt 하나와 process-local standings delta 최대 1회. Crash/outbox는 Batch 4 |
+| Player binding | start, duplicate same command, payload tamper, concurrent/restart resume, cross-fixture/Season request와 receipt | 같은 fixture 경쟁은 하나의 canonical binding/Series를 공유하고 정상 caller의 false `BLOCKED` 0; team/format/side/root seed/resource 변조와 receipt 재사용 거부 |
+| Completion handoff | success, frontend winner/score 부재, cancel/blocked/no-decisive, duplicate/stale/cross binding | verified completed server receipt만 반영; receipt/outbox/ledger가 crash와 duplicate delivery에서도 standings delta 최대 1회 보장 |
 | Parity | 같은 fixture input의 AI/Player execution, execution mode 변경, instrumentation/worker 순서 변경 | side/seed/HF/wins/receipt/Production identity parity, mode가 fixture seed를 바꾸지 않고 관측/스케줄링이 gameplay Random을 바꾸지 않음; Draft decision equality는 요구하지 않음 |
 | BLOCKED | Hard Fearless/resource/receipt/domain/standings failure | 기존 standings 보존, 점수·winner·reseed·규칙 완화·tuning 없음 |
 | Persistence | server restart during auto/player/completion, stale/late worker result | Season/bound Series/Draft/receipt 복구, dangling binding 0, stale lease가 새 revision을 덮지 못하고 duplicate standings 0 |
@@ -455,7 +472,7 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 | 1. `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS` | pure domain aggregate, frozen decisions/config, schedule, side, seed, standings/tie | runner, DB, API, UI | 이 계약과 product decisions | 10-team schedule, mode mapping, side/seed, standings/mini-league/tie, duplicate receipt ledger domain tests | 243 suites / 2,297 tests clean | 완료 |
 | 2. `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER` | immutable runner input, Auto Draft, Production V9, HF, unified receipt | player handoff, durable jobs | Batch 1 | BO3 2:0/2:1, side/seed/HF, diagnostics/fresh-JVM exact, tamper/cross-boundary, actual V9 | 246 suites / 2,306 tests clean | 완료 |
 | 3. `AI_VS_AI_LEAGUE_SIMULATION_V1_PLAYER_SERIES_HANDOFF` | canonical binding와 durable-ready port, League-bound Series/Draft completion, unified V2 receipt | DB/outbox/restart recovery, League API/UI, public winner/receipt submit | Batches 1~2 | start/resume, frozen context, actual Player BO3, Auto/Player V2 parity, tamper/duplicate, fresh JVM | 249 suites / 2,315 tests clean | 완료 |
-| 4. `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS` | relational adapters, lease/heartbeat/retry/outbox/recovery/retention | DB tuning, multi-region | Batches 1~3 | crash boundaries, stale lease, max attempts, cancellation, exactly-once standings | 필요 | 미착수 |
+| 4. `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS` | relational adapters, lease/heartbeat/retry/outbox/recovery/retention | DB tuning, multi-region | Batches 1~3 | crash boundaries, stale lease, max attempts, cancellation, exactly-once standings | 251 suites / 2,319 tests clean | 완료 |
 | 5. `AI_VS_AI_LEAGUE_SIMULATION_V1_API` | additive League/Season/Fixture commands/views | existing API rename/removal | Batch 4 | exact schema, auth/ownership 정책 경계, stale revision/idempotency, no authority injection | 필요 | 미착수 |
 | 6. `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND` | dashboard, standings, batch progress, frozen player-Series handoff/reconciliation | local score authority, setup reselection | Batch 5 | route/reload/recovery, allowedCommands, accessibility, responsive LIVE journey | frontend build/contract 필요; backend production 미변경이면 backend full 불필요 | 미착수 |
 | 7. `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCTION_ACCEPTANCE` | end-to-end Hybrid/Spectator, restart, load/retention evidence | gameplay tuning | Batches 1~6 | correctness matrix 전체와 bounded operational acceptance | 최종 production tree에서 필요 | 미착수 |
@@ -464,11 +481,13 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 
 ## V1 non-goals와 남은 제한
 
-- 현재 production에는 pure League Season/schedule/standings domain, 한 fixture용 synchronous FULL_AUTO runner와 managed Player fixture의 process-local start/resume/completion proof가 있다. Season worker, DB, outbox, League API와 UI는 없다.
-- 현재 standalone과 League-bound Series 및 binding adapter는 모두 process-local이며 이 문서나 port만으로 restart recovery가 생기지 않는다.
-- auth/ownership, DB 제품/schema, deployment topology는 후속 batch에서 구현 결정을 내린다.
+- 현재 production에는 League domain/runner/Player handoff와 local single-node H2/Flyway durable
+  Season/Fixture/job/binding/checkpoint/receipt/outbox/ledger가 있다. League API와 UI는 없다.
+- League-bound Series와 JDBC binding은 restart recovery를 제공하지만 standalone Series는 기존
+  process-local repository/TTL 의미를 유지한다.
+- auth/ownership, external broker, multi-node DB/deployment topology는 후속 범위다.
 - custom schedule, side imbalance, playoff/tie-break fixture, managed fixture AI 위임과 Season 도중 관리 팀 변경은 V1 범위 밖이다.
 - optional full replay cache는 standings authority가 아니며 resource drift 뒤 재생을 보장하지 않는다.
 - 운영 한계는 동결됐지만 실제 load evidence는 Production acceptance 전까지 없다.
 
-Batch 1 상세 결과는 [AI League V1 Domain, Schedule and Standings](../development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md), Batch 2는 [Automated Series Runner](../development/ai-vs-ai-league-simulation-v1-automated-series-runner.md), Batch 3은 [Player Series Handoff](../development/ai-vs-ai-league-simulation-v1-player-series-handoff.md)에 있다. 다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS`다.
+Batch 1 상세 결과는 [AI League V1 Domain, Schedule and Standings](../development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md), Batch 2는 [Automated Series Runner](../development/ai-vs-ai-league-simulation-v1-automated-series-runner.md), Batch 3은 [Player Series Handoff](../development/ai-vs-ai-league-simulation-v1-player-series-handoff.md), Batch 4는 [Persistence and Jobs](../development/ai-vs-ai-league-simulation-v1-persistence-and-jobs.md)에 있다. 다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_API`다.

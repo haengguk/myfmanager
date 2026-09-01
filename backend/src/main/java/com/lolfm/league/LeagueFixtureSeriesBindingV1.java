@@ -4,6 +4,8 @@ import com.lolfm.application.MatchEngineV1Policy;
 import com.lolfm.application.SeriesFormat;
 import com.lolfm.draft.SeriesDraftHistory;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -236,6 +238,69 @@ public final class LeagueFixtureSeriesBindingV1 {
                 policy.retainedRuntimeProfileId().name(), policy.configurationHash(),
                 policy.activeGameplayRulesVersion(), policy.engineImplementationVersion(),
                 0, null);
+    }
+
+    /** Rebuilds and revalidates a durable canonical binding without live authored inputs. */
+    static LeagueFixtureSeriesBindingV1 restoreCanonical(String canonicalText) {
+        Objects.requireNonNull(canonicalText, "canonicalText");
+        if (!canonicalText.endsWith("\n")
+                || canonicalText.getBytes(StandardCharsets.UTF_8).length
+                > MAX_CANONICAL_BYTES) {
+            throw new IllegalArgumentException("Invalid durable League Series binding");
+        }
+        Map<String, String> fields = new HashMap<>();
+        for (String line : canonicalText.split("\n")) {
+            int separator = line.indexOf('=');
+            if (separator <= 0 || fields.put(line.substring(0, separator),
+                    line.substring(separator + 1)) != null) {
+                throw new IllegalArgumentException("Invalid canonical binding field");
+            }
+        }
+        if (!SCHEMA.equals(fields.get("schemaVersion"))
+                || !HASH_ALGORITHM.equals(fields.get("canonicalHashAlgorithm"))
+                || !LeagueFixtureExecutionMode.PLAYER_CONTROLLED.name().equals(
+                fields.get("executionMode"))
+                || !"CREATED".equals(fields.get("bindingLifecycleStatus"))) {
+            throw new IllegalArgumentException("Unsupported durable binding schema");
+        }
+        LeagueFixtureSeriesBindingV1 restored = new LeagueFixtureSeriesBindingV1(
+                required(fields, "leagueId"), required(fields, "seasonId"),
+                required(fields, "fixtureId"), longValue(fields, "expectedSeasonRevision"),
+                required(fields, "reservationIdentity"), required(fields, "boundSeriesId"),
+                required(fields, "firstTeamCode"), required(fields, "secondTeamCode"),
+                required(fields, "managedTeamCode"),
+                SeriesFormat.valueOf(required(fields, "seriesFormat")),
+                required(fields, "game1BlueTeamCode"), required(fields, "game1RedTeamCode"),
+                longValue(fields, "fixtureRootSeed"), required(fields, "seedAnchorTeamCode"),
+                required(fields, "initialHistoryHash"), required(fields, "scheduleIdentity"),
+                required(fields, "productDecisionHash"),
+                required(fields, "frozenSnapshotIdentity"),
+                required(fields, "firstTeamSnapshotIdentity"),
+                required(fields, "secondTeamSnapshotIdentity"),
+                required(fields, "playerResourceIdentity"),
+                required(fields, "championDraftResourceIdentity"),
+                required(fields, "matchupCompositionResourceIdentity"),
+                required(fields, "productionRuntimeIdentity"),
+                required(fields, "resourceProvenanceHash"), required(fields, "policyId"),
+                required(fields, "policyHash"), required(fields, "runtimeProfileId"),
+                required(fields, "configurationHash"),
+                required(fields, "activeGameplayRulesVersion"),
+                required(fields, "engineImplementationVersion"),
+                longValue(fields, "bindingRevision"), required(fields, "bindingHash"));
+        if (!restored.canonicalText().equals(canonicalText)) {
+            throw new IllegalArgumentException("Durable binding canonical mismatch");
+        }
+        return restored;
+    }
+
+    private static String required(Map<String, String> fields, String name) {
+        String value = fields.get(name);
+        if (value == null) throw new IllegalArgumentException("Missing binding field: " + name);
+        return value;
+    }
+
+    private static long longValue(Map<String, String> fields, String name) {
+        return Long.parseLong(required(fields, name));
     }
 
     public byte[] canonicalBytes() {

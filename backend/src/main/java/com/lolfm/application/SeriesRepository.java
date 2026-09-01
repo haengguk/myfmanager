@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Repository;
 
 /** Bounded process-local repository with per-Series atomic mutations and create-index ownership. */
@@ -19,11 +20,21 @@ final class SeriesRepository {
     private final Clock clock;
     private final SeriesLifecycleConfiguration configuration;
     private final CleanupObserver cleanupObserver;
+    private final LeagueBoundSeriesPersistencePort durableLeagueSeries;
     private final Object capacityBoundary = new Object();
 
     @org.springframework.beans.factory.annotation.Autowired
+    SeriesRepository(
+            Clock clock,
+            SeriesLifecycleConfiguration configuration,
+            ObjectProvider<LeagueBoundSeriesPersistencePort> durableLeagueSeries
+    ) {
+        this(clock, configuration, CleanupObserver.NONE,
+                durableLeagueSeries.getIfAvailable());
+    }
+
     SeriesRepository(Clock clock, SeriesLifecycleConfiguration configuration) {
-        this(clock, configuration, CleanupObserver.NONE);
+        this(clock, configuration, CleanupObserver.NONE, null);
     }
 
     SeriesRepository(
@@ -31,9 +42,19 @@ final class SeriesRepository {
             SeriesLifecycleConfiguration configuration,
             CleanupObserver cleanupObserver
     ) {
+        this(clock, configuration, cleanupObserver, null);
+    }
+
+    SeriesRepository(
+            Clock clock,
+            SeriesLifecycleConfiguration configuration,
+            CleanupObserver cleanupObserver,
+            LeagueBoundSeriesPersistencePort durableLeagueSeries
+    ) {
         this.clock = Objects.requireNonNull(clock, "clock");
         this.configuration = Objects.requireNonNull(configuration, "configuration");
         this.cleanupObserver = Objects.requireNonNull(cleanupObserver, "cleanupObserver");
+        this.durableLeagueSeries = durableLeagueSeries;
     }
 
     Instant now() { return clock.instant(); }
@@ -74,14 +95,23 @@ final class SeriesRepository {
                 series.remove(aggregate.seriesId(), aggregate);
                 throw new RepositoryFailure("SERIES_CREATE_INDEX_COLLISION");
             }
+            try {
+                saveLeagueSeries(aggregate);
+            } catch (RuntimeException failure) {
+                createCommands.remove(commandId, index);
+                series.remove(aggregate.seriesId(), aggregate);
+                throw failure;
+            }
             return new CreateResult(aggregate, false);
         }
     }
 
     SeriesAggregate get(String seriesId) {
+        restoreLeagueSeries(seriesId);
         AtomicReference<SeriesAggregate> found = new AtomicReference<>();
         series.computeIfPresent(seriesId, (id, current) -> {
             SeriesAggregate live = expire(current, clock.instant());
+            if (live != current) saveLeagueSeries(live);
             found.set(live);
             return live;
         });
@@ -90,6 +120,7 @@ final class SeriesRepository {
     }
 
     <T> T mutate(String seriesId, Function<SeriesAggregate, Mutation<T>> operation) {
+        restoreLeagueSeries(seriesId);
         AtomicReference<T> result = new AtomicReference<>();
         AtomicReference<RuntimeException> failure = new AtomicReference<>();
         series.compute(seriesId, (id, current) -> {
@@ -100,6 +131,7 @@ final class SeriesRepository {
             SeriesAggregate live = expire(current, clock.instant());
             try {
                 Mutation<T> mutation = operation.apply(live);
+                saveLeagueSeries(mutation.aggregate());
                 result.set(mutation.result());
                 return mutation.aggregate();
             } catch (RuntimeException error) {
@@ -144,9 +176,10 @@ final class SeriesRepository {
         }
         boolean reservationValid = game.reservation() != null
                 && now.isBefore(game.reservation().leaseExpiresAt());
-        boolean parentCanExpire = aggregate.status() == SeriesStatus.ACTIVE
+        boolean parentCanExpire = aggregate.origin() == SeriesOrigin.STANDALONE
+                && (aggregate.status() == SeriesStatus.ACTIVE
                 || aggregate.status() == SeriesStatus.BLOCKED
-                || aggregate.status() == SeriesStatus.COMPLETED;
+                || aggregate.status() == SeriesStatus.COMPLETED);
         if (parentCanExpire && !reservationValid
                 && !now.isBefore(aggregate.expiresAt())) {
             SeriesGame expiredGame = new SeriesGame(
@@ -163,7 +196,8 @@ final class SeriesRepository {
                     aggregate.commandReceipts());
         }
         SeriesChildDraft child = game.childDraft();
-        if (aggregate.status() == SeriesStatus.ACTIVE && child != null
+        if (aggregate.origin() == SeriesOrigin.STANDALONE
+                && aggregate.status() == SeriesStatus.ACTIVE && child != null
                 && child.status() == PlayerDraftSessionStatus.ACTIVE
                 && !now.isBefore(child.expiresAt())) {
             SeriesChildDraft expired = new SeriesChildDraft(
@@ -193,6 +227,10 @@ final class SeriesRepository {
             cleanupObserver.beforeAtomicCleanup(id);
             series.computeIfPresent(id, (key, current) -> {
                 SeriesAggregate live = expire(current, now);
+                if (live.origin() == SeriesOrigin.LEAGUE_BOUND) {
+                    saveLeagueSeries(live);
+                    return live;
+                }
                 if (live.status() != SeriesStatus.EXPIRED
                         && live.status() != SeriesStatus.CANCELLED) {
                     return live;
@@ -202,6 +240,19 @@ final class SeriesRepository {
                 return null;
             });
         });
+    }
+
+    private void restoreLeagueSeries(String seriesId) {
+        if (!series.containsKey(seriesId) && durableLeagueSeries != null) {
+            durableLeagueSeries.load(seriesId).ifPresent(value ->
+                    series.putIfAbsent(seriesId, value));
+        }
+    }
+
+    private void saveLeagueSeries(SeriesAggregate aggregate) {
+        if (durableLeagueSeries != null && aggregate.origin() == SeriesOrigin.LEAGUE_BOUND) {
+            durableLeagueSeries.save(aggregate);
+        }
     }
 
     private static java.util.List<SeriesGame> replaceLast(

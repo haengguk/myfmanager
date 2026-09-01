@@ -108,6 +108,44 @@ Batch 2 Auto parity는 같은 final tree에서 `LeagueAutomatedSeriesRunnerTest`
 
 Final executable production tree의 complete backend regression은 첫 실행에서 249 suites / 2,315 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,901.498초, Gradle wall 16분 53초로 통과했다. 두 skip은 explicit 대형 diagnostic이다. League API/frontend가 없으므로 frontend build/Playwright는 실행하지 않았고 90-fixture Season, balance/performance population도 제외했다.
 
+### AI League V1 persistence and jobs
+
+Batch 4는 다음 focused lane을 사용한다.
+
+```bash
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.league.LeagueRelationalPersistenceAndJobTest \
+  --tests com.lolfm.application.LeagueBoundSeriesCheckpointRecoveryTest \
+  --tests com.lolfm.league.LeaguePlayerSeriesHandoffServiceTest \
+  --tests com.lolfm.league.LeagueAutomatedSeriesRunnerProductionV9Test \
+  --tests com.lolfm.league.LeaguePlayerSeriesHandoffProductionV9Test \
+  --console=plain --no-daemon
+```
+
+- empty DB→V1→V2, repeat no-op, temporary file DB close/reopen과 canonical tamper rejection
+- JDBC binding 20-request concurrent create-or-load와 one owner/one row/payload conflict
+- Season READY/pause/resume/cancel, Player auto-dispatch 0, default 2/hard 4 boundary
+- exact 15-minute lease, 15-second heartbeat, fencing stale result 0, attempt 1→2와 30-day retention
+- binding-before-checkpoint startup reconciliation과 reservation process-loss release
+- actual Production Auto Draft/V9 background job, receipt/outbox producer proof와 standings exactly-once
+- duplicate delivery 및 standings-commit/outbox-ack-loss redelivery mutation 0
+- actual Player Production V9의 mid-Draft, Draft-complete, Game boundary와 completed checkpoint reload
+- concurrent completion owner 1, false `BLOCKED` 0, persisted Player receipt/outbox 1
+
+최종 핵심 focused 묶음은 위 persistence/checkpoint/concurrency/actual V9에 transport configuration과
+Auto/Player fresh-JVM byte parity를 더한 8 suites / 16 tests로, failures/errors/skipped 0,
+Gradle wall 3분 3초에 통과했다. 첫 complete regression은 251 suites / 2,319 tests 중 test
+resource가 main compression 설정을 가린 1건과 unordered Draft capability 합산이 raw trace를
+흔든 fresh-JVM 2건을 발견했다. 설정 상속과 enum canonical order를 수정하고 affected focused를
+통과한 뒤, 최종 executable tree의 두 번째 complete regression은 251 suites / 2,319 tests /
+failures 0 / errors 0 / skipped 2, aggregate XML 1,150.816초, Gradle wall 19분 16초로 clean
+pass했다. 두 skip은 기존 explicit 대형 diagnostic이다. Frontend source는 변경하지 않았고
+frontend build/Playwright, 90-fixture run과 대형 balance/performance diagnostic은 실행하지 않았다.
+
+90-fixture official run, 대형 balance/performance population, frontend/Playwright는 실행하지 않았다.
+동일한 최종 수치는 [Project Status](../project-status.md)에 기록했다.
+
 ### Player-controlled Draft API V1
 
 혼합 Draft의 final authoritative-input boundary와 기존 session hardening은 다음 focused lane으로 검증한다.

@@ -4,7 +4,7 @@ import java.util.Optional;
 
 /** Durable-ready authority port; the current adapter is intentionally process-local. */
 public interface LeaguePlayerSeriesBindingPort {
-    Registration create(
+    Registration createOrLoad(
             String commandId,
             String commandPayloadHash,
             LeagueFixtureSeriesBindingV1 binding
@@ -19,6 +19,8 @@ public interface LeaguePlayerSeriesBindingPort {
     Optional<State> findByFixture(String seasonId, String fixtureId);
 
     Optional<State> findByBindingHash(String bindingHash);
+
+    CompletionClaim claimCompletion(String bindingHash);
 
     State transition(
             String bindingHash,
@@ -61,5 +63,7 @@ public interface LeaguePlayerSeriesBindingPort {
         }
     }
 
-    record Registration(State state, boolean replayedCommand) {}
+    record Registration(State state, boolean startOwner, boolean replayedCommand) {}
+
+    record CompletionClaim(State state, boolean verificationOwner) {}
 }

@@ -42,6 +42,8 @@ out/
 /output/
 /frontend/output/
 /.playwright-cli/
+/backend/runtime/league-db/
+/runtime/league-db/
 
 ### Frontend dependencies and generated output ###
 /frontend/node_modules/

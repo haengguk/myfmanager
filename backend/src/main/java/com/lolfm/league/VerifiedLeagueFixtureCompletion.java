@@ -341,6 +341,80 @@ public final class VerifiedLeagueFixtureCompletion {
                 core.loserTeamCode(), winnerWins, loserWins);
     }
 
+    /**
+     * Revalidates durable evidence against the frozen Season authority. This deliberately
+     * does not consult mutable live resources: a previously verified receipt remains usable
+     * after a process restart or later authored-resource drift.
+     */
+    static VerifiedLeagueFixtureCompletion verifyPersisted(
+            LeagueSeasonAggregate season,
+            LeagueFixtureCompletionReceiptV2 receipt,
+            LeagueFixtureSeriesBindingV1 playerBinding
+    ) {
+        Objects.requireNonNull(season, "season");
+        Objects.requireNonNull(receipt, "receipt");
+        LeagueFixture fixture = season.schedule().fixture(receipt.fixtureId());
+        LeagueFixtureCompletionReceiptV1 core = receipt.fixtureReceipt();
+        LeagueSeasonFrozenSnapshot snapshot = season.frozenSnapshot();
+        boolean common = receipt.leagueId().equals(season.leagueId())
+                && core.seasonId().equals(season.seasonId())
+                && core.fixtureId().equals(fixture.fixtureId())
+                && core.boundSeriesId().equals(fixture.boundSeriesId())
+                && core.executionMode() == fixture.executionMode()
+                && core.firstTeamCode().equals(fixture.firstTeamCode())
+                && core.secondTeamCode().equals(fixture.secondTeamCode())
+                && core.game1BlueTeamCode().equals(fixture.game1BlueTeamCode())
+                && core.game1RedTeamCode().equals(fixture.game1RedTeamCode())
+                && core.seriesFormat() == fixture.seriesFormat()
+                && core.fixtureRootSeed() == fixture.fixtureRootSeed()
+                && core.scheduleIdentity().equals(season.schedule().scheduleIdentity())
+                && core.productDecisionHash().equals(season.productDecisionHash())
+                && core.frozenSnapshotIdentity().equals(snapshot.snapshotIdentity())
+                && core.firstTeamSnapshotIdentity().equals(
+                snapshot.teamSnapshotIdentity(fixture.firstTeamCode()))
+                && core.secondTeamSnapshotIdentity().equals(
+                snapshot.teamSnapshotIdentity(fixture.secondTeamCode()))
+                && core.playerResourceIdentity().equals(snapshot.playerResourceIdentity())
+                && core.championDraftResourceIdentity().equals(
+                snapshot.championDraftResourceIdentity())
+                && core.matchupCompositionResourceIdentity().equals(
+                snapshot.matchupCompositionResourceIdentity())
+                && core.productionRuntimeIdentity().equals(
+                snapshot.productionRuntimeIdentity())
+                && core.actualGameCount() == core.orderedGameReceipts().size()
+                && core.actualGameCount() == receipt.orderedDraftAuthorityReceipts().size();
+        boolean mode = fixture.executionMode() == LeagueFixtureExecutionMode.FULL_AUTO
+                ? receipt.playerSeriesBindingHash() == null && playerBinding == null
+                : playerBinding != null
+                && receipt.playerSeriesBindingHash().equals(playerBinding.bindingHash())
+                && playerBinding.fixtureId().equals(fixture.fixtureId())
+                && playerBinding.boundSeriesId().equals(fixture.boundSeriesId())
+                && playerBinding.scheduleIdentity().equals(season.schedule().scheduleIdentity())
+                && playerBinding.frozenSnapshotIdentity().equals(snapshot.snapshotIdentity());
+        if (!common || !mode) {
+            throw new IllegalArgumentException("DURABLE_LEAGUE_RECEIPT_BINDING_MISMATCH");
+        }
+        String history = com.lolfm.draft.SeriesDraftHistory.identityHash(0, java.util.Set.of());
+        for (int index = 0; index < core.orderedGameReceipts().size(); index++) {
+            int number = index + 1;
+            LeagueFixtureGameReceiptV1 game = core.orderedGameReceipts().get(index);
+            LeagueFixtureDraftAuthorityReceiptV1 authority =
+                    receipt.orderedDraftAuthorityReceipts().get(index);
+            if (game.gameNumber() != number || authority.gameNumber() != number
+                    || authority.executionMode() != fixture.executionMode()
+                    || !game.blueTeamCode().equals(fixture.blueTeamCode(number))
+                    || !game.redTeamCode().equals(fixture.redTeamCode(number))
+                    || game.gameSeed() != fixture.gameSeed(number, history)
+                    || !game.historyBeforeHash().equals(history)
+                    || !game.resourceProvenanceHash().equals(
+                    core.resourceProvenanceHash())) {
+                throw new IllegalArgumentException("DURABLE_LEAGUE_GAME_PROOF_MISMATCH");
+            }
+            history = game.historyAfterHash();
+        }
+        return restoreVerified(receipt);
+    }
+
     public String fixtureId() { return fixtureId; }
     public String canonicalFixtureReceiptHash() { return canonicalFixtureReceiptHash; }
     public String winnerTeamCode() { return winnerTeamCode; }

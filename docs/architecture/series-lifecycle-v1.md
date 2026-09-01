@@ -1,5 +1,16 @@
 # Series Lifecycle V1
 
+## League-bound persistence amendment
+
+Standalone `/api/v1/series`는 기존 process-local repository, capacity와 TTL 의미를 유지한다.
+`LEAGUE_BOUND` origin만 별도 JDBC checkpoint port를 사용하며 parent/child process TTL로 제거하지
+않는다. Checkpoint는 immutable Series/Draft/game/command/compact receipt authority를 저장하고
+transient Draft projection/computation context와 full timeline은 저장하지 않는다. Restart 시
+projection/context는 authoritative progress에서 재계산하며 simulation reservation owner를 잃은
+경우 새 gameplay를 실행하지 않고 retryable 상태로 release한다. 세부 경계는
+[AI League V1 Persistence and Jobs](../development/ai-vs-ai-league-simulation-v1-persistence-and-jobs.md)에
+있다.
+
 상태: `SERIES_FRONTEND_V1_ACCEPTED`
 
 이 문서는 [계약 스케치](series-lifecycle-v1-contract-sketch.md)에서 제안했던 Series backend 중 현재 실제 구현된 V1을 설명한다. 구현은 additive `/api/v1/series` 경계이며 기존 standalone Player Draft와 Real Match API의 의미를 바꾸지 않는다.
@@ -23,7 +34,10 @@ Series create
 
 ## Aggregate와 repository
 
-`SeriesAggregate`는 immutable snapshot이고 `SeriesRepository`만 process-local map을 소유한다. Mutation은 `ConcurrentHashMap.compute`의 Series ID별 경계에서 snapshot을 교체하므로 서로 다른 Series 실행을 global lock으로 직렬화하지 않는다. Global synchronization은 create cleanup, command index와 정확한 capacity 32를 함께 관리할 때만 사용한다.
+`SeriesAggregate`는 immutable snapshot이고 `SeriesRepository`는 live process map을 소유한다.
+Standalone mutation은 기존 `ConcurrentHashMap.compute` 경계를 유지한다. `LEAGUE_BOUND` mutation은
+같은 aggregate 교체 뒤 JDBC checkpoint를 저장하고, process map에 없으면 binding의 checkpoint를
+검증해 lazy load한다. 서로 다른 Series 실행을 global lock으로 직렬화하지 않는다.
 
 기본 운영 한계는 `SeriesLifecycleConfiguration` 한 곳에 있다.
 
@@ -37,7 +51,9 @@ Series create
 
 성공한 mutation만 parent activity를 연장한다. GET, stale/rejected request와 exact command replay는 keepalive가 아니다. Cleanup은 각 Series key의 현재 snapshot을 `computeIfPresent` 안에서 다시 expiry 판정하고, 그 같은 원자 경계에서 terminal snapshot만 제거한다. 오래된 snapshot의 conditional replace 실패 뒤 새 snapshot을 지우는 경로는 없다. Create command index도 대응 Series가 실제로 제거되는 그 경계에서만 제거된다. Cancelled entry와 expired entry/create index는 다음 create에서 함께 정리한다. 유효한 simulation lease는 parent TTL 제거보다 우선한다. 완료·차단 Series도 parent TTL 뒤 EXPIRED가 되어 정리될 수 있다. Repository instance 간 상태 공유는 없다.
 
-이 저장소는 database가 아니다. Process restart 시 Series, child, reservation과 receipts가 모두 사라지고 multi-node coordination이나 restart recovery를 제공하지 않는다. 이 제한은 API view의 `processLocalRestartLoss=true`로도 노출한다.
+Standalone repository는 database가 아니다. Standalone Series의 process restart loss와 API view의
+`processLocalRestartLoss=true` 의미는 그대로다. League-bound Series만 별도 checkpoint가
+authoritative restart state를 제공하며, multi-node coordination은 제공하지 않는다.
 
 ## BO3/BO5, side와 seed
 
@@ -57,7 +73,9 @@ League-bound Series는 별도 내부 `LeaguePlayerSeriesKernelPort`만 생성한
 
 League-bound child Draft와 simulation은 이 문서의 기존 20-turn mixed-authority Draft, joint pool preflight, reservation, Production V9 commit과 compact receipt 경로를 재사용한다. Child Draft/Series cancel이나 retryable execution failure는 standalone cancel로 해석하지 않고 score/history를 보존한 채 `PLAYER_SERIES_RESTART_REQUIRED`로 차단한다. Response의 `allowedCommands`에서도 League-bound `CANCEL_SERIES`를 Season cancel처럼 광고하지 않는다. Completed evidence read는 stored game마다 current Production V9을 결정 재생해 `SeriesGameReceipt`를 exact 비교하고 aggregate mutation 0을 확인한 뒤에만 League verifier로 전달한다.
 
-이 구분은 persistence를 추가하지 않는다. 기존 `SeriesRepository`와 현재 League binding adapter는 모두 process-local이고, restart 뒤 League fixture를 복구하는 권위는 후속 persistence/jobs adapter가 소유한다. 자세한 handoff 경계는 [AI League V1 Player Series Handoff](../development/ai-vs-ai-league-simulation-v1-player-series-handoff.md)에 있다.
+이 구분은 standalone 전체를 DB로 전환하지 않는다. League-bound origin만 JDBC binding/checkpoint가
+restart authority를 소유하고 기존 `SeriesRepository`는 실행 중 aggregate cache와 mutation 경계를
+계속 제공한다. 자세한 경계는 [AI League V1 Persistence and Jobs](../development/ai-vs-ai-league-simulation-v1-persistence-and-jobs.md)에 있다.
 
 ## Series-owned Player Draft와 Hard Fearless
 
@@ -112,12 +130,18 @@ Series frontend는 기존 AUTO와 standalone Player Draft를 대체하지 않는
 
 ## 현재 제한과 다음 단계
 
-V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit과 background job recovery는 포함하지 않는다. Process restart 뒤 browser pointer만 남아 있어도 Series 자체는 복구되지 않는다. Command receipt 한도 256은 eviction하지 않는다. 이미 기록된 exact replay는 한도에서도 허용하지만 신규 action/simulate/cancel은 실행·mutation 전에 fail-closed하고 `allowedCommands`에도 나타나지 않으므로 장시간 열린 Series는 terminal/cancel command도 거부될 수 있다. V2에서는 persistence와 함께 receipt compaction/retention 정책이 필요하다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다. Frontend-readiness 보강과 검증은 [Series Lifecycle V1 Frontend Readiness Hardening](../development/series-lifecycle-v1-frontend-readiness-hardening.md)에 기록한다.
+Standalone V1은 process-local single-node이며 process restart 뒤 browser pointer만으로 복구되지
+않는다. League-bound origin은 local single-node H2 checkpoint와 background job recovery를
+제공하지만 authentication/ownership과 multi-node lease/commit은 없다. Command receipt 한도
+256은 eviction하지 않으며, 한도에서 신규 action/simulate/cancel은 fail-closed한다. Full replay는
+현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다.
 
-League-bound Player Series handoff는 이 process-local repository를 Season authority로 승격하지 않고 별도의 canonical binding/completion port에서 기존 Draft/Series 규칙을 재사용하도록 구현됐다. 현재 exactly-once와 resume은 process-local application 의미이며 DB transaction, outbox delivery와 restart recovery는 아직 없다. 전체 방향은 [AI vs AI League Simulation V1 Hybrid Season Contract](ai-vs-ai-league-simulation-v1-contract-sketch.md)에 있다.
+League-bound Player Series handoff는 process-local map을 Season authority로 승격하지 않는다.
+별도의 JDBC binding/checkpoint와 receipt/outbox/application ledger가 restart resume과 durable
+exactly-once를 소유하며 기존 Draft/Series 규칙만 재사용한다.
 
 League 구현의 다음 순서는 다음과 같다.
 
 ```text
-AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS
+AI_VS_AI_LEAGUE_SIMULATION_V1_API
 ```

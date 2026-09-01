@@ -8,6 +8,7 @@ import com.lolfm.application.PlayerDraftSessionStatus;
 import com.lolfm.application.SeriesApiV1Facade;
 import com.lolfm.application.SeriesGameStatus;
 import com.lolfm.application.SeriesStatus;
+import com.lolfm.application.LeagueBoundSeriesRecoveryReader;
 import com.lolfm.champion.ChampionId;
 import com.lolfm.dto.SeriesApiV1Dtos;
 import com.lolfm.simulator.SimulationInstrumentation;
@@ -17,6 +18,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,10 +33,13 @@ class LeaguePlayerSeriesHandoffProductionV9Test {
     @Autowired LeaguePlayerSeriesKernelPort kernel;
     @Autowired SeriesApiV1Facade series;
     @Autowired LeagueAutomatedSeriesRunner automated;
+    @Autowired LeagueRelationalStore leagueStore;
+    @Autowired LeagueBoundSeriesRecoveryReader recoveryReader;
 
     @Test
     void managedFixtureCompletesThroughPlayerDraftV9AndUnifiedReceiptExactlyOnce() {
         LeagueSeasonAggregate season = productionHybridSeason(snapshots);
+        leagueStore.freeze(season);
         LeagueFixture fixture = LeagueDomainTestFixtures.fixture(
                 season.schedule(), "GEN", "T1");
         var started = handoff.startOrResume(
@@ -71,9 +78,22 @@ class LeaguePlayerSeriesHandoffProductionV9Test {
                                 "league-action-" + action++, champion));
                 view = selected.series();
                 child = selected.draftSession().session();
+                if (action == 3) {
+                    var recovered = recoveryReader.load(view.seriesId());
+                    assertThat(recovered.seriesId()).isEqualTo(view.seriesId());
+                    assertThat(recovered.revision()).isEqualTo(view.revision());
+                    assertThat(recovered.draftDecisionCount())
+                            .isEqualTo(child.decisions().size());
+                    assertThat(recovered.allowedNextAction()).isEqualTo("DRAFT_ACTION");
+                    assertThat(recovered.currentGameSeed()).isEqualTo(
+                            Long.parseLong(view.currentGameSeed()));
+                }
             }
             assertThat(child.decisions()).hasSize(20);
             assertThat(child.completedDraft().finalAssignments()).hasSize(10);
+            var completedDraftRecovery = recoveryReader.load(view.seriesId());
+            assertThat(completedDraftRecovery.draftDecisionCount()).isEqualTo(20);
+            assertThat(completedDraftRecovery.allowedNextAction()).isEqualTo("SIMULATE");
             var simulated = series.simulate(view.seriesId(), gameNumber,
                     new SeriesApiV1Dtos.SimulateRequest(
                             SeriesApiV1Dtos.SIMULATE_REQUEST_SCHEMA,
@@ -91,11 +111,21 @@ class LeaguePlayerSeriesHandoffProductionV9Test {
             assertThat(view.excludedChampionIds()).hasSize(committed * 10);
             if (view.status() == SeriesStatus.ACTIVE) {
                 assertThat(view.currentGameNumber()).isEqualTo(committed + 1);
+                var nextGameRecovery = recoveryReader.load(view.seriesId());
+                assertThat(nextGameRecovery.score()).isEqualTo(view.score());
+                assertThat(nextGameRecovery.excludedChampionCount())
+                        .isEqualTo(committed * 10);
+                assertThat(nextGameRecovery.currentGameNumber()).isEqualTo(committed + 1);
+                assertThat(nextGameRecovery.allowedNextAction()).isEqualTo("CREATE_DRAFT");
             }
         }
         assertThat(view.status()).isEqualTo(SeriesStatus.COMPLETED);
         assertThat(view.score().get(view.winnerTeamCode())).isEqualTo(2);
         assertThat(committed).isBetween(2, 3);
+        var completedRecovery = recoveryReader.load(view.seriesId());
+        assertThat(completedRecovery.status()).isEqualTo(SeriesStatus.COMPLETED);
+        assertThat(completedRecovery.score()).isEqualTo(view.score());
+        assertThat(completedRecovery.allowedNextAction()).isEqualTo("VERIFY_COMPLETION");
 
         var enabledEvidence = kernel.completedEvidence(
                 binding, SimulationInstrumentation.enabled());
@@ -115,10 +145,44 @@ class LeaguePlayerSeriesHandoffProductionV9Test {
         assertThat(completionSeason.revision()).isOne();
         assertThat(completionSeason.standings().appliedFixtureCount()).isOne();
 
-        var completed = handoff.complete(
-                new LeaguePlayerSeriesHandoffService.CompletionCommand(
-                        completionSeason.leagueId(), completionSeason, fixture.fixtureId(),
-                        binding.bindingHash()), SimulationInstrumentation.enabled());
+        var completionCommand = new LeaguePlayerSeriesHandoffService.CompletionCommand(
+                completionSeason.leagueId(), completionSeason, fixture.fixtureId(),
+                binding.bindingHash());
+        var completionExecutor = Executors.newFixedThreadPool(2);
+        CountDownLatch completionGate = new CountDownLatch(1);
+        List<LeaguePlayerSeriesHandoffService.CompletionResult> concurrentCompletion;
+        try {
+            var first = completionExecutor.submit(() -> {
+                completionGate.await();
+                return handoff.complete(completionCommand,
+                        SimulationInstrumentation.enabled());
+            });
+            var second = completionExecutor.submit(() -> {
+                completionGate.await();
+                return handoff.complete(completionCommand,
+                        SimulationInstrumentation.disabled());
+            });
+            completionGate.countDown();
+            concurrentCompletion = List.of(first.get(30, TimeUnit.SECONDS),
+                    second.get(30, TimeUnit.SECONDS));
+        } catch (Exception error) {
+            throw new AssertionError(error);
+        } finally {
+            completionExecutor.shutdownNow();
+        }
+        assertThat(concurrentCompletion).extracting(
+                        LeaguePlayerSeriesHandoffService.CompletionResult::status)
+                .doesNotContain(LeaguePlayerSeriesHandoffService.CompletionStatus.BLOCKED)
+                .contains(LeaguePlayerSeriesHandoffService.CompletionStatus.VERIFIED);
+        assertThat(concurrentCompletion.stream().mapToInt(
+                        LeaguePlayerSeriesHandoffService.CompletionResult
+                                ::gameEngineExecutionCount).sum())
+                .isEqualTo(committed);
+        var completed = concurrentCompletion.stream()
+                .filter(result -> result.status()
+                        == LeaguePlayerSeriesHandoffService.CompletionStatus.VERIFIED)
+                .filter(result -> !result.replayed())
+                .findFirst().orElseThrow();
         assertThat(completed.status()).isEqualTo(
                 LeaguePlayerSeriesHandoffService.CompletionStatus.VERIFIED);
         assertThat(completed.replayed()).isFalse();
@@ -324,6 +388,7 @@ class LeaguePlayerSeriesHandoffProductionV9Test {
     @Test
     void leagueBoundDraftCancelRequiresRestartAndNeverChangesStandingsOrHistory() {
         LeagueSeasonAggregate season = productionHybridSeason(snapshots, "cancel");
+        leagueStore.freeze(season);
         LeagueFixture fixture = LeagueDomainTestFixtures.fixture(
                 season.schedule(), "GEN", "DK");
         var started = handoff.startOrResume(

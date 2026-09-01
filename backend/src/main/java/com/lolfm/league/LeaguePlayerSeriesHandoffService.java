@@ -37,23 +37,29 @@ public final class LeaguePlayerSeriesHandoffService {
             FrozenContext context = validateFrozen(command.leagueId(), command.season(),
                     command.fixtureId(), command.expectedSeasonRevision(), true);
             String payloadHash = startPayloadHash(command);
-            var existing = bindings.findByFixture(
-                    command.season().seasonId(), command.fixtureId());
-            if (existing.isPresent()) {
-                LeaguePlayerSeriesBindingPort.State state = existing.orElseThrow();
-                requireCurrentBinding(context, state.binding());
-                bindings.recordResume(command.commandId(), payloadHash,
-                        state.binding().bindingHash());
-                return resumeExisting(state);
-            }
             LeagueFixtureSeriesBindingV1 binding = LeagueFixtureSeriesBindingV1.create(
                     command.season(), context.fixture(),
                     production.currentResourceProvenanceHash());
-            if (!series.canCompleteInitialDraft(binding)) {
-                return StartResult.blocked("HARD_FEARLESS_LEGAL_POOL_EXHAUSTED");
-            }
-            LeaguePlayerSeriesBindingPort.Registration registration = bindings.create(
+            LeaguePlayerSeriesBindingPort.Registration registration = bindings.createOrLoad(
                     command.commandId(), payloadHash, binding);
+            requireCurrentBinding(context, registration.state().binding());
+            if (!registration.startOwner()) {
+                if (registration.state().status()
+                        == LeaguePlayerSeriesBindingPort.Status.CREATED) {
+                    return StartResult.state(StartStatus.STARTING, null,
+                            registration.state(), null);
+                }
+                return resumeExisting(registration.state());
+            }
+            if (!series.canCompleteInitialDraft(binding)) {
+                LeaguePlayerSeriesBindingPort.State blocked = bindings.transition(
+                        binding.bindingHash(), registration.state().revision(),
+                        LeaguePlayerSeriesBindingPort.Status.CREATED,
+                        LeaguePlayerSeriesBindingPort.Status.BLOCKED,
+                        "HARD_FEARLESS_LEGAL_POOL_EXHAUSTED", null);
+                return StartResult.state(StartStatus.BLOCKED,
+                        "HARD_FEARLESS_LEGAL_POOL_EXHAUSTED", blocked, null);
+            }
             LeaguePlayerSeriesKernelPort.SeriesReference reference;
             try {
                 reference = series.start(binding);
@@ -66,10 +72,19 @@ public final class LeaguePlayerSeriesHandoffService {
                 return StartResult.state(StartStatus.PLAYER_SERIES_RESTART_REQUIRED,
                         "PLAYER_SERIES_START_FAILED", restart, null);
             }
-            LeaguePlayerSeriesBindingPort.State active = bindings.transition(
-                    binding.bindingHash(), registration.state().revision(),
-                    LeaguePlayerSeriesBindingPort.Status.CREATED,
-                    LeaguePlayerSeriesBindingPort.Status.ACTIVE, null, null);
+            LeaguePlayerSeriesBindingPort.State active;
+            try {
+                active = bindings.transition(binding.bindingHash(),
+                        registration.state().revision(),
+                        LeaguePlayerSeriesBindingPort.Status.CREATED,
+                        LeaguePlayerSeriesBindingPort.Status.ACTIVE, null, null);
+            } catch (RuntimeException stale) {
+                active = bindings.findByBindingHash(binding.bindingHash()).orElseThrow();
+                if (active.status() != LeaguePlayerSeriesBindingPort.Status.ACTIVE
+                        && active.status() != LeaguePlayerSeriesBindingPort.Status.VERIFIED) {
+                    throw stale;
+                }
+            }
             return StartResult.state(reference.replayedStart()
                             ? StartStatus.RESUMED : StartStatus.STARTED,
                     null, active, reference);
@@ -102,19 +117,30 @@ public final class LeaguePlayerSeriesHandoffService {
                 return CompletionResult.verified(
                         state.completionReceipt(), completion, true, 0);
             }
-            if (state.status()
-                    == LeaguePlayerSeriesBindingPort.Status.COMPLETION_PENDING_VERIFICATION) {
-                return CompletionResult.pending();
-            }
-            if (state.status() != LeaguePlayerSeriesBindingPort.Status.ACTIVE) {
+            if (state.status() != LeaguePlayerSeriesBindingPort.Status.ACTIVE
+                    && state.status() != LeaguePlayerSeriesBindingPort.Status
+                    .COMPLETION_PENDING_VERIFICATION) {
                 return CompletionResult.blocked(state.reason() == null
                         ? state.status().name() : state.reason());
             }
-            LeaguePlayerSeriesBindingPort.State pending = bindings.transition(
-                    state.binding().bindingHash(), state.revision(),
-                    LeaguePlayerSeriesBindingPort.Status.ACTIVE,
-                    LeaguePlayerSeriesBindingPort.Status.COMPLETION_PENDING_VERIFICATION,
-                    null, null);
+            LeaguePlayerSeriesBindingPort.CompletionClaim claim =
+                    bindings.claimCompletion(state.binding().bindingHash());
+            LeaguePlayerSeriesBindingPort.State pending = claim.state();
+            if (!claim.verificationOwner()) {
+                if (pending.status() == LeaguePlayerSeriesBindingPort.Status.VERIFIED) {
+                    VerifiedLeagueFixtureCompletion completion =
+                            VerifiedLeagueFixtureCompletion.restoreVerified(
+                                    pending.completionReceipt());
+                    return CompletionResult.verified(pending.completionReceipt(),
+                            completion, true, 0);
+                }
+                if (pending.status() == LeaguePlayerSeriesBindingPort.Status
+                        .COMPLETION_PENDING_VERIFICATION) {
+                    return CompletionResult.pending();
+                }
+                return CompletionResult.blocked(pending.reason() == null
+                        ? pending.status().name() : pending.reason());
+            }
             LeaguePlayerSeriesKernelPort.CompletedSeriesEvidence evidence;
             try {
                 evidence = series.completedEvidence(state.binding(), instrumentation);
@@ -397,6 +423,7 @@ public final class LeaguePlayerSeriesHandoffService {
     ) {}
 
     public enum StartStatus {
+        STARTING,
         STARTED,
         RESUMED,
         COMPLETION_PENDING_VERIFICATION,

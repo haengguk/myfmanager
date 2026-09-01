@@ -3,10 +3,8 @@ package com.lolfm.league;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.springframework.stereotype.Repository;
 
 /** Reference adapter only. It deliberately provides no process-restart durability. */
-@Repository
 final class InMemoryLeaguePlayerSeriesBindingAdapter
         implements LeaguePlayerSeriesBindingPort {
     private final Map<String, State> byBindingHash = new HashMap<>();
@@ -14,7 +12,7 @@ final class InMemoryLeaguePlayerSeriesBindingAdapter
     private final Map<String, CommandIndex> commands = new HashMap<>();
 
     @Override
-    public synchronized Registration create(
+    public synchronized Registration createOrLoad(
             String commandId,
             String commandPayloadHash,
             LeagueFixtureSeriesBindingV1 binding
@@ -23,18 +21,24 @@ final class InMemoryLeaguePlayerSeriesBindingAdapter
         CommandIndex prior = commands.get(commandId);
         if (prior != null) {
             requireSameCommand(prior, commandPayloadHash, binding.bindingHash());
-            return new Registration(requireState(prior.bindingHash()), true);
+            return new Registration(requireState(prior.bindingHash()), false, true);
         }
         String fixtureKey = fixtureKey(binding.seasonId(), binding.fixtureId());
         String existingHash = bindingByFixture.get(fixtureKey);
         if (existingHash != null) {
-            throw new IllegalStateException("PLAYER_SERIES_FIXTURE_ALREADY_BOUND");
+            State existing = requireState(existingHash);
+            if (!existing.binding().equals(binding)) {
+                throw new IllegalStateException("PLAYER_SERIES_FIXTURE_BINDING_CONFLICT");
+            }
+            commands.put(commandId,
+                    new CommandIndex(commandPayloadHash, binding.bindingHash()));
+            return new Registration(existing, false, false);
         }
         State state = new State(binding, 0, Status.CREATED, null, null);
         byBindingHash.put(binding.bindingHash(), state);
         bindingByFixture.put(fixtureKey, binding.bindingHash());
         commands.put(commandId, new CommandIndex(commandPayloadHash, binding.bindingHash()));
-        return new Registration(state, false);
+        return new Registration(state, true, false);
     }
 
     @Override
@@ -48,10 +52,10 @@ final class InMemoryLeaguePlayerSeriesBindingAdapter
         CommandIndex prior = commands.get(commandId);
         if (prior != null) {
             requireSameCommand(prior, commandPayloadHash, bindingHash);
-            return new Registration(state, true);
+            return new Registration(state, false, true);
         }
         commands.put(commandId, new CommandIndex(commandPayloadHash, bindingHash));
-        return new Registration(state, false);
+        return new Registration(state, false, false);
     }
 
     @Override
@@ -63,6 +67,23 @@ final class InMemoryLeaguePlayerSeriesBindingAdapter
     @Override
     public synchronized Optional<State> findByBindingHash(String bindingHash) {
         return Optional.ofNullable(byBindingHash.get(bindingHash));
+    }
+
+    @Override
+    public synchronized CompletionClaim claimCompletion(String bindingHash) {
+        State current = requireState(bindingHash);
+        if (current.status() == Status.ACTIVE) {
+            State pending = new State(current.binding(),
+                    Math.addExact(current.revision(), 1),
+                    Status.COMPLETION_PENDING_VERIFICATION, null, null);
+            byBindingHash.put(bindingHash, pending);
+            return new CompletionClaim(pending, true);
+        }
+        if (current.status() == Status.COMPLETION_PENDING_VERIFICATION
+                || current.status() == Status.VERIFIED) {
+            return new CompletionClaim(current, false);
+        }
+        return new CompletionClaim(current, false);
     }
 
     @Override

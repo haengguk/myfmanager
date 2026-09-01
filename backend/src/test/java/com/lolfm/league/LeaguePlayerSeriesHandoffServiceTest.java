@@ -6,9 +6,14 @@ import com.lolfm.application.SeriesStatus;
 import com.lolfm.simulator.SimulationInstrumentation;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 class LeaguePlayerSeriesHandoffServiceTest {
@@ -203,6 +208,63 @@ class LeaguePlayerSeriesHandoffServiceTest {
         assertThat(season.standings().appliedFixtureCount()).isZero();
     }
 
+    @Test
+    void concurrentSameAndDifferentCommandsShareOneBindingAndOneSeriesStart()
+            throws Exception {
+        assertConcurrentStart(false);
+        assertConcurrentStart(true);
+    }
+
+    private static void assertConcurrentStart(boolean differentCommands) throws Exception {
+        LeagueSeasonAggregate season = hybridSeason();
+        LeagueFixture fixture = managedFixture(season, differentCommands ? "DK" : "T1");
+        FakeKernel kernel = new FakeKernel();
+        kernel.blockStart = true;
+        InMemoryLeaguePlayerSeriesBindingAdapter adapter =
+                new InMemoryLeaguePlayerSeriesBindingAdapter();
+        LeaguePlayerSeriesHandoffService service = service(season, kernel, adapter);
+        var executor = Executors.newFixedThreadPool(10);
+        try {
+            Future<LeaguePlayerSeriesHandoffService.StartResult> owner = executor.submit(
+                    () -> service.startOrResume(command(
+                            season, fixture, differentCommands ? "command-0" : "same")));
+            assertThat(kernel.startEntered.await(5, TimeUnit.SECONDS)).isTrue();
+            ArrayList<Future<LeaguePlayerSeriesHandoffService.StartResult>> competitors =
+                    new ArrayList<>();
+            for (int index = 1; index < 10; index++) {
+                String commandId = differentCommands ? "command-" + index : "same";
+                competitors.add(executor.submit(
+                        () -> service.startOrResume(command(season, fixture, commandId))));
+            }
+            ArrayList<LeaguePlayerSeriesHandoffService.StartResult> results =
+                    new ArrayList<>();
+            for (Future<LeaguePlayerSeriesHandoffService.StartResult> competitor
+                    : competitors) {
+                results.add(competitor.get(5, TimeUnit.SECONDS));
+            }
+            kernel.releaseStart.countDown();
+            results.add(owner.get(5, TimeUnit.SECONDS));
+
+            assertThat(results).noneSatisfy(result -> assertThat(result.status())
+                    .isEqualTo(LeaguePlayerSeriesHandoffService.StartStatus.BLOCKED));
+            assertThat(results).extracting(result ->
+                            result.bindingState().binding().bindingHash())
+                    .containsOnly(results.getFirst().bindingState().binding().bindingHash());
+            assertThat(results).extracting(
+                            LeaguePlayerSeriesHandoffService.StartResult::status)
+                    .contains(LeaguePlayerSeriesHandoffService.StartStatus.STARTED)
+                    .allSatisfy(status -> assertThat(status).isIn(
+                            LeaguePlayerSeriesHandoffService.StartStatus.STARTED,
+                            LeaguePlayerSeriesHandoffService.StartStatus.STARTING));
+            assertThat(kernel.starts).hasSize(1);
+            assertThat(adapter.findByFixture(season.seasonId(), fixture.fixtureId()))
+                    .isPresent();
+        } finally {
+            kernel.releaseStart.countDown();
+            executor.shutdownNow();
+        }
+    }
+
     private static void assertBinding(
             LeagueSeasonAggregate season,
             LeagueFixture fixture,
@@ -294,11 +356,16 @@ class LeaguePlayerSeriesHandoffServiceTest {
     }
 
     private static final class FakeKernel implements LeaguePlayerSeriesKernelPort {
-        private final List<LeagueFixtureSeriesBindingV1> starts = new ArrayList<>();
-        private final List<LeagueFixtureSeriesBindingV1> resumes = new ArrayList<>();
+        private final List<LeagueFixtureSeriesBindingV1> starts =
+                Collections.synchronizedList(new ArrayList<>());
+        private final List<LeagueFixtureSeriesBindingV1> resumes =
+                Collections.synchronizedList(new ArrayList<>());
         private int completedReads;
         private boolean canComplete = true;
         private boolean invalidCompletedEvidence;
+        private boolean blockStart;
+        private final CountDownLatch startEntered = new CountDownLatch(1);
+        private final CountDownLatch releaseStart = new CountDownLatch(1);
 
         @Override
         public boolean canCompleteInitialDraft(LeagueFixtureSeriesBindingV1 binding) {
@@ -308,6 +375,17 @@ class LeaguePlayerSeriesHandoffServiceTest {
         @Override
         public SeriesReference start(LeagueFixtureSeriesBindingV1 binding) {
             starts.add(binding);
+            if (blockStart) {
+                startEntered.countDown();
+                try {
+                    if (!releaseStart.await(5, TimeUnit.SECONDS)) {
+                        throw new IllegalStateException("TEST_START_RELEASE_TIMEOUT");
+                    }
+                } catch (InterruptedException error) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(error);
+                }
+            }
             return reference(binding, false);
         }
 

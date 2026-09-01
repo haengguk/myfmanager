@@ -21,7 +21,8 @@ public final class LeaguePlayerSeriesHandoffCrossJvmProbe {
         if (args.length != 1) throw new IllegalArgumentException("Expected output file");
         try (var context = new SpringApplicationBuilder(LolfmApplication.class)
                 .web(WebApplicationType.NONE)
-                .properties("spring.main.banner-mode=off", "logging.level.root=ERROR")
+                .properties("spring.main.banner-mode=off", "logging.level.root=ERROR",
+                        "spring.datasource.url=jdbc:h2:mem:player-probe;DB_CLOSE_DELAY=-1")
                 .run()) {
             LeagueProductionSnapshotProvider snapshots = context.getBean(
                     LeagueProductionSnapshotProvider.class);
@@ -30,6 +31,7 @@ public final class LeaguePlayerSeriesHandoffCrossJvmProbe {
                             snapshots);
             LeagueFixture fixture = LeagueDomainTestFixtures.fixture(
                     season.schedule(), "GEN", "T1");
+            context.getBean(LeagueRelationalStore.class).freeze(season);
             LeaguePlayerSeriesHandoffService handoff = context.getBean(
                     LeaguePlayerSeriesHandoffService.class);
             SeriesApiV1Facade series = context.getBean(SeriesApiV1Facade.class);

@@ -2,6 +2,32 @@
 
 이 문서는 2026-09-01 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## AI vs AI League Simulation V1 persistence and jobs
+
+상태는 `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS_IMPLEMENTED_READY_FOR_API`다.
+
+Batch 4는 frozen League domain/seed/receipt hash를 바꾸지 않고 local single-node H2/Flyway
+relational authority를 추가했다. Season/round/fixture/standings, FULL_AUTO job/attempt/15분 lease/
+15초 heartbeat/fencing, Player binding/command/League-bound Series checkpoint, V2 receipt/outbox와
+standings application ledger가 process restart 뒤 복구된다. Default fixture parallelism 2,
+hard max 4, transient 총 2회와 attempt log 30일은 기존 frozen operational configuration을
+그대로 사용한다.
+
+Player start/complete 경쟁은 atomic create-or-load와 completion claim으로 바뀌어 exact 또는
+different-command/same-fixture 요청이 binding/Series/verification 하나를 공유하며 정상 경쟁을
+`BLOCKED`로 오인하지 않는다. Standalone Series/Player Draft/Real Match API와 frontend는 변경하지
+않았다. League API/controller/frontend, auth, external broker/multi-node, official 90경기 실행과
+대형 balance/performance 진단은 후속 범위다. 상세 구현은
+[AI League V1 Persistence and Jobs](development/ai-vs-ai-league-simulation-v1-persistence-and-jobs.md)에
+있다.
+
+최종 핵심 focused는 8 suites / 16 tests를 3분 3초에 통과했다. 첫 complete regression에서
+test resource의 compression 설정 누락 1건과 unordered Draft capability 합산에 따른 fresh-JVM
+raw trace/receipt 차이 2건을 발견해 원인을 수정했다. 최종 executable tree의 두 번째 complete
+regression은 251 suites / 2,319 tests / failures 0 / errors 0 / skipped 2, aggregate XML
+1,150.816초, Gradle wall 19분 16초로 clean pass했다. Frozen product-decision hash와 Production
+V9 policy/profile/tuning, gameplay Random 소비는 유지했고 frontend source는 변경하지 않았다.
+
 ## Current Production Snapshot
 
 ### Matchup/Composition Production V9 acceptance
@@ -552,6 +578,8 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 
 ## Implemented
 
+- local single-node H2/Flyway migration, durable League lifecycle/job/lease/checkpoint,
+  V2 receipt/outbox/application ledger와 restart recovery를 제공하는 AI League V1 Batch 4
 - backend-valid no-decisive cancel evidence를 허용하고 committed 관측 뒤 replay-only identity를 유지하는 Series frontend 최종 계약
 - frozen Hybrid/Spectator mode, 10팀 90-fixture schedule/side/seed, exactly-once receipt ledger와 six-step standings를 제공하는 AI League V1 pure domain
 - Hybrid/Spectator Season mode, managed fixture batch exclusion, durable Player Series handoff, unified completion receipt, standings atomicity와 restart recovery까지 제품 결정을 동결한 AI League V1 구현 계약
@@ -604,7 +632,8 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 
 ## Partial / Disabled
 
-- AI League V1의 pure Season/schedule/standings domain, 한 `FULL_AUTO` fixture용 synchronous runner와 managed Player fixture의 process-local start/resume/completion proof는 구현됐다. Binding/persistence port는 있지만 DB durability, 90-fixture worker/job, outbox/restart recovery, League API/frontend는 아직 없다.
+- AI League V1 Batch 1~4의 domain, Auto/Player runner/handoff, local single-node DB durability,
+  bounded worker/job, outbox/restart recovery는 구현됐다. League API/frontend는 아직 없다.
 - Real LCK Draft→Match flow는 Frontend V1-B의 기본 LIVE 공급자와 연결됐다. Reference는 명시적 회귀 모드로만 남고 자동 fallback하지 않는다.
 - Full response의 decoded JSON은 현재도 20–34MB지만 gzip wire body는 공식 외부 HTTP에서 약 1.88–2.79MB로 줄었다. JSON projection/streaming, parse·validation·heap을 분리하는 worker, 정확한 progress는 별도 후속 범위다.
 - Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
@@ -625,7 +654,8 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 2. ACTIVE session response의 full legal pool/advisory 재계산을 줄이는 `PLAYER_DRAFT_SESSION_PROJECTION_PERFORMANCE_HARDENING_V1`을 우선 검토하고, 이후 `PLAYER_DRAFT_AI_TURN_PERFORMANCE_HARDENING_V1`을 별도 진행한다.
 3. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
 4. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
-5. AI League V1 Batch 1 domain, Batch 2 `FULL_AUTO` runner와 Batch 3 League-bound Player Series handoff는 완료됐다. 다음 `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS`에서 DB adapter, lease/heartbeat/retry, outbox와 restart recovery를 닫는다.
+5. AI League V1 Batch 1~4는 완료됐다. 다음 `AI_VS_AI_LEAGUE_SIMULATION_V1_API`에서 additive
+   League/Season/Fixture command/view 계약을 구현한다.
 6. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 7. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 8. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
