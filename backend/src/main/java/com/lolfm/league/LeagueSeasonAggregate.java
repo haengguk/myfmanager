@@ -5,6 +5,7 @@ import java.util.Objects;
 
 /** Immutable V1 Season aggregate for frozen schedule and exactly-once standings changes. */
 public final class LeagueSeasonAggregate {
+    private final String leagueId;
     private final String seasonId;
     private final long revision;
     private final LeagueSeasonMode seasonMode;
@@ -17,6 +18,7 @@ public final class LeagueSeasonAggregate {
     private final LeagueStandings standings;
 
     private LeagueSeasonAggregate(
+            String leagueId,
             String seasonId,
             long revision,
             LeagueSeasonMode seasonMode,
@@ -28,10 +30,12 @@ public final class LeagueSeasonAggregate {
             LeagueSchedule schedule,
             LeagueStandings standings
     ) {
+        LeagueIdentity.requireLeagueId(leagueId);
         LeagueIdentity.requireSeasonId(seasonId);
         if (revision < 0) {
             throw new IllegalArgumentException("Season revision cannot be negative");
         }
+        this.leagueId = leagueId;
         this.seasonId = seasonId;
         this.revision = revision;
         this.seasonMode = Objects.requireNonNull(seasonMode, "seasonMode");
@@ -59,6 +63,7 @@ public final class LeagueSeasonAggregate {
     }
 
     public static LeagueSeasonAggregate create(
+            String leagueId,
             String seasonId,
             LeagueSeasonMode seasonMode,
             String managedTeamCode,
@@ -72,7 +77,7 @@ public final class LeagueSeasonAggregate {
                 seasonId, seasonRootSeed, frozenSnapshot.teamSnapshotIdentities().keySet(),
                 seasonMode, managedTeamCode, schedulePolicy);
         LeagueStandings standings = LeagueStandings.empty(schedule.teamCodes());
-        return new LeagueSeasonAggregate(seasonId, 0, seasonMode, managedTeamCode,
+        return new LeagueSeasonAggregate(leagueId, seasonId, 0, seasonMode, managedTeamCode,
                 managedTeamSnapshotIdentity, frozenSnapshot, seasonRootSeed,
                 LeagueV1ProductDecisions.productDecisionHash(), schedule, standings);
     }
@@ -84,9 +89,14 @@ public final class LeagueSeasonAggregate {
         if (next == standings) {
             return this;
         }
-        return new LeagueSeasonAggregate(seasonId, Math.addExact(revision, 1), seasonMode,
+        return new LeagueSeasonAggregate(leagueId, seasonId,
+                Math.addExact(revision, 1), seasonMode,
                 managedTeamCode, managedTeamSnapshotIdentity, frozenSnapshot,
                 seasonRootSeed, productDecisionHash, schedule, next);
+    }
+
+    public String leagueId() {
+        return leagueId;
     }
 
     public String seasonId() {

@@ -23,9 +23,10 @@ class LeagueAutomatedSeriesRunnerCrossJvmDeterminismTest {
         assertThat(Files.readAllBytes(first)).isEqualTo(Files.readAllBytes(second));
         String canonical = Files.readString(first);
         assertThat(canonical)
-                .contains("schemaVersion=" + LeagueFixtureCompletionReceiptV1.SCHEMA)
+                .contains("schemaVersion=" + LeagueFixtureCompletionReceiptV2.SCHEMA)
                 .contains("canonicalHashAlgorithm="
-                        + LeagueFixtureCompletionReceiptV1.HASH_ALGORITHM)
+                        + LeagueFixtureCompletionReceiptV2.HASH_ALGORITHM)
+                .contains("playerSeriesBindingHash=NONE")
                 .contains("runtimeProfileId=PRODUCTION_MATCHUP_COMPOSITION_V1")
                 .contains("engineImplementationVersion=MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9")
                 .contains("canonicalFixtureReceiptHash=");

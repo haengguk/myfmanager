@@ -111,7 +111,7 @@ public final class LeagueIdentity {
                 + "seriesFormat=" + format + '\n');
     }
 
-    static long gameSeed(
+    public static long gameSeed(
             String boundSeriesId,
             long fixtureRootSeed,
             int gameNumber,

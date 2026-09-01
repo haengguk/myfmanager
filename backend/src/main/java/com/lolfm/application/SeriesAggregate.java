@@ -32,8 +32,40 @@ record SeriesAggregate(
         Instant createdAt,
         Instant lastActivityAt,
         Instant expiresAt,
-        Map<String, SeriesCommandReceipt> commandReceipts
+        Map<String, SeriesCommandReceipt> commandReceipts,
+        SeriesOrigin origin,
+        String leagueBindingHash,
+        String leagueSeedAnchorTeamCode
 ) {
+    SeriesAggregate(
+            String seriesId,
+            long revision,
+            SeriesStatus status,
+            String terminalReason,
+            SeriesFormat format,
+            String teamACode,
+            String teamBCode,
+            String managedTeamCode,
+            String game1BlueTeamCode,
+            String canonicalRootSeed,
+            long rootSeed,
+            Map<String, Integer> score,
+            List<SeriesGame> games,
+            Set<ChampionId> consumedPicks,
+            String historyHash,
+            String winnerTeamCode,
+            Instant createdAt,
+            Instant lastActivityAt,
+            Instant expiresAt,
+            Map<String, SeriesCommandReceipt> commandReceipts
+    ) {
+        this(seriesId, revision, status, terminalReason, format, teamACode, teamBCode,
+                managedTeamCode, game1BlueTeamCode, canonicalRootSeed, rootSeed, score,
+                games, consumedPicks, historyHash, winnerTeamCode, createdAt,
+                lastActivityAt, expiresAt, commandReceipts, SeriesOrigin.STANDALONE,
+                null, null);
+    }
+
     SeriesAggregate {
         if (revision < 0) throw new IllegalArgumentException("revision");
         Objects.requireNonNull(status, "status");
@@ -46,6 +78,16 @@ record SeriesAggregate(
         Objects.requireNonNull(lastActivityAt, "lastActivityAt");
         Objects.requireNonNull(expiresAt, "expiresAt");
         commandReceipts = Map.copyOf(new LinkedHashMap<>(commandReceipts));
+        Objects.requireNonNull(origin, "origin");
+        if (origin == SeriesOrigin.LEAGUE_BOUND) {
+            if (leagueBindingHash == null || !leagueBindingHash.matches("[0-9a-f]{64}")
+                    || leagueSeedAnchorTeamCode == null
+                    || !Set.of(teamACode, teamBCode).contains(leagueSeedAnchorTeamCode)) {
+                throw new IllegalArgumentException("League-bound Series identity invariant");
+            }
+        } else if (leagueBindingHash != null || leagueSeedAnchorTeamCode != null) {
+            throw new IllegalArgumentException("Standalone Series cannot claim League binding");
+        }
         validate(format, teamACode, teamBCode, managedTeamCode, game1BlueTeamCode,
                 score, games, consumedPicks, historyHash, status, winnerTeamCode);
     }
@@ -85,7 +127,8 @@ record SeriesAggregate(
         return new SeriesAggregate(seriesId, nextRevision, nextStatus, nextReason, format,
                 teamACode, teamBCode, managedTeamCode, game1BlueTeamCode,
                 canonicalRootSeed, rootSeed, nextScore, nextGames, nextConsumed,
-                nextHistoryHash, nextWinner, createdAt, activity, expiry, receipts);
+                nextHistoryHash, nextWinner, createdAt, activity, expiry, receipts,
+                origin, leagueBindingHash, leagueSeedAnchorTeamCode);
     }
 
     private static void validate(

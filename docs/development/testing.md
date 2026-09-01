@@ -80,6 +80,34 @@ Gradle wall 16분 14초로 첫 실행에서 통과했다. 이후 문서만 변�
 반복하지 않았다. 90-fixture Season run, balance/performance population과 frontend/
 Playwright는 이 backend-only milestone에서 실행하지 않았다.
 
+### AI League V1 Player Series handoff
+
+Batch 3의 canonical binding, process-local start/resume, 실제 Player Production V9 completion과 fresh-JVM proof는 다음 lane으로 검증한다.
+
+```bash
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.league.LeaguePlayerSeriesHandoffServiceTest \
+  --tests com.lolfm.league.LeaguePlayerSeriesHandoffProductionV9Test \
+  --tests com.lolfm.league.LeaguePlayerSeriesHandoffCrossJvmDeterminismTest \
+  --console=plain --no-daemon
+```
+
+- managed team BLUE/RED fixture와 server-created private binding, exact command replay/payload conflict
+- spectator/FULL_AUTO/non-managed/stale/snapshot drift의 Draft/Match/Random 실행 0
+- standalone public create의 League origin/binding 주입 필드 부재와 League sibling seed/double derivation 0
+- 기존 mixed-authority 20-turn Draft, game별 10 final assignments, fixture-scoped Hard Fearless +10 picks
+- actual Production V9 BO3 early stop, diagnostics ON/OFF game receipt exact와 다른 fixture completion으로 증가한 Season revision 허용
+- completed server Series evidence에서만 V2 unified receipt 생성, Auto/Player Draft authority와 binding hash 결속
+- binding/League/Season/fixture/side/root/seed/history/Draft/assignment/resource/output/replay/timeline/Random, omission/duplicate/reorder 변조 거부
+- incomplete/cancel/pool exhaustion/invalid completion의 score/history/standings 0, invalid pending은 `BLOCKED`
+- first standings application +1, exact duplicate receipt bytes exact/engine 0/standings +0
+- 두 fresh JVM의 canonical binding과 Player V2 receipt byte/hash exact
+
+Batch 2 Auto parity는 같은 final tree에서 `LeagueAutomatedSeriesRunnerTest`, `LeagueAutomatedSeriesRunnerProductionV9Test`, `LeagueAutomatedSeriesRunnerCrossJvmDeterminismTest`로 V1 core와 FULL_AUTO authority V2 envelope를 함께 확인한다. Existing affected regression은 Batch 1 schedule/standings, Series lifecycle/repository/API/replay, Player Draft engine/boundary/session, Match Engine V1/Production V9와 Real Match API를 포함한다.
+
+Final executable production tree의 complete backend regression은 첫 실행에서 249 suites / 2,315 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,901.498초, Gradle wall 16분 53초로 통과했다. 두 skip은 explicit 대형 diagnostic이다. League API/frontend가 없으므로 frontend build/Playwright는 실행하지 않았고 90-fixture Season, balance/performance population도 제외했다.
+
 ### Player-controlled Draft API V1
 
 혼합 Draft의 final authoritative-input boundary와 기존 session hardening은 다음 focused lane으로 검증한다.

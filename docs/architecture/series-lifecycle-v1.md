@@ -49,6 +49,16 @@ Series create
 - Series/game/child ID는 versioned canonical SHA-256으로 결정적으로 파생한다. UUID와 wall clock은 gameplay identity에 들어가지 않는다.
 - Game seed는 `SERIES_GAME_SEED_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1`으로 파생한다. 입력에는 Series ID, root seed, game number, side/team mapping, managed team과 history-before hash가 포함된다.
 
+## Standalone과 League-bound origin
+
+`SeriesAggregate`는 `STANDALONE | LEAGUE_BOUND` origin을 구조적으로 구분한다. Public `POST /api/v1/series`는 계속 caller가 고른 standalone 설정만 받고 League binding, fixture, origin을 주입할 필드가 없다. 기존 standalone ID와 `managedTeamCode` salt를 포함한 game-seed schema도 그대로다.
+
+League-bound Series는 별도 내부 `LeaguePlayerSeriesKernelPort`만 생성한다. Server-created `LeagueFixtureSeriesBindingV1`의 bound Series ID, 두 팀, managed team, BO3, Game 1 side, fixture root와 empty Hard Fearless history를 그대로 사용한다. Fixture root는 Series root로 한 번만 전달하고 Game 1부터 `AI_LEAGUE_BOUND_SERIES_GAME_SEED_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1`과 canonical pair-first anchor로 seed를 파생한다. 따라서 standalone salt나 execution mode가 League game seed를 바꾸거나 root가 이중 파생되지 않는다.
+
+League-bound child Draft와 simulation은 이 문서의 기존 20-turn mixed-authority Draft, joint pool preflight, reservation, Production V9 commit과 compact receipt 경로를 재사용한다. Child Draft/Series cancel이나 retryable execution failure는 standalone cancel로 해석하지 않고 score/history를 보존한 채 `PLAYER_SERIES_RESTART_REQUIRED`로 차단한다. Response의 `allowedCommands`에서도 League-bound `CANCEL_SERIES`를 Season cancel처럼 광고하지 않는다. Completed evidence read는 stored game마다 current Production V9을 결정 재생해 `SeriesGameReceipt`를 exact 비교하고 aggregate mutation 0을 확인한 뒤에만 League verifier로 전달한다.
+
+이 구분은 persistence를 추가하지 않는다. 기존 `SeriesRepository`와 현재 League binding adapter는 모두 process-local이고, restart 뒤 League fixture를 복구하는 권위는 후속 persistence/jobs adapter가 소유한다. 자세한 handoff 경계는 [AI League V1 Player Series Handoff](../development/ai-vs-ai-league-simulation-v1-player-series-handoff.md)에 있다.
+
 ## Series-owned Player Draft와 Hard Fearless
 
 Series child는 standalone session map을 재사용하지 않고 parent aggregate 안에 보관된다. Binding은 Series/game ID, actual game number, BLUE/RED team code, controlled side, derived seed, sorted prior exclusions와 history hash를 포함한다. Parent revision과 child revision을 모두 검사한다.
@@ -104,10 +114,10 @@ Series frontend는 기존 AUTO와 standalone Player Draft를 대체하지 않는
 
 V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit과 background job recovery는 포함하지 않는다. Process restart 뒤 browser pointer만 남아 있어도 Series 자체는 복구되지 않는다. Command receipt 한도 256은 eviction하지 않는다. 이미 기록된 exact replay는 한도에서도 허용하지만 신규 action/simulate/cancel은 실행·mutation 전에 fail-closed하고 `allowedCommands`에도 나타나지 않으므로 장시간 열린 Series는 terminal/cancel command도 거부될 수 있다. V2에서는 persistence와 함께 receipt compaction/retention 정책이 필요하다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다. Frontend-readiness 보강과 검증은 [Series Lifecycle V1 Frontend Readiness Hardening](../development/series-lifecycle-v1-frontend-readiness-hardening.md)에 기록한다.
 
-향후 League-bound Player Series는 이 process-local repository를 Season authority로 승격하지 않고, 별도의 durable binding/completion receipt/outbox 경계에서 기존 Draft 화면과 Series 규칙만 재사용한다. 해당 방향은 [AI vs AI League Simulation V1 Hybrid Season Contract](ai-vs-ai-league-simulation-v1-contract-sketch.md)에 설계됐다. 현재 pure Season/schedule/standings domain만 구현됐고 League-bound Player Series handoff는 아직 구현되지 않았다.
+League-bound Player Series handoff는 이 process-local repository를 Season authority로 승격하지 않고 별도의 canonical binding/completion port에서 기존 Draft/Series 규칙을 재사용하도록 구현됐다. 현재 exactly-once와 resume은 process-local application 의미이며 DB transaction, outbox delivery와 restart recovery는 아직 없다. 전체 방향은 [AI vs AI League Simulation V1 Hybrid Season Contract](ai-vs-ai-league-simulation-v1-contract-sketch.md)에 있다.
 
 League 구현의 다음 순서는 다음과 같다.
 
 ```text
-AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER
+AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS
 ```

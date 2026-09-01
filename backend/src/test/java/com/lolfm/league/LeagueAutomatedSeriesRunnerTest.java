@@ -312,6 +312,7 @@ class LeagueAutomatedSeriesRunnerTest {
                 other.receipt().orderedGameReceipts(), other.receipt());
 
         LeagueSeasonAggregate otherSeason = LeagueSeasonAggregate.create(
+                LeagueDomainTestFixtures.leagueId(),
                 LeagueIdentity.seasonId(LeagueDomainTestFixtures.leagueId(), "cross-season"),
                 LeagueSeasonMode.SPECTATOR_FULL_AUTO, null, null,
                 season.frozenSnapshot(), LeagueDomainTestFixtures.ROOT_SEED,
@@ -346,7 +347,8 @@ class LeagueAutomatedSeriesRunnerTest {
             String managedTeam
     ) {
         LeagueSeasonFrozenSnapshot snapshot = LeagueDomainTestFixtures.snapshot();
-        return LeagueSeasonAggregate.create(LeagueDomainTestFixtures.seasonId(), mode,
+        return LeagueSeasonAggregate.create(LeagueDomainTestFixtures.leagueId(),
+                LeagueDomainTestFixtures.seasonId(), mode,
                 managedTeam,
                 managedTeam == null ? null : snapshot.teamSnapshotIdentity(managedTeam),
                 snapshot, LeagueDomainTestFixtures.ROOT_SEED,
@@ -598,8 +600,18 @@ class LeagueAutomatedSeriesRunnerTest {
             List<LeagueFixtureGameReceiptV1> actual,
             LeagueFixtureCompletionReceiptV1 receipt
     ) {
-        assertThatThrownBy(() -> VerifiedLeagueFixtureCompletion.verifyAutomated(
-                input, snapshot, RESOURCE_HASH, actual, receipt))
+        assertThatThrownBy(() -> {
+            LeagueFixtureCompletionReceiptV2 unified =
+                    new LeagueFixtureCompletionReceiptV2(
+                            LeagueFixtureCompletionReceiptV2.SCHEMA,
+                            LeagueFixtureCompletionReceiptV2.HASH_ALGORITHM,
+                            input.season().leagueId(), null, receipt,
+                            actual.stream().map(game ->
+                                    LeagueFixtureDraftAuthorityReceiptV1.fullAuto(
+                                            game.gameNumber())).toList(), null);
+            VerifiedLeagueFixtureCompletion.verifyAutomated(
+                    input, snapshot, RESOURCE_HASH, actual, unified);
+        })
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

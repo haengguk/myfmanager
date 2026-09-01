@@ -49,7 +49,10 @@ public final class SeriesApiV1ResponseMapper {
                 aggregate.managedTeamCode(), aggregate.managedTeamCode().equals(
                 aggregate.teamACode()) ? aggregate.teamBCode() : aggregate.teamACode(),
                 aggregate.score(), current.gameNumber(), aggregate.canonicalRootSeed(),
-                SeriesIdentity.GAME_SEED_ALGORITHM, Long.toString(current.matchSeed()),
+                aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                        ? com.lolfm.league.LeagueIdentity.GAME_SEED_ALGORITHM
+                        : SeriesIdentity.GAME_SEED_ALGORITHM,
+                Long.toString(current.matchSeed()),
                 aggregate.consumedPicks().stream().map(value -> value.value()).sorted().toList(),
                 aggregate.historyHash(), aggregate.games().stream().map(this::game).toList(),
                 childEnvelope, reservation, allowedCommands(aggregate),
@@ -124,8 +127,10 @@ public final class SeriesApiV1ResponseMapper {
         }
         if (aggregate.status() == SeriesStatus.ACTIVE) {
             SeriesGame game = aggregate.currentGame();
-            if (game.reservation() != null) return List.of("GET", "CANCEL_SERIES");
-            return switch (game.status()) {
+            if (game.reservation() != null) return aggregate.origin()
+                    == SeriesOrigin.LEAGUE_BOUND ? List.of("GET")
+                    : List.of("GET", "CANCEL_SERIES");
+            List<String> commands = switch (game.status()) {
                 case DRAFT_PENDING, DRAFT_CANCELLED, DRAFT_EXPIRED -> List.of(
                         "CREATE_DRAFT_SESSION", "CANCEL_SERIES");
                 case SIMULATION_FAILED_RETRYABLE -> List.of("SIMULATE", "CANCEL_SERIES");
@@ -134,8 +139,13 @@ public final class SeriesApiV1ResponseMapper {
                 case DRAFT_COMPLETED -> List.of("SIMULATE", "CANCEL_SERIES");
                 default -> List.of("GET", "CANCEL_SERIES");
             };
+            return aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                    ? commands.stream().filter(value -> !value.equals("CANCEL_SERIES")).toList()
+                    : commands;
         }
-        if (aggregate.status() == SeriesStatus.BLOCKED) return List.of("GET", "CANCEL_SERIES");
+        if (aggregate.status() == SeriesStatus.BLOCKED) return aggregate.origin()
+                == SeriesOrigin.LEAGUE_BOUND ? List.of("GET")
+                : List.of("GET", "CANCEL_SERIES");
         return List.of("GET");
     }
 }

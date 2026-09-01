@@ -37,7 +37,7 @@ public final class LeagueAutomatedSeriesRunnerCrossJvmProbe {
             }
             Path output = Path.of(args[0]);
             Files.createDirectories(output.getParent());
-            Files.write(output, result.receipt().canonicalBytes());
+            Files.write(output, result.unifiedReceipt().canonicalBytes());
         }
     }
 

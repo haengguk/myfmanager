@@ -37,17 +37,31 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
                 LeagueAutomatedSeriesRunResult.Status.COMPLETED);
         assertThat(disabled.receipt().canonicalBytes())
                 .isEqualTo(enabled.receipt().canonicalBytes());
-        String serialized = mapper.writeValueAsString(enabled.receipt());
-        LeagueFixtureCompletionReceiptV1 restored = mapper.readValue(
-                serialized, LeagueFixtureCompletionReceiptV1.class);
-        assertThat(restored).isEqualTo(enabled.receipt());
-        assertThat(restored.canonicalBytes()).isEqualTo(enabled.receipt().canonicalBytes());
+        assertThat(disabled.unifiedReceipt().canonicalBytes())
+                .isEqualTo(enabled.unifiedReceipt().canonicalBytes());
+        String serialized = mapper.writeValueAsString(enabled.unifiedReceipt());
+        LeagueFixtureCompletionReceiptV2 restored = mapper.readValue(
+                serialized, LeagueFixtureCompletionReceiptV2.class);
+        assertThat(restored).isEqualTo(enabled.unifiedReceipt());
+        assertThat(restored.canonicalBytes())
+                .isEqualTo(enabled.unifiedReceipt().canonicalBytes());
         assertThat(enabled.gameExecutionCount())
                 .isEqualTo(enabled.receipt().actualGameCount())
                 .isBetween(2, 3);
         assertThat(enabled.receipt().canonicalBytes().length)
                 .isPositive().isLessThanOrEqualTo(
                         LeagueFixtureCompletionReceiptV1.MAX_CANONICAL_BYTES);
+        assertThat(enabled.unifiedReceipt().canonicalBytes().length)
+                .isPositive().isLessThanOrEqualTo(
+                        LeagueFixtureCompletionReceiptV2.MAX_CANONICAL_BYTES);
+        assertThat(enabled.unifiedReceipt().leagueId()).isEqualTo(season.leagueId());
+        assertThat(enabled.unifiedReceipt().playerSeriesBindingHash()).isNull();
+        assertThat(enabled.unifiedReceipt().orderedDraftAuthorityReceipts())
+                .allSatisfy(authority -> {
+                    assertThat(authority.executionMode())
+                            .isEqualTo(LeagueFixtureExecutionMode.FULL_AUTO);
+                    assertThat(authority.controlledSide()).isNull();
+                });
         assertThat(enabled.receipt().orderedGameReceipts()).allSatisfy(game -> {
             assertThat(game.orderedDraftDecisions()).hasSize(20);
             assertThat(game.orderedFinalAssignments()).hasSize(10);
@@ -80,7 +94,7 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
         String leagueId = LeagueIdentity.leagueId("production-runner-test-league");
         String seasonId = LeagueIdentity.seasonId(
                 leagueId, "production-runner-test-season");
-        return LeagueSeasonAggregate.create(seasonId,
+        return LeagueSeasonAggregate.create(leagueId, seasonId,
                 LeagueSeasonMode.SPECTATOR_FULL_AUTO, null, null, snapshot,
                 LeagueDomainTestFixtures.ROOT_SEED,
                 LeagueSchedulePolicy.productionDefault());

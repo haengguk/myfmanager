@@ -8,7 +8,11 @@ import com.lolfm.draft.DraftTeamContext;
 import com.lolfm.draft.PlayerControlledDraftEngine;
 import com.lolfm.dto.SeriesApiV1Dtos;
 import com.lolfm.player.LckTeamAssembler;
+import com.lolfm.league.LeagueIdentity;
+import com.lolfm.league.LeagueFixtureSeriesBindingV1;
+import com.lolfm.league.LeaguePlayerSeriesKernelPort;
 import com.lolfm.simulator.TeamSide;
+import com.lolfm.simulator.SimulationInstrumentation;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -70,9 +74,110 @@ public final class SeriesLifecycleService {
         }
     }
 
+    SeriesRepository.CreateResult createLeagueBound(
+            LeagueFixtureSeriesBindingV1 binding
+    ) {
+        Objects.requireNonNull(binding, "binding");
+        Instant now = repository.now();
+        String red = binding.game1BlueTeamCode().equals(binding.firstTeamCode())
+                ? binding.secondTeamCode() : binding.firstTeamCode();
+        SeriesGame first = newGame(binding.boundSeriesId(), 1,
+                binding.game1BlueTeamCode(), red, binding.managedTeamCode(),
+                Long.toString(binding.fixtureRootSeed()), binding.initialHistoryHash(),
+                Set.of(), SeriesOrigin.LEAGUE_BOUND, binding.fixtureRootSeed(),
+                binding.seedAnchorTeamCode());
+        LinkedHashMap<String, Integer> score = new LinkedHashMap<>();
+        score.put(binding.firstTeamCode(), 0);
+        score.put(binding.secondTeamCode(), 0);
+        SeriesAggregate aggregate = new SeriesAggregate(
+                binding.boundSeriesId(), 0, SeriesStatus.ACTIVE, null,
+                binding.seriesFormat(), binding.firstTeamCode(), binding.secondTeamCode(),
+                binding.managedTeamCode(), binding.game1BlueTeamCode(),
+                Long.toString(binding.fixtureRootSeed()), binding.fixtureRootSeed(), score,
+                List.of(first), Set.of(), binding.initialHistoryHash(), null, now, now,
+                repository.parentExpiresAt(now), Map.of(), SeriesOrigin.LEAGUE_BOUND,
+                binding.bindingHash(), binding.seedAnchorTeamCode());
+        SeriesRepository.CreateResult result = repository.create(
+                "LEAGUE_BINDING:" + binding.bindingHash(), binding.bindingHash(), aggregate);
+        requireLeagueBinding(result.aggregate(), binding);
+        return result;
+    }
+
+    boolean canCompleteLeagueBoundInitialDraft() {
+        return drafts.canCompleteSeriesDraft(Set.of());
+    }
+
+    SeriesAggregate resumeLeagueBound(LeagueFixtureSeriesBindingV1 binding) {
+        SeriesAggregate aggregate = get(binding.boundSeriesId());
+        requireLeagueBinding(aggregate, binding);
+        return aggregate;
+    }
+
+    LeaguePlayerSeriesKernelPort.CompletedSeriesEvidence completedLeagueEvidence(
+            LeagueFixtureSeriesBindingV1 binding,
+            SimulationInstrumentation instrumentation
+    ) {
+        Objects.requireNonNull(instrumentation, "instrumentation");
+        SeriesAggregate before = resumeLeagueBound(binding);
+        if (before.status() != SeriesStatus.COMPLETED) {
+            throw new IllegalStateException("PLAYER_SERIES_NOT_COMPLETED");
+        }
+        ArrayList<LeaguePlayerSeriesKernelPort.CompletedGameEvidence> games =
+                new ArrayList<>();
+        for (SeriesGame game : before.games()) {
+            if (game.status() != SeriesGameStatus.COMMITTED
+                    || game.completedDraft() == null || game.receipt() == null
+                    || game.childDraft() == null
+                    || game.childDraft().completionBinding() == null) {
+                throw new IllegalStateException("PLAYER_SERIES_GAME_EVIDENCE_INCOMPLETE");
+            }
+            SeriesChildDraft child = game.childDraft();
+            SeriesMatchExecutor.Execution replay = matches.executeTrusted(
+                    binding(before, game), child.childId(), child.generation(),
+                    child.revision(), child.completionBinding(), game.completedDraft(),
+                    instrumentation);
+            if (!game.receipt().equals(replay.receipt())) {
+                throw new IllegalStateException("PLAYER_SERIES_GAME_RECEIPT_MISMATCH");
+            }
+            games.add(new LeaguePlayerSeriesKernelPort.CompletedGameEvidence(
+                    game.gameNumber(), game.blueTeamCode(), game.redTeamCode(),
+                    game.controlledSide(), game.matchSeed(), game.historyBefore(),
+                    game.historyBeforeHash(), game.completedDraft(), game.receipt(),
+                    replay.input(), replay.output()));
+        }
+        SeriesAggregate after = resumeLeagueBound(binding);
+        if (!after.equals(before)) {
+            throw new IllegalStateException("PLAYER_SERIES_COMPLETION_READ_MUTATED_STATE");
+        }
+        return new LeaguePlayerSeriesKernelPort.CompletedSeriesEvidence(
+                before.seriesId(), before.leagueBindingHash(), before.revision(),
+                before.format(), before.teamACode(), before.teamBCode(),
+                before.managedTeamCode(), before.rootSeed(), before.score(),
+                before.consumedPicks().stream().toList(), before.historyHash(),
+                before.winnerTeamCode(), games);
+    }
+
     public SeriesAggregate get(String seriesId) {
         try { return requireVisible(repository.get(seriesId)); }
         catch (SeriesRepository.RepositoryFailure error) { throw repositoryError(error); }
+    }
+
+    private static void requireLeagueBinding(
+            SeriesAggregate aggregate,
+            LeagueFixtureSeriesBindingV1 binding
+    ) {
+        boolean valid = aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                && aggregate.seriesId().equals(binding.boundSeriesId())
+                && aggregate.leagueBindingHash().equals(binding.bindingHash())
+                && aggregate.leagueSeedAnchorTeamCode().equals(
+                binding.seedAnchorTeamCode())
+                && aggregate.format() == binding.seriesFormat()
+                && aggregate.teamACode().equals(binding.firstTeamCode())
+                && aggregate.teamBCode().equals(binding.secondTeamCode())
+                && aggregate.managedTeamCode().equals(binding.managedTeamCode())
+                && aggregate.game1BlueTeamCode().equals(binding.game1BlueTeamCode())
+                && aggregate.rootSeed() == binding.fixtureRootSeed();
+        if (!valid) throw new IllegalStateException("PLAYER_SERIES_BINDING_MISMATCH");
     }
 
     public SeriesGame getGame(String seriesId, int gameNumber) {
@@ -311,16 +416,26 @@ public final class SeriesLifecycleService {
                         child.createdAt(), child.lastActivityAt(), child.expiresAt(),
                         child.progress());
                 SeriesGame next = replaceGame(game, SeriesGameStatus.DRAFT_CANCELLED,
-                        "DRAFT_CANCELLED", game.childGeneration(), cancelled, null,
+                        aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                                ? "PLAYER_SERIES_RESTART_REQUIRED" : "DRAFT_CANCELLED",
+                        game.childGeneration(), cancelled, null,
                         null, null, null);
                 long revision = aggregate.revision() + 1;
                 Instant now = repository.now();
+                SeriesStatus nextStatus = aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                        ? SeriesStatus.BLOCKED : aggregate.status();
                 Map<String, SeriesCommandReceipt> receipts = putReceipt(aggregate,
                         succeededReceipt(request.clientCommandId(), "CANCEL_DRAFT", payload,
-                                revision, aggregate.status(), next, cancelled,
+                                revision, nextStatus, next, cancelled,
                                 child.childId()));
-                SeriesAggregate updated = aggregate.replaceCurrentGame(next, revision,
-                        now, repository.parentExpiresAt(now), receipts);
+                SeriesAggregate updated = aggregate.copy(revision, nextStatus,
+                        nextStatus == SeriesStatus.BLOCKED
+                                ? "PLAYER_SERIES_RESTART_REQUIRED"
+                                : aggregate.terminalReason(),
+                        aggregate.score(), replaceLast(aggregate.games(), next),
+                        aggregate.consumedPicks(), aggregate.historyHash(),
+                        aggregate.winnerTeamCode(), now,
+                        repository.parentExpiresAt(now), receipts);
                 return new SeriesRepository.Mutation<>(updated, null);
             });
         } catch (SeriesRepository.RepositoryFailure error) { throw repositoryError(error); }
@@ -515,8 +630,12 @@ public final class SeriesLifecycleService {
                         game.status() == SeriesGameStatus.COMMITTED
                                 ? SeriesGameStatus.COMMITTED
                                 : SeriesGameStatus.DRAFT_CANCELLED,
-                        "SERIES_CANCELLED", game.childGeneration(), child, null,
+                        aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                                ? "PLAYER_SERIES_RESTART_REQUIRED" : "SERIES_CANCELLED",
+                        game.childGeneration(), child, null,
                         game.completedDraft(), game.resultSummary(), game.receipt());
+                SeriesStatus cancelStatus = aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                        ? SeriesStatus.BLOCKED : SeriesStatus.CANCELLED;
                 LinkedHashMap<String, SeriesCommandReceipt> receipts = new LinkedHashMap<>(
                         aggregate.commandReceipts());
                 if (game.reservation() != null) {
@@ -526,17 +645,22 @@ public final class SeriesLifecycleService {
                             && simulation.completion() == SeriesCommandCompletion.IN_PROGRESS) {
                         receipts.put(simulation.commandId(), simulation.completed(
                                 SeriesCommandCompletion.FAILED, revision,
-                                SeriesStatus.CANCELLED, cancelledGame.status(),
+                                cancelStatus, cancelledGame.status(),
                                 "SERIES_CANCELLED", "SERIES_SIMULATION_RESERVATION_INVALIDATED",
                                 HttpStatus.CONFLICT.value(), false));
                     }
                 }
                 SeriesCommandReceipt cancelReceipt = succeededReceipt(
                         request.clientCommandId(), "CANCEL_SERIES", payload, revision,
-                        SeriesStatus.CANCELLED, cancelledGame, child, "CANCELLED");
+                        cancelStatus, cancelledGame, child,
+                        aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                                ? "PLAYER_SERIES_RESTART_REQUIRED" : "CANCELLED");
                 receipts.put(cancelReceipt.commandId(), cancelReceipt);
-                SeriesAggregate cancelled = aggregate.copy(revision, SeriesStatus.CANCELLED,
-                        "CANCELLED_BY_CLIENT", aggregate.score(), replaceLast(
+                SeriesAggregate cancelled = aggregate.copy(revision, cancelStatus,
+                        aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                                ? "PLAYER_SERIES_RESTART_REQUIRED"
+                                : "CANCELLED_BY_CLIENT",
+                        aggregate.score(), replaceLast(
                         aggregate.games(), cancelledGame),
                         aggregate.consumedPicks(), aggregate.historyHash(),
                         aggregate.winnerTeamCode(), repository.now(), aggregate.expiresAt(),
@@ -628,7 +752,8 @@ public final class SeriesLifecycleService {
             String nextRed = game.blueTeamCode();
             SeriesGame next = newGame(aggregate.seriesId(), nextNumber, nextBlue, nextRed,
                     aggregate.managedTeamCode(), aggregate.canonicalRootSeed(), historyHash,
-                    consumed);
+                    consumed, aggregate.origin(), aggregate.rootSeed(),
+                    aggregate.leagueSeedAnchorTeamCode());
             if (!drafts.canCompleteSeriesDraft(consumed)) {
                 next = replaceGame(next, SeriesGameStatus.BLOCKED,
                         "HARD_FEARLESS_LEGAL_POOL_EXHAUSTED", 0, null, null,
@@ -666,22 +791,28 @@ public final class SeriesLifecycleService {
                         || aggregate.revision() != start.aggregate().revision()) {
                     throw conflict(aggregate, "SERIES_SIMULATION_RESERVATION_INVALIDATED", false);
                 }
+                boolean effectiveBlocked = blocked
+                        || aggregate.origin() == SeriesOrigin.LEAGUE_BOUND;
+                String effectiveReason = aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                        && !blocked ? "PLAYER_SERIES_RESTART_REQUIRED" : reason;
                 SeriesGame failed = replaceGame(game,
-                        blocked ? SeriesGameStatus.BLOCKED
+                        effectiveBlocked ? SeriesGameStatus.BLOCKED
                                 : SeriesGameStatus.SIMULATION_FAILED_RETRYABLE,
-                        reason, game.childGeneration(), game.childDraft(), null,
+                        effectiveReason, game.childGeneration(), game.childDraft(), null,
                         game.completedDraft(), null, null);
                 LinkedHashMap<String, SeriesCommandReceipt> receipts = new LinkedHashMap<>(
                         aggregate.commandReceipts());
                 SeriesCommandReceipt command = requireInProgressReceipt(aggregate,
                         start.reservation().commandId(), start.reservation().payloadHash());
-                SeriesStatus nextStatus = blocked ? SeriesStatus.BLOCKED : SeriesStatus.ACTIVE;
+                SeriesStatus nextStatus = effectiveBlocked
+                        ? SeriesStatus.BLOCKED : SeriesStatus.ACTIVE;
                 receipts.put(command.commandId(), command.completed(
                         SeriesCommandCompletion.FAILED, aggregate.revision(), nextStatus,
-                        failed.status(), reason, reason, httpStatus.value(), retryable));
+                        failed.status(), effectiveReason, effectiveReason,
+                        httpStatus.value(), effectiveBlocked ? false : retryable));
                 SeriesAggregate updated = aggregate.copy(aggregate.revision(),
                         nextStatus,
-                        blocked ? reason : null, aggregate.score(),
+                        effectiveBlocked ? effectiveReason : null, aggregate.score(),
                         replaceLast(aggregate.games(), failed), aggregate.consumedPicks(),
                         aggregate.historyHash(), aggregate.winnerTeamCode(),
                         aggregate.lastActivityAt(), aggregate.expiresAt(),
@@ -733,8 +864,20 @@ public final class SeriesLifecycleService {
             String seriesId, int number, String blue, String red, String managed,
             String rootSeed, String historyHash, Set<ChampionId> history
     ) {
+        return newGame(seriesId, number, blue, red, managed, rootSeed, historyHash,
+                history, SeriesOrigin.STANDALONE, Long.parseLong(rootSeed), null);
+    }
+
+    private static SeriesGame newGame(
+            String seriesId, int number, String blue, String red, String managed,
+            String rootSeed, String historyHash, Set<ChampionId> history,
+            SeriesOrigin origin, long parsedRootSeed, String seedAnchorTeamCode
+    ) {
         TeamSide controlled = managed.equals(blue) ? TeamSide.BLUE : TeamSide.RED;
-        long seed = SeriesIdentity.deriveGameSeed(seriesId, rootSeed, number, blue, red,
+        long seed = origin == SeriesOrigin.LEAGUE_BOUND
+                ? LeagueIdentity.gameSeed(seriesId, parsedRootSeed, number, blue, red,
+                seedAnchorTeamCode, historyHash)
+                : SeriesIdentity.deriveGameSeed(seriesId, rootSeed, number, blue, red,
                 managed, historyHash);
         return new SeriesGame(SeriesIdentity.gameId(seriesId, number), number, blue, red,
                 controlled, seed, history.stream().sorted(

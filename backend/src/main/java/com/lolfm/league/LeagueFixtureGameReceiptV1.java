@@ -259,7 +259,7 @@ public record LeagueFixtureGameReceiptV1(
         return value.toString();
     }
 
-    static LeagueFixtureGameReceiptV1 from(
+    public static LeagueFixtureGameReceiptV1 from(
             MatchEngineV1Input input,
             MatchEngineV1Output output,
             List<ChampionId> historyAfter

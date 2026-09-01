@@ -22,6 +22,14 @@ interface SeriesMatchExecutor {
             PlayerControlledDraftResult completedDraft
     );
 
+    default Execution execute(
+            PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding binding,
+            PlayerControlledDraftResult completedDraft,
+            SimulationInstrumentation instrumentation
+    ) {
+        return execute(binding, completedDraft);
+    }
+
     default Execution executeTrusted(
             PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding parent,
             String childId,
@@ -31,6 +39,19 @@ interface SeriesMatchExecutor {
             PlayerControlledDraftResult completedDraft
     ) {
         return execute(parent, completedDraft);
+    }
+
+    default Execution executeTrusted(
+            PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding parent,
+            String childId,
+            int generation,
+            long completionRevision,
+            PlayerDraftCompletionBinding completionBinding,
+            PlayerControlledDraftResult completedDraft,
+            SimulationInstrumentation instrumentation
+    ) {
+        return executeTrusted(parent, childId, generation, completionRevision,
+                completionBinding, completedDraft);
     }
 
     record Execution(MatchEngineV1Input input, MatchEngineV1Output output,
@@ -76,8 +97,17 @@ final class ProductionSeriesMatchExecutor implements SeriesMatchExecutor {
             PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding binding,
             PlayerControlledDraftResult completedDraft
     ) {
+        return execute(binding, completedDraft, SimulationInstrumentation.enabled());
+    }
+
+    @Override
+    public Execution execute(
+            PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding binding,
+            PlayerControlledDraftResult completedDraft,
+            SimulationInstrumentation instrumentation
+    ) {
         MatchEngineV1Input input = inputs.validateAndCreateSeriesInput(binding, completedDraft);
-        MatchEngineV1Output output = matches.execute(input, SimulationInstrumentation.enabled());
+        MatchEngineV1Output output = matches.execute(input, instrumentation);
         validate(binding, input, output);
         return new Execution(input, output, SeriesGameReceipt.from(output));
     }
@@ -91,10 +121,23 @@ final class ProductionSeriesMatchExecutor implements SeriesMatchExecutor {
             PlayerDraftCompletionBinding completionBinding,
             PlayerControlledDraftResult completedDraft
     ) {
+        return executeTrusted(parent, childId, generation, completionRevision,
+                completionBinding, completedDraft, SimulationInstrumentation.enabled());
+    }
+
+    @Override
+    public Execution executeTrusted(
+            PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding parent,
+            String childId,
+            int generation,
+            long completionRevision,
+            PlayerDraftCompletionBinding completionBinding,
+            PlayerControlledDraftResult completedDraft,
+            SimulationInstrumentation instrumentation
+    ) {
         MatchEngineV1Input input = inputs.validateAndCreateTrustedSeriesInput(parent,
                 childId, generation, completionRevision, completionBinding, completedDraft);
-        MatchEngineV1Output output = matches.execute(
-                input, SimulationInstrumentation.enabled());
+        MatchEngineV1Output output = matches.execute(input, instrumentation);
         validate(parent, input, output);
         return new Execution(input, output, SeriesGameReceipt.from(output));
     }

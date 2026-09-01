@@ -10,6 +10,7 @@ class LeagueSeasonAggregateTest {
     void hybridAndSpectatorModesBindManagedSnapshotExactly() {
         LeagueSeasonFrozenSnapshot snapshot = LeagueDomainTestFixtures.snapshot();
         LeagueSeasonAggregate hybrid = LeagueSeasonAggregate.create(
+                LeagueDomainTestFixtures.leagueId(),
                 LeagueDomainTestFixtures.seasonId(),
                 LeagueSeasonMode.HYBRID_MANAGER,
                 "GEN",
@@ -18,6 +19,7 @@ class LeagueSeasonAggregateTest {
                 LeagueDomainTestFixtures.ROOT_SEED,
                 LeagueSchedulePolicy.productionDefault());
         LeagueSeasonAggregate spectator = LeagueSeasonAggregate.create(
+                LeagueDomainTestFixtures.leagueId(),
                 LeagueDomainTestFixtures.seasonId(),
                 LeagueSeasonMode.SPECTATOR_FULL_AUTO,
                 null,
@@ -40,12 +42,14 @@ class LeagueSeasonAggregateTest {
                 LeagueV1ProductDecisions.productDecisionHash());
 
         assertThatThrownBy(() -> LeagueSeasonAggregate.create(
+                LeagueDomainTestFixtures.leagueId(),
                 LeagueDomainTestFixtures.seasonId(), LeagueSeasonMode.HYBRID_MANAGER,
                 "GEN", LeagueDomainTestFixtures.hash("wrong-team-snapshot"), snapshot,
                 73L, LeagueSchedulePolicy.productionDefault()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("snapshot identity mismatch");
         assertThatThrownBy(() -> LeagueSeasonAggregate.create(
+                LeagueDomainTestFixtures.leagueId(),
                 LeagueDomainTestFixtures.seasonId(),
                 LeagueSeasonMode.SPECTATOR_FULL_AUTO,
                 "GEN", snapshot.teamSnapshotIdentity("GEN"), snapshot, 73L,
@@ -57,6 +61,7 @@ class LeagueSeasonAggregateTest {
     void verifiedCompletionIsAppliedExactlyOnceAndAdvancesRevisionOnce() {
         LeagueSeasonFrozenSnapshot snapshot = LeagueDomainTestFixtures.snapshot();
         LeagueSeasonAggregate season = LeagueSeasonAggregate.create(
+                LeagueDomainTestFixtures.leagueId(),
                 LeagueDomainTestFixtures.seasonId(),
                 LeagueSeasonMode.SPECTATOR_FULL_AUTO, null, null, snapshot, 73L,
                 LeagueSchedulePolicy.productionDefault());
@@ -82,6 +87,7 @@ class LeagueSeasonAggregateTest {
     void conflictingDuplicateCrossFixtureReceiptAndInvalidScoreAreRejected() {
         LeagueSeasonFrozenSnapshot snapshot = LeagueDomainTestFixtures.snapshot();
         LeagueSeasonAggregate season = LeagueSeasonAggregate.create(
+                LeagueDomainTestFixtures.leagueId(),
                 LeagueDomainTestFixtures.seasonId(),
                 LeagueSeasonMode.SPECTATOR_FULL_AUTO, null, null, snapshot, 73L,
                 LeagueSchedulePolicy.productionDefault());

@@ -116,12 +116,20 @@ public final class LeagueAutomatedSeriesRunner {
                     production.currentResourceProvenanceHash(), receipts,
                     score.get(fixture.firstTeamCode()),
                     score.get(fixture.secondTeamCode()), winner, loser, receipts.size(), null);
+            LeagueFixtureCompletionReceiptV2 unifiedReceipt =
+                    new LeagueFixtureCompletionReceiptV2(
+                            LeagueFixtureCompletionReceiptV2.SCHEMA,
+                            LeagueFixtureCompletionReceiptV2.HASH_ALGORITHM,
+                            season.leagueId(), null, receipt,
+                            receipts.stream().map(game ->
+                                    LeagueFixtureDraftAuthorityReceiptV1.fullAuto(
+                                            game.gameNumber())).toList(), null);
             VerifiedLeagueFixtureCompletion completion =
                     VerifiedLeagueFixtureCompletion.verifyAutomated(
                             input, current, production.currentResourceProvenanceHash(),
-                            receipts, receipt);
+                            receipts, unifiedReceipt);
             return LeagueAutomatedSeriesRunResult.completed(
-                    executions, receipt, completion);
+                    executions, receipt, unifiedReceipt, completion);
         } catch (RuntimeException error) {
             String reason = error.getMessage();
             return LeagueAutomatedSeriesRunResult.blocked(
