@@ -2,6 +2,8 @@
 
 상태: `SERIES_LIVE_E2E_AND_ACCESSIBILITY_ACCEPTED`
 
+최종 계약 보강: `SERIES_FINAL_CONTRACT_FIXED`
+
 ## 범위와 결과
 
 기존 Series 화면을 다시 설계하지 않고 LIVE BO3/BO5의 불확실한 전송 경계와 접근성을 보강했다. Series 전체 취소, Series-owned child Draft 취소와 경기 실행은 한 번의 논리 명령을 revision과 대상 identity에 결속한다. 응답이 `NETWORK`, `TIMEOUT`, `CANCELLED`로 불명확하면 새 명령 ID를 만들지 않고 먼저 authoritative Series GET으로 결과를 조정한다. 같은 상태라면 같은 ID를 유지해 사용자의 명시적 재시도만 허용하고, 이미 진행된 상태라면 최신 view 또는 committed replay로 이동한다.
@@ -12,10 +14,19 @@
 
 - `COMMITTED` game은 result와 receipt가 모두 있어야 하고 result winner가 null이면 안 된다.
 - 다른 진행 상태가 result/receipt를 임의로 포함하면 거부한다. `BLOCKED`의 no-decisive result는 winner가 null이어야 한다.
+- `BLOCKED / NO_DECISIVE_RESULT` 뒤 Series를 취소하면 backend가 audit용 result/receipt를 보존하고 current game을 `DRAFT_CANCELLED`로 바꾼다. Frontend는 `CANCELLED` Series의 current `DRAFT_CANCELLED` game에 한해 winner-null result/receipt를 허용한다. Decisive evidence나 ACTIVE/non-current 조합은 계속 거부한다.
 - team별 committed winner 합계는 response score와 정확히 같아야 한다.
 - score는 형식의 required wins를 넘을 수 없다.
 - `ACTIVE`는 어느 팀도 required wins에 도달할 수 없고, `COMPLETED`는 정확히 한 winner가 required wins와 committed tally를 모두 만족해야 한다.
 - 저장된 Series pointer의 실제 `SERIES_NOT_FOUND`/`SERIES_EXPIRED`는 제거한다. 일시 네트워크 실패는 유지하고, contract/JSON version 오류는 local view로 대체하지 않는다.
+
+## 최종 복구 계약 보강
+
+기존 simulate response-loss 경로는 authoritative GET에서 `COMMITTED`를 확인한 직후 simulate logical reference를 지웠다. 이어지는 explicit replay가 네트워크/timeout/cancel로 실패하면 같은 화면의 재시도가 새 simulate command ID를 만들 수 있었다.
+
+현재 production 화면은 `SIMULATE_OR_RECONCILE -> REPLAY_COMMITTED -> 완료` 상태기를 사용한다. `COMMITTED`를 한 번 확인하면 original simulation identity와 별도의 stable replay command ID를 함께 유지한다. Replay 성공 전까지 재시도는 replay-only이고 simulate와 GET을 다시 호출하지 않는다. State-machine focused contract는 첫 simulate response-loss, GET committed, 첫 replay response-loss, 두 번째 replay 성공을 실행해 simulate 1회, GET 1회, replay 2회와 동일 replay command ID를 확인한다.
+
+이 상태기는 검증 script 전용 복사본이 아니라 `SeriesDraftRoomPage`가 production transport에서 직접 호출하는 함수다. TypeScript production build가 실제 wiring을 함께 컴파일했다.
 
 ## 실제 LIVE 브라우저 증거
 
@@ -54,7 +65,9 @@ npm run reference:verify
 npm run bundle:verify
 ```
 
-이번 변경은 frontend source, deterministic script, 문서와 외부 `/tmp` test harness만 대상으로 했다. Backend Java, resource, schema, runtime wiring과 Gradle은 변경하지 않았으므로 backend full regression은 실행하지 않았다. Historical reference JSON과 기존 artifact는 덮어쓰지 않았다.
+최종 계약 보강 후 Series contract, Player Draft 33 scenarios, 118-module production build, reference check/verify와 bundle lazy boundary가 모두 통과했다. Historical reference raw SHA-256은 `977c7d6e015f4ebd5ecba8e24e7b95a0a6313fef2e1e69a2c396b4fab36ac15e`로 유지됐다. 기존 LIVE 브라우저 증거는 보존했고, production 경로 자체를 실행하는 focused state-machine test가 두 누락 계약을 직접 고정하므로 전체 BO3 브라우저 E2E는 반복하지 않았다.
+
+최종 계약 보강은 frontend source, deterministic script와 문서만 대상으로 했다. 기존 외부 `/tmp` LIVE harness 증거는 수정하지 않았다. Backend Java, resource, schema, runtime wiring과 Gradle은 변경하지 않았으므로 backend full regression은 실행하지 않았다. Historical reference JSON과 기존 artifact는 덮어쓰지 않았다.
 
 ## 남은 제한
 

@@ -8,6 +8,9 @@ import {
   isAmbiguousSeriesFailure, reconcileSeriesDraftCancel, seriesDraftCancelCommand, type SeriesDraftCancelCommand,
 } from './seriesCommandReconciliation';
 import { SeriesContextBar } from './SeriesContextBar';
+import {
+  executeSeriesSimulationWithRecovery, type SeriesSimulationLogicalCommand,
+} from './seriesSimulationRecovery';
 import type { SeriesScreenState } from './series.types';
 
 function playerState(state: SeriesScreenState): PlayerDraftScreenState {
@@ -39,7 +42,7 @@ export function SeriesDraftRoomPage({ state, onStateChange, onSimulation, onHub,
   onOpenGame: (gameNumber: number) => void;
 }) {
   if (!state.draft) throw new Error('Series Draft 화면에는 active child가 필요합니다.');
-  const simulateCommandRef = useRef<{ seriesRevision: number; draftRevision: number; id: string } | null>(null);
+  const simulateCommandRef = useRef<SeriesSimulationLogicalCommand | null>(null);
   const cancelCommandRef = useRef<SeriesDraftCancelCommand | null>(null);
   const viewState = playerState(state);
   const gameNumber = state.draft.binding.gameNumber;
@@ -61,73 +64,15 @@ export function SeriesDraftRoomPage({ state, onStateChange, onSimulation, onHub,
       return response.draftSession.session;
     },
     simulate: async (_screen, session, signal, onStage) => {
-      const logical = simulateCommandRef.current
-        && simulateCommandRef.current.seriesRevision === state.series.revision
-        && simulateCommandRef.current.draftRevision === session.revision
-        ? simulateCommandRef.current
-        : { seriesRevision: state.series.revision, draftRevision: session.revision, id: crypto.randomUUID() };
-      simulateCommandRef.current = logical;
-      try {
-        const result = await simulateSeriesGame(state.series.seriesId, gameNumber, {
-          schemaVersion: 'SERIES_SIMULATE_REQUEST_V1', expectedSeriesRevision: logical.seriesRevision,
-          expectedDraftRevision: logical.draftRevision, clientCommandId: logical.id,
-        }, signal, onStage);
-        if (result.status === 200) simulateCommandRef.current = null;
-        onStateChange(result.response.series, result.response.series.activeDraftSession, result.draftSession?.session);
-        return { session: result.draftSession?.session ?? result.response.series.activeDraftSession?.session ?? session, result };
-      } catch (error) {
-        if (!(error instanceof SeriesApiFailure) || !isAmbiguousSeriesFailure(error.kind)) {
-          simulateCommandRef.current = null; throw error;
-        }
-        const series = await getSeries(state.series.seriesId, signal);
-        const game = series.games.find((candidate) => candidate.gameNumber === gameNumber);
-        if (!game) { simulateCommandRef.current = null; throw new SeriesApiFailure('CONTRACT', '경기 실행 조정 중 대상 Game을 찾을 수 없습니다.'); }
-        if (game.status === 'COMMITTED') {
-          simulateCommandRef.current = null;
-          const replay = await replaySeriesGame(series.seriesId, gameNumber, {
-            schemaVersion: 'SERIES_GAME_REPLAY_REQUEST_V1', clientCommandId: crypto.randomUUID(),
-          }, signal);
-          return {
-            session: replay.draftSession.session,
-            result: {
-              response: {
-                schemaVersion: 'SERIES_SIMULATION_RESPONSE_V1', replayedCommand: true,
-                series: replay.response.series, game: replay.response.game, match: replay.response.match,
-              },
-              status: 200,
-              draftSession: replay.draftSession,
-              performance: replay.performance,
-            },
-          };
-        }
-        if (game.status === 'SIMULATION_IN_PROGRESS' && series.reservation?.commandId === logical.id) {
-          onStateChange(series, series.activeDraftSession);
-          return {
-            session,
-            result: {
-              response: {
-                schemaVersion: 'SERIES_SIMULATION_RESPONSE_V1', replayedCommand: true,
-                series, game, match: null,
-              },
-              status: 202,
-              draftSession: series.activeDraftSession,
-              performance: {
-                payloadBytes: 0, requestAndDownloadMs: 0, jsonParseMs: 0,
-                runtimeValidationMs: 0, requestStartedAt: performance.now(),
-              },
-            },
-          };
-        }
-        if (series.revision === logical.seriesRevision
-          && game.childDraftRevision === logical.draftRevision
-          && series.allowedCommands.includes('SIMULATE')) {
-          onStateChange(series, series.activeDraftSession);
-          throw new SeriesApiFailure('NETWORK', '경기 실행 응답이 유실되었을 수 있으나 서버에는 실행 전 상태입니다. 같은 실행 작업 ID를 유지했습니다. 다시 실행하면 중복 경기 없이 재전송합니다.');
-        }
-        simulateCommandRef.current = null;
-        onStateChange(series, series.activeDraftSession);
-        throw new SeriesApiFailure('BACKEND', '경기 실행 확인 중 서버 상태가 다른 방향으로 진행되었습니다. 최신 상태를 반영했으며 새 실행 명령을 자동 생성하지 않았습니다.');
-      }
+      return executeSeriesSimulationWithRecovery({
+        series: state.series, gameNumber, session, signal, onStage,
+        commandRef: simulateCommandRef,
+        commandId: () => crypto.randomUUID(),
+        operations: {
+          simulate: simulateSeriesGame, getSeries, replay: replaySeriesGame,
+        },
+        onStateChange,
+      });
     },
     cancel: async (_screen, session, signal) => {
       const logical = seriesDraftCancelCommand(cancelCommandRef.current, {

@@ -14,9 +14,11 @@ import type {
   SeriesRequestPerformance,
   SeriesSimulateRequestDto,
   SeriesSimulationResult,
-  SeriesStatus,
   SeriesViewDto,
 } from './seriesApi.types';
+import { SeriesApiFailure } from './seriesApi.failure';
+export { SeriesApiFailure } from './seriesApi.failure';
+export type { SeriesFailureKind } from './seriesApi.failure';
 import {
   SeriesContractError,
   validateSeriesApiErrorPayload,
@@ -26,23 +28,6 @@ import {
   validateSeriesSimulationEnvelopePayload,
   validateSeriesViewPayload,
 } from './seriesApi.validation';
-
-export type SeriesFailureKind = 'NETWORK' | 'CANCELLED' | 'TIMEOUT' | 'BACKEND' | 'INVALID_JSON' | 'CONTRACT';
-
-export class SeriesApiFailure extends Error {
-  constructor(
-    public readonly kind: SeriesFailureKind,
-    public readonly userMessage: string,
-    public readonly status: number | null = null,
-    public readonly code: string | null = null,
-    public readonly field: string | null = null,
-    public readonly retryable = false,
-    public readonly currentRevision: number | null = null,
-    public readonly currentStatus: SeriesStatus | null = null,
-  ) {
-    super(userMessage); this.name = 'SeriesApiFailure';
-  }
-}
 
 interface AbortContext { signal: AbortSignal; timedOut: () => boolean; cleanup: () => void; }
 

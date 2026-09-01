@@ -188,10 +188,13 @@ function validateGame(value: unknown, teams: readonly string[], managed: string,
   if (status === 'COMMITTED' && (source.result === null || source.receipt === null || resultWinner === null)) {
     fail(path, 'COMMITTED game에는 승자가 있는 compact result와 receipt가 필요합니다.');
   }
-  if (status !== 'COMMITTED' && status !== 'BLOCKED' && (source.result !== null || source.receipt !== null)) {
+  if (!['COMMITTED', 'BLOCKED', 'DRAFT_CANCELLED'].includes(status)
+    && (source.result !== null || source.receipt !== null)) {
     fail(path, `${status} game에는 compact result/receipt가 존재할 수 없습니다.`);
   }
-  if (status === 'BLOCKED' && resultWinner !== null) fail(`${path}.result.winnerTeamCode`, 'BLOCKED game의 compact result는 승자를 가질 수 없습니다.');
+  if ((status === 'BLOCKED' || status === 'DRAFT_CANCELLED') && resultWinner !== null) {
+    fail(`${path}.result.winnerTeamCode`, `${status} game의 compact result는 승자를 가질 수 없습니다.`);
+  }
   return value as SeriesGameViewDto;
 }
 
@@ -272,6 +275,12 @@ export function validateSeriesViewPayload(value: unknown): SeriesViewDto {
   const partial = value as SeriesViewDto;
   const games = gameValues.map((game, index) => validateGame(game, teamCodes, managed, index + 1, `$.games[${index}]`));
   const current = games[games.length - 1];
+  games.forEach((game, index) => {
+    if (game.status === 'DRAFT_CANCELLED' && game.result !== null
+      && (status !== 'CANCELLED' || index !== games.length - 1)) {
+      fail(`$.games[${index}]`, '보존된 no-decisive evidence는 CANCELLED Series의 current game에만 존재할 수 있습니다.');
+    }
+  });
   if (current.gameNumber !== currentGameNumber || current.matchSeed !== currentSeed) fail('$.currentGameNumber', 'ordered games의 current game/seed와 일치해야 합니다.');
   const committed = games.filter((game) => game.status === 'COMMITTED');
   if (Object.values(score).reduce((sum, wins) => sum + wins, 0) !== committed.length) fail('$.score', 'committed game 수와 team-code score 합이 일치해야 합니다.');

@@ -13,6 +13,8 @@ import {
   finishSeriesCommand, reconcileSeriesCancel, reconcileSeriesDraftCancel,
   seriesCancelCommand, seriesDraftCancelCommand, tryBeginSeriesCommand,
 } from '../src/features/real-match/series/seriesCommandReconciliation.ts';
+import { SeriesApiFailure } from '../src/features/real-match/series/api/seriesApi.failure.ts';
+import { executeSeriesSimulationWithRecovery } from '../src/features/real-match/series/seriesSimulationRecovery.ts';
 
 const H = 'a'.repeat(64); const G = 'b'.repeat(64); const D = 'c'.repeat(64);
 const seriesId = `series_${H}`; const gameId = (number) => `game_${String(number).repeat(64).slice(0, 64)}`;
@@ -77,6 +79,7 @@ function withChild(sourceSession, status) {
 }
 
 function accepts(label, fn) { try { fn(); console.log(`PASS ${label}`); } catch (error) { console.error(`FAIL ${label}`, error); process.exitCode = 1; } }
+async function acceptsAsync(label, fn) { try { await fn(); console.log(`PASS ${label}`); } catch (error) { console.error(`FAIL ${label}`, error); process.exitCode = 1; } }
 function rejects(label, mutate, validator = validateSeriesViewPayload) {
   try { validator(mutate()); console.error(`FAIL ${label}: accepted invalid payload`); process.exitCode = 1; }
   catch { console.log(`PASS ${label}`); }
@@ -142,6 +145,13 @@ accepts('cancelled, blocked, and expired terminal views', () => {
   const expired = view({ status: 'EXPIRED', commands: ['GET'] }); expired.terminalReason = 'PARENT_TTL_EXPIRED'; validateSeriesViewPayload(expired);
 });
 
+const cancelledNoDecisiveSession = sessionFrom(completedSession, { status: 'CANCELLED' });
+const noDecisiveCompact = { winnerTeamCode: null, winnerSide: null, endReason: 'SIMULATION_TIMEOUT', durationSeconds: 1, teamKills: { DK: 0, HLE: 0 }, teamGold: { DK: 2500, HLE: 2500 } };
+const cancelledNoDecisiveGame = game(1, { status: 'DRAFT_CANCELLED', child: cancelledNoDecisiveSession, result: noDecisiveCompact, gameReceipt: receipt });
+const cancelledNoDecisiveSeries = view({ status: 'CANCELLED', games: [cancelledNoDecisiveGame], commands: ['GET'] });
+cancelledNoDecisiveSeries.activeDraftSession = child(cancelledNoDecisiveSeries, cancelledNoDecisiveGame, cancelledNoDecisiveSession);
+accepts('cancelled Series preserves backend-valid no-decisive result and receipt', () => validateSeriesViewPayload(cancelledNoDecisiveSeries));
+
 rejects('schema mismatch rejection', () => ({ ...clone(pendingBo3), schemaVersion: 'WRONG' }));
 rejects('unknown field rejection', () => ({ ...clone(pendingBo3), optimisticScore: 1 }));
 rejects('managed/opponent mismatch rejection', () => ({ ...clone(pendingBo3), opponentTeamCode: 'DK' }));
@@ -167,6 +177,13 @@ rejects('COMPLETED winner and game tally mismatch rejection', () => {
 });
 rejects('result and receipt on DRAFT_PENDING rejection', () => {
   const value = clone(pendingBo3); value.games[0].result = compact; value.games[0].receipt = receipt; return value;
+});
+rejects('DRAFT_CANCELLED decisive result rejection', () => {
+  const value = clone(cancelledNoDecisiveSeries); value.games[0].result = compact; return value;
+});
+rejects('ACTIVE DRAFT_CANCELLED preserved evidence rejection', () => {
+  const value = clone(cancelledNoDecisiveSeries); value.status = 'ACTIVE'; value.terminalReason = null;
+  value.allowedCommands = ['CREATE_DRAFT_SESSION', 'CANCEL_SERIES']; return value;
 });
 rejects('COMMITTED missing result rejection', () => {
   const value = clone(committedSeries); value.games[0].result = null; return value;
@@ -218,6 +235,44 @@ accepts('pending double click admits one request', () => {
   if (tryBeginSeriesCommand(pending)) requestCount += 1;
   if (requestCount !== 1) throw new Error(`request count ${requestCount}`);
   finishSeriesCommand(pending); if (!tryBeginSeriesCommand(pending)) throw new Error('pending gate did not reopen');
+});
+
+await acceptsAsync('committed recovery remains replay-only after transient replay failure', async () => {
+  const commandRef = { current: null }; const generated = []; const replayIds = [];
+  let simulateCalls = 0; let getCalls = 0; let replayCalls = 0;
+  const controller = new AbortController();
+  const operations = {
+    simulate: async () => { simulateCalls += 1; throw new SeriesApiFailure('NETWORK', 'response lost'); },
+    getSeries: async () => { getCalls += 1; return committedSeries; },
+    replay: async (_seriesId, _gameNumber, request) => {
+      replayCalls += 1; replayIds.push(request.clientCommandId);
+      if (replayCalls === 1) throw new SeriesApiFailure('NETWORK', 'replay response lost');
+      return {
+        response: { schemaVersion: 'SERIES_GAME_REPLAY_RESPONSE_V1', series: committedSeries, game: committedGame, match: full },
+        draftSession: committedChild,
+        performance: { payloadBytes: 1, requestAndDownloadMs: 1, jsonParseMs: 1, runtimeValidationMs: 1, requestStartedAt: 1 },
+      };
+    },
+  };
+  const input = {
+    series: completed.base, gameNumber: 1, session: completed.envelope.session,
+    signal: controller.signal, onStage: () => undefined, commandRef,
+    commandId: () => { const id = `command-${generated.length + 1}`; generated.push(id); return id; },
+    operations, onStateChange: () => undefined,
+  };
+  try { await executeSeriesSimulationWithRecovery(input); throw new Error('transient replay failure expected'); }
+  catch (error) { if (!(error instanceof SeriesApiFailure) || error.kind !== 'NETWORK') throw error; }
+  if (commandRef.current?.phase !== 'REPLAY_COMMITTED' || simulateCalls !== 1 || getCalls !== 1 || replayCalls !== 1) {
+    throw new Error('committed recovery identity was not retained');
+  }
+  const replayCommandId = commandRef.current.replayCommandId;
+  const recovered = await executeSeriesSimulationWithRecovery(input);
+  if (recovered.result.response.match !== full || commandRef.current !== null
+    || simulateCalls !== 1 || getCalls !== 1 || replayCalls !== 2
+    || replayIds[0] !== replayCommandId || replayIds[1] !== replayCommandId
+    || generated.length !== 2) {
+    throw new Error('retry issued a new simulation or changed replay identity');
+  }
 });
 
 if (!process.exitCode) console.log('SERIES_FRONTEND_CONTRACT_VERIFICATION_PASSED');

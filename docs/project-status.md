@@ -1,6 +1,6 @@
 # Project Status
 
-이 문서는 2026-08-31 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-09-01 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
 ## Current Production Snapshot
 
@@ -162,13 +162,17 @@ Backend production/test는 이번 frontend 작업에서 변경하지 않았고 b
 
 ### Series LIVE E2E and Accessibility
 
-상태는 `SERIES_LIVE_E2E_AND_ACCESSIBILITY_ACCEPTED`다.
+상태는 `SERIES_LIVE_E2E_AND_ACCESSIBILITY_ACCEPTED`이며 최종 frontend 계약은 `SERIES_FINAL_CONTRACT_FIXED`다.
 
 Series/child cancel과 simulate response-loss는 revision/대상에 결속한 하나의 논리 command ID를 유지하고, 불명확한 응답 뒤 authoritative GET으로 먼저 조정한다. Committed winner tally와 score, required wins/status, result/receipt를 exact validation하며, pointer not-found/expired와 retryable network/version 오류를 분리한다. 취소 modal의 초기 포커스·trap·pending Escape 차단·오류 alert/restore와 Series context polite live region도 보강했다.
 
 실제 LIVE에서 DK–HLE Game 1 정상 commit, BFX–BRO BO3 2–1/Hard Fearless 30, reservation 중 동일 simulate command의 HTTP 202→GET polling→replay, simulate/child/Series cancel response-loss 뒤 중복 mutation 0을 확인했다. Active reload, network pointer 유지, 실제 404 pointer 제거, keyboard-only 주요 Draft action, 1280×720·1440×900 overflow 0와 reduced-motion을 통과했다. AUTO 200과 standalone Player Draft create/action/cancel도 전용 endpoint만 사용했다.
 
 Frontend contract/build/reference/bundle lane을 통과했고 backend production/test는 변경하지 않아 backend full regression은 실행하지 않았다. 실제 wall-clock EXPIRED, screen reader 제품별 음성, backend persistence/auth/multi-node는 남은 제한이다. 상세 증거는 [Series LIVE E2E and Accessibility](development/series-live-e2e-and-accessibility.md)에 있다.
+
+최종 보강은 backend가 보존하는 `CANCELLED Series / DRAFT_CANCELLED game / winner-null result+receipt`를 exact 허용하고 decisive/ACTIVE/non-current 조합은 거부한다. Simulate response-loss 뒤 GET에서 `COMMITTED`를 확인하면 복구 identity를 replay-only phase에 유지하므로 첫 replay가 다시 유실돼도 새 simulate command를 만들지 않는다. Production 화면이 사용하는 상태기 focused test는 simulate 1회, GET 1회, 동일 command ID의 replay 2회를 확인했다. Series/Player Draft contract, 118-module build, reference check/verify와 bundle verify가 clean했고 backend Java/API/schema는 변경하지 않았다.
+
+AI 대 AI League/Season은 아직 구현하지 않았다. Current Series/Draft/Match Engine audit를 바탕으로 fixture-level automated Series runner, durable Season aggregate, schedule/side/seed/standings/jobs/persistence/API/frontend handoff를 [AI vs AI League Simulation V1 Contract Sketch](architecture/ai-vs-ai-league-simulation-v1-contract-sketch.md)에 설계했다. 다음 경계는 `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCT_DECISION_FREEZE`다.
 
 ### Player-controlled Draft Frontend V1
 
@@ -194,7 +198,7 @@ Base siege hardening 전 V9 `live:verify`는 options/response raw SHA를 기록�
 
 Frontend contract 33개, focused backend API 1 suite/5 tests, build/reference/live/bundle 검증이 통과했다. Production mapper 변경 뒤 final complete backend regression은 226 suites / 2,232 tests / failures 0 / errors 0 / skipped 0, Gradle wall 23분 16초로 한 번에 통과했다. 상세 결과는 [Player Controlled Draft LIVE E2E and Accessibility](development/player-controlled-draft-live-e2e-and-accessibility.md)에 있다.
 
-Series frontend까지 완료됐으므로 다음 제품 순서는 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`다.
+이 milestone 당시 다음 순서는 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`였으며, 해당 작업과 최종 Series 복구 계약은 현재 모두 완료됐다.
 
 ### Player Draft interactive and simulation latency profiling V1
 
@@ -212,7 +216,7 @@ Profiling ON/OFF의 Draft/gameplay/input/timeline/Random/output identity는 exac
 
 상태는 `SERIES_LIFECYCLE_V1_CONTRACT_SKETCH_READY`다. [Series Lifecycle V1 Contract Sketch](architecture/series-lifecycle-v1-contract-sketch.md)는 현재 caller-owned `SeriesDraftHistory`, Match Engine V1의 game number/history/input binding과 standalone Player Draft 기반을 확인하고, 향후 backend-owned BO3/BO5 aggregate의 team-code score, game별 side/seed/history, parent-bound child Draft, Production V9 simulate-and-commit, compact receipt, revision/idempotency/concurrency/expiry와 additive Series API/frontend view를 설계했다.
 
-이는 문서 계약만 준비된 상태다. BO3/BO5 aggregate/repository/controller/DTO, Game 2+ Player Draft, Series frontend, DB/Save/Load와 실제 series 실행은 구현되지 않았다. Side 교대, root seed UX, lifetime limits, no-decisive-result와 full replay scope는 문서의 `PRODUCT_DECISION_REQUIRED`로 남겼다. 현재 production policy/profile/gameplay와 기존 Player Draft/Real Match API는 변경하지 않았고, 문서 전용 작업이므로 backend/frontend test나 build를 실행하지 않았다.
+이 sketch 작성 당시에는 문서 계약만 준비됐고 BO3/BO5 backend/frontend가 구현되지 않았다. 이후 aggregate/repository/controller/DTO, Game 2+ Series-owned Player Draft, side/root seed/lifetime/no-decisive/explicit replay와 frontend가 위의 Series milestones에서 구현·검증됐다. DB/Save/Load, auth/ownership과 multi-node persistence는 여전히 없다. 이 historical sketch 작업 자체는 production policy/profile/gameplay와 기존 Player Draft/Real Match API를 바꾸지 않은 문서 전용 작업이었다.
 
 권장 구현 순서는 domain/repository → Series-owned Draft integration → Production V9 match commit/API → backend hardening → Series frontend다. 다만 즉시 다음 제품 작업은 기존 계획대로 standalone `PLAYER_CONTROLLED_DRAFT_FRONTEND_V1`일 수 있으며, 해당 화면 component가 explicit game/side/exclusion context를 받도록 설계하면 이후 Series wrapper가 재사용할 수 있다.
 
@@ -502,6 +506,8 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 
 ## Implemented
 
+- backend-valid no-decisive cancel evidence를 허용하고 committed 관측 뒤 replay-only identity를 유지하는 Series frontend 최종 계약
+- AI 대 AI League/Season의 aggregate, schedule, seed, standings, fixture job, compact replay와 additive API 구현 계약 sketch
 - versioned Champion Catalog/Power/Matchup/Composition/Jungle resources와 coherent manifest loading
 - `PlayerId` value object와 explicit 50-record identity resource/catalog
 - `PlayerRatingCatalog`의 기존 roster-key lookup 및 additive PlayerId dual lookup
@@ -550,6 +556,7 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 
 ## Partial / Disabled
 
+- AI 대 AI League/Season은 contract sketch만 준비됐고 production Java/API/worker/DB/frontend는 구현하지 않았다. 다섯 product decision을 먼저 고정해야 한다.
 - Real LCK Draft→Match flow는 Frontend V1-B의 기본 LIVE 공급자와 연결됐다. Reference는 명시적 회귀 모드로만 남고 자동 fallback하지 않는다.
 - Full response의 decoded JSON은 현재도 20–34MB지만 gzip wire body는 공식 외부 HTTP에서 약 1.88–2.79MB로 줄었다. JSON projection/streaming, parse·validation·heap을 분리하는 worker, 정확한 progress는 별도 후속 범위다.
 - Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
@@ -570,7 +577,7 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 2. ACTIVE session response의 full legal pool/advisory 재계산을 줄이는 `PLAYER_DRAFT_SESSION_PROJECTION_PERFORMANCE_HARDENING_V1`을 우선 검토하고, 이후 `PLAYER_DRAFT_AI_TURN_PERFORMANCE_HARDENING_V1`을 별도 진행한다.
 3. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
 4. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
-5. `SERIES_FRONTEND_V1_ACCEPTED`까지 완료됐다. 다음은 actual 202/response-loss와 keyboard/screen-reader journey를 강화하는 `SERIES_LIVE_E2E_AND_ACCESSIBILITY`다. Save/Career/Season persistence는 별도 범위다.
+5. Series LIVE E2E/accessibility와 최종 복구 계약까지 완료됐다. 다음은 `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCT_DECISION_FREEZE`에서 roster snapshot, custom side imbalance, blocked fixture, points/tie와 운영/retention 한도를 고정한다.
 6. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 7. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 8. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
@@ -645,8 +652,10 @@ Pre-Jungle V2 determinism hardening에서는 세 번째 full regression이 필�
 
 Pre-Jungle V2 생성 당시 production source/resource/build guard는 456 files / `b7965a1d1ebb9d76f298bc65e957da79c4e7cf2a3d0df35a6eca29ebaa0ab350`으로 동일했다. 당시 공식 V2를 새 JVM에서 같은 SHA로 재생성한 기록은 historical baseline provenance로 계속 보존한다.
 
+Series final frontend contract는 `npm run series:verify`, `npm run player-draft:verify`, `npm run build`, `npm run reference:check`, `npm run reference:verify`, `npm run bundle:verify`를 clean pass했다. Build는 118 modules였고 reference raw SHA-256은 `977c7d6e015f4ebd5ecba8e24e7b95a0a6313fef2e1e69a2c396b4fab36ac15e`다. Backend executable source/resource/schema/Gradle을 바꾸지 않았고 Phase B는 문서 전용이므로 backend full regression과 large diagnostic은 실행하지 않았다.
+
 테스트/diagnostic 실행 경계는 [Testing](development/testing.md), player contract는 [Player System](architecture/player-system.md)과 [Player Data Schema](reference/player-data-schema.md)를 참고한다.
 
 ## Last Updated
 
-2026-08-31 (Asia/Seoul)
+2026-09-01 (Asia/Seoul)
