@@ -17,6 +17,7 @@ import com.lolfm.draft.DraftRuleSet;
 import com.lolfm.draft.DraftScoringPolicy;
 import com.lolfm.draft.FinalDraftResult;
 import com.lolfm.draft.PickScoreComponent;
+import com.lolfm.draft.SeriesDraftHistory;
 import com.lolfm.player.ChampionProficiencyCatalog;
 import com.lolfm.player.ChampionProficiencyResourceLoader;
 import com.lolfm.player.PlayerIdentityCatalog;
@@ -408,13 +409,7 @@ public final class SimulationProvenanceService {
     }
 
     static String seriesHistoryHash(int committedGames, Set<ChampionId> exclusions) {
-        if (committedGames < 0) throw new IllegalArgumentException("committedGames must not be negative");
-        StringBuilder canonical = new StringBuilder("seriesHistorySchema=HARD_FEARLESS_HISTORY_V1\n")
-                .append("committedGameCount=").append(committedGames).append('\n');
-        Objects.requireNonNull(exclusions, "exclusions").stream()
-                .map(ChampionId::value).sorted()
-                .forEach(value -> canonical.append("consumedPick=").append(value).append('\n'));
-        return orderedLinesHash(canonical.toString());
+        return SeriesDraftHistory.identityHash(committedGames, exclusions);
     }
 
     static String finalAssignmentHash(FinalDraftResult result) {

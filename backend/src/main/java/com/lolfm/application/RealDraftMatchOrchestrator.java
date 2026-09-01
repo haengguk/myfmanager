@@ -10,9 +10,11 @@ import com.lolfm.draft.DraftEngine;
 import com.lolfm.draft.DraftResourceSet;
 import com.lolfm.draft.DraftRuleSet;
 import com.lolfm.draft.DraftScoringPolicy;
+import com.lolfm.draft.DraftAvailability;
 import com.lolfm.draft.DraftSelectionContext;
 import com.lolfm.draft.DraftTeamContext;
 import com.lolfm.draft.FinalDraftResult;
+import com.lolfm.draft.RoleAssignmentSolver;
 import com.lolfm.draft.SeriesDraftHistory;
 import com.lolfm.player.ChampionProficiencyCatalog;
 import com.lolfm.player.LckTeamAssembler;
@@ -42,6 +44,7 @@ public final class RealDraftMatchOrchestrator {
     private final SimulationProvenanceService provenance;
     private final MatchEngineV1InputFactory matchEngineV1Inputs;
     private final MatchEngineV1 matchEngineV1;
+    private final DraftAvailability draftAvailability;
 
     @Autowired
     public RealDraftMatchOrchestrator(ObjectMapper mapper, ChampionCatalog champions,
@@ -58,6 +61,9 @@ public final class RealDraftMatchOrchestrator {
         DraftScoringPolicy policy = DraftScoringPolicy.standard();
         this.teams = Objects.requireNonNull(teams, "teams");
         this.drafts = new DraftEngine(resources, rules, policy);
+        this.draftAvailability = new DraftAvailability(
+                resources.champions().catalog(),
+                new RoleAssignmentSolver(resources.champions().catalog()));
         this.matches = Objects.requireNonNull(matches, "matches");
         this.preflight = Objects.requireNonNull(preflight, "preflight");
         provenance = new SimulationProvenanceService(
@@ -184,6 +190,28 @@ public final class RealDraftMatchOrchestrator {
             long matchSeed,
             SimulationInstrumentation instrumentation
     ) {
+        PreparedAutoDraftMatch prepared = prepareV1(null, blueTeamCode, redTeamCode,
+                seriesHistory, matchSeed, instrumentation);
+        Set<ChampionId> exclusionsBeforeDraft = prepared.historyBefore();
+        int gameNumber = prepared.gameNumber();
+        FinalDraftResult draftResult = prepared.completedDraft();
+        seriesHistory.commitCompleted(draftResult);
+        validateCommittedHistory(seriesHistory, draftResult, exclusionsBeforeDraft, gameNumber);
+        return prepared.output();
+    }
+
+    /**
+     * Production Auto Draft and Match Engine V9 execution without committing caller-owned
+     * Hard Fearless state. A null match identity preserves the standalone identity contract.
+     */
+    public PreparedAutoDraftMatch prepareV1(
+            String matchIdentity,
+            String blueTeamCode,
+            String redTeamCode,
+            SeriesDraftHistory seriesHistory,
+            long matchSeed,
+            SimulationInstrumentation instrumentation
+    ) {
         Objects.requireNonNull(seriesHistory, "seriesHistory");
         Objects.requireNonNull(instrumentation, "instrumentation");
         String normalizedBlueTeamCode = normalizeTeamCode(blueTeamCode, "blueTeamCode");
@@ -201,14 +229,27 @@ public final class RealDraftMatchOrchestrator {
                 blueContext, redContext, seriesHistory, selectionContext);
         preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 blueContext, redContext, draftResult, seriesHistory);
-        MatchEngineV1Input input = matchEngineV1Inputs.fromRealDraft(
+        MatchEngineV1Input input = matchIdentity == null
+                ? matchEngineV1Inputs.fromRealDraft(
                 normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
-                matchSeed, gameNumber, exclusionsBeforeDraft, draftResult);
+                matchSeed, gameNumber, exclusionsBeforeDraft, draftResult)
+                : matchEngineV1Inputs.fromRealDraft(
+                matchIdentity, normalizedBlueTeamCode, blueTeam,
+                normalizedRedTeamCode, redTeam, matchSeed, gameNumber,
+                exclusionsBeforeDraft, draftResult);
         MatchEngineV1.MatchEngineV1Execution execution = matchEngineV1.executeDetailed(
                 input, instrumentation);
-        seriesHistory.commitCompleted(draftResult);
-        validateCommittedHistory(seriesHistory, draftResult, exclusionsBeforeDraft, gameNumber);
-        return execution.output();
+        return new PreparedAutoDraftMatch(input, execution.output(), draftResult,
+                gameNumber, exclusionsBeforeDraft);
+    }
+
+    /** Exact shared-pool feasibility check; it performs no Draft search or Random draw. */
+    public boolean canCompleteSeriesDraft(SeriesDraftHistory history) {
+        Objects.requireNonNull(history, "history");
+        com.lolfm.draft.DraftState state = new com.lolfm.draft.DraftState(
+                DraftRuleSet.professional(), 0, java.util.List.of(), java.util.List.of(),
+                java.util.List.of(), java.util.List.of(), history.consumedPicks());
+        return draftAvailability.canCompleteBothTeams(state);
     }
 
     private static String normalizeTeamCode(String value, String field) {

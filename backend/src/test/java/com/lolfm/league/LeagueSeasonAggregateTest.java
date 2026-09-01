@@ -89,20 +89,20 @@ class LeagueSeasonAggregateTest {
                 season.schedule(), "GEN", "T1", "GEN", 2, 0, "receipt-a");
         LeagueSeasonAggregate applied = season.applyVerifiedCompletion(first);
         LeagueFixture sameFixture = season.schedule().fixture(first.fixtureId());
-        VerifiedLeagueFixtureCompletion conflict = new VerifiedLeagueFixtureCompletion(
+        VerifiedLeagueFixtureCompletion conflict = LeagueDomainTestFixtures.opaqueCompletion(
                 sameFixture.fixtureId(), LeagueDomainTestFixtures.hash("receipt-b"),
                 "T1", "GEN", 2, 1);
         LeagueFixture otherFixture = LeagueDomainTestFixtures.fixture(
                 season.schedule(), "DK", "HLE");
         VerifiedLeagueFixtureCompletion reusedReceipt =
-                new VerifiedLeagueFixtureCompletion(otherFixture.fixtureId(),
+                LeagueDomainTestFixtures.opaqueCompletion(otherFixture.fixtureId(),
                         first.canonicalFixtureReceiptHash(), "DK", "HLE", 2, 0);
         VerifiedLeagueFixtureCompletion wrongTeams =
-                new VerifiedLeagueFixtureCompletion(otherFixture.fixtureId(),
+                LeagueDomainTestFixtures.opaqueCompletion(otherFixture.fixtureId(),
                         LeagueDomainTestFixtures.hash("wrong-teams"),
                         "GEN", "T1", 2, 0);
         VerifiedLeagueFixtureCompletion incomplete =
-                new VerifiedLeagueFixtureCompletion(otherFixture.fixtureId(),
+                LeagueDomainTestFixtures.opaqueCompletion(otherFixture.fixtureId(),
                         LeagueDomainTestFixtures.hash("incomplete"),
                         "DK", "HLE", 1, 0);
 

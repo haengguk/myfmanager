@@ -43,6 +43,43 @@ gradlew.bat test \
 
 최종 focused 결과는 4 suites / 15 tests / failures 0 / errors 0 / skipped 0이다. Final production tree의 complete backend regression은 243 suites / 2,297 tests / failures 0 / errors 0 / skipped 2, aggregate XML 895.260초, Gradle wall 15분 11초로 첫 실행에서 통과했다. 대규모 League simulation이나 분포 진단은 실행하지 않았다.
 
+### AI League V1 automated series runner
+
+Batch 2 runner의 직접 계약, 실제 Production V9과 fresh-JVM 결정성은 다음 focused lane으로 검증한다.
+
+```bash
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.league.LeagueAutomatedSeriesRunnerTest \
+  --tests com.lolfm.league.LeagueAutomatedSeriesRunnerProductionV9Test \
+  --tests com.lolfm.league.LeagueAutomatedSeriesRunnerCrossJvmDeterminismTest \
+  --console=plain --no-daemon
+```
+
+- BO3 2:0/2:1, required-wins early stop, game별 side/fixture seed와 Hard Fearless transition
+- `PLAYER_CONTROLLED`, pool exhaustion, no-decisive result의 completion/standings mutation 0
+- frozen product/roster/resource/runtime drift의 Draft 전 fail-closed
+- ordered Draft/final assignment/history/Production/replay/timeline/Random evidence와 compact canonical receipt
+- fake hash와 receipt field tamper, omission/duplicate/reorder, cross-fixture/cross-Season 거부
+- diagnostics ON/OFF 및 서로 다른 두 fresh JVM의 canonical receipt bytes/hash exact equality
+- 실제 GEN–T1 frozen fixture의 Production Auto Draft 20턴과 Match Engine V9
+
+최종 affected bundle은 Batch 1의 4 classes와 위 3 classes에 `AutoDraftSelectorTest`,
+`AutoDraftVarietyV1ProductionIntegrationTest`, `DraftAvailabilityJointPoolTest`,
+`MatchEngineV1ContractTest`, `MatchEngineV1CrossJvmDeterminismTest`,
+`RealDraftMatchOrchestratorTest`, `SeriesLifecycleHardeningTest`,
+`SeriesLifecycleServiceTest`, `SeriesProductionV9SmokeTest`,
+`PlayerControlledDraftMatchInputBoundaryTest`를 더해 17 suites / 96 tests로 실행했다.
+최초 bundle의 95개는 통과했고 constructor에서 이미 거부되는 side tamper를 verifier에서
+거부될 것으로 기대한 test-only 분류 1건을 교정한 뒤 runner suite 7/7이 통과했다.
+Production 실행 코드는 이 교정으로 바뀌지 않았다.
+
+Final executable production tree의 complete backend regression은
+246 suites / 2,306 tests / failures 0 / errors 0 / skipped 2, aggregate XML 962.313초,
+Gradle wall 16분 14초로 첫 실행에서 통과했다. 이후 문서만 변경했으므로 full을
+반복하지 않았다. 90-fixture Season run, balance/performance population과 frontend/
+Playwright는 이 backend-only milestone에서 실행하지 않았다.
+
 ### Player-controlled Draft API V1
 
 혼합 Draft의 final authoritative-input boundary와 기존 session hardening은 다음 focused lane으로 검증한다.

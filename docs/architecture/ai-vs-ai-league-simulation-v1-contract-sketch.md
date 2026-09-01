@@ -1,10 +1,10 @@
 # AI vs AI League Simulation V1 Contract Sketch
 
-상태: `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCT_DECISIONS_FROZEN_AND_HYBRID_SEASON_CONTRACT_READY`
+상태: `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER_IMPLEMENTED_READY_FOR_PLAYER_HANDOFF`
 
 이 문서는 AI 팀끼리만 경기하는 기능을 넘어, 한 관리 팀의 경기는 플레이어가 직접 Draft하고 나머지 경기는 AI가 자동 진행하는 Hybrid Season V1의 구현 계약을 고정한다. 제품 결정의 canonical 목록은 [AI vs AI League Simulation V1 Product Decisions](ai-vs-ai-league-simulation-v1-product-decisions.md)에 있으며, 이 문서는 그 결정을 aggregate, 상태 기계, persistence, API와 frontend handoff로 구체화한다.
 
-이 상태는 설계와 구현 인계가 준비됐다는 뜻이다. League/Season production Java, API, worker, DB, migration과 frontend가 구현됐다는 뜻은 아니다.
+Batch 1의 Season/schedule/standings domain과 Batch 2의 synchronous FULL_AUTO runner/canonical receipt proof gate는 구현됐다. Player handoff, durable worker/job, DB/migration/outbox, League API와 frontend가 구현됐다는 뜻은 아니다.
 
 ## 현재 코드 감사와 경계 판정
 
@@ -190,6 +190,10 @@ League-owned `AutomatedSeriesRunner`는 하나의 immutable fixture input을 받
 6. required wins에 도달하면 unified fixture completion receipt를 만든다.
 
 Runner는 resolver/gameplay state를 전역에 보관하지 않으며 fixture끼리 Random, Draft history, score와 mutable cache를 공유하지 않는다. 병렬성은 완료 순서만 바꿀 수 있고 각 fixture output을 바꿀 수 없다.
+
+Batch 2 구현은 기존 `RealDraftMatchOrchestrator`의 Production Auto Draft/V9 경계를 commit 전 `PreparedAutoDraftMatch`까지 additive하게 분리한다. Runner는 current frozen roster/resource/runtime snapshot과 `FULL_AUTO` schedule membership을 Draft search 전에 확인하고, decisive verified game에서만 기존 `SeriesDraftHistory.commitCompleted`를 호출한다. `PLAYER_CONTROLLED`, resource drift, pool exhaustion과 no-decisive result는 completion과 standings-applicable value를 만들지 않는다.
+
+`LeagueFixtureGameReceiptV1`은 ordered Draft/final assignment, history transition, roster/Production/output/replay/timeline/Random identity를 compact하게 보관한다. `LeagueFixtureCompletionReceiptV1`은 ordered game receipt와 frozen Season/fixture/seed/score를 canonical SHA-256으로 결속한다. Private-constructor `VerifiedLeagueFixtureCompletion`은 actual runner evidence와 canonical payload를 다시 대조한 뒤에만 생성된다. 상세 구현과 검증은 [Automated Series Runner](../development/ai-vs-ai-league-simulation-v1-automated-series-runner.md)에 있다.
 
 ## Player Controlled Series handoff
 
@@ -431,7 +435,7 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 
 ## Correctness matrix
 
-이 표는 구현 batch의 최소 focused verification 인계다. Batch 1의 Hybrid mapping, schedule/seed, receipt ledger와 standings/tie 항목은 구현·focused/full regression을 완료했으며 나머지는 후속 batch에서 검증한다.
+이 표는 구현 batch의 최소 focused verification 인계다. Batch 1의 Hybrid mapping, schedule/seed, receipt ledger와 standings/tie, Batch 2의 synchronous FULL_AUTO runner와 canonical receipt proof gate는 구현·focused/full regression을 완료했으며 나머지는 후속 batch에서 검증한다.
 
 | 영역 | 필수 시나리오 | Frozen expected result |
 |---|---|---|
@@ -449,7 +453,7 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 | 순서 / task | Production surface | Non-goals | Prerequisite | Focused verification | Full regression | 상태 |
 |---|---|---|---|---|---|---|
 | 1. `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS` | pure domain aggregate, frozen decisions/config, schedule, side, seed, standings/tie | runner, DB, API, UI | 이 계약과 product decisions | 10-team schedule, mode mapping, side/seed, standings/mini-league/tie, duplicate receipt ledger domain tests | 243 suites / 2,297 tests clean | 완료 |
-| 2. `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER` | immutable runner input, Auto Draft, Production V9, HF, unified receipt | player handoff, durable jobs | Batch 1 | BO3/BO5, parity, duplicate/ineligible Random, receipt integrity, fixture isolation | 필요 | 미착수 |
+| 2. `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER` | immutable runner input, Auto Draft, Production V9, HF, unified receipt | player handoff, durable jobs | Batch 1 | BO3 2:0/2:1, side/seed/HF, diagnostics/fresh-JVM exact, tamper/cross-boundary, actual V9 | 246 suites / 2,306 tests clean | 완료 |
 | 3. `AI_VS_AI_LEAGUE_SIMULATION_V1_PLAYER_SERIES_HANDOFF` | durable binding port, League-bound Series/Draft completion | public winner/receipt submit, standalone Series migration | Batches 1~2 | start/resume, frozen context, no setup rewrite, outbox handoff, duplicate completion | 필요 | 미착수 |
 | 4. `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS` | relational adapters, lease/heartbeat/retry/outbox/recovery/retention | DB tuning, multi-region | Batches 1~3 | crash boundaries, stale lease, max attempts, cancellation, exactly-once standings | 필요 | 미착수 |
 | 5. `AI_VS_AI_LEAGUE_SIMULATION_V1_API` | additive League/Season/Fixture commands/views | existing API rename/removal | Batch 4 | exact schema, auth/ownership 정책 경계, stale revision/idempotency, no authority injection | 필요 | 미착수 |
@@ -460,11 +464,11 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 
 ## V1 non-goals와 남은 제한
 
-- 현재 production에는 pure League Season/schedule/standings domain만 있다. Runner, DB, worker, API와 UI는 없다.
+- 현재 production에는 pure League Season/schedule/standings domain과 한 fixture용 synchronous FULL_AUTO runner/receipt proof gate가 있다. Season worker, DB, API와 UI는 없다.
 - 현재 standalone Series는 계속 process-local이며 이 문서만으로 restart recovery가 생기지 않는다.
 - auth/ownership, DB 제품/schema, deployment topology는 후속 batch에서 구현 결정을 내린다.
 - custom schedule, side imbalance, playoff/tie-break fixture, managed fixture AI 위임과 Season 도중 관리 팀 변경은 V1 범위 밖이다.
 - optional full replay cache는 standings authority가 아니며 resource drift 뒤 재생을 보장하지 않는다.
 - 운영 한계는 동결됐지만 실제 load evidence는 Production acceptance 전까지 없다.
 
-Batch 1 상세 결과는 [AI League V1 Domain, Schedule and Standings](../development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md)에 있다. 다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER`다.
+Batch 1 상세 결과는 [AI League V1 Domain, Schedule and Standings](../development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md), Batch 2는 [Automated Series Runner](../development/ai-vs-ai-league-simulation-v1-automated-series-runner.md)에 있다. 다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_PLAYER_SERIES_HANDOFF`다.

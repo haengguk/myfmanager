@@ -62,9 +62,29 @@ final class LeagueDomainTestFixtures {
     ) {
         LeagueFixture fixture = fixture(schedule, first, second);
         String loser = winner.equals(first) ? second : first;
-        return new VerifiedLeagueFixtureCompletion(fixture.fixtureId(),
-                hash("receipt=" + receiptKey), winner, loser,
-                winnerGameWins, loserGameWins);
+        return opaqueCompletion(fixture.fixtureId(), hash("receipt=" + receiptKey),
+                winner, loser, winnerGameWins, loserGameWins);
+    }
+
+    /** Test-only reflection keeps production free of an unverified completion factory. */
+    static VerifiedLeagueFixtureCompletion opaqueCompletion(
+            String fixtureId,
+            String receiptHash,
+            String winner,
+            String loser,
+            int winnerWins,
+            int loserWins
+    ) {
+        try {
+            var constructor = VerifiedLeagueFixtureCompletion.class.getDeclaredConstructor(
+                    String.class, String.class, String.class, String.class,
+                    int.class, int.class);
+            constructor.setAccessible(true);
+            return constructor.newInstance(fixtureId, receiptHash, winner, loser,
+                    winnerWins, loserWins);
+        } catch (ReflectiveOperationException error) {
+            throw new AssertionError(error);
+        }
     }
 
     static String hash(String value) {

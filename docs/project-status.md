@@ -180,7 +180,7 @@ Season mode는 정확히 한 관리 팀을 고정하는 `HYBRID_MANAGER`와 전 
 
 Player fixture는 server-owned durable `LeagueFixtureSeriesBinding`으로 기존 Series/Player Draft 화면에 들어가며 opponent, format, side와 seed를 다시 선택하지 않는다. AI와 Player 완료는 동일한 `LeagueFixtureCompletionReceiptV1`을 사용하고, transactional outbox와 idempotent League consumer가 standings를 최대 한 번 반영한다. Relational persistence는 Season/Fixture/Job/Lease/Binding/Receipt/outbox/application ledger를 소유하며 현재 process-local Series repository를 durable authority로 승격하지 않는다. 전체 aggregate/state/API/frontend/restart 계약과 correctness matrix는 [Hybrid Season Contract](architecture/ai-vs-ai-league-simulation-v1-contract-sketch.md)에 있다.
 
-이 제품 결정 freeze milestone 자체는 문서 전용이었다. 당시에는 League/Season production Java, API, worker, DB/migration과 frontend를 구현하지 않았고 build/test/full regression/diagnostic도 실행하지 않았다. 이후 Batch 1 pure domain 구현은 아래 milestone에서 완료했다.
+이 제품 결정 freeze milestone 자체는 문서 전용이었다. 당시에는 League/Season production Java, API, worker, DB/migration과 frontend를 구현하지 않았고 build/test/full regression/diagnostic도 실행하지 않았다. 이후 Batch 1 pure domain과 Batch 2 automated runner 구현은 아래 milestone에서 완료했다.
 
 ### AI vs AI League Simulation V1 domain, schedule and standings
 
@@ -192,7 +192,19 @@ Canonical circle schedule은 BO3 double round robin 18 rounds/90 fixtures, round
 
 Immutable standings는 verified completion의 frozen fixture/team/format을 검사하고 fixture ID와 canonical receipt hash를 함께 ledger에 보관한다. Exact replay는 revision/standings mutation 0, same-fixture conflict와 cross-fixture receipt reuse는 거부한다. 순위는 Series wins → game differential → game wins → mini-league Series wins → mini-league game differential → Season-seed draw이며 draw input/hash/order를 trace로 남긴다.
 
-Focused 4 suites / 15 tests와 final backend regression 243 suites / 2,297 tests / failures 0 / errors 0 / skipped 2를 통과했다. Aggregate XML은 895.260초, Gradle wall은 15분 11초다. Gameplay/Random, resource, API, frontend, Gradle과 historical artifact는 변경하지 않았고 대규모 simulation/diagnostic은 실행하지 않았다. 상세 내용은 [AI League V1 Domain, Schedule and Standings](development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md)에 있다. 다음 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER`다.
+Focused 4 suites / 15 tests와 final backend regression 243 suites / 2,297 tests / failures 0 / errors 0 / skipped 2를 통과했다. Aggregate XML은 895.260초, Gradle wall은 15분 11초다. Gameplay/Random, resource, API, frontend, Gradle과 historical artifact는 변경하지 않았고 대규모 simulation/diagnostic은 실행하지 않았다. 상세 내용은 [AI League V1 Domain, Schedule and Standings](development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md)에 있다. 후속 Batch 2 automated runner는 아래 milestone에서 완료했다.
+
+### AI vs AI League Simulation V1 automated series runner
+
+상태는 `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER_IMPLEMENTED_READY_FOR_PLAYER_HANDOFF`다.
+
+Stateless synchronous `LeagueAutomatedSeriesRunner`는 frozen schedule의 exact `FULL_AUTO` fixture 하나를 기존 Production Auto Draft와 Match Engine V9으로 끝까지 실행한다. Draft 전에 Season/schedule/product-decision/current LCK roster와 production resource/runtime identity, execution mode와 Hard Fearless pool을 fail-closed 검증한다. Game별 BLUE/RED와 seed는 fixture root 및 history-before에 결속하며, 승자가 있는 game만 기존 common history commit 경로로 양 팀 pick 10개를 반영하고 required wins에서 즉시 종료한다. `PLAYER_CONTROLLED`, identity drift, pool exhaustion과 no-decisive safety timeout은 completion과 standings mutation 없이 `BLOCKED`다.
+
+Compact `LeagueFixtureGameReceiptV1`은 ordered 20-turn Draft, final assignment, picks/bans, Hard Fearless transition, production/resource/input/output/replay/timeline/Random/winner identity를 구조화해 보관한다. `LeagueFixtureCompletionReceiptV1`은 Season/fixture/bound Series/mode/team/format/root·game seed algorithm, ordered games, final score와 winner를 128 KiB 이하 canonical ordered payload로 결속한다. `VerifiedLeagueFixtureCompletion`의 public constructor를 제거하고 actual frozen input/current production snapshot/game evidence와 receipt hash를 재대조하는 package verifier만 opaque completion을 만들 수 있게 했다. Fake 64-char hash, field tamper, omission/duplicate/reorder, cross-fixture/cross-Season receipt는 거부되며 기존 standings exact replay no-op 의미를 유지한다.
+
+Focused affected bundle은 17 suites / 96 tests였다. 최초 실행의 95개는 통과했고 constructor에서 이미 차단된 side tamper를 verifier 단계에서 차단될 것으로 기대한 test-only 분류 1건을 교정한 뒤 runner suite 7/7이 통과했다. 실제 GEN–T1 frozen fixture에서 Production Auto Draft 20턴과 V9을 실행했고 diagnostics ON/OFF 및 두 fresh JVM의 canonical receipt bytes/hash exact equality도 확인했다. Final executable production tree의 complete backend regression은 첫 실행에서 246 suites / 2,306 tests / failures 0 / errors 0 / skipped 2, aggregate XML 962.313초, Gradle wall 16분 14초로 clean pass했다. 이후 문서만 변경해 full regression은 반복하지 않았다.
+
+V1 production schedule은 계속 BO3다. Runner/receipt는 closed BO3/BO5 format의 wins-required와 maximum-games를 처리하지만 production BO5 schedule은 freeze하거나 실행하지 않았다. 90-fixture worker/job, durable DB/outbox/exactly-once recovery, Player Series handoff, API/frontend, balance/performance population과 historical artifact 재생성도 이번 범위가 아니다. 상세 내용은 [AI League V1 Automated Series Runner](development/ai-vs-ai-league-simulation-v1-automated-series-runner.md)에 있다. 다음 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_PLAYER_SERIES_HANDOFF`다.
 
 ### Player-controlled Draft Frontend V1
 
@@ -577,7 +589,7 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 
 ## Partial / Disabled
 
-- AI League V1의 pure Season/schedule/standings domain은 구현됐지만 Automated Series runner, canonical fixture receipt 본문, durable Player Series, API/worker/DB/frontend는 아직 없다.
+- AI League V1의 pure Season/schedule/standings domain과 한 `FULL_AUTO` fixture용 synchronous Automated Series runner/canonical receipt proof gate는 구현됐다. Durable Player Series, 90-fixture worker/job, API/DB/outbox/frontend는 아직 없다.
 - Real LCK Draft→Match flow는 Frontend V1-B의 기본 LIVE 공급자와 연결됐다. Reference는 명시적 회귀 모드로만 남고 자동 fallback하지 않는다.
 - Full response의 decoded JSON은 현재도 20–34MB지만 gzip wire body는 공식 외부 HTTP에서 약 1.88–2.79MB로 줄었다. JSON projection/streaming, parse·validation·heap을 분리하는 worker, 정확한 progress는 별도 후속 범위다.
 - Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
@@ -598,7 +610,7 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 2. ACTIVE session response의 full legal pool/advisory 재계산을 줄이는 `PLAYER_DRAFT_SESSION_PROJECTION_PERFORMANCE_HARDENING_V1`을 우선 검토하고, 이후 `PLAYER_DRAFT_AI_TURN_PERFORMANCE_HARDENING_V1`을 별도 진행한다.
 3. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
 4. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
-5. AI League V1의 Batch 1 code-owned policy, Season/Fixture domain, deterministic schedule/seed와 standings는 완료됐다. 다음은 `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER`에서 FULL_AUTO BO3/BO5, fixture-scoped Hard Fearless와 canonical fixture receipt를 구현한다.
+5. AI League V1의 Batch 1 domain과 Batch 2 `FULL_AUTO` automated runner/canonical receipt proof gate는 완료됐다. 다음은 `AI_VS_AI_LEAGUE_SIMULATION_V1_PLAYER_SERIES_HANDOFF`에서 League-bound Player Series start/resume와 server-created completion handoff를 구현하고, 이후 persistence/job batch에서 DB, lease/heartbeat/retry, outbox와 restart recovery를 닫는다.
 6. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 7. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 8. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
@@ -612,20 +624,20 @@ Final command:
 gradlew.bat test --console=plain --no-daemon
 ```
 
-AI League V1 Batch 1 final executable tree의 current complete backend regression 결과는 다음과 같다.
+AI League V1 Batch 2 automated runner final executable tree의 current complete backend regression 결과는 다음과 같다.
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 243 |
-| Tests | 2,297 |
+| JUnit suites | 246 |
+| Tests | 2,306 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 2 |
-| Aggregate JUnit XML time | 895.260 seconds |
-| Gradle wall duration | 15m 11s |
+| Aggregate JUnit XML time | 962.313 seconds |
+| Gradle wall duration | 16m 14s |
 | Build | `BUILD SUCCESSFUL` |
 
-새 League focused lane은 4 suites / 15 tests / failures 0 / errors 0 / skipped 0이다. 이 full은 production Java가 추가된 final tree에서 첫 실행으로 통과했고, 이후에는 문서만 갱신했으므로 반복하지 않았다. 두 skip은 기존 explicit diagnostic이다.
+Affected focused lane은 Batch 1 domain, 새 runner 3 suites, Auto Draft, Player input, Series lifecycle/receipt와 Match Engine V1/V9을 포함한 17 suites / 96 tests다. 최초 bundle의 95개는 통과했고 test-only 기대 위치 1건을 교정한 뒤 affected runner suite 7/7이 통과했다. 이 full은 production Java가 추가된 final tree에서 첫 실행으로 통과했고, 이후에는 문서만 갱신했으므로 반복하지 않았다. 두 skip은 기존 explicit diagnostic이다.
 
 아래 수치는 각 historical milestone 당시의 snapshot이다.
 
