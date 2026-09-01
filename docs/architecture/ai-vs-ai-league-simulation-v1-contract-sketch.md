@@ -283,7 +283,8 @@ Season root seed
 ```
 
 - fixture root는 `AI_LEAGUE_FIXTURE_ROOT_SEED_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1`으로 canonical Season/fixture identity에서 파생한다.
-- Player fixture에서는 `fixtureRootSeed`를 기존 Series의 root seed로 그대로 전달한다. League와 Series가 각각 한 번씩 fixture seed를 파생하는 double derivation을 금지한다.
+- Player fixture에서는 `fixtureRootSeed`를 bound Series의 root seed로 그대로 전달한다. League와 Series가 각각 한 번씩 fixture seed를 파생하는 double derivation을 금지한다.
+- 기존 standalone Series V1의 mode-dependent seed schema는 변경하지 않는다. League-bound AI/Player Series는 `AI_LEAGUE_BOUND_SERIES_GAME_SEED_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1` sibling schema와 canonical pair-first `seedAnchorTeamCode`를 공통 사용해 execution mode가 game seed를 바꾸지 않게 한다.
 - FULL_AUTO runner도 같은 bound Series root와 game-seed algorithm을 사용한다.
 - player는 새 seed를 선택할 수 없다.
 - retry는 frozen seed/checkpoint를 그대로 사용하며 reseed하지 않는다.
@@ -430,7 +431,7 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 
 ## Correctness matrix
 
-이 표는 구현 batch의 최소 focused verification 인계다. 이 문서 작업에서는 테스트를 실행하거나 추가하지 않는다.
+이 표는 구현 batch의 최소 focused verification 인계다. Batch 1의 Hybrid mapping, schedule/seed, receipt ledger와 standings/tie 항목은 구현·focused/full regression을 완료했으며 나머지는 후속 batch에서 검증한다.
 
 | 영역 | 필수 시나리오 | Frozen expected result |
 |---|---|---|
@@ -447,7 +448,7 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 
 | 순서 / task | Production surface | Non-goals | Prerequisite | Focused verification | Full regression | 상태 |
 |---|---|---|---|---|---|---|
-| 1. `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS` | pure domain aggregate, frozen decisions/config, schedule, side, seed, standings/tie | runner, DB, API, UI | 이 계약과 product decisions | 10-team schedule, mode mapping, side/seed, standings/mini-league/tie, duplicate receipt ledger domain tests | production Java 최종 tree에서 필요 | 미착수 |
+| 1. `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS` | pure domain aggregate, frozen decisions/config, schedule, side, seed, standings/tie | runner, DB, API, UI | 이 계약과 product decisions | 10-team schedule, mode mapping, side/seed, standings/mini-league/tie, duplicate receipt ledger domain tests | 243 suites / 2,297 tests clean | 완료 |
 | 2. `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER` | immutable runner input, Auto Draft, Production V9, HF, unified receipt | player handoff, durable jobs | Batch 1 | BO3/BO5, parity, duplicate/ineligible Random, receipt integrity, fixture isolation | 필요 | 미착수 |
 | 3. `AI_VS_AI_LEAGUE_SIMULATION_V1_PLAYER_SERIES_HANDOFF` | durable binding port, League-bound Series/Draft completion | public winner/receipt submit, standalone Series migration | Batches 1~2 | start/resume, frozen context, no setup rewrite, outbox handoff, duplicate completion | 필요 | 미착수 |
 | 4. `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS` | relational adapters, lease/heartbeat/retry/outbox/recovery/retention | DB tuning, multi-region | Batches 1~3 | crash boundaries, stale lease, max attempts, cancellation, exactly-once standings | 필요 | 미착수 |
@@ -459,11 +460,11 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 
 ## V1 non-goals와 남은 제한
 
-- 현재 production에는 League/Season aggregate, runner, DB, worker, API와 UI가 없다.
+- 현재 production에는 pure League Season/schedule/standings domain만 있다. Runner, DB, worker, API와 UI는 없다.
 - 현재 standalone Series는 계속 process-local이며 이 문서만으로 restart recovery가 생기지 않는다.
 - auth/ownership, DB 제품/schema, deployment topology는 후속 batch에서 구현 결정을 내린다.
 - custom schedule, side imbalance, playoff/tie-break fixture, managed fixture AI 위임과 Season 도중 관리 팀 변경은 V1 범위 밖이다.
 - optional full replay cache는 standings authority가 아니며 resource drift 뒤 재생을 보장하지 않는다.
 - 운영 한계는 동결됐지만 실제 load evidence는 Production acceptance 전까지 없다.
 
-다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS`다.
+Batch 1 상세 결과는 [AI League V1 Domain, Schedule and Standings](../development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md)에 있다. 다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER`다.

@@ -4,7 +4,7 @@
 
 이 문서는 Hybrid Season V1 구현 전에 필요한 제품 결정을 canonical 순서로 동결한다. Aggregate, 상태 기계, API/frontend handoff와 구현 순서는 [AI vs AI League Simulation V1 Contract Sketch](ai-vs-ai-league-simulation-v1-contract-sketch.md)를 따른다.
 
-문서 값은 구현 입력이며 runtime authority가 아니다. Batch 1에서 versioned code-owned policy, canonical serialization과 hash를 구현한 뒤 실제 Season snapshot이 그 identity를 소유한다.
+문서 값 자체는 runtime authority가 아니다. Batch 1에서 versioned code-owned policy, canonical serialization과 hash를 구현했으며 실제 `LeagueSeasonAggregate`가 그 identity를 소유한다.
 
 ## Frozen decision table
 
@@ -48,6 +48,14 @@ Batch 1 구현은 다음 절차를 exact test로 고정한다.
 
 Markdown 문장, 표의 이유/Trade-off/V2 설명, 공백과 줄바꿈은 hash 입력이 아니다. 실제 canonical value 문자열은 Batch 1의 immutable policy class와 golden test가 소유한다. 문서와 code-owned policy가 다르면 implementation은 fail-closed하고 상태 문서를 갱신하기 전 제품 결정을 다시 검토한다.
 
+Current code-owned `productDecisionHash`는 다음과 같다.
+
+```text
+81a4755760fb513c5803d55dd4855c03fda487114bb7c89b431c959a00a0fb14
+```
+
+구현과 검증 결과는 [AI League V1 Domain, Schedule and Standings](../development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md)에 기록한다.
+
 ## 변경 규칙
 
 V1 구현이 시작된 뒤 Frozen value를 바꾸려면 다음을 모두 수행한다.
@@ -57,4 +65,4 @@ V1 구현이 시작된 뒤 Frozen value를 바꾸려면 다음을 모두 수행�
 - schedule, seed, standings, binding/receipt 호환성 영향을 문서화한다.
 - focused migration/parity test와 필요한 full regression 범위를 별도 milestone에서 정한다.
 
-다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS`다.
+다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER`다.

@@ -20,6 +20,29 @@ cd backend
 
 Focused correctness test는 큰 seed sample이나 분포 목표가 아니라 formula boundary, state transition, duplicate protection, Random non-consumption, structured event를 검증해야 한다.
 
+### AI League V1 domain, schedule and standings
+
+Batch 1 pure domain은 다음 focused lane으로 검증한다.
+
+```bash
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.league.LeagueV1ProductDecisionsTest \
+  --tests com.lolfm.league.LeagueScheduleGeneratorTest \
+  --tests com.lolfm.league.LeagueSeasonAggregateTest \
+  --tests com.lolfm.league.LeagueStandingsTest \
+  --console=plain --no-daemon
+```
+
+- code-owned 9-decision canonical SHA, exact operational defaults와 actual LCK 10팀/50명 envelope
+- 18 rounds/90 fixtures, round/pair cardinality, mirrored leg side, single-round design과 unordered input canonicalization
+- Hybrid 18 player/72 auto, Spectator 90 auto와 execution-mode-independent fixture/root/game seed
+- managed snapshot mismatch, invalid membership/game/history boundary fail-closed
+- exact completion replay mutation 0, same-fixture receipt conflict와 cross-fixture hash reuse 거부
+- Series wins/game differential/game wins/mini-league/Season-seed draw와 explicit tie-break trace
+
+최종 focused 결과는 4 suites / 15 tests / failures 0 / errors 0 / skipped 0이다. Final production tree의 complete backend regression은 243 suites / 2,297 tests / failures 0 / errors 0 / skipped 2, aggregate XML 895.260초, Gradle wall 15분 11초로 첫 실행에서 통과했다. 대규모 League simulation이나 분포 진단은 실행하지 않았다.
+
 ### Player-controlled Draft API V1
 
 혼합 Draft의 final authoritative-input boundary와 기존 session hardening은 다음 focused lane으로 검증한다.
