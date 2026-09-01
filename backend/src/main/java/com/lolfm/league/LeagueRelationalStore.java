@@ -315,6 +315,41 @@ public final class LeagueRelationalStore {
                 Integer.class);
     }
 
+    void registerProcessIncarnation(String incarnationId) {
+        OffsetDateTime current = now();
+        int updated = jdbc.update("""
+                UPDATE league_process_incarnation
+                SET lifecycle_status = 'ACTIVE', last_seen_at = ?
+                WHERE incarnation_id = ?
+                """, current, incarnationId);
+        if (updated == 0) {
+            jdbc.update("""
+                    INSERT INTO league_process_incarnation(
+                      incarnation_id, lifecycle_status, started_at, last_seen_at)
+                    VALUES (?, 'ACTIVE', ?, ?)
+                    """, incarnationId, current, current);
+        }
+    }
+
+    /** Serializes global active-count inspection and lease/cancel state mutation in the DB. */
+    void lockGlobalFixtureLeases() {
+        lockOperation("GLOBAL_FIXTURE_LEASES");
+    }
+
+    void lockApiCommands() {
+        lockOperation("API_COMMANDS");
+    }
+
+    private void lockOperation(String lockName) {
+        List<String> rows = jdbc.query("""
+                SELECT lock_name FROM league_job_scheduler_lock
+                WHERE lock_name = ? FOR UPDATE
+                """, (result, row) -> result.getString(1), lockName);
+        if (rows.size() != 1) {
+            throw new IllegalStateException("LEAGUE_OPERATION_LOCK_MISSING");
+        }
+    }
+
     public LeagueFixtureCompletionReceiptV2 loadReceipt(String receiptHash) {
         return jdbc.queryForObject("""
                 SELECT receipt_json FROM league_completion_receipt WHERE receipt_hash = ?

@@ -22,6 +22,7 @@ public interface LeagueSimulationApplicationPort {
                 instrumentation);
     }
     RecoveryResult recover();
+    RecoveryResult recoverStartup();
     int purgeExpiredAttemptLogs();
     Optional<JobView> findJob(String seasonId, String fixtureId);
 
@@ -30,7 +31,7 @@ public interface LeagueSimulationApplicationPort {
     record Lease(
             String jobId, String seasonId, String fixtureId, String leaseToken,
             long fencingNumber, int attemptNumber, String frozenInputHash,
-            OffsetDateTime expiresAt
+            OffsetDateTime expiresAt, String processIncarnationId
     ) {}
     record ExecutionResult(
             String jobId, Status status, int attemptNumber, String receiptHash,

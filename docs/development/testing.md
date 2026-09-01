@@ -106,7 +106,11 @@ gradlew.bat test \
 
 Batch 2 Auto parity는 같은 final tree에서 `LeagueAutomatedSeriesRunnerTest`, `LeagueAutomatedSeriesRunnerProductionV9Test`, `LeagueAutomatedSeriesRunnerCrossJvmDeterminismTest`로 V1 core와 FULL_AUTO authority V2 envelope를 함께 확인한다. Existing affected regression은 Batch 1 schedule/standings, Series lifecycle/repository/API/replay, Player Draft engine/boundary/session, Match Engine V1/Production V9와 Real Match API를 포함한다.
 
-Final executable production tree의 complete backend regression은 첫 실행에서 249 suites / 2,315 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,901.498초, Gradle wall 16분 53초로 통과했다. 두 skip은 explicit 대형 diagnostic이다. League API/frontend가 없으므로 frontend build/Playwright는 실행하지 않았고 90-fixture Season, balance/performance population도 제외했다.
+Batch 3 final executable production tree의 complete backend regression은 첫 실행에서 249 suites /
+2,315 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,901.498초, Gradle wall 16분 53초로
+통과했다. 두 skip은 explicit 대형 diagnostic이다. Batch 3 당시 League API/frontend가 없었으므로
+frontend build/Playwright는 실행하지 않았고 90-fixture Season, balance/performance population도
+제외했다. Current API 결과는 아래 Batch 5 section을 따른다.
 
 ### AI League V1 persistence and jobs
 
@@ -145,6 +149,67 @@ frontend build/Playwright, 90-fixture run과 대형 balance/performance diagnost
 
 90-fixture official run, 대형 balance/performance population, frontend/Playwright는 실행하지 않았다.
 동일한 최종 수치는 [Project Status](../project-status.md)에 기록했다.
+
+### AI League V1 API with job-boundary hardening
+
+Batch 5는 API 공개 전에 restart/failure/global lease/cancel 경계를 검증하고, 같은 실행에서 public
+HTTP와 기존 API parity를 확인한다.
+
+```bash
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.league.LeagueScheduleGeneratorTest \
+  --tests com.lolfm.league.LeagueSeasonAggregateTest \
+  --tests com.lolfm.league.LeagueStandingsTest \
+  --tests com.lolfm.league.LeagueV1ProductDecisionsTest \
+  --tests com.lolfm.league.LeagueAutomatedSeriesRunnerTest \
+  --tests com.lolfm.league.LeagueAutomatedSeriesRunnerProductionV9Test \
+  --tests com.lolfm.league.LeaguePlayerSeriesHandoffServiceTest \
+  --tests com.lolfm.league.LeagueRelationalPersistenceAndJobTest \
+  --tests com.lolfm.league.LeagueJobFailureClassifierTest \
+  --tests com.lolfm.controller.LeagueApiV1ControllerTest \
+  --tests com.lolfm.controller.LeagueApiV1ErrorBoundaryTest \
+  --tests com.lolfm.controller.LeagueApiV1TransportIntegrationTest \
+  --tests com.lolfm.controller.SeriesApiV1ControllerTest \
+  --tests com.lolfm.controller.PlayerDraftApiV1ControllerTest \
+  --tests com.lolfm.controller.RealMatchApiV1ControllerTest \
+  --tests com.lolfm.controller.RealMatchTransportCompressionV1IntegrationTest \
+  --console=plain --no-daemon
+```
+
+- file-backed H2 V1→V3와 unexpired prior-incarnation attempt 1/2 recovery, old fencing mutation 0
+- typed Spring/SQL/worker transient와 deterministic mismatch, message-based `TIMEOUT` 판정 0
+- 두 Season 20-way concurrent lease exact 4, duplicate 0, slot reuse와 stale token mutation 0
+- cancel transaction rollback, cancel/lease/dispatch race와 post-cancel new execution 0
+- Hybrid/Spectator strict create, 10팀/18 rounds/90 fixtures, Hybrid 72 Auto/18 Player
+- durable create/action command replay, payload conflict, stale lifecycle revision와 20-way command replay
+- HTTP 202 dispatch/polling, pause/resume/cancel, Player job 0, lease/fence 비노출
+- actual Player Production V9 completion/outbox/standings +1과 exact replay +0
+- controller-scoped 400/404/409/422/503/500, SQL/path/stack 비노출
+- actual HTTP CORS와 identity/gzip 90-fixture JSON byte equality
+- 기존 Series, Player Draft, Real Match API와 Real Match gzip parity
+
+Affected lane은 16 suites / 62 tests / failures 0 / errors 0 / skipped 0, Gradle wall 2분 25초로
+통과했다. Job completion을 token/fence/incarnation/attempt 조건부 update로 먼저 잠그도록 보강한 뒤
+직접 영향 5 suites / 20 tests도 1분 22초에 재통과했다. 실제 Production smoke는 Auto 1 fixture와
+Player 1 fixture 이내로 제한했다. 첫 full 뒤 수동 감사에서 explicit run과 runtime-expired lease
+recovery 사이 연결 누락을 찾아 background pump에 recovery-before-lease 순서를 추가했고,
+`LeagueBackgroundJobExecutorTest`를 포함한 3 suites / 12 tests가 47초에 통과했다.
+
+Final executable tree에서 실행한 complete backend regression 명령은 다음과 같다.
+
+```bash
+cd backend
+gradlew.bat test --console=plain --no-daemon
+```
+
+첫 complete regression 255 suites / 2,332 tests는 clean pass했지만 위 실제 운영 연결 누락을
+수정했으므로 재사용하지 않았다. 최종 executable tree의 두 번째 결과는 256 suites / 2,333 tests /
+failures 0 / errors 0 / skipped 2, aggregate JUnit XML 1,139.817초, Gradle wall 19분 13초,
+`BUILD SUCCESSFUL`이다. 이후 production Java/resource/Gradle/shared fixture를 바꾸지 않고 문서만
+갱신했다. 두 skip은 기존 explicit 대형 diagnostic이다.
+Frontend source 변경이 없어 frontend build/Playwright를 실행하지 않았고 90-fixture official run,
+balance/calibration/holdout와 대형 statistical diagnostic도 실행하지 않았다.
 
 ### Player-controlled Draft API V1
 

@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
-/** Transactional single-node reference adapter for Player fixture ownership. */
+/** Transactional single-node JDBC authority for Player fixture ownership. */
 @Component
 final class JdbcLeaguePlayerSeriesBindingAdapter
         implements LeaguePlayerSeriesBindingPort {

@@ -18,7 +18,7 @@ final class LeagueStartupRecovery implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        league.recover();
+        league.recoverStartup();
         league.purgeExpiredAttemptLogs();
     }
 }

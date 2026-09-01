@@ -1,6 +1,31 @@
 # Project Status
 
-이 문서는 2026-09-01 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-09-02 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+
+## AI vs AI League Simulation V1 API and job-boundary hardening
+
+상태는 `AI_VS_AI_LEAGUE_SIMULATION_V1_API_ACCEPTED`다.
+
+Batch 5는 additive `/api/v1/leagues`에서 Hybrid/Spectator Season 생성, 90-fixture/standings 조회,
+current-round Auto dispatch와 job polling, pause/resume/cancel, 관리 팀 Player Series start/resume,
+server-side completion reconciliation을 제공한다. Mutation은 strict versioned schema, durable
+`clientCommandId`와 lifecycle revision을 사용한다. 같은 command/payload replay는 mutation 0이고
+다른 payload는 409다. Winner, score, seed, side, profile, policy, receipt와 lease identity는 요청자가
+주입할 수 없다.
+
+API 공개 전에 이전 process incarnation의 unexpired lease startup recovery, typed failure 분류,
+DB singleton lock 기반 global hard max 4와 원자적 Season cancel을 보강했다. `run-current-round`는
+durable dispatch 뒤 202를 반환하며 bounded queue/default workers 2로 실행되고, startup은 gameplay를
+자동 실행하지 않는다. Player completion은 completed server Series proof와 V2 receipt/outbox/ledger만
+신뢰해 standings를 한 번만 반영한다.
+
+Affected API/Phase A/기존 API 호환성은 16 suites / 62 tests를 2분 25초에 통과했고, 원자 fencing
+완료 순서 보강 뒤 직접 영향 5 suites / 20 tests도 1분 22초에 재통과했다. 첫 full 뒤 수동 감사에서
+explicit run의 runtime-expired lease recovery 연결 누락을 찾아 수정했고 3 suites / 12 tests가
+47초에 통과했다. Final executable tree의 두 번째 complete regression은 256 suites / 2,333 tests /
+failures 0 / errors 0 / skipped 2, aggregate XML 1,139.817초, Gradle wall 19분 13초로 clean pass했다. Frozen product hash,
+Production V9/gameplay/Random과 기존 Series/Player Draft/Real Match API는 유지했고 frontend source는
+변경하지 않았다. 상세 내용은 [AI League V1 API](development/ai-vs-ai-league-simulation-v1-api.md)에 있다.
 
 ## AI vs AI League Simulation V1 persistence and jobs
 
@@ -242,7 +267,11 @@ Series는 `STANDALONE | LEAGUE_BOUND` origin을 구분한다. Standalone ID와 m
 
 Batch 2의 `LeagueFixtureCompletionReceiptV1` core를 변경하지 않고 `LeagueFixtureCompletionReceiptV2` envelope를 추가했다. V2는 explicit `leagueId`, nullable Player binding hash와 game별 Auto/Player Draft authority를 결속한다. Player completion은 frontend DTO가 아니라 completed server Series의 stored receipt를 Production V9으로 다시 검증한 evidence에서만 생성한다. Binding/Season/fixture/team/side/seed/history/Draft/assignment/policy/resource/output/replay/timeline/Random/score를 대조한 뒤에만 opaque completion을 발급한다. 첫 standings application만 +1이고 exact replay는 receipt bytes exact, Match Engine 0, standings +0이다.
 
-`LeaguePlayerSeriesBindingPort`와 kernel port는 후속 relational adapter가 교체할 경계를 제공하지만 현재 adapter와 Series repository는 process-local이다. DB/migration, job/worker/lease/heartbeat/retry, transactional outbox/consumer, restart recovery, League API/controller와 frontend는 아직 없다.
+Batch 3 당시 `LeaguePlayerSeriesBindingPort`와 kernel port는 후속 relational adapter가 교체할
+경계만 제공했고 adapter와 Series repository는 process-local이었다. 당시에는 DB/migration,
+job/worker/lease/heartbeat/retry, transactional outbox/consumer, restart recovery,
+League API/controller와 frontend가 없었다. 이 문단은 historical Batch 3 범위이며 current 상태는
+문서 상단의 Batch 5를 따른다.
 
 Player/Auto actual Production V9, diagnostics parity, tamper/cross-boundary, cancel/recovery, Season revision 진행, 두 fresh JVM canonical byte equality와 affected regression이 clean pass했다. Final executable tree의 complete backend regression은 첫 실행에서 249 suites / 2,315 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,901.498초, Gradle wall 16분 53초로 통과했다. Product decision hash `81a4755760fb513c5803d55dd4855c03fda487114bb7c89b431c959a00a0fb14`와 current Production V9 tuning/profile은 유지했다. 상세 내용은 [AI League V1 Player Series Handoff](development/ai-vs-ai-league-simulation-v1-player-series-handoff.md)에 있다. 다음 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS`다.
 
@@ -578,6 +607,8 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 
 ## Implemented
 
+- strict additive League HTTP commands/views, durable idempotency, 202 background execution,
+  Player reconciliation과 restart/typed-failure/global-lease/cancel hardening을 제공하는 AI League V1 Batch 5
 - local single-node H2/Flyway migration, durable League lifecycle/job/lease/checkpoint,
   V2 receipt/outbox/application ledger와 restart recovery를 제공하는 AI League V1 Batch 4
 - backend-valid no-decisive cancel evidence를 허용하고 committed 관측 뒤 replay-only identity를 유지하는 Series frontend 최종 계약
@@ -632,8 +663,9 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 
 ## Partial / Disabled
 
-- AI League V1 Batch 1~4의 domain, Auto/Player runner/handoff, local single-node DB durability,
-  bounded worker/job, outbox/restart recovery는 구현됐다. League API/frontend는 아직 없다.
+- AI League V1 Batch 1~5의 domain, Auto/Player runner/handoff, local single-node DB durability,
+  bounded worker/job, outbox/restart recovery와 League API는 구현됐다. Frontend, auth/ownership,
+  external broker와 multi-node worker/DB consensus는 아직 없다.
 - Real LCK Draft→Match flow는 Frontend V1-B의 기본 LIVE 공급자와 연결됐다. Reference는 명시적 회귀 모드로만 남고 자동 fallback하지 않는다.
 - Full response의 decoded JSON은 현재도 20–34MB지만 gzip wire body는 공식 외부 HTTP에서 약 1.88–2.79MB로 줄었다. JSON projection/streaming, parse·validation·heap을 분리하는 worker, 정확한 progress는 별도 후속 범위다.
 - Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
@@ -654,8 +686,8 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 2. ACTIVE session response의 full legal pool/advisory 재계산을 줄이는 `PLAYER_DRAFT_SESSION_PROJECTION_PERFORMANCE_HARDENING_V1`을 우선 검토하고, 이후 `PLAYER_DRAFT_AI_TURN_PERFORMANCE_HARDENING_V1`을 별도 진행한다.
 3. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
 4. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
-5. AI League V1 Batch 1~4는 완료됐다. 다음 `AI_VS_AI_LEAGUE_SIMULATION_V1_API`에서 additive
-   League/Season/Fixture command/view 계약을 구현한다.
+5. AI League V1 Batch 1~5는 완료됐다. 다음 `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND`에서
+   dashboard, standings, Auto progress와 frozen Player Series handoff/reconciliation UI를 구현한다.
 6. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 7. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 8. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
@@ -669,20 +701,28 @@ Final command:
 gradlew.bat test --console=plain --no-daemon
 ```
 
-AI League V1 Batch 3 Player Series handoff final executable tree의 current complete backend regression 결과는 다음과 같다.
+AI League V1 Batch 5 API and job-boundary hardening final executable tree의 current complete backend
+regression 결과는 다음과 같다.
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 249 |
-| Tests | 2,315 |
+| JUnit suites | 256 |
+| Tests | 2,333 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 2 |
-| Aggregate JUnit XML time | 1,901.498 seconds |
-| Gradle wall duration | 16m 53s |
+| Aggregate JUnit XML time | 1,139.817 seconds |
+| Gradle wall duration | 19m 13s |
 | Build | `BUILD SUCCESSFUL` |
 
-Affected focused lane은 Batch 1 domain/standings, Batch 2 Auto runner, Batch 3 Player handoff, Series lifecycle/repository/API/replay, Player Draft engine/boundary/session, Match Engine V1/Production V9와 Real Match API를 포함했다. Player/Auto fresh-JVM canonical equality도 별도 통과했다. 이 full은 최종 production Java tree에서 첫 실행으로 통과했고 이후에는 문서만 갱신했으므로 반복하지 않았다. 두 skip은 기존 explicit diagnostic이다.
+Affected focused lane은 Phase A 네 결함, strict League API/HTTP/gzip, Batch 1 domain/standings,
+Auto Production V9 1 fixture, Player Production V9 1 fixture, Series/Player Draft/Real Match API와
+transport parity를 포함해 16 suites / 62 tests를 2분 25초에 통과했다. 원자 fencing completion
+직접 영향 5 suites / 20 tests도 1분 22초에 재통과했다. 첫 clean full 뒤 발견한 runtime recovery
+연결 누락은 3 suites / 12 tests로 확인했고, production 변경 때문에 두 번째 full을 실행했다.
+이 두 번째 full 이후에는 문서만 갱신했으므로 반복하지 않았다. 두 skip은 기존
+explicit 대형 diagnostic이다. Frontend build/Playwright, 90-fixture official run과 대형
+balance/calibration/holdout diagnostic은 실행하지 않았다.
 
 아래 수치는 각 historical milestone 당시의 snapshot이다.
 
@@ -753,4 +793,4 @@ Series final frontend contract는 `npm run series:verify`, `npm run player-draft
 
 ## Last Updated
 
-2026-09-01 (Asia/Seoul)
+2026-09-02 (Asia/Seoul)

@@ -63,6 +63,10 @@ public final class LeagueProductionSnapshotProvider
         return provenance.resourceProvenance().resourceProvenanceHash();
     }
 
+    public Set<String> currentTeamCodes() {
+        return Set.copyOf(teams.teamCodes());
+    }
+
     private static String teamSnapshotIdentity(String teamCode, Team team) {
         StringBuilder canonical = new StringBuilder(
                 "teamSnapshotSchema=AI_LEAGUE_TEAM_ROSTER_PLAYER_SNAPSHOT_V1\n")

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zaxxer.hikari.HikariConfig;
@@ -14,14 +16,18 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Set;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 class LeagueRelationalPersistenceAndJobTest {
@@ -34,7 +40,7 @@ class LeagueRelationalPersistenceAndJobTest {
             var first = Flyway.configure().dataSource(dataSource).target("1").load().migrate();
             assertThat(first.migrationsExecuted).isOne();
             var upgraded = Flyway.configure().dataSource(dataSource).load().migrate();
-            assertThat(upgraded.migrationsExecuted).isOne();
+            assertThat(upgraded.migrationsExecuted).isEqualTo(2);
             var repeated = Flyway.configure().dataSource(dataSource).load().migrate();
             assertThat(repeated.migrationsExecuted).isZero();
 
@@ -112,7 +118,7 @@ class LeagueRelationalPersistenceAndJobTest {
             assertThat(bundle.jdbc().queryForObject("""
                     SELECT schema_token FROM league_schema_version
                     WHERE schema_name = 'AI_LEAGUE_V1'
-                    """, String.class)).isEqualTo("AI_LEAGUE_PERSISTENCE_AND_JOBS_V1");
+                    """, String.class)).isEqualTo("AI_LEAGUE_API_AND_JOB_BOUNDARY_V1");
 
             bundle.jdbc().update("""
                     UPDATE league_player_binding SET binding_canonical =
@@ -218,6 +224,273 @@ class LeagueRelationalPersistenceAndJobTest {
         }
     }
 
+    @Test
+    void startupRecoversUnexpiredLeasesFromPriorProcessAndFencesLateOutput() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-08-02T00:00:00Z"));
+        String url = fileUrl("startup-incarnation");
+        LeagueSimulationApplicationPort.Lease attemptOne;
+        LeagueSimulationApplicationPort.Lease attemptTwo;
+        String seasonId;
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            StoreBundle bundle = store(dataSource, clock);
+            LeagueAutomatedSeriesRunner runner = mock(LeagueAutomatedSeriesRunner.class);
+            LeagueJobCoordinator jobs = coordinator(bundle, runner, clock, "process_old00001");
+            LeagueSeasonAggregate spectator = readySeason(bundle, "startup", 2);
+            seasonId = spectator.seasonId();
+            attemptOne = jobs.leaseNext("old-worker-one").orElseThrow();
+            String secondFixture = spectator.schedule().fixtures().get(1).fixtureId();
+            bundle.jdbc().update("""
+                    UPDATE league_job SET lifecycle_status = 'RETRY_PENDING',
+                      attempt_number = 1, fencing_number = 1
+                    WHERE season_id = ? AND fixture_id = ?
+                    """, seasonId, secondFixture);
+            attemptTwo = jobs.leaseNext("old-worker-two").orElseThrow();
+            assertThat(attemptOne.attemptNumber()).isOne();
+            assertThat(attemptTwo.attemptNumber()).isEqualTo(2);
+            assertThat(attemptOne.expiresAt()).isAfter(clock.instant().atOffset(ZoneOffset.UTC));
+        }
+
+        clock.advanceSeconds(60);
+        LeagueAutomatedSeriesRunner runner = mock(LeagueAutomatedSeriesRunner.class);
+        try (HikariDataSource reopened = dataSource(url)) {
+            assertThat(Flyway.configure().dataSource(reopened).load().migrate()
+                    .migrationsExecuted).isZero();
+            StoreBundle bundle = store(reopened, clock);
+            LeagueJobCoordinator restarted = coordinator(
+                    bundle, runner, clock, "process_new00001");
+            var recovery = restarted.recoverStartup();
+            assertThat(recovery.autoJobsRetried()).isOne();
+            assertThat(recovery.autoJobsBlocked()).isOne();
+            assertThat(restarted.heartbeat(attemptOne)).isFalse();
+            assertThat(restarted.heartbeat(attemptTwo)).isFalse();
+            assertThat(restarted.execute(attemptOne,
+                    com.lolfm.simulator.SimulationInstrumentation.disabled()).status())
+                    .isEqualTo(LeagueSimulationApplicationPort.Status.STALE_RESULT_REJECTED);
+            verifyNoInteractions(runner);
+            assertThat(bundle.jdbc().queryForObject(
+                    "SELECT COUNT(*) FROM league_completion_receipt", Integer.class)).isZero();
+            assertThat(bundle.jdbc().queryForObject(
+                    "SELECT COUNT(*) FROM league_outbox", Integer.class)).isZero();
+            assertThat(bundle.store().loadSeason(seasonId).standings()
+                    .appliedFixtureCount()).isZero();
+            assertThat(restarted.recover().autoJobsRetried()).isZero();
+        }
+    }
+
+    @Test
+    void typedFailuresIgnoreMessageTextAndHonorTwoAttemptLimit() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-08-03T00:00:00Z"));
+        try (HikariDataSource dataSource = dataSource(fileUrl("typed-failures"))) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            StoreBundle bundle = store(dataSource, clock);
+
+            LeagueAutomatedSeriesRunner transientRunner =
+                    mock(LeagueAutomatedSeriesRunner.class);
+            when(transientRunner.run(any(), any()))
+                    .thenThrow(new CannotAcquireLockException("no magic retry word"))
+                    .thenThrow(new CannotAcquireLockException("TIMEOUT is irrelevant"));
+            LeagueJobCoordinator transientJobs = coordinator(
+                    bundle, transientRunner, clock, "process_typed001");
+            readySeason(bundle, "typed-transient", 1);
+            var first = transientJobs.leaseNext("typed-worker-one").orElseThrow();
+            assertThat(transientJobs.execute(first,
+                    com.lolfm.simulator.SimulationInstrumentation.disabled()).status())
+                    .isEqualTo(LeagueSimulationApplicationPort.Status.RETRY_PENDING);
+            var second = transientJobs.leaseNext("typed-worker-two").orElseThrow();
+            assertThat(second.attemptNumber()).isEqualTo(2);
+            assertThat(transientJobs.execute(second,
+                    com.lolfm.simulator.SimulationInstrumentation.disabled()).status())
+                    .isEqualTo(LeagueSimulationApplicationPort.Status.BLOCKED);
+
+            LeagueAutomatedSeriesRunner deterministicRunner =
+                    mock(LeagueAutomatedSeriesRunner.class);
+            when(deterministicRunner.run(any(), any())).thenReturn(
+                    LeagueAutomatedSeriesRunResult.blocked(
+                            "DETERMINISTIC_PROOF_TIMEOUT_MISMATCH", 0));
+            LeagueJobCoordinator deterministicJobs = coordinator(
+                    bundle, deterministicRunner, clock, "process_typed002");
+            LeagueSeasonAggregate deterministic = readySeason(
+                    bundle, "typed-deterministic", 1);
+            var proof = deterministicJobs.leaseNext("proof-worker").orElseThrow();
+            var proofResult = deterministicJobs.execute(proof,
+                    com.lolfm.simulator.SimulationInstrumentation.disabled());
+            assertThat(proofResult.status())
+                    .isEqualTo(LeagueSimulationApplicationPort.Status.BLOCKED);
+            assertThat(proofResult.attemptNumber()).isOne();
+            assertThat(deterministicJobs.findJob(deterministic.seasonId(),
+                    proof.fixtureId()).orElseThrow().failureClass())
+                    .isEqualTo("DETERMINISTIC");
+        }
+    }
+
+    @Test
+    void concurrentLeaseRequestsUseOneGlobalDatabaseCapacityBoundary() {
+        MutableClock clock = new MutableClock(Instant.parse("2026-08-04T00:00:00Z"));
+        try (HikariDataSource dataSource = dataSource(fileUrl("global-capacity"))) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            StoreBundle bundle = store(dataSource, clock);
+            LeagueJobCoordinator jobs = coordinator(bundle,
+                    mock(LeagueAutomatedSeriesRunner.class), clock,
+                    "process_capacity01");
+            LeagueSeasonAggregate firstSeason = readySeason(bundle, "capacity-a", 2);
+            readySeason(bundle, "capacity-b", 18);
+            bundle.jdbc().update("""
+                    UPDATE league_job SET created_at = ? WHERE season_id = ?
+                    """, clock.instant().minusSeconds(1).atOffset(ZoneOffset.UTC),
+                    firstSeason.seasonId());
+
+            CountDownLatch start = new CountDownLatch(1);
+            var executor = Executors.newFixedThreadPool(20);
+            ArrayList<Future<java.util.Optional<LeagueSimulationApplicationPort.Lease>>>
+                    futures = new ArrayList<>();
+            try {
+                for (int index = 0; index < 20; index++) {
+                    int worker = index;
+                    futures.add(executor.submit(() -> {
+                        start.await();
+                        return jobs.leaseNext("capacity-worker-" + worker);
+                    }));
+                }
+                start.countDown();
+                List<LeagueSimulationApplicationPort.Lease> leases = new ArrayList<>();
+                for (var future : futures) {
+                    future.get(20, TimeUnit.SECONDS).ifPresent(leases::add);
+                }
+                assertThat(leases).hasSize(4);
+                assertThat(new HashSet<>(leases.stream()
+                        .map(LeagueSimulationApplicationPort.Lease::jobId).toList()))
+                        .hasSize(4);
+                assertThat(leases.stream().map(LeagueSimulationApplicationPort.Lease::seasonId)
+                        .distinct().count()).isEqualTo(2);
+                assertThat(bundle.jdbc().queryForObject("""
+                        SELECT COUNT(*) FROM league_job
+                        WHERE lifecycle_status IN ('LEASED', 'RUNNING')
+                        """, Integer.class)).isEqualTo(4);
+
+                clock.advanceSeconds(15 * 60);
+                assertThat(jobs.recover().autoJobsRetried()).isEqualTo(4);
+                assertThat(jobs.leaseNext("capacity-reuse")).isPresent();
+                assertThat(jobs.heartbeat(leases.getFirst())).isFalse();
+            } catch (Exception error) {
+                throw new AssertionError(error);
+            } finally {
+                executor.shutdownNow();
+            }
+        }
+    }
+
+    @Test
+    void seasonCancelIsAtomicAndRollbackLeavesNoPartialState() throws Exception {
+        MutableClock clock = new MutableClock(Instant.parse("2026-08-05T00:00:00Z"));
+        try (HikariDataSource dataSource = dataSource(fileUrl("cancel-atomic"))) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            StoreBundle bundle = store(dataSource, clock);
+            LeagueAutomatedSeriesRunner runner = mock(LeagueAutomatedSeriesRunner.class);
+            LeagueJobCoordinator jobs = coordinator(
+                    bundle, runner, clock, "process_cancel001");
+            LeagueSeasonAggregate rollback = readySeason(bundle, "cancel-rollback", 1);
+            LeagueSeasonApplicationService lifecycle =
+                    new LeagueSeasonApplicationService(bundle.store());
+            long rollbackRevision = lifecycle.view(rollback.seasonId())
+                    .lifecycleRevision();
+            assertThatThrownBy(() -> lifecycle.cancel(rollback.seasonId(),
+                    rollbackRevision, () -> {
+                        throw new IllegalStateException("INJECTED_CANCEL_FAILURE");
+                    })).hasMessage("INJECTED_CANCEL_FAILURE");
+            assertThat(lifecycle.view(rollback.seasonId()).status())
+                    .isEqualTo(LeaguePersistenceState.SeasonStatus.RUNNING);
+            assertThat(bundle.jdbc().queryForObject("""
+                    SELECT COUNT(*) FROM league_job
+                    WHERE season_id = ? AND lifecycle_status = 'QUEUED'
+                    """, Integer.class, rollback.seasonId())).isOne();
+            lifecycle.cancel(rollback.seasonId(),
+                    lifecycle.view(rollback.seasonId()).lifecycleRevision());
+
+            LeagueSeasonAggregate normal = readySeason(bundle, "cancel-normal", 3);
+            long revision = lifecycle.view(normal.seasonId()).lifecycleRevision();
+            CountDownLatch cancelTransitioned = new CountDownLatch(1);
+            CountDownLatch releaseCancel = new CountDownLatch(1);
+            var executor = Executors.newFixedThreadPool(3);
+            try {
+                Future<LeagueSeasonApplicationService.SeasonView> cancellation =
+                        executor.submit(() -> lifecycle.cancel(normal.seasonId(), revision,
+                                () -> {
+                                    cancelTransitioned.countDown();
+                                    try {
+                                        if (!releaseCancel.await(10, TimeUnit.SECONDS)) {
+                                            throw new IllegalStateException(
+                                                    "CANCEL_TEST_RELEASE_TIMEOUT");
+                                        }
+                                    } catch (InterruptedException interrupted) {
+                                        Thread.currentThread().interrupt();
+                                        throw new IllegalStateException(interrupted);
+                                    }
+                                }));
+                assertThat(cancelTransitioned.await(10, TimeUnit.SECONDS)).isTrue();
+                Future<java.util.Optional<LeagueSimulationApplicationPort.Lease>> lease =
+                        executor.submit(() -> jobs.leaseNext("cancel-race-worker"));
+                Future<?> dispatch = executor.submit(() -> jobs.dispatchFullAutoFixture(
+                        normal.seasonId(), normal.schedule().fixtures().get(3).fixtureId()));
+                releaseCancel.countDown();
+                assertThat(cancellation.get(10, TimeUnit.SECONDS).status())
+                        .isEqualTo(LeaguePersistenceState.SeasonStatus.CANCELLED);
+                assertThat(lease.get(10, TimeUnit.SECONDS)).isEmpty();
+                assertThatThrownBy(() -> dispatch.get(10, TimeUnit.SECONDS))
+                        .hasRootCauseMessage("LEAGUE_SEASON_NOT_DISPATCHABLE");
+            } finally {
+                releaseCancel.countDown();
+                executor.shutdownNow();
+            }
+            assertThat(bundle.jdbc().queryForObject("""
+                    SELECT COUNT(*) FROM league_job
+                    WHERE season_id = ? AND lifecycle_status <> 'CANCELLED'
+                    """, Integer.class, normal.seasonId())).isZero();
+            assertThat(bundle.jdbc().queryForObject("""
+                    SELECT COUNT(*) FROM league_fixture
+                    WHERE season_id = ? AND lifecycle_status <> 'CANCELLED'
+                    """, Integer.class, normal.seasonId())).isZero();
+            assertThat(jobs.leaseNext("after-cancel")).isEmpty();
+            assertThatThrownBy(() -> jobs.dispatchFullAutoFixture(normal.seasonId(),
+                    normal.schedule().fixtures().get(3).fixtureId()))
+                    .hasMessage("LEAGUE_SEASON_NOT_DISPATCHABLE");
+            assertThat(jobs.findJob(normal.seasonId(),
+                    normal.schedule().fixtures().getFirst().fixtureId()).orElseThrow()
+                    .status()).isEqualTo("CANCELLED");
+        }
+    }
+
+    private LeagueSeasonAggregate readySeason(
+            StoreBundle bundle,
+            String key,
+            int dispatchedFixtures
+    ) {
+        LeagueSeasonAggregate spectator = season(
+                key, LeagueSeasonMode.SPECTATOR_FULL_AUTO);
+        bundle.store().freeze(spectator);
+        LeagueSeasonApplicationService lifecycle =
+                new LeagueSeasonApplicationService(bundle.store());
+        lifecycle.ready(spectator.seasonId(), 0);
+        LeagueJobCoordinator jobs = coordinator(bundle,
+                mock(LeagueAutomatedSeriesRunner.class), bundle.clock(),
+                "process_helper_" + LeagueIdentity.sha256(key + '\n').substring(0, 12));
+        spectator.schedule().fixtures().stream().limit(dispatchedFixtures)
+                .forEach(fixture -> jobs.dispatchFullAutoFixture(
+                        spectator.seasonId(), fixture.fixtureId()));
+        return spectator;
+    }
+
+    private LeagueJobCoordinator coordinator(
+            StoreBundle bundle,
+            LeagueAutomatedSeriesRunner runner,
+            Clock clock,
+            String incarnation
+    ) {
+        return new LeagueJobCoordinator(bundle.store(), runner, clock,
+                new LeagueSeasonApplicationService(bundle.store()),
+                new LeagueProcessIncarnation(incarnation));
+    }
+
     private LeagueSeasonAggregate season(String key, LeagueSeasonMode mode) {
         String leagueId = LeagueIdentity.leagueId("persistence-test-league-" + key);
         String seasonId = LeagueIdentity.seasonId(leagueId,
@@ -235,7 +508,7 @@ class LeagueRelationalPersistenceAndJobTest {
         LeagueJsonCodec json = new LeagueJsonCodec(
                 new ObjectMapper().findAndRegisterModules());
         return new StoreBundle(new LeagueRelationalStore(jdbc,
-                new DataSourceTransactionManager(dataSource), json, clock), jdbc);
+                new DataSourceTransactionManager(dataSource), json, clock), jdbc, clock);
     }
 
     private String fileUrl(String name) {
@@ -252,7 +525,11 @@ class LeagueRelationalPersistenceAndJobTest {
         return new HikariDataSource(configuration);
     }
 
-    private record StoreBundle(LeagueRelationalStore store, JdbcTemplate jdbc) {}
+    private record StoreBundle(
+            LeagueRelationalStore store,
+            JdbcTemplate jdbc,
+            Clock clock
+    ) {}
 
     private static final class MutableClock extends Clock {
         private Instant instant;

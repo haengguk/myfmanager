@@ -2,7 +2,7 @@ package com.lolfm.league;
 
 import java.util.Optional;
 
-/** Durable-ready authority port; the current adapter is intentionally process-local. */
+/** Durable authority port for fixture-to-Player-Series ownership and reconciliation. */
 public interface LeaguePlayerSeriesBindingPort {
     Registration createOrLoad(
             String commandId,

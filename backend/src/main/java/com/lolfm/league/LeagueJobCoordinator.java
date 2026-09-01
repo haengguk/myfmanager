@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /** Bounded local worker coordinator with database leases, fencing and deterministic retry. */
@@ -23,6 +24,7 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
     private final LeagueAutomatedSeriesRunner runner;
     private final LeagueV1OperationalConfiguration limits;
     private final LeagueSeasonApplicationService seasons;
+    private final LeagueProcessIncarnation processIncarnation;
     private final Clock clock;
 
     public LeagueJobCoordinator(
@@ -31,10 +33,23 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
             Clock clock,
             LeagueSeasonApplicationService seasons
     ) {
+        this(store, runner, clock, seasons, new LeagueProcessIncarnation());
+    }
+
+    @Autowired
+    public LeagueJobCoordinator(
+            LeagueRelationalStore store,
+            LeagueAutomatedSeriesRunner runner,
+            Clock clock,
+            LeagueSeasonApplicationService seasons,
+            LeagueProcessIncarnation processIncarnation
+    ) {
         this.store = Objects.requireNonNull(store, "store");
         this.runner = Objects.requireNonNull(runner, "runner");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.seasons = Objects.requireNonNull(seasons, "seasons");
+        this.processIncarnation = Objects.requireNonNull(
+                processIncarnation, "processIncarnation");
         this.limits = LeagueV1OperationalConfiguration.defaults();
     }
 
@@ -52,8 +67,9 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                         + "seasonId=" + seasonId + '\n'
                         + "fixtureId=" + fixtureId + '\n');
         return store.transactions().execute(ignored -> {
-            lockFixture(seasonId, fixtureId);
+            seasons.lockSeason(seasonId);
             seasons.requireDispatchable(seasonId);
+            lockFixture(seasonId, fixtureId);
             Optional<JobView> existing = findJob(seasonId, fixtureId);
             if (existing.isPresent()) {
                 if (!existing.get().jobId().equals(jobId)
@@ -106,6 +122,8 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
     public Optional<Lease> leaseNext(String ownerId) {
         requireOwner(ownerId);
         return store.transactions().execute(ignored -> {
+            store.lockGlobalFixtureLeases();
+            store.registerProcessIncarnation(processIncarnation.value());
             int active = store.jdbc().queryForObject("""
                     SELECT COUNT(*) FROM league_job
                     WHERE lifecycle_status IN ('LEASED', 'RUNNING')
@@ -135,16 +153,17 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                             + "jobId=" + job.jobId() + '\n'
                             + "fencingNumber=" + fence + '\n'
                             + "ownerId=" + ownerId + '\n'
+                            + "processIncarnationId=" + processIncarnation.value() + '\n'
                             + "leasedAt=" + leasedAt + '\n');
             int updated = store.jdbc().update("""
                     UPDATE league_job SET lifecycle_status = 'LEASED', revision = revision + 1,
                       attempt_number = ?, fencing_number = ?, lease_token = ?, lease_owner = ?,
-                      lease_expires_at = ?, last_heartbeat_at = ?, failure_class = NULL,
-                      failure_code = NULL, updated_at = ?
+                      lease_expires_at = ?, last_heartbeat_at = ?, lease_incarnation_id = ?,
+                      failure_class = NULL, failure_code = NULL, updated_at = ?
                     WHERE job_id = ? AND revision = ?
                       AND lifecycle_status IN ('QUEUED', 'RETRY_PENDING')
-                    """, attempt, fence, token, ownerId, expires, leasedAt, leasedAt,
-                    job.jobId(), job.revision());
+                    """, attempt, fence, token, ownerId, expires, leasedAt,
+                    processIncarnation.value(), leasedAt, job.jobId(), job.revision());
             if (updated != 1) return Optional.empty();
             store.jdbc().update("""
                     INSERT INTO league_job_attempt(
@@ -157,7 +176,8 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                       revision = revision + 1 WHERE season_id = ? AND fixture_id = ?
                     """, job.seasonId(), job.fixtureId());
             return Optional.of(new Lease(job.jobId(), job.seasonId(), job.fixtureId(),
-                    token, fence, attempt, job.frozenInputHash(), expires));
+                    token, fence, attempt, job.frozenInputHash(), expires,
+                    processIncarnation.value()));
         });
     }
 
@@ -169,10 +189,12 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                 UPDATE league_job SET last_heartbeat_at = ?, lease_expires_at = ?,
                   updated_at = ?, revision = revision + 1
                 WHERE job_id = ? AND lease_token = ? AND fencing_number = ?
+                  AND lease_incarnation_id = ?
                   AND lifecycle_status IN ('LEASED', 'RUNNING')
                   AND lease_expires_at > ?
                 """, heartbeat, heartbeat.plus(limits.fixtureLease()), heartbeat,
-                lease.jobId(), lease.leaseToken(), lease.fencingNumber(), heartbeat) == 1;
+                lease.jobId(), lease.leaseToken(), lease.fencingNumber(),
+                lease.processIncarnationId(), heartbeat) == 1;
     }
 
     @Override
@@ -201,16 +223,18 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
             result = runner.run(new LeagueAutomatedSeriesRunnerInput(
                     season, fixture, season.productDecisionHash()), instrumentation);
         } catch (RuntimeException error) {
-            result = LeagueAutomatedSeriesRunResult.blocked(
-                    reason(error, "AUTOMATED_SERIES_EXECUTION_FAILED"), 0);
+            LeagueJobFailureClassifier.Failure failure =
+                    LeagueJobFailureClassifier.classify(error);
+            return finishFailure(lease, failure.failureClass(), failure.failureCode());
         } finally {
             heartbeat.shutdownNow();
         }
         if (result.status() == LeagueAutomatedSeriesRunResult.Status.COMPLETED) {
             return finishCompleted(lease, result);
         }
-        return finishFailure(lease, classify(result.failureReason()),
-                result.failureReason());
+        LeagueJobFailureClassifier.Failure failure =
+                LeagueJobFailureClassifier.deterministicResult(result.failureReason());
+        return finishFailure(lease, failure.failureClass(), failure.failureCode());
     }
 
     @Override
@@ -252,16 +276,35 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
 
     @Override
     public RecoveryResult recover() {
+        return recoverLeases(false);
+    }
+
+    @Override
+    public RecoveryResult recoverStartup() {
+        return recoverLeases(true);
+    }
+
+    private RecoveryResult recoverLeases(boolean startup) {
         OffsetDateTime recoveryTime = now();
         int[] auto = store.transactions().execute(ignored -> {
+            if (startup) {
+                store.registerProcessIncarnation(processIncarnation.value());
+            }
+            String predicate = startup
+                    ? "(lease_incarnation_id IS NULL OR lease_incarnation_id <> ? "
+                            + "OR lease_expires_at <= ?)"
+                    : "lease_expires_at <= ?";
+            Object[] parameters = startup
+                    ? new Object[]{processIncarnation.value(), recoveryTime}
+                    : new Object[]{recoveryTime};
             List<JobView> expired = store.jdbc().query("""
                     SELECT job_id, season_id, fixture_id, lifecycle_status, revision,
                            attempt_number, fencing_number, lease_owner, lease_expires_at,
                            frozen_input_hash, failure_class, failure_code
                     FROM league_job
                     WHERE lifecycle_status IN ('LEASED', 'RUNNING')
-                      AND lease_expires_at <= ? FOR UPDATE
-                    """, (result, row) -> jobView(result), recoveryTime);
+                      AND %s FOR UPDATE
+                    """.formatted(predicate), (result, row) -> jobView(result), parameters);
             int retried = 0;
             int blocked = 0;
             for (JobView job : expired) {
@@ -270,7 +313,8 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                 store.jdbc().update("""
                         UPDATE league_job SET lifecycle_status = ?, revision = revision + 1,
                           lease_token = NULL, lease_owner = NULL, lease_expires_at = NULL,
-                          last_heartbeat_at = NULL, failure_class = 'TRANSIENT',
+                          last_heartbeat_at = NULL, lease_incarnation_id = NULL,
+                          failure_class = 'TRANSIENT',
                           failure_code = 'PROCESS_LOST_OR_LEASE_EXPIRED', updated_at = ?
                         WHERE job_id = ? AND revision = ?
                         """, status, recoveryTime, job.jobId(), job.revision());
@@ -332,10 +376,11 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                     UPDATE league_job SET lifecycle_status = 'RUNNING',
                       revision = revision + 1, updated_at = ?
                     WHERE job_id = ? AND lease_token = ? AND fencing_number = ?
-                      AND attempt_number = ? AND lifecycle_status = 'LEASED'
+                      AND attempt_number = ? AND lease_incarnation_id = ?
+                      AND lifecycle_status = 'LEASED'
                       AND lease_expires_at > ?
                     """, now, lease.jobId(), lease.leaseToken(), lease.fencingNumber(),
-                    lease.attemptNumber(), now);
+                    lease.attemptNumber(), lease.processIncarnationId(), now);
             if (updated == 1) {
                 store.jdbc().update("""
                         UPDATE league_job_attempt SET lifecycle_status = 'RUNNING'
@@ -355,16 +400,21 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
             LeagueAutomatedSeriesRunResult result
     ) {
         return store.transactions().execute(ignored -> {
-            if (!ownsLiveLease(lease)) return stale(lease);
-            store.storeVerifiedCompletion(result.unifiedReceipt(),
-                    result.verifiedCompletion());
             OffsetDateTime now = now();
-            store.jdbc().update("""
+            int updated = store.jdbc().update("""
                     UPDATE league_job SET lifecycle_status = 'COMPLETED',
                       revision = revision + 1, lease_token = NULL, lease_owner = NULL,
-                      lease_expires_at = NULL, last_heartbeat_at = NULL, updated_at = ?
+                      lease_expires_at = NULL, last_heartbeat_at = NULL,
+                      lease_incarnation_id = NULL, updated_at = ?
                     WHERE job_id = ? AND lease_token = ? AND fencing_number = ?
-                    """, now, lease.jobId(), lease.leaseToken(), lease.fencingNumber());
+                      AND lease_incarnation_id = ?
+                      AND attempt_number = ? AND lifecycle_status = 'RUNNING'
+                      AND lease_expires_at > ?
+                    """, now, lease.jobId(), lease.leaseToken(), lease.fencingNumber(),
+                    lease.processIncarnationId(), lease.attemptNumber(), now);
+            if (updated != 1) return stale(lease);
+            store.storeVerifiedCompletion(result.unifiedReceipt(),
+                    result.verifiedCompletion());
             finishAttempt(lease.seasonId(), lease.fixtureId(), lease.attemptNumber(),
                     "COMPLETED", null, null);
             return new ExecutionResult(lease.jobId(), Status.COMPLETED,
@@ -379,19 +429,24 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
             String failureCode
     ) {
         return store.transactions().execute(ignored -> {
-            if (!ownsLiveLease(lease)) return stale(lease);
             boolean retry = failureClass == LeaguePersistenceState.FailureClass.TRANSIENT
                     && lease.attemptNumber() < limits.transientTotalAttempts();
             String next = retry ? "RETRY_PENDING" : "BLOCKED";
             OffsetDateTime now = now();
-            store.jdbc().update("""
+            int updated = store.jdbc().update("""
                     UPDATE league_job SET lifecycle_status = ?, revision = revision + 1,
                       lease_token = NULL, lease_owner = NULL, lease_expires_at = NULL,
-                      last_heartbeat_at = NULL, failure_class = ?, failure_code = ?,
+                      last_heartbeat_at = NULL, lease_incarnation_id = NULL,
+                      failure_class = ?, failure_code = ?,
                       updated_at = ?
                     WHERE job_id = ? AND lease_token = ? AND fencing_number = ?
+                      AND lease_incarnation_id = ?
+                      AND attempt_number = ? AND lifecycle_status = 'RUNNING'
+                      AND lease_expires_at > ?
                     """, next, failureClass.name(), failureCode, now, lease.jobId(),
-                    lease.leaseToken(), lease.fencingNumber());
+                    lease.leaseToken(), lease.fencingNumber(),
+                    lease.processIncarnationId(), lease.attemptNumber(), now);
+            if (updated != 1) return stale(lease);
             finishAttempt(lease.seasonId(), lease.fixtureId(), lease.attemptNumber(),
                     next, failureClass.name(), failureCode);
             updateFixtureFailure(lease.seasonId(), lease.fixtureId(), next, failureCode);
@@ -399,16 +454,6 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                     retry ? Status.RETRY_PENDING : Status.BLOCKED,
                     lease.attemptNumber(), null, failureCode);
         });
-    }
-
-    private boolean ownsLiveLease(Lease lease) {
-        Integer count = store.jdbc().queryForObject("""
-                SELECT COUNT(*) FROM league_job WHERE job_id = ? AND lease_token = ?
-                  AND fencing_number = ? AND attempt_number = ?
-                  AND lifecycle_status = 'RUNNING' AND lease_expires_at > ?
-                """, Integer.class, lease.jobId(), lease.leaseToken(),
-                lease.fencingNumber(), lease.attemptNumber(), now());
-        return count != null && count == 1;
     }
 
     private void finishAttempt(
@@ -468,15 +513,6 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                         + "productDecisionHash=" + season.productDecisionHash() + '\n');
     }
 
-    private static LeaguePersistenceState.FailureClass classify(String reason) {
-        if (reason != null && (reason.startsWith("TRANSIENT_")
-                || reason.contains("TIMEOUT")
-                || reason.equals("AUTOMATED_SERIES_EXECUTION_FAILED"))) {
-            return LeaguePersistenceState.FailureClass.TRANSIENT;
-        }
-        return LeaguePersistenceState.FailureClass.DETERMINISTIC;
-    }
-
     private static JobView jobView(ResultSet result) throws SQLException {
         OffsetDateTime expiry = result.getObject(9, OffsetDateTime.class);
         return new JobView(result.getString(1), result.getString(2), result.getString(3),
@@ -490,11 +526,6 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                 || ownerId.indexOf('\n') >= 0) {
             throw new IllegalArgumentException("ownerId");
         }
-    }
-
-    private static String reason(RuntimeException error, String fallback) {
-        return error.getMessage() == null || error.getMessage().isBlank()
-                ? fallback : error.getMessage();
     }
 
     private OffsetDateTime now() {

@@ -1,21 +1,21 @@
 # AI vs AI League Simulation V1 Contract Sketch
 
-## Batch 4 durable implementation amendment
+## Batch 5 API and job-boundary hardening amendment
 
-Batch 4는 이 설계의 local single-node relational reference를 구현했다. Frozen domain과 canonical
-seed/receipt hash는 변경하지 않고 H2/Flyway, durable lifecycle, League-bound Series checkpoint,
-FULL_AUTO lease/fencing/retry worker와 receipt/outbox/application ledger를 추가했다. Public League
-HTTP API/frontend는 계속 후속 batch 범위다. 구현·복구·retention 상세는
-[AI League V1 Persistence and Jobs](../development/ai-vs-ai-league-simulation-v1-persistence-and-jobs.md)를
-따른다.
+Batch 5는 Batch 4의 local single-node relational reference 위에 additive
+`/api/v1/leagues` HTTP 경계를 구현했다. API 공개 전에 process-incarnation 기반 startup lease
+회수, typed transient/deterministic failure, DB 직렬화된 global hard max 4와 원자적 Season cancel을
+먼저 보강했다. Frozen domain, canonical seed/receipt, Draft/Match gameplay와 product decision hash는
+변경하지 않았다. 구현·복구·retention은 [AI League V1 Persistence and Jobs](../development/ai-vs-ai-league-simulation-v1-persistence-and-jobs.md),
+정확한 HTTP 계약은 [AI League V1 API](../development/ai-vs-ai-league-simulation-v1-api.md)를 따른다.
 
-상태: `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS_IMPLEMENTED_READY_FOR_API`
+상태: `AI_VS_AI_LEAGUE_SIMULATION_V1_API_ACCEPTED`
 
 이 문서는 AI 팀끼리만 경기하는 기능을 넘어, 한 관리 팀의 경기는 플레이어가 직접 Draft하고 나머지 경기는 AI가 자동 진행하는 Hybrid Season V1의 구현 계약을 고정한다. 제품 결정의 canonical 목록은 [AI vs AI League Simulation V1 Product Decisions](ai-vs-ai-league-simulation-v1-product-decisions.md)에 있으며, 이 문서는 그 결정을 aggregate, 상태 기계, persistence, API와 frontend handoff로 구체화한다.
 
 Batch 1의 Season/schedule/standings domain, Batch 2의 synchronous FULL_AUTO runner, Batch 3의
-Player Series handoff/canonical receipt proof와 Batch 4의 local single-node relational
-persistence/job/restart 경계까지 구현됐다. League API와 frontend는 아직 구현되지 않았다.
+Player Series handoff/canonical receipt proof, Batch 4의 local single-node relational
+persistence/job/restart와 Batch 5의 public League API까지 구현됐다. Frontend는 아직 구현되지 않았다.
 
 ## 현재 코드 감사와 경계 판정
 
@@ -361,11 +361,16 @@ League V1은 다음을 relational persistence에 저장한다.
 - unified fixture completion receipt, outbox와 standings application ledger
 - authoritative standings projection
 
-구현은 repository port/adapter로 domain과 DB 선택을 분리한다. Batch 4 reference stack은 Spring
-JDBC, Flyway V1→V2 migration과 file-backed H2이며, test는 독립 in-memory/temporary-file H2를
+구현은 repository port/adapter로 domain과 DB 선택을 분리한다. Current reference stack은 Spring
+JDBC, Flyway V1→V2→V3 migration과 file-backed H2이며, test는 독립 in-memory/temporary-file H2를
 사용한다. 이는 local single-node durable runtime이지 multi-node production DB adapter가 아니다.
 
-Process restart 뒤에는 lease를 만료/재조정하고, 같은 frozen identity와 checkpoint에서 job을 재개하거나 retry한다. Player Series는 durable binding/progress로 재개한다. 브라우저 pointer는 편의 정보일 뿐 복구 authority가 아니다.
+각 process는 gameplay Random과 무관한 incarnation ID를 갖는다. Runtime recovery는 만료된 lease만
+회수하지만 startup recovery는 이전 incarnation의 `LEASED/RUNNING` job을 만료 전에도 process
+loss로 회수한다. Attempt 1은 같은 frozen identity로 `RETRY_PENDING`, attempt 2는 `BLOCKED`이며
+이전 token/fence/incarnation의 late output은 원자 fencing update에서 거부된다. Startup은 gameplay를
+자동 실행하지 않는다. Player Series는 durable binding/progress로 재개하며 브라우저 pointer는 편의
+정보일 뿐 복구 authority가 아니다.
 
 ## 운영 한계와 retention
 
@@ -388,7 +393,31 @@ Cancel은 새 dispatch를 즉시 멈추지만 이미 transactional commit에 진
 
 ## Additive API contract
 
-정확한 DTO schema는 API batch에서 동결한다. 현재 Series/Player Draft/Real Match endpoint의 의미를 변경하지 않고 `/api/v1/leagues` 아래 additive boundary를 둔다.
+현재 Series/Player Draft/Real Match endpoint의 의미를 변경하지 않고 `/api/v1/leagues` 아래에
+다음 exact endpoint를 둔다.
+
+```text
+POST   /api/v1/leagues
+GET    /api/v1/leagues/{leagueId}/seasons/{seasonId}
+GET    /api/v1/leagues/{leagueId}/seasons/{seasonId}/standings
+GET    /api/v1/leagues/{leagueId}/seasons/{seasonId}/fixtures
+GET    /api/v1/leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}
+POST   /api/v1/leagues/{leagueId}/seasons/{seasonId}/commands/run-current-round
+POST   /api/v1/leagues/{leagueId}/seasons/{seasonId}/commands/pause
+POST   /api/v1/leagues/{leagueId}/seasons/{seasonId}/commands/resume
+DELETE /api/v1/leagues/{leagueId}/seasons/{seasonId}
+GET    /api/v1/leagues/{leagueId}/seasons/{seasonId}/jobs/{jobId}
+POST   /api/v1/leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}/player-series
+GET    /api/v1/leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}/player-series
+POST   /api/v1/leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}/player-series/completion
+GET    /api/v1/leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}/completion-status
+```
+
+Create는 `AI_LEAGUE_CREATE_REQUEST_V1`, lifecycle/run/Player start/completion은 각각 versioned
+command schema를 사용한다. Mutation은 durable `clientCommandId`와 필요한 lifecycle revision을
+받고, 같은 command/payload replay는 mutation 0, 다른 payload는 409다. Winner, score, seed, side,
+profile, policy, receipt, worker token은 요청 필드가 아니다. Background run은 durable dispatch 뒤
+202를 반환하고 bounded queue의 default 2 workers가 실행한다. GET은 상태를 바꾸지 않는다.
 
 ### Season/fixture view
 
@@ -421,11 +450,12 @@ V1 `allowedCommands` closed set은 다음 의미를 포함한다.
 
 - `START_PLAYER_SERIES`
 - `RESUME_PLAYER_SERIES`
+- `RECONCILE_PLAYER_SERIES_COMPLETION`
 - `RUN_CURRENT_ROUND_AUTO_FIXTURES`
 - `VIEW_STANDINGS`
 - `VIEW_FIXTURE`
-- `REPLAY_GAME`
 - `PAUSE_SEASON`
+- `RESUME_SEASON`
 - `CANCEL_SEASON`
 
 Frontend가 winner, score, standings delta, seed, side 또는 completion receipt를 제출하는 endpoint는 만들지 않는다.
@@ -450,9 +480,9 @@ Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. rel
 
 ## Correctness matrix
 
-이 표는 구현 batch의 최소 focused verification 인계다. Batch 1~3 경계와 Batch 4의 migration,
-concurrency, lease/retry, outbox/exactly-once, restart 및 actual Production V9 smoke가
-focused/fresh-JVM/full regression을 완료했다. Public API/frontend 경계부터는 후속 batch다.
+이 표는 구현 batch의 최소 focused verification 인계다. Batch 1~4 경계와 Batch 5의 API,
+process restart, typed retry, concurrency/cancel, HTTP/gzip 및 actual Production V9 smoke가
+focused/full regression을 완료했다. Frontend 경계부터는 후속 batch다.
 
 | 영역 | 필수 시나리오 | Frozen expected result |
 |---|---|---|
@@ -473,7 +503,7 @@ focused/fresh-JVM/full regression을 완료했다. Public API/frontend 경계부
 | 2. `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER` | immutable runner input, Auto Draft, Production V9, HF, unified receipt | player handoff, durable jobs | Batch 1 | BO3 2:0/2:1, side/seed/HF, diagnostics/fresh-JVM exact, tamper/cross-boundary, actual V9 | 246 suites / 2,306 tests clean | 완료 |
 | 3. `AI_VS_AI_LEAGUE_SIMULATION_V1_PLAYER_SERIES_HANDOFF` | canonical binding와 durable-ready port, League-bound Series/Draft completion, unified V2 receipt | DB/outbox/restart recovery, League API/UI, public winner/receipt submit | Batches 1~2 | start/resume, frozen context, actual Player BO3, Auto/Player V2 parity, tamper/duplicate, fresh JVM | 249 suites / 2,315 tests clean | 완료 |
 | 4. `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS` | relational adapters, lease/heartbeat/retry/outbox/recovery/retention | DB tuning, multi-region | Batches 1~3 | crash boundaries, stale lease, max attempts, cancellation, exactly-once standings | 251 suites / 2,319 tests clean | 완료 |
-| 5. `AI_VS_AI_LEAGUE_SIMULATION_V1_API` | additive League/Season/Fixture commands/views | existing API rename/removal | Batch 4 | exact schema, auth/ownership 정책 경계, stale revision/idempotency, no authority injection | 필요 | 미착수 |
+| 5. `AI_VS_AI_LEAGUE_SIMULATION_V1_API_WITH_JOB_BOUNDARY_HARDENING` | additive League/Season/Fixture commands/views, V3 command/incarnation/scheduler boundary | existing API rename/removal, auth/frontend | Batch 4 | strict schema, stale revision/idempotency, 202/polling, Phase A concurrency/restart/cancel, HTTP/gzip, actual Auto/Player V9 | 256 suites / 2,333 tests clean | 완료 |
 | 6. `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND` | dashboard, standings, batch progress, frozen player-Series handoff/reconciliation | local score authority, setup reselection | Batch 5 | route/reload/recovery, allowedCommands, accessibility, responsive LIVE journey | frontend build/contract 필요; backend production 미변경이면 backend full 불필요 | 미착수 |
 | 7. `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCTION_ACCEPTANCE` | end-to-end Hybrid/Spectator, restart, load/retention evidence | gameplay tuning | Batches 1~6 | correctness matrix 전체와 bounded operational acceptance | 최종 production tree에서 필요 | 미착수 |
 
@@ -481,8 +511,8 @@ focused/fresh-JVM/full regression을 완료했다. Public API/frontend 경계부
 
 ## V1 non-goals와 남은 제한
 
-- 현재 production에는 League domain/runner/Player handoff와 local single-node H2/Flyway durable
-  Season/Fixture/job/binding/checkpoint/receipt/outbox/ledger가 있다. League API와 UI는 없다.
+- 현재 production에는 League domain/runner/Player handoff, local single-node H2/Flyway durable
+  Season/Fixture/job/binding/checkpoint/receipt/outbox/ledger와 `/api/v1/leagues` API가 있다. UI는 없다.
 - League-bound Series와 JDBC binding은 restart recovery를 제공하지만 standalone Series는 기존
   process-local repository/TTL 의미를 유지한다.
 - auth/ownership, external broker, multi-node DB/deployment topology는 후속 범위다.
@@ -490,4 +520,4 @@ focused/fresh-JVM/full regression을 완료했다. Public API/frontend 경계부
 - optional full replay cache는 standings authority가 아니며 resource drift 뒤 재생을 보장하지 않는다.
 - 운영 한계는 동결됐지만 실제 load evidence는 Production acceptance 전까지 없다.
 
-Batch 1 상세 결과는 [AI League V1 Domain, Schedule and Standings](../development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md), Batch 2는 [Automated Series Runner](../development/ai-vs-ai-league-simulation-v1-automated-series-runner.md), Batch 3은 [Player Series Handoff](../development/ai-vs-ai-league-simulation-v1-player-series-handoff.md), Batch 4는 [Persistence and Jobs](../development/ai-vs-ai-league-simulation-v1-persistence-and-jobs.md)에 있다. 다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_API`다.
+Batch 1 상세 결과는 [AI League V1 Domain, Schedule and Standings](../development/ai-vs-ai-league-simulation-v1-domain-schedule-and-standings.md), Batch 2는 [Automated Series Runner](../development/ai-vs-ai-league-simulation-v1-automated-series-runner.md), Batch 3은 [Player Series Handoff](../development/ai-vs-ai-league-simulation-v1-player-series-handoff.md), Batch 4는 [Persistence and Jobs](../development/ai-vs-ai-league-simulation-v1-persistence-and-jobs.md), Batch 5는 [League API](../development/ai-vs-ai-league-simulation-v1-api.md)에 있다. 다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND`다.

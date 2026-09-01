@@ -2,10 +2,13 @@
 
 ## Status
 
-`AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS_IMPLEMENTED_READY_FOR_API`
+Current: `AI_VS_AI_LEAGUE_SIMULATION_V1_API_ACCEPTED`
 
-이 문서는 Batch 4의 local single-node reference 구현을 설명한다. H2를 다른 관계형 DB의
-production-ready adapter로 간주하지 않으며, public League HTTP API와 frontend는 아직 없다.
+Historical Batch 4: `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS_IMPLEMENTED_READY_FOR_API`
+
+이 문서는 Batch 4의 local single-node reference 구현과 Batch 5 API 선행 hardening을 설명한다.
+H2를 다른 관계형 DB의 production-ready adapter로 간주하지 않는다. Public League HTTP API는
+구현됐고 frontend는 아직 없다.
 
 ## 감사 결과와 소유권
 
@@ -31,7 +34,8 @@ planner cache, interactive computation context, full Match timeline/event/snapsh
 ## Reference stack과 migration
 
 - Spring JDBC transaction/JdbcTemplate
-- Flyway `V1__league_schema_baseline.sql` → `V2__league_persistence_and_jobs.sql`
+- Flyway `V1__league_schema_baseline.sql` → `V2__league_persistence_and_jobs.sql` →
+  `V3__league_api_and_job_boundary_hardening.sql`
 - local runtime: file-backed H2
 - test: in-memory 또는 temporary file H2
 
@@ -43,7 +47,8 @@ planner cache, interactive computation context, full Match timeline/event/snapsh
 주요 table은 `league_registry`, `league_season`, `league_round`, `league_fixture`,
 `league_standing`, `league_player_binding`, `league_player_binding_command`,
 `league_player_series_checkpoint`, `league_job`, `league_job_attempt`,
-`league_completion_receipt`, `league_outbox`, `league_standings_application`이다.
+`league_completion_receipt`, `league_outbox`, `league_standings_application`,
+`league_process_incarnation`, `league_job_scheduler_lock`, `league_api_command`다.
 PK/FK/unique/check constraint가 fixture/binding/receipt/attempt/application 중복을 DB에서도
 차단한다.
 
@@ -52,7 +57,8 @@ PK/FK/unique/check constraint가 fixture/binding/receipt/attempt/application 중
 `LeagueSeasonApplicationService`는 frozen creation, READY, pause/resume/cancel과 immutable view를
 제공한다. `LeagueSimulationApplicationPort`는 round/fixture dispatch, lease, heartbeat,
 bounded execution, startup recovery, attempt retention과 job view를 제공한다. 둘 다 internal
-application command/view이며 controller나 public DTO가 아니다.
+application command/view다. Batch 5의 `LeagueApiV1Facade`가 strict parser/controller와 이
+내부 경계 사이를 연결하며 controller는 domain/JDBC를 직접 조작하지 않는다.
 
 Season lifecycle revision은 pause/cancel/worker 상태에 사용하고 standings revision은 valid
 receipt application 횟수에만 사용한다. 다른 fixture가 완료돼 Season standings revision이
@@ -66,14 +72,19 @@ hard max는 4다. BO3 내부 games는 runner가 순차 실행하고 fixture들�
 
 Worker 순서는 다음과 같다.
 
-1. 짧은 transaction에서 job과 exact frozen-input hash를 잠근다.
-2. attempt, owner, 15분 lease token과 monotonically increasing fencing number를 commit한다.
-3. DB lock 밖에서 existing Production Auto Draft/V9 runner를 실행한다.
-4. 15초 heartbeat가 같은 token/fence만 15분으로 갱신한다.
-5. live token/fence/attempt/frozen hash를 다시 확인한다.
-6. verified V2 receipt와 outbox를 같은 transaction에 저장하고 job을 완료한다.
+1. DB singleton scheduler row를 잠가 global active count와 lease 획득을 직렬화한다.
+2. 짧은 transaction에서 job과 exact frozen-input hash를 잠근다.
+3. attempt, owner, process incarnation, 15분 lease token과 monotonically increasing fencing
+   number를 commit한다.
+4. DB lock 밖에서 existing Production Auto Draft/V9 runner를 실행한다.
+5. 15초 heartbeat가 같은 token/fence/incarnation만 15분으로 갱신한다.
+6. job row를 live token/fence/incarnation/attempt로 먼저 원자 갱신한다.
+7. 같은 transaction에서 verified V2 receipt와 outbox를 저장하고 job을 완료한다.
 
-Expired/foreign fencing result는 receipt/outbox/standings를 0건 만든다. Transient failure만
+20개 이상의 동시 `leaseNext()`가 여러 Season에 걸쳐 경쟁해도 global active lease는 exact 4를
+넘지 않는다. Expired/foreign fencing result는 receipt/outbox/standings를 0건 만든다. Spring
+`TransientDataAccessException`, nested `SQLTransientException`, 명시적 worker/process loss만 typed
+transient로 분류하며 exception message의 `TIMEOUT` 문자열은 판정에 사용하지 않는다. Transient failure만
 동일 frozen input으로 최초 포함 최대 2회 시도한다. Retry는 seed나 Draft history를 만들지
 않고 같은 fixture root/snapshot/product hash를 사용한다. Deterministic mismatch와 2회 소진은
 fixture/Season을 `BLOCKED`로 둔다.
@@ -128,9 +139,16 @@ Startup runner는 gameplay를 실행하지 않고 다음 관계형 상태만 bou
 | receipt/outbox 뒤 standings 전 | outbox 재전달 |
 | standings commit, outbox ack 전 | ledger no-op 후 ack |
 
-Expired Auto lease는 attempt가 남으면 `RETRY_PENDING`, 소진이면 `BLOCKED`다. Unexpired foreign
-lease는 훔치지 않는다. Canonical hash/binding mismatch는 새 Series/game을 만들지 않고
-fail-closed한다.
+Runtime recovery는 expired Auto lease만 회수한다. Startup recovery는 새 process incarnation을
+등록하고 이전 incarnation의 `LEASED/RUNNING` job을 15분 만료 전에도 process loss로 회수한다.
+Attempt가 남으면 `RETRY_PENDING`, 두 번째 attempt가 유실됐으면 `BLOCKED`다. 이전 heartbeat,
+finish, receipt/outbox/standings mutation은 0이며 startup은 gameplay를 자동 실행하지 않는다.
+Canonical hash/binding mismatch는 새 Series/game을 만들지 않고 fail-closed한다.
+
+Season cancel은 global lease lock과 Season row lock을 같은 transaction에서 잡고 Season lifecycle
+CAS, queued/retry job 취소, scheduled/queued/retry/awaiting fixture 취소를 함께 commit한다. 중간
+실패는 전부 rollback되고 cancel 이후 dispatch/lease는 0이다. 이미 RUNNING 또는 completion commit에
+진입한 결과는 frozen V1 정책에 따라 끝날 수 있다.
 
 ## Retention과 제한
 
@@ -138,7 +156,7 @@ Attempt log만 finished-at 기준 30일 뒤 정리할 수 있다. Active job/lea
 application ledger, standings와 Season은 삭제하지 않는다. V2 128 KiB compact limit은 그대로다.
 24시간 replay cache와 full timeline 저장은 구현하지 않았다.
 
-이번 batch의 범위 밖은 public League API/frontend, auth/ownership, external broker,
+현재 범위 밖은 frontend, auth/ownership, external broker,
 multi-node/region consensus, 90-fixture official run, balance/performance population, custom schedule,
 playoff/BO5 production 활성화와 standalone Series 전체 DB 전환이다.
 
@@ -157,3 +175,13 @@ tree의 두 번째 complete regression은 251 suites / 2,319 tests / failures 0 
 skipped 2, aggregate XML 1,150.816초, Gradle wall 19분 16초로 clean pass했다. 두 skip은 기존
 explicit 대형 diagnostic이다. Frontend source를 변경하지 않아 frontend build/Playwright와
 90-fixture official run, balance/performance population은 실행하지 않았다.
+
+Batch 5는 file-backed H2 prior-incarnation recovery, typed failure, 20-way global lease 경쟁,
+cancel rollback/race와 durable API command replay를 추가 검증했다. API/Phase A와 기존 League/API
+호환성을 묶은 affected lane은 16 suites / 62 tests, failures/errors/skipped 0, Gradle wall 2분
+25초로 통과했다. 원자 fencing 완료 순서를 보강한 뒤 5 suites / 20 tests도 1분 22초에 재통과했다.
+첫 complete regression은 255 suites / 2,332 tests로 clean pass했지만 수동 경계 감사에서 explicit
+run의 runtime-expired lease recovery 호출이 빠진 것을 발견했다. Background pump가 runtime
+recovery 뒤 default workers 2를 실행하도록 연결하고 3 suites / 12 tests를 47초에 통과했다.
+최종 executable tree의 두 번째 complete regression은 256 suites / 2,333 tests / failures 0 /
+errors 0 / skipped 2, aggregate XML 1,139.817초, Gradle wall 19분 13초로 clean pass했다.
