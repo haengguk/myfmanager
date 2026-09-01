@@ -104,8 +104,10 @@ Series frontend는 기존 AUTO와 standalone Player Draft를 대체하지 않는
 
 V1은 process-local single-node backend다. Persistence/save-load, authentication/ownership, multi-node lease/commit과 background job recovery는 포함하지 않는다. Process restart 뒤 browser pointer만 남아 있어도 Series 자체는 복구되지 않는다. Command receipt 한도 256은 eviction하지 않는다. 이미 기록된 exact replay는 한도에서도 허용하지만 신규 action/simulate/cancel은 실행·mutation 전에 fail-closed하고 `allowedCommands`에도 나타나지 않으므로 장시간 열린 Series는 terminal/cancel command도 거부될 수 있다. V2에서는 persistence와 함께 receipt compaction/retention 정책이 필요하다. Full replay는 현재 production/resource identity를 그대로 재현할 수 있을 때만 가능하다. Frontend-readiness 보강과 검증은 [Series Lifecycle V1 Frontend Readiness Hardening](../development/series-lifecycle-v1-frontend-readiness-hardening.md)에 기록한다.
 
-다음 순서는 다음과 같다.
+향후 League-bound Player Series는 이 process-local repository를 Season authority로 승격하지 않고, 별도의 durable binding/completion receipt/outbox 경계에서 기존 Draft 화면과 Series 규칙만 재사용한다. 해당 방향은 [AI vs AI League Simulation V1 Hybrid Season Contract](ai-vs-ai-league-simulation-v1-contract-sketch.md)에 설계됐으며 아직 구현되지 않았다.
+
+League 구현의 다음 순서는 다음과 같다.
 
 ```text
-SERIES_LIVE_E2E_AND_ACCESSIBILITY
+AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS
 ```

@@ -1,382 +1,469 @@
 # AI vs AI League Simulation V1 Contract Sketch
 
-상태: `AI_VS_AI_LEAGUE_SIMULATION_V1_CONTRACT_SKETCH_READY`
+상태: `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCT_DECISIONS_FROZEN_AND_HYBRID_SEASON_CONTRACT_READY`
 
-이 문서는 AI 팀들이 BO3/BO5를 수행하는 League/Season 기능의 설계 source of truth다. 현재 저장소의 Series, Draft, Match Engine 경계를 조사해 재사용 가능한 부분과 새로 소유해야 할 lifecycle을 분리한다. 이 문서는 설계만 고정하며 League production Java, API, worker, DB, frontend가 구현됐다는 뜻이 아니다.
+이 문서는 AI 팀끼리만 경기하는 기능을 넘어, 한 관리 팀의 경기는 플레이어가 직접 Draft하고 나머지 경기는 AI가 자동 진행하는 Hybrid Season V1의 구현 계약을 고정한다. 제품 결정의 canonical 목록은 [AI vs AI League Simulation V1 Product Decisions](ai-vs-ai-league-simulation-v1-product-decisions.md)에 있으며, 이 문서는 그 결정을 aggregate, 상태 기계, persistence, API와 frontend handoff로 구체화한다.
 
-결정 표시는 다음 의미로 사용한다.
+이 상태는 설계와 구현 인계가 준비됐다는 뜻이다. League/Season production Java, API, worker, DB, migration과 frontend가 구현됐다는 뜻은 아니다.
 
-- `V1_DECIDED`: V1 구현이 따라야 할 계약이다.
-- `V1_RECOMMENDATION`: 현재 구조에서 가장 안전한 권장안이며 구현 전 제품 소유자가 변경할 수 있다.
-- `PRODUCT_DECISION_REQUIRED`: 구현 전에 명시적 제품 결정이 필요한 항목이다.
+## 현재 코드 감사와 경계 판정
 
-## 현재 재사용 가능한 경계
+### 안전하게 재사용할 수 있는 것
 
-### `V1_DECIDED`: 그대로 재사용할 domain/application 기반
+- 현재 Series의 team-code score, BO3/BO5 required wins와 game별 BLUE/RED 교대 규칙
+- `SeriesIdentity`의 canonical SHA-256 identity와 seeded determinism 규율
+- decisive game의 양 팀 completed picks 10개만 누적하는 fixture-scoped Hard Fearless 의미
+- `PlayerControlledDraftEngine`과 기존 Player Draft workspace의 PLAYER/AI mixed-authority Draft
+- `MatchEngineV1`의 Production V9 실행, production policy/profile/configuration/rules/engine 및 resource provenance 검증
+- `SeriesGameReceipt`의 compact game receipt 원칙과 replay 검증 경계
+- reservation, compare-and-commit, revision과 command idempotency가 보여 준 stale/duplicate 방어 원칙
+- Series frontend의 server-authoritative `allowedCommands`, ID pointer 복구, Draft/Playback/Result 상태 전달
 
-- `LckTeamAssembler`의 stable team code, roster, `PlayerId`, ratings/proficiency graph를 team authority로 사용한다.
-- `DraftEngine`의 seeded Production Auto Draft와 `SeriesDraftHistory`의 completed-pick Hard Fearless 의미를 재사용한다.
-- `MatchEngineV1`의 immutable input, authoritative Production V9 policy, structured output/provenance, Random fingerprint와 output hash를 game execution authority로 사용한다.
-- `SeriesIdentity`가 보여 준 canonical SHA-256 seed/ID discipline, `SeriesGameReceipt`의 compact receipt 원칙과 fresh deterministic replay 검증 방식을 재사용한다.
-- 대형 population/league 실행은 default `test`에서 제외하고 explicit diagnostic/job task로 분리한다.
+### 직접 재사용하면 안 되는 것
 
-### `V1_DECIDED`: 현재 interactive Series에서 직접 재사용하지 않을 것
+현재 `SeriesAggregate`는 `managedTeamCode`가 두 참가 팀 중 하나라고 강제한다. `SeriesLifecycleService`와 `SeriesRepository`는 한 관리 팀의 interactive child Draft, process-local TTL, 최대 보관량과 in-memory command receipt를 소유한다. `PlayerDraftCompletionBinding`도 현재 process 안의 trusted object identity에 결속한다.
 
-현재 `SeriesLifecycleService`는 managed team 한쪽을 플레이어가 제어하는 child Draft, UI command/revision, process-local TTL과 취소/recovery를 소유한다. AI League가 이를 HTTP client처럼 호출해 20턴 action을 대신 제출하면 다음 문제가 생긴다.
+따라서 다음은 V1 계약이 아니다.
 
-- AI 대 AI인데도 `managedTeamCode`와 `controlledSide`라는 플레이어 개념이 lifecycle에 남는다.
-- 한 fixture를 위해 child action receipt와 UI retry 상태가 20턴씩 생성된다.
-- process-local 최대 32개/TTL 120분 repository는 Season durability와 background worker lease가 될 수 없다.
-- fixture 병렬 실행과 Season standings commit이 Series aggregate 밖에서 다시 조정돼 dual authority가 된다.
+- public `/api/v1/series`를 AI worker의 내부 RPC처럼 호출해 20턴 Draft action을 대신 제출하는 방식
+- process-local Series repository를 durable Season authority로 승격하는 방식
+- 브라우저가 Series winner, score나 receipt를 League에 다시 제출하는 방식
+- in-memory `PlayerDraftCompletionBinding` 객체를 재시작 뒤에도 유효한 League certificate로 간주하는 방식
 
-따라서 public interactive Series API를 League worker의 내부 RPC로 사용하지 않는다. 기존 Series API/schema/lifecycle도 League 때문에 변경하지 않는다.
+기존 standalone Series API와 lifecycle은 그대로 유지한다. League는 Draft/Match/receipt kernel과 검증 원칙을 재사용하되, durable Season/Fixture/Job/Binding/Completion 권위는 새 League 경계에서 소유한다.
 
-| 대안 | 재사용 | 장점 | 핵심 문제 | V1 판정 |
-| --- | --- | --- | --- | --- |
-| Interactive Series API를 AI client가 호출 | REST/child Draft/lifecycle 전체 | 새 backend 표면이 작아 보임 | player authority, 20턴 command receipts, process-local TTL, Season dual authority | 사용하지 않음 |
-| 기존 full-auto Real Match를 fixture loop로 호출 | Auto Draft/Match Engine | game 실행은 단순 | score/Hard Fearless/receipt/job commit을 caller가 재구현 | domain boundary로만 재사용 |
-| League-owned automated Series runner | Draft/Match/receipt kernel | fixture 원자성, 병렬 독립성, durable job과 자연스럽게 결합 | 새 application/persistence 필요 | `V1_RECOMMENDATION` |
+## V1 제품 방향
 
-### `V1_RECOMMENDATION`: League-owned automated Series runner
+### Season mode
 
-새 `AutomatedSeriesRunner` application boundary가 fixture의 immutable input을 받아 BO3/BO5를 한 번에 진행하도록 한다. Runner는 game마다 full-auto `DraftEngine`과 `MatchEngineV1`을 호출하고, decisive commit 뒤에만 fixture-scoped Hard Fearless history와 score를 갱신한다.
+`LeagueSeasonAggregate`는 생성 시 다음 mode 중 하나를 고정하며 이후 바꿀 수 없다.
 
-공통 규칙이 중복되기 시작하면 interactive `SeriesLifecycleService`에서 side/score/history/decisive-commit invariant만 stateless `SeriesRulesKernel`로 추출할 수 있다. 그러나 repository, child Draft, UI command receipt와 cancellation state는 공유하지 않는다. 추출은 League Batch B의 focused parity test가 준비된 뒤 수행하며 이 문서 단계에서는 production refactor를 하지 않는다.
+| `seasonMode` | `managedTeamCode` | fixture 실행 mode |
+|---|---|---|
+| `HYBRID_MANAGER` | frozen Season team set에 포함된 정확히 한 팀 | 관리 팀이 포함된 fixture는 `PLAYER_CONTROLLED`, 나머지는 `FULL_AUTO` |
+| `SPECTATOR_FULL_AUTO` | `null` | 모든 fixture가 `FULL_AUTO` |
 
-## League와 Season aggregate ownership
+`HYBRID_MANAGER`는 non-null `managedTeamCode`와 그 팀의 exact `managedTeamSnapshotIdentity`를 요구한다. `SPECTATOR_FULL_AUTO`는 두 값을 모두 null로 둔다. mode와 맞지 않는 null/non-null 조합, frozen team set에 없는 team code와 snapshot mismatch는 Season 생성/freeze 전에 거부한다.
 
-### `V1_RECOMMENDATION`: 얇은 League, authoritative Season
+`DELEGATE_MANAGED_FIXTURE_TO_AI`와 Season 도중 관리 팀 변경은 V1 범위 밖이다. `FULL_AUTO` batch와 job lease는 어떤 경우에도 `PLAYER_CONTROLLED` fixture를 선택할 수 없다.
 
-`LeagueAggregate`는 장기 container identity를 소유한다.
+### Hybrid 진행 의미
 
-| 필드 | 계약 |
-| --- | --- |
-| `leagueId` | stable non-display identity |
-| `revision` | optimistic concurrency revision |
-| `displayName` | presentation metadata |
-| `memberTeamCodes` | 현재 membership의 canonical team-code set |
-| `seasonIds` | 생성 순서가 고정된 Season identity 목록 |
-| `status` | `ACTIVE`, `ARCHIVED` |
-| `createdAt`, `updatedAt` | 운영 metadata; gameplay seed 입력이 아님 |
+- AI fixture는 같은 round의 관리 팀 경기를 기다리지 않고 완료될 수 있다.
+- Round는 `FULL_AUTO`와 `PLAYER_CONTROLLED` fixture가 모두 완료돼야 완료된다.
+- `HYBRID_MANAGER`의 `RUN_ALL`은 현재 round의 `FULL_AUTO` fixture만 dispatch한 뒤 관리 팀 경기를 기다린다. 다음 round를 자동으로 건너뛰지 않는다.
+- `SPECTATOR_FULL_AUTO`의 `RUN_ALL`은 round barrier를 지키며 모든 round를 자동 진행할 수 있다.
+- `WAITING_FOR_PLAYER`는 실패나 `BLOCKED`가 아니다.
 
-`LeagueSeasonAggregate`가 실제 competition authority다.
+## Aggregate와 authority
 
-| 필드 | 계약 |
-| --- | --- |
-| `seasonId`, `leagueId`, `revision` | aggregate identity와 optimistic revision |
-| `teamSnapshot` | Season 시작 시 동결한 canonical team code/roster-resource identity |
-| `schedulePolicy` | type, rounds, legs, fixture format, canonical schedule hash |
-| `rootSeed`, `seedAlgorithm` | canonical signed-long root와 versioned algorithm |
-| `standingsPolicyId` | 순위/동률 규칙 version |
-| `status`, `terminalReason` | Season state와 structured reason |
-| `rounds`, `fixtures` | ordered immutable projections와 current state |
-| `standings` | completed fixture receipt에서만 파생·검증된 snapshot |
-| `activeJobId`, `allowedCommands` | background execution authority |
-| `createdAt`, `lastActivityAt` | 운영 metadata |
+### `LeagueAggregate`
 
-Season 생성 뒤 team snapshot, schedule, root seed, format, standings policy를 수정하지 않는다. 변경이 필요하면 새 Season을 만든다. Standings와 fixture score를 frontend나 worker-local cache가 별도 authority로 소유하지 않는다.
+League는 장기 container identity와 다음 항목만 소유한다.
 
-### `PRODUCT_DECISION_REQUIRED`: membership과 roster 시점
+- `leagueId`, display metadata, `ACTIVE | ARCHIVED`
+- Season ID의 ordered collection
+- 생성/보관 정책 identity
 
-V1 권장은 Season 생성 순간의 team code와 active roster/resource identity를 동결하는 것이다. 장기 Career에서 이적/패치가 fixture 날짜별로 달라져야 하는지는 별도 제품 결정이다. V1 도중 roster를 live lookup으로 바꾸면 동일 seed replay가 달라지므로 허용하지 않는다.
+Running, paused, completed와 standings는 League가 아니라 Season 상태다.
+
+### `LeagueSeasonAggregate`
+
+Season은 competition의 유일한 authority다.
+
+- `seasonId`, `revision`, `status`, `seasonMode`, nullable `managedTeamCode`
+- immutable team set과 `managedTeamSnapshotIdentity`
+- team별 frozen roster, PlayerId, rating/proficiency snapshot identity
+- Champion/Draft/Matchup/Composition resource identity
+- production policy/profile/configuration/gameplay rules/engine identity
+- schedule policy, standings policy와 root seed identity
+- ordered rounds/fixtures와 fixture별 frozen `executionMode`
+- standings projection과 canonical receipt application ledger
+- current playable managed fixture projection
+- AI job에서 제외돼야 하는 managed fixture identity set
+- `allowedCommands`와 Hybrid progression counters
+
+Season freeze 뒤 membership, roster, resource, policy/profile/configuration/rules/engine과 schedule을 수정할 수 없다. 현재 LCK V1은 authoritative resource에 실제 존재하는 정확히 10개 팀과 팀당 5명, 총 50명만 허용한다. 누락 데이터를 문서나 runtime에서 발명하지 않는다.
+
+### `LeagueFixtureAggregate`
+
+Fixture는 다음 frozen input과 lifecycle을 소유한다.
+
+- fixture/round/leg identity, 두 team code, BO3/BO5와 Game 1 side
+- `fixtureRootSeed`와 seed algorithm version
+- `FULL_AUTO | PLAYER_CONTROLLED`
+- initial Hard Fearless history hash
+- roster/resource/policy/profile/configuration/rules/engine identities
+- job/lease 또는 player-series binding/progress
+- exactly one canonical `LeagueFixtureCompletionReceiptV1`
+- standings application status와 idempotency identity
+
+하나의 canonical fixture receipt만 winner, score와 standings의 근거다. frontend projection, worker log와 optional full replay cache는 권위가 아니다.
+
+## Schedule, fixture 수와 side
+
+V1 production default는 정확히 10개 팀의 double round robin, 18 rounds, 90 fixtures, BO3다. 각 팀은 round마다 최대 한 fixture만 가진다.
+
+- 같은 두 팀의 1·2차전은 Game 1 side를 서로 mirror한다.
+- 한 fixture 안에서는 Game 1 side부터 game마다 BLUE/RED를 교대한다.
+- 조기 2승 또는 3승에서 Series를 끝내므로 실제 game 수는 BO3 2~3개, BO5 3~5개다.
+- single round robin은 schedule policy로 설계할 수 있지만 V1 production default가 아니다.
+- `CUSTOM` schedule과 `allowSideImbalance`는 V1 production 범위 밖이다.
+
+Schedule 생성은 canonical team-code order와 versioned rotation algorithm을 사용한다. DB 반환 순서, display name과 unordered collection iteration은 fixture identity, side 또는 seed에 영향을 주지 않는다.
 
 ## 상태 기계
 
-### `V1_DECIDED`: League 상태
-
-League container 자체는 simulation progress를 소유하지 않는다. `ACTIVE -> ARCHIVED`만 허용하며 archived League는 기존 Season 조회는 가능하지만 새 Season을 만들 수 없다. Running/paused/completed는 반드시 Season 상태다.
-
-### `V1_DECIDED`: Season 상태
+### Season
 
 ```text
-DRAFT -> READY -> RUNNING <-> PAUSED -> COMPLETED
-                    |             \
-                    +-> BLOCKED    +-> CANCELLED
+DRAFT
+  -> FROZEN
+  -> READY
+  -> RUNNING <-> PAUSED
+  -> WAITING_FOR_PLAYER -> RUNNING
+  -> COMPLETED
+
+READY | RUNNING | PAUSED | WAITING_FOR_PLAYER
+  -> BLOCKED
+  -> CANCELLED
 ```
 
-- `DRAFT`: 생성됐지만 schedule freeze 전이다.
-- `READY`: schedule/seed/team/resource identity 검증 완료 상태다.
-- `RUNNING`: 하나 이상의 fixture job을 dispatch할 수 있다.
-- `PAUSED`: 새 lease를 만들지 않으며 이미 commit 중인 원자 작업은 완료할 수 있다.
-- `BLOCKED`: correctness, replay identity 또는 unresolved fixture 때문에 진행을 멈춘다.
-- `COMPLETED`: 모든 scheduled fixture가 decisive completion receipt를 가진다.
-- `CANCELLED`: 사용자 취소. completed fixture 증거와 standings는 보존한다.
+`COMPLETED`, `CANCELLED`는 terminal이다. `BLOCKED`는 자동 진행에 대해서는 terminal이며, 명시적 Season cancel만 `CANCELLED`로 바꿀 수 있다. Season cancel은 새 dispatch와 새 player-series 시작을 막는다. 이미 standings transaction commit 단계에 들어간 completion은 끝날 수 있으며 idempotent application ledger가 중복 반영을 막는다.
 
-### `V1_DECIDED`: Round 상태
+### Round와 진행 counter
 
-`PENDING -> RUNNING -> COMPLETED`가 정상 흐름이다. Fixture가 영구 차단되면 `BLOCKED`, Season 취소 시 `CANCELLED`가 된다. Round는 fixture status에서 검증 가능한 projection이며 독립 worker authority가 아니다.
+Round projection은 최소 다음 counter를 제공한다.
 
-### `V1_DECIDED`: Fixture 상태
+- `scheduledAuto`
+- `runningAuto`
+- `completedAuto`
+- `awaitingPlayer`
+- `activePlayerSeries`
+- `completedPlayer`
+- `blocked`
+
+모든 fixture가 `COMPLETED`일 때만 Round가 `COMPLETED`다. 관리 fixture만 남아 있으면 Season은 `WAITING_FOR_PLAYER`가 될 수 있다.
+
+### FULL_AUTO fixture와 job
 
 ```text
-SCHEDULED -> QUEUED -> RUNNING -> COMPLETED
-                         |  \
-                         |   +-> BLOCKED
-                         +-> FAILED_RETRYABLE -> QUEUED
-SCHEDULED/QUEUED/FAILED_RETRYABLE -> CANCELLED (Season cancel only)
+SCHEDULED -> QUEUED -> LEASED -> RUNNING
+  -> COMPLETION_PENDING_VERIFICATION -> COMPLETED
+  -> RETRY_PENDING -> QUEUED
+  -> BLOCKED
+  -> CANCELLED
 ```
 
-한 fixture는 정확히 한 AI BO3/BO5다. `COMPLETED`만 standings를 변경한다. no-decisive game, receipt mismatch, Hard Fearless pool exhaustion은 fixture를 `BLOCKED`로 만들고 standings를 변경하지 않는다. Runtime transport/worker loss는 lease expiry 뒤 `FAILED_RETRYABLE`이 될 수 있다.
+Job lease는 frozen `executionMode=FULL_AUTO`를 다시 검증한 뒤에만 발급한다. stale lease의 late result, 다른 fixture receipt, 다른 frozen identity와 seed 결과는 commit할 수 없다.
 
-### `V1_DECIDED`: Job/lease 상태
-
-`QUEUED -> LEASED -> RUNNING -> SUCCEEDED`가 정상 흐름이다. Lease 만료나 transient worker failure는 `FAILED_RETRYABLE`, deterministic contract/integrity failure는 `FAILED_TERMINAL`, Season 취소는 `CANCELLED`다. `(seasonId, fixtureId, attemptNumber)`와 lease token을 structured identity로 사용하고 display text를 해석하지 않는다.
-
-## Schedule, 경기 수와 side
-
-### `V1_DECIDED`: 지원 schedule
-
-| Schedule | Fixture 수 | 계약 |
-| --- | ---: | --- |
-| `SINGLE_ROUND_ROBIN` | `N*(N-1)/2` | 모든 unordered team pair가 정확히 1회 |
-| `DOUBLE_ROUND_ROBIN` | `N*(N-1)` | 모든 pair가 두 leg, leg 2의 Game 1 side는 leg 1과 반대 |
-| `CUSTOM` | request의 fixture 수 | server가 round/pair/leg/Game 1 BLUE와 중복·충돌을 exact 검증 |
-
-Canonical team-code 오름차순을 입력으로 circle method를 사용한다. 홀수 팀이면 내부 `BYE` slot을 쓰되 public fixture를 만들지 않는다. 한 team은 같은 round에서 최대 한 fixture만 가진다. Fixture ID는 array index가 아니라 frozen schedule identity에서 파생한다.
-
-### `V1_DECIDED`: Series format과 실제 game 수
-
-Season은 기본 `BO3` 또는 `BO5` 하나를 동결한다. Fixture는 필요한 승수에 도달하면 종료하므로 실제 game 수는 BO3 2~3, BO5 3~5다. Fixture 수가 `F`일 때 Season minimum/maximum game 수는 BO3 `2F/3F`, BO5 `3F/5F`다. Schedule의 “경기 수”는 fixture 수와 possible/minimum/actual game 수를 별도 필드로 노출한다. Early finish를 가상의 game으로 채우지 않는다.
-
-### `V1_RECOMMENDATION`: deterministic side balance
-
-- Double round robin은 같은 pair의 두 leg에서 Game 1 BLUE를 반전해 planned fixture-level side를 exact balance한다.
-- Single round robin은 team별 planned Game 1 BLUE/RED 차이를 가능한 범위에서 1 이하로 최소화한다. 동률 선택은 schedule seed의 canonical hash로 결정한다.
-- 각 BO3/BO5 내부에서는 Game 1 mapping에서 매 game BLUE/RED를 교대한다.
-- 조기 종료 때문에 실제 game side 수는 exact 50:50이 아닐 수 있으므로 `plannedGame1SideCounts`와 `actualGameSideCounts`를 구분해 보고한다.
-- Custom schedule은 명시적 `game1BlueTeamCode`를 요구하고 planned imbalance를 응답에 노출한다.
-
-### `PRODUCT_DECISION_REQUIRED`: 불균형 custom schedule
-
-Custom schedule의 team별 planned Game 1 side 차이가 1을 넘을 때 hard reject할지, explicit `allowSideImbalance=true` 권한으로 허용할지 결정해야 한다. V1 권장은 기본 reject이고 별도 운영 권한이 생긴 뒤 waiver를 추가하는 것이다.
-
-## AI BO3/BO5와 Hard Fearless
-
-### `V1_DECIDED`
-
-- 양 팀 모두 `AUTO_DRAFT_VARIETY_V1` Production Auto Draft를 사용한다. Player-controlled turn이나 managed team은 없다.
-- Fixture마다 fresh `SeriesDraftHistory`를 만든다. Completed decisive game의 BLUE/RED pick 10개만 다음 game exclusion에 누적한다.
-- Bans, failed Draft, no-decisive simulation과 uncommitted output은 history에 들어가지 않는다.
-- Hard Fearless history는 fixture 경계를 넘지 않는다. Season 전체 champion ban처럼 사용하지 않는다.
-- Game N의 Draft와 simulation은 같은 derived game seed와 frozen history-before hash에 결속된다.
-- Pool exhaustion은 자동으로 규칙을 완화하지 않고 fixture/Season을 `BLOCKED`로 만든다.
-
-### `PRODUCT_DECISION_REQUIRED`: blocked fixture 처리
-
-Forfeit, 재경기, 규칙 완화 또는 무승부 포인트는 현재 domain에 없다. V1 권장은 standings mutation 없이 Season을 `BLOCKED`하고 운영자가 versioned resolution command를 선택할 때까지 멈추는 것이다. 실제 resolution 종류와 점수는 구현 전에 결정해야 한다.
-
-## Versioned seed chain과 병렬 독립성
-
-### `V1_DECIDED`
-
-Algorithm ID는 `AI_LEAGUE_SEED_CHAIN_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1`이다. 각 단계는 UTF-8 canonical text의 SHA-256 앞 8바이트를 signed big-endian long으로 해석한다.
+### PLAYER_CONTROLLED fixture
 
 ```text
-seasonScheduleSeed = H(rootSeed, leagueId, seasonId, teamSnapshotHash, schedulePolicyHash)
-fixtureRootSeed     = H(seasonScheduleSeed, fixtureId, roundNumber, legNumber,
-                        teamACode, teamBCode, game1BlueTeamCode, seriesFormat)
-gameSeed            = H(fixtureRootSeed, gameNumber, blueTeamCode, redTeamCode,
-                        hardFearlessHistoryBeforeHash)
+SCHEDULED
+  -> AWAITING_PLAYER
+  -> PLAYER_SERIES_RESERVED
+  -> PLAYER_SERIES_ACTIVE
+  -> COMPLETION_PENDING_VERIFICATION
+  -> COMPLETED
+
+PLAYER_SERIES_RESERVED | PLAYER_SERIES_ACTIVE
+  -> PLAYER_SERIES_RESTART_REQUIRED
+  -> BLOCKED
+
+SCHEDULED | AWAITING_PLAYER | PLAYER_SERIES_RESERVED | PLAYER_SERIES_ACTIVE
+  | PLAYER_SERIES_RESTART_REQUIRED | BLOCKED
+  -> CANCELLED  (Season cancel only)
 ```
 
-Canonical text에는 schema/domain line과 trailing newline가 필수다. Team, round, fixture, receipt list는 canonical order로 직렬화하고 unordered Set/Map iteration을 입력으로 사용하지 않는다.
+브라우저 종료나 네트워크 단절은 fixture 취소가 아니다. durable binding과 server progress가 있으면 `RESUME_PLAYER_SERIES`로 복구한다. 복구할 수 없는 binding/receipt corruption 또는 frozen resource 불일치만 `PLAYER_SERIES_RESTART_REQUIRED`나 `BLOCKED`가 된다.
 
-Fixture seed는 실행 순서, worker ID, wall clock, retry count와 병렬도에 의존하지 않는다. 한 fixture의 games는 history dependency 때문에 순차 실행하고, 서로 다른 fixtures만 병렬 실행한다. 1 worker와 N workers가 같은 complete fixture/standings/receipt hash를 만들어야 한다.
+## FULL_AUTO `AutomatedSeriesRunner`
+
+League-owned `AutomatedSeriesRunner`는 하나의 immutable fixture input을 받아 Series를 끝까지 실행한다.
+
+1. frozen binding과 Production identity를 검증한다.
+2. fixture-scoped fresh Hard Fearless history에서 현재 exclusions를 계산한다.
+3. 양 팀 모두 Production Auto Draft로 20턴 Draft를 완료한다.
+4. 같은 frozen side, game seed와 Production V9 identity로 `MatchEngineV1`을 실행한다.
+5. decisive game의 verified receipt와 completed picks 10개만 fixture history/score에 commit한다.
+6. required wins에 도달하면 unified fixture completion receipt를 만든다.
+
+Runner는 resolver/gameplay state를 전역에 보관하지 않으며 fixture끼리 Random, Draft history, score와 mutable cache를 공유하지 않는다. 병렬성은 완료 순서만 바꿀 수 있고 각 fixture output을 바꿀 수 없다.
+
+## Player Controlled Series handoff
+
+### 시작과 재개
+
+`PLAY_MANAGED_FIXTURE` 또는 `START_PLAYER_SERIES`는 다음 순서를 따른다.
+
+1. League가 현재 Season revision, current round, fixture status와 `executionMode=PLAYER_CONTROLLED`를 검증한다.
+2. server가 `LeagueFixtureSeriesBinding`을 만들고 fixture reservation과 함께 durable하게 기록한다.
+3. League-bound Player Series를 만들고 기존 Player Draft/Series 화면을 frozen context로 연다.
+4. player는 자기 side의 Draft 선택만 제출한다. opponent AI, side, seed, history와 Production identity는 server가 소유한다.
+5. decisive Series completion을 server가 검증해 `LeagueFixtureCompletionReceiptV1`을 생성한다.
+6. durable outbox/idempotent command가 fixture completion과 standings 반영을 연결한다.
+
+League 진입에서는 standalone `SeriesSetupPage`를 거치지 않는다. player는 opponent, format, Game 1 side, root seed, profile 또는 fixture를 다시 고를 수 없다.
+
+### `LeagueFixtureSeriesBinding`
+
+최소 필드는 다음과 같다.
+
+- schema/hash algorithm version과 `bindingHash`
+- `leagueId`, `seasonId`, `fixtureId`, expected Season revision와 reservation identity
+- bound `seriesId`
+- 두 frozen team code, format, Game 1 side
+- `fixtureRootSeed`이자 bound Series root seed
+- schedule/standings policy identity
+- roster/resource/policy/profile/configuration/rules/engine identities
+- initial Hard Fearless history와 hash
+- created/reconciled status와 durable revision
+
+public client는 이 필드를 생성하거나 다시 제출해 덮어쓸 수 없다. 현재 in-memory `PlayerDraftCompletionBinding`의 검증 원칙은 참고하되, League binding은 serialized canonical value와 stored receipt identity로 재시작 뒤에도 검증 가능해야 한다.
+
+### 생성, 취소와 복구 권위
+
+1. Player fixture Series는 현재 Season/fixture를 소유한 League application command만 생성할 수 있다.
+2. team/format/Game 1 side/root seed와 frozen production identity는 Schedule/Season authority가 고정한다.
+3. 기존 일반 `/api/v1/series` create는 League binding을 만들 수 없다. 별도 League fixture endpoint가 `LEAGUE_BOUND` identity의 Series를 생성하며 exact command replay는 같은 Series를 반환하고 payload conflict는 거부한다.
+4. 결과는 frontend 제출이 아니라 completed Series aggregate와 stored binding에서 server가 만든 receipt로 전달한다.
+5. Series completion과 League commit 사이 crash는 durable receipt/outbox의 미처리 상태를 재개해 복구한다.
+6. outbox event/command replay는 receipt application ledger의 idempotency key로 standings를 다시 더하지 않는다.
+7. League-bound child/Series 취소는 fixture를 `PLAYER_SERIES_RESTART_REQUIRED`로 두고 standings를 바꾸지 않는다. bound Series 화면에는 standalone `CANCEL_SERIES`를 Season cancel처럼 노출하지 않는다. Season cancel만 fixture를 `CANCELLED`로 만든다. 기존 standalone Series cancel 의미는 유지한다.
+8. Process restart 중이던 Player fixture는 durable binding, Draft/game progress와 receipt에서 같은 bound Series를 복구한다. 복구 불가능한 불일치는 새 Series를 조용히 만들지 않고 `PLAYER_SERIES_RESTART_REQUIRED` 후 `BLOCKED`로 간다.
+
+## Unified completion receipt와 standings atomicity
+
+AI와 Player fixture는 동일한 server-created `LeagueFixtureCompletionReceiptV1`을 사용한다.
+
+### 최소 receipt 내용
+
+- League/Season/Fixture와 `LeagueFixtureSeriesBinding` identity
+- `FULL_AUTO | PLAYER_CONTROLLED`
+- ordered game receipts
+- final team-code score, winner, 실제 game count
+- game별 side mapping, seed, Draft identity, history-before/after hash
+- roster/resource/policy/profile/configuration/rules/engine identity
+- replay/timeline/output/Random fingerprint identity
+- canonical fixture receipt hash와 schema/hash algorithm version
+
+Frontend는 receipt를 만들거나 winner/score/standings와 함께 제출하지 않는다.
+
+### 선택한 commit 모델
+
+V1은 **server-side durable completion receipt + transactional outbox + idempotent League consumer**를 사용한다.
+
+검토한 선택지는 다음 세 가지다.
+
+1. Series completion과 League standings를 같은 relational transaction으로 묶는 방식은 가장 짧지만 두 aggregate의 저장/배포 경계를 강하게 결합한다.
+2. Series completion이 durable receipt와 outbox를 기록하고 League가 idempotent하게 소비하는 방식은 짧은 reconciliation 지연 대신 crash/retry와 독립 배포 경계를 안전하게 다룬다. V1 선택이다.
+3. Frontend가 completion을 League에 다시 제출하는 방식은 browser/network를 권위 전달 경로로 만들기 때문에 사용하지 않는다.
+
+선택한 처리 순서는 다음과 같다.
+
+1. Series 또는 automated runner completion transaction이 immutable canonical receipt와 outbox event를 기록한다.
+2. League consumer는 `seasonId + fixtureId + canonicalFixtureReceiptHash`를 idempotency key로 검증한다.
+3. fixture가 아직 같은 binding으로 미반영 상태일 때만 `COMPLETED`, standings delta와 application ledger를 한 transaction에서 commit한다.
+4. crash, duplicate delivery, stale Season revision과 repeated frontend reconciliation은 최대 한 번의 standings delta만 만든다.
+
+Series completion 자체를 frontend timeout 때문에 rollback하지 않는다. Outbox delivery가 지연되면 fixture는 `COMPLETION_PENDING_VERIFICATION`으로 남고 frontend는 completion status를 조회한다. cross-fixture receipt, 다른 binding/seed/identity와 이미 다른 hash로 완료된 fixture는 fail-closed한다.
+
+저장된 canonical receipt가 검증되면 이후 authored resource가 바뀌어 full replay가 불가능해져도 기존 standings는 유지된다. 이 경우 `receiptAuthority=VERIFIED`, `replayAvailability=UNAVAILABLE_RESOURCE_DRIFT`처럼 권위와 재생 가능성을 분리한다.
+
+## Side, seed와 Hard Fearless parity
+
+### Seed chain
+
+```text
+Season root seed
+  -> fixtureRootSeed
+  -> bound Series root seed (같은 값, 재파생 금지)
+  -> game seed
+```
+
+- fixture root는 `AI_LEAGUE_FIXTURE_ROOT_SEED_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1`으로 canonical Season/fixture identity에서 파생한다.
+- Player fixture에서는 `fixtureRootSeed`를 기존 Series의 root seed로 그대로 전달한다. League와 Series가 각각 한 번씩 fixture seed를 파생하는 double derivation을 금지한다.
+- FULL_AUTO runner도 같은 bound Series root와 game-seed algorithm을 사용한다.
+- player는 새 seed를 선택할 수 없다.
+- retry는 frozen seed/checkpoint를 그대로 사용하며 reseed하지 않는다.
+
+AI와 Player 경기는 wins-required, side alternation, Hard Fearless 누적, receipt 필드와 Production V9 identity에서 exact parity를 가져야 한다. 실제 Draft decision은 player 입력과 AI 정책 차이 때문에 같을 필요가 없다.
+
+### Hard Fearless
+
+- history scope는 Season이나 round가 아니라 fixture다.
+- decisive committed game의 양 팀 picks 10개만 다음 game의 exclusions가 된다.
+- ban, failed/cancelled game, no-result와 rejected duplicate는 history를 바꾸지 않는다.
+- Player/AI fixture 모두 같은 pool completion preflight와 fail-closed 의미를 사용한다.
+- fixture가 끝나면 다음 fixture는 mode와 무관하게 fresh empty history에서 시작한다.
 
 ## Standings와 tie-break
 
-### `V1_DECIDED`: authoritative counters
+Completed fixture만 standings에 반영한다.
 
-각 team row는 `seriesPlayed`, `seriesWins`, `seriesLosses`, `gameWins`, `gameLosses`, `gameDifferential`, `points`, `rank`, `tieBreakTrace`를 갖는다. Completed fixture의 immutable result만 정확히 한 번 반영한다. `sum(seriesWins) == sum(seriesLosses) == completedFixtureCount`와 전체 game win/loss 대칭을 매 commit 검증한다.
+- Series win: 1 point, Series loss: 0 point
+- draw 없음
+- `BLOCKED`, `IN_PROGRESS`, `COMPLETION_PENDING_VERIFICATION`, `CANCELLED`는 point와 game counter를 만들지 않음
+- canonical receipt에서 series wins/losses, game wins/losses와 game differential을 함께 파생
 
-### `V1_RECOMMENDATION`: 순위 정책
+순위는 다음 canonical 순서다.
 
-초기 policy ID는 `AI_LEAGUE_STANDINGS_MATCH_WINS_V1`을 권장한다.
+1. Series wins/points 내림차순
+2. game differential 내림차순
+3. game wins 내림차순
+4. 동률 팀끼리 mini-league Series wins 내림차순
+5. 동률 팀끼리 mini-league game differential 내림차순
+6. Season seed 기반 deterministic draw order
 
-1. Series wins 내림차순
-2. Game differential 내림차순
-3. Game wins 내림차순
-4. 동률 팀 mini-league의 Series wins
-5. 동률 팀 mini-league의 Game differential
-6. Season seed에서 파생한 stable tie-break draw
+V1에는 별도 tie-break fixture나 playoff가 없다. 최종 seed draw는 sorted tied team code와 Season root seed를 versioned SHA-256 입력으로 사용하며 실행/DB 순서에 의존하지 않는다. Standings view/receipt에는 적용된 policy ID와 마지막 draw 입력/hash/order를 `tieBreakTrace`로 남긴다. 이 순서는 V1 게임 제품 규칙이며 실제 공식 LCK 규칙이라고 주장하지 않는다.
 
-마지막 draw는 재실행해도 같아야 하고 team code 사전순을 스포츠 결과처럼 위장하지 않는다. `tieBreakTrace`에는 적용된 단계와 비교 값만 structured field로 남긴다.
+## BLOCKED와 retry 정책
 
-### `PRODUCT_DECISION_REQUIRED`: points와 최종 동률
+Fixture가 gameplay/integrity/resource/receipt 검증을 통과하지 못하면 해당 fixture와 Season을 `BLOCKED`로 둔다. 이미 완료된 다른 fixture와 standings는 보존한다.
 
-Series 승/패에 몇 점을 줄지, final playoff seed가 걸린 완전 동률을 seeded draw로 끝낼지 tiebreak fixture를 추가할지 결정해야 한다. 권장은 승 1/패 0이고 정규 Season 표시는 deterministic draw, 우승/진출 결정은 별도 tiebreak fixture다.
+`BLOCKED`를 해소하려고 다음을 자동 적용하지 않는다.
 
-## Background execution과 작업 단위
+- 승점, 몰수패, 무승부 또는 임의 winner 부여
+- Hard Fearless/side/roster/resource 규칙 완화
+- gameplay tuning 변경
+- seed 변경 또는 새 seed 재실행
 
-### `V1_RECOMMENDATION`: fixture-level job
+자동 retry는 transport, worker crash, lease loss처럼 결과가 commit되지 않은 transient 운영 실패만 허용한다. 동일 frozen seed/checkpoint로 최초 실행을 포함해 최대 2회다. 두 번째 실패 또는 deterministic product/integrity failure는 `BLOCKED`다.
 
-Season 전체를 한 job으로 실행하면 실패 복구와 진행률이 거칠고, game-level job은 Hard Fearless history/score commit을 분산시킨다. 따라서 fixture 하나를 최소 durable job 단위로 한다.
+## Persistence와 restart recovery
 
-- Dispatcher는 round dependency와 `maxParallelFixtures` 안에서 `SCHEDULED` fixture를 queue한다.
-- Worker는 lease를 획득하고 `AutomatedSeriesRunner`로 fixture games를 순차 실행한다.
-- Game decisive commit마다 fixture checkpoint와 compact receipt를 원자 저장할 수 있지만 standings는 fixture `COMPLETED`에서 한 번만 반영한다.
-- 같은 lease/token의 duplicate completion은 idempotent다. 다른 token의 late completion은 거부한다.
-- Retry는 기존 fixture root/game seed와 committed game checkpoint를 사용하고 새 seed를 만들지 않는다.
-- Diagnostics, progress와 logging은 gameplay/Random/order에 영향을 주지 않는다.
+League V1은 다음을 relational persistence에 저장한다.
 
-### `PRODUCT_DECISION_REQUIRED`: 운영 한도
+- League, Season, immutable snapshot identities
+- Round, Fixture, frozen execution mode와 lifecycle revision
+- Job, attempt, lease, heartbeat와 cancellation state
+- `LeagueFixtureSeriesBinding`
+- League-bound Player Series의 Draft/game progress와 compact receipts
+- unified fixture completion receipt, outbox와 standings application ledger
+- authoritative standings projection
 
-Season/team/fixture 최대 수, 기본 `maxParallelFixtures`, lease/heartbeat/attempt 한도와 취소 grace period는 운영 측정 뒤 정해야 한다. 숫자는 production resolver에 흩어 쓰지 않고 전용 configuration에 둔다.
+구현은 repository port/adapter로 domain과 DB 선택을 분리한다. DB 제품, dependency, migration schema와 deployment topology는 persistence batch에서 정한다. 이 문서 작업에서는 dependency나 schema를 추가하지 않는다.
 
-## Compact result와 replay
+Process restart 뒤에는 lease를 만료/재조정하고, 같은 frozen identity와 checkpoint에서 job을 재개하거나 retry한다. Player Series는 durable binding/progress로 재개한다. 브라우저 pointer는 편의 정보일 뿐 복구 authority가 아니다.
 
-### `V1_DECIDED`
+## 운영 한계와 retention
 
-Fixture는 다음 compact evidence만 장기 보존한다.
+모든 값은 구현 시 dedicated versioned operational configuration 한 곳에서 소유한다.
 
-- series format, team/side mapping, final score, winner team code
-- game별 final Draft hash, Hard Fearless history-before hash
-- compact winner/end reason/duration/team kills/team gold
-- input/resource/replay provenance, timeline, output, Random fingerprint hash
-- canonical game receipt와 fixture aggregate receipt
+| 항목 | Frozen V1 값 |
+|---|---:|
+| production team count | 정확히 10 |
+| default schedule | double round robin, 90 fixtures |
+| default `maxParallelFixtures` | 2 |
+| hard maximum parallel fixtures | 4 |
+| job lease | 15분 |
+| heartbeat | 15초 |
+| transient attempts | 최초 포함 최대 2회 |
+| completed Season/canonical receipt | Season 삭제 전까지 보존 |
+| job attempt log | 30일 |
+| optional gzip full replay cache | 24시간, non-authoritative |
 
-20~34MB full timeline DTO, event/snapshot graph와 simulator mutable state는 Season aggregate에 저장하지 않는다. Explicit replay는 frozen input/Draft/resource identity로 fresh Match Engine execution을 수행하고 receipt exact equality 뒤 full payload를 반환한다. 필요한 historical resource를 사용할 수 없으면 `AI_LEAGUE_REPLAY_IDENTITY_UNAVAILABLE`, equality가 깨지면 `AI_LEAGUE_REPLAY_RECEIPT_MISMATCH`로 fail closed한다.
+Cancel은 새 dispatch를 즉시 멈추지만 이미 transactional commit에 진입한 completion은 끝날 수 있다. Parallel limit은 성능/운영 설정이며 fixture Random이나 output 의미를 바꿀 수 없다.
 
-### `V1_RECOMMENDATION`: optional replay cache
+## Additive API contract
 
-자주 보는 경기의 gzip full replay를 object storage에 TTL cache할 수 있지만 authority는 receipt다. Cache miss는 deterministic replay로 복구하고 cache bytes 자체를 standings/결과 source of truth로 사용하지 않는다.
+정확한 DTO schema는 API batch에서 동결한다. 현재 Series/Player Draft/Real Match endpoint의 의미를 변경하지 않고 `/api/v1/leagues` 아래 additive boundary를 둔다.
 
-## Persistence 대안
+### Season/fixture view
 
-| 대안 | 장점 | 한계 | 판정 |
-| --- | --- | --- | --- |
-| process-local map | 구현이 작고 interactive Series와 유사 | restart loss, multi-worker/lease/Season durability 불가 | League V1 부적합 |
-| relational aggregate + job tables | optimistic revision, lease, 조회/standings, compact receipt에 적합 | schema/migration과 transaction 설계 필요 | `V1_RECOMMENDATION` |
-| event sourcing | 완전한 audit/rebuild | event versioning, replay/read model 운영 복잡도 큼 | 후속 검토 |
+Season create/view에는 최소 다음을 포함한다.
 
-### `V1_RECOMMENDATION`
+- `seasonMode`, nullable `managedTeamCode`, snapshot/policy identities
+- fixture별 frozen `executionMode`
+- current round counters와 standings
+- current playable managed fixture
+- active/recoverable player-series binding projection
+- completion/reconciliation status
+- backend-authoritative `allowedCommands`
 
-관계형 persistence를 사용한다. League/Season, Round/Fixture, Job/Lease, immutable game receipt를 분리하고 fixture completion과 standings delta를 한 transaction에 넣는다. JSON column은 versioned compact evidence에만 사용하고 searchable identity/status/revision은 typed column으로 둔다. Full replay는 DB에 넣지 않는다.
+### Player fixture handoff 예시
 
-### `PRODUCT_DECISION_REQUIRED`: retention
-
-Completed Season, game receipt, job attempt log와 optional replay cache의 보존 기간/삭제 정책은 Save/Career 요구와 개인정보·용량 정책이 정해진 뒤 결정한다.
-
-## Additive API handoff
-
-### `V1_RECOMMENDATION`: endpoint
-
-기존 `/api/v1/series`, `/api/v1/player-drafts`, `/api/v1/real-matches`는 변경하지 않고 아래 namespace를 추가한다.
-
-| Method | Endpoint | 성공 |
-| --- | --- | --- |
-| `POST` | `/api/v1/ai-leagues` | `201/200` League create/idempotent replay |
-| `GET` | `/api/v1/ai-leagues/{leagueId}` | League view |
-| `POST` | `/api/v1/ai-leagues/{leagueId}/seasons` | `201/200` frozen Season/schedule |
-| `GET` | `/api/v1/ai-leagues/{leagueId}/seasons/{seasonId}` | Season, rounds, standings summary |
-| `POST` | `/api/v1/ai-leagues/{leagueId}/seasons/{seasonId}/simulation-jobs` | `202/200` start/resume job |
-| `GET` | `/api/v1/ai-leagues/{leagueId}/seasons/{seasonId}/simulation-jobs/{jobId}` | progress/error view |
-| `DELETE` | `/api/v1/ai-leagues/{leagueId}/seasons/{seasonId}/simulation-jobs/{jobId}` | `204` cancel dispatch |
-| `GET` | `/api/v1/ai-leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}` | compact fixture/game receipts |
-| `POST` | `/api/v1/ai-leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}/games/{gameNumber}/replay` | validated full match replay |
-
-### `V1_DECIDED`: request schema 핵심
-
-`AI_LEAGUE_CREATE_REQUEST_V1`은 `schemaVersion`, `displayName`, `memberTeamCodes`, `clientCommandId`만 받는다.
-
-`AI_LEAGUE_SEASON_CREATE_REQUEST_V1`은 다음 exact fields를 받는다.
-
-```text
-schemaVersion
-expectedLeagueRevision
-seasonLabel
-teamCodes
-seriesFormat                 // BO3 | BO5
-scheduleType                 // SINGLE_ROUND_ROBIN | DOUBLE_ROUND_ROBIN | CUSTOM
-customFixtures               // CUSTOM이 아니면 []
-rootSeed                     // canonical signed-long string
-standingsPolicyId
-clientCommandId
+```http
+POST /api/v1/leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}/player-series
+GET  /api/v1/leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}/player-series
+GET  /api/v1/leagues/{leagueId}/seasons/{seasonId}/fixtures/{fixtureId}/completion-status
 ```
 
-Custom fixture는 `fixtureKey`, `roundNumber`, `legNumber`, `teamACode`, `teamBCode`, `game1BlueTeamCode` exact fields를 갖는다.
+### Execution command 의미
 
-`AI_LEAGUE_SIMULATION_JOB_CREATE_REQUEST_V1`은 `schemaVersion`, `expectedSeasonRevision`, `mode`(`RUN_ALL` 또는 `RUN_NEXT_ROUND`), `clientCommandId`를 받는다. Worker count나 seed를 public request로 받지 않는다.
+- current round의 auto fixture 실행
+- spectator mode의 round/Season 실행
+- player-series start/resume
+- pause/cancel과 authoritative refresh
 
-### `V1_DECIDED`: response schema 핵심
+V1 `allowedCommands` closed set은 다음 의미를 포함한다.
 
-`AI_LEAGUE_SEASON_VIEW_V1`은 `leagueId`, `seasonId`, `revision`, `status`, `terminalReason`, frozen team/resource/schedule/seed/standings policy identity, `rounds`, compact `fixtures`, `standings`, `activeJob`, `progress`, `allowedCommands`, timestamps를 제공한다.
+- `START_PLAYER_SERIES`
+- `RESUME_PLAYER_SERIES`
+- `RUN_CURRENT_ROUND_AUTO_FIXTURES`
+- `VIEW_STANDINGS`
+- `VIEW_FIXTURE`
+- `REPLAY_GAME`
+- `PAUSE_SEASON`
+- `CANCEL_SEASON`
 
-`AI_LEAGUE_JOB_VIEW_V1`은 `jobId`, `seasonId`, `status`, `mode`, fixture totals(`scheduled`, `queued`, `running`, `completed`, `blocked`, `failedRetryable`), `attemptCount`, `createdAt`, `startedAt`, `lastHeartbeatAt`, `completedAt`, structured `failure`를 제공한다. Progress는 fixture 기준이며 gameplay 예상 완료 시간을 가장하지 않는다.
-
-`AI_LEAGUE_FIXTURE_VIEW_V1`은 schedule identity, fixture status, BO3/BO5 score/winner, ordered game compact result/receipt, fixture receipt와 replay availability를 제공한다.
-
-### `V1_DECIDED`: structured errors
-
-모든 오류는 `AI_LEAGUE_API_ERROR_V1`의 `code`, `field`, `message`, `retryable`, `currentLeagueRevision`, `currentSeasonRevision`, `currentStatus`를 사용한다.
-
-| HTTP | 대표 code |
-| --- | --- |
-| `400` | `AI_LEAGUE_INVALID_SCHEMA`, `AI_LEAGUE_INVALID_TEAM_SET`, `AI_LEAGUE_INVALID_SCHEDULE`, `AI_LEAGUE_INVALID_ROOT_SEED` |
-| `404` | `AI_LEAGUE_NOT_FOUND`, `AI_LEAGUE_SEASON_NOT_FOUND`, `AI_LEAGUE_FIXTURE_NOT_FOUND`, `AI_LEAGUE_JOB_NOT_FOUND` |
-| `409` | `AI_LEAGUE_STALE_REVISION`, `AI_LEAGUE_COMMAND_ID_PAYLOAD_CONFLICT`, `AI_LEAGUE_JOB_ALREADY_RUNNING`, `AI_LEAGUE_FIXTURE_LEASE_CONFLICT` |
-| `422` | `AI_LEAGUE_SIDE_BALANCE_VIOLATION`, `AI_LEAGUE_FIXTURE_BLOCKED`, `AI_LEAGUE_HARD_FEARLESS_POOL_EXHAUSTED` |
-| `500` | `AI_LEAGUE_REPLAY_RECEIPT_MISMATCH`, `AI_LEAGUE_STANDINGS_INTEGRITY_FAILED` |
-| `503` | `AI_LEAGUE_CAPACITY_REACHED` |
+Frontend가 winner, score, standings delta, seed, side 또는 completion receipt를 제출하는 endpoint는 만들지 않는다.
 
 ## Frontend handoff
 
-### `V1_RECOMMENDATION`
+Hybrid manager journey는 다음과 같다.
 
-- Season setup은 team set, format, schedule, root seed와 standings policy를 제출하고 server-frozen schedule preview를 다시 표시한다.
-- Dashboard는 backend `standings`, round/fixture status, job progress와 `allowedCommands`만 사용한다. 순위, score, Game 1 side와 다음 fixture를 재계산하지 않는다.
-- “전체 실행”은 job POST 한 번이고 페이지 reload는 Season/job ID로 GET 복구한다. Frontend가 fixture별 simulate loop를 돌리지 않는다.
-- Fixture detail은 compact evidence를 즉시 표시하고 사용자가 선택한 game만 explicit replay한다.
-- Strict runtime validator는 schema/enum/identity/standings algebra를 검증하고 unknown field/version은 fail closed한다.
-- Network/timeout 뒤에는 same `clientCommandId`와 authoritative GET으로 reconcile한다. Job이 이미 존재하면 새 job을 만들지 않는다.
-- `BLOCKED`, `FAILED_RETRYABLE`, `PAUSED`, `CANCELLED`를 서로 다른 actionable 상태로 노출하고 일반 오류 문구 하나로 합치지 않는다.
+```text
+League dashboard
+  -> round / standings / AI 진행 / 내 경기 확인
+  -> frozen managed fixture 시작 또는 재개
+  -> League-bound Series hub
+  -> 기존 Player Draft workspace / BO3 또는 BO5
+  -> server completion reconciliation
+  -> League dashboard
+```
+
+League-bound Series 화면은 상단 context에 Season, round, fixture, standings, 관리 팀/상대, Series score, Hard Fearless exclusions와 League 반영 상태를 표시한다. Standalone setup의 opponent/format/Game 1 side/root seed/profile 선택은 표시하지 않는다.
+
+Frontend는 League/Season/Fixture/Series ID pointer만 보관할 수 있다. reload 뒤 모든 score, history, binding, completion과 command capability는 server view로 재구성한다. Series가 완료됐지만 League 반영이 지연되면 로컬로 standings를 계산하지 않고 `COMPLETION_PENDING_VERIFICATION`을 보여 주며 status endpoint를 조회한다.
 
 ## Correctness matrix
 
-| 영역 | 최소 검증 |
-| --- | --- |
-| Schedule | N=2/홀수/짝수 single·double 수식, pair uniqueness, round collision, custom duplicate/unknown team |
-| Side | double mirror exact, single planned delta bound, custom imbalance rejection, BO3/BO5 game alternation |
-| Seed | canonical golden vectors, signed-long boundary, same input same seed, fixture/order/worker-count 독립성 |
-| AI Draft | 양쪽 AUTO 20턴, frozen resource identity, no Player authority, same-seed Draft exact |
-| Hard Fearless | decisive commit만 +10, failed/no-result +0, fixture 간 fresh history, BO3/BO5 pool boundary |
-| Series runner | score/winner/max games, no-decisive BLOCKED, duplicate game completion idempotency, receipt integrity |
-| Job | lease exclusivity, expiry/retry, late worker rejection, duplicate completion, pause/cancel boundary |
-| Persistence | crash after game checkpoint/fixture commit/standings commit 각 지점의 atomic recovery |
-| Parallelism | 1 worker 대 N workers complete receipt/standings hash exact equality |
-| Standings | win/loss/game algebra, duplicate fixture 0 delta, mini-league tie trace, deterministic final tie |
-| Replay | exact receipt equality, resource drift rejection, replay mutation 0, cache hit/miss equality |
-| API | exact schema, stale revisions, idempotent command replay, payload conflict, structured error/current state |
-| Frontend | reload recovery, one logical job, backend-authoritative standings, blocked/retry UX, explicit replay |
-| Regression | existing Series/Player Draft/Real Match API exact compatibility와 default test의 diagnostic exclusion |
+이 표는 구현 batch의 최소 focused verification 인계다. 이 문서 작업에서는 테스트를 실행하거나 추가하지 않는다.
 
-대형 round robin distribution/latency 관측은 explicit diagnostic task로 실행하고 deterministic correctness test에 승률 threshold를 넣지 않는다.
+| 영역 | 필수 시나리오 | Frozen expected result |
+|---|---|---|
+| Hybrid mapping | 관리 팀 포함/미포함 fixture, spectator mode, null/unknown/snapshot-mismatch managed team | mode와 managed team으로 execution mode가 exact 결정되고 생성 뒤 불변; invalid 조합은 freeze 전 거부 |
+| Batch exclusion | `RUN_NEXT_ROUND`/`RUN_ALL`, direct lease, 관리 경기만 남은 round | Player fixture는 queue/lease/AI attempt 0, `WAITING_FOR_PLAYER`는 failure 0, Player 완료 전 Round completion 0 |
+| Player binding | start, duplicate same command, payload tamper, reload/resume, cross-fixture/Season request와 receipt | 같은 command는 같은 Series를 반환하고 하나의 durable binding만 존재; team/format/side/root seed/resource 변조와 receipt 재사용 거부 |
+| Completion handoff | success, frontend winner/score 제출, cancel/blocked/no-decisive, crash before/after outbox, duplicate delivery, stale revision | verified completed server receipt만 반영; 나머지는 standings 0, canonical receipt 하나와 standings delta 최대 1회 |
+| Parity | 같은 fixture input의 AI/Player execution, execution mode 변경, instrumentation/worker 순서 변경 | side/seed/HF/wins/receipt/Production identity parity, mode가 fixture seed를 바꾸지 않고 관측/스케줄링이 gameplay Random을 바꾸지 않음; Draft decision equality는 요구하지 않음 |
+| BLOCKED | Hard Fearless/resource/receipt/domain/standings failure | 기존 standings 보존, 점수·winner·reseed·규칙 완화·tuning 없음 |
+| Persistence | server restart during auto/player/completion, stale/late worker result | Season/bound Series/Draft/receipt 복구, dangling binding 0, stale lease가 새 revision을 덮지 못하고 duplicate standings 0 |
+| Schedule/tie | 10-team DRR와 완전 동률 | 90 fixtures, mirrored leg side, canonical tie order |
 
-## 구현 batch
+## 구현 batch 인계
 
-1. `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCT_DECISION_FREEZE`
-   - points/tie resolution, custom side waiver, blocked fixture resolution, roster snapshot과 운영/retention 한도를 승인한다.
-2. `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_AND_SCHEDULE`
-   - pure League/Season/round/fixture values, schedule builder, seed chain, standings calculator와 golden tests를 구현한다.
-3. `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER`
-   - AI BO3/BO5, fixture-scoped Hard Fearless, compact receipt와 interactive Series parity-focused invariants를 구현한다.
-4. `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS`
-   - relational repository, optimistic revision, fixture lease/checkpoint, dispatcher/worker와 crash recovery를 구현한다.
-5. `AI_VS_AI_LEAGUE_SIMULATION_V1_API`
-   - additive controller/DTO/parser/error schema와 idempotent job/replay endpoint를 구현한다.
-6. `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND`
-   - setup/schedule preview/dashboard/standings/job recovery/fixture replay를 구현한다.
-7. `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCTION_ACCEPTANCE`
-   - focused/full regression, cross-worker determinism, bounded performance/capacity evidence와 운영 문서를 완결한다.
+| 순서 / task | Production surface | Non-goals | Prerequisite | Focused verification | Full regression | 상태 |
+|---|---|---|---|---|---|---|
+| 1. `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS` | pure domain aggregate, frozen decisions/config, schedule, side, seed, standings/tie | runner, DB, API, UI | 이 계약과 product decisions | 10-team schedule, mode mapping, side/seed, standings/mini-league/tie, duplicate receipt ledger domain tests | production Java 최종 tree에서 필요 | 미착수 |
+| 2. `AI_VS_AI_LEAGUE_SIMULATION_V1_AUTOMATED_SERIES_RUNNER` | immutable runner input, Auto Draft, Production V9, HF, unified receipt | player handoff, durable jobs | Batch 1 | BO3/BO5, parity, duplicate/ineligible Random, receipt integrity, fixture isolation | 필요 | 미착수 |
+| 3. `AI_VS_AI_LEAGUE_SIMULATION_V1_PLAYER_SERIES_HANDOFF` | durable binding port, League-bound Series/Draft completion | public winner/receipt submit, standalone Series migration | Batches 1~2 | start/resume, frozen context, no setup rewrite, outbox handoff, duplicate completion | 필요 | 미착수 |
+| 4. `AI_VS_AI_LEAGUE_SIMULATION_V1_PERSISTENCE_AND_JOBS` | relational adapters, lease/heartbeat/retry/outbox/recovery/retention | DB tuning, multi-region | Batches 1~3 | crash boundaries, stale lease, max attempts, cancellation, exactly-once standings | 필요 | 미착수 |
+| 5. `AI_VS_AI_LEAGUE_SIMULATION_V1_API` | additive League/Season/Fixture commands/views | existing API rename/removal | Batch 4 | exact schema, auth/ownership 정책 경계, stale revision/idempotency, no authority injection | 필요 | 미착수 |
+| 6. `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND` | dashboard, standings, batch progress, frozen player-Series handoff/reconciliation | local score authority, setup reselection | Batch 5 | route/reload/recovery, allowedCommands, accessibility, responsive LIVE journey | frontend build/contract 필요; backend production 미변경이면 backend full 불필요 | 미착수 |
+| 7. `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCTION_ACCEPTANCE` | end-to-end Hybrid/Spectator, restart, load/retention evidence | gameplay tuning | Batches 1~6 | correctness matrix 전체와 bounded operational acceptance | 최종 production tree에서 필요 | 미착수 |
 
-## 아직 확정되지 않은 제품 결정
+각 batch는 실제 변경 범위에 맞춰 [Testing Guide](../development/testing.md)와 repository verification 규칙을 따른다. 대규모 Season 통계와 성능 진단은 correctness unit test와 분리한다.
 
-`PRODUCT_DECISION_REQUIRED` 항목은 다음 다섯 가지다.
+## V1 non-goals와 남은 제한
 
-1. Season roster를 생성 시 동결할지 fixture 날짜별 roster version을 허용할지
-2. Custom schedule side imbalance의 reject/waiver 정책
-3. Blocked fixture의 forfeit/rematch/rule relaxation/draw 처리
-4. Points와 final tie를 draw/tiebreak fixture 중 무엇으로 끝낼지
-5. Season/team/parallelism/lease/retry와 receipt/job/replay retention 한도
+- 현재 production에는 League/Season aggregate, runner, DB, worker, API와 UI가 없다.
+- 현재 standalone Series는 계속 process-local이며 이 문서만으로 restart recovery가 생기지 않는다.
+- auth/ownership, DB 제품/schema, deployment topology는 후속 batch에서 구현 결정을 내린다.
+- custom schedule, side imbalance, playoff/tie-break fixture, managed fixture AI 위임과 Season 도중 관리 팀 변경은 V1 범위 밖이다.
+- optional full replay cache는 standings authority가 아니며 resource drift 뒤 재생을 보장하지 않는다.
+- 운영 한계는 동결됐지만 실제 load evidence는 Production acceptance 전까지 없다.
 
-이 결정을 고정하기 전에는 persistence schema와 public API를 구현하지 않는다.
+다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS`다.

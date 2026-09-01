@@ -172,7 +172,15 @@ Frontend contract/build/reference/bundle lane을 통과했고 backend production
 
 최종 보강은 backend가 보존하는 `CANCELLED Series / DRAFT_CANCELLED game / winner-null result+receipt`를 exact 허용하고 decisive/ACTIVE/non-current 조합은 거부한다. Simulate response-loss 뒤 GET에서 `COMMITTED`를 확인하면 복구 identity를 replay-only phase에 유지하므로 첫 replay가 다시 유실돼도 새 simulate command를 만들지 않는다. Production 화면이 사용하는 상태기 focused test는 simulate 1회, GET 1회, 동일 command ID의 replay 2회를 확인했다. Series/Player Draft contract, 118-module build, reference check/verify와 bundle verify가 clean했고 backend Java/API/schema는 변경하지 않았다.
 
-AI 대 AI League/Season은 아직 구현하지 않았다. Current Series/Draft/Match Engine audit를 바탕으로 fixture-level automated Series runner, durable Season aggregate, schedule/side/seed/standings/jobs/persistence/API/frontend handoff를 [AI vs AI League Simulation V1 Contract Sketch](architecture/ai-vs-ai-league-simulation-v1-contract-sketch.md)에 설계했다. 다음 경계는 `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCT_DECISION_FREEZE`다.
+### AI vs AI League Simulation V1 product decisions and Hybrid handoff
+
+상태는 `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCT_DECISIONS_FROZEN_AND_HYBRID_SEASON_CONTRACT_READY`다.
+
+Season mode는 정확히 한 관리 팀을 고정하는 `HYBRID_MANAGER`와 전 fixture 자동 실행인 `SPECTATOR_FULL_AUTO`로 동결했다. Hybrid에서 관리 팀 fixture는 항상 `PLAYER_CONTROLLED`이고 AI batch/lease에서 제외되며, 나머지만 League-owned `AutomatedSeriesRunner`의 `FULL_AUTO` 대상이다. 10팀 double round robin 90 fixtures BO3, mirrored leg Game 1 side, game별 side 교대, 승 1/패 0과 six-step tie-break, fail-closed `BLOCKED`, 병렬/lease/heartbeat/retry/retention 기본값도 [Product Decisions](architecture/ai-vs-ai-league-simulation-v1-product-decisions.md)에 고정했다.
+
+Player fixture는 server-owned durable `LeagueFixtureSeriesBinding`으로 기존 Series/Player Draft 화면에 들어가며 opponent, format, side와 seed를 다시 선택하지 않는다. AI와 Player 완료는 동일한 `LeagueFixtureCompletionReceiptV1`을 사용하고, transactional outbox와 idempotent League consumer가 standings를 최대 한 번 반영한다. Relational persistence는 Season/Fixture/Job/Lease/Binding/Receipt/outbox/application ledger를 소유하며 현재 process-local Series repository를 durable authority로 승격하지 않는다. 전체 aggregate/state/API/frontend/restart 계약과 correctness matrix는 [Hybrid Season Contract](architecture/ai-vs-ai-league-simulation-v1-contract-sketch.md)에 있다.
+
+이번 milestone은 문서 전용이다. League/Season production Java, API, worker, DB/migration과 frontend는 아직 구현하지 않았고 build/test/full regression/diagnostic을 실행하지 않았다. 다음 구현 task는 `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS`다.
 
 ### Player-controlled Draft Frontend V1
 
@@ -507,7 +515,7 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 ## Implemented
 
 - backend-valid no-decisive cancel evidence를 허용하고 committed 관측 뒤 replay-only identity를 유지하는 Series frontend 최종 계약
-- AI 대 AI League/Season의 aggregate, schedule, seed, standings, fixture job, compact replay와 additive API 구현 계약 sketch
+- Hybrid/Spectator Season mode, managed fixture batch exclusion, durable Player Series handoff, unified completion receipt, standings atomicity와 restart recovery까지 제품 결정을 동결한 AI League V1 구현 계약
 - versioned Champion Catalog/Power/Matchup/Composition/Jungle resources와 coherent manifest loading
 - `PlayerId` value object와 explicit 50-record identity resource/catalog
 - `PlayerRatingCatalog`의 기존 roster-key lookup 및 additive PlayerId dual lookup
@@ -556,7 +564,7 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 
 ## Partial / Disabled
 
-- AI 대 AI League/Season은 contract sketch만 준비됐고 production Java/API/worker/DB/frontend는 구현하지 않았다. 다섯 product decision을 먼저 고정해야 한다.
+- AI 대 AI League/Season은 제품 결정과 Hybrid handoff 계약까지 준비됐지만 production Java/API/worker/DB/frontend는 구현하지 않았다. 다음은 frozen policy를 code-owned identity로 옮기고 schedule/standings pure domain을 구현하는 Batch 1이다.
 - Real LCK Draft→Match flow는 Frontend V1-B의 기본 LIVE 공급자와 연결됐다. Reference는 명시적 회귀 모드로만 남고 자동 fallback하지 않는다.
 - Full response의 decoded JSON은 현재도 20–34MB지만 gzip wire body는 공식 외부 HTTP에서 약 1.88–2.79MB로 줄었다. JSON projection/streaming, parse·validation·heap을 분리하는 worker, 정확한 progress는 별도 후속 범위다.
 - Ban API entry에는 presentation metadata가 없어 frontend가 structured ChampionId에서 portrait asset을 보완한다.
@@ -577,7 +585,7 @@ Legacy `POST /api/matches/simulate`의 autowired simulator path는 lane/gank/roa
 2. ACTIVE session response의 full legal pool/advisory 재계산을 줄이는 `PLAYER_DRAFT_SESSION_PROJECTION_PERFORMANCE_HARDENING_V1`을 우선 검토하고, 이후 `PLAYER_DRAFT_AI_TURN_PERFORMANCE_HARDENING_V1`을 별도 진행한다.
 3. Activated production의 side별 winner, structure/Nexus progression, 경기 시간과 runtime integrity/validation 오류를 structured field로 관찰하고 Composition Nexus/ending 민감도를 검토한다.
 4. Wire gzip 이후에도 남은 20–34MB decoded JSON과 parse/validation/heap 비용을 줄이려면 compact projection, streaming 또는 worker parsing을 별도 additive 계약으로 설계한다.
-5. Series LIVE E2E/accessibility와 최종 복구 계약까지 완료됐다. 다음은 `AI_VS_AI_LEAGUE_SIMULATION_V1_PRODUCT_DECISION_FREEZE`에서 roster snapshot, custom side imbalance, blocked fixture, points/tie와 운영/retention 한도를 고정한다.
+5. AI League V1의 roster snapshot, schedule/side, standings/tie, BLOCKED, 운영/retention과 Hybrid Player Series handoff 결정은 동결됐다. 다음은 `AI_VS_AI_LEAGUE_SIMULATION_V1_DOMAIN_SCHEDULE_AND_STANDINGS`에서 code-owned policy identity, Season/Fixture domain, deterministic schedule/seed와 standings를 구현한다.
 6. Ban champion presentation/catalog를 additive API field로 제공해 frontend asset fallback을 제거한다.
 7. Economy를 변경하거나 Tempo V2를 설계한다면 이미 소비한 seed를 새 candidate의 검증 표본으로 재사용하지 말고 새 contract/calibration/holdout을 만든다.
 8. Objective eligibility/reward 직접 연결은 별도 설계·검증 전까지 보류한다.
