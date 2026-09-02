@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 @Component
 public final class PlayerRatingCatalog {
     private final String version;
+    private final String snapshotAt;
+    private final String dataCutoff;
     private final String resourceSha256;
     private final int teamCount;
     private final int startersPerTeam;
@@ -50,6 +52,8 @@ public final class PlayerRatingCatalog {
         Objects.requireNonNull(loaded, "loaded");
         this.identities = Objects.requireNonNull(identities, "identities");
         version = loaded.version();
+        snapshotAt = loaded.snapshotAt();
+        dataCutoff = loaded.dataCutoff();
         resourceSha256 = loaded.resourceSha256();
         teamCount = loaded.teamCount();
         startersPerTeam = loaded.startersPerTeam();
@@ -90,6 +94,8 @@ public final class PlayerRatingCatalog {
     }
 
     public String version() { return version; }
+    public String snapshotAt() { return snapshotAt; }
+    public String dataCutoff() { return dataCutoff; }
     public String resourceSha256() { return resourceSha256; }
     public int teamCount() { return teamCount; }
     public int startersPerTeam() { return startersPerTeam; }

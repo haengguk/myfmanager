@@ -857,6 +857,30 @@ Pre-Jungle V2 생성 당시 production source/resource/build guard는 456 files 
 
 Series final frontend contract는 `npm run series:verify`, `npm run player-draft:verify`, `npm run build`, `npm run reference:check`, `npm run reference:verify`, `npm run bundle:verify`를 clean pass했다. Build는 118 modules였고 reference raw SHA-256은 `977c7d6e015f4ebd5ecba8e24e7b95a0a6313fef2e1e69a2c396b4fab36ac15e`다. Backend executable source/resource/schema/Gradle을 바꾸지 않았고 Phase B는 문서 전용이므로 backend full regression과 large diagnostic은 실행하지 않았다.
 
+## Team and Player Information API V1
+
+공식 상태는 `TEAM_AND_PLAYER_INFORMATION_API_V1_ACCEPTED`다. Baseline HEAD
+`6f8fd41f3917a4f838ce4e15bdc36da1f3d66e94`에서 LCK current starter 10팀·50명의
+identity, authored rating 600개, sparse champion proficiency 732개, career history 248개,
+team achievement 154개, individual award 21개와 source 248개를 stable `PlayerId`로 결합한
+immutable read-only catalog와 additive `/api/v1/reference/leagues/LCK` HTTP API를 추가했다.
+Career aggregate는 runtime classpath에 원본 바이트 그대로 패키징했고 네 source raw SHA와
+subject/current binding을 fail-closed한다. Catalog hash는
+`4b5af4a49b5299b850015ea162be7e28543b1c4cb87e672120f84b26af815504`다.
+
+Focused verification은 14 suites / 90 tests, failures/errors/skipped 0으로 통과했다. LIVE 8767 smoke는
+metadata, 10 teams, 50 players, GEN 5명, Chovy detail, stable unknown errors, Real Match options 10/50,
+gzip/CORS/identity 의미 동등성을 확인했다. 같은 GEN–T1 seed 73의 Draft, timeline, Random 및 output과
+별도 Season/standings는 information 요청 전후 exact equality였다. Final executable tree의 complete
+backend regression은 첫 실행에서 266 suites / 2,362 tests / failures 0 / errors 0 / skipped 2,
+aggregate JUnit XML 1,285.281초, Gradle wall 21분 38초로 clean pass했다. 두 skip은 기존 explicit
+대형 diagnostic이다. 이후 문서만 갱신해 full regression을 반복하지 않았다.
+
+V1은 current LCK starters-only snapshot이며 다른 league, substitute, historical roster selection,
+시간 진행형 age/contract 계산, mutation/persistence/auth와 frontend는 포함하지 않는다. 다음 구현
+경계는 structured API만 소비하는 `TEAM_AND_PLAYER_INFORMATION_FRONTEND_V1`이다. 상세 계약은
+[Team and Player Information API V1](architecture/team-and-player-information-api-v1.md)을 따른다.
+
 테스트/diagnostic 실행 경계는 [Testing](development/testing.md), player contract는 [Player System](architecture/player-system.md)과 [Player Data Schema](reference/player-data-schema.md)를 참고한다.
 
 ## Last Updated

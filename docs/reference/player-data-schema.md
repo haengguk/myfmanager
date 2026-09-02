@@ -182,3 +182,35 @@ Match preflight는 양 팀 전체에서 non-null stable `PlayerId`가 중복되�
 - reachability report는 diagnostics이며 Draft weight나 data를 변경하지 않는다.
 
 Runtime wiring은 [Player System](../architecture/player-system.md)을 참고한다.
+
+## Team and Player Information Resource
+
+Reference API는 기존 identity/rating/proficiency resource를 변경하지 않고 다음 career aggregate를
+additive classpath resource로 결합한다.
+
+- path: `backend/src/main/resources/players/lck-player-career-contract-honors-2026-08-24-v1.json`
+- version: `lck-player-career-contract-honors-2026-08-24-v1`
+- snapshotAt: `2026-08-24`
+- raw SHA-256: `4e4f01fe72f68aca7dcb93afb72b43273201ce0daa7d63613f628597ff41ff19`
+- scope: LCK 10 teams × current starters 5, players 50, substitutes false
+- measured rows: team history 248, team achievements 154, individual awards 21, sources 248
+
+Player record는 stable `playerId`, current nickname/team/position/snapshot과 `personal`, `contract`,
+`career`, `honors`, `careerPrizeMoney`, ordered `sources`, `dataQuality`를 가진다. Loader는 raw SHA를
+먼저 확인하고 version/scope/semantics, unique/malformed ID, team-position coverage, snapshot age와
+contract days, required coverage 및 measured counts를 검증한다. 모든 current identity 결합은
+`PlayerId`로만 수행하며 nickname과 career history의 팀명은 join key가 아니다.
+
+API projection에서는 source의 `ageAsOfSnapshot`, `daysRemainingAsOfSnapshot`,
+`yearsActiveAsOfSnapshot`을 각각 `ageAtSnapshot`, `daysRemainingAtSnapshot`,
+`yearsActiveAtSnapshot`으로 명시한다. 이 값은 wall clock 기준으로 재계산하지 않는다. Team history,
+honors와 citation order 및 nullable end date/source URL은 source 그대로 보존한다. Prize money는
+approximate public tournament winnings이며 salary, bonus, buyout 또는 market value가 아니다.
+
+Rating projection은 `PlayerSkill.orderedForPosition` 순서의 authored 12개 값만 제공하고 OVR/CA를
+계산하지 않는다. Proficiency projection은 authored sparse entry만 value 내림차순과 `ChampionId`
+오름차순으로 제공하며 omitted legal role key의 neutral fallback 14 의미를 metadata로 분리한다.
+Champion presentation은 기존 `ChampionCatalog`를 사용한다.
+
+전체 endpoint와 catalog/error/hash 계약은
+[Team and Player Information API V1](../architecture/team-and-player-information-api-v1.md)을 따른다.

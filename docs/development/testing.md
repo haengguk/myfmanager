@@ -1150,3 +1150,52 @@ gradlew.bat test --no-daemon --console=plain
 Paired diagnostic와 artifact 생성은 명시적으로만 실행하며 default correctness test에서 대규모 표본을 만들지 않는다. Artifact는 `backend/build/reports/player-draft-performance-hardening-v1/`에 두고 historical profiling report는 덮어쓰지 않는다. 자세한 설계와 acceptance는 [Player Draft performance hardening V1](player-draft-interactive-and-simulation-performance-hardening-v1.md)에 있다.
 
 최종 focused 경계는 7 suites / 44 tests를 clean pass했고, frontend contract 33 scenarios와 production build 101 modules도 통과했다. Final executable tree의 complete backend regression은 첫 실행에서 238 suites / 2,274 tests / failures 0 / errors 0 / skipped 2, aggregate XML 871.674초와 Gradle wall 14분 43초로 통과했다. 두 skip은 explicit 환경 변수로만 실행하는 latency profiling/performance paired diagnostic이며 correctness 누락이 아니다. Full 뒤에는 executable production tree를 바꾸지 않았다.
+
+### Team and Player Information API V1
+
+Career raw SHA/count, four-catalog `PlayerId` join, deterministic HTTP와 기존 gameplay 비영향은 다음
+focused lane으로 검증한다.
+
+```text
+gradlew.bat test \
+  --tests com.lolfm.reference.PlayerCareerResourceLoaderTest \
+  --tests com.lolfm.reference.TeamPlayerInformationCatalogTest \
+  --tests com.lolfm.reference.TeamPlayerInformationCrossJvmTest \
+  --tests com.lolfm.controller.TeamPlayerInformationApiV1ControllerTest \
+  --tests com.lolfm.controller.TeamPlayerInformationApiV1ErrorBoundaryTest \
+  --tests com.lolfm.controller.TeamPlayerInformationTransportIntegrationTest \
+  --tests com.lolfm.application.TeamPlayerInformationGameplayIsolationTest \
+  --tests com.lolfm.player.PlayerIdentityCatalogTest \
+  --tests com.lolfm.player.PlayerRatingCatalogTest \
+  --tests com.lolfm.player.ChampionProficiencyCatalogTest \
+  --tests com.lolfm.player.ChampionProficiencyResourceLoaderRejectionTest \
+  --tests com.lolfm.player.LckTeamAssemblerTest \
+  --tests com.lolfm.controller.RealMatchApiV1ControllerTest \
+  --tests com.lolfm.application.MatchEngineV1ContractTest \
+  --console=plain --no-daemon
+```
+
+최종 focused 결과는 14 suites / 90 tests / failures 0 / errors 0 / skipped 0,
+aggregate JUnit XML 90.608초, Gradle wall 1분 44초다. SHA/version/scope, 10팀·50명과
+career 248/154/21/248, duplicate/missing/unknown/malformed ID, current binding mismatch,
+rating 600개와 OVR/CA 부재, proficiency 732개/neutral 1,428개, snapshot/null/date precision,
+same-process와 두 fresh JVM byte identity, 전체 endpoint/error/query/gzip, GEN/Chovy route identity,
+Real Match options 10/50, Season/standings mutation 0과 GEN–T1 seed 73의 Draft/timeline/Random/output
+exact parity를 포함한다.
+
+LIVE smoke는 caller-owned 8767 port와 별도 in-memory H2를 사용한다. 이 환경의 기본 file H2 URL은
+기존 `AUTO_SERVER=TRUE;DB_CLOSE_ON_EXIT=FALSE` 조합을 H2가 지원하지 않아 application context 전에
+중단됐고, 설정 파일을 바꾸거나 같은 실패 명령을 반복하지 않았다. In-memory datasource override로
+실제 production application을 실행한 뒤 metadata, teams, players, GEN, Chovy, unknown team/player와
+기존 Real Match options를 HTTP로 확인했다. Catalog hash는
+`4b5af4a49b5299b850015ea162be7e28543b1c4cb87e672120f84b26af815504`였고 Chovy detail
+identity JSON은 10,596자였다. `Content-Encoding: gzip`, `Vary`의 `accept-encoding`, CORS와
+gzip/identity JSON 의미 동등성이 통과했다. Smoke 종료 후 caller-owned server PID만 종료했다.
+
+최종 executable production tree의 complete backend regression은 첫 실행에서 266 suites / 2,362 tests /
+failures 0 / errors 0 / skipped 2, aggregate JUnit XML 1,285.281초, Gradle wall 21분 38초로
+clean pass했다. 두 skip은 기존 explicit 대형 diagnostic이며 이번 API correctness 누락이 아니다.
+이후에는 문서만 갱신했으므로 full regression을 반복하지 않았다.
+
+Frontend source는 변경하지 않으므로 frontend build/Playwright는 실행하지 않는다. 90-fixture Season,
+balance/calibration/holdout와 대형 statistical diagnostic도 실행하지 않는다.

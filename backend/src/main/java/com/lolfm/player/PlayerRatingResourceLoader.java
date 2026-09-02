@@ -24,6 +24,8 @@ import java.util.Set;
 public final class PlayerRatingResourceLoader {
     public static final String RESOURCE = "/players/lck-player-ratings-2026-08-19-v1.json";
     public static final String VERSION = "lck-player-ratings-2026-08-19-v1";
+    public static final String SNAPSHOT_AT = "2026-08-19T02:57:00+09:00";
+    public static final String DATA_CUTOFF = "2026-08-16";
     public static final String EXPECTED_SHA256 =
             "2312a8bc7d222fd63b57d1255210fb25104432a90a954d854b2090cc2acb28e0";
 
@@ -73,7 +75,8 @@ public final class PlayerRatingResourceLoader {
                         .thenComparingInt(value -> value.position().ordinal()))
                 .toList();
         return new LoadedResource(
-                raw.version(), sha256, raw.scope().teams(), raw.scope().startersPerTeam(),
+                raw.version(), raw.snapshotAt(), raw.dataCutoff(), sha256,
+                raw.scope().teams(), raw.scope().startersPerTeam(),
                 raw.scope().players(), raw.scope().substitutesIncluded(),
                 raw.semantics().commonAttributeCount(), raw.semantics().roleSpecificAttributeCount(),
                 raw.semantics().activeAttributesPerPlayer(), List.copyOf(ordered));
@@ -116,6 +119,9 @@ public final class PlayerRatingResourceLoader {
     private static void validateEnvelope(RawResource raw) {
         if (raw == null) throw new IllegalStateException("Player rating resource is empty");
         if (!VERSION.equals(raw.version())) throw new IllegalStateException("Unsupported player rating version: " + raw.version());
+        if (!SNAPSHOT_AT.equals(raw.snapshotAt()) || !DATA_CUTOFF.equals(raw.dataCutoff())) {
+            throw new IllegalStateException("Player rating snapshot/data cutoff mismatch");
+        }
         if (raw.scale() == null || raw.scale().min() != PlayerRatings.MIN || raw.scale().max() != PlayerRatings.MAX) {
             throw new IllegalStateException("Player rating scale must be exactly 1..20");
         }
@@ -200,6 +206,8 @@ public final class PlayerRatingResourceLoader {
 
     public record LoadedResource(
             String version,
+            String snapshotAt,
+            String dataCutoff,
             String resourceSha256,
             int teamCount,
             int startersPerTeam,

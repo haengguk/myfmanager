@@ -32,6 +32,8 @@ class PlayerRatingCatalogTest {
     void playerRatingResourceVersionIsExact() {
         assertThat(CATALOG.version()).isEqualTo(PlayerRatingResourceLoader.VERSION);
         assertThat(CATALOG.version()).isEqualTo("lck-player-ratings-2026-08-19-v1");
+        assertThat(CATALOG.snapshotAt()).isEqualTo(PlayerRatingResourceLoader.SNAPSHOT_AT);
+        assertThat(CATALOG.dataCutoff()).isEqualTo(PlayerRatingResourceLoader.DATA_CUTOFF);
         assertThat(CATALOG.substitutesIncluded()).isFalse();
     }
 
