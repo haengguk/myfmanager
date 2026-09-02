@@ -4,7 +4,7 @@
 
 ## AI vs AI League Simulation V1 frontend
 
-상태는 `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND_ACCEPTED`다.
+상태는 `AI_VS_AI_LEAGUE_FRONTEND_RECOVERY_AND_SOURCE_HYGIENE_HARDENED_READY_FOR_LONG_RUNNING_E2E`다.
 
 기존 AppShell의 competition 진입점에 실제 League workspace를 연결했다. Hybrid/Spectator 생성,
 authoritative 10 teams, 18 rounds/90 BO3 fixtures, standings/current Round, job 상태, 일정 filter와 fixture
@@ -12,19 +12,35 @@ inspector를 제공한다. Hybrid 관리 경기는 server-issued bound Series ID
 Production V9 화면에 들어가며 League/round/matchup 문맥을 reload 뒤에도 복원한다. Winner, score,
 standings delta, seed/history/receipt는 frontend가 계산하거나 제출하지 않는다.
 
+Frontend recovery hardening은 기존 one-shot fixture ref를 제거하고 `IDLE`, candidate, reconcile,
+poll, retry-wait, applied/terminal/aborted 상태를 가진 단일 operation owner를 연결했다. TIMEOUT,
+network, retryable 503와 response loss는 League/Season/fixture/binding/revision에 결속한 같은 completion
+UUID를 보존하고 authoritative GET을 먼저 확인한다. 자동/수동 trigger는 같은 in-flight 작업을
+공유하며 pending 해제, 다음 fixture와 remount를 재평가한다. 서버가 이미 적용해 reconcile command가
+사라진 fixture도 저장된 fixture/binding identity로 POST 없이 정리한다. 성공 표시는
+`standingsApplied=true`와 authoritative Season/fixture refresh 뒤에만 이루어진다.
+
 Phase A는 durable run command 최초/exact replay의 worker pump wake-up, submit false retryable 503과
 authoritative child Series 상태별 resume/reconcile command projection만 보강했다. Background enabled
 integration은 public 202 뒤 Round 1의 다섯 job이 attempt 1 `COMPLETED`, standings revision 5가 되는
 것을 확인했다. 기존 startup no-auto-gameplay, fencing/exactly-once와 frozen product/Production V9/
 gameplay Random 의미는 유지했다.
 
-League/Player Draft/Series/reference/bundle frontend 계약과 132-module production build가 clean pass했다.
+League/Player Draft/Series/reference/bundle frontend 계약, completion recovery 14 scenarios와 133-module
+production build가 clean pass했다. Controlled browser에서는 503 same UUID retry, commit 뒤 response
+loss의 추가 POST 0, applied command remount의 POST 0을 확인했고 성공 뒤 command/error 정리도 확인했다.
 Isolated LIVE browser에서 Hybrid 10/18/90, 18 Player/72 Auto, 실제 Auto terminal/standings/reload,
 managed GEN–HLE Series handoff/reload/return, 별도 Spectator pause/resume/cancel을 확인했다. 1440×900과
 1280×720 page overflow 0, modal keyboard focus, reduced-motion과 clean console/page/runtime validation
 error 0을 확인했다. 최종 backend full은 259 suites / 2,336 tests / failures 0 / errors 0 / skipped 2,
 aggregate XML 1,122.363초, `BUILD SUCCESSFUL`, Gradle wall 18분 47초다. 상세 내용은
 [AI League Frontend V1](development/ai-vs-ai-league-simulation-v1-frontend.md)에 있다.
+
+Historical tracked build state였던 `frontend/dist/index.html`과
+`frontend/tsconfig.app.tsbuildinfo`는 기존 ignore 규칙을 유지하고 deletion diff로 source tracking에서
+제거한다. Backend production/API/gameplay/Random은 변경하지 않았으며 이번 browser 검증은 90경기
+전체 Season이나 Player BO3 장시간 LIVE 완주가 아니다. 다음 단계는
+`AI_VS_AI_LEAGUE_PLAYER_BO3_TO_NEXT_ROUND_LONG_RUNNING_LIVE_E2E`다.
 
 ## AI vs AI League Simulation V1 API and job-boundary hardening
 

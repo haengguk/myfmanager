@@ -4,6 +4,7 @@ import type { LeagueFixtureViewDto, LeagueJobViewDto, LeaguePlayerSeriesViewDto,
 import { LeagueCancelDialog } from './LeagueCancelDialog';
 import { createLeagueRequest, LeagueCreation, type LeagueCreateSelection } from './LeagueCreation';
 import { LeagueDashboard } from './LeagueDashboard';
+import { LeagueCompletionReconciler, selectLeagueCompletionCandidate, type LeagueCompletionTarget, type LeagueCompletionTrigger } from './leagueCompletionReconciliation';
 import { isAmbiguousLeagueFailure, logicalLeagueCommand, seasonCommandApplied, shouldApplyLeagueSeason } from './leagueCommandReconciliation';
 import { clearLeaguePointer, leaguePointerRecoveryAction, readLeaguePointer, updateLeagueCommand, writeLeaguePointer, type LeagueCommandRef, type LeaguePointer } from './league.pointer';
 
@@ -18,12 +19,14 @@ function failureCopy(error: unknown): string { return error instanceof LeagueApi
 export function LeaguePage({ onOpenSeries, onNotify }: { onOpenSeries: (playerSeries: LeaguePlayerSeriesViewDto, fixture: LeagueFixtureViewDto) => void; onNotify: (title: string, message: string) => void }) {
   const [pointer, setPointerState] = useState<LeaguePointer | null>(() => readLeaguePointer(window.sessionStorage));
   const [season, setSeason] = useState<LeagueSeasonViewDto | null>(null); const [fixtures, setFixtures] = useState<readonly LeagueFixtureViewDto[]>([]); const [jobs, setJobs] = useState<ReadonlyMap<string, LeagueJobViewDto>>(() => new Map());
-  const [loading, setLoading] = useState(Boolean(pointer)); const [pending, setPending] = useState<string | null>(null); const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(Boolean(pointer)); const [pending, setPending] = useState<string | null>(null); const [error, setError] = useState<string | null>(null); const [completionWake, setCompletionWake] = useState(0);
   const [cancelOpen, setCancelOpen] = useState(false); const [cancelReturnFocus, setCancelReturnFocus] = useState<HTMLElement | null>(null);
-  const requestRef = useRef<AbortController | null>(null); const pollRef = useRef<AbortController | null>(null); const restoreRunRef = useRef(false); const autoReconcileRef = useRef<string | null>(null);
+  const requestRef = useRef<AbortController | null>(null); const pollRef = useRef<AbortController | null>(null); const restoreRunRef = useRef(false); const completionRef = useRef(new LeagueCompletionReconciler()); const completionUnmountTimerRef = useRef<number | null>(null);
+  const pointerRef = useRef(pointer); const seasonRef = useRef(season); pointerRef.current = pointer; seasonRef.current = season;
   const createDraftRef = useRef<CreateDraft | null>(readCreateDraft());
   const setPointer = useCallback((next: LeaguePointer | null) => { setPointerState(next); if (next) writeLeaguePointer(window.sessionStorage, next); else clearLeaguePointer(window.sessionStorage); }, []);
   const setCommand = useCallback((command: LeagueCommandRef | null) => { setPointerState((current) => current ? updateLeagueCommand(window.sessionStorage, current, command) : current); }, []);
+  const clearCompletionCommand = useCallback((command: LeagueCommandRef) => { setPointerState((current) => current?.command?.clientCommandId === command.clientCommandId ? updateLeagueCommand(window.sessionStorage, current, null) : current); }, []);
   const applySeason = useCallback((next: LeagueSeasonViewDto) => setSeason((current) => shouldApplyLeagueSeason(current, next) ? next : current), []);
 
   const loadJobs = useCallback(async (scope: LeaguePointer, values: readonly LeagueFixtureViewDto[], currentRound: number, signal: AbortSignal) => {
@@ -35,6 +38,35 @@ export function LeaguePage({ onOpenSeries, onNotify }: { onOpenSeries: (playerSe
     const [seasonResponse, fixtureResponse] = await Promise.all([getLeagueSeason(scope, signal), getLeagueFixtures(scope, signal)]);
     applySeason(seasonResponse.season); setFixtures((current) => fixtureResponse.standingsRevision >= (season?.standingsRevision ?? -1) ? fixtureResponse.fixtures : current); await loadJobs(scope, fixtureResponse.fixtures, seasonResponse.season.currentRound, signal); return { season: seasonResponse.season, fixtures: fixtureResponse.fixtures };
   }, [applySeason, loadJobs, season?.standingsRevision]);
+
+  const reconcilePlayerSeries = useCallback((fixture: LeagueFixtureViewDto, trigger: LeagueCompletionTrigger, blockedByOperation: string | null = null) => {
+    const currentPointer = pointerRef.current; const currentSeason = seasonRef.current;
+    if (!currentPointer || !currentSeason) return Promise.resolve('NO_OP' as const);
+    if (!fixture.bindingHash) { setError('완료 반영에 필요한 binding hash가 없습니다.'); return Promise.resolve('TERMINAL_FAILURE' as const); }
+    const target: LeagueCompletionTarget = { leagueId: currentPointer.leagueId, seasonId: currentPointer.seasonId, fixtureId: fixture.fixtureId, bindingHash: fixture.bindingHash, expectedRevision: currentSeason.lifecycleRevision };
+    return completionRef.current.reconcileIfAvailable(target, trigger, blockedByOperation, {
+      readCommand: () => pointerRef.current?.command ?? null,
+      saveCommand: setCommand,
+      clearCommand: clearCompletionCommand,
+      postCompletion: (scope, command, signal) => completeLeaguePlayerSeries(scope, { schemaVersion: 'AI_LEAGUE_PLAYER_COMPLETION_COMMAND_V1', expectedLifecycleRevision: command.expectedRevision!, clientCommandId: command.clientCommandId, bindingHash: scope.bindingHash }, signal),
+      getCompletion: (scope, signal) => getLeagueCompletion(scope, signal),
+      refreshAuthoritativeViews: async (signal) => { const scope = pointerRef.current; if (!scope || scope.leagueId !== target.leagueId || scope.seasonId !== target.seasonId) throw new LeagueApiFailure('CONTRACT', 'League completion scope가 변경되었습니다.'); await refresh(scope, signal); },
+      wait,
+      isVisible: () => !document.hidden,
+      onStateChange: (snapshot) => {
+        const active = ['CANDIDATE_DISCOVERED', 'RECONCILING', 'POLLING'].includes(snapshot.state);
+        setPending((current) => active ? 'COMPLETE_PLAYER_SERIES' : current === 'COMPLETE_PLAYER_SERIES' ? null : current);
+        if (snapshot.state === 'CANDIDATE_DISCOVERED') setError(null);
+      },
+      onRecoverableFailure: (failure, exhausted) => setError(exhausted ? `${failureCopy(failure)} 자동 확인은 잠시 멈췄습니다. 새로고침하거나 완료 결과 반영을 눌러 같은 작업으로 다시 확인하세요.` : `${failureCopy(failure)} 같은 완료 작업으로 서버 상태를 다시 확인합니다.`),
+      onTerminalFailure: (failure) => setError(failureCopy(failure)),
+      onNotFound: (failure) => {
+        if (failure.code === 'LEAGUE_SEASON_NOT_FOUND') { setPointer(null); setSeason(null); setFixtures([]); }
+        else setError(failureCopy(failure));
+      },
+      onApplied: () => { setError(null); onNotify('Player Series 결과 반영', '검증된 Series 결과를 순위표에 한 번만 반영했습니다.'); },
+    });
+  }, [clearCompletionCommand, onNotify, refresh, setCommand, setPointer]);
 
   useEffect(() => {
     if (!pointer) { setLoading(false); return; }
@@ -68,13 +100,22 @@ export function LeaguePage({ onOpenSeries, onNotify }: { onOpenSeries: (playerSe
     return () => controller.abort();
   }, [onNotify, pointer?.leagueId, pointer?.seasonId, pollKey, refresh, season?.currentRound, setCommand]);
 
+  const completionCandidate = selectLeagueCompletionCandidate(fixtures, pointer?.command ?? null);
+  const completionCandidateKey = completionCandidate ? `${completionCandidate.fixtureId}:${completionCandidate.revision}:${completionCandidate.bindingHash ?? ''}:${season?.lifecycleRevision ?? -1}` : '';
   useEffect(() => {
-    if (!season || !pointer || pending) return; const candidate = fixtures.find((fixture) => fixture.allowedCommands.includes('RECONCILE_PLAYER_SERIES_COMPLETION')); if (!candidate || autoReconcileRef.current === candidate.fixtureId) return; autoReconcileRef.current = candidate.fixtureId; void handlePlayerSeries(candidate);
-    // handlePlayerSeries intentionally uses the newest render state and is guarded by fixture ID.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fixtures, pointer?.seasonId, season?.standingsRevision]);
+    if (!season || !pointer || !completionCandidate) return;
+    void reconcilePlayerSeries(completionCandidate, 'AUTO', pending);
+  }, [completionCandidateKey, completionWake, pending, pointer?.leagueId, pointer?.seasonId, reconcilePlayerSeries, season, completionCandidate]);
 
-  useEffect(() => () => { requestRef.current?.abort(); pollRef.current?.abort(); }, []);
+  useEffect(() => {
+    if (completionUnmountTimerRef.current !== null) { window.clearTimeout(completionUnmountTimerRef.current); completionUnmountTimerRef.current = null; }
+    const onVisibility = () => { if (document.hidden) completionRef.current.abort(); else { completionRef.current.releaseRetryWait(); setCompletionWake((value) => value + 1); } };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility); requestRef.current?.abort(); pollRef.current?.abort();
+      completionUnmountTimerRef.current = window.setTimeout(() => { completionRef.current.abort(); completionUnmountTimerRef.current = null; }, 0);
+    };
+  }, []);
 
   const create = async (selection: LeagueCreateSelection) => {
     if (pending) return; const prior = createDraftRef.current; const draft = prior && createKey(prior.selection) === createKey(selection) ? prior : { selection, clientCommandId: crypto.randomUUID() }; createDraftRef.current = draft; window.sessionStorage.setItem(CREATE_DRAFT_KEY, JSON.stringify(draft)); const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller; setPending('CREATE'); setError(null);
@@ -98,12 +139,11 @@ export function LeaguePage({ onOpenSeries, onNotify }: { onOpenSeries: (playerSe
   };
 
   async function handlePlayerSeries(fixture: LeagueFixtureViewDto) {
-    if (!pointer || !season || pending) return; const reconcile = fixture.allowedCommands.includes('RECONCILE_PLAYER_SERIES_COMPLETION'); const kind = reconcile ? 'COMPLETE_PLAYER_SERIES' : 'START_PLAYER_SERIES'; const command = logicalLeagueCommand(pointer.command, { kind, scopeKey: fixture.fixtureId, expectedRevision: season.lifecycleRevision, bindingHash: reconcile ? fixture.bindingHash : null }); setCommand(command); const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller; setPending(kind); setError(null); const scope = { ...pointer, fixtureId: fixture.fixtureId };
+    if (!pointer || !season || pending) return; const reconcile = fixture.allowedCommands.includes('RECONCILE_PLAYER_SERIES_COMPLETION');
+    if (reconcile) { await reconcilePlayerSeries(fixture, 'MANUAL'); return; }
+    const kind = 'START_PLAYER_SERIES'; const command = logicalLeagueCommand(pointer.command, { kind, scopeKey: fixture.fixtureId, expectedRevision: season.lifecycleRevision, bindingHash: null }); setCommand(command); const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller; setPending(kind); setError(null); const scope = { ...pointer, fixtureId: fixture.fixtureId };
     try {
-      if (!reconcile) { let response; try { response = await startLeaguePlayerSeries(scope, { schemaVersion: 'AI_LEAGUE_PLAYER_SERIES_COMMAND_V1', expectedLifecycleRevision: command.expectedRevision!, clientCommandId: command.clientCommandId }, controller.signal); } catch (cause) { if (!(cause instanceof LeagueApiFailure) || !isAmbiguousLeagueFailure(cause)) throw cause; response = await getLeaguePlayerSeries(scope, controller.signal); } setCommand(null); onOpenSeries(response.playerSeries, fixture); return; }
-      if (!fixture.bindingHash) throw new LeagueApiFailure('CONTRACT', '완료 반영에 필요한 binding hash가 없습니다.'); let completion = await completeLeaguePlayerSeries(scope, { schemaVersion: 'AI_LEAGUE_PLAYER_COMPLETION_COMMAND_V1', expectedLifecycleRevision: command.expectedRevision!, clientCommandId: command.clientCommandId, bindingHash: fixture.bindingHash }, controller.signal);
-      for (let index = 0; !completion.completion.standingsApplied && index < 30; index += 1) { await wait(index < 2 ? 400 : 1000, controller.signal); completion = await getLeagueCompletion(scope, controller.signal); }
-      if (!completion.completion.standingsApplied) throw new LeagueApiFailure('TIMEOUT', '완료 증거는 접수됐지만 순위 반영 확인이 계속 진행 중입니다.'); setCommand(null); await refresh(pointer, controller.signal); onNotify('Player Series 결과 반영', '검증된 Series 결과를 순위표에 한 번만 반영했습니다.');
+      let response; try { response = await startLeaguePlayerSeries(scope, { schemaVersion: 'AI_LEAGUE_PLAYER_SERIES_COMMAND_V1', expectedLifecycleRevision: command.expectedRevision!, clientCommandId: command.clientCommandId }, controller.signal); } catch (cause) { if (!(cause instanceof LeagueApiFailure) || !isAmbiguousLeagueFailure(cause)) throw cause; response = await getLeaguePlayerSeries(scope, controller.signal); } setCommand(null); onOpenSeries(response.playerSeries, fixture);
     } catch (cause) { setError(failureCopy(cause)); if (!(cause instanceof LeagueApiFailure) || !isAmbiguousLeagueFailure(cause)) setCommand(null); }
     finally { if (requestRef.current === controller) requestRef.current = null; setPending(null); }
   }
@@ -117,5 +157,5 @@ export function LeaguePage({ onOpenSeries, onNotify }: { onOpenSeries: (playerSe
 
   if (loading && !season) return <main className="lg-loading" aria-live="polite"><span className="lg-spinner" aria-hidden="true" /><strong>저장된 AI 리그 시즌 확인 중</strong><p>로컬 점수 대신 서버의 최신 revision을 불러옵니다.</p></main>;
   if (!pointer || !season) return <LeagueCreation pending={pending === 'CREATE'} initial={createDraftRef.current?.selection ?? null} error={error} onCreate={(selection) => { void create(selection); }} />;
-  return <><LeagueDashboard season={season} fixtures={fixtures} jobs={jobs} pending={pending} error={error} onRunRound={() => { void runRound(); }} onPause={() => { void runCommand('PAUSE'); }} onResume={() => { void runCommand('RESUME'); }} onCancel={(target) => { setCancelReturnFocus(target); setCancelOpen(true); }} onRefresh={() => { const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller; setPending('REFRESH'); setError(null); void refresh(pointer, controller.signal).catch((cause) => setError(failureCopy(cause))).finally(() => { if (requestRef.current === controller) requestRef.current = null; setPending(null); }); }} onNewSeason={() => { pollRef.current?.abort(); setPointer(null); setSeason(null); setFixtures([]); setJobs(new Map()); restoreRunRef.current = false; }} onPlayerSeries={(fixture) => { void handlePlayerSeries(fixture); }} /><LeagueCancelDialog open={cancelOpen} pending={pending === 'CANCEL'} returnFocus={cancelReturnFocus} onClose={() => { if (pending !== 'CANCEL') setCancelOpen(false); }} onConfirm={() => { void confirmCancel(); }} /></>;
+  return <><LeagueDashboard season={season} fixtures={fixtures} jobs={jobs} pending={pending} error={error} onRunRound={() => { void runRound(); }} onPause={() => { void runCommand('PAUSE'); }} onResume={() => { void runCommand('RESUME'); }} onCancel={(target) => { setCancelReturnFocus(target); setCancelOpen(true); }} onRefresh={() => { const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller; completionRef.current.releaseRetryWait(); setPending('REFRESH'); setError(null); void refresh(pointer, controller.signal).catch((cause) => setError(failureCopy(cause))).finally(() => { if (requestRef.current === controller) requestRef.current = null; setPending(null); setCompletionWake((value) => value + 1); }); }} onNewSeason={() => { pollRef.current?.abort(); completionRef.current.abort(); setPointer(null); setSeason(null); setFixtures([]); setJobs(new Map()); restoreRunRef.current = false; }} onPlayerSeries={(fixture) => { void handlePlayerSeries(fixture); }} /><LeagueCancelDialog open={cancelOpen} pending={pending === 'CANCEL'} returnFocus={cancelReturnFocus} onClose={() => { if (pending !== 'CANCEL') setCancelOpen(false); }} onConfirm={() => { void confirmCancel(); }} /></>;
 }

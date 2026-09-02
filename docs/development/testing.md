@@ -20,6 +20,38 @@ cd backend
 
 Focused correctness test는 큰 seed sample이나 분포 목표가 아니라 formula boundary, state transition, duplicate protection, Random non-consumption, structured event를 검증해야 한다.
 
+### AI League frontend completion recovery
+
+Player Series 완료 반영의 production 상태기는 다음 frontend lane으로 검증한다.
+
+```bash
+cd frontend
+npm run league:verify
+npm run player-draft:verify
+npm run series:verify
+npm run reference:check
+npm run reference:verify
+npm run bundle:verify
+npm run build
+```
+
+`league:verify`는 strict League DTO/10팀·18라운드·90경기 계약에 더해 production
+`LeagueCompletionReconciler`를 직접 실행한다. completion-ready POST/poll/apply, response loss의
+GET-first 확인, TIMEOUT/503 same UUID, polling 소진 뒤 수동 재개, non-retryable stop, pending
+fallthrough, 자동/수동 single in-flight, unmount abort, remount POST 0, advertised command가 사라진
+applied fixture 복구, stale binding 분리, 다음 fixture, NOT_FOUND 경계를 deterministic 14개
+시나리오로 검증한다. 테스트 전용으로 복제한 reconciliation 알고리즘은 사용하지 않는다.
+
+Controlled Playwright 검증은 실제 `LeaguePage`에 transport interception만 적용했다. 첫 503은 같은
+UUID의 POST 2회/GET 1회, commit 뒤 response loss는 POST 1회/GET 1회, applied command remount는
+POST 0회/GET 1회였고 모두 authoritative refresh 뒤 command와 오류가 정리됐다. 별도 clean page의
+1440×900·1280×720 horizontal overflow, console/page error와 keyboard focus도 확인했다. 이는 mock-only
+LIVE E2E 또는 90경기/Player BO3 장시간 완주로 부르지 않는다.
+
+이 milestone은 frontend production source만 변경하므로 backend full regression을 반복하지 않고
+기존 clean `259 suites / 2,336 tests / failures 0 / errors 0 / skipped 2`를 재사용한다. Build가 만드는
+tracked historical output 두 파일은 검증 뒤 삭제 상태로 돌려놓고 그 후 build를 다시 실행하지 않는다.
+
 ### AI League V1 domain, schedule and standings
 
 Batch 1 pure domain은 다음 focused lane으로 검증한다.

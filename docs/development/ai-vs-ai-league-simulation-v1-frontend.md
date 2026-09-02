@@ -2,12 +2,53 @@
 
 ## Status
 
-`AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND_ACCEPTED`
+`AI_VS_AI_LEAGUE_FRONTEND_RECOVERY_AND_SOURCE_HYGIENE_HARDENED_READY_FOR_LONG_RUNNING_E2E`
 
-기준 HEAD는 `ca7317ec09f04874dca348bc8e56f83c07d544e2`다. 기존 Inbox, AUTO Real Match,
+복구 보강의 기준 HEAD는 `a548333c4ac196cdb8f3d7c1b5c5ee5482c91390`다. 기존 Inbox, AUTO Real Match,
 standalone Player Draft, standalone BO3/BO5 Series와 League API의 공개 필드는 유지했다. Frozen
 product decision hash, Production V9, Matchup/Composition, Jungle policy, Hard Fearless와 seeded
 Random 소비 순서는 변경하지 않았다.
+
+## Completion recovery and source hygiene hardening
+
+이전 자동 완료 반영은 fixture ID를 비동기 실행 전에 one-shot ref에 기록했다. 첫 POST, polling,
+TIMEOUT, network 또는 503이 일시 실패하면 logical command가 남아도 같은 fixture를 자동으로 다시
+평가하지 못했고, 다른 작업의 `pending` 때문에 후보를 건너뛴 render도 pending 해제 뒤 깨어나지
+않을 수 있었다. 자동 effect와 `완료 결과 반영` 클릭도 operation owner를 공유하지 않았다.
+
+이제 production 화면은 작은 completion reconciliation 상태기를 직접 사용한다.
+
+```text
+IDLE → CANDIDATE_DISCOVERED → RECONCILING → POLLING
+     → RETRY_WAIT → APPLIED | TERMINAL_FAILURE | ABORTED
+```
+
+- 하나의 owner가 fixture completion별 in-flight Promise와 AbortController를 소유한다. 자동/수동
+  trigger는 같은 작업에 합류하므로 중복 POST를 만들지 않는다.
+- logical ID는 League/Season/fixture/binding hash/expected lifecycle revision에 결속한다. TIMEOUT,
+  response loss, retryable 503, polling 소진과 remount에서 payload가 같으면 같은
+  `clientCommandId`를 재사용하고 target 또는 binding이 바뀌면 새 ID를 만든다.
+- transient failure는 600/1500/3000ms bounded backoff 뒤 authoritative completion GET을 먼저
+  확인한다. 아직 미반영이고 server가 reconcile을 허용할 때만 같은 command를 exact replay한다.
+- success는 `standingsApplied=true`를 확인한 뒤 authoritative Season/fixture/standings를 refresh한
+  다음 command reference를 제거한다. frontend는 winner, score, standings delta를 추측하지 않는다.
+- non-retryable contract/payload conflict는 자동 loop를 끝내고 오류를 표시한다. NOT_FOUND는 matching
+  recovery scope만 정리하며 network/503은 pointer와 command를 보존한다.
+- `pending` 해제를 effect dependency로 다시 평가하고 one-shot fixture suppressor를 제거했다. 서버가
+  이미 반영해 allowed command가 사라진 remount도 저장된 fixture/binding identity로 GET-first 복구한다.
+- hidden/route change/unmount는 timer와 request를 abort한다. React StrictMode의 effect rehearsal은
+  실제 unmount로 오인해 active reconciliation을 중단하지 않는다.
+
+Focused production-state-machine 검증은 14개 시나리오를 통과했다. Controlled browser boundary에서는
+첫 503 후 POST 2회가 같은 UUID를 사용하고 GET 1회 뒤 적용됐으며, server commit 뒤 response loss는
+POST 1회/GET 1회/추가 POST 0회, 저장 command remount는 POST 0회/GET 1회였다. 세 경우 모두 성공 뒤
+command가 제거되고 error banner가 해제됐다. 이는 실제 LeaguePage 연결과 transport failure 경계를
+검증한 것이며 90경기 전체 Season 또는 실제 Player BO3 장시간 LIVE 완주 증거는 아니다.
+
+빌드 생성물인 `frontend/dist/index.html`과 `frontend/tsconfig.app.tsbuildinfo`는 이미 존재하는
+`/frontend/dist/`, `*.tsbuildinfo` ignore 규칙을 유지한 채 source tracking 제거용 deletion diff로
+남긴다. build 성공 뒤 두 파일만 다시 삭제하며 hashed assets나 public source asset은 정리하지 않는다.
+다음 단계는 `AI_VS_AI_LEAGUE_PLAYER_BO3_TO_NEXT_ROUND_LONG_RUNNING_LIVE_E2E`다.
 
 ## OpenDesign read-only 기준
 
@@ -147,8 +188,9 @@ gradlew.bat test --console=plain
 ```
 
 League validator/reconciliation marker는
-`AI_VS_AI_LEAGUE_FRONTEND_CONTRACT_VERIFICATION_PASSED`다. Production build는 132 modules,
-initial bundle 496,300 bytes, lazy reference bundle 423,581 bytes였고 backend full은
+`AI_VS_AI_LEAGUE_FRONTEND_CONTRACT_VERIFICATION_PASSED`와
+`AI_LEAGUE_COMPLETION_RECOVERY_VERIFICATION_PASSED`다. 최종 Production build는 133 modules,
+initial bundle 502,600 bytes, lazy reference bundle 423,581 bytes였고 backend full은
 259 suites / 2,336 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,122.363초,
 `BUILD SUCCESSFUL`, Gradle wall 18분 47초로 통과했다.
 
