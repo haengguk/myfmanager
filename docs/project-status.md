@@ -2,6 +2,33 @@
 
 이 문서는 2026-09-02 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## AI League Player BO3 to next round long-running LIVE E2E
+
+상태는 `AI_VS_AI_LEAGUE_PLAYER_BO3_TO_NEXT_ROUND_LONG_RUNNING_LIVE_E2E_ACCEPTED`다.
+
+기준 HEAD `918964206813c926ac95126b0b6fbf8613342456`에서 fresh Hybrid GEN/seed 73 Season을
+실제 production backend/browser로 생성했다. Round 1 Auto 4개는 모두 attempt 1로 완료됐고,
+관리 팀 GEN–HLE Player BO3는 실제 Draft와 Production V9으로 HLE 2:1 종료됐다. Game 1 뒤 같은
+file-backed H2로 backend를 재시작해 score, 10-pick Hard Fearless, Game 2 side/seed와 identity가
+그대로 복구되는 것을 확인했다. 최종 executable/test source identity는
+`13a3df24f45b6d4bf00b20cbba083fea2f040e3c75ed9b4257a28d9641c79640`이다.
+
+장시간 LIVE에서 서로 다른 completion target이 active Promise를 잘못 공유하는 frontend 결함,
+checkpoint 복구 뒤 Draft completion이 Java object identity를 요구하던 backend 결함, full regression에서
+outbox standings commit과 겹친 job polling이 aggregate의 서로 다른 시점을 섞어 HTTP 500을 내던
+backend 조회 결함을 최소 수정했다.
+동일 completion UUID의 최초 적용과 exact replay에서 Player receipt/outbox/application ledger는 각각
+1건, standings revision은 5로 유지됐고 Season은 `currentRound=2`로 전환됐다. Round 2 job/gameplay는
+실행하지 않았다. Frozen product hash, Production V9, Draft/Hard Fearless/gameplay/Random/tuning은
+변경하지 않았다. 상세 증거는
+[AI League Player BO3 Long-running LIVE E2E](development/ai-vs-ai-league-player-bo3-to-next-round-long-running-live-e2e.md)에 있다.
+
+영향 focused와 변경 전 재현을 거친 final backend full은 259 suites / 2,336 tests / failures 0 /
+errors 0 / skipped 2, aggregate XML 1,829.817초, `BUILD SUCCESSFUL`, Gradle wall 31분 7초다.
+
+AI League V1의 핵심 단일 라운드 제품 흐름은 닫혔다. 다음 제품 개발 단계는
+`TEAM_AND_PLAYER_INFORMATION_API_V1`이며, 90경기 전체 시즌은 release/load acceptance로 남는다.
+
 ## AI vs AI League Simulation V1 frontend
 
 상태는 `AI_VS_AI_LEAGUE_FRONTEND_RECOVERY_AND_SOURCE_HYGIENE_HARDENED_READY_FOR_LONG_RUNNING_E2E`다.

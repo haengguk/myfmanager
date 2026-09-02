@@ -247,7 +247,7 @@ class PlayerControlledDraftMatchInputBoundaryTest {
     }
 
     @Test
-    void trustedCompletionBindingAcceptsOnlyItsExactServerOwnedResultAndContext() {
+    void trustedCompletionBindingAcceptsExactDurableResultAndRejectsDifferentContext() {
         PlayerDraftCompletionBinding binding = boundary.bindStandalone(
                 "session-a", 10, "GEN", "T1", TeamSide.BLUE, 73L, completed);
         MatchEngineV1Input input = boundary.validateAndCreateTrustedStandaloneInput(
@@ -270,8 +270,10 @@ class PlayerControlledDraftMatchInputBoundaryTest {
         PlayerControlledDraftResult copied = copy(
                 completed.turnEvidence(), completed.blueFinalRoleAssignments(),
                 completed.redFinalRoleAssignments(), completed.matchChampionAssignments());
-        assertTrustedRejected(binding, "session-a", 10, "GEN", "T1",
+        MatchEngineV1Input recovered = boundary.validateAndCreateTrustedStandaloneInput(
+                binding, "session-a", 10, "GEN", "T1",
                 TeamSide.BLUE, 73L, copied);
+        assertThat(recovered.inputHash()).isEqualTo(binding.inputHash());
     }
 
     @Test

@@ -43,7 +43,7 @@ function harness(overrides = {}) {
     refreshAuthoritativeViews: async (signal) => { evidence.refreshes += 1; return overrides.refreshAuthoritativeViews?.(signal, evidence.refreshes); },
     wait: async (milliseconds, signal) => { evidence.waits += 1; if (overrides.wait) return overrides.wait(milliseconds, signal, evidence.waits); if (signal.aborted) throw signal.reason; },
     isVisible: () => overrides.isVisible?.() ?? true,
-    createCommandId: () => `completion-command-${++ids}`,
+    createCommandId: overrides.createCommandId ?? (() => `completion-command-${++ids}`),
     onStateChange: (snapshot) => evidence.transitions.push(snapshot.state),
     onRecoverableFailure: (failure, exhausted) => evidence.recoverable.push([failure.kind, exhausted]),
     onTerminalFailure: () => { evidence.terminal += 1; },
@@ -121,6 +121,85 @@ await scenario('automatic and manual triggers share one in-flight POST', async (
   const automatic = owner.reconcile(target, 'AUTO', h.dependencies); const manual = owner.reconcile(target, 'MANUAL', h.dependencies);
   assert.equal(automatic, manual); assert.equal(h.evidence.posts.length, 1); release(completion(target, true));
   assert.equal(await automatic, 'APPLIED'); assert.equal(await manual, 'APPLIED');
+});
+
+async function concurrentTargetEvidence(nextTarget) {
+  let release;
+  const blocked = new Promise((resolve) => { release = resolve; });
+  const first = harness({
+    createCommandId: () => 'target-a-command',
+    postCompletion: async () => blocked,
+  });
+  const second = harness({ createCommandId: () => 'target-b-command' });
+  const owner = new LeagueCompletionReconciler({ pollDelays: [], retryDelays: [] });
+  const firstResult = owner.reconcile(target, 'AUTO', first.dependencies);
+  const secondResult = owner.reconcile(nextTarget, 'MANUAL', second.dependencies);
+  release(completion(target, true));
+  return { first, second, firstResult, secondResult };
+}
+
+await scenario('different fixture queues and evaluates its own authoritative dependency', async () => {
+  const next = { ...target, fixtureId: `fixture_${'4'.repeat(64)}`, bindingHash: 'b'.repeat(64), expectedRevision: 5 };
+  const evidence = await concurrentTargetEvidence(next);
+  assert.notEqual(evidence.firstResult, evidence.secondResult);
+  assert.equal(await evidence.firstResult, 'APPLIED'); assert.equal(await evidence.secondResult, 'APPLIED');
+  assert.deepEqual(evidence.first.evidence.posts, ['target-a-command']);
+  assert.deepEqual(evidence.second.evidence.posts, ['target-b-command']);
+  assert.equal(evidence.first.evidence.clears, 1); assert.equal(evidence.second.evidence.clears, 1);
+  assert.equal(evidence.first.command(), null); assert.equal(evidence.second.command(), null);
+});
+
+await scenario('same fixture with a different binding never shares the active result', async () => {
+  const next = { ...target, bindingHash: 'b'.repeat(64), expectedRevision: 5 };
+  const evidence = await concurrentTargetEvidence(next);
+  assert.notEqual(evidence.firstResult, evidence.secondResult);
+  assert.equal(await evidence.firstResult, 'APPLIED'); assert.equal(await evidence.secondResult, 'APPLIED');
+  assert.equal(evidence.second.evidence.posts.length, 1);
+});
+
+await scenario('same fixture and binding with a different effective revision is independent', async () => {
+  const next = { ...target, expectedRevision: target.expectedRevision + 1 };
+  const evidence = await concurrentTargetEvidence(next);
+  assert.notEqual(evidence.firstResult, evidence.secondResult);
+  assert.equal(await evidence.firstResult, 'APPLIED'); assert.equal(await evidence.secondResult, 'APPLIED');
+  assert.equal(evidence.second.evidence.posts.length, 1);
+});
+
+await scenario('queued target runs after the active target exhausts retry', async () => {
+  const first = harness({ postCompletion: async () => { throw new LeagueApiFailure('NETWORK', 'offline'); } });
+  const second = harness(); const owner = new LeagueCompletionReconciler({ pollDelays: [], retryDelays: [] });
+  const firstResult = owner.reconcile(target, 'AUTO', first.dependencies);
+  const next = { ...target, fixtureId: `fixture_${'5'.repeat(64)}`, bindingHash: 'c'.repeat(64), expectedRevision: 6 };
+  const secondResult = owner.reconcile(next, 'AUTO', second.dependencies);
+  assert.equal(await firstResult, 'RETRY_PENDING'); assert.equal(await secondResult, 'APPLIED');
+  assert.equal(second.evidence.posts.length, 1);
+});
+
+await scenario('queued target runs after the active target reaches terminal failure', async () => {
+  const first = harness({ postCompletion: async () => { throw new LeagueApiFailure('BACKEND', 'conflict', 409, 'LEAGUE_COMMAND_ID_PAYLOAD_CONFLICT'); } });
+  const second = harness(); const owner = new LeagueCompletionReconciler({ pollDelays: [], retryDelays: [] });
+  const firstResult = owner.reconcile(target, 'AUTO', first.dependencies);
+  const next = { ...target, fixtureId: `fixture_${'6'.repeat(64)}`, bindingHash: 'd'.repeat(64), expectedRevision: 7 };
+  const secondResult = owner.reconcile(next, 'AUTO', second.dependencies);
+  assert.equal(await firstResult, 'TERMINAL_FAILURE'); assert.equal(await secondResult, 'APPLIED');
+  assert.equal(second.evidence.posts.length, 1);
+});
+
+await scenario('abort clears queued work and a later remount can evaluate that target', async () => {
+  const first = harness({
+    postCompletion: async (_scope, _command, signal) => new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    }),
+  });
+  const second = harness(); const owner = new LeagueCompletionReconciler({ pollDelays: [], retryDelays: [] });
+  const firstResult = owner.reconcile(target, 'AUTO', first.dependencies);
+  const next = { ...target, fixtureId: `fixture_${'7'.repeat(64)}`, bindingHash: 'e'.repeat(64), expectedRevision: 8 };
+  const queuedResult = owner.reconcile(next, 'AUTO', second.dependencies);
+  owner.abort();
+  assert.equal(await firstResult, 'ABORTED'); assert.equal(await queuedResult, 'ABORTED');
+  assert.equal(second.evidence.posts.length, 0);
+  assert.equal(await owner.reconcile(next, 'AUTO', second.dependencies), 'APPLIED');
+  assert.equal(second.evidence.posts.length, 1);
 });
 
 await scenario('unmount aborts retry wait without another request or timer', async () => {

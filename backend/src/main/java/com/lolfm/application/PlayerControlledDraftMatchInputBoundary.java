@@ -238,7 +238,9 @@ public final class PlayerControlledDraftMatchInputBoundary {
                 && binding.seriesGameNumber() == gameNumber
                 && binding.hardFearlessExclusions().equals(Set.copyOf(exclusions))
                 && binding.historyBeforeHash().equals(historyHash)
-                && binding.trustedResult() == result
+                // A file-backed checkpoint reconstructs nested Draft evidence with new
+                // object identities. Durable authority is therefore the sealed hashes
+                // below plus requireProjectedIdentity(), not Java object equality.
                 && binding.draftIdentity().equals(result.draftIdentity())
                 && binding.controlEvidenceHash().equals(
                         result.controlEvidence().controlEvidenceHash())

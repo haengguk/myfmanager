@@ -2,7 +2,7 @@
 
 ## Status
 
-`AI_VS_AI_LEAGUE_FRONTEND_RECOVERY_AND_SOURCE_HYGIENE_HARDENED_READY_FOR_LONG_RUNNING_E2E`
+`AI_VS_AI_LEAGUE_PLAYER_BO3_TO_NEXT_ROUND_LONG_RUNNING_LIVE_E2E_ACCEPTED`
 
 복구 보강의 기준 HEAD는 `a548333c4ac196cdb8f3d7c1b5c5ee5482c91390`다. 기존 Inbox, AUTO Real Match,
 standalone Player Draft, standalone BO3/BO5 Series와 League API의 공개 필드는 유지했다. Frozen
@@ -38,6 +38,13 @@ IDLE → CANDIDATE_DISCOVERED → RECONCILING → POLLING
   이미 반영해 allowed command가 사라진 remount도 저장된 fixture/binding identity로 GET-first 복구한다.
 - hidden/route change/unmount는 timer와 request를 abort한다. React StrictMode의 effect rehearsal은
   실제 unmount로 오인해 active reconciliation을 중단하지 않는다.
+
+Long-running LIVE 전에는 active operation key가 다른 target에도 기존 Promise를 반환하는 결함을
+추가로 닫았다. 같은 fixture/binding/effective revision의 AUTO/MANUAL만 Promise와 POST 하나를
+공유한다. 다른 fixture, binding 또는 revision은 작은 serial queue에서 자기 dependency와 command로
+재평가되며 A의 성공/retry terminal/abort가 B 결과를 오염시키거나 영구 누락시키지 않는다. Abort는
+queued work도 정리한다. Production reconciler를 직접 호출하는 different-target, retry/terminal,
+abort/remount, same-target 경쟁을 포함해 recovery focused scenarios는 20개다.
 
 Focused production-state-machine 검증은 14개 시나리오를 통과했다. Controlled browser boundary에서는
 첫 503 후 POST 2회가 같은 UUID를 사용하고 GET 1회 뒤 적용됐으며, server commit 뒤 response loss는
@@ -151,8 +158,19 @@ focus를 두고 Tab/Shift+Tab trap, Escape, trigger focus return과 pending 중 
 - Clean production preview에서 console errors/warnings, page errors, runtime validation errors와
   reference fallback은 모두 0이었다.
 
-전체 90경기 Season 완주와 대표 Player BO3 완주는 실행하지 않았다. 실제 Auto와 Player handoff에
-필요한 최소 fixture만 사용했으며 이는 balance/performance population 증거가 아니다.
+후속 long-running LIVE에서 Hybrid GEN/seed 73 Round 1의 Auto 4개와 GEN–HLE Player BO3를 실제로
+완주했다. Game 1 뒤 backend/H2 restart recovery, 3게임의 side/seed/Hard Fearless 0→10→20→30,
+Player receipt/outbox/application exactly-once와 `currentRound=2`를 확인했다. 상세 값과 발견된 durable
+Draft completion binding 결함은
+[Player BO3 Long-running LIVE E2E](ai-vs-ai-league-player-bo3-to-next-round-long-running-live-e2e.md)에
+기록했다. 전체 90경기 Season은 여전히 release/load acceptance이며 balance/performance population
+증거가 아니다.
+
+이 후속 검증의 첫 backend full은 outbox standings commit과 동시에 job view가 Season aggregate를
+여러 statement로 복구하며 HTTP 500을 내는 race를 재현했다. Job polling의 scope 확인을 단일 DB
+조회로 분리했고 동일 background focused와 API/mapper focused가 통과했다. Final full은 259 suites /
+2,336 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,829.817초,
+`BUILD SUCCESSFUL`, Gradle wall 31분 7초다.
 
 ## Responsive and accessibility verification
 
@@ -191,13 +209,12 @@ League validator/reconciliation marker는
 `AI_VS_AI_LEAGUE_FRONTEND_CONTRACT_VERIFICATION_PASSED`와
 `AI_LEAGUE_COMPLETION_RECOVERY_VERIFICATION_PASSED`다. 최종 Production build는 133 modules,
 initial bundle 502,600 bytes, lazy reference bundle 423,581 bytes였고 backend full은
-259 suites / 2,336 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,122.363초,
-`BUILD SUCCESSFUL`, Gradle wall 18분 47초로 통과했다.
+259 suites / 2,336 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,829.817초,
+`BUILD SUCCESSFUL`, Gradle wall 31분 7초로 통과했다.
 
 ## Remaining limits
 
 Backend는 local single-node H2 reference다. Auth/ownership, multi-node database/worker consensus,
-external broker, distributed capacity control, production load/long-running restart evidence와 90-fixture
-official full Season은 없다. Current Round 단위 실행만 제공하며 웹 push/WebSocket 대신 bounded
-polling을 사용한다. Completion-ready Player BO3의 실제 끝까지 진행하는 LIVE 증거는 후속 E2E로
-확장할 수 있다.
+external broker, distributed capacity control, production load와 90-fixture official full Season은 없다.
+Current Round 단위 실행만 제공하며 웹 push/WebSocket 대신 bounded polling을 사용한다. Player BO3
+완주와 단일 backend restart evidence는 확보했지만 장기간 다중 restart/load acceptance는 아니다.

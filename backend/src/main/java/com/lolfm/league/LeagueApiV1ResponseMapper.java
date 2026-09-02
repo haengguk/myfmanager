@@ -108,7 +108,7 @@ final class LeagueApiV1ResponseMapper {
     }
 
     LeagueApiV1Dtos.JobView job(String leagueId, String seasonId, String jobId) {
-        requireSeason(leagueId, seasonId);
+        requireSeasonScope(leagueId, seasonId);
         List<LeagueApiV1Dtos.JobView> rows = store.jdbc().query("""
                 SELECT job_id, fixture_id, lifecycle_status, revision, attempt_number,
                        failure_class, failure_code, updated_at
@@ -123,7 +123,7 @@ final class LeagueApiV1ResponseMapper {
             String seasonId,
             int roundNumber
     ) {
-        requireSeason(leagueId, seasonId);
+        requireSeasonScope(leagueId, seasonId);
         return store.jdbc().query("""
                 SELECT j.job_id, j.fixture_id, j.lifecycle_status, j.revision,
                        j.attempt_number, j.failure_class, j.failure_code, j.updated_at
@@ -187,6 +187,17 @@ final class LeagueApiV1ResponseMapper {
             throw new Missing("LEAGUE_SEASON_NOT_FOUND");
         }
         return season;
+    }
+
+    private void requireSeasonScope(String leagueId, String seasonId) {
+        // Job polling only needs ownership. Rehydrating the aggregate here can span
+        // several statements and observe an outbox delivery on both sides of commit.
+        List<String> leagueIds = store.jdbc().query("""
+                SELECT league_id FROM league_season WHERE season_id = ?
+                """, (result, row) -> result.getString(1), seasonId);
+        if (leagueIds.size() != 1 || !leagueId.equals(leagueIds.getFirst())) {
+            throw new Missing("LEAGUE_SEASON_NOT_FOUND");
+        }
     }
 
     LeagueFixture requireFixture(String leagueId, String seasonId, String fixtureId) {

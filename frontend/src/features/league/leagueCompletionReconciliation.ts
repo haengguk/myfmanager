@@ -105,6 +105,8 @@ export function selectLeagueCompletionCandidate(
 export class LeagueCompletionReconciler {
   private readonly config: LeagueCompletionReconcilerConfig;
   private active: { key: string; controller: AbortController; promise: Promise<LeagueCompletionResult> } | null = null;
+  private readonly queued = new Map<string, Promise<LeagueCompletionResult>>();
+  private abortGeneration = 0;
   private snapshot: LeagueCompletionSnapshot = { state: 'IDLE', operationKey: null, trigger: null, retryAttempt: 0, exhausted: false };
 
   constructor(config: Partial<LeagueCompletionReconcilerConfig> = {}) {
@@ -122,7 +124,9 @@ export class LeagueCompletionReconciler {
   }
 
   abort(): void {
+    this.abortGeneration += 1;
     this.active?.controller.abort(new DOMException('League completion reconciliation aborted', 'AbortError'));
+    this.queued.clear();
   }
 
   reconcileIfAvailable(target: LeagueCompletionTarget, trigger: LeagueCompletionTrigger, blockedByOperation: string | null, dependencies: LeagueCompletionDependencies): Promise<LeagueCompletionResult> {
@@ -130,13 +134,20 @@ export class LeagueCompletionReconciler {
   }
 
   reconcile(target: LeagueCompletionTarget, trigger: LeagueCompletionTrigger, dependencies: LeagueCompletionDependencies): Promise<LeagueCompletionResult> {
+    const requestedKey = operationKey(target);
+    if (this.active) {
+      if (this.active.key === requestedKey) return this.active.promise;
+      return this.enqueue(target, trigger, requestedKey, dependencies);
+    }
+    const queued = this.queued.get(requestedKey);
+    if (queued) return queued;
+
     const persisted = dependencies.readCommand();
     const effectiveTarget = sameCompletionScope(persisted, target)
       ? { ...target, expectedRevision: persisted.expectedRevision }
       : target;
     const key = operationKey(effectiveTarget);
 
-    if (this.active) return this.active.promise;
     if (trigger === 'AUTO' && this.snapshot.operationKey === key && (this.snapshot.state === 'APPLIED' || (this.snapshot.state === 'RETRY_WAIT' && this.snapshot.exhausted) || this.snapshot.state === 'TERMINAL_FAILURE')) {
       return Promise.resolve('NO_OP');
     }
@@ -156,6 +167,29 @@ export class LeagueCompletionReconciler {
     const promise = this.execute(effectiveTarget, command, recovering, trigger, controller, dependencies)
       .finally(() => { if (this.active?.promise === promise) this.active = null; });
     this.active = { key, controller, promise };
+    return promise;
+  }
+
+  private enqueue(
+    target: LeagueCompletionTarget,
+    trigger: LeagueCompletionTrigger,
+    key: string,
+    dependencies: LeagueCompletionDependencies,
+  ): Promise<LeagueCompletionResult> {
+    const existing = this.queued.get(key);
+    if (existing) return existing;
+    const predecessor = this.active?.promise ?? Promise.resolve<LeagueCompletionResult>('NO_OP');
+    const generation = this.abortGeneration;
+    let promise: Promise<LeagueCompletionResult>;
+    const start = (): Promise<LeagueCompletionResult> | LeagueCompletionResult => {
+      if (generation !== this.abortGeneration) return 'ABORTED';
+      if (this.queued.get(key) === promise) this.queued.delete(key);
+      return this.reconcile(target, trigger, dependencies);
+    };
+    promise = predecessor.then(start, start).finally(() => {
+      if (this.queued.get(key) === promise) this.queued.delete(key);
+    });
+    this.queued.set(key, promise);
     return promise;
   }
 
