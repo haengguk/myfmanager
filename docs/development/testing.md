@@ -211,6 +211,51 @@ failures 0 / errors 0 / skipped 2, aggregate JUnit XML 1,139.817초, Gradle wall
 Frontend source 변경이 없어 frontend build/Playwright를 실행하지 않았고 90-fixture official run,
 balance/calibration/holdout와 대형 statistical diagnostic도 실행하지 않았다.
 
+### AI League V1 frontend delivery
+
+Batch 6는 Phase A delivery behavior와 frontend 계약을 다음 최소 lane으로 검증한다.
+
+```text
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.controller.LeagueApiV1BackgroundExecutionIntegrationTest \
+  --tests com.lolfm.controller.LeagueApiV1BackgroundAvailabilityTest \
+  --tests com.lolfm.league.LeagueBackgroundJobExecutorTest \
+  --tests com.lolfm.league.LeagueRelationalPersistenceAndJobTest \
+  --tests com.lolfm.league.LeagueApiV1ResponseMapperTest \
+  --tests com.lolfm.league.LeaguePlayerSeriesHandoffServiceTest \
+  --console=plain
+
+cd frontend
+npm run league:verify
+npm run player-draft:verify
+npm run series:verify
+npm run reference:check
+npm run reference:verify
+npm run bundle:verify
+VITE_REAL_MATCH_API_BASE_URL=http://localhost:8086 npm run build
+```
+
+Backend focused lane은 submit false 503, exact replay pump re-kick, duplicate job/receipt/outbox/standings 0,
+background enabled public 202→5 terminal jobs, Player child 상태별 command projection과 기존 persistence/
+fencing을 검증했다. Frontend League contract는 Hybrid/Spectator, exact 90 fixture/18 round, schema/scope/
+counter/duplicate/impossible command rejection, stable logical UUID, revision ordering과 pointer
+not-found/temporary-failure behavior를 모두 통과해
+`AI_VS_AI_LEAGUE_FRONTEND_CONTRACT_VERIFICATION_PASSED`를 출력했다.
+
+기존 Player Draft, Series, reference checksum/semantics와 lazy bundle도 clean pass했다. Build는 132
+modules, initial graph 496,300 bytes, lazy reference 423,581 bytes였다. 최종 executable backend tree는
+`gradlew.bat test --console=plain`을 한 번 실행해 259 suites / 2,336 tests / failures 0 / errors 0 /
+skipped 2, aggregate XML 1,122.363초, `BUILD SUCCESSFUL`, Gradle wall 18분 47초로 통과했다.
+그 뒤 production Java/resource/Gradle/shared fixture는 변경하지 않고 문서만 갱신했다.
+
+Actual Playwright는 isolated H2/background enabled runtime에서 Hybrid 10/18/90 및 18 Player/72 Auto,
+public 202→Production V9 terminal jobs와 standings/reload, managed Player Series handoff/reload/return,
+별도 Spectator pause/resume/cancel을 확인했다. 1440×900·1280×720 page overflow 0, modal focus trap/
+Escape/return, reduced-motion spinner none, clean console/page/runtime validation error 0이었다. 90-fixture
+official full run과 대형 balance/calibration/holdout은 실행하지 않았다. 상세 결과는
+[AI League Frontend V1](ai-vs-ai-league-simulation-v1-frontend.md)에 있다.
+
 ### Player-controlled Draft API V1
 
 혼합 Draft의 final authoritative-input boundary와 기존 session hardening은 다음 focused lane으로 검증한다.

@@ -20,6 +20,11 @@ public interface LeaguePlayerSeriesKernelPort {
 
     SeriesReference resume(LeagueFixtureSeriesBindingV1 binding);
 
+    /** Read-authoritative child Series state used to derive public command eligibility. */
+    default SeriesReference inspect(LeagueFixtureSeriesBindingV1 binding) {
+        return resume(binding);
+    }
+
     CompletedSeriesEvidence completedEvidence(
             LeagueFixtureSeriesBindingV1 binding,
             SimulationInstrumentation instrumentation

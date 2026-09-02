@@ -17,9 +17,11 @@ const TERMINAL_COPY: Readonly<Record<Exclude<SeriesViewDto['status'], 'ACTIVE'>,
   EXPIRED: 'process-local TTL이 지나 시리즈가 만료되었습니다.',
 };
 
-export function SeriesHubPage({ state, onBack, onStateChange, onStartDraft, onOpenGame, onNewSeries }: {
+export function SeriesHubPage({ state, onBack, backLabel = '경기 센터로 돌아가기', contextLabel, onStateChange, onStartDraft, onOpenGame, onNewSeries }: {
   state: SeriesScreenState;
   onBack: () => void;
+  backLabel?: string;
+  contextLabel?: string;
   onStateChange: (series: SeriesViewDto, draft: SeriesChildDraftEnvelopeDto | null) => void;
   onStartDraft: () => void;
   onOpenGame: (gameNumber: number) => void;
@@ -91,7 +93,7 @@ export function SeriesHubPage({ state, onBack, onStateChange, onStartDraft, onOp
   });
 
   return <div className="sr-hub-app" aria-busy={pending !== null}>
-    <MatchUtilityBar meta={`${state.series.format} · ${state.series.seriesId.slice(0, 18)}…`} onBack={onBack} backLabel="경기 센터로 돌아가기" />
+    <MatchUtilityBar meta={`${contextLabel ? `${contextLabel} · ` : ''}${state.series.format} · ${state.series.seriesId.slice(0, 18)}…`} onBack={onBack} backLabel={backLabel} />
     <SeriesContextBar series={state.series} catalog={state.championsById} onOpenGame={onOpenGame} />
     <main className="sr-hub-stage">
       <section className="sr-current-game" aria-labelledby="sr-current-title">

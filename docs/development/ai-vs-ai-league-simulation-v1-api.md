@@ -4,6 +4,8 @@
 
 `AI_VS_AI_LEAGUE_SIMULATION_V1_API_ACCEPTED`
 
+Frontend delivery milestone status: `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND_ACCEPTED`.
+
 기준 HEAD는 `b85b7eec214ca2ca4d3e9c3db4bcfec10c29a309`이다. Frozen product decision
 hash `81a4755760fb513c5803d55dd4855c03fda487114bb7c89b431c959a00a0fb14`,
 Production Auto Draft, Match Engine V9, Matchup/Composition ON, Jungle Economy/Tempo OFF와
@@ -119,6 +121,12 @@ fixture job은 exact 0이다. Production background executor는 bounded queue 32
 pump를 사용하며, 각 drain은 default 2 workers만 실행한다. DB global hard max는 4다. HTTP thread는
 경기 완료를 기다리지 않고 202를 반환하며 이후 Season/fixture/job GET으로 polling한다.
 
+Frontend delivery 보강 이후 최초 command와 exact replay는 durable `QUEUED/RETRY_PENDING` work가
+있으면 동일하게 background pump를 깨운다. Command/job commit 뒤 `submit()`이 false이면 이미 저장된
+작업을 성공 202로 숨기지 않고 `LEAGUE_BACKGROUND_EXECUTION_UNAVAILABLE`, HTTP 503,
+`retryable=true`를 반환한다. 같은 command replay는 job/receipt/outbox/standings를 다시 만들지 않고
+pump만 idempotent하게 재가동한다. Startup이 gameplay를 무조건 실행하지 않는 정책은 유지한다.
+
 ## Player Series reconciliation
 
 Player start/resume은 fixture가 소유한 opponent, BO3, Game 1 side, fixture root/game seed, Hard
@@ -127,6 +135,26 @@ Fearless history와 Production identity만 사용한다. Exact replay는 같은 
 completed Series의 stored receipt와 Production V9 evidence를 재검증하고 V2 receipt/outbox를 만든다.
 Duplicate completion, outbox redelivery와 ack loss에서도 application ledger 때문에 standings
 revision은 한 번만 증가한다. Cross-League/Season/fixture binding은 거부한다.
+
+Season view의 Player command는 실제 child Series 상태를 read-only로 검사해 투영한다. 생성 직후,
+Draft 중 또는 Series 미완료 상태는 `RESUME_PLAYER_SERIES`, decisive BO3/BO5 완료 뒤에는
+`RECONCILE_PLAYER_SERIES_COMPLETION`, completion pending 상태에는 reconciliation/polling 의미만
+노출한다. Verified/applied, cancelled, blocked와 cross-scope 상태에는 불가능한 mutation command가
+남지 않는다. READY Season은 run/cancel, RUNNING/WAITING은 pause, PAUSED는 resume/cancel만 노출한다.
+
+## Frontend delivery contract
+
+React 화면은 응답 문구를 parsing하지 않고 위 structured DTO와 `allowedCommands`만 사용한다.
+`sessionStorage`에는 League/Season ID와 진행 중인 logical command reference만 저장하며 standings,
+score, fixture 또는 Season view는 저장하지 않는다. 새로고침은 GET으로 서버 authority를 복원하고,
+not-found만 pointer를 제거하며 network/503에는 유지한다. 각 mutation은 operation/target/revision에
+결속된 하나의 UUID를 response-loss 재시도에서 재사용한다.
+
+202 run은 bounded polling으로 Season/fixture/job을 갱신하고 terminal에서 중단한다. Hybrid 관리
+경기는 server-issued bound Series ID로 기존 Series/Draft/Production V9 화면을 열며, League/round/
+matchup context만 작은 pointer로 보존한다. 완료 결과, winner, score, history, seed 또는 standings
+delta는 브라우저가 제출하지 않는다. UI 구조와 LIVE 결과는
+[AI League Frontend V1](ai-vs-ai-league-simulation-v1-frontend.md)에 기록한다.
 
 ## Verification
 
@@ -139,6 +167,12 @@ revision은 한 번만 증가한다. Cross-League/Season/fixture binding은 거�
 - Final complete backend regression:
   256 suites / 2,333 tests / failures 0 / errors 0 / skipped 2,
   aggregate JUnit XML 1,139.817초, Gradle wall 19분 13초
+
+Frontend delivery final executable tree는 background submit/replay/terminal integration과 Player command
+projection focused lane을 통과했다. 이어 `gradlew.bat test --console=plain`을 한 번 실행해
+259 suites / 2,336 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,122.363초,
+`BUILD SUCCESSFUL`, Gradle wall 18분 47초를 확인했다. Frontend production build는 132 modules,
+League/Player Draft/Series/reference/bundle 계약은 모두 clean pass했다.
 
 첫 complete regression 255 suites / 2,332 tests는 clean pass했다. 이후 수동 경계 감사에서
 explicit run이 runtime-expired lease recovery를 호출하지 않는 운영 누락을 발견해 production
@@ -154,4 +188,5 @@ balance/calibration/holdout, 대형 통계·성능 진단은 실행하지 않았
 이 구현은 local single-node file-backed H2 reference다. Auth/ownership, multi-node database/worker
 consensus, external broker, distributed rate/capacity control과 production load evidence는 없다.
 Standalone Series repository의 기존 process-local 의미도 바꾸지 않았다. League dashboard와
-사용자 journey UI는 아직 없으며 다음 단계는 `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND`다.
+사용자 journey UI는 구현됐지만 인증/소유권, 다중 node worker consensus, 외부 broker, production
+load evidence와 90경기 전체 시즌 운영 증거는 아직 없다.

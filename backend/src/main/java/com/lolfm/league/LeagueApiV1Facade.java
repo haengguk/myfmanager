@@ -153,9 +153,12 @@ public final class LeagueApiV1Facade {
             List<LeagueApiV1Dtos.JobView> views = mapper.currentRoundJobs(
                     leagueId, seasonId, currentRound);
             LeagueSimulationApplicationPort.DispatchBatch batch = dispatched.get();
-            if (!command.replayed()) {
-                background.submit("api-run:" + LeagueIdentity.sha256(
-                        request.clientCommandId() + '\n').substring(0, 24));
+            if (views.stream().anyMatch(LeagueApiV1Facade::requiresBackgroundPump)
+                    && !background.submit("api-run:" + LeagueIdentity.sha256(
+                    request.clientCommandId() + '\n').substring(0, 24))) {
+                throw LeagueApiV1Exception.retryable(
+                        "LEAGUE_BACKGROUND_EXECUTION_UNAVAILABLE",
+                        "League 경기 실행 작업은 저장되었지만 계산 worker를 깨우지 못했습니다. 같은 요청으로 다시 시도해 주세요.");
             }
             return new HttpResult<>(command.httpStatus(), new LeagueApiV1Dtos.RunResponse(
                     LeagueApiV1Dtos.RUN_RESPONSE_SCHEMA, command.replayed(),
@@ -366,6 +369,11 @@ public final class LeagueApiV1Facade {
         return (int) mapper.fixtures(leagueId, seasonId).fixtures().stream()
                 .filter(value -> value.roundNumber() == round)
                 .filter(value -> "PLAYER_CONTROLLED".equals(value.executionMode())).count();
+    }
+
+    private static boolean requiresBackgroundPump(LeagueApiV1Dtos.JobView job) {
+        return "QUEUED".equals(job.lifecycleStatus())
+                || "RETRY_PENDING".equals(job.lifecycleStatus());
     }
 
     private LeagueApiV1Exception conflict(String code, String seasonId) {

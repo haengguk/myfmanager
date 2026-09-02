@@ -14,6 +14,7 @@ export type IconName =
   | 'club'
   | 'finance'
   | 'academy'
+  | 'league'
   | 'search'
   | 'bell'
   | 'settings'
@@ -40,6 +41,7 @@ export function Icon({ name, ...props }: IconProps) {
     club: <path d="M5 20V7l7-3 7 3v13M9 20v-5h6v5M8 9h2m4 0h2m-8 3h2m4 0h2" />,
     finance: <><rect x="4" y="5" width="16" height="14" rx="2" /><path d="M4 9h16m-4 4h2" /></>,
     academy: <path d="m3 9 9-5 9 5-9 5zm4 3v5c3 2.5 7 2.5 10 0v-5" />,
+    league: <><path d="M7 4h10v5c0 4-1.7 6.2-5 6.2S7 13 7 9zM7 6H3v2c0 2.8 1.3 4 4.4 4M17 6h4v2c0 2.8-1.3 4-4.4 4M12 15.2V19m-4 2h8" /><path d="M10 8h4" /></>,
     search: <><circle cx="10.5" cy="10.5" r="6" /><path d="m15 15 5 5" /></>,
     bell: <path d="M18 9a6 6 0 0 0-12 0c0 6-3 7-3 7h18s-3-1-3-7M10 20h4" />,
     settings: <><circle cx="12" cy="12" r="3" /><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1" /></>,

@@ -34,6 +34,11 @@ public final class ProductionLeaguePlayerSeriesKernel
     }
 
     @Override
+    public SeriesReference inspect(LeagueFixtureSeriesBindingV1 binding) {
+        return reference(lifecycle.resumeLeagueBound(binding), true);
+    }
+
+    @Override
     public CompletedSeriesEvidence completedEvidence(
             LeagueFixtureSeriesBindingV1 binding,
             SimulationInstrumentation instrumentation

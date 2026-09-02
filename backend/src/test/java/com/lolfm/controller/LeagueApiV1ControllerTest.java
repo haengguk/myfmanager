@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.league.LeagueBackgroundExecutionPort;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -17,17 +18,27 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 class LeagueApiV1ControllerTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper mapper;
+    @MockitoBean LeagueBackgroundExecutionPort background;
+
+    @BeforeEach
+    void acceptBackgroundWakeups() {
+        when(background.submit(anyString())).thenReturn(true);
+    }
 
     @Test
     void hybridAndSpectatorCreationAreStrictDurableAndIdempotent() throws Exception {
@@ -47,6 +58,8 @@ class LeagueApiV1ControllerTest {
                         .exists())
                 .andReturn().getResponse().getContentAsString();
         JsonNode hybrid = mapper.readTree(first).path("season");
+        assertThat(commandNames(hybrid)).contains("RUN_CURRENT_ROUND_AUTO_FIXTURES",
+                "CANCEL_SEASON").doesNotContain("PAUSE_SEASON", "RESUME_SEASON");
         String leagueId = hybrid.path("leagueId").asText();
         String seasonId = hybrid.path("seasonId").asText();
 
@@ -142,6 +155,8 @@ class LeagueApiV1ControllerTest {
                 .andExpect(jsonPath("$.jobs.length()").value(4))
                 .andReturn().getResponse().getContentAsString();
         JsonNode run = mapper.readTree(runText);
+        assertThat(commandNames(run.path("season"))).contains("PAUSE_SEASON",
+                "CANCEL_SEASON").doesNotContain("RESUME_SEASON");
         String jobId = run.path("jobs").get(0).path("jobId").asText();
         mvc.perform(get(path(leagueId, seasonId) + "/jobs/" + jobId))
                 .andExpect(status().isOk())
@@ -176,6 +191,11 @@ class LeagueApiV1ControllerTest {
                 .andReturn().getResponse().getContentAsString();
         long pausedRevision = mapper.readTree(pausedText).path("season")
                 .path("lifecycleRevision").asLong();
+        assertThat(commandNames(mapper.readTree(pausedText).path("season")))
+                .contains("RESUME_SEASON", "CANCEL_SEASON")
+                .doesNotContain("PAUSE_SEASON", "RUN_CURRENT_ROUND_AUTO_FIXTURES",
+                        "START_PLAYER_SERIES", "RESUME_PLAYER_SERIES",
+                        "RECONCILE_PLAYER_SERIES_COMPLETION");
         mvc.perform(post(path(leagueId, seasonId) + "/commands/run-current-round")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(runBody("flow-run-paused", pausedRevision)))
@@ -225,6 +245,8 @@ class LeagueApiV1ControllerTest {
                         .value(player.path("boundSeriesId").asText()))
                 .andReturn().getResponse().getContentAsString();
         JsonNode started = mapper.readTree(startedText).path("playerSeries");
+        assertThat(mapper.convertValue(started.path("allowedCommands"), String[].class))
+                .containsExactly("RESUME_PLAYER_SERIES");
         String bindingHash = started.path("bindingHash").asText();
         String seriesId = started.path("boundSeriesId").asText();
         mvc.perform(post(path(leagueId, seasonId) + "/fixtures/" + fixtureId
@@ -421,6 +443,12 @@ class LeagueApiV1ControllerTest {
             if (mode.equals(fixture.path("executionMode").asText())) return fixture;
         }
         throw new AssertionError("fixture mode not found: " + mode);
+    }
+
+    private static List<String> commandNames(JsonNode season) {
+        ArrayList<String> commands = new ArrayList<>();
+        season.path("allowedCommands").forEach(value -> commands.add(value.asText()));
+        return commands;
     }
 
     private static String path(String leagueId, String seasonId) {

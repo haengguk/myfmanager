@@ -2,6 +2,30 @@
 
 이 문서는 2026-09-02 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## AI vs AI League Simulation V1 frontend
+
+상태는 `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND_ACCEPTED`다.
+
+기존 AppShell의 competition 진입점에 실제 League workspace를 연결했다. Hybrid/Spectator 생성,
+authoritative 10 teams, 18 rounds/90 BO3 fixtures, standings/current Round, job 상태, 일정 filter와 fixture
+inspector를 제공한다. Hybrid 관리 경기는 server-issued bound Series ID로 기존 Player Series/Draft/
+Production V9 화면에 들어가며 League/round/matchup 문맥을 reload 뒤에도 복원한다. Winner, score,
+standings delta, seed/history/receipt는 frontend가 계산하거나 제출하지 않는다.
+
+Phase A는 durable run command 최초/exact replay의 worker pump wake-up, submit false retryable 503과
+authoritative child Series 상태별 resume/reconcile command projection만 보강했다. Background enabled
+integration은 public 202 뒤 Round 1의 다섯 job이 attempt 1 `COMPLETED`, standings revision 5가 되는
+것을 확인했다. 기존 startup no-auto-gameplay, fencing/exactly-once와 frozen product/Production V9/
+gameplay Random 의미는 유지했다.
+
+League/Player Draft/Series/reference/bundle frontend 계약과 132-module production build가 clean pass했다.
+Isolated LIVE browser에서 Hybrid 10/18/90, 18 Player/72 Auto, 실제 Auto terminal/standings/reload,
+managed GEN–HLE Series handoff/reload/return, 별도 Spectator pause/resume/cancel을 확인했다. 1440×900과
+1280×720 page overflow 0, modal keyboard focus, reduced-motion과 clean console/page/runtime validation
+error 0을 확인했다. 최종 backend full은 259 suites / 2,336 tests / failures 0 / errors 0 / skipped 2,
+aggregate XML 1,122.363초, `BUILD SUCCESSFUL`, Gradle wall 18분 47초다. 상세 내용은
+[AI League Frontend V1](development/ai-vs-ai-league-simulation-v1-frontend.md)에 있다.
+
 ## AI vs AI League Simulation V1 API and job-boundary hardening
 
 상태는 `AI_VS_AI_LEAGUE_SIMULATION_V1_API_ACCEPTED`다.
@@ -24,8 +48,9 @@ Affected API/Phase A/기존 API 호환성은 16 suites / 62 tests를 2분 25초�
 explicit run의 runtime-expired lease recovery 연결 누락을 찾아 수정했고 3 suites / 12 tests가
 47초에 통과했다. Final executable tree의 두 번째 complete regression은 256 suites / 2,333 tests /
 failures 0 / errors 0 / skipped 2, aggregate XML 1,139.817초, Gradle wall 19분 13초로 clean pass했다. Frozen product hash,
-Production V9/gameplay/Random과 기존 Series/Player Draft/Real Match API는 유지했고 frontend source는
-변경하지 않았다. 상세 내용은 [AI League V1 API](development/ai-vs-ai-league-simulation-v1-api.md)에 있다.
+Production V9/gameplay/Random과 기존 Series/Player Draft/Real Match API는 유지했다. 이 historical API
+milestone 뒤의 frontend delivery 결과는 위 최신 section을 따른다. 상세 내용은
+[AI League V1 API](development/ai-vs-ai-league-simulation-v1-api.md)에 있다.
 
 ## AI vs AI League Simulation V1 persistence and jobs
 

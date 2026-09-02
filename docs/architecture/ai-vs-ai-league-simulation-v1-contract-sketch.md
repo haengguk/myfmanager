@@ -1,5 +1,23 @@
 # AI vs AI League Simulation V1 Contract Sketch
 
+## Batch 6 frontend delivery amendment
+
+Batch 6는 기존 `/api/v1/leagues` authority를 React 운영 화면에 연결했다. 사용자는 Hybrid 또는
+Spectator Season을 생성하고, 10팀·18라운드·90경기 일정과 순위표를 조회하며, 현재 round의 Auto
+경기만 durable job으로 실행할 수 있다. Hybrid 관리 경기는 server-issued binding으로 기존
+Player Series/Draft/Production V9 화면에 진입한다. 브라우저는 winner, score, standings delta,
+round/side/seed, Hard Fearless history, policy/profile, lease/fence 또는 receipt/output을 계산하거나
+제출하지 않는다.
+
+Frontend 전달 전에 두 API 경계만 additive하게 보강했다. 최초 run과 exact replay가 durable
+nonterminal work의 pump를 다시 깨우고, submit 실패는 retryable 503으로 노출한다. Player Series
+command projection은 현재 child Series를 read-only로 검사해 미완료에는 resume, 완료에는 reconcile,
+completion pending에는 reconciliation/polling만 노출한다. Startup no-auto-gameplay, frozen product
+hash, Draft/Match/Random 순서는 그대로다. 구현과 LIVE 검증은
+[AI League Frontend V1](../development/ai-vs-ai-league-simulation-v1-frontend.md)을 따른다.
+
+상태: `AI_VS_AI_LEAGUE_SIMULATION_V1_FRONTEND_ACCEPTED`
+
 ## Batch 5 API and job-boundary hardening amendment
 
 Batch 5는 Batch 4의 local single-node relational reference 위에 additive
@@ -15,7 +33,7 @@ Batch 5는 Batch 4의 local single-node relational reference 위에 additive
 
 Batch 1의 Season/schedule/standings domain, Batch 2의 synchronous FULL_AUTO runner, Batch 3의
 Player Series handoff/canonical receipt proof, Batch 4의 local single-node relational
-persistence/job/restart와 Batch 5의 public League API까지 구현됐다. Frontend는 아직 구현되지 않았다.
+persistence/job/restart, Batch 5의 public League API와 Batch 6의 frontend delivery까지 구현됐다.
 
 ## 현재 코드 감사와 경계 판정
 

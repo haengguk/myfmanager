@@ -1,6 +1,7 @@
 package com.lolfm.league;
 
 import com.lolfm.dto.LeagueApiV1Dtos;
+import com.lolfm.application.SeriesStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -16,15 +17,18 @@ final class LeagueApiV1ResponseMapper {
     private final LeagueRelationalStore store;
     private final LeagueSeasonApplicationService seasons;
     private final LeaguePlayerSeriesBindingPort bindings;
+    private final LeaguePlayerSeriesKernelPort playerSeries;
 
     LeagueApiV1ResponseMapper(
             LeagueRelationalStore store,
             LeagueSeasonApplicationService seasons,
-            LeaguePlayerSeriesBindingPort bindings
+            LeaguePlayerSeriesBindingPort bindings,
+            LeaguePlayerSeriesKernelPort playerSeries
     ) {
         this.store = store;
         this.seasons = seasons;
         this.bindings = bindings;
+        this.playerSeries = playerSeries;
     }
 
     LeagueApiV1Dtos.SeasonView season(String leagueId, String seasonId) {
@@ -52,13 +56,17 @@ final class LeagueApiV1ResponseMapper {
                     && !"BLOCKED".equals(value.lifecycleStatus()))) {
                 allowed.add("RUN_CURRENT_ROUND_AUTO_FIXTURES");
             }
-            allowed.add("PAUSE_SEASON");
+            if (lifecycle.status() != LeaguePersistenceState.SeasonStatus.READY) {
+                allowed.add("PAUSE_SEASON");
+            }
             allowed.add("CANCEL_SEASON");
         } else if (lifecycle.status() == LeaguePersistenceState.SeasonStatus.PAUSED) {
             allowed.add("RESUME_SEASON");
             allowed.add("CANCEL_SEASON");
         }
-        if (playable != null) allowed.addAll(playable.allowedCommands());
+        if (playable != null && lifecycle.status() != LeaguePersistenceState.SeasonStatus.PAUSED) {
+            allowed.addAll(playable.allowedCommands());
+        }
         return new LeagueApiV1Dtos.SeasonView(aggregate.leagueId(), aggregate.seasonId(),
                 lifecycle.status().name(), lifecycle.lifecycleRevision(),
                 aggregate.revision(), aggregate.seasonMode().name(),
@@ -213,17 +221,31 @@ final class LeagueApiV1ResponseMapper {
                 completionStatus(row), row.jobId(), row.jobStatus(), List.copyOf(allowed));
     }
 
-    private static List<String> playerAllowed(LeaguePlayerSeriesBindingPort.State state) {
-        ArrayList<String> allowed = new ArrayList<>();
-        if (state.status() == LeaguePlayerSeriesBindingPort.Status.ACTIVE
-                || state.status() == LeaguePlayerSeriesBindingPort.Status.CREATED) {
-            allowed.add("RESUME_PLAYER_SERIES");
-            allowed.add("RECONCILE_PLAYER_SERIES_COMPLETION");
-        } else if (state.status() == LeaguePlayerSeriesBindingPort.Status
-                .COMPLETION_PENDING_VERIFICATION) {
-            allowed.add("RECONCILE_PLAYER_SERIES_COMPLETION");
+    private List<String> playerAllowed(LeaguePlayerSeriesBindingPort.State state) {
+        SeriesStatus childStatus = null;
+        if (state.status() == LeaguePlayerSeriesBindingPort.Status.ACTIVE) {
+            childStatus = playerSeries.inspect(state.binding()).status();
         }
-        return List.copyOf(allowed);
+        return playerAllowed(state.status(), childStatus);
+    }
+
+    static List<String> playerAllowed(
+            LeaguePlayerSeriesBindingPort.Status bindingStatus,
+            SeriesStatus childStatus
+    ) {
+        if (bindingStatus == LeaguePlayerSeriesBindingPort.Status.CREATED) {
+            return List.of("RESUME_PLAYER_SERIES");
+        }
+        if (bindingStatus == LeaguePlayerSeriesBindingPort.Status.ACTIVE) {
+            return childStatus == SeriesStatus.COMPLETED
+                    ? List.of("RECONCILE_PLAYER_SERIES_COMPLETION")
+                    : List.of("RESUME_PLAYER_SERIES");
+        }
+        if (bindingStatus == LeaguePlayerSeriesBindingPort.Status
+                .COMPLETION_PENDING_VERIFICATION) {
+            return List.of("RECONCILE_PLAYER_SERIES_COMPLETION");
+        }
+        return List.of();
     }
 
     private static String completionStatus(FixtureRow row) {

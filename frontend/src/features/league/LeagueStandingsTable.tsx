@@ -1,0 +1,6 @@
+import type { LeagueStandingRowDto } from './api/leagueApi.types';
+import { formatSeriesRecord, teamName } from './league.adapter';
+
+export function LeagueStandingsTable({ rows, managedTeamCode }: { rows: readonly LeagueStandingRowDto[]; managedTeamCode: string | null }) {
+  return <section className="lg-panel lg-standings" aria-labelledby="lg-standings-title"><header><div><span>순위표</span><h2 id="lg-standings-title">정규 시즌</h2></div><small>Series 승리 · Game 득실 · 고정 추첨순</small></header><div className="lg-table-scroll"><table><thead><tr><th scope="col">순위</th><th scope="col">팀</th><th scope="col">Series</th><th scope="col">Game</th><th scope="col">득실</th></tr></thead><tbody>{rows.map((row) => <tr key={row.teamCode} className={row.teamCode === managedTeamCode ? 'is-managed' : ''}><td><b>{row.position}</b></td><th scope="row"><span className="lg-team-mark">{row.teamCode.slice(0, 2)}</span><span>{teamName(row.teamCode)}<small>{row.teamCode === managedTeamCode ? '관리 팀' : row.teamCode}</small></span></th><td>{formatSeriesRecord(row.seriesWins, row.seriesLosses)}</td><td>{row.gameWins}-{row.gameLosses}</td><td className={row.gameDifferential > 0 ? 'is-positive' : row.gameDifferential < 0 ? 'is-negative' : ''}>{row.gameDifferential > 0 ? '+' : ''}{row.gameDifferential}</td></tr>)}</tbody></table></div></section>;
+}
