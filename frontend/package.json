@@ -14,6 +14,7 @@
     "player-draft:verify": "node --experimental-strip-types scripts/verify-player-draft-contract.mjs",
     "series:verify": "node --experimental-strip-types scripts/verify-series-contract.mjs",
     "league:verify": "node --experimental-strip-types scripts/verify-league-contract.mjs && node --experimental-strip-types scripts/verify-league-completion-recovery.mjs",
+    "career:verify": "node --experimental-strip-types scripts/verify-career-contract.mjs",
     "team-player:verify": "node --experimental-strip-types scripts/verify-team-player-contract.mjs",
     "bundle:verify": "node scripts/verify-real-match-bundle.mjs"
   },

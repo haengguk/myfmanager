@@ -5,7 +5,6 @@ import com.lolfm.application.SeriesStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +35,7 @@ final class LeagueApiV1ResponseMapper {
         LeagueSeasonApplicationService.SeasonView lifecycle = seasons.view(seasonId);
         List<FixtureRow> fixtureRows = fixtureRows(seasonId);
         int currentRound = fixtureRows.stream()
-                .filter(row -> !terminal(row.status()))
+                .filter(row -> !LeagueCommandPolicy.terminal(row.status()))
                 .mapToInt(FixtureRow::roundNumber).min().orElse(18);
         List<LeagueApiV1Dtos.FixtureView> current = fixtureRows.stream()
                 .filter(row -> row.roundNumber() == currentRound)
@@ -45,28 +44,13 @@ final class LeagueApiV1ResponseMapper {
                 .filter(row -> "PLAYER_CONTROLLED".equals(row.executionMode()))
                 .filter(row -> !terminal(row.lifecycleStatus()))
                 .findFirst().orElse(null);
-        LinkedHashSet<String> allowed = new LinkedHashSet<>();
-        allowed.add("VIEW_STANDINGS");
-        if (lifecycle.status() == LeaguePersistenceState.SeasonStatus.READY
-                || lifecycle.status() == LeaguePersistenceState.SeasonStatus.RUNNING
-                || lifecycle.status() == LeaguePersistenceState.SeasonStatus
-                .WAITING_FOR_PLAYER) {
-            if (current.stream().anyMatch(value -> "FULL_AUTO".equals(value.executionMode())
-                    && !terminal(value.lifecycleStatus())
-                    && !"BLOCKED".equals(value.lifecycleStatus()))) {
-                allowed.add("RUN_CURRENT_ROUND_AUTO_FIXTURES");
-            }
-            if (lifecycle.status() != LeaguePersistenceState.SeasonStatus.READY) {
-                allowed.add("PAUSE_SEASON");
-            }
-            allowed.add("CANCEL_SEASON");
-        } else if (lifecycle.status() == LeaguePersistenceState.SeasonStatus.PAUSED) {
-            allowed.add("RESUME_SEASON");
-            allowed.add("CANCEL_SEASON");
-        }
-        if (playable != null && lifecycle.status() != LeaguePersistenceState.SeasonStatus.PAUSED) {
-            allowed.addAll(playable.allowedCommands());
-        }
+        boolean currentRoundAutoAvailable = current.stream()
+                .anyMatch(value -> "FULL_AUTO".equals(value.executionMode())
+                        && !terminal(value.lifecycleStatus())
+                        && !"BLOCKED".equals(value.lifecycleStatus()));
+        List<String> allowed = LeagueCommandPolicy.seasonCommands(lifecycle.status(),
+                currentRoundAutoAvailable,
+                playable == null ? List.of() : playable.allowedCommands());
         return new LeagueApiV1Dtos.SeasonView(aggregate.leagueId(), aggregate.seasonId(),
                 lifecycle.status().name(), lifecycle.lifecycleRevision(),
                 aggregate.revision(), aggregate.seasonMode().name(),
@@ -175,7 +159,8 @@ final class LeagueApiV1ResponseMapper {
         allowed.add("VIEW_FIXTURE");
         if (binding.isPresent()) allowed.addAll(playerAllowed(binding.get()));
         return new LeagueApiV1Dtos.CompletionStatusView(leagueId, seasonId, fixtureId,
-                fixture.status(), binding.map(value -> value.status().name()).orElse(null),
+                fixture.status().name(),
+                binding.map(value -> value.status().name()).orElse(null),
                 receipt, outbox.isEmpty() ? "NOT_CREATED" : outbox.getFirst(),
                 applied != null && applied == 1, season.revision(), List.copyOf(allowed));
     }
@@ -214,15 +199,15 @@ final class LeagueApiV1ResponseMapper {
         LeagueFixture fixture = season.schedule().fixture(row.fixtureId());
         Optional<LeaguePlayerSeriesBindingPort.State> binding = bindings.findByFixture(
                 season.seasonId(), fixture.fixtureId());
-        ArrayList<String> allowed = new ArrayList<>();
-        allowed.add("VIEW_FIXTURE");
-        if (fixture.executionMode() == LeagueFixtureExecutionMode.PLAYER_CONTROLLED
-                && !terminal(row.status()) && !"BLOCKED".equals(row.status())) {
-            if (binding.isEmpty()) allowed.add("START_PLAYER_SERIES");
-            else allowed.addAll(playerAllowed(binding.get()));
-        }
+        SeriesStatus childStatus = binding.isPresent()
+                && binding.get().status() == LeaguePlayerSeriesBindingPort.Status.ACTIVE
+                ? playerSeries.inspect(binding.get().binding()).status() : null;
+        List<String> allowed = LeagueCommandPolicy.fixtureCommands(
+                fixture.executionMode(), row.status(),
+                binding.map(LeaguePlayerSeriesBindingPort.State::status).orElse(null),
+                childStatus);
         return new LeagueApiV1Dtos.FixtureView(fixture.fixtureId(),
-                fixture.roundNumber(), row.status(), row.revision(),
+                fixture.roundNumber(), row.status().name(), row.revision(),
                 fixture.executionMode().name(), fixture.firstTeamCode(),
                 fixture.secondTeamCode(), fixture.game1BlueTeamCode(),
                 fixture.game1RedTeamCode(), fixture.seriesFormat().name(),
@@ -244,23 +229,13 @@ final class LeagueApiV1ResponseMapper {
             LeaguePlayerSeriesBindingPort.Status bindingStatus,
             SeriesStatus childStatus
     ) {
-        if (bindingStatus == LeaguePlayerSeriesBindingPort.Status.CREATED) {
-            return List.of("RESUME_PLAYER_SERIES");
-        }
-        if (bindingStatus == LeaguePlayerSeriesBindingPort.Status.ACTIVE) {
-            return childStatus == SeriesStatus.COMPLETED
-                    ? List.of("RECONCILE_PLAYER_SERIES_COMPLETION")
-                    : List.of("RESUME_PLAYER_SERIES");
-        }
-        if (bindingStatus == LeaguePlayerSeriesBindingPort.Status
-                .COMPLETION_PENDING_VERIFICATION) {
-            return List.of("RECONCILE_PLAYER_SERIES_COMPLETION");
-        }
-        return List.of();
+        return LeagueCommandPolicy.playerSeriesCommands(bindingStatus, childStatus);
     }
 
     private static String completionStatus(FixtureRow row) {
-        if ("COMPLETED".equals(row.status())) return "APPLIED";
+        if (row.status() == LeaguePersistenceState.FixtureStatus.COMPLETED) {
+            return "APPLIED";
+        }
         if (row.completionReceiptHash() != null) return "PENDING_RECONCILIATION";
         return "NOT_CREATED";
     }
@@ -280,11 +255,11 @@ final class LeagueApiV1ResponseMapper {
         int completed = 0, inProgress = 0, waiting = 0, blocked = 0, cancelled = 0;
         for (FixtureRow row : rows) {
             switch (row.status()) {
-                case "COMPLETED" -> completed++;
-                case "QUEUED", "LEASED", "RUNNING", "PLAYER_SERIES_RESERVED",
-                        "COMPLETION_PENDING_VERIFICATION" -> inProgress++;
-                case "BLOCKED" -> blocked++;
-                case "CANCELLED" -> cancelled++;
+                case COMPLETED -> completed++;
+                case QUEUED, LEASED, RUNNING, PLAYER_SERIES_RESERVED,
+                        COMPLETION_PENDING_VERIFICATION -> inProgress++;
+                case BLOCKED -> blocked++;
+                case CANCELLED -> cancelled++;
                 default -> waiting++;
             }
         }
@@ -300,7 +275,8 @@ final class LeagueApiV1ResponseMapper {
                   ON j.season_id = f.season_id AND j.fixture_id = f.fixture_id
                 WHERE f.season_id = ? ORDER BY f.round_number, f.fixture_id
                 """, (result, row) -> new FixtureRow(result.getString(1),
-                result.getInt(2), result.getString(3), result.getLong(4),
+                result.getInt(2), LeaguePersistenceState.FixtureStatus.valueOf(
+                result.getString(3)), result.getLong(4),
                 result.getString(5), result.getString(6), result.getString(7)), seasonId);
     }
 
@@ -325,7 +301,8 @@ final class LeagueApiV1ResponseMapper {
     }
 
     private record FixtureRow(
-            String fixtureId, int roundNumber, String status, long revision,
+            String fixtureId, int roundNumber,
+            LeaguePersistenceState.FixtureStatus status, long revision,
             String completionReceiptHash, String jobId, String jobStatus
     ) {}
 

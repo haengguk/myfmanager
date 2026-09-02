@@ -4,6 +4,7 @@ import com.lolfm.dto.CareerApiV1Dtos;
 import com.lolfm.reference.TeamPlayerInformationCatalog;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -75,6 +76,10 @@ public final class CareerApplicationService {
             return new CreateResult(stored.replayed(), loadView(stored.career()));
         } catch (CareerRelationalStore.CommandConflict conflict) {
             throw CareerException.commandConflict();
+        } catch (CareerRelationalStore.CapacityReached full) {
+            throw CareerException.capacityReached();
+        } catch (CareerRelationalStore.CommandReceiptIntegrityFailure corrupted) {
+            throw CareerException.commandReceiptIntegrity();
         } catch (CareerException known) {
             throw known;
         } catch (DataIntegrityViolationException | IllegalArgumentException
@@ -83,8 +88,31 @@ public final class CareerApplicationService {
         }
     }
 
-    public List<CareerViewState> list() {
-        return careers.list().stream().map(this::loadView).toList();
+    public CareerListState list() {
+        List<CareerRelationalStore.CareerRow> rows;
+        try {
+            rows = careers.list();
+        } catch (CareerRelationalStore.CareerListIntegrityFailure corrupted) {
+            throw CareerException.resourceIntegrity();
+        }
+        rows.forEach(this::validateCareerIdentity);
+        List<SeasonReference> references = rows.stream()
+                .map(row -> new SeasonReference(row.leagueId(), row.seasonId())).toList();
+        Map<SeasonReference, LinkedSeason> linked;
+        try {
+            linked = seasons.loadAll(references);
+        } catch (RuntimeException failure) {
+            throw CareerException.linkedSeasonIntegrity(failure);
+        }
+        List<CareerViewState> views = rows.stream().map(row -> {
+            LinkedSeason season = linked.get(new SeasonReference(
+                    row.leagueId(), row.seasonId()));
+            if (season == null) throw CareerException.linkedSeasonIntegrity();
+            return linkedView(row, season);
+        }).toList();
+        int current = views.size();
+        int maximum = careers.maximumCareers();
+        return new CareerListState(views, current, maximum, maximum - current);
     }
 
     public CareerViewState get(String careerId) {
@@ -99,18 +127,19 @@ public final class CareerApplicationService {
 
     private CareerViewState loadView(CareerRelationalStore.CareerRow row) {
         validateCareerIdentity(row);
-        if (!references.provenance().catalogVersion().equals(
-                row.referenceCatalogVersion())
-                || !references.provenance().catalogHash().equals(row.referenceCatalogHash())
-                || references.findTeam(row.managedTeamCode()).isEmpty()) {
-            throw CareerException.resourceIntegrity();
-        }
         LinkedSeason linked;
         try {
             linked = seasons.load(row.leagueId(), row.seasonId());
         } catch (RuntimeException failure) {
             throw CareerException.linkedSeasonIntegrity(failure);
         }
+        return linkedView(row, linked);
+    }
+
+    private CareerViewState linkedView(
+            CareerRelationalStore.CareerRow row,
+            LinkedSeason linked
+    ) {
         if (!linked.leagueId().equals(row.leagueId())
                 || !linked.seasonId().equals(row.seasonId())
                 || !"HYBRID_MANAGER".equals(linked.seasonMode())
@@ -147,6 +176,12 @@ public final class CareerApplicationService {
             }
         } catch (RuntimeException invalid) {
             throw CareerException.linkedSeasonIntegrity();
+        }
+        if (!references.provenance().catalogVersion().equals(
+                row.referenceCatalogVersion())
+                || !references.provenance().catalogHash().equals(row.referenceCatalogHash())
+                || references.findTeam(row.managedTeamCode()).isEmpty()) {
+            throw CareerException.resourceIntegrity();
         }
     }
 
@@ -202,7 +237,11 @@ public final class CareerApplicationService {
 
     public interface SeasonReadPort {
         LinkedSeason load(String leagueId, String seasonId);
+
+        Map<SeasonReference, LinkedSeason> loadAll(List<SeasonReference> references);
     }
+
+    public record SeasonReference(String leagueId, String seasonId) {}
 
     public record ProvisionedSeason(
             String leagueId,
@@ -234,8 +273,11 @@ public final class CareerApplicationService {
             String seasonLifecycleStatus,
             int currentRound,
             long lifecycleRevision,
-            long standingsRevision
-    ) {}
+            long standingsRevision,
+            List<String> allowedCommands
+    ) {
+        public ResumeState { allowedCommands = List.copyOf(allowedCommands); }
+    }
 
     public record CareerViewState(
             CareerRelationalStore.CareerRow career,
@@ -243,4 +285,13 @@ public final class CareerApplicationService {
     ) {}
 
     public record CreateResult(boolean replayed, CareerViewState career) {}
+
+    public record CareerListState(
+            List<CareerViewState> careers,
+            int currentCount,
+            int maximumCount,
+            int remainingCount
+    ) {
+        public CareerListState { careers = List.copyOf(careers); }
+    }
 }

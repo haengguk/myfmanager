@@ -214,6 +214,11 @@
   stroke-width: 1.4;
 }
 
+.lm-team-emblem > span {
+  font: 750 9px var(--lm-font-mono);
+  letter-spacing: -.03em;
+}
+
 .lm-screen-name {
   min-width: 76px;
 }

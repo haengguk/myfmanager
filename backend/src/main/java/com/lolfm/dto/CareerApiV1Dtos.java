@@ -30,7 +30,10 @@ public final class CareerApiV1Dtos {
 
     public record ListResponse(
             String schemaVersion,
-            List<CareerSummary> careers
+            List<CareerSummary> careers,
+            int currentCount,
+            int maximumCount,
+            int remainingCount
     ) {
         public ListResponse { careers = List.copyOf(careers); }
     }
@@ -82,8 +85,11 @@ public final class CareerApiV1Dtos {
             String seasonLifecycleStatus,
             int currentRound,
             long lifecycleRevision,
-            long standingsRevision
-    ) {}
+            long standingsRevision,
+            List<String> allowedCommands
+    ) {
+        public ResumeProjection { allowedCommands = List.copyOf(allowedCommands); }
+    }
 
     public record ErrorResponse(
             String schemaVersion,

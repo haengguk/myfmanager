@@ -16,8 +16,9 @@ public final class CareerApiV1ExceptionHandler {
             case REQUEST_INVALID -> HttpStatus.BAD_REQUEST;
             case NOT_FOUND -> HttpStatus.NOT_FOUND;
             case MANAGED_TEAM_NOT_FOUND -> HttpStatus.UNPROCESSABLE_ENTITY;
-            case COMMAND_CONFLICT -> HttpStatus.CONFLICT;
-            case LINKED_SEASON_INTEGRITY_FAILURE, RESOURCE_INTEGRITY_FAILURE ->
+            case COMMAND_CONFLICT, CAPACITY_REACHED -> HttpStatus.CONFLICT;
+            case COMMAND_RECEIPT_INTEGRITY_FAILURE,
+                    LINKED_SEASON_INTEGRITY_FAILURE, RESOURCE_INTEGRITY_FAILURE ->
                     HttpStatus.INTERNAL_SERVER_ERROR;
         };
         return response(status, code(error.type()), error.field(), error.clientMessage());
@@ -42,6 +43,9 @@ public final class CareerApiV1ExceptionHandler {
             case NOT_FOUND -> "CAREER_NOT_FOUND";
             case MANAGED_TEAM_NOT_FOUND -> "CAREER_MANAGED_TEAM_NOT_FOUND";
             case COMMAND_CONFLICT -> "CAREER_COMMAND_CONFLICT";
+            case CAPACITY_REACHED -> "CAREER_CAPACITY_REACHED";
+            case COMMAND_RECEIPT_INTEGRITY_FAILURE ->
+                    "CAREER_COMMAND_RECEIPT_INTEGRITY_FAILURE";
             case LINKED_SEASON_INTEGRITY_FAILURE ->
                     "CAREER_LINKED_SEASON_INTEGRITY_FAILURE";
             case RESOURCE_INTEGRITY_FAILURE -> "CAREER_RESOURCE_INTEGRITY_FAILURE";

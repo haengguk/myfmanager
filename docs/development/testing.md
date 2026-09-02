@@ -1229,3 +1229,70 @@ Gradle wall 23분 32초, `BUILD SUCCESSFUL`이다. 이후 production Java/resour
 Frontend source를 변경하지 않았으므로 frontend build/Playwright는 실행하지 않는다. 90-fixture 실제
 실행, fresh-JVM probe, artifact writer, JFR와 대형 population/balance/calibration/holdout도 실행하지
 않는다.
+
+### Career dashboard frontend V1 and load projection hardening
+
+Phase A backend focused lane은 최종 production/test source에서 다음과 같이 실행했다.
+
+```text
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.controller.CareerApiV1ControllerTest \
+  --tests com.lolfm.league.CareerModePersistenceTest \
+  --console=plain
+```
+
+결과는 2 suites / 3 tests / failures 0 / errors 0 / skipped 0, Gradle wall 15초,
+`BUILD SUCCESSFUL`이다. 실제 검증 범위는 expired simulation reservation을 포함한 Career GET/List 전후
+Career/League/fixture/binding/checkpoint/command/job/attempt/receipt/outbox/application DB snapshot exact
+equality, PAUSED의 `RESUME_SEASON`, VERIFIED의 non-Player route, capacity seam 1의 최초 생성/한도 거부/
+exact replay mutation 0, command schema와 target tamper fail-closed, task-owned file-H2 restart identity다.
+새 backend test class나 100개의 실제 Season은 만들지 않았다.
+
+Frontend에서는 다음 명령을 실행했다.
+
+```text
+cd frontend
+npm run career:verify
+npm run league:verify
+npm run bundle:verify
+npm run build
+```
+
+`career:verify`는 list/detail/create, strict unknown/missing/type 거부, capacity/order cross-field,
+Player resume relation, logical create UUID reuse, not-found/transient/integrity pointer recovery, structured
+route와 return-context 최소 저장의 8 scenarios를 모두 통과해
+`CAREER_DASHBOARD_FRONTEND_V1_CONTRACT_VERIFICATION_PASSED`를 출력했다. 마지막 frontend source
+변경 뒤 Career/League verifier와 build를 다시 실행했고, 최종 build 뒤 bundle verifier도 통과했다.
+Bundle 결과는 initial graph
+`assets/index-DnCAMRoU.js` 510,839 bytes, reference chunk
+`matchSession.adapter-BFFoLE5V.js` 423,581 bytes, lazy `true`다.
+
+기존 `league:verify`의 League contract와 completion recovery도 모두 통과했다. Production build는
+151 modules를 transform했고 Career lazy chunk는 26.45 kB(gzip 9.60 kB), initial index는
+480.34 kB(gzip 152.27 kB)로 `BUILD` 오류 없이 완료됐다. Series core source를 변경하지 않아
+`series:verify`는 실행하지 않았다.
+
+Playwright LIVE는 user runtime과 분리한 backend 8091, frontend 5173, task-owned file-H2에서 실행했다.
+빈 Career 화면에서 실제 Team/Player API의 10팀을 확인하고 `GEN 라이브 저장`/`라이브 감독`/GEN으로
+POST 201을 받은 뒤 목록/상세, Career→League→Career와 reload의 list/detail GET 복구를 확인했다.
+Browser storage에는 Career ID만 남고 manager/allowedCommands는 없었다. Dialog initial focus,
+Tab/Shift+Tab trap, Escape, 실제 trigger focus return은 모두 통과했다. 1440×900과 1280×720의 html/body
+horizontal overflow는 모두 0, primary action visible, console errors/warnings 0이었다. Browser와 두 server를
+종료하고 task-owned H2 파일을 제거했다. Mock/service worker/response rewriting, 90경기와 Player BO3는
+사용하지 않았다.
+
+최종 executable backend tree에서는 다음 complete regression을 정확히 한 번 실행했다.
+
+```text
+cd backend
+gradlew.bat test --console=plain
+```
+
+결과는 268 suites / 2,365 tests / failures 0 / errors 0 / skipped 2, aggregate JUnit XML
+1,297.578초, Gradle wall 21분 52초, `BUILD SUCCESSFUL`이다. 두 skip은 기존 explicit 대형 diagnostic이다.
+Clean full 뒤 backend executable production source, resource, Gradle과 shared fixture는 바꾸지 않았다.
+Frontend의 빈 표시 이름 validation과 Player Series 실패 시 League fallback을 보강한 뒤 위 frontend
+focused/build/bundle lane을 다시 통과했으므로 backend full regression은 반복하지 않았다. Balance/calibration/
+holdout, 대형 seed population, fresh-JVM proof, artifact writer, JFR, 장시간 BO3/다음 Round E2E는 실행하지
+않았다.

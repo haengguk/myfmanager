@@ -1,7 +1,7 @@
 import { realMatchConfig } from '../../real-match/realMatch.config';
 import { TeamPlayerApiFailure } from './teamPlayerApi.failure';
 export { TeamPlayerApiFailure } from './teamPlayerApi.failure';
-import type { CatalogMetadataDto, PlayerResponseDto, PlayerSummaryDto, TeamPlayerWorkspaceDto } from './teamPlayerApi.types';
+import type { CatalogMetadataDto, PlayerResponseDto, PlayerSummaryDto, TeamPlayerWorkspaceDto, TeamsResponseDto } from './teamPlayerApi.types';
 import { TeamPlayerContractError, validateErrorResponse, validateMetadata, validatePlayerResponse, validatePlayers, validateTeams, validateWorkspace } from './teamPlayerApi.validation';
 
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -88,6 +88,10 @@ export async function fetchTeamPlayerWorkspace(signal: AbortSignal): Promise<Tea
     getUnknown('/players', signal).then(validatePlayers),
   ]);
   return validateWorkspace(metadata, teams, players);
+}
+
+export async function fetchLckTeams(signal: AbortSignal): Promise<TeamsResponseDto> {
+  return getUnknown('/teams', signal).then(validateTeams);
 }
 
 export async function fetchPlayerDetail(

@@ -1,0 +1,147 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchLckTeams, TeamPlayerApiFailure } from '../team-player/api/teamPlayerApi.client';
+import type { TeamSummaryDto } from '../team-player/api/teamPlayerApi.types';
+import { CareerApiFailure, createCareer, getCareer, getCareers } from './api/careerApi.client';
+import { CAREER_SCHEMAS, type CareerListResponseDto, type CareerSummaryDto, type CareerViewDto } from './api/careerApi.types';
+import { CAREER_RESUME_COPY } from './career.adapter';
+import { CareerCreateDialog } from './CareerCreateDialog';
+import {
+  careerPointerRecoveryAction, clearCareerCreateOperation, clearCareerPointer,
+  isAmbiguousCareerCreateFailure, logicalCareerCreate, readCareerCreateOperation,
+  readCareerPointer, writeCareerPointer, type CareerCreateSelection,
+} from './career.pointer';
+
+const EMPTY_CAPACITY: CareerListResponseDto = { schemaVersion: CAREER_SCHEMAS.list, careers: [], currentCount: 0, maximumCount: 100, remainingCount: 100 };
+const RESUME_KIND_COPY = { LEAGUE_DASHBOARD: '리그 대시보드', PLAYER_SERIES: 'Player Series', SEASON_COMPLETE: '시즌 완료', ATTENTION_REQUIRED: '확인 필요' } as const;
+const COMMAND_COPY: Readonly<Record<string, string>> = {
+  VIEW_STANDINGS: '순위표 보기', RUN_CURRENT_ROUND_AUTO_FIXTURES: '현재 라운드 Auto 경기 실행', PAUSE_SEASON: '시즌 일시 정지', RESUME_SEASON: '시즌 재개', CANCEL_SEASON: '시즌 취소', START_PLAYER_SERIES: 'Player Series 시작', RESUME_PLAYER_SERIES: 'Player Series 계속', RECONCILE_PLAYER_SERIES_COMPLETION: 'Series 완료 반영', VIEW_FIXTURE: '경기 보기',
+};
+
+function dateTime(value: string): string { return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
+function summaryFromView(career: CareerViewDto): CareerSummaryDto {
+  return { careerId: career.careerId, saveName: career.saveName, managerName: career.managerName, managedTeamCode: career.managedTeamCode, currentDate: career.currentDate, leagueId: career.leagueId, seasonId: career.seasonId, lifecycleStatus: career.lifecycleStatus, resumeKind: career.resume.kind, updatedAt: career.updatedAt };
+}
+function withCreatedCareer(current: CareerListResponseDto, career: CareerViewDto): CareerListResponseDto {
+  const existed = current.careers.some((entry) => entry.careerId === career.careerId);
+  const careers = [summaryFromView(career), ...current.careers.filter((entry) => entry.careerId !== career.careerId)]
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt) || left.careerId.localeCompare(right.careerId));
+  const currentCount = Math.min(current.maximumCount, current.currentCount + (existed ? 0 : 1));
+  return { ...current, careers, currentCount, remainingCount: current.maximumCount - currentCount };
+}
+function loadFailure(error: unknown): string {
+  if (error instanceof CareerApiFailure || error instanceof TeamPlayerApiFailure) return error.userMessage;
+  return 'Career 화면에 필요한 서버 정보를 불러오지 못했습니다.';
+}
+interface CatalogIdentity { catalogVersion: string; catalogHash: string }
+function requireCareerReference(career: CareerViewDto, teams: readonly TeamSummaryDto[], catalog: CatalogIdentity | null): void {
+  if (!teams.some((entry) => entry.teamCode === career.managedTeamCode)) throw new CareerApiFailure('CONTRACT', 'Career 관리 팀이 현재 LCK reference에 없습니다.');
+  if (!catalog || career.referenceCatalogVersion !== catalog.catalogVersion || career.referenceCatalogHash !== catalog.catalogHash) throw new CareerApiFailure('CONTRACT', 'Career와 LCK reference generation이 일치하지 않습니다.');
+}
+
+export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
+  searchValue: string;
+  onResume: (career: CareerViewDto) => void;
+  onNotify: (title: string, message: string) => void;
+}) {
+  const [list, setList] = useState<CareerListResponseDto>(EMPTY_CAPACITY);
+  const [teams, setTeams] = useState<readonly TeamSummaryDto[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<CareerViewDto | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [integrityError, setIntegrityError] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createPending, setCreatePending] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
+  const createRequestRef = useRef<AbortController | null>(null);
+  const generationRef = useRef(0);
+  const newCareerRef = useRef<HTMLButtonElement>(null);
+  const detailTitleRef = useRef<HTMLHeadingElement>(null);
+  const teamsRef = useRef(teams); teamsRef.current = teams;
+  const catalogRef = useRef<CatalogIdentity | null>(null);
+
+  const applyDetail = useCallback((career: CareerViewDto, focus = false) => {
+    writeCareerPointer(window.sessionStorage, career.careerId); setSelectedId(career.careerId); setDetail(career); setIntegrityError(false);
+    if (focus) window.requestAnimationFrame(() => detailTitleRef.current?.focus());
+  }, []);
+
+  const loadDetail = useCallback(async (careerId: string, focus = false) => {
+    const generation = ++generationRef.current; const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller;
+    setSelectedId(careerId); setDetail(null); setDetailLoading(true); setError(null); setIntegrityError(false);
+    try {
+      const career = await getCareer(careerId, controller.signal); if (generation !== generationRef.current || controller.signal.aborted) return;
+      requireCareerReference(career, teamsRef.current, catalogRef.current);
+      applyDetail(career, focus);
+    } catch (cause) {
+      if (controller.signal.aborted || generation !== generationRef.current) return;
+      const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause)); const action = careerPointerRecoveryAction(failure);
+      if (action === 'CLEAR_NOT_FOUND') { clearCareerPointer(window.sessionStorage); setSelectedId(null); setDetail(null); setError('선택한 저장을 서버에서 찾을 수 없어 브라우저의 Career ID를 정리했습니다.'); }
+      else { setError(failure.userMessage); setIntegrityError(action === 'KEEP_INTEGRITY' || action === 'KEEP_CONTRACT'); }
+    } finally { if (!controller.signal.aborted && generation === generationRef.current) setDetailLoading(false); if (requestRef.current === controller) requestRef.current = null; }
+  }, [applyDetail]);
+
+  const loadWorkspace = useCallback(async () => {
+    const generation = ++generationRef.current; const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller;
+    setInitialLoading(true); setError(null); setIntegrityError(false);
+    try {
+      const [nextList, teamResponse] = await Promise.all([getCareers(controller.signal), fetchLckTeams(controller.signal)]);
+      if (controller.signal.aborted || generation !== generationRef.current) return;
+      const catalog = { catalogVersion: teamResponse.catalog.catalogVersion, catalogHash: teamResponse.catalog.catalogHash };
+      const teamCodes = new Set(teamResponse.teams.map((entry) => entry.teamCode));
+      if (nextList.careers.some((career) => !teamCodes.has(career.managedTeamCode))) throw new CareerApiFailure('CONTRACT', 'Career 목록에 현재 LCK reference에 없는 관리 팀이 있습니다.');
+      setList(nextList); setTeams(teamResponse.teams); teamsRef.current = teamResponse.teams; catalogRef.current = catalog;
+      const pointer = readCareerPointer(window.sessionStorage); const target = pointer ?? nextList.careers[0]?.careerId ?? null;
+      if (!target) { setSelectedId(null); setDetail(null); return; }
+      try {
+        const career = await getCareer(target, controller.signal); if (controller.signal.aborted || generation !== generationRef.current) return;
+        if (!nextList.careers.some((entry) => entry.careerId === career.careerId)) throw new CareerApiFailure('CONTRACT', 'Career 목록과 상세의 identity가 일치하지 않습니다.');
+        requireCareerReference(career, teamResponse.teams, catalog);
+        applyDetail(career);
+      } catch (cause) {
+        if (controller.signal.aborted || generation !== generationRef.current) return;
+        const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause)); const action = careerPointerRecoveryAction(failure);
+        if (action === 'CLEAR_NOT_FOUND') { clearCareerPointer(window.sessionStorage); setSelectedId(null); setDetail(null); setError('저장된 Career ID가 서버에 없어 pointer를 정리했습니다. 목록에서 다시 선택하세요.'); }
+        else { setError(failure.userMessage); setIntegrityError(action === 'KEEP_INTEGRITY' || action === 'KEEP_CONTRACT'); }
+      }
+    } catch (cause) { if (!controller.signal.aborted && generation === generationRef.current) setError(loadFailure(cause)); }
+    finally { if (!controller.signal.aborted && generation === generationRef.current) setInitialLoading(false); if (requestRef.current === controller) requestRef.current = null; }
+  }, [applyDetail]);
+
+  useEffect(() => { void loadWorkspace(); return () => { requestRef.current?.abort(); createRequestRef.current?.abort(); }; }, [loadWorkspace]);
+
+  const create = useCallback(async (selection: CareerCreateSelection) => {
+    if (createPending) return;
+    const operation = logicalCareerCreate(window.sessionStorage, selection); const controller = new AbortController(); createRequestRef.current?.abort(); createRequestRef.current = controller;
+    setCreatePending(true); setCreateError(null);
+    try {
+      const response = await createCareer({ schemaVersion: CAREER_SCHEMAS.createRequest, ...operation.selection, clientCommandId: operation.clientCommandId }, controller.signal);
+      requireCareerReference(response.career, teamsRef.current, catalogRef.current);
+      clearCareerCreateOperation(window.sessionStorage); applyDetail(response.career, true); setDialogOpen(false);
+      onNotify(response.replayed ? 'Career 생성 결과 복원' : 'Career 생성 완료', `${response.career.saveName} · ${response.career.managedTeamCode} Hybrid Season을 서버에서 확인했습니다.`);
+      try { setList(await getCareers(controller.signal)); } catch { setList((current) => withCreatedCareer(current, response.career)); }
+    } catch (cause) {
+      if (controller.signal.aborted) return;
+      const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause));
+      if (!isAmbiguousCareerCreateFailure(failure)) clearCareerCreateOperation(window.sessionStorage);
+      setCreateError(failure.userMessage);
+    } finally { if (!controller.signal.aborted) setCreatePending(false); if (createRequestRef.current === controller) createRequestRef.current = null; }
+  }, [applyDetail, createPending, onNotify]);
+
+  const query = searchValue.normalize('NFC').trim().toLocaleLowerCase('ko-KR');
+  const careers = useMemo(() => !query ? list.careers : list.careers.filter((career) => [career.saveName, career.managerName, career.managedTeamCode].some((value) => value.toLocaleLowerCase('ko-KR').includes(query))), [list.careers, query]);
+  const full = list.remainingCount === 0;
+  const pendingOperation = readCareerCreateOperation(window.sessionStorage);
+
+  return <main className="ca-workspace" aria-labelledby="ca-page-title">
+    <header className="ca-page-head"><div><span>CAREER / SAVE SLOTS</span><h1 id="ca-page-title">커리어 저장소</h1><p>Career identity와 연결된 LCK 시즌을 서버 상태 그대로 불러옵니다.</p></div><div className="ca-capacity" aria-label={`저장 슬롯 ${list.currentCount}개 중 ${list.maximumCount}개`}><span>사용 중</span><strong>{list.currentCount}<i>/</i>{list.maximumCount}</strong><small>{full ? '저장 슬롯이 가득 찼습니다' : `${list.remainingCount}개 남음`}</small></div><button ref={newCareerRef} className="lm-secondary-button" type="button" disabled={full || initialLoading} onClick={() => { setCreateError(null); setDialogOpen(true); }}>새 커리어</button></header>
+    {initialLoading ? <section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 저장 목록 확인 중</strong><p>브라우저 캐시가 아닌 서버의 최신 저장 상태를 읽고 있습니다.</p></section> : error && list.careers.length === 0 ? <section className={`ca-error${integrityError ? ' is-integrity' : ''}`} role="alert"><strong>{integrityError ? '저장 무결성 확인 필요' : 'Career를 불러오지 못했습니다'}</strong><p>{error}</p><button type="button" className="lm-secondary-button" onClick={() => { void loadWorkspace(); }}>다시 시도</button></section> : <div className="ca-layout">
+      <aside className="ca-saves" aria-label="Career 저장 목록"><header><div><span>SAVED CAREERS</span><strong>{query ? `검색 결과 ${careers.length}` : `${list.currentCount}개 저장`}</strong></div><small>최근 운영 저장 순</small></header>{careers.length === 0 ? <div className="ca-empty"><strong>{list.currentCount === 0 ? '저장된 커리어가 없습니다' : '검색 결과가 없습니다'}</strong><p>{list.currentCount === 0 ? 'LCK 관리 팀과 감독 이름을 정해 첫 Career를 만드세요.' : '저장 이름, 감독 또는 팀 코드로 다시 검색하세요.'}</p>{list.currentCount === 0 && !full ? <button type="button" className="lm-primary-button" onClick={() => setDialogOpen(true)}>첫 커리어 만들기</button> : null}</div> : <ol>{careers.map((career) => <li key={career.careerId}><button type="button" aria-current={selectedId === career.careerId ? 'true' : undefined} onClick={() => { void loadDetail(career.careerId); }}><span className={`ca-save-state is-${career.resumeKind.toLowerCase()}`}>{RESUME_KIND_COPY[career.resumeKind]}</span><strong>{career.saveName}</strong><span>{career.managedTeamCode} · {career.managerName}</span><small><time dateTime={career.currentDate}>{career.currentDate}</time><time dateTime={career.updatedAt}>{dateTime(career.updatedAt)}</time></small></button></li>)}</ol>}</aside>
+      <section className="ca-detail" aria-live="polite">{detailLoading ? <div className="ca-detail-loading" role="status"><span aria-hidden="true" /><strong>선택한 Career 확인 중</strong><p>연결된 Season의 navigation projection을 조회합니다.</p></div> : error ? <div className={`ca-error${integrityError ? ' is-integrity' : ''}`} role="alert"><strong>{integrityError ? '복구 불가 상태 확인 필요' : '상세를 불러오지 못했습니다'}</strong><p>{error}</p>{selectedId ? <button type="button" className="lm-secondary-button" onClick={() => { void loadDetail(selectedId); }}>다시 시도</button> : null}</div> : detail ? <><header><div><span>ACTIVE CAREER</span><h2 ref={detailTitleRef} tabIndex={-1}>{detail.saveName}</h2><p>{detail.managedTeamCode} 구단을 맡은 {detail.managerName} 감독의 저장입니다.</p></div><span className="ca-active-mark">ACTIVE</span></header><div className="ca-facts"><dl><div><dt>관리 팀</dt><dd>{detail.managedTeamCode}</dd></div><div><dt>감독</dt><dd>{detail.managerName}</dd></div><div><dt>게임 날짜</dt><dd>{detail.currentDate}</dd></div><div><dt>Career 상태</dt><dd>{detail.lifecycleStatus}</dd></div></dl><section><span>LINKED SEASON</span><h3>Round {detail.resume.currentRound} <i>/ 18</i></h3><p>{detail.resume.seasonLifecycleStatus}</p><dl><div><dt>시작 날짜</dt><dd>{detail.startDate}</dd></div><div><dt>Standings revision</dt><dd>{detail.resume.standingsRevision}</dd></div><div><dt>Lifecycle revision</dt><dd>{detail.resume.lifecycleRevision}</dd></div><div><dt>생성 시각</dt><dd>{dateTime(detail.createdAt)}</dd></div><div><dt>운영 저장 시각</dt><dd>{dateTime(detail.updatedAt)}</dd></div></dl></section></div><section className="ca-identities"><span>SERVER-OWNED IDENTITY</span><dl><div><dt>Career</dt><dd><code>{detail.careerId}</code></dd></div><div><dt>League</dt><dd><code>{detail.leagueId}</code></dd></div><div><dt>Season</dt><dd><code>{detail.seasonId}</code></dd></div></dl></section></> : <div className="ca-empty ca-empty--detail"><strong>저장을 선택하세요</strong><p>선택한 Career만 GET으로 다시 검증해 상세를 표시합니다.</p></div>}</section>
+      <aside className="ca-resume" aria-label="이어하기 문맥">{detail ? <><span>NEXT ACTION</span><div className={`ca-resume__kind is-${detail.resume.kind.toLowerCase()}`}><small>{RESUME_KIND_COPY[detail.resume.kind]}</small><strong>{CAREER_RESUME_COPY[detail.resume.kind].label}</strong></div><p>{CAREER_RESUME_COPY[detail.resume.kind].description}</p>{detail.resume.kind === 'ATTENTION_REQUIRED' ? <div className="ca-resume__notice" role="note">로컬에서 복구 상태를 추측하지 않습니다. League 화면의 최신 허용 작업을 확인하세요.</div> : null}{detail.resume.kind === 'SEASON_COMPLETE' ? <div className="ca-resume__notice" role="note">다음 시즌 생성과 날짜 진행은 아직 제공되지 않습니다.</div> : null}<div className="ca-commands"><span>서버 허용 작업</span>{detail.resume.allowedCommands.length ? <ul>{detail.resume.allowedCommands.map((command) => <li key={command}>{COMMAND_COPY[command] ?? command}</li>)}</ul> : <p>Player command 없음</p>}</div><button type="button" className="lm-primary-button ca-resume__action" onClick={() => onResume(detail)}>{CAREER_RESUME_COPY[detail.resume.kind].label}</button><button type="button" className="lm-text-button" onClick={() => { void loadDetail(detail.careerId); }}>서버 상태 새로고침</button></> : <><span>NEXT ACTION</span><strong>저장 선택 대기</strong><p>목록에서 Career를 선택하면 서버의 resume projection을 확인합니다.</p></>}</aside>
+    </div>}
+    {full ? <div className="ca-capacity-note" role="status"><strong>저장 슬롯 100개가 모두 사용 중입니다.</strong><span>기존 Career는 계속 불러올 수 있지만 V1에서는 삭제·보관 기능이 없습니다.</span></div> : null}
+    {dialogOpen ? <CareerCreateDialog teams={teams} initial={pendingOperation?.selection ?? null} pending={createPending} error={createError} returnFocus={newCareerRef.current} onClose={() => { if (!createPending) setDialogOpen(false); }} onCreate={(selection) => { void create(selection); }} /> : null}
+  </main>;
+}

@@ -19,18 +19,19 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Relational authority for Career save slots and create-command receipts. */
 @Component
 public final class CareerRelationalStore {
-    static final int MAX_LIST_SIZE = 100;
+    public static final int MAX_CAREERS = 100;
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
     private final Clock clock;
+    private final int maximumCareers;
 
     @Autowired
     public CareerRelationalStore(
             JdbcTemplate jdbc,
             PlatformTransactionManager transactionManager
     ) {
-        this(jdbc, transactionManager, Clock.systemUTC());
+        this(jdbc, transactionManager, Clock.systemUTC(), MAX_CAREERS);
     }
 
     CareerRelationalStore(
@@ -38,10 +39,23 @@ public final class CareerRelationalStore {
             PlatformTransactionManager transactionManager,
             Clock clock
     ) {
+        this(jdbc, transactionManager, clock, MAX_CAREERS);
+    }
+
+    public CareerRelationalStore(
+            JdbcTemplate jdbc,
+            PlatformTransactionManager transactionManager,
+            Clock clock,
+            int maximumCareers
+    ) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
         this.transactions = new TransactionTemplate(
                 Objects.requireNonNull(transactionManager, "transactionManager"));
         this.clock = Objects.requireNonNull(clock, "clock");
+        if (maximumCareers < 1 || maximumCareers > MAX_CAREERS) {
+            throw new IllegalArgumentException("maximumCareers");
+        }
+        this.maximumCareers = maximumCareers;
     }
 
     /** The supplier runs inside the same transaction as the command and Career insert. */
@@ -57,13 +71,26 @@ public final class CareerRelationalStore {
             lockCreateCommands();
             Optional<CommandRow> prior = findCommand(commandId);
             if (prior.isPresent()) {
-                if (!prior.get().payloadHash().equals(payloadHash)) {
+                CommandRow command = prior.get();
+                if (!command.clientCommandId().equals(commandId)
+                        || !CareerIdentity.COMMAND_SCHEMA.equals(command.commandSchema())
+                        || !CareerIdentity.careerId(commandId).equals(command.careerId())) {
+                    throw new CommandReceiptIntegrityFailure();
+                }
+                if (!command.payloadHash().equals(payloadHash)) {
                     throw new CommandConflict();
                 }
-                CareerRow career = find(prior.get().careerId()).orElseThrow(
-                        () -> new IllegalStateException("CAREER_COMMAND_TARGET_MISSING"));
+                CareerRow career = find(command.careerId()).orElseThrow(
+                        CommandReceiptIntegrityFailure::new);
                 return new CreateResult(true, career);
             }
+
+            Integer current = jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM career_save", Integer.class);
+            if (current == null || current < 0 || current > maximumCareers) {
+                throw new CareerListIntegrityFailure();
+            }
+            if (current == maximumCareers) throw new CapacityReached();
 
             NewCareer requested = Objects.requireNonNull(creator.get(), "createdCareer");
             OffsetDateTime now = now();
@@ -111,7 +138,7 @@ public final class CareerRelationalStore {
     }
 
     public List<CareerRow> list() {
-        return jdbc.query("""
+        List<CareerRow> rows = jdbc.query("""
                 SELECT career_id, save_name, manager_name, managed_team_code,
                        start_game_date, current_game_date, league_id, season_id,
                        career_root_seed, seed_algorithm_id,
@@ -121,15 +148,21 @@ public final class CareerRelationalStore {
                        career_schema, lifecycle_status, revision, created_at, updated_at
                 FROM career_save ORDER BY updated_at DESC, career_id
                 LIMIT ?
-                """, (result, row) -> career(result), MAX_LIST_SIZE);
+                """, (result, row) -> career(result), maximumCareers + 1);
+        if (rows.size() > maximumCareers) throw new CareerListIntegrityFailure();
+        return rows;
     }
+
+    public int maximumCareers() { return maximumCareers; }
 
     private Optional<CommandRow> findCommand(String commandId) {
         return jdbc.query("""
-                SELECT payload_hash, career_id FROM career_create_command
+                SELECT client_command_id, command_schema, payload_hash, career_id
+                FROM career_create_command
                 WHERE client_command_id = ?
                 """, (result, row) -> new CommandRow(
-                result.getString(1), result.getString(2)), commandId)
+                result.getString(1), result.getString(2), result.getString(3),
+                result.getString(4)), commandId)
                 .stream().findFirst();
     }
 
@@ -207,7 +240,15 @@ public final class CareerRelationalStore {
 
     public record CreateResult(boolean replayed, CareerRow career) {}
 
-    private record CommandRow(String payloadHash, String careerId) {}
+    private record CommandRow(
+            String clientCommandId,
+            String commandSchema,
+            String payloadHash,
+            String careerId
+    ) {}
 
     public static final class CommandConflict extends RuntimeException {}
+    public static final class CapacityReached extends RuntimeException {}
+    public static final class CommandReceiptIntegrityFailure extends RuntimeException {}
+    public static final class CareerListIntegrityFailure extends RuntimeException {}
 }

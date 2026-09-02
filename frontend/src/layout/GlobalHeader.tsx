@@ -6,12 +6,14 @@ interface GlobalHeaderProps {
   gameTime: string;
   primaryActionLabel?: string;
   searchPlaceholder?: string;
+  contextMode?: 'DEFAULT' | 'CAREER';
   onSearchChange: (value: string) => void;
   onContinue: () => void;
   onNotify: (title: string, message: string) => void;
 }
 
-export function GlobalHeader({ screenTitle, searchValue, gameTime, primaryActionLabel = '다음 진행', searchPlaceholder = '메시지 검색…', onSearchChange, onContinue, onNotify }: GlobalHeaderProps) {
+export function GlobalHeader({ screenTitle, searchValue, gameTime, primaryActionLabel = '다음 진행', searchPlaceholder = '메시지 검색…', contextMode = 'DEFAULT', onSearchChange, onContinue, onNotify }: GlobalHeaderProps) {
+  const career = contextMode === 'CAREER';
   return (
     <header className="lm-global-header">
       <button className="lm-icon-button" type="button" aria-label="이전 화면" title="이전 화면" onClick={() => onNotify('이전 화면', '이전 화면 기록이 없습니다.')}>
@@ -21,19 +23,19 @@ export function GlobalHeader({ screenTitle, searchValue, gameTime, primaryAction
         <Icon name="chevron" className="lm-icon--reverse" />
       </button>
       <div className="lm-header-divider" aria-hidden="true" />
-      <div className="lm-team-emblem" aria-label="Northvale 중립 팀 엠블럼" role="img">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
+      <div className="lm-team-emblem" aria-label={career ? 'Career 저장소' : 'Northvale 중립 팀 엠블럼'} role="img">
+        {career ? <span aria-hidden="true">CA</span> : <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="m12 3 7 4v9l-7 5-7-5V7z" />
           <path d="m8 15 4-7 4 7M9.5 12.5h5" />
-        </svg>
+        </svg>}
       </div>
       <div className="lm-screen-name">
         <strong>{screenTitle}</strong>
-        <span>Northvale 운영 본부</span>
+        <span>{career ? '서버 저장 관리' : 'Northvale 운영 본부'}</span>
       </div>
       <div className="lm-schedule">
-        <span>다음 경기 · 오후 7:00</span>
-        <strong>Northvale 대 Coastline · BO3</strong>
+        <span>{career ? 'CAREER MODE V1' : '다음 경기 · 오후 7:00'}</span>
+        <strong>{career ? '저장 · 불러오기 · 이어하기' : 'Northvale 대 Coastline · BO3'}</strong>
       </div>
       <label className="lm-global-search">
         <Icon name="search" />
@@ -50,8 +52,8 @@ export function GlobalHeader({ screenTitle, searchValue, gameTime, primaryAction
         <Icon name="bell" />
       </button>
       <div className="lm-date-time">
-        <strong>2026년 8월 24일</strong>
-        <span>{gameTime}</span>
+        <strong>{career ? '서버 기준' : '2026년 8월 24일'}</strong>
+        <span>{career ? '날짜 진행 없음' : gameTime}</span>
       </div>
       <button className="lm-icon-button" type="button" aria-label="설정 열기" title="설정" onClick={() => onNotify('설정', '환경 설정은 아직 준비 중입니다.')}>
         <Icon name="settings" />

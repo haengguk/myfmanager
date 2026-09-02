@@ -7,6 +7,8 @@ public final class CareerException extends RuntimeException {
         NOT_FOUND,
         MANAGED_TEAM_NOT_FOUND,
         COMMAND_CONFLICT,
+        CAPACITY_REACHED,
+        COMMAND_RECEIPT_INTEGRITY_FAILURE,
         LINKED_SEASON_INTEGRITY_FAILURE,
         RESOURCE_INTEGRITY_FAILURE
     }
@@ -44,6 +46,17 @@ public final class CareerException extends RuntimeException {
     public static CareerException commandConflict() {
         return new CareerException(Type.COMMAND_CONFLICT, "clientCommandId",
                 "clientCommandId가 기존 Career 생성 요청과 충돌합니다.", null);
+    }
+
+    public static CareerException capacityReached() {
+        return new CareerException(Type.CAPACITY_REACHED, null,
+                "Career 저장 슬롯은 최대 100개입니다. 기존 저장은 계속 불러올 수 있습니다.",
+                null);
+    }
+
+    public static CareerException commandReceiptIntegrity() {
+        return new CareerException(Type.COMMAND_RECEIPT_INTEGRITY_FAILURE, null,
+                "Career 생성 명령의 저장 무결성을 확인할 수 없습니다.", null);
     }
 
     public static CareerException linkedSeasonIntegrity() {

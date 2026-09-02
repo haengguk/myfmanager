@@ -2,7 +2,6 @@ package com.lolfm.application;
 
 import com.lolfm.career.CareerApplicationService;
 import com.lolfm.dto.CareerApiV1Dtos;
-import java.util.List;
 import org.springframework.stereotype.Component;
 
 /** Field-by-field Career API projection; no JDBC or domain object is exposed. */
@@ -17,10 +16,11 @@ public final class CareerApiV1ResponseMapper {
     }
 
     public CareerApiV1Dtos.ListResponse list(
-            List<CareerApplicationService.CareerViewState> careers
+            CareerApplicationService.CareerListState state
     ) {
         return new CareerApiV1Dtos.ListResponse(CareerApiV1Dtos.LIST_SCHEMA,
-                careers.stream().map(this::summary).toList());
+                state.careers().stream().map(this::summary).toList(),
+                state.currentCount(), state.maximumCount(), state.remainingCount());
     }
 
     public CareerApiV1Dtos.CareerView view(
@@ -56,6 +56,7 @@ public final class CareerApiV1ResponseMapper {
         return new CareerApiV1Dtos.ResumeProjection(resume.kind(), resume.leagueId(),
                 resume.seasonId(), resume.fixtureId(), resume.seriesId(),
                 resume.seasonLifecycleStatus(), resume.currentRound(),
-                resume.lifecycleRevision(), resume.standingsRevision());
+                resume.lifecycleRevision(), resume.standingsRevision(),
+                resume.allowedCommands());
     }
 }

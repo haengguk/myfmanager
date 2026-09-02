@@ -2,6 +2,60 @@
 
 이 문서는 2026-09-02 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career dashboard frontend V1 and load projection hardening
+
+상태는 `CAREER_DASHBOARD_FRONTEND_V1_ACCEPTED`다. Review baseline이자 실제 시작 HEAD는
+`522b8558cb7ebe243d98eb27daec55a928d06694`이며 parent는
+`5fb560ee2e4aff46ca5584e4ac1cc6d1ba757060`이다. Phase A에서 Career GET/List를 public League mapper와
+process-local Series inspect/resume 경로에서 분리했고, Phase B에서 그 structured API를 소비하는 실제
+Career 저장·이어하기 workspace를 앱 셸에 연결했다.
+
+Career read model은 최대 100개 linked Season을 scalar Season query 1개와 resume-candidate query 1개로
+batch 조회한다. 전체 fixture/standings DTO나 frozen snapshot JSON을 projection하지 않고 Career별
+binding 조회도 반복하지 않는다. Expired Player simulation reservation이 있어도 Career GET/List 전후
+Career/League/fixture/binding/checkpoint/command/job/attempt/receipt/outbox/application 상태가 exact
+equality다. Recovery는 계속 League/Series command 경계가 소유한다.
+
+Pure `LeagueCommandPolicy`를 public League mapper와 Career adapter가 공유한다. Resume은 command
+authority가 아닌 read-only navigation projection이며 detail의 additive `allowedCommands`와 함께
+제공된다. COMPLETED → complete, blocked/restart-required → attention, PAUSED → League dashboard의
+`RESUME_SEASON`, 실제 Player command가 있는 current-round binding → Player Series 순이다. `VERIFIED`
+binding은 Player로 잘못 보내지 않고 League reconciliation에 남는다.
+
+Career save는 soft list limit가 아닌 durable hard capacity 100이다. Exact replay를 capacity보다 먼저
+검증하고 새 command는 Season provisioning 전에 409 `CAREER_CAPACITY_REACHED`로 거부한다. 목록은
+capacity metadata와 모든 저장을 반환하므로 hidden save가 없다. Replay는 command schema, payload hash,
+deterministic command→Career target과 실제 Career/binding을 재검증하며 변조는 500
+`CAREER_COMMAND_RECEIPT_INTEGRITY_FAILURE`로 fail-closed한다.
+
+앱의 `커리어` section은 실제 Team/Player Information API의 LCK 10팀으로 create dialog를 채운다.
+저장 목록/검색, 상세, capacity, linked Season/current round, resume/attention/complete와 오류/retry 상태를
+제공한다. Create의 불명확한 실패는 정규화 payload가 같은 동안 같은 UUID를 재사용한다. Browser에는
+active Career ID, pending create fingerprint/UUID, return context만 두고 reload 때 Career GET으로 다시
+검증한다. List/detail, standings/fixtures, resume/allowedCommands와 Series 상태는 저장하지 않는다.
+
+Career→League는 linked ID로 기존 League GET/pointer를 사용하며 Career-bound 화면의 standalone 새
+시즌 생성을 숨긴다. Player resume은 기존 League fixture/Series restore pipeline을 사용하고 별도
+Series나 side/seed/score/Hard Fearless를 만들지 않는다. 기존 Series→League 복귀 뒤 League→Career
+복귀가 이어지며 standalone League 흐름은 유지된다.
+
+Backend focused는 2 suites / 3 tests, failures/errors/skipped 0, Gradle wall 15초로 통과했다. Frontend
+Career verifier 8 scenarios, League verifier, lazy bundle verifier와 151-module production build가
+통과했다. Isolated file-H2와 실제 HTTP/browser의 GEN 생성은 201이었고 Career→League→Career, reload
+GET 복구, dialog focus trap/Escape/trigger return, 1440×900·1280×720 horizontal overflow 0,
+console warning/error와 runtime validation error 0을 확인했다. 90경기, Player BO3와 대형 diagnostic은
+실행하지 않았다.
+
+최종 executable backend tree의 complete regression은 한 번 실행해 268 suites / 2,365 tests /
+failures 0 / errors 0 / skipped 2, aggregate XML 1,297.578초, Gradle wall 21분 52초,
+`BUILD SUCCESSFUL`로 통과했다. 그 뒤 backend production source/resource/Gradle/shared fixture는
+변경하지 않았다. Frontend의 빈 표시 이름 validation과 Player Series 실패 시 League fallback을
+보강한 뒤 Career/League verifier, build와 bundle verifier를 다시 통과했다. 상세 내용은
+[Career Dashboard Frontend V1](development/career-dashboard-frontend-v1.md)과
+[Career Mode V1 Foundation and Save/Load API](architecture/career-mode-v1-foundation-and-save-load-api.md)에
+있다. 현재 날짜는 진행하지 않고 reference/resource version 변경 save migration, delete/archive도
+없다. 다음 단계는 `CAREER_TIME_AND_CALENDAR_PROGRESSION_V1`이다.
+
 ## Career Mode V1 foundation and save/load API
 
 상태는 `CAREER_MODE_V1_FOUNDATION_AND_SAVE_LOAD_API_ACCEPTED`다. 기준 HEAD
@@ -31,9 +85,10 @@ errors 0 / skipped 2, aggregate XML 1,397.130초, Gradle wall 23분 32초, `BUIL
 그 뒤 production Java/resource/Gradle/shared fixture는 변경하지 않는다.
 
 기존 League/Series/Player Draft/Real Match/Team Information API, Production V9와 gameplay Random은
-변경하지 않았고 Career 생성으로 fixture를 자동 실행하지 않는다. Frontend, 90경기 실제 실행과 대형
-진단은 범위 밖이다. 상세 계약은 [Career Mode V1 Foundation and Save/Load API](architecture/career-mode-v1-foundation-and-save-load-api.md)에
-있으며 다음 단계는 `CAREER_DASHBOARD_FRONTEND_V1`이다.
+변경하지 않았고 Career 생성으로 fixture를 자동 실행하지 않는다. 이 foundation 당시 frontend,
+90경기 실제 실행과 대형 진단은 범위 밖이었다. 현재 frontend delivery 결과는 위 최신 section을
+따른다. 상세 계약은 [Career Mode V1 Foundation and Save/Load API](architecture/career-mode-v1-foundation-and-save-load-api.md)에
+있다.
 
 ## AI League Player BO3 to next round long-running LIVE E2E
 

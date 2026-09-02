@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +17,10 @@ import com.lolfm.reference.TeamPlayerInformationCatalog;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.nio.file.Path;
+import java.sql.Clob;
+import java.sql.ResultSetMetaData;
+import java.time.Clock;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,6 +79,9 @@ class CareerModePersistenceTest {
                     .isEqualTo("HYBRID_MANAGER");
             assertThat(created.career().linkedSeason().resume().kind())
                     .isEqualTo("LEAGUE_DASHBOARD");
+            assertThat(created.career().linkedSeason().resume().allowedCommands())
+                    .containsExactly("VIEW_STANDINGS",
+                            "RUN_CURRENT_ROUND_AUTO_FIXTURES", "CANCEL_SEASON");
             assertThat(count(harness.jdbc(), "career_save")).isOne();
             assertThat(count(harness.jdbc(), "career_create_command")).isOne();
             assertThat(count(harness.jdbc(), "league_season")).isOne();
@@ -128,10 +136,71 @@ class CareerModePersistenceTest {
                     .isEqualTo(playerFixtureId);
             assertThat(resumed.linkedSeason().resume().seriesId())
                     .isEqualTo(boundSeriesId);
-            durableState = state(harness.jdbc(), seasonId);
+            assertThat(resumed.linkedSeason().resume().allowedCommands())
+                    .containsExactly("RESUME_PLAYER_SERIES");
+
+            harness.bindings().transition(binding.bindingHash(), 0,
+                    LeaguePlayerSeriesBindingPort.Status.CREATED,
+                    LeaguePlayerSeriesBindingPort.Status.ACTIVE, null, null);
+            harness.jdbc().update("""
+                    INSERT INTO league_player_series_checkpoint(
+                      binding_hash, series_id, checkpoint_schema, checkpoint_json,
+                      checkpoint_hash, series_revision, series_status, updated_at)
+                    VALUES (?, ?, ?, ?, ?, 7, 'ACTIVE', CURRENT_TIMESTAMP)
+                    """, binding.bindingHash(), boundSeriesId,
+                    "TEST_EXPIRED_RESERVATION_V1",
+                    "{\"reservation\":{\"leaseExpiresAt\":\"2000-01-01T00:00:00Z\"}}",
+                    LeagueDomainTestFixtures.hash("expired-checkpoint"));
+
+            resumed = harness.careers().get(careerId);
+            assertThat(resumed.linkedSeason().resume().kind()).isEqualTo("PLAYER_SERIES");
+            assertThat(resumed.linkedSeason().resume().allowedCommands())
+                    .containsExactly("RESUME_PLAYER_SERIES");
+            verifyNoInteractions(harness.playerSeries());
+
+            harness.jdbc().update("""
+                    UPDATE league_season SET lifecycle_status = 'PAUSED',
+                      lifecycle_revision = lifecycle_revision + 1
+                    WHERE season_id = ?
+                    """, seasonId);
+            CareerApplicationService.ResumeState paused = harness.careers().get(careerId)
+                    .linkedSeason().resume();
+            assertThat(paused.kind()).isEqualTo("LEAGUE_DASHBOARD");
+            assertThat(paused.allowedCommands()).containsExactly(
+                    "VIEW_STANDINGS", "RESUME_SEASON", "CANCEL_SEASON");
+
+            harness.jdbc().update("""
+                    UPDATE league_season SET lifecycle_status = 'READY',
+                      lifecycle_revision = lifecycle_revision + 1
+                    WHERE season_id = ?
+                    """, seasonId);
+            harness.jdbc().update("""
+                    UPDATE league_player_binding SET lifecycle_status = 'VERIFIED'
+                    WHERE binding_hash = ?
+                    """, binding.bindingHash());
+            harness.jdbc().update("""
+                    UPDATE league_player_series_checkpoint SET series_status = 'COMPLETED'
+                    WHERE binding_hash = ?
+                    """, binding.bindingHash());
+            CareerApplicationService.ResumeState verified = harness.careers().get(careerId)
+                    .linkedSeason().resume();
+            assertThat(verified.kind()).isEqualTo("LEAGUE_DASHBOARD");
+            assertThat(verified.allowedCommands()).doesNotContain(
+                    "RESUME_PLAYER_SERIES", "RECONCILE_PLAYER_SERIES_COMPLETION");
+
+            harness.jdbc().update("""
+                    UPDATE league_player_binding SET lifecycle_status = 'ACTIVE'
+                    WHERE binding_hash = ?
+                    """, binding.bindingHash());
+            harness.jdbc().update("""
+                    UPDATE league_player_series_checkpoint SET series_status = 'ACTIVE'
+                    WHERE binding_hash = ?
+                    """, binding.bindingHash());
+            durableState = state(harness.jdbc());
             harness.careers().get(careerId);
             harness.careers().list();
-            assertThat(state(harness.jdbc(), seasonId)).isEqualTo(durableState);
+            verifyNoInteractions(harness.playerSeries());
+            assertThat(state(harness.jdbc())).isEqualTo(durableState);
         }
 
         try (HikariDataSource reopened = dataSource(url)) {
@@ -145,7 +214,8 @@ class CareerModePersistenceTest {
             assertThat(loaded.linkedSeason().resume().fixtureId())
                     .isEqualTo(playerFixtureId);
             assertThat(loaded.linkedSeason().resume().seriesId()).isEqualTo(boundSeriesId);
-            assertThat(state(harness.jdbc(), seasonId)).isEqualTo(durableState);
+            verifyNoInteractions(harness.playerSeries());
+            assertThat(state(harness.jdbc())).isEqualTo(durableState);
 
             CareerApplicationService.CreateResult replay = harness.careers().create(
                     request(commandId));
@@ -172,7 +242,42 @@ class CareerModePersistenceTest {
         }
     }
 
+    @Test
+    void capacityRejectsNewCommandsButExactReplayRemainsAvailableWithoutMutation() {
+        String url = "jdbc:h2:mem:career-capacity-" + UUID.randomUUID()
+                + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource, 1);
+            String firstCommand = UUID.randomUUID().toString();
+            CareerApplicationService.CreateResult first = harness.careers().create(
+                    request(firstCommand));
+            DatabaseState full = state(harness.jdbc());
+
+            CareerApplicationService.CreateResult replay = harness.careers().create(
+                    request(firstCommand));
+            assertThat(replay.replayed()).isTrue();
+            assertThat(replay.career().career().careerId())
+                    .isEqualTo(first.career().career().careerId());
+            assertThat(state(harness.jdbc())).isEqualTo(full);
+
+            assertThatThrownBy(() -> harness.careers().create(
+                    request(UUID.randomUUID().toString())))
+                    .isInstanceOf(CareerException.class)
+                    .extracting(error -> ((CareerException) error).type())
+                    .isEqualTo(CareerException.Type.CAPACITY_REACHED);
+            assertThat(state(harness.jdbc())).isEqualTo(full);
+            assertThat(harness.careers().list().currentCount()).isOne();
+            assertThat(harness.careers().list().maximumCount()).isOne();
+            assertThat(harness.careers().list().remainingCount()).isZero();
+        }
+    }
+
     private Harness harness(HikariDataSource dataSource) {
+        return harness(dataSource, CareerRelationalStore.MAX_CAREERS);
+    }
+
+    private Harness harness(HikariDataSource dataSource, int maximumCareers) {
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         DataSourceTransactionManager transactionManager =
                 new DataSourceTransactionManager(dataSource);
@@ -192,14 +297,15 @@ class CareerModePersistenceTest {
         JdbcLeaguePlayerSeriesBindingAdapter bindings =
                 new JdbcLeaguePlayerSeriesBindingAdapter(leagueStore);
         LeaguePlayerSeriesKernelPort playerSeries = mock(LeaguePlayerSeriesKernelPort.class);
-        LeagueApiV1ResponseMapper leagueMapper = new LeagueApiV1ResponseMapper(
-                leagueStore, seasons, bindings, playerSeries);
-        LeagueCareerSeasonReadService read = new LeagueCareerSeasonReadService(leagueMapper);
+        when(playerSeries.inspect(any())).thenThrow(
+                new AssertionError("Career reads must not inspect mutable Series state"));
+        LeagueCareerSeasonReadService read = new LeagueCareerSeasonReadService(leagueStore);
         CareerRelationalStore careerStore = new CareerRelationalStore(
-                jdbc, transactionManager);
+                jdbc, transactionManager, Clock.systemUTC(), maximumCareers);
         CareerApplicationService careers = new CareerApplicationService(careerStore,
                 provisioning, read, TeamPlayerInformationCatalog.loadDefault());
-        return new Harness(jdbc, leagueStore, careerStore, provisioning, bindings, careers);
+        return new Harness(jdbc, leagueStore, careerStore, provisioning, bindings,
+                playerSeries, careers);
     }
 
     private static CareerApiV1Dtos.CreateRequest request(String commandId) {
@@ -207,24 +313,61 @@ class CareerModePersistenceTest {
                 "GEN 장기 저장", "김 감독", "GEN", commandId);
     }
 
-    private static DatabaseState state(JdbcTemplate jdbc, String seasonId) {
-        return new DatabaseState(
-                jdbc.queryForMap("""
-                        SELECT lifecycle_status, lifecycle_revision, revision
-                        FROM league_season WHERE season_id = ?
-                        """, seasonId),
-                jdbc.queryForList("""
-                        SELECT team_code, series_wins, series_losses, game_wins, game_losses
-                        FROM league_standing WHERE season_id = ? ORDER BY team_code
-                        """, seasonId),
-                jdbc.queryForList("""
-                        SELECT fixture_id, lifecycle_status, revision
-                        FROM league_fixture WHERE season_id = ? ORDER BY fixture_id
-                        """, seasonId),
-                jdbc.queryForList("""
-                        SELECT binding_hash, lifecycle_status, revision
-                        FROM league_player_binding WHERE season_id = ? ORDER BY binding_hash
-                        """, seasonId));
+    private static DatabaseState state(JdbcTemplate jdbc) {
+        LinkedHashMap<String, List<Map<String, Object>>> tables = new LinkedHashMap<>();
+        tables.put("career_save", rows(jdbc, "career_save", "career_id"));
+        tables.put("career_create_command", rows(jdbc, "career_create_command",
+                "client_command_id"));
+        tables.put("league_registry", rows(jdbc, "league_registry", "league_id"));
+        tables.put("league_season", rows(jdbc, "league_season", "season_id"));
+        tables.put("league_round", rows(jdbc, "league_round",
+                "season_id, round_number"));
+        tables.put("league_standing", rows(jdbc, "league_standing",
+                "season_id, team_code"));
+        tables.put("league_fixture", rows(jdbc, "league_fixture",
+                "season_id, fixture_id"));
+        tables.put("league_player_binding", rows(jdbc, "league_player_binding",
+                "binding_hash"));
+        tables.put("league_player_binding_command", rows(jdbc,
+                "league_player_binding_command", "season_id, fixture_id, command_id"));
+        tables.put("league_player_series_checkpoint", rows(jdbc,
+                "league_player_series_checkpoint", "binding_hash"));
+        tables.put("league_api_command", rows(jdbc, "league_api_command",
+                "client_command_id"));
+        tables.put("league_job", rows(jdbc, "league_job", "job_id"));
+        tables.put("league_job_attempt", rows(jdbc, "league_job_attempt",
+                "season_id, fixture_id, attempt_number"));
+        tables.put("league_completion_receipt", rows(jdbc,
+                "league_completion_receipt", "receipt_hash"));
+        tables.put("league_outbox", rows(jdbc, "league_outbox", "event_id"));
+        tables.put("league_standings_application", rows(jdbc,
+                "league_standings_application", "season_id, fixture_id, receipt_hash"));
+        return new DatabaseState(Map.copyOf(tables));
+    }
+
+    private static List<Map<String, Object>> rows(
+            JdbcTemplate jdbc,
+            String table,
+            String orderBy
+    ) {
+        return jdbc.query("SELECT * FROM " + table + " ORDER BY " + orderBy,
+                result -> {
+                    ResultSetMetaData metadata = result.getMetaData();
+                    java.util.ArrayList<Map<String, Object>> records =
+                            new java.util.ArrayList<>();
+                    while (result.next()) {
+                        LinkedHashMap<String, Object> record = new LinkedHashMap<>();
+                        for (int index = 1; index <= metadata.getColumnCount(); index++) {
+                            Object value = result.getObject(index);
+                            if (value instanceof Clob clob) {
+                                value = clob.getSubString(1, Math.toIntExact(clob.length()));
+                            }
+                            record.put(metadata.getColumnLabel(index), value);
+                        }
+                        records.add(java.util.Collections.unmodifiableMap(record));
+                    }
+                    return List.copyOf(records);
+                });
     }
 
     private static int count(JdbcTemplate jdbc, String table) {
@@ -246,13 +389,11 @@ class CareerModePersistenceTest {
             CareerRelationalStore careerStore,
             LeagueCareerSeasonProvisioningService provisioning,
             JdbcLeaguePlayerSeriesBindingAdapter bindings,
+            LeaguePlayerSeriesKernelPort playerSeries,
             CareerApplicationService careers
     ) {}
 
     private record DatabaseState(
-            Map<String, Object> season,
-            List<Map<String, Object>> standings,
-            List<Map<String, Object>> fixtures,
-            List<Map<String, Object>> bindings
+            Map<String, List<Map<String, Object>>> tables
     ) {}
 }

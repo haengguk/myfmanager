@@ -25,6 +25,7 @@
 .lg-head-actions button,.lg-view-tabs button,.lg-filters select,.lg-create input,.lg-create select,.lg-create button,.lg-inspector button,.lg-round-control button { border: 1px solid var(--lm-border); border-radius: var(--lm-radius-sm); background: var(--lm-surface); color: var(--lm-muted); }
 .lg-head-actions button { min-height: 31px; padding: 0 9px; }
 .lg-head-actions button:hover:not(:disabled) { border-color: var(--lm-border-strong); background: var(--lm-surface-2); color: var(--lm-fg); }
+.lg-head-actions .lg-career-return { border-color: color-mix(in oklch, var(--lm-accent) 42%, var(--lm-border)); color: var(--lm-accent); }
 .lg-head-actions .is-danger { color: var(--lm-danger); }
 .lg-head-actions button:disabled { cursor: wait; opacity: .5; }
 

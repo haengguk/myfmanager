@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.career.CareerIdentity;
 import com.lolfm.dto.CareerApiV1Dtos;
 import java.util.Set;
 import java.util.UUID;
@@ -64,6 +65,10 @@ class CareerApiV1ControllerTest {
         assertThat(created.path("resume").path("currentRound").asInt()).isOne();
         assertThat(created.path("resume").path("lifecycleRevision").asLong()).isOne();
         assertThat(created.path("resume").path("standingsRevision").asLong()).isZero();
+        assertThat(created.path("resume").path("allowedCommands"))
+                .extracting(JsonNode::asText)
+                .containsExactly("VIEW_STANDINGS",
+                        "RUN_CURRENT_ROUND_AUTO_FIXTURES", "CANCEL_SEASON");
 
         assertThat(count("career_save") - careersBefore).isOne();
         assertThat(count("league_season") - seasonsBefore).isOne();
@@ -119,6 +124,11 @@ class CareerApiV1ControllerTest {
                 .andExpect(status().isOk()).andReturn().getResponse()
                 .getContentAsString());
         JsonNode summary = findCareer(list.path("careers"), careerId);
+        assertThat(list.path("currentCount").asInt())
+                .isEqualTo(list.path("careers").size());
+        assertThat(list.path("maximumCount").asInt()).isEqualTo(100);
+        assertThat(list.path("remainingCount").asInt())
+                .isEqualTo(100 - list.path("currentCount").asInt());
         assertThat(detail.path("bindingHash")).isEqualTo(created.path("bindingHash"));
         java.util.HashSet<String> summaryFields = new java.util.HashSet<>();
         summary.fieldNames().forEachRemaining(summaryFields::add);
@@ -180,6 +190,38 @@ class CareerApiV1ControllerTest {
         assertThat(count("career_save") - careersBefore).isEqualTo(2);
         assertThat(count("league_season") - seasonsBefore).isEqualTo(2);
         assertThat(count("league_fixture") - fixturesBefore).isEqualTo(180);
+
+        jdbc.update("""
+                UPDATE career_create_command SET command_schema = 'TAMPERED'
+                WHERE client_command_id = ?
+                """, commandId);
+        JsonNode tamperedSchema = json(mvc.perform(post("/api/v1/careers")
+                        .contentType(MediaType.APPLICATION_JSON).content(request))
+                .andExpect(status().isInternalServerError()).andReturn().getResponse()
+                .getContentAsString());
+        assertThat(tamperedSchema.path("code").asText())
+                .isEqualTo("CAREER_COMMAND_RECEIPT_INTEGRITY_FAILURE");
+        assertThat(tamperedSchema.toString()).doesNotContain("Jdbc", "SQL", "/mnt/", "C:\\");
+        jdbc.update("""
+                UPDATE career_create_command SET command_schema = ?
+                WHERE client_command_id = ?
+                """, CareerIdentity.COMMAND_SCHEMA, commandId);
+
+        jdbc.update("""
+                UPDATE career_create_command SET career_id = ?
+                WHERE client_command_id = ?
+                """, secondCareer.path("careerId").asText(), commandId);
+        JsonNode tamperedTarget = json(mvc.perform(post("/api/v1/careers")
+                        .contentType(MediaType.APPLICATION_JSON).content(request))
+                .andExpect(status().isInternalServerError()).andReturn().getResponse()
+                .getContentAsString());
+        assertThat(tamperedTarget.path("code").asText())
+                .isEqualTo("CAREER_COMMAND_RECEIPT_INTEGRITY_FAILURE");
+        assertThat(tamperedTarget.toString()).doesNotContain("Jdbc", "SQL", "/mnt/", "C:\\");
+        jdbc.update("""
+                UPDATE career_create_command SET career_id = ?
+                WHERE client_command_id = ?
+                """, careerId, commandId);
 
         JsonNode ordered = json(mvc.perform(get("/api/v1/careers"))
                 .andExpect(status().isOk()).andReturn().getResponse()

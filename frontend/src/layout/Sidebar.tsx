@@ -1,6 +1,6 @@
 import { Icon, type IconName } from '../components/Icon';
 
-export type AppSection = 'inbox' | 'squad' | 'match' | 'league';
+export type AppSection = 'inbox' | 'career' | 'squad' | 'match' | 'league';
 
 interface SidebarProps {
   activeSection: AppSection;
@@ -20,6 +20,7 @@ const navigationGroups: readonly (readonly NavigationItem[])[] = [
     { label: '수신함', icon: 'inbox', section: 'inbox' },
   ],
   [
+    { label: '커리어', icon: 'club', section: 'career' },
     { label: '선수단', icon: 'users', section: 'squad' },
     { label: '전술 및 라인업', icon: 'tactics' },
     { label: '훈련', icon: 'training' },
