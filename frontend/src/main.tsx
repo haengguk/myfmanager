@@ -6,6 +6,7 @@ import './styles/shell.css';
 import './styles/inbox.css';
 import './styles/real-match.css';
 import './styles/league.css';
+import './styles/team-player.css';
 import RootApp from './RootApp';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

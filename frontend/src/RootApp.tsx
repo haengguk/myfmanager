@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MatchCenter from './App';
 import { ProgressModal } from './components/ProgressModal';
 import { Toast } from './components/Toast';
@@ -34,6 +34,8 @@ import { SeriesDraftReviewPage } from './features/real-match/series/SeriesDraftR
 import { SeriesContextBar } from './features/real-match/series/SeriesContextBar';
 import { AppShell } from './layout/AppShell';
 import type { AppSection } from './layout/Sidebar';
+
+const TeamPlayerInformationPage = lazy(() => import('./features/team-player/TeamPlayerInformationPage').then((module) => ({ default: module.TeamPlayerInformationPage })));
 
 type ActiveScreen = AppSection | 'setup' | 'draft' | 'player-draft' | 'playback' | 'result'
   | 'series-setup' | 'series-hub' | 'series-draft' | 'series-draft-review' | 'series-playback' | 'series-result';
@@ -151,6 +153,8 @@ function RootApp() {
           ? 'lolmanager — 경기 센터'
         : activeScreen === 'league'
           ? 'lolmanager — AI 리그'
+        : activeScreen === 'squad'
+          ? 'lolmanager — LCK 선수단'
           : 'lolmanager — 홈·수신함';
   }, [activeScreen]);
 
@@ -462,19 +466,20 @@ function RootApp() {
     return <MatchSetupPage dataSource={realMatchConfig.dataSource} onBack={() => setActiveScreen('inbox')} onLegacy={() => setActiveScreen('match')} onSeries={() => { setLeagueSeriesReturn(false); setActiveScreen('series-setup'); }} onStart={startMatch} onCancelStart={cancelMatchRequest} />;
   }
 
-  const activeSection: AppSection = activeScreen === 'inbox' ? 'inbox' : activeScreen === 'league' ? 'league' : 'match';
+  const activeSection: AppSection = activeScreen === 'inbox' ? 'inbox' : activeScreen === 'squad' ? 'squad' : activeScreen === 'league' ? 'league' : 'match';
 
   return (
     <>
       <AppShell
         activeSection={activeSection}
-        screenTitle={activeSection === 'inbox' ? '수신함' : activeSection === 'league' ? 'AI 리그' : '경기 센터'}
+        screenTitle={activeSection === 'inbox' ? '수신함' : activeSection === 'squad' ? '선수단' : activeSection === 'league' ? 'AI 리그' : '경기 센터'}
         searchValue={searchValue}
+        searchPlaceholder={activeSection === 'squad' ? '선수·팀·포지션 검색…' : '메시지 검색…'}
         gameTime={gameTime}
-        primaryActionLabel={activeSection === 'match' ? '경기 준비' : activeSection === 'league' ? '시즌 운영' : '다음 진행'}
-        onNavigate={(section) => setActiveScreen(section === 'match' ? 'setup' : section)}
+        primaryActionLabel={activeSection === 'match' ? '경기 준비' : activeSection === 'squad' ? '선수 데이터' : activeSection === 'league' ? '시즌 운영' : '다음 진행'}
+        onNavigate={(section) => { setSearchValue(''); setActiveScreen(section === 'match' ? 'setup' : section); }}
         onSearchChange={setSearchValue}
-        onContinue={() => activeSection === 'match' ? setActiveScreen('setup') : activeSection === 'league' ? showToast('AI 리그', '현재 시즌의 허용된 작업은 본문 상단에서 실행할 수 있습니다.') : setProgressModalOpen(true)}
+        onContinue={() => activeSection === 'match' ? setActiveScreen('setup') : activeSection === 'squad' ? showToast('선수 데이터', '현재 화면은 2026-08-24 LCK reference snapshot을 표시합니다.') : activeSection === 'league' ? showToast('AI 리그', '현재 시즌의 허용된 작업은 본문 상단에서 실행할 수 있습니다.') : setProgressModalOpen(true)}
         onNotify={showToast}
       >
         {activeSection === 'inbox' ? (
@@ -486,6 +491,10 @@ function RootApp() {
             onMarkRead={markRead}
             onNotify={showToast}
           />
+        ) : activeSection === 'squad' ? (
+          <Suspense fallback={<main className="tp-workspace tp-workspace--center" aria-busy="true"><div className="tp-loading" role="status" aria-live="polite"><span aria-hidden="true" /><p>선수단 화면을 준비하고 있습니다.</p></div></main>}>
+            <TeamPlayerInformationPage searchValue={searchValue} onSearchChange={setSearchValue} />
+          </Suspense>
         ) : activeSection === 'league' ? (
           <LeaguePage onOpenSeries={(value, fixture) => { void openLeagueSeries(value, fixture); }} onNotify={showToast} />
         ) : (

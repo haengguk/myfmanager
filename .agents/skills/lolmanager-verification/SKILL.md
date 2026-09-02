@@ -1,6 +1,6 @@
 ---
 name: lolmanager-verification
-description: Route LoL Manager implementation or code-review changes to the smallest sufficient focused, build, diagnostic, or full-regression checks. Use when a verification-scope decision is needed; do not use for documentation-only work or ordinary explanation.
+description: Route LoL Manager changes to the smallest sufficient tests while keeping new test code, harnesses, and execution cost proportional to actual risk. Use for implementation prompts, test-design decisions, verification scope, and code review; do not use for documentation-only work or ordinary explanation.
 ---
 
 # LoL Manager Verification
@@ -8,6 +8,10 @@ description: Route LoL Manager implementation or code-review changes to the smal
 Select the smallest check that can establish the requested claim. The applicable
 `AGENTS.md` remains authoritative for simulation invariants and the full-regression
 budget; do not duplicate its rules here.
+
+Test code is maintained product code. Minimize both the tests executed and the new
+test infrastructure written. Do not turn an ordinary feature task into release
+acceptance, an audit package, or a proof system unless its actual risk requires one.
 
 ## Scope first
 
@@ -21,6 +25,62 @@ budget; do not duplicate its rules here.
    - `docs/development/testing.md` when choosing or interpreting project test tasks;
    - the relevant `backend/build.gradle` block before invoking a custom diagnostic;
    - frontend scripts before selecting a frontend command.
+
+## Test-code budget
+
+Use these as default budgets, not correctness-avoiding hard caps. Exceed them only
+for a concrete, distinct failure risk and state that reason before adding the extra
+test layer or file.
+
+| Changed surface | Default new test-code budget |
+| --- | --- |
+| Isolated frontend screen or read-only view | Prefer one existing/new verifier file with roughly 5-8 meaningful scenarios |
+| Read-only API or immutable catalog | Prefer extending existing tests or at most 2-3 focused classes covering the main success path, one integrity boundary, and representative errors |
+| Small domain rule or bug fix | Extend the nearest existing class; use parameterized cases instead of creating a new class per boundary |
+| Match gameplay, seeded Random, durable concurrency, receipt/commit identity | Risk-driven; add every test needed for the applicable `AGENTS.md` invariants, but still reuse fixtures and avoid duplicated evidence |
+
+For ordinary work:
+
+- extend the closest existing test before creating another test class;
+- test externally meaningful behavior, not every private branch, DTO accessor, or
+  implementation step;
+- do not mirror every production class with a test class merely for symmetry;
+- do not test all 50 players, all 10 teams, every nullable field, or every viewport
+  when a representative case plus structural/count invariants proves the contract;
+- prefer one parameterized boundary test over many near-identical methods;
+- keep test helpers small and shared only when they remove real repetition;
+- do not build a generic framework in test code for one feature.
+
+The budget does not waive a required final full regression. It limits new test
+implementation and duplicate evidence; `AGENTS.md` still decides when the existing
+complete suite must run.
+
+## Evidence deduplication
+
+Prove one claim at the cheapest layer that can actually establish it.
+
+- Use unit tests for formulas, pure validation, ordering, and state transitions.
+- Use one integration test for component wiring, serialization, or transaction
+  behavior that a unit test cannot establish.
+- Use browser E2E for a user flow, focus/layout behavior, or real transport—not to
+  reassert every DTO field already covered by API tests.
+- Do not repeat the same success and error matrix in unit, controller, LIVE HTTP,
+  browser, and artifact tests.
+- Do not test standard Spring, Jackson, React, TypeScript, gzip, or browser behavior
+  unless project code customizes that behavior or a demonstrated regression exists.
+- A shared navigation edit normally needs the feature build and one navigation
+  smoke, not every unrelated feature verifier.
+
+Create a custom harness, artifact writer, SHA manifest, fresh-JVM probe, large seed
+runner, or long-running E2E only when the requested acceptance claim specifically
+depends on artifact authenticity, cross-process determinism, statistical evidence,
+crash recovery, or a long lifecycle. Ordinary CRUD, reference data, and UI work must
+not acquire these by default.
+
+Do not create a separate hardening milestone merely to add exhaustive tests to an
+otherwise complete ordinary feature. Include the small number of high-value failure
+boundaries in the implementation task and move genuine release/load/security work to
+an explicitly requested release gate.
 
 ## Verification router
 
@@ -47,6 +107,34 @@ budget; do not duplicate its rules here.
   Never reopen an already consumed official holdout merely to confirm a report.
 - API changes: verify the affected backend contract and preserve existing fields;
   run frontend build verification when frontend consumers changed.
+
+## Implementation-prompt rules
+
+When writing a prompt for another Codex task, prescribe the minimum required checks
+instead of listing every repository verifier "for safety."
+
+- Name the one or two claims the tests must establish.
+- Give a default test-code budget and make extra test files conditional on a stated
+  uncovered risk.
+- Make adjacent suites conditional on the files or shared contracts actually
+  changed; do not require them merely because the feature lives in the same app.
+- For frontend-only work, normally request the feature-focused check, production
+  build, and one representative browser flow. Add a second viewport only when
+  responsive layout changed and a failure boundary only when state recovery or
+  stale-response behavior is part of the feature.
+- For a read-only API, normally cover one representative detail, population/count or
+  ordering invariants, and representative 4xx/5xx handling. Do not generate an
+  audit artifact or test every subject independently.
+- Explicitly forbid large diagnostics, population runs, cross-JVM probes, artifact
+  generation, and long-running E2E unless they are necessary to the task's stated
+  acceptance claim.
+- Keep final reporting proportional. A short feature does not need a regulatory-style
+  proof report or hundreds of lines of verification documentation.
+
+If compilation or an existing focused test already proves a claim, do not add a new
+test whose only purpose is to restate it. If an agent wants to exceed the prescribed
+budget, it should first record the concrete regression that the additional test can
+catch and why the existing layer cannot catch it.
 
 Start backend focused checks from `backend/` with the narrowest stable selector:
 
