@@ -65,6 +65,7 @@ desktop.ini
 ### Intentionally local gameplay data ###
 /능력치/
 /선수정보/
+/일정/lck일정/
 /backend/src/main/resources/champions/champion-jungle-clear-full-173-economy-v1.json
 /backend/src/main/resources/players/lck-player-identities-2026-08-21-v1.json
 /backend/src/main/resources/players/lck-champion-proficiency-2026-08-21-v1.json
