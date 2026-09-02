@@ -1199,3 +1199,33 @@ clean pass했다. 두 skip은 기존 explicit 대형 diagnostic이며 이번 API
 
 Frontend source는 변경하지 않으므로 frontend build/Playwright는 실행하지 않는다. 90-fixture Season,
 balance/calibration/holdout와 대형 statistical diagnostic도 실행하지 않는다.
+
+### Career Mode V1 foundation and save/load API
+
+Career create/load와 직접 영향 League 경계는 다음 focused lane으로 검증한다.
+
+```text
+gradlew.bat test \
+  --tests com.lolfm.controller.CareerApiV1ControllerTest \
+  --tests com.lolfm.league.CareerModePersistenceTest \
+  --tests com.lolfm.league.LeagueRelationalPersistenceAndJobTest \
+  --tests com.lolfm.controller.LeagueApiV1ControllerTest \
+  --console=plain --no-daemon
+```
+
+새 test class는 2개다. 대표 GEN Career의 server-owned Hybrid Season 1개와 18 rounds/90 fixtures
+(18 Player/72 Auto), caller identity/seed/mode 주입 불가, strict request, exact replay/conflict mutation
+0, transaction rollback, lightweight list/detail와 조회 revision mutation 0을 확인한다. Task-owned file
+H2를 close/reopen해 같은 Career/Season/Player Series binding resume가 재생성 없이 복구되고 대표
+identity mismatch가 fail-closed하는 것도 확인한다. Draft/BO3/Match simulation은 반복하지 않는다.
+
+최종 focused 결과는 4 suites / 13 tests / failures 0 / errors 0 / skipped 0, aggregate JUnit XML
+46.281초, Gradle wall 1분 9초다. 첫 full 뒤 bounded Career list SQL 누락을 찾아 최대 100개 제한을
+추가하고 이 lane을 재실행했다. Final executable tree의 두 번째 complete backend regression은
+268 suites / 2,364 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,397.130초,
+Gradle wall 23분 32초, `BUILD SUCCESSFUL`이다. 이후 production Java/resource/Gradle/shared fixture는
+변경하지 않는다.
+
+Frontend source를 변경하지 않았으므로 frontend build/Playwright는 실행하지 않는다. 90-fixture 실제
+실행, fresh-JVM probe, artifact writer, JFR와 대형 population/balance/calibration/holdout도 실행하지
+않는다.

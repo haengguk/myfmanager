@@ -2,6 +2,39 @@
 
 이 문서는 2026-09-02 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career Mode V1 foundation and save/load API
+
+상태는 `CAREER_MODE_V1_FOUNDATION_AND_SAVE_LOAD_API_ACCEPTED`다. 기준 HEAD
+`5fb560ee2e4aff46ca5584e4ac1cc6d1ba757060` 위에 additive Career backend를 구현했다.
+사용자는 exact LCK team code, 감독 이름, 저장 이름과 UUID command만 제출하며 서버가 opaque
+Career/League/Season ID, versioned SHA-256 root seed, reference snapshot 날짜와 immutable binding을
+결정한다.
+
+Flyway V4는 Career save와 create-command receipt를 기존 relational League authority에 foreign key로
+결속한다. 한 transaction에서 command 직렬화, 현재 resource 검증, 전용 `HYBRID_MANAGER` Season
+생성, `READY` 전이, Career와 receipt 저장을 완료하므로 실패 시 18 rounds/90 fixtures를 포함한
+dangling 상태가 남지 않는다. Exact replay는 같은 Career/Season을 HTTP 200으로 반환하고 mutation
+0이며, 다른 payload는 409와 mutation 0이다. 다른 command는 같은 팀/표시 이름으로도 별도 Career를
+만든다.
+
+Career 생성 자체가 durable save slot이다. List/detail은 기존 Season/standings/fixture/Player Series
+상태를 복사하거나 재생성하지 않고 읽으며, process restart 뒤 같은 ID/root seed/frozen identity와
+`LEAGUE_DASHBOARD`, `PLAYER_SERIES`, `SEASON_COMPLETE`, `ATTENTION_REQUIRED` resume 문맥을 복구한다.
+linked identity mismatch는 자동 치유하지 않고 stable integrity error로 실패한다. 목록은
+`updatedAt DESC, careerId ASC`의 최대 100개 summary로 제한된다.
+
+최종 focused/affected lane은 4 suites / 13 tests / failures 0 / errors 0 / skipped 0,
+aggregate XML 46.281초, Gradle wall 1분 9초로 통과했다. 첫 clean full 뒤 bounded-list SQL 누락을
+발견해 최대 100개 제한을 추가하고 focused lane을 재통과했으므로, 최종 executable tree에서 두 번째
+complete backend regression을 실행했다. 최종 결과는 268 suites / 2,364 tests / failures 0 /
+errors 0 / skipped 2, aggregate XML 1,397.130초, Gradle wall 23분 32초, `BUILD SUCCESSFUL`이다.
+그 뒤 production Java/resource/Gradle/shared fixture는 변경하지 않는다.
+
+기존 League/Series/Player Draft/Real Match/Team Information API, Production V9와 gameplay Random은
+변경하지 않았고 Career 생성으로 fixture를 자동 실행하지 않는다. Frontend, 90경기 실제 실행과 대형
+진단은 범위 밖이다. 상세 계약은 [Career Mode V1 Foundation and Save/Load API](architecture/career-mode-v1-foundation-and-save-load-api.md)에
+있으며 다음 단계는 `CAREER_DASHBOARD_FRONTEND_V1`이다.
+
 ## AI League Player BO3 to next round long-running LIVE E2E
 
 상태는 `AI_VS_AI_LEAGUE_PLAYER_BO3_TO_NEXT_ROUND_LONG_RUNNING_LIVE_E2E_ACCEPTED`다.
@@ -769,26 +802,25 @@ Final command:
 gradlew.bat test --console=plain --no-daemon
 ```
 
-AI League V1 Batch 5 API and job-boundary hardening final executable tree의 current complete backend
+Career Mode V1 bounded-list 보강까지 포함한 final executable tree의 current complete backend
 regression 결과는 다음과 같다.
 
 | 항목 | 결과 |
 | --- | ---: |
-| JUnit suites | 256 |
-| Tests | 2,333 |
+| JUnit suites | 268 |
+| Tests | 2,364 |
 | Failures | 0 |
 | Errors | 0 |
 | Skipped | 2 |
-| Aggregate JUnit XML time | 1,139.817 seconds |
-| Gradle wall duration | 19m 13s |
+| Aggregate JUnit XML time | 1,397.130 seconds |
+| Gradle wall duration | 23m 32s |
 | Build | `BUILD SUCCESSFUL` |
 
-Affected focused lane은 Phase A 네 결함, strict League API/HTTP/gzip, Batch 1 domain/standings,
-Auto Production V9 1 fixture, Player Production V9 1 fixture, Series/Player Draft/Real Match API와
-transport parity를 포함해 16 suites / 62 tests를 2분 25초에 통과했다. 원자 fencing completion
-직접 영향 5 suites / 20 tests도 1분 22초에 재통과했다. 첫 clean full 뒤 발견한 runtime recovery
-연결 누락은 3 suites / 12 tests로 확인했고, production 변경 때문에 두 번째 full을 실행했다.
-이 두 번째 full 이후에는 문서만 갱신했으므로 반복하지 않았다. 두 skip은 기존
+Career create/replay/conflict, transaction rollback, file H2 restart/load, Player Series resume와 기존
+League create/load/API를 포함한 focused lane은 4 suites / 13 tests / failures 0 / errors 0 /
+skipped 0, aggregate XML 46.281초, Gradle wall 1분 9초로 통과했다. 첫 clean full 뒤 수동 계약
+대조에서 목록 SQL의 bounded 제한 누락을 발견해 최대 100개로 고치고 focused lane을 재실행했다.
+Production 변경이므로 위 두 번째 full을 실행했고 이후에는 문서만 갱신했다. 두 skip은 기존
 explicit 대형 diagnostic이다. Frontend build/Playwright, 90-fixture official run과 대형
 balance/calibration/holdout diagnostic은 실행하지 않았다.
 
