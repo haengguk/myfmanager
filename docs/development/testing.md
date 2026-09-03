@@ -1354,3 +1354,62 @@ overflow와 primary action 가시성을 확인했다. Mock/service worker나 사
 두 skip은 기존 explicit 대형 diagnostic이다. Clean full 뒤 executable production Java/resource,
 Gradle과 shared fixture는 변경하지 않고 문서만 갱신했다. 90경기 전체 시즌, 모든 11개 대회의 E2E,
 대형 seed population, balance/calibration/holdout과 fresh-JVM artifact proof는 실행하지 않았다.
+
+### Career competition lifecycle V1 with Calendar hardening
+
+Phase A는 competition 구현 전에 Calendar recovery/transition gate를 먼저 닫았다. 다음 focused
+3개 class가 42초에 `BUILD SUCCESSFUL`로 통과했다.
+
+```text
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.league.CareerModePersistenceTest \
+  --tests com.lolfm.league.LeagueRelationalPersistenceAndJobTest \
+  --tests com.lolfm.controller.CareerApiV1ControllerTest \
+  --console=plain --no-daemon
+```
+
+검증 범위는 Career별 pending advance 영속/복구, Season lifecycle stop, completed command의 frozen
+result/live Calendar 분리, overlay V2 provenance, Calendar→기존 Auto job/receipt/outbox/standings
+exactly-once다. Phase A gate 통과 뒤에만 Phase B를 시작했다.
+
+Phase B final focused lane은 다음 4개 suite를 실행했다.
+
+```text
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.career.CareerCompetitionRulesTest \
+  --tests com.lolfm.league.CareerModePersistenceTest \
+  --tests com.lolfm.controller.CareerApiV1ControllerTest \
+  --tests com.lolfm.league.LeagueRelationalPersistenceAndJobTest \
+  --console=plain --no-daemon
+```
+
+결과는 4 suites / 19 tests / failures 0 / errors 0 / skipped 0, Gradle wall 33초,
+`BUILD SUCCESSFUL`이다. Road와 Play-in exact routing, R3~4 40 fixture 결정성/충돌 없음/record carry,
+V7 migration, R1~2 seal과 restart, completion receipt exact replay/cross-scope 거부, strict additive
+Calendar/API 계약을 확인했다.
+
+Frontend `npm run career:verify`는 15개 시나리오와 Calendar hardening/competition marker를 모두
+통과했다. `npm run build`는 153 modules를 transform해 성공했고 `git diff --check`도 깨끗했다.
+격리 backend는 V7 migration과 8085 startup까지 확인했지만 browser host에 Chrome이 없고 설치된
+Firefox도 `libasound2t64`가 없어 Playwright process를 시작하지 못했다. 사용자 서버/DB는 변경하지
+않았고 task-owned runtime은 종료했다. 따라서 실제 browser interaction은 환경 제한으로 미검증이다.
+
+Final executable production tree의 complete backend regression은 정확히 한 번 실행했다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| JUnit suites | 269 |
+| Tests | 2,375 |
+| Failures | 0 |
+| Errors | 0 |
+| Skipped | 2 |
+| Aggregate JUnit XML time | 1,366.527 seconds |
+| Gradle wall duration | 23m |
+| Build | `BUILD SUCCESSFUL` |
+
+두 skip은 기존 explicit 대형 diagnostic이다. Clean full 뒤 executable production Java/resource,
+Gradle과 shared fixture는 변경하지 않고 문서만 갱신했다. 90/130경기 전체 LIVE, Cup/LCK playoff
+실행, 대형 seed population, balance/calibration/holdout, fresh-JVM proof bundle과 JFR은 실행하지
+않았다. Source가 없는 edge를 임의 규칙으로 보충하는 검증도 수행하지 않았다.

@@ -1,9 +1,11 @@
 import type { CareerApiFailure } from './api/careerApi.failure';
+import type { CareerPendingAdvanceDto } from './api/careerApi.types';
 
 export const CAREER_POINTER_KEY = 'lolmanager.career.pointer.v1';
 export const CAREER_CREATE_OPERATION_KEY = 'lolmanager.career.create-operation.v2';
 const LEGACY_CAREER_CREATE_OPERATION_KEY = 'lolmanager.career.create-operation.v1';
-export const CAREER_ADVANCE_OPERATION_KEY = 'lolmanager.career.advance-operation.v1';
+export const CAREER_ADVANCE_OPERATION_KEY = 'lolmanager.career.advance-operations.v2';
+const LEGACY_CAREER_ADVANCE_OPERATION_KEY = 'lolmanager.career.advance-operation.v1';
 export const CAREER_RETURN_CONTEXT_KEY = 'lolmanager.career.return-context.v1';
 const CAREER_ID = /^career_[0-9a-f]{64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -11,6 +13,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export interface CareerCreateSelection { saveName: string; managerName: string; managedTeamCode: string }
 export interface CareerCreateOperation { schemaVersion: 'CAREER_CREATE_OPERATION_V2'; canonicalSelectionKey: string; selection: CareerCreateSelection; clientCommandId: string }
 export interface CareerAdvanceOperation { schemaVersion: 'CAREER_ADVANCE_OPERATION_V1'; careerId: string; expectedCalendarRevision: number; mode: 'ADVANCE_ONE_DAY' | 'ADVANCE_TO_NEXT_EVENT'; clientCommandId: string }
+interface CareerAdvanceOperations { schemaVersion: 'CAREER_ADVANCE_OPERATIONS_V2'; operations: Record<string, CareerAdvanceOperation> }
 export interface CareerReturnContext { schemaVersion: 'CAREER_RETURN_CONTEXT_V1'; careerId: string }
 export interface PointerStorage { getItem(key: string): string | null; setItem(key: string, value: string): void; removeItem(key: string): void }
 
@@ -51,16 +54,72 @@ export function logicalCareerCreate(storage: PointerStorage, selection: CareerCr
 }
 export function clearCareerCreateOperation(storage: PointerStorage): void { storage.removeItem(CAREER_CREATE_OPERATION_KEY); storage.removeItem(LEGACY_CAREER_CREATE_OPERATION_KEY); }
 
+function validAdvanceOperation(value: unknown, expectedCareerId?: string): value is CareerAdvanceOperation {
+  if (!value || typeof value !== 'object') return false;
+  const operation = value as CareerAdvanceOperation;
+  return operation.schemaVersion === 'CAREER_ADVANCE_OPERATION_V1'
+    && CAREER_ID.test(operation.careerId)
+    && (!expectedCareerId || operation.careerId === expectedCareerId)
+    && Number.isSafeInteger(operation.expectedCalendarRevision)
+    && operation.expectedCalendarRevision >= 0
+    && ['ADVANCE_ONE_DAY', 'ADVANCE_TO_NEXT_EVENT'].includes(operation.mode)
+    && UUID.test(operation.clientCommandId);
+}
+
+function readAdvanceOperations(storage: PointerStorage): CareerAdvanceOperations {
+  const raw = storage.getItem(CAREER_ADVANCE_OPERATION_KEY);
+  const operations: Record<string, CareerAdvanceOperation> = {};
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as CareerAdvanceOperations;
+      if (parsed.schemaVersion !== 'CAREER_ADVANCE_OPERATIONS_V2' || !parsed.operations || typeof parsed.operations !== 'object' || Array.isArray(parsed.operations)) throw new Error('invalid map');
+      for (const [careerId, value] of Object.entries(parsed.operations)) if (validAdvanceOperation(value, careerId)) operations[careerId] = value;
+    } catch { storage.removeItem(CAREER_ADVANCE_OPERATION_KEY); }
+  }
+  const legacyRaw = storage.getItem(LEGACY_CAREER_ADVANCE_OPERATION_KEY);
+  if (legacyRaw) {
+    try { const legacy = JSON.parse(legacyRaw) as unknown; if (validAdvanceOperation(legacy)) operations[legacy.careerId] ??= legacy; }
+    catch { /* invalid legacy is removed below */ }
+    storage.removeItem(LEGACY_CAREER_ADVANCE_OPERATION_KEY);
+  }
+  const result: CareerAdvanceOperations = { schemaVersion: 'CAREER_ADVANCE_OPERATIONS_V2', operations };
+  if (Object.keys(operations).length) storage.setItem(CAREER_ADVANCE_OPERATION_KEY, JSON.stringify(result));
+  else storage.removeItem(CAREER_ADVANCE_OPERATION_KEY);
+  return result;
+}
+
+function writeCareerAdvanceOperation(storage: PointerStorage, operation: CareerAdvanceOperation): void {
+  if (!validAdvanceOperation(operation)) throw new Error('invalid advance operation');
+  const current = readAdvanceOperations(storage);
+  current.operations[operation.careerId] = operation;
+  storage.setItem(CAREER_ADVANCE_OPERATION_KEY, JSON.stringify(current));
+}
+
 export function readCareerAdvanceOperation(storage: PointerStorage, careerId: string): CareerAdvanceOperation | null {
-  const raw = storage.getItem(CAREER_ADVANCE_OPERATION_KEY); if (!raw) return null;
-  try { const value = JSON.parse(raw) as CareerAdvanceOperation; if (value.schemaVersion !== 'CAREER_ADVANCE_OPERATION_V1' || value.careerId !== careerId || !CAREER_ID.test(value.careerId) || !Number.isSafeInteger(value.expectedCalendarRevision) || value.expectedCalendarRevision < 0 || !['ADVANCE_ONE_DAY', 'ADVANCE_TO_NEXT_EVENT'].includes(value.mode) || !UUID.test(value.clientCommandId)) throw new Error('invalid'); return value; }
-  catch { storage.removeItem(CAREER_ADVANCE_OPERATION_KEY); return null; }
+  if (!CAREER_ID.test(careerId)) return null;
+  return readAdvanceOperations(storage).operations[careerId] ?? null;
 }
 export function logicalCareerAdvance(storage: PointerStorage, careerId: string, expectedCalendarRevision: number, mode: CareerAdvanceOperation['mode'], uuid: () => string = () => crypto.randomUUID()): CareerAdvanceOperation {
-  const current = readCareerAdvanceOperation(storage, careerId); if (current && current.expectedCalendarRevision === expectedCalendarRevision && current.mode === mode) return current;
-  const next: CareerAdvanceOperation = { schemaVersion: 'CAREER_ADVANCE_OPERATION_V1', careerId, expectedCalendarRevision, mode, clientCommandId: uuid() }; if (!CAREER_ID.test(careerId) || !Number.isSafeInteger(expectedCalendarRevision) || expectedCalendarRevision < 0 || !UUID.test(next.clientCommandId)) throw new Error('invalid advance operation'); storage.setItem(CAREER_ADVANCE_OPERATION_KEY, JSON.stringify(next)); return next;
+  const current = readCareerAdvanceOperation(storage, careerId);
+  if (current) {
+    if (current.expectedCalendarRevision === expectedCalendarRevision && current.mode === mode) return current;
+    throw new Error('pending Career advance cannot be replaced');
+  }
+  const next: CareerAdvanceOperation = { schemaVersion: 'CAREER_ADVANCE_OPERATION_V1', careerId, expectedCalendarRevision, mode, clientCommandId: uuid() };
+  if (!validAdvanceOperation(next)) throw new Error('invalid advance operation');
+  writeCareerAdvanceOperation(storage, next); return next;
 }
-export function clearCareerAdvanceOperation(storage: PointerStorage): void { storage.removeItem(CAREER_ADVANCE_OPERATION_KEY); }
+export function reconcileCareerAdvanceOperation(storage: PointerStorage, careerId: string, pending: CareerPendingAdvanceDto | null): CareerAdvanceOperation | null {
+  if (!pending) { clearCareerAdvanceOperation(storage, careerId); return null; }
+  const server: CareerAdvanceOperation = { schemaVersion: 'CAREER_ADVANCE_OPERATION_V1', careerId, expectedCalendarRevision: pending.expectedCalendarRevision, mode: pending.mode, clientCommandId: pending.clientCommandId };
+  writeCareerAdvanceOperation(storage, server); return server;
+}
+export function clearCareerAdvanceOperation(storage: PointerStorage, careerId: string): void {
+  const current = readAdvanceOperations(storage);
+  delete current.operations[careerId];
+  if (Object.keys(current.operations).length) storage.setItem(CAREER_ADVANCE_OPERATION_KEY, JSON.stringify(current));
+  else storage.removeItem(CAREER_ADVANCE_OPERATION_KEY);
+}
 export function isAmbiguousCareerCreateFailure(failure: CareerApiFailure): boolean {
   return ['NETWORK', 'TIMEOUT', 'CANCELLED'].includes(failure.kind) || failure.retryable || failure.httpStatus === 503;
 }

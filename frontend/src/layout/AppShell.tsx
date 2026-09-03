@@ -19,7 +19,7 @@ interface AppShellProps {
 
 export function AppShell({ activeSection, screenTitle, searchValue, gameTime, primaryActionLabel, searchPlaceholder, contextMode, children, onNavigate, onSearchChange, onContinue, onNotify }: AppShellProps) {
   return (
-    <div className="lm-app-shell">
+    <div className={`lm-app-shell lm-app-shell--${activeSection}`}>
       <Sidebar activeSection={activeSection} onNavigate={onNavigate} onUnavailable={(label) => onNotify(label, '이 메뉴는 다음 운영 업데이트에서 제공됩니다.')} />
       <GlobalHeader
         screenTitle={screenTitle}

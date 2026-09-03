@@ -9,7 +9,8 @@ import { CareerCalendarPanel } from './CareerCalendarPanel';
 import {
   careerPointerRecoveryAction, clearCareerAdvanceOperation, clearCareerCreateOperation, clearCareerPointer,
   isAmbiguousCareerCreateFailure, logicalCareerCreate, readCareerCreateOperation,
-  logicalCareerAdvance, readCareerAdvanceOperation, readCareerPointer, writeCareerPointer,
+  logicalCareerAdvance, readCareerAdvanceOperation, readCareerPointer,
+  reconcileCareerAdvanceOperation, writeCareerPointer,
   type CareerAdvanceOperation, type CareerCreateSelection,
 } from './career.pointer';
 
@@ -85,7 +86,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
       applyDetail(career, focus);
       try {
         const calendarView = await getCareerCalendar(careerId, controller.signal); if (generation !== generationRef.current || controller.signal.aborted) return;
-        setCalendar(calendarView); setCalendarError(null);
+        reconcileCareerAdvanceOperation(window.sessionStorage, careerId, calendarView.activePendingAdvance); setCalendar(calendarView); setCalendarError(null);
       } catch (cause) {
         if (controller.signal.aborted || generation !== generationRef.current) return;
         setCalendarError(loadFailure(cause));
@@ -116,7 +117,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
         requireCareerReference(career, teamResponse.teams, catalog);
         applyDetail(career);
         setCalendarLoading(true);
-        try { setCalendar(await getCareerCalendar(career.careerId, controller.signal)); setCalendarError(null); }
+        try { const calendarView = await getCareerCalendar(career.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, career.careerId, calendarView.activePendingAdvance); setCalendar(calendarView); setCalendarError(null); }
         catch (calendarCause) { if (!controller.signal.aborted) setCalendarError(loadFailure(calendarCause)); }
         finally { if (!controller.signal.aborted) setCalendarLoading(false); }
       } catch (cause) {
@@ -140,7 +141,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
       requireCareerReference(response.career, teamsRef.current, catalogRef.current);
       clearCareerCreateOperation(window.sessionStorage); setError(null); setIntegrityError(false); applyDetail(response.career, true); setDialogOpen(false);
       setCalendarLoading(true); setCalendarError(null);
-      try { setCalendar(await getCareerCalendar(response.career.careerId, controller.signal)); }
+      try { const calendarView = await getCareerCalendar(response.career.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, response.career.careerId, calendarView.activePendingAdvance); setCalendar(calendarView); }
       catch (calendarCause) { if (!controller.signal.aborted) setCalendarError(loadFailure(calendarCause)); }
       finally { if (!controller.signal.aborted) setCalendarLoading(false); }
       onNotify(response.replayed ? 'Career 생성 결과 복원' : 'Career 생성 완료', `${response.career.saveName} · ${response.career.managedTeamCode} Hybrid Season을 서버에서 확인했습니다.`);
@@ -171,7 +172,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
         setCalendarError('Auto 경기 작업은 서버에서 계속 실행 중입니다. 같은 진행 작업 ID를 유지한 채 다시 확인할 수 있습니다.');
         return;
       }
-      clearCareerAdvanceOperation(window.sessionStorage); restoredAdvanceRef.current = null;
+      clearCareerAdvanceOperation(window.sessionStorage, detail.careerId); restoredAdvanceRef.current = null;
       setError(null); setIntegrityError(false);
       const latest = await getCareer(detail.careerId, controller.signal); requireCareerReference(latest, teamsRef.current, catalogRef.current); applyDetail(latest);
       try { setList(await getCareers(controller.signal)); } catch { setList((current) => ({ ...current, careers: current.careers.map((entry) => entry.careerId === detail.careerId ? { ...entry, currentDate: response.calendar.currentDate } : entry) })); }
@@ -182,9 +183,9 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
     } catch (cause) {
       if (controller.signal.aborted) return;
       const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause));
-      if (!isAmbiguousCareerCreateFailure(failure)) { clearCareerAdvanceOperation(window.sessionStorage); restoredAdvanceRef.current = null; }
+      if (!isAmbiguousCareerCreateFailure(failure)) { clearCareerAdvanceOperation(window.sessionStorage, detail.careerId); restoredAdvanceRef.current = null; }
       setCalendarError(failure.userMessage);
-      try { setCalendar(await getCareerCalendar(detail.careerId, controller.signal)); } catch { /* original failure remains visible */ }
+      try { const calendarView = await getCareerCalendar(detail.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, detail.careerId, calendarView.activePendingAdvance); setCalendar(calendarView); } catch { /* original failure remains visible */ }
     } finally { if (!controller.signal.aborted) setAdvancePending(false); if (advanceRequestRef.current === controller) advanceRequestRef.current = null; }
   }, [advancePending, applyDetail, calendar, detail, onNotify]);
 

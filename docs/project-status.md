@@ -2,6 +2,46 @@
 
 이 문서는 2026-09-03 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career competition lifecycle V1 with Calendar hardening
+
+상태는 `CAREER_COMPETITION_LIFECYCLE_V1_PARTIALLY_IMPLEMENTED_RULE_SOURCE_GAP`이다. 기준 HEAD
+`66bf35a557a0f211181091da1a71f0538f0841b6` 위에서 Phase A Calendar hardening을 먼저 완료하고
+focused gate를 통과한 뒤 Phase B의 source-backed competition authority를 구현했다.
+
+Phase A는 pending advance의 mode/original revision/status/timestamp를 서버에 영속하고 Calendar GET과
+Career별 frontend pointer에서 복구한다. PAUSED/BLOCKED/CANCELLED/not-ready 및 불완전 COMPLETED
+Season은 날짜 이동과 dispatch 0으로 멈춘다. Completed command replay는 frozen result와 live Calendar를
+분리하고, R1~2 overlay V2는 schedule/team/mode/root seed/bound Series provenance를 결속한다. 기존
+Auto fixture는 Calendar→durable job→receipt/outbox→standings 경로를 한 번만 통과한다.
+
+Phase B는 byte-hash가 고정된 executable rule resource와 Flyway V7 competition cycle/instance/seed/
+fixture/output/application ledger를 추가했다. Verified R1~2 90경기와 final ranking을 한 번 봉인해
+Road 5경기와 R3~4 40경기를 결정적으로 materialize한다. Pure aggregate는 source에 있는 Road M1~M5와
+Play-in M1~M3 winner/loser routing 및 qualification output을 구조화하고 exact receipt replay,
+cross-scope rejection, restart recovery를 제공한다. Calendar API와 Dashboard는 current/next competition,
+stage/progress/next fixture/source blocker를 additive compact strip으로 노출한다.
+
+Raw source에는 Cup play-in opponent-choice 정책, Cup playoff 전체 routing, LCK playoff 10경기의
+완전한 winner/loser routing이 없다. 이 edge는 추측하지 않고 structured source blocker로 남겼다.
+또한 competition fixture를 기존 Production V9 Auto/Player Series completion verifier에 연결하는
+실행 adapter와 R3~4 final standings→Play-in seal은 후속 작업이다. 따라서 Road/R3~4/Play-in graph와
+저장은 구현됐지만 실제 competition 경기 실행은 해당 fixture date에서 fail-closed한다. 국제 대회는
+국내 authority 밖의 external limitation과 qualification output만 표현한다.
+
+Phase A backend gate는 3 focused classes가 42초에 통과했다. Phase B final focused는 4 suites /
+19 tests / failures 0 / errors 0 / skipped 0, Gradle wall 33초다. Frontend `career:verify` 15 scenarios와
+153-module production build가 통과했다. 격리 backend의 V7 migration/8085 startup은 확인했지만 WSL
+browser host의 Chrome 부재와 Firefox `libasound2t64` 부재 때문에 Playwright interaction은 환경
+제한으로 실행하지 못했다. 사용자 서버/DB는 건드리지 않았다.
+
+Final executable backend tree의 complete regression은 정확히 한 번 실행해 269 suites /
+2,375 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,366.527초, Gradle wall 23분,
+`BUILD SUCCESSFUL`로 통과했다. 이후 executable production source/resource/Gradle/shared fixture는
+변경하지 않았다. 90/130경기 전체 LIVE와 대형 diagnostic은 실행하지 않았다. 상세 내용은
+[Career Competition Lifecycle V1](development/career-competition-lifecycle-v1.md)과
+[architecture contract](architecture/career-competition-lifecycle-v1.md)에 있다. 다음 단계는
+`CAREER_COMPETITION_RULE_SOURCE_AND_PRODUCT_DECISION_CLOSURE`다.
+
 ## Career time and calendar progression V1
 
 상태는 `CAREER_TIME_AND_CALENDAR_PROGRESSION_V1_ACCEPTED`다. 기준 HEAD

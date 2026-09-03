@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "CAREER_COMPETITION_RULE_RESOURCE_V1",
+  "ruleVersion": "lck-career-competition-rules-2026-v1",
+  "gamePolicyVersion": "CAREER_COMPETITION_GAME_POLICY_V1",
+  "projectionPolicy": "SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1",
+  "r3r4AllocationPolicy": "LCK_R3_R4_TEN_MATCHDAYS_LINEAR_INCLUSIVE_WINDOW_V1",
+  "rawSources": {
+    "README": "853851cb54843a6b5393d89915220220faada8b9284593822bd271af837bab26",
+    "CALENDAR_FORMATS": "b47a681950382b3a67be7d4d7d43ed957796470b667c490dc4ce51e2bf3f7e01",
+    "OFFICIAL_REPORT": "86b16a278d09763260bdd46b0be1047146eca02c2ebd893f66be6e74f7812b0a",
+    "SOURCE_LEDGER": "0dd2a2818d24d3e212e9f00b51790b8f599b0b57ef67e23486491d80a2dd09b6"
+  },
+  "competitions": [
+    {
+      "competitionId": "LCK_CUP",
+      "ruleStatus": "PRODUCT_POLICY_REQUIRED",
+      "blockingReason": "INITIAL_CYCLE_PRIOR_SEASON_RESULT_REQUIRED",
+      "sourceIds": ["S01", "S02", "S03", "S04", "S05"],
+      "seriesFormat": "MIXED_BO3_BO5",
+      "hardFearless": true,
+      "matches": [],
+      "scheduledMonthDays": []
+    },
+    {
+      "competitionId": "LCK_REGULAR_R1_R2",
+      "ruleStatus": "RULE_SOURCE_COMPLETE",
+      "blockingReason": null,
+      "sourceIds": ["S03", "S04"],
+      "seriesFormat": "BO3",
+      "hardFearless": true,
+      "matches": [],
+      "scheduledMonthDays": []
+    },
+    {
+      "competitionId": "LCK_ROAD_TO_MSI",
+      "ruleStatus": "RULE_SOURCE_COMPLETE",
+      "blockingReason": null,
+      "sourceIds": ["S03", "S04"],
+      "seriesFormat": "BO5",
+      "hardFearless": true,
+      "matches": [
+        {"matchId":"M1","monthDay":"06-06","first":{"type":"R1_R2_RANK","value":"5"},"second":{"type":"R1_R2_RANK","value":"6"},"winnerOutputs":[]},
+        {"matchId":"M2","monthDay":"06-07","first":{"type":"R1_R2_RANK","value":"4"},"second":{"type":"MATCH_WINNER","value":"M1"},"winnerOutputs":[]},
+        {"matchId":"M3","monthDay":"06-12","first":{"type":"R1_R2_RANK","value":"1"},"second":{"type":"R1_R2_RANK","value":"2"},"winnerOutputs":["MSI_LCK_SEED_1"]},
+        {"matchId":"M4","monthDay":"06-13","first":{"type":"R1_R2_RANK","value":"3"},"second":{"type":"MATCH_WINNER","value":"M2"},"winnerOutputs":[]},
+        {"matchId":"M5","monthDay":"06-14","first":{"type":"MATCH_LOSER","value":"M3"},"second":{"type":"MATCH_WINNER","value":"M4"},"winnerOutputs":["MSI_LCK_SEED_2"]}
+      ],
+      "scheduledMonthDays": ["06-06", "06-07", "06-12", "06-13", "06-14"]
+    },
+    {
+      "competitionId": "LCK_REGULAR_R3_R4",
+      "ruleStatus": "RULE_SOURCE_COMPLETE",
+      "blockingReason": null,
+      "sourceIds": ["S03", "S04"],
+      "seriesFormat": "BO3",
+      "hardFearless": true,
+      "matches": [],
+      "scheduledMonthDays": []
+    },
+    {
+      "competitionId": "LCK_PLAY_IN",
+      "ruleStatus": "RULE_SOURCE_COMPLETE",
+      "blockingReason": null,
+      "sourceIds": ["S03", "S04"],
+      "seriesFormat": "BO5",
+      "hardFearless": true,
+      "matches": [
+        {"matchId":"M1","monthDay":"08-26","first":{"type":"PLAY_IN_SEED","value":"1"},"second":{"type":"PLAY_IN_SEED","value":"2"},"winnerOutputs":["LCK_PLAYOFF_SEED_5"]},
+        {"matchId":"M2","monthDay":"08-27","first":{"type":"PLAY_IN_SEED","value":"3"},"second":{"type":"PLAY_IN_SEED","value":"4"},"winnerOutputs":[],"loserOutputs":["LCK_SEASON_PLACE_8"]},
+        {"matchId":"M3","monthDay":"08-28","first":{"type":"MATCH_LOSER","value":"M1"},"second":{"type":"MATCH_WINNER","value":"M2"},"winnerOutputs":["LCK_PLAYOFF_SEED_6"],"loserOutputs":["LCK_SEASON_PLACE_7"]}
+      ],
+      "scheduledMonthDays": ["08-26", "08-27", "08-28"]
+    },
+    {
+      "competitionId": "LCK_PLAYOFFS",
+      "ruleStatus": "RULE_SOURCE_INCOMPLETE",
+      "blockingReason": "LCK_PLAYOFF_BRACKET_RULE_SOURCE_INCOMPLETE",
+      "sourceIds": ["S03", "S04"],
+      "seriesFormat": "BO5",
+      "hardFearless": true,
+      "matches": [],
+      "scheduledMonthDays": ["08-29", "08-30", "09-01", "09-02", "09-03", "09-04", "09-05", "09-06", "09-12", "09-13"]
+    },
+    {
+      "competitionId": "FIRST_STAND",
+      "ruleStatus": "RULE_SOURCE_INCOMPLETE",
+      "blockingReason": "EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED",
+      "sourceIds": ["S02", "S06", "S07"],
+      "seriesFormat": "BO5",
+      "hardFearless": true,
+      "matches": [],
+      "scheduledMonthDays": []
+    },
+    {
+      "competitionId": "MSI",
+      "ruleStatus": "RULE_SOURCE_INCOMPLETE",
+      "blockingReason": "EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED",
+      "sourceIds": ["S08", "S09"],
+      "seriesFormat": "BO5",
+      "hardFearless": null,
+      "matches": [],
+      "scheduledMonthDays": []
+    },
+    {
+      "competitionId": "EWC_LOL",
+      "ruleStatus": "RULE_SOURCE_INCOMPLETE",
+      "blockingReason": "EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED",
+      "sourceIds": ["S10", "S11", "S12"],
+      "seriesFormat": "MIXED_BO3_BO5",
+      "hardFearless": null,
+      "matches": [],
+      "scheduledMonthDays": []
+    },
+    {
+      "competitionId": "WORLDS",
+      "ruleStatus": "RULE_SOURCE_INCOMPLETE",
+      "blockingReason": "EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED",
+      "sourceIds": ["S03", "S09", "S10"],
+      "seriesFormat": "MIXED_BO3_BO5",
+      "hardFearless": null,
+      "matches": [],
+      "scheduledMonthDays": []
+    },
+    {
+      "competitionId": "ASIAN_GAMES_LOL_RELEASE",
+      "ruleStatus": "RULE_SOURCE_COMPLETE",
+      "blockingReason": "NATIONAL_TEAM_RELEASE_WINDOW_ONLY",
+      "sourceIds": ["S13", "S14", "S15"],
+      "seriesFormat": "NONE",
+      "hardFearless": null,
+      "matches": [],
+      "scheduledMonthDays": []
+    }
+  ]
+}

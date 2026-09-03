@@ -45,6 +45,7 @@ export function Sidebar({ activeSection, onNavigate, onUnavailable }: SidebarPro
     <aside className="lm-rail">
       <div className="lm-brand" aria-label="lolmanager">
         <div className="lm-brand__mark" aria-hidden="true">LM</div>
+        <div className="lm-brand__copy"><strong>LOL MANAGER</strong><span>FRONT OFFICE</span></div>
       </div>
       <nav className="lm-rail__nav" aria-label="주 메뉴">
         {navigationGroups.map((group, groupIndex) => (

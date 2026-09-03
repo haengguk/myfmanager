@@ -85,6 +85,10 @@ class CareerApiV1ControllerTest {
                 WHERE season_id = ? AND execution_mode = 'FULL_AUTO'
                 """, Integer.class, seasonId)).isEqualTo(72);
         assertThat(count("league_job") - jobsBefore).isZero();
+        assertThat(jdbc.queryForObject("""
+                SELECT COUNT(*) FROM career_competition_instance
+                WHERE career_id = ?
+                """, Integer.class, created.path("careerId").asText())).isEqualTo(11);
 
         JsonNode replay = json(mvc.perform(post("/api/v1/careers")
                         .contentType(MediaType.APPLICATION_JSON).content(request))
@@ -181,6 +185,15 @@ class CareerApiV1ControllerTest {
                 .isEqualTo("SOURCE_DATA_NOT_PRESENT");
         assertThat(calendar.path("fixtureOverlay").path("scheduleStatus").asText())
                 .isEqualTo("GAME_DERIVED_SCHEDULE_POLICY");
+        assertThat(calendar.path("competition").path("schemaVersion").asText())
+                .isEqualTo("CAREER_COMPETITION_VIEW_V1");
+        assertThat(calendar.path("competition").path("nextCompetition")
+                .path("competitionId").asText()).isEqualTo("LCK_CUP");
+        assertThat(calendar.path("competition").path("nextCompetition")
+                .path("blockingReason").asText())
+                .isEqualTo("INITIAL_CYCLE_PRIOR_SEASON_RESULT_REQUIRED");
+        assertThat(calendar.path("competition").path("ruleResourceHash").asText())
+                .isEqualTo("64acfab316162ca7f17c898c434b7ecce496f085370ff45012a83332d445b770");
         assertThat(jdbc.queryForObject("""
                 SELECT lifecycle_revision FROM league_season WHERE season_id = ?
                 """, Long.class, seasonId)).isEqualTo(lifecycleBeforeReads);

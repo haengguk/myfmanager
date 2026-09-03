@@ -12,11 +12,22 @@ public interface CareerCalendarLeaguePort {
     boolean wakeBackground(String commandId);
 
     record SeasonProjection(
-            String leagueId, String seasonId, String seasonLifecycleStatus,
+            String leagueId, String seasonId, String scheduleIdentity,
+            String seasonLifecycleStatus, boolean allFixturesCompleted,
+            long standingsRevision,
+            List<RankedTeamProjection> ranking,
             List<FixtureProjection> fixtures
     ) {
-        public SeasonProjection { fixtures = List.copyOf(fixtures); }
+        public SeasonProjection {
+            ranking = List.copyOf(ranking);
+            fixtures = List.copyOf(fixtures);
+        }
     }
+
+    record RankedTeamProjection(
+            int rank, String teamCode, int seriesWins, int seriesLosses,
+            int gameWins, int gameLosses
+    ) {}
 
     record FixtureProjection(
             String fixtureId, int roundNumber, String executionMode,

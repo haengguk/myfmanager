@@ -7,23 +7,25 @@
 }
 
 :root {
-  --lm-bg: oklch(12.5% 0.012 250);
-  --lm-surface: oklch(16.5% 0.014 250);
-  --lm-surface-2: oklch(19.5% 0.014 250);
-  --lm-surface-3: oklch(23% 0.015 250);
-  --lm-fg: oklch(94% 0.008 240);
-  --lm-muted: oklch(69% 0.018 240);
-  --lm-muted-2: oklch(54% 0.016 240);
-  --lm-border: oklch(27% 0.014 245);
-  --lm-border-strong: oklch(36% 0.018 245);
-  --lm-accent: oklch(72% 0.13 185);
-  --lm-accent-hover: oklch(65% 0.13 185);
-  --lm-accent-soft: oklch(72% 0.13 185 / 0.08);
-  --lm-secondary: oklch(68% 0.09 300);
-  --lm-success: oklch(72% 0.12 155);
-  --lm-warning: oklch(78% 0.14 80);
-  --lm-danger: oklch(67% 0.18 25);
-  --lm-on-accent: oklch(14% 0.025 185);
+  --lm-bg: #080e16;
+  --lm-surface: #101925;
+  --lm-surface-2: #172333;
+  --lm-surface-3: #1d2b3d;
+  --lm-fg: #f5f8fc;
+  --lm-muted: #c4cfdd;
+  --lm-muted-2: #91a0b3;
+  --lm-border: #26364a;
+  --lm-border-strong: #405772;
+  --lm-accent: #35d6c7;
+  --lm-accent-hover: #67e8dc;
+  --lm-accent-soft: rgb(53 214 199 / 0.13);
+  --lm-secondary: #a78bfa;
+  --lm-success: #5ee29a;
+  --lm-warning: #f5c451;
+  --lm-danger: #ff7388;
+  --lm-command: #f0ad32;
+  --lm-command-hover: #ffc75c;
+  --lm-on-accent: #071613;
   --lm-focus: oklch(78% 0.14 185);
   --lm-overlay: oklch(6% 0.01 250 / 0.78);
   --lm-font-display: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -31,12 +33,12 @@
   --lm-font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   --lm-radius-sm: 4px;
   --lm-radius-md: 7px;
-  --lm-shadow: 0 20px 60px oklch(4% 0.01 250 / 0.5);
+  --lm-shadow: 0 22px 64px rgb(0 4 10 / 0.58);
   --lm-ease: cubic-bezier(0.23, 1, 0.32, 1);
   --lm-fast: 120ms;
   --lm-base: 180ms;
-  --lm-rail-width: 112px;
-  --lm-list-width: 386px;
+  --lm-rail-width: 156px;
+  --lm-list-width: 430px;
   --tone-teal: var(--lm-accent);
   --tone-violet: var(--lm-secondary);
   --tone-amber: var(--lm-warning);
@@ -63,15 +65,28 @@ body {
   min-width: 960px;
   margin: 0;
   overflow: hidden;
-  background: var(--lm-bg);
+  background:
+    radial-gradient(circle at 82% 0%, rgb(35 72 112 / 0.2), transparent 34%),
+    linear-gradient(180deg, #09111c 0%, var(--lm-bg) 54%);
   color: var(--lm-fg);
 }
 
 body {
   min-height: 100%;
-  font: 12px/1.5 var(--lm-font-body);
+  font: 500 13px/1.55 var(--lm-font-body);
+  letter-spacing: -0.006em;
   overflow-wrap: break-word;
   word-break: keep-all;
+}
+
+* {
+  scrollbar-color: var(--lm-border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+::selection {
+  background: rgb(53 214 199 / 0.28);
+  color: var(--lm-fg);
 }
 
 button,
@@ -109,15 +124,15 @@ textarea:focus-visible,
 
 @media (max-width: 1280px) {
   :root {
-    --lm-rail-width: 94px;
-    --lm-list-width: 350px;
+    --lm-rail-width: 138px;
+    --lm-list-width: 390px;
   }
 }
 
 @media (max-width: 1080px) {
   :root {
-    --lm-rail-width: 82px;
-    --lm-list-width: 312px;
+    --lm-rail-width: 124px;
+    --lm-list-width: 350px;
   }
 }
 

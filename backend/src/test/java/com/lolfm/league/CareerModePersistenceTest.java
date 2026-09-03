@@ -14,6 +14,9 @@ import com.lolfm.career.CareerApplicationService;
 import com.lolfm.career.CareerCalendarApplicationService;
 import com.lolfm.career.CareerCalendarRelationalStore;
 import com.lolfm.career.CareerCalendarTemplate;
+import com.lolfm.career.CareerCompetitionApplicationService;
+import com.lolfm.career.CareerCompetitionRelationalStore;
+import com.lolfm.career.CareerCompetitionRules;
 import com.lolfm.career.CareerException;
 import com.lolfm.career.CareerIdentity;
 import com.lolfm.career.CareerRelationalStore;
@@ -54,7 +57,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(5);
+                    .migrationsExecuted).isEqualTo(7);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -333,6 +336,14 @@ class CareerModePersistenceTest {
             assertThat(initial.state().seasonYear()).isEqualTo(2027);
             assertThat(initial.upcomingEvents()).hasSize(8);
             assertThat(initial.fixtureOverlay().fixtures()).hasSize(90);
+            assertThat(initial.fixtureOverlay().schemaVersion())
+                    .isEqualTo(CareerCalendarTemplate.FIXTURE_OVERLAY_SCHEMA_V1);
+            assertThat(initial.fixtureOverlay().provenanceV2().schemaVersion())
+                    .isEqualTo(CareerCalendarTemplate.FIXTURE_OVERLAY_SCHEMA_V2);
+            assertThat(initial.fixtureOverlay().provenanceV2().scheduleIdentity())
+                    .matches("[0-9a-f]{64}");
+            assertThat(initial.fixtureOverlay().provenanceV2().overlayHash())
+                    .isNotEqualTo(initial.fixtureOverlay().overlayHash());
             assertThat(initial.counts().sources()).isEqualTo(15);
             assertThat(initial.counts().calendarDefinitions()).isEqualTo(11);
             assertThat(initial.upcomingEvents())
@@ -342,6 +353,24 @@ class CareerModePersistenceTest {
             assertThat(initial.sourceDataNotes()).containsExactly(
                     new CareerCalendarApplicationService.SourceDataNote(
                             "KESPA_CUP", "SOURCE_DATA_NOT_PRESENT"));
+            String tamperedFixture = initial.fixtureOverlay().fixtures().getFirst()
+                    .fixtureId();
+            long originalSeed = harness.jdbc().queryForObject("""
+                    SELECT fixture_root_seed FROM league_fixture
+                    WHERE season_id = ? AND fixture_id = ?
+                    """, Long.class, career.seasonId(), tamperedFixture);
+            harness.jdbc().update("""
+                    UPDATE league_fixture SET fixture_root_seed = ?
+                    WHERE season_id = ? AND fixture_id = ?
+                    """, originalSeed + 1, career.seasonId(), tamperedFixture);
+            assertThatThrownBy(() -> harness.calendar().view(career))
+                    .isInstanceOf(CareerException.class)
+                    .extracting(error -> ((CareerException) error).type())
+                    .isEqualTo(CareerException.Type.CALENDAR_INTEGRITY_FAILURE);
+            harness.jdbc().update("""
+                    UPDATE league_fixture SET fixture_root_seed = ?
+                    WHERE season_id = ? AND fixture_id = ?
+                    """, originalSeed, career.seasonId(), tamperedFixture);
 
             CareerCalendarApplicationService.AdvanceResult first =
                     harness.calendar().advance(career,
@@ -352,6 +381,10 @@ class CareerModePersistenceTest {
             assertThat(first.calendar().state().currentDate())
                     .isEqualTo(LocalDate.of(2027, 1, 14));
             assertThat(first.calendar().state().calendarRevision()).isEqualTo(1);
+            assertThat(first.commandResult().receipt().mode())
+                    .isEqualTo(CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT);
+            assertThat(first.commandResult().receipt().expectedRevision()).isZero();
+            assertThat(first.commandResult().receipt().resultingRevision()).isEqualTo(1);
             afterFirst = state(harness.jdbc());
 
             CareerCalendarApplicationService.AdvanceResult replay =
@@ -400,8 +433,13 @@ class CareerModePersistenceTest {
                             firstCommand);
             assertThat(replayAfterRestart.replayed()).isTrue();
             assertThat(replayAfterRestart.calendar().state().currentDate())
+                    .isEqualTo(LocalDate.of(2027, 1, 15));
+            assertThat(replayAfterRestart.calendar().state().calendarRevision())
+                    .isEqualTo(2);
+            assertThat(replayAfterRestart.commandResult().receipt().resultingDate())
                     .isEqualTo(LocalDate.of(2027, 1, 14));
-            assertThat(replayAfterRestart.calendar().state().calendarRevision()).isEqualTo(1);
+            assertThat(replayAfterRestart.commandResult().receipt().resultingRevision())
+                    .isEqualTo(1);
             assertThat(state(harness.jdbc())).isEqualTo(afterSecond);
         }
     }
@@ -467,7 +505,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isOne();
+                    .migrationsExecuted).isEqualTo(3);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);
@@ -534,6 +572,319 @@ class CareerModePersistenceTest {
         }
     }
 
+    @Test
+    void pendingAdvanceIsServerRecoverablePerCareerAcrossRestart() {
+        String url = "jdbc:h2:file:" + temporary.resolve("calendar-pending-recovery")
+                .toAbsolutePath() + ";DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000";
+        String careerA;
+        String careerB;
+        String commandA = UUID.randomUUID().toString();
+        String commandB = UUID.randomUUID().toString();
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource);
+            CareerRelationalStore.CareerRow first = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            CareerRelationalStore.CareerRow second = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            careerA = first.careerId();
+            careerB = second.careerId();
+
+            for (CareerRelationalStore.CareerRow career : List.of(first, second)) {
+                long revision = 0;
+                for (int index = 0; index < 2; index++) {
+                    CareerCalendarApplicationService.AdvanceResult result =
+                            harness.calendar().advance(career,
+                                    CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, revision,
+                                    CareerCalendarApplicationService
+                                            .ADVANCE_TO_NEXT_EVENT,
+                                    UUID.randomUUID().toString());
+                    revision = result.calendar().state().calendarRevision();
+                }
+                harness.jdbc().update("""
+                        UPDATE league_fixture SET lifecycle_status = 'COMPLETED'
+                        WHERE season_id = ? AND round_number = 1
+                          AND execution_mode = 'PLAYER_CONTROLLED'
+                        """, career.seasonId());
+            }
+
+            CareerCalendarApplicationService.AdvanceResult pendingA =
+                    harness.calendar().advance(first,
+                            CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, 2,
+                            CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT,
+                            commandA);
+            CareerCalendarApplicationService.AdvanceResult pendingB =
+                    harness.calendar().advance(second,
+                            CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, 2,
+                            CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT,
+                            commandB);
+            assertThat(pendingA.pending()).isTrue();
+            assertThat(pendingB.pending()).isTrue();
+            assertThat(harness.calendar().view(first).activePendingAdvance()
+                    .clientCommandId()).isEqualTo(commandA);
+            assertThat(harness.calendar().view(second).activePendingAdvance()
+                    .clientCommandId()).isEqualTo(commandB);
+            assertThat(harness.calendar().view(first).activePendingAdvance()
+                    .mode()).isEqualTo(
+                    CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT);
+            assertThat(harness.calendar().view(first).activePendingAdvance()
+                    .expectedRevision()).isEqualTo(2);
+            assertThatThrownBy(() -> harness.calendar().advance(first,
+                    CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, 3,
+                    CareerCalendarApplicationService.ADVANCE_ONE_DAY,
+                    UUID.randomUUID().toString()))
+                    .isInstanceOf(CareerException.class)
+                    .extracting(error -> ((CareerException) error).type())
+                    .isEqualTo(CareerException.Type.CALENDAR_ADVANCE_ALREADY_PENDING);
+            assertThat(harness.jdbc().queryForObject("""
+                    SELECT COUNT(*) FROM career_calendar_advance_command
+                    WHERE career_id IN (?, ?) AND command_status = 'PENDING'
+                    """, Integer.class, careerA, careerB)).isEqualTo(2);
+        }
+
+        try (HikariDataSource reopened = dataSource(url)) {
+            assertThat(Flyway.configure().dataSource(reopened).load().migrate()
+                    .migrationsExecuted).isZero();
+            Harness harness = harness(reopened);
+            CareerRelationalStore.CareerRow first = harness.careerStore().find(careerA)
+                    .orElseThrow();
+            CareerRelationalStore.CareerRow second = harness.careerStore().find(careerB)
+                    .orElseThrow();
+            assertThat(harness.calendar().view(second).activePendingAdvance()
+                    .clientCommandId()).isEqualTo(commandB);
+            assertThat(harness.calendar().view(first).activePendingAdvance()
+                    .clientCommandId()).isEqualTo(commandA);
+            CareerCalendarApplicationService.AdvanceResult replay =
+                    harness.calendar().advance(first,
+                            CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, 2,
+                            CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT,
+                            commandA);
+            assertThat(replay.replayed()).isTrue();
+            assertThat(replay.pending()).isTrue();
+            assertThat(replay.commandResult().receipt().clientCommandId())
+                    .isEqualTo(commandA);
+        }
+    }
+
+    @Test
+    void calendarSeasonLifecycleBlocksDispatchAndDateMovementExplicitly() {
+        String url = "jdbc:h2:mem:career-calendar-lifecycle-" + UUID.randomUUID()
+                + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource);
+            CareerRelationalStore.CareerRow career = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            Map<String, String> blocked = new LinkedHashMap<>();
+            blocked.put("PAUSED", "SEASON_PAUSED");
+            blocked.put("BLOCKED", "ATTENTION_REQUIRED");
+            blocked.put("CANCELLED", "SEASON_CANCELLED");
+            blocked.put("COMPLETED", "COMPETITION_TRANSITION_REQUIRED");
+            blocked.put("DRAFT", "SEASON_NOT_READY");
+            blocked.put("FROZEN", "SEASON_NOT_READY");
+            for (Map.Entry<String, String> entry : blocked.entrySet()) {
+                harness.jdbc().update("""
+                        UPDATE league_season SET lifecycle_status = ?
+                        WHERE season_id = ?
+                        """, entry.getKey(), career.seasonId());
+                CareerCalendarApplicationService.CalendarView before =
+                        harness.calendar().view(career);
+                assertThat(before.blockingReason()).isEqualTo(entry.getValue());
+                assertThat(before.allowedAdvanceModes()).isEmpty();
+                CareerCalendarApplicationService.AdvanceResult result =
+                        harness.calendar().advance(career,
+                                CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,
+                                before.state().calendarRevision(),
+                                CareerCalendarApplicationService.ADVANCE_ONE_DAY,
+                                UUID.randomUUID().toString());
+                assertThat(result.stopReason()).isEqualTo(entry.getValue());
+                assertThat(result.calendar().state().currentDate())
+                        .isEqualTo(before.state().currentDate());
+                assertThat(result.calendar().allowedAdvanceModes()).isEmpty();
+            }
+            verifyNoInteractions(harness.calendarJobs());
+            assertThat(count(harness.jdbc(), "league_job")).isZero();
+        }
+    }
+
+    @Test
+    void calendarAutoJobCompletionAndReplayApplyStandingsExactlyOnce() {
+        String url = "jdbc:h2:mem:career-calendar-job-integration-"
+                + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource);
+            CareerRelationalStore.CareerRow career = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            long revision = 0;
+            for (int index = 0; index < 2; index++) {
+                CareerCalendarApplicationService.AdvanceResult result =
+                        harness.calendar().advance(career,
+                                CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, revision,
+                                CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT,
+                                UUID.randomUUID().toString());
+                revision = result.calendar().state().calendarRevision();
+            }
+
+            LeagueSeasonAggregate season = harness.leagueStore()
+                    .loadSeason(career.seasonId());
+            LeagueFixture target = season.schedule().fixtures().stream()
+                    .filter(value -> value.roundNumber() == 1)
+                    .filter(value -> value.executionMode()
+                            == LeagueFixtureExecutionMode.FULL_AUTO)
+                    .findFirst().orElseThrow();
+            harness.jdbc().update("""
+                    UPDATE league_fixture SET lifecycle_status = 'COMPLETED'
+                    WHERE season_id = ? AND round_number = 1 AND fixture_id <> ?
+                    """, career.seasonId(), target.fixtureId());
+
+            LeagueAutomatedSeriesRunResult completion =
+                    LeagueAutomatedSeriesRunnerTest.runner(season.frozenSnapshot(),
+                            new LeagueAutomatedSeriesRunnerTest.FakeGameExecutor(
+                                    List.of(target.firstTeamCode(),
+                                            target.firstTeamCode())))
+                            .run(new LeagueAutomatedSeriesRunnerInput(season, target,
+                                    season.productDecisionHash()));
+            LeagueAutomatedSeriesRunner controlledRunner = mock(
+                    LeagueAutomatedSeriesRunner.class);
+            when(controlledRunner.run(any(), any())).thenReturn(completion);
+            LeagueSeasonApplicationService lifecycle =
+                    new LeagueSeasonApplicationService(harness.leagueStore());
+            LeagueJobCoordinator jobs = new LeagueJobCoordinator(harness.leagueStore(),
+                    controlledRunner, Clock.systemUTC(), lifecycle);
+            LeagueCareerCalendarService leagueCalendar =
+                    new LeagueCareerCalendarService(harness.leagueStore(), jobs,
+                            ignored -> true);
+            CareerCalendarRelationalStore calendarStore =
+                    new CareerCalendarRelationalStore(harness.jdbc(),
+                            new DataSourceTransactionManager(dataSource),
+                            harness.calendarTemplate());
+            CareerCompetitionRules competitionRules = new CareerCompetitionRules(
+                    new ObjectMapper().findAndRegisterModules());
+            CareerCompetitionApplicationService competitions =
+                    new CareerCompetitionApplicationService(
+                            new CareerCompetitionRelationalStore(harness.jdbc(),
+                                    new DataSourceTransactionManager(dataSource),
+                                    Clock.systemUTC(), competitionRules),
+                            competitionRules);
+            CareerCalendarApplicationService calendar =
+                    new CareerCalendarApplicationService(calendarStore,
+                            harness.calendarTemplate(), leagueCalendar, competitions);
+            String commandId = UUID.randomUUID().toString();
+            CareerCalendarApplicationService.AdvanceResult pending = calendar.advance(
+                    career, CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, revision,
+                    CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT, commandId);
+            assertThat(pending.pending()).isTrue();
+            assertThat(count(harness.jdbc(), "league_job")).isOne();
+
+            LeagueSimulationApplicationPort.Lease lease = jobs.leaseNext(
+                    "career-calendar-controlled-worker").orElseThrow();
+            assertThat(jobs.execute(lease,
+                    com.lolfm.simulator.SimulationInstrumentation.disabled()).status())
+                    .isEqualTo(LeagueSimulationApplicationPort.Status.COMPLETED);
+            verify(controlledRunner, times(1)).run(any(), any());
+            assertThat(count(harness.jdbc(), "league_completion_receipt")).isOne();
+            assertThat(count(harness.jdbc(), "league_outbox")).isOne();
+            assertThat(harness.leagueStore().drainOutbox(10)).isOne();
+            assertThat(count(harness.jdbc(), "league_standings_application")).isOne();
+
+            CareerCalendarApplicationService.AdvanceResult completed = calendar.advance(
+                    career, CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, revision,
+                    CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT, commandId);
+            assertThat(completed.pending()).isFalse();
+            DatabaseState beforeReplay = state(harness.jdbc());
+            CareerCalendarApplicationService.AdvanceResult replay = calendar.advance(
+                    career, CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, revision,
+                    CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT, commandId);
+            assertThat(replay.replayed()).isTrue();
+            assertThat(state(harness.jdbc())).isEqualTo(beforeReplay);
+            assertThat(count(harness.jdbc(), "league_job")).isOne();
+            assertThat(count(harness.jdbc(), "league_standings_application")).isOne();
+            verify(controlledRunner, times(1)).run(any(), any());
+        }
+    }
+
+    @Test
+    void completedR1R2SealsCompetitionInputOnceAndReceiptTransitionSurvivesRestart() {
+        String url = "jdbc:h2:file:" + temporary.resolve("competition-restart")
+                .toAbsolutePath() + ";DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=10000";
+        String careerId;
+        String matchId = "M1";
+        String seriesId;
+        String first;
+        String second;
+        String winner;
+        String receiptHash = "d".repeat(64);
+        String stateHash;
+
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource);
+            CareerRelationalStore.CareerRow career = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            careerId = career.careerId();
+            harness.jdbc().update("""
+                    UPDATE league_fixture SET lifecycle_status = 'COMPLETED'
+                    WHERE season_id = ?
+                    """, career.seasonId());
+            harness.jdbc().update("""
+                    UPDATE league_season SET lifecycle_status = 'COMPLETED'
+                    WHERE season_id = ?
+                    """, career.seasonId());
+
+            CareerCalendarApplicationService.CalendarView calendar =
+                    harness.calendar().view(career);
+            assertThat(calendar.competition().nextCompetition().competitionId())
+                    .isEqualTo("LCK_CUP");
+            assertThat(calendar.competition().nextCompetition().blockingReason())
+                    .isEqualTo("INITIAL_CYCLE_PRIOR_SEASON_RESULT_REQUIRED");
+            assertThat(calendar.allowedAdvanceModes()).containsExactly(
+                    CareerCalendarApplicationService.ADVANCE_ONE_DAY,
+                    CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT);
+            assertThat(count(harness.jdbc(), "career_competition_seed")).isEqualTo(20);
+            assertThat(count(harness.jdbc(), "career_competition_fixture")).isEqualTo(45);
+
+            var road = harness.competitionStore().loadAggregate(careerId, 2027,
+                    "LCK_ROAD_TO_MSI");
+            var fixture = road.fixtures().stream().filter(value ->
+                    matchId.equals(value.matchId())).findFirst().orElseThrow();
+            seriesId = fixture.seriesId();
+            first = fixture.firstTeamCode();
+            second = fixture.secondTeamCode();
+            winner = first;
+            var applied = harness.competitionStore().applyCompletion(careerId, 2027,
+                    "LCK_ROAD_TO_MSI", matchId, seriesId, first, second, winner,
+                    receiptHash);
+            assertThat(applied.replayed()).isFalse();
+            assertThat(applied.aggregate().revision()).isOne();
+            assertThat(count(harness.jdbc(), "career_competition_application")).isOne();
+            assertThat(applied.aggregate().fixtures().stream().filter(value ->
+                    "M2".equals(value.matchId())).findFirst().orElseThrow()
+                    .secondTeamCode()).isEqualTo(winner);
+            stateHash = applied.aggregate().stateHash();
+        }
+
+        try (HikariDataSource dataSource = dataSource(url)) {
+            assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
+                    .migrationsExecuted).isZero();
+            Harness harness = harness(dataSource);
+            var restored = harness.competitionStore().loadAggregate(careerId, 2027,
+                    "LCK_ROAD_TO_MSI");
+            assertThat(restored.stateHash()).isEqualTo(stateHash);
+            var replay = harness.competitionStore().applyCompletion(careerId, 2027,
+                    "LCK_ROAD_TO_MSI", matchId, seriesId, first, second, winner,
+                    receiptHash);
+            assertThat(replay.replayed()).isTrue();
+            assertThat(replay.aggregate().stateHash()).isEqualTo(stateHash);
+            assertThat(count(harness.jdbc(), "career_competition_application")).isOne();
+            assertThatThrownBy(() -> harness.competitionStore().applyCompletion(
+                    careerId, 2027, "LCK_REGULAR_R3_R4", matchId, seriesId,
+                    first, second, winner, receiptHash))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("COMPETITION_RECEIPT_SCOPE_MISMATCH");
+        }
+    }
+
     private Harness harness(HikariDataSource dataSource) {
         return harness(dataSource, CareerRelationalStore.MAX_CAREERS);
     }
@@ -568,17 +919,27 @@ class CareerModePersistenceTest {
         CareerCalendarRelationalStore calendarStore =
                 new CareerCalendarRelationalStore(jdbc, transactionManager,
                         calendarTemplate);
+        CareerCompetitionRules competitionRules = new CareerCompetitionRules(
+                new ObjectMapper().findAndRegisterModules());
+        CareerCompetitionRelationalStore competitionStore =
+                new CareerCompetitionRelationalStore(jdbc, transactionManager,
+                        Clock.systemUTC(), competitionRules);
+        CareerCompetitionApplicationService competitions =
+                new CareerCompetitionApplicationService(
+                        competitionStore,
+                        competitionRules);
         LeagueSimulationApplicationPort calendarJobs = mock(
                 LeagueSimulationApplicationPort.class);
         LeagueCareerCalendarService calendarLeague = new LeagueCareerCalendarService(
                 leagueStore, calendarJobs, ignored -> true);
         CareerCalendarApplicationService calendar =
                 new CareerCalendarApplicationService(calendarStore, calendarTemplate,
-                        calendarLeague);
+                        calendarLeague, competitions);
         CareerApplicationService careers = new CareerApplicationService(careerStore,
                 provisioning, read, TeamPlayerInformationCatalog.loadDefault(), calendar);
         return new Harness(jdbc, leagueStore, careerStore, provisioning, bindings,
-                playerSeries, careers, calendar, calendarTemplate, calendarJobs);
+                playerSeries, careers, calendar, calendarTemplate, competitionStore,
+                calendarJobs);
     }
 
     private static CareerApiV1Dtos.CreateRequest request(String commandId) {
@@ -595,6 +956,21 @@ class CareerModePersistenceTest {
                 "career_id"));
         tables.put("career_calendar_advance_command", rows(jdbc,
                 "career_calendar_advance_command", "client_command_id"));
+        tables.put("career_competition_cycle", rows(jdbc,
+                "career_competition_cycle", "career_id, calendar_season_year"));
+        tables.put("career_competition_instance", rows(jdbc,
+                "career_competition_instance",
+                "career_id, calendar_season_year, competition_id"));
+        tables.put("career_competition_seed", rows(jdbc,
+                "career_competition_seed",
+                "career_id, calendar_season_year, competition_id, seed_scope, seed_number"));
+        tables.put("career_competition_fixture", rows(jdbc,
+                "career_competition_fixture",
+                "career_id, calendar_season_year, competition_id, match_id"));
+        tables.put("career_competition_output", rows(jdbc,
+                "career_competition_output", "career_id, calendar_season_year, output_id"));
+        tables.put("career_competition_application", rows(jdbc,
+                "career_competition_application", "receipt_hash"));
         tables.put("league_registry", rows(jdbc, "league_registry", "league_id"));
         tables.put("league_season", rows(jdbc, "league_season", "season_id"));
         tables.put("league_round", rows(jdbc, "league_round",
@@ -670,6 +1046,7 @@ class CareerModePersistenceTest {
             CareerApplicationService careers,
             CareerCalendarApplicationService calendar,
             CareerCalendarTemplate calendarTemplate,
+            CareerCompetitionRelationalStore competitionStore,
             LeagueSimulationApplicationPort calendarJobs
     ) {}
 

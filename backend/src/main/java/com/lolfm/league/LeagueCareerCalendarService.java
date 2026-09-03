@@ -31,6 +31,10 @@ public final class LeagueCareerCalendarService implements CareerCalendarLeaguePo
 
     @Override
     public SeasonProjection load(String leagueId, String seasonId) {
+        LeagueSeasonAggregate aggregate = store.loadSeason(seasonId);
+        if (!aggregate.leagueId().equals(leagueId)) {
+            throw new IllegalStateException("CAREER_CALENDAR_LEAGUE_SCOPE_MISMATCH");
+        }
         List<String> lifecycle = store.jdbc().query("""
                 SELECT lifecycle_status FROM league_season
                 WHERE league_id = ? AND season_id = ?
@@ -68,13 +72,41 @@ public final class LeagueCareerCalendarService implements CareerCalendarLeaguePo
                 .doubleRoundRobinFixtureCount()) {
             throw new IllegalStateException("CAREER_CALENDAR_R1_R2_FIXTURE_COUNT_MISMATCH");
         }
-        return new SeasonProjection(leagueId, seasonId, lifecycle.getFirst(), fixtures);
+        Map<String, LeagueFixture> frozen = new HashMap<>();
+        aggregate.schedule().fixtures().forEach(value -> frozen.put(value.fixtureId(), value));
+        if (frozen.size() != fixtures.size()) {
+            throw new IllegalStateException("CAREER_CALENDAR_R1_R2_FIXTURE_COUNT_MISMATCH");
+        }
+        fixtures.forEach(value -> {
+            LeagueFixture expected = frozen.get(value.fixtureId());
+            if (expected == null
+                    || expected.roundNumber() != value.roundNumber()
+                    || !expected.executionMode().name().equals(value.executionMode())
+                    || !expected.firstTeamCode().equals(value.firstTeamCode())
+                    || !expected.secondTeamCode().equals(value.secondTeamCode())
+                    || expected.fixtureRootSeed() != value.fixtureRootSeed()
+                    || !expected.boundSeriesId().equals(value.boundSeriesId())) {
+                throw new IllegalStateException(
+                        "CAREER_CALENDAR_FIXTURE_FROZEN_IDENTITY_MISMATCH");
+            }
+        });
+        List<RankedTeamProjection> ranking = aggregate.ranking().teams().stream()
+                .map(value -> new RankedTeamProjection(value.position(), value.teamCode(),
+                        value.standing().seriesWins(), value.standing().seriesLosses(),
+                        value.standing().gameWins(), value.standing().gameLosses()))
+                .toList();
+        return new SeasonProjection(leagueId, seasonId,
+                aggregate.schedule().scheduleIdentity(), lifecycle.getFirst(),
+                fixtures.stream().allMatch(value -> "COMPLETED".equals(
+                        value.fixtureStatus())), aggregate.revision(), ranking, fixtures);
     }
 
     @Override
     public GateResult gateAndDispatch(String seasonId, List<String> fixtureIds) {
-        if (fixtureIds.isEmpty()) return GateResult.clear();
         SeasonProjection season = loadBySeasonId(seasonId);
+        GateResult lifecycleGate = lifecycleGate(season.seasonLifecycleStatus());
+        if (lifecycleGate != null) return lifecycleGate;
+        if (fixtureIds.isEmpty()) return GateResult.clear();
         Map<String, FixtureProjection> indexed = new HashMap<>();
         season.fixtures().forEach(fixture -> indexed.put(fixture.fixtureId(), fixture));
         ArrayList<FixtureProjection> selected = new ArrayList<>();
@@ -142,6 +174,24 @@ public final class LeagueCareerCalendarService implements CareerCalendarLeaguePo
 
     private static boolean terminal(String status) {
         return "COMPLETED".equals(status);
+    }
+
+    private static GateResult lifecycleGate(String status) {
+        return switch (status) {
+            case "READY", "RUNNING", "WAITING_FOR_PLAYER" -> null;
+            case "PAUSED" -> new GateResult(
+                    "SEASON_PAUSED", false, false, null, null);
+            case "BLOCKED" -> new GateResult(
+                    "ATTENTION_REQUIRED", false, false, null, null);
+            case "CANCELLED" -> new GateResult(
+                    "SEASON_CANCELLED", false, false, null, null);
+            case "COMPLETED" -> new GateResult(
+                    "COMPETITION_TRANSITION_REQUIRED", false, false, null, null);
+            case "DRAFT", "FROZEN" -> new GateResult(
+                    "SEASON_NOT_READY", false, false, null, null);
+            default -> throw new IllegalStateException(
+                    "CAREER_CALENDAR_UNKNOWN_SEASON_STATUS");
+        };
     }
 
     private static boolean needsAttention(FixtureProjection fixture) {

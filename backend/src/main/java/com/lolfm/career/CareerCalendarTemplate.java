@@ -40,6 +40,12 @@ public final class CareerCalendarTemplate {
             "FIRST_FULL_CYCLE_AFTER_CURRENT_DATE_V1";
     public static final String FIXTURE_ALLOCATION_POLICY =
             "ROUND_LINEAR_INCLUSIVE_WINDOW_ONE_SLOT_PER_ROUND_V1";
+    public static final String FIXTURE_OVERLAY_SCHEMA_V1 =
+            "CAREER_R1_R2_FIXTURE_OVERLAY_V1";
+    public static final String FIXTURE_OVERLAY_SCHEMA_V2 =
+            "CAREER_R1_R2_FIXTURE_OVERLAY_PROVENANCE_V2";
+    public static final String FIXTURE_OVERLAY_HASH_ALGORITHM_V2 =
+            "SHA256_UTF8_EXPLICIT_ORDERED_R1_R2_OVERLAY_PROVENANCE_V2";
     public static final String CALENDAR_SCHEMA = "CAREER_CALENDAR_STATE_V1";
     public static final String STATE_HASH_ALGORITHM =
             "CAREER_CALENDAR_STATE_SHA256_CANONICAL_V1";
@@ -123,6 +129,9 @@ public final class CareerCalendarTemplate {
 
     public FixtureOverlay overlay(
             int seasonYear,
+            String leagueId,
+            String seasonId,
+            String scheduleIdentity,
             List<FixtureInput> fixtures
     ) {
         ProjectedEvent window = project(seasonYear).events().stream()
@@ -142,9 +151,15 @@ public final class CareerCalendarTemplate {
         for (FixtureInput fixture : ordered) {
             if (fixture.roundNumber() < 1 || fixture.roundNumber() > 18
                     || !ids.add(required(fixture.fixtureId(), "fixtureId"))
-                    || fixture.firstTeamCode().equals(fixture.secondTeamCode())) {
+                    || fixture.firstTeamCode().equals(fixture.secondTeamCode())
+                    || !("FULL_AUTO".equals(fixture.executionMode())
+                    || "PLAYER_CONTROLLED".equals(fixture.executionMode()))) {
                 throw new IllegalStateException("R1_R2_FIXTURE_IDENTITY_MISMATCH");
             }
+            requireIdentity(fixture.fixtureId(), "fixture_", "fixtureId");
+            requireIdentity(fixture.boundSeriesId(), "series_", "boundSeriesId");
+            requireTeamCode(fixture.firstTeamCode());
+            requireTeamCode(fixture.secondTeamCode());
             Set<String> roundTeams = teamsByRound.computeIfAbsent(
                     fixture.roundNumber(), ignored -> new HashSet<>());
             if (!roundTeams.add(required(fixture.firstTeamCode(), "firstTeamCode"))
@@ -164,16 +179,49 @@ public final class CareerCalendarTemplate {
                 || value.date().isAfter(window.endDate()))) {
             throw new IllegalStateException("R1_R2_ROUND_STRUCTURE_MISMATCH");
         }
-        StringBuilder canonical = new StringBuilder()
-                .append("overlaySchema=CAREER_R1_R2_FIXTURE_OVERLAY_V1\n")
+        String canonicalLeagueId = requireIdentity(leagueId, "league_", "leagueId");
+        String canonicalSeasonId = requireIdentity(seasonId, "season_", "seasonId");
+        requireSha256(scheduleIdentity, "scheduleIdentity");
+        StringBuilder legacyCanonical = new StringBuilder()
+                .append("overlaySchema=").append(FIXTURE_OVERLAY_SCHEMA_V1).append('\n')
                 .append("templateHash=").append(templateHash()).append('\n')
                 .append("seasonYear=").append(seasonYear).append('\n')
                 .append("policy=").append(FIXTURE_ALLOCATION_POLICY).append('\n');
-        dates.forEach(value -> canonical.append(value.roundNumber()).append('|')
+        dates.forEach(value -> legacyCanonical.append(value.roundNumber()).append('|')
                 .append(value.fixtureId()).append('|').append(value.date()).append('\n'));
-        return new FixtureOverlay("CAREER_R1_R2_FIXTURE_OVERLAY_V1",
-                FIXTURE_ALLOCATION_POLICY, sha256(canonical.toString()
-                .getBytes(StandardCharsets.UTF_8)), List.copyOf(dates));
+        StringBuilder canonicalV2 = new StringBuilder()
+                .append("overlaySchema=").append(FIXTURE_OVERLAY_SCHEMA_V2).append('\n')
+                .append("hashAlgorithm=").append(FIXTURE_OVERLAY_HASH_ALGORITHM_V2)
+                .append('\n')
+                .append("calendarSchema=").append(CALENDAR_SCHEMA).append('\n')
+                .append("templateVersion=").append(version()).append('\n')
+                .append("templateHash=").append(templateHash()).append('\n')
+                .append("calendarSeasonYear=").append(seasonYear).append('\n')
+                .append("allocationPolicy=").append(FIXTURE_ALLOCATION_POLICY).append('\n')
+                .append("leagueId=").append(canonicalLeagueId).append('\n')
+                .append("seasonId=").append(canonicalSeasonId).append('\n')
+                .append("scheduleIdentity=").append(scheduleIdentity).append('\n')
+                .append("fixtureCount=").append(ordered.size()).append('\n');
+        for (int index = 0; index < ordered.size(); index++) {
+            FixtureInput input = ordered.get(index);
+            FixtureDate date = dates.get(index);
+            canonicalV2.append("fixture[").append(index).append("]=")
+                    .append(input.fixtureId()).append('|')
+                    .append(input.roundNumber()).append('|')
+                    .append(date.date()).append('|')
+                    .append(input.executionMode()).append('|')
+                    .append(input.firstTeamCode()).append('|')
+                    .append(input.secondTeamCode()).append('|')
+                    .append(input.fixtureRootSeed()).append('|')
+                    .append(input.boundSeriesId()).append('\n');
+        }
+        OverlayProvenanceV2 provenance = new OverlayProvenanceV2(
+                FIXTURE_OVERLAY_SCHEMA_V2, FIXTURE_OVERLAY_HASH_ALGORITHM_V2,
+                canonicalLeagueId, canonicalSeasonId, scheduleIdentity,
+                sha256(canonicalV2.toString().getBytes(StandardCharsets.UTF_8)));
+        return new FixtureOverlay(FIXTURE_OVERLAY_SCHEMA_V1,
+                FIXTURE_ALLOCATION_POLICY, sha256(legacyCanonical.toString()
+                .getBytes(StandardCharsets.UTF_8)), provenance, List.copyOf(dates));
     }
 
     public String stateHash(
@@ -406,6 +454,26 @@ public final class CareerCalendarTemplate {
         return value;
     }
 
+    private static String requireIdentity(String value, String prefix, String field) {
+        String identity = required(value, field);
+        if (!identity.matches(java.util.regex.Pattern.quote(prefix) + "[0-9a-f]{64}")) {
+            throw new IllegalStateException(field);
+        }
+        return identity;
+    }
+
+    private static void requireSha256(String value, String field) {
+        if (value == null || !value.matches("[0-9a-f]{64}")) {
+            throw new IllegalStateException(field);
+        }
+    }
+
+    private static void requireTeamCode(String value) {
+        if (value == null || !value.matches("[A-Z0-9]{2,16}")) {
+            throw new IllegalStateException("teamCode");
+        }
+    }
+
     private static String nullable(Object value) {
         return value == null ? "" : value.toString();
     }
@@ -513,12 +581,18 @@ public final class CareerCalendarTemplate {
     }
     public record FixtureInput(String fixtureId, int roundNumber,
                                String executionMode, String firstTeamCode,
-                               String secondTeamCode, long fixtureRootSeed) {}
+                               String secondTeamCode, long fixtureRootSeed,
+                               String boundSeriesId) {}
     public record FixtureDate(String fixtureId, int roundNumber, LocalDate date,
                               String executionMode, String firstTeamCode,
                               String secondTeamCode) {}
+    public record OverlayProvenanceV2(
+            String schemaVersion, String hashAlgorithm, String leagueId,
+            String seasonId, String scheduleIdentity, String overlayHash
+    ) {}
     public record FixtureOverlay(String schemaVersion, String allocationPolicy,
-                                 String overlayHash, List<FixtureDate> fixtures) {
+                                 String overlayHash, OverlayProvenanceV2 provenanceV2,
+                                 List<FixtureDate> fixtures) {
         public FixtureOverlay { fixtures = List.copyOf(fixtures); }
     }
 }

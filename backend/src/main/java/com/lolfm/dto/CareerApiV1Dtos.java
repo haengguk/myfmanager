@@ -46,7 +46,26 @@ public final class CareerApiV1Dtos {
             boolean pending,
             String stopReason,
             boolean backgroundAccepted,
+            AdvanceCommandResult commandResult,
             CalendarView calendar
+    ) {}
+
+    public record AdvanceCommandResult(
+            String clientCommandId,
+            String mode,
+            long expectedCalendarRevision,
+            String commandStatus,
+            LocalDate resultingDate,
+            long resultingCalendarRevision,
+            String resultingStateHash,
+            String resultingLifecycleStatus,
+            String resultingBlockingReason,
+            String stopReason,
+            boolean pending,
+            boolean backgroundAccepted,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt,
+            OffsetDateTime completedAt
     ) {}
 
     public record ListResponse(
@@ -133,6 +152,8 @@ public final class CareerApiV1Dtos {
             List<CalendarFixture> upcomingFixtures,
             CalendarFixture nextManagedFixture,
             List<String> allowedAdvanceModes,
+            PendingAdvance activePendingAdvance,
+            CompetitionView competition,
             List<QualificationEdge> qualificationEdges,
             List<PendingOfficialField> pendingOfficialFields,
             List<SourceDataNote> sourceDataNotes
@@ -210,7 +231,90 @@ public final class CareerApiV1Dtos {
             String schemaVersion,
             String allocationPolicy,
             String overlayHash,
-            String scheduleStatus
+            String scheduleStatus,
+            FixtureOverlayProvenanceV2 provenanceV2
+    ) {}
+
+    public record FixtureOverlayProvenanceV2(
+            String schemaVersion,
+            String hashAlgorithm,
+            String leagueId,
+            String seasonId,
+            String scheduleIdentity,
+            String overlayHash
+    ) {}
+
+    public record PendingAdvance(
+            String clientCommandId,
+            String mode,
+            long expectedCalendarRevision,
+            String commandStatus,
+            OffsetDateTime createdAt,
+            OffsetDateTime updatedAt
+    ) {}
+
+    public record CompetitionView(
+            String schemaVersion,
+            int calendarSeasonYear,
+            String ruleResourceHash,
+            String ruleVersion,
+            String gamePolicyVersion,
+            String projectionPolicy,
+            String r3r4AllocationPolicy,
+            String lifecycleStatus,
+            long revision,
+            String stateHash,
+            CompetitionSummary currentCompetition,
+            CompetitionSummary nextCompetition,
+            CompetitionFixture nextFixture,
+            List<CompetitionQualificationOutput> qualificationOutputs,
+            boolean externalExecutionLimited,
+            PendingCompetitionCommand activePendingCommand,
+            List<String> allowedCommands
+    ) {
+        public CompetitionView {
+            qualificationOutputs = List.copyOf(qualificationOutputs);
+            allowedCommands = List.copyOf(allowedCommands);
+        }
+    }
+
+    public record CompetitionSummary(
+            String competitionId,
+            String stageId,
+            String ruleStatus,
+            String lifecycleStatus,
+            String blockingReason,
+            long revision,
+            String stateHash,
+            int completedFixtures,
+            int totalFixtures
+    ) {}
+
+    public record CompetitionFixture(
+            String competitionId,
+            String matchId,
+            String fixtureId,
+            String seriesId,
+            LocalDate date,
+            String scheduleStatus,
+            String seriesFormat,
+            boolean hardFearless,
+            String firstTeamCode,
+            String secondTeamCode,
+            String executionMode,
+            String lifecycleStatus,
+            boolean managedTeamIncluded,
+            String rootSeed,
+            String seedAlgorithm
+    ) {}
+
+    public record CompetitionQualificationOutput(
+            String competitionId, String outputId, String teamCode
+    ) {}
+
+    public record PendingCompetitionCommand(
+            String clientCommandId, String competitionId, String matchId,
+            String commandStatus
     ) {}
 
     public record CalendarFixture(

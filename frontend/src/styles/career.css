@@ -102,6 +102,14 @@
 .ca-calendar__revision strong { font-size: 18px !important; }
 .ca-calendar__stop { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--lm-border); background: color-mix(in oklch, var(--lm-warning) 7%, transparent); color: var(--lm-muted); font-size: 9px; }
 .ca-calendar__stop strong { color: var(--lm-warning); font: 700 8px var(--lm-font-mono); }
+.ca-calendar__competition { display: grid; grid-template-columns: 118px minmax(0, .55fr) minmax(0, 1fr); align-items: center; gap: 6px 12px; padding: 9px 14px; border-bottom: 1px solid var(--lm-border); }
+.ca-calendar__competition > span { color: var(--lm-accent); font: 700 8px/1.2 var(--lm-font-mono); letter-spacing: .08em; }
+.ca-calendar__competition > strong { font-size: 11px; }
+.ca-calendar__competition > small { overflow: hidden; color: var(--lm-muted); font: 8px var(--lm-font-mono); text-overflow: ellipsis; white-space: nowrap; }
+.ca-calendar__competition > p { grid-column: 2 / -1; display: grid; grid-template-columns: 70px 110px minmax(0, 1fr); gap: 7px; margin: 0; color: var(--lm-muted); font-size: 8px; }
+.ca-calendar__competition > p b { color: var(--lm-text); font-weight: 650; }
+.ca-calendar__competition > p em, .ca-calendar__competition > i { overflow: hidden; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.ca-calendar__competition > i { grid-column: 2 / -1; color: var(--lm-warning); font-size: 8px; }
 .ca-calendar__controls { display: flex; gap: 7px; padding: 10px 14px; border-bottom: 1px solid var(--lm-border); }
 .ca-calendar__controls .lm-text-button { margin-left: auto; }
 .ca-calendar__grid { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(190px, .82fr); }

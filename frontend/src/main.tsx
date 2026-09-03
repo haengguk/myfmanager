@@ -8,6 +8,7 @@ import './styles/real-match.css';
 import './styles/league.css';
 import './styles/team-player.css';
 import './styles/career.css';
+import './styles/game-ui.css';
 import RootApp from './RootApp';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(

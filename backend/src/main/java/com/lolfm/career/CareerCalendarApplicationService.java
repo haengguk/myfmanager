@@ -20,19 +20,23 @@ public final class CareerCalendarApplicationService {
     private final CareerCalendarRelationalStore calendars;
     private final CareerCalendarTemplate template;
     private final CareerCalendarLeaguePort leagues;
+    private final CareerCompetitionApplicationService competitions;
 
     public CareerCalendarApplicationService(
             CareerCalendarRelationalStore calendars,
             CareerCalendarTemplate template,
-            CareerCalendarLeaguePort leagues
+            CareerCalendarLeaguePort leagues,
+            CareerCompetitionApplicationService competitions
     ) {
         this.calendars = Objects.requireNonNull(calendars, "calendars");
         this.template = Objects.requireNonNull(template, "template");
         this.leagues = Objects.requireNonNull(leagues, "leagues");
+        this.competitions = Objects.requireNonNull(competitions, "competitions");
     }
 
     public void initializeNew(CareerRelationalStore.NewCareer career) {
         calendars.initializeNew(career);
+        competitions.initializeNew(career, template.anchorYear(career.currentDate()));
     }
 
     public LocalDate currentDate(CareerRelationalStore.CareerRow career) {
@@ -40,7 +44,14 @@ public final class CareerCalendarApplicationService {
     }
 
     public CalendarView view(CareerRelationalStore.CareerRow career) {
-        return buildView(career, ready(career));
+        try {
+            return buildView(career, ready(career));
+        } catch (CareerCalendarRelationalStore.CommandReceiptIntegrityFailure corrupt) {
+            throw CareerException.calendarCommandIntegrity();
+        } catch (DataIntegrityViolationException | IllegalArgumentException
+                | IllegalStateException failure) {
+            throw CareerException.calendarIntegrity(failure);
+        }
     }
 
     public AdvanceResult advance(
@@ -74,8 +85,8 @@ public final class CareerCalendarApplicationService {
                 expectedCalendarRevision, mode);
         try {
             CareerCalendarRelationalStore.AdvanceStoreResult stored = calendars.execute(
-                    commandId, career.careerId(), expectedCalendarRevision, payloadHash,
-                    state -> transition(career, state, mode));
+                    commandId, career.careerId(), expectedCalendarRevision, mode,
+                    payloadHash, state -> transition(career, state, mode));
             boolean backgroundAccepted = true;
             if (stored.backgroundRequired()) {
                 backgroundAccepted = leagues.wakeBackground(commandId);
@@ -85,6 +96,7 @@ public final class CareerCalendarApplicationService {
             }
             return new AdvanceResult(stored.replayed(), stored.pending(),
                     stored.httpStatus(), stored.stopReason(), backgroundAccepted,
+                    new CommandResult(stored.commandResult(), backgroundAccepted),
                     buildView(career, stored.state()));
         } catch (CareerCalendarRelationalStore.StaleRevision stale) {
             throw CareerException.calendarStaleRevision();
@@ -121,7 +133,8 @@ public final class CareerCalendarApplicationService {
                 state.seasonYear());
         OverlayProjection overlay = overlay(career, state, projected);
 
-        CareerCalendarLeaguePort.GateResult currentGate = gate(state.currentDate(), overlay);
+        CareerCalendarLeaguePort.GateResult currentGate = gate(career, state.seasonYear(),
+                state.currentDate(), projected, overlay);
         if (currentGate.stopReason() != null) {
             return gated(state, projected, state.currentDate(), currentGate, false);
         }
@@ -132,14 +145,16 @@ public final class CareerCalendarApplicationService {
                     true, false, 200, null, false);
         }
 
-        LocalDate target = targetDate(mode, state.currentDate(), projected, overlay);
+        LocalDate target = targetDate(career, state.seasonYear(), mode,
+                state.currentDate(), projected, overlay);
         if (target == null || target.isAfter(projected.events().getLast().endDate())) {
             return mutation(state, state.currentDate(), state.eventCursor(),
                     state.lastProcessedEventId(), state.lastProcessedDate(),
                     "SEASON_ROLLOVER_REQUIRED", "SEASON_ROLLOVER_REQUIRED",
                     true, false, 200, "SEASON_ROLLOVER_REQUIRED", false);
         }
-        CareerCalendarLeaguePort.GateResult targetGate = gate(target, overlay);
+        CareerCalendarLeaguePort.GateResult targetGate = gate(career, state.seasonYear(),
+                target, projected, overlay);
         if (targetGate.stopReason() != null) {
             return gated(state, projected, target, targetGate,
                     !target.equals(state.currentDate()));
@@ -184,16 +199,43 @@ public final class CareerCalendarApplicationService {
     }
 
     private CareerCalendarLeaguePort.GateResult gate(
+            CareerRelationalStore.CareerRow career,
+            int calendarSeasonYear,
             LocalDate date,
+            CareerCalendarTemplate.ProjectedCalendar projected,
             OverlayProjection overlay
     ) {
         List<String> ids = overlay.fixtures().stream()
                 .filter(value -> value.date().equals(date))
                 .map(FixtureView::fixtureId).toList();
-        return leagues.gateAndDispatch(overlay.seasonId(), ids);
+        CareerCalendarLeaguePort.GateResult league = leagues.gateAndDispatch(
+                overlay.season().seasonId(), ids);
+        if ("COMPETITION_TRANSITION_REQUIRED".equals(league.stopReason())
+                && competitions.transitionReady(career, calendarSeasonYear,
+                overlay.season())) {
+            league = CareerCalendarLeaguePort.GateResult.clear();
+        }
+        if (league.stopReason() != null) return league;
+        CareerCompetitionApplicationService.CompetitionGate competition =
+                competitions.gate(career, calendarSeasonYear, date,
+                        competitionIdAt(projected, date), overlay.season());
+        return competition.stopReason() == null ? league
+                : new CareerCalendarLeaguePort.GateResult(competition.stopReason(),
+                false, false, competition.fixtureId(), competition.seriesId());
     }
 
-    private static LocalDate targetDate(
+    private static String competitionIdAt(
+            CareerCalendarTemplate.ProjectedCalendar projected, LocalDate date
+    ) {
+        return projected.events().stream().filter(value -> !date.isBefore(
+                value.startDate()) && !date.isAfter(value.endDate()))
+                .map(CareerCalendarTemplate.ProjectedEvent::templateId)
+                .findFirst().orElse(null);
+    }
+
+    private LocalDate targetDate(
+            CareerRelationalStore.CareerRow career,
+            int calendarSeasonYear,
             String mode,
             LocalDate current,
             CareerCalendarTemplate.ProjectedCalendar projected,
@@ -205,6 +247,13 @@ public final class CareerCalendarApplicationService {
                 .filter(value -> value.isAfter(current)).forEach(candidates::add);
         overlay.fixtures().stream().map(FixtureView::date)
                 .filter(value -> value.isAfter(current)).forEach(candidates::add);
+        CareerCompetitionApplicationService.CompetitionView competition =
+                competitions.reconcileAndView(career, calendarSeasonYear, current,
+                        null, null, overlay.season());
+        if (competition.nextFixture() != null
+                && competition.nextFixture().date().isAfter(current)) {
+            candidates.add(competition.nextFixture().date());
+        }
         return candidates.stream().min(LocalDate::compareTo).orElse(null);
     }
 
@@ -241,8 +290,33 @@ public final class CareerCalendarApplicationService {
                 .filter(value -> !"COMPLETED".equals(value.lifecycleStatus()))
                 .filter(value -> !value.date().isBefore(state.currentDate()))
                 .findFirst().orElse(null);
+        CareerCalendarRelationalStore.PendingAdvance activePending =
+                calendars.activePending(state.careerId()).orElse(null);
+        CareerCompetitionApplicationService.CompetitionView competition =
+                competitions.reconcileAndView(career, state.seasonYear(),
+                        state.currentDate(), current == null ? null : current.templateId(),
+                        next == null ? null : next.templateId(), overlay.season());
+        CareerCompetitionApplicationService.CompetitionGate competitionGate =
+                competitions.gate(career, state.seasonYear(), state.currentDate(),
+                        current == null ? null : current.templateId(), overlay.season());
+        boolean seasonCanAdvance = normalSeasonLifecycle(
+                overlay.season().seasonLifecycleStatus())
+                || "COMPLETED".equals(overlay.season().seasonLifecycleStatus())
+                && overlay.season().allFixturesCompleted();
         List<String> commands = "ACTIVE".equals(state.lifecycleStatus())
+                && seasonCanAdvance && competitionGate.stopReason() == null
+                && activePending == null
                 ? ADVANCE_MODES : List.of();
+        String blockingReason = lifecycleBlockingReason(
+                overlay.season().seasonLifecycleStatus(),
+                overlay.season().allFixturesCompleted());
+        if (blockingReason == null && competitionGate.stopReason() != null) {
+            blockingReason = competitionGate.stopReason();
+        }
+        if (blockingReason == null && !seasonLifecycleBlockingReason(
+                state.blockingReason())) {
+            blockingReason = state.blockingReason();
+        }
         return new CalendarView(state, template.body().referenceYear(),
                 template.body().sourceAsOf(),
                 template.body().referenceCatalogSnapshotAt(),
@@ -250,6 +324,7 @@ public final class CareerCalendarApplicationService {
                 projected.projectionStatus(), current, next, currentStage, nextStage,
                 upcoming,
                 overlay.overlay(), upcomingFixtures, nextManaged, commands,
+                blockingReason, activePending, competition,
                 template.body().counts(), template.body().qualificationEdges(),
                 template.body().pendingOfficialFields(),
                 List.of(new SourceDataNote("KESPA_CUP", "SOURCE_DATA_NOT_PRESENT")));
@@ -265,9 +340,11 @@ public final class CareerCalendarApplicationService {
         List<CareerCalendarTemplate.FixtureInput> inputs = season.fixtures().stream()
                 .map(value -> new CareerCalendarTemplate.FixtureInput(value.fixtureId(),
                         value.roundNumber(), value.executionMode(), value.firstTeamCode(),
-                        value.secondTeamCode(), value.fixtureRootSeed())).toList();
+                        value.secondTeamCode(), value.fixtureRootSeed(),
+                        value.boundSeriesId())).toList();
         CareerCalendarTemplate.FixtureOverlay overlay = template.overlay(
-                state.seasonYear(), inputs);
+                state.seasonYear(), season.leagueId(), season.seasonId(),
+                season.scheduleIdentity(), inputs);
         java.util.Map<String, CareerCalendarLeaguePort.FixtureProjection> status =
                 season.fixtures().stream().collect(java.util.stream.Collectors.toMap(
                         CareerCalendarLeaguePort.FixtureProjection::fixtureId, value -> value));
@@ -281,7 +358,36 @@ public final class CareerCalendarApplicationService {
                     fixture.boundSeriesId(), fixture.jobStatus(), fixture.pendingOutbox());
         }).sorted(Comparator.comparing(FixtureView::date)
                 .thenComparing(FixtureView::fixtureId)).toList();
-        return new OverlayProjection(season.seasonId(), overlay, fixtures);
+        return new OverlayProjection(season, overlay, fixtures);
+    }
+
+    private static boolean normalSeasonLifecycle(String status) {
+        return "READY".equals(status) || "RUNNING".equals(status)
+                || "WAITING_FOR_PLAYER".equals(status);
+    }
+
+    private static String lifecycleBlockingReason(
+            String status, boolean allFixturesCompleted
+    ) {
+        return switch (status) {
+            case "READY", "RUNNING", "WAITING_FOR_PLAYER" -> null;
+            case "PAUSED" -> "SEASON_PAUSED";
+            case "BLOCKED" -> "ATTENTION_REQUIRED";
+            case "CANCELLED" -> "SEASON_CANCELLED";
+            case "COMPLETED" -> allFixturesCompleted
+                    ? null : "COMPETITION_TRANSITION_REQUIRED";
+            case "DRAFT", "FROZEN" -> "SEASON_NOT_READY";
+            default -> throw new IllegalStateException(
+                    "CAREER_CALENDAR_UNKNOWN_SEASON_STATUS");
+        };
+    }
+
+    private static boolean seasonLifecycleBlockingReason(String reason) {
+        return "SEASON_PAUSED".equals(reason)
+                || "ATTENTION_REQUIRED".equals(reason)
+                || "SEASON_CANCELLED".equals(reason)
+                || "COMPETITION_TRANSITION_REQUIRED".equals(reason)
+                || "SEASON_NOT_READY".equals(reason);
     }
 
     private CareerCalendarRelationalStore.CalendarRow ready(
@@ -334,6 +440,9 @@ public final class CareerCalendarApplicationService {
             List<FixtureView> upcomingFixtures,
             FixtureView nextManagedFixture,
             List<String> allowedAdvanceModes,
+            String blockingReason,
+            CareerCalendarRelationalStore.PendingAdvance activePendingAdvance,
+            CareerCompetitionApplicationService.CompetitionView competition,
             CareerCalendarTemplate.Counts counts,
             List<CareerCalendarTemplate.QualificationEdge> qualificationEdges,
             List<CareerCalendarTemplate.PendingOfficialField> pendingOfficialFields,
@@ -360,11 +469,17 @@ public final class CareerCalendarApplicationService {
 
     public record AdvanceResult(
             boolean replayed, boolean pending, int httpStatus, String stopReason,
-            boolean backgroundAccepted, CalendarView calendar
+            boolean backgroundAccepted, CommandResult commandResult,
+            CalendarView calendar
+    ) {}
+
+    public record CommandResult(
+            CareerCalendarRelationalStore.CommandResult receipt,
+            boolean backgroundAccepted
     ) {}
 
     private record OverlayProjection(
-            String seasonId,
+            CareerCalendarLeaguePort.SeasonProjection season,
             CareerCalendarTemplate.FixtureOverlay overlay,
             List<FixtureView> fixtures
     ) {}

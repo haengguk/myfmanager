@@ -363,7 +363,7 @@ class LeagueAutomatedSeriesRunnerTest {
                 LeagueV1ProductDecisions.productDecisionHash());
     }
 
-    private static LeagueAutomatedSeriesRunner runner(
+    static LeagueAutomatedSeriesRunner runner(
             LeagueSeasonFrozenSnapshot snapshot,
             LeagueAutomatedSeriesGameExecutor executor
     ) {
@@ -400,7 +400,7 @@ class LeagueAutomatedSeriesRunnerTest {
         }
     }
 
-    private static class FakeGameExecutor implements LeagueAutomatedSeriesGameExecutor {
+    static class FakeGameExecutor implements LeagueAutomatedSeriesGameExecutor {
         private final List<String> winners;
         private final List<Observation> observations = new ArrayList<>();
         private boolean poolAvailable = true;

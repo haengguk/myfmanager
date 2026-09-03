@@ -1,10 +1,7 @@
 :root {
   color: #edf2ff;
-  background:
-    radial-gradient(circle at top, rgba(56, 189, 248, 0.16), transparent 30%),
-    radial-gradient(circle at right top, rgba(244, 63, 94, 0.12), transparent 28%),
-    linear-gradient(180deg, #060b15 0%, #0a1020 52%, #05070f 100%);
-  font-family: "Segoe UI", "Noto Sans KR", sans-serif;
+  background: linear-gradient(180deg, #09111c 0%, #080e16 100%);
+  font-family: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -50,7 +47,7 @@ select {
 }
 
 .control-panel {
-  border-radius: 28px;
+  border-radius: 8px;
   padding: 28px;
   margin-bottom: 18px;
 }
@@ -94,7 +91,7 @@ select {
 .secondary-button,
 .speed-button {
   border: none;
-  border-radius: 999px;
+  border-radius: 5px;
   cursor: pointer;
   transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease, background 160ms ease;
 }
@@ -168,7 +165,7 @@ select {
 .team-summary,
 .roster-block,
 .event-row {
-  border-radius: 18px;
+  border-radius: 6px;
   background: rgba(15, 23, 42, 0.72);
   border: 1px solid rgba(148, 163, 184, 0.1);
 }
@@ -273,7 +270,7 @@ select {
 
 .feedback-panel,
 .empty-panel {
-  border-radius: 22px;
+  border-radius: 8px;
   padding: 22px;
   margin-bottom: 18px;
 }
@@ -296,7 +293,7 @@ select {
 
 .score-panel,
 .log-panel {
-  border-radius: 24px;
+  border-radius: 8px;
   padding: 24px;
 }
 

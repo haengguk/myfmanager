@@ -117,10 +117,30 @@ public final class CareerCalendarRelationalStore {
         return rows.stream().findFirst();
     }
 
+    public Optional<PendingAdvance> activePending(String careerId) {
+        CareerIdentity.requireCareerId(careerId);
+        List<CommandRow> rows = jdbc.query(selectCommand() + """
+                 WHERE career_id = ? AND command_status = 'PENDING'
+                 ORDER BY created_at, client_command_id
+                """, (result, ignored) -> command(result), careerId);
+        if (rows.size() > 1) throw new CommandReceiptIntegrityFailure();
+        if (rows.isEmpty()) return Optional.empty();
+        CommandRow row = rows.getFirst();
+        requireCanonicalRequest(row);
+        if (row.completedAt() != null || row.createdAt() == null
+                || row.updatedAt() == null || row.updatedAt().isBefore(row.createdAt())) {
+            throw new CommandReceiptIntegrityFailure();
+        }
+        return Optional.of(new PendingAdvance(row.commandId(), row.requestMode(),
+                row.requestExpectedRevision(), row.commandStatus(), row.createdAt(),
+                row.updatedAt()));
+    }
+
     public AdvanceStoreResult execute(
             String commandId,
             String careerId,
             long expectedRevision,
+            String mode,
             String payloadHash,
             Function<CalendarRow, AdvanceMutation> operation
     ) {
@@ -146,7 +166,26 @@ public final class CareerCalendarRelationalStore {
                             CommandReceiptIntegrityFailure::new);
                     requireFrozenTemplate(state);
                     requireStateIntegrity(state);
-                    return completedReplay(command, state);
+                    return completedReplay(command, state, mode, expectedRevision);
+                }
+                if (command.requestMode() == null
+                        && command.requestExpectedRevision() == null) {
+                    int upgraded = jdbc.update("""
+                            UPDATE career_calendar_advance_command
+                            SET request_mode = ?, request_expected_revision = ?,
+                                updated_at = ?
+                            WHERE client_command_id = ? AND command_status = 'PENDING'
+                              AND request_mode IS NULL
+                              AND request_expected_revision IS NULL
+                            """, mode, expectedRevision, now(), commandId);
+                    if (upgraded != 1) throw new CommandReceiptIntegrityFailure();
+                    command = findCommand(commandId).orElseThrow(
+                            CommandReceiptIntegrityFailure::new);
+                }
+                requireCanonicalRequest(command);
+                if (!mode.equals(command.requestMode())
+                        || expectedRevision != command.requestExpectedRevision()) {
+                    throw new CommandReceiptIntegrityFailure();
                 }
             } else {
                 Integer pending = jdbc.queryForObject("""
@@ -160,10 +199,12 @@ public final class CareerCalendarRelationalStore {
                 jdbc.update("""
                         INSERT INTO career_calendar_advance_command(
                           client_command_id, career_id, command_schema, payload_hash,
-                          command_status, background_required, created_at)
-                        VALUES (?, ?, ?, ?, 'PENDING', FALSE, ?)
+                          command_status, request_mode, request_expected_revision,
+                          background_required, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, 'PENDING', ?, ?, FALSE, ?, ?)
                         """, commandId, careerId,
-                        CareerCalendarTemplate.ADVANCE_COMMAND_SCHEMA, payloadHash, now());
+                        CareerCalendarTemplate.ADVANCE_COMMAND_SCHEMA, payloadHash,
+                        mode, expectedRevision, now(), now());
             }
 
             CalendarRow row = findForUpdate(careerId).orElseThrow(CalendarNotFound::new);
@@ -226,23 +267,31 @@ public final class CareerCalendarRelationalStore {
                         result_last_processed_event_id = ?,
                         result_last_processed_date = ?, result_lifecycle_status = ?,
                         result_blocking_reason = ?, http_status = ?, stop_reason = ?,
-                        background_required = ?, completed_at = ?
+                        background_required = ?, completed_at = ?, updated_at = ?
                     WHERE client_command_id = ? AND command_status = 'PENDING'
                     """, mutation.pending() ? "PENDING" : "COMPLETED",
                     row.seasonYear(), mutation.currentDate(), cursor, revision, stateHash,
                     mutation.lastProcessedEventId(), mutation.lastProcessedDate(),
                     mutation.lifecycleStatus(), mutation.blockingReason(),
                     mutation.httpStatus(), mutation.stopReason(),
-                    mutation.backgroundRequired(), completedAt, commandId);
+                    mutation.backgroundRequired(), completedAt, now(), commandId);
             if (receipt != 1) throw new CommandReceiptIntegrityFailure();
             CalendarRow updated = find(careerId).orElseThrow(CalendarNotFound::new);
+            CommandRow storedCommand = findCommand(commandId).orElseThrow(
+                    CommandReceiptIntegrityFailure::new);
             return new AdvanceStoreResult(continuingPending, mutation.pending(),
                     mutation.httpStatus(), mutation.stopReason(),
-                    mutation.backgroundRequired(), updated);
+                    mutation.backgroundRequired(), commandResult(storedCommand,
+                    mode, expectedRevision), updated);
         });
     }
 
-    private AdvanceStoreResult completedReplay(CommandRow command, CalendarRow state) {
+    private AdvanceStoreResult completedReplay(
+            CommandRow command,
+            CalendarRow state,
+            String suppliedMode,
+            long suppliedExpectedRevision
+    ) {
         if (command.resultSeasonYear() == null || command.resultDate() == null
                 || command.resultEventCursor() == null
                 || command.resultRevision() == null || command.resultStateHash() == null
@@ -258,40 +307,83 @@ public final class CareerCalendarRelationalStore {
         if (!expectedHash.equals(command.resultStateHash())) {
             throw new CommandReceiptIntegrityFailure();
         }
-        CalendarRow result = new CalendarRow(state.careerId(), state.calendarSchema(),
-                state.templateVersion(), state.templateHash(), state.projectionPolicy(),
-                state.anchorAlgorithm(), state.fixtureAllocationPolicy(),
-                command.resultSeasonYear(), command.resultDate(),
-                command.resultEventCursor(), command.resultRevision(),
-                command.resultStateHash(), command.resultLastProcessedEventId(),
-                command.resultLastProcessedDate(), command.resultLifecycleStatus(),
-                command.resultBlockingReason(), state.createdAt(), state.updatedAt());
         return new AdvanceStoreResult(true, false, command.httpStatus(),
-                command.stopReason(), command.backgroundRequired(), result);
+                command.stopReason(), command.backgroundRequired(),
+                commandResult(command, suppliedMode, suppliedExpectedRevision), state);
+    }
+
+    private CommandResult commandResult(
+            CommandRow command,
+            String suppliedMode,
+            long suppliedExpectedRevision
+    ) {
+        String mode = command.requestMode() == null
+                ? suppliedMode : command.requestMode();
+        long expectedRevision = command.requestExpectedRevision() == null
+                ? suppliedExpectedRevision : command.requestExpectedRevision();
+        String expectedPayload = template.advancePayloadHash(command.careerId(),
+                expectedRevision, mode);
+        if (!expectedPayload.equals(command.payloadHash())
+                || command.createdAt() == null || command.updatedAt() == null
+                || command.updatedAt().isBefore(command.createdAt())) {
+            throw new CommandReceiptIntegrityFailure();
+        }
+        return new CommandResult(command.commandId(), mode, expectedRevision,
+                command.commandStatus(), command.resultSeasonYear(), command.resultDate(),
+                command.resultEventCursor(), command.resultRevision(),
+                command.resultStateHash(), command.resultLifecycleStatus(),
+                command.resultBlockingReason(), command.httpStatus(),
+                command.stopReason(), command.backgroundRequired(), command.createdAt(),
+                command.updatedAt(), command.completedAt());
     }
 
     private Optional<CommandRow> findCommand(String commandId) {
-        List<CommandRow> rows = jdbc.query("""
+        List<CommandRow> rows = jdbc.query(selectCommand()
+                + " WHERE client_command_id = ?", (result, ignored) -> command(result),
+                commandId);
+        if (rows.size() > 1) throw new CommandReceiptIntegrityFailure();
+        return rows.stream().findFirst();
+    }
+
+    private static String selectCommand() {
+        return """
                 SELECT client_command_id, career_id, command_schema, payload_hash,
-                       command_status, result_active_calendar_season_year,
+                       command_status, request_mode, request_expected_revision,
+                       result_active_calendar_season_year,
                        result_current_game_date, result_event_cursor,
                        result_calendar_revision, result_state_hash,
                        result_last_processed_event_id, result_last_processed_date,
                        result_lifecycle_status, result_blocking_reason, http_status,
-                       stop_reason, background_required, completed_at
-                FROM career_calendar_advance_command WHERE client_command_id = ?
-                """, (result, ignored) -> new CommandRow(result.getString(1),
-                result.getString(2), result.getString(3), result.getString(4),
-                result.getString(5), (Integer) result.getObject(6),
-                result.getObject(7, LocalDate.class), (Integer) result.getObject(8),
-                (Long) result.getObject(9), result.getString(10), result.getString(11),
-                result.getObject(12, LocalDate.class), result.getString(13),
-                result.getString(14), (Integer) result.getObject(15),
-                result.getString(16), result.getBoolean(17),
-                result.getObject(18, OffsetDateTime.class)),
-                commandId);
-        if (rows.size() > 1) throw new CommandReceiptIntegrityFailure();
-        return rows.stream().findFirst();
+                       stop_reason, background_required, created_at, updated_at,
+                       completed_at
+                FROM career_calendar_advance_command
+                """;
+    }
+
+    private static CommandRow command(ResultSet result) throws SQLException {
+        return new CommandRow(result.getString(1), result.getString(2),
+                result.getString(3), result.getString(4), result.getString(5),
+                result.getString(6), (Long) result.getObject(7),
+                (Integer) result.getObject(8), result.getObject(9, LocalDate.class),
+                (Integer) result.getObject(10), (Long) result.getObject(11),
+                result.getString(12), result.getString(13),
+                result.getObject(14, LocalDate.class), result.getString(15),
+                result.getString(16), (Integer) result.getObject(17),
+                result.getString(18), result.getBoolean(19),
+                result.getObject(20, OffsetDateTime.class),
+                result.getObject(21, OffsetDateTime.class),
+                result.getObject(22, OffsetDateTime.class));
+    }
+
+    private void requireCanonicalRequest(CommandRow command) {
+        if (!CareerCalendarTemplate.ADVANCE_COMMAND_SCHEMA.equals(
+                command.commandSchema()) || command.requestMode() == null
+                || command.requestExpectedRevision() == null
+                || !template.advancePayloadHash(command.careerId(),
+                command.requestExpectedRevision(), command.requestMode())
+                .equals(command.payloadHash())) {
+            throw new CommandReceiptIntegrityFailure();
+        }
     }
 
     private Optional<CalendarRow> findForUpdate(String careerId) {
@@ -384,17 +476,34 @@ public final class CareerCalendarRelationalStore {
 
     public record AdvanceStoreResult(
             boolean replayed, boolean pending, int httpStatus, String stopReason,
-            boolean backgroundRequired, CalendarRow state
+            boolean backgroundRequired, CommandResult commandResult, CalendarRow state
+    ) {}
+
+    public record PendingAdvance(
+            String clientCommandId, String mode, long expectedRevision, String status,
+            OffsetDateTime createdAt, OffsetDateTime updatedAt
+    ) {}
+
+    public record CommandResult(
+            String clientCommandId, String mode, long expectedRevision, String status,
+            Integer resultingSeasonYear, LocalDate resultingDate,
+            Integer resultingEventCursor, Long resultingRevision,
+            String resultingStateHash, String resultingLifecycleStatus,
+            String resultingBlockingReason, Integer httpStatus, String stopReason,
+            boolean backgroundRequired, OffsetDateTime createdAt,
+            OffsetDateTime updatedAt, OffsetDateTime completedAt
     ) {}
 
     private record CommandRow(
             String commandId, String careerId, String commandSchema, String payloadHash,
-            String commandStatus, Integer resultSeasonYear, LocalDate resultDate,
+            String commandStatus, String requestMode, Long requestExpectedRevision,
+            Integer resultSeasonYear, LocalDate resultDate,
             Integer resultEventCursor, Long resultRevision, String resultStateHash,
             String resultLastProcessedEventId, LocalDate resultLastProcessedDate,
             String resultLifecycleStatus, String resultBlockingReason,
             Integer httpStatus, String stopReason,
-            boolean backgroundRequired, OffsetDateTime completedAt
+            boolean backgroundRequired, OffsetDateTime createdAt,
+            OffsetDateTime updatedAt, OffsetDateTime completedAt
     ) {}
 
     public static final class CalendarNotFound extends RuntimeException {}

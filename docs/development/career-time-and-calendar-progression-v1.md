@@ -33,10 +33,14 @@ durable dispatch/receipt/outbox/standings 경로만 사용하고, 관리 fixture
 사용자를 돌려보낸다. Unsupported competition에서는 날짜와 표시만 진행하며 가짜 참가 팀,
 qualification 결과, bracket 또는 경기 결과를 만들지 않는다.
 
-Advance receipt는 UUID/payload/revision/result identity를 저장한다. 같은 UUID retry, HTTP 202 polling,
-process restart에서 같은 command를 이어 가며 새 UUID가 기존 pending command를 추월하지 못한다.
-Browser storage에는 Career ID와 pending advance의 Career ID/revision/mode/UUID만 둔다. Calendar,
-fixture, standings view는 저장하지 않는다.
+Advance receipt는 UUID/payload/revision/result identity와 canonical mode/original revision/timestamp를
+저장한다. 같은 UUID retry, HTTP 202 polling, process restart에서 같은 command를 이어 가며 새 UUID가
+기존 pending command를 추월하지 못한다. Browser storage는 Career별 pending map으로 격리하고 서버
+GET의 pending identity로 local loss를 복구한다. Calendar, fixture, standings view는 저장하지 않는다.
+
+Completed replay는 receipt의 frozen `commandResult`와 응답 시점의 live `calendar`를 분리한다.
+R1~2 overlay V2 provenance는 year/League/Season schedule/fixture/team/mode/root seed/bound Series를
+명시적 순서로 결속하며 기존 V1 hash와 날짜/ID/seed를 그대로 유지한다.
 
 ## Dashboard 보완
 
@@ -59,5 +63,5 @@ schema, pointer migration과 KeSPA 미생성을 확인한다.
 같은 `2027-01-14`/revision 1 복구를 확인했고 1280×720에서 primary action과 overflow를 점검했다.
 90경기 전체 시즌, 대형 seed population, balance/calibration/holdout은 실행하지 않았다.
 
-다음 단계 `CAREER_COMPETITION_LIFECYCLE_V1`에서 현재 표시 전용인 competition과 qualification/
-bracket을 각각 실제 Series authority에 연결한다.
+후속 competition 구조와 현재 제한은
+[Career Competition Lifecycle V1](career-competition-lifecycle-v1.md)에 기록한다.
