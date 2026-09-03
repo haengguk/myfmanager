@@ -16,9 +16,10 @@ authority가 아니다.
 | Career schema/lifecycle/revision, 운영 timestamp | 실제 command eligibility와 경기 실행 |
 
 Career V1은 정확히 하나의 LCK `HYBRID_MANAGER` Season과 연결한다. 수동 snapshot 파일이나
-Career JSON blob, `POST /save`, 날짜 진행, 다음 시즌, 이적·훈련·재정, 인증·삭제·복제·archive는
-포함하지 않는다. `currentDate`는 아직 `startDate`에서 진행하지 않으며 reference/resource version이
-바뀐 기존 save를 migrate하는 정책도 아직 없다.
+Career JSON blob, `POST /save`, 다음 시즌 자동 생성, 이적·훈련·재정, 인증·삭제·복제·archive는
+포함하지 않는다. 후속 `CAREER_TIME_AND_CALENDAR_PROGRESSION_V1`은 이 foundation을 변경하지 않고
+Career-owned Calendar aggregate와 날짜 진행 API를 additive하게 연결한다. 상세 계약은
+[Career Time and Calendar Progression V1 API](career-time-and-calendar-progression-v1-api.md)를 따른다.
 
 ## 생성 identity, seed와 날짜
 
@@ -129,6 +130,8 @@ summary와 `currentCount`, `maximumCount=100`, `remainingCount`를 반환하며 
 | `POST /api/v1/careers` | 최초 201 / exact replay 200 | `CAREER_CREATE_RESPONSE_V1` |
 | `GET /api/v1/careers` | 200 | `CAREER_LIST_V1` |
 | `GET /api/v1/careers/{careerId}` | 200 | `CAREER_VIEW_V1` |
+| `GET /api/v1/careers/{careerId}/calendar` | 200 | `CAREER_CALENDAR_VIEW_V1` |
+| `POST /api/v1/careers/{careerId}/advance` | 완료 200 / auto pending 202 | `CAREER_CALENDAR_ADVANCE_RESPONSE_V1` |
 
 상세 응답은 Career/display/team/date, linked IDs, root seed algorithm/value, frozen/product/reference
 identity, binding/schema/revision, resume와 운영 timestamp를 immutable DTO로 투영한다. Reference hash는
@@ -170,4 +173,5 @@ Focused 검증은 expired reservation을 포함한 GET/List DB snapshot mutation
 브라우저 흐름과 한 번의 최종 backend regression도 통과했다. 90경기 실행, Player BO3 완주와 대형
 population/diagnostic은 수행하지 않았다.
 
-다음 단계는 실제 게임 날짜를 이동시키는 `CAREER_TIME_AND_CALENDAR_PROGRESSION_V1`이다.
+Calendar progression까지 연결된 현재 다음 단계는 구조화된 대회 정의를 실제 Series authority와
+qualification/bracket lifecycle에 연결하는 `CAREER_COMPETITION_LIFECYCLE_V1`이다.

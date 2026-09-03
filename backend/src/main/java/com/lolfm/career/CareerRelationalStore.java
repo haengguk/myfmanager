@@ -9,6 +9,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -64,7 +65,18 @@ public final class CareerRelationalStore {
             String payloadHash,
             Supplier<NewCareer> creator
     ) {
+        return createOrReplay(commandId, payloadHash, creator, ignored -> {});
+    }
+
+    /** Creator, Career insert, initializer, and command receipt share one transaction. */
+    public CreateResult createOrReplay(
+            String commandId,
+            String payloadHash,
+            Supplier<NewCareer> creator,
+            Consumer<NewCareer> initializer
+    ) {
         Objects.requireNonNull(creator, "creator");
+        Objects.requireNonNull(initializer, "initializer");
         CareerIdentity.canonicalCommandId(commandId);
         CareerIdentity.requireSha256(payloadHash, "payloadHash");
         return transactions.execute(ignored -> {
@@ -113,6 +125,7 @@ public final class CareerRelationalStore {
                     requested.bindingSchema(), requested.bindingHash(),
                     requested.careerSchema(), requested.lifecycleStatus(),
                     requested.revision(), now, now);
+            initializer.accept(requested);
             jdbc.update("""
                     INSERT INTO career_create_command(
                       client_command_id, command_schema, payload_hash,

@@ -18,6 +18,8 @@ public final class CareerApiV1RequestParser {
     private static final Set<String> CREATE_FIELDS = Set.of(
             "schemaVersion", "saveName", "managerName", "managedTeamCode",
             "clientCommandId");
+    private static final Set<String> ADVANCE_FIELDS = Set.of(
+            "schemaVersion", "expectedCalendarRevision", "mode", "clientCommandId");
     private final ObjectMapper strictMapper;
 
     public CareerApiV1RequestParser(ObjectMapper mapper) {
@@ -50,6 +52,38 @@ public final class CareerApiV1RequestParser {
         }
         return new CareerApiV1Dtos.CreateRequest(schema, text(json, "saveName"),
                 text(json, "managerName"), text(json, "managedTeamCode"), commandId);
+    }
+
+    public CareerApiV1Dtos.AdvanceRequest advance(byte[] body) {
+        JsonNode json = read(body);
+        if (!json.isObject()) {
+            throw invalid(null, "요청 본문은 JSON 객체여야 합니다.");
+        }
+        HashSet<String> unknown = new HashSet<>();
+        json.fieldNames().forEachRemaining(unknown::add);
+        unknown.removeAll(ADVANCE_FIELDS);
+        if (!unknown.isEmpty()) {
+            throw invalid(unknown.stream().sorted().findFirst().orElse(null),
+                    "지원하지 않는 Career 캘린더 진행 필드입니다.");
+        }
+        String schema = text(json, "schemaVersion");
+        if (!CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA.equals(schema)) {
+            throw invalid("schemaVersion", "지원하지 않는 Career 캘린더 요청 schema입니다.");
+        }
+        JsonNode revision = json.get("expectedCalendarRevision");
+        if (revision == null || !revision.isIntegralNumber()
+                || !revision.canConvertToLong() || revision.longValue() < 0) {
+            throw invalid("expectedCalendarRevision",
+                    "expectedCalendarRevision은 0 이상의 정수여야 합니다.");
+        }
+        String commandId = text(json, "clientCommandId");
+        try {
+            commandId = CareerIdentity.canonicalCommandId(commandId);
+        } catch (IllegalArgumentException invalid) {
+            throw invalid("clientCommandId", "clientCommandId는 UUID 형식이어야 합니다.");
+        }
+        return new CareerApiV1Dtos.AdvanceRequest(schema, revision.longValue(),
+                text(json, "mode"), commandId);
     }
 
     private JsonNode read(byte[] body) {

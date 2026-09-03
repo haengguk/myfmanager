@@ -35,7 +35,7 @@ export function GlobalHeader({ screenTitle, searchValue, gameTime, primaryAction
       </div>
       <div className="lm-schedule">
         <span>{career ? 'CAREER MODE V1' : '다음 경기 · 오후 7:00'}</span>
-        <strong>{career ? '저장 · 불러오기 · 이어하기' : 'Northvale 대 Coastline · BO3'}</strong>
+        <strong>{career ? '저장 · 캘린더 · 이어하기' : 'Northvale 대 Coastline · BO3'}</strong>
       </div>
       <label className="lm-global-search">
         <Icon name="search" />
@@ -53,7 +53,7 @@ export function GlobalHeader({ screenTitle, searchValue, gameTime, primaryAction
       </button>
       <div className="lm-date-time">
         <strong>{career ? '서버 기준' : '2026년 8월 24일'}</strong>
-        <span>{career ? '날짜 진행 없음' : gameTime}</span>
+        <span>{career ? '서버 캘린더 연동' : gameTime}</span>
       </div>
       <button className="lm-icon-button" type="button" aria-label="설정 열기" title="설정" onClick={() => onNotify('설정', '환경 설정은 아직 준비 중입니다.')}>
         <Icon name="settings" />

@@ -22,9 +22,10 @@ algorithm, linked League/Season ID, frozen/product/reference/binding identity, C
 `createdAt`/`updatedAt`이다. Fixtures/current round/standings, jobs/leases/retries, Player Series/Draft,
 Hard Fearless, receipts/outbox와 Match 결과/timeline은 계속 League/Series가 소유한다.
 
-현재 `currentDate`는 시작 날짜에서 진행하지 않는다. 날짜 진행, 다음 시즌, 이적, 훈련, 재정,
-감독 능력치, 구단 예산, Career 삭제/archive는 구현하지 않았다. Reference/resource version 변경 시
-기존 save migration 정책도 아직 없다.
+후속 `CAREER_TIME_AND_CALENDAR_PROGRESSION_V1`에서 `currentDate`와 Calendar view/advance를
+additive하게 연결했다. 다음 시즌 자동 생성, 이적, 훈련, 재정, 감독 능력치, 구단 예산, Career
+삭제/archive는 여전히 구현하지 않았다. Calendar 계약은
+[Career Time and Calendar Progression V1](career-time-and-calendar-progression-v1.md)을 따른다.
 
 ## 시각·콘텐츠·상호작용 기준
 
@@ -132,4 +133,4 @@ standings, Hard Fearless/Series lifecycle, 기존 Real Match/Player Draft/Series
 Career identity/binding hash는 변경하지 않았다. 90경기 전체 Season, Player BO3, balance/holdout와
 대형 diagnostic은 실행하지 않았다.
 
-다음 단계는 `CAREER_TIME_AND_CALENDAR_PROGRESSION_V1`이다.
+다음 단계는 `CAREER_COMPETITION_LIFECYCLE_V1`이다.

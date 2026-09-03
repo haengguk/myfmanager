@@ -1,6 +1,40 @@
 # Project Status
 
-이 문서는 2026-09-02 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-09-03 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+
+## Career time and calendar progression V1
+
+상태는 `CAREER_TIME_AND_CALENDAR_PROGRESSION_V1_ACCEPTED`다. 기준 HEAD
+`beae639e60a9561a6612987da3608f615c5a3ba1` 위에 Career-owned Calendar aggregate, Flyway V5,
+additive Calendar/advance API와 Dashboard calendar rail을 구현했다. Career current date는 이제 서버
+command로 진행하며 reload와 process restart 뒤 같은 date/revision/receipt를 복구한다.
+
+2026 reference template은 source as-of `2026-08-23`, player catalog snapshot `2026-08-24`와 raw
+4파일 SHA를 고정한다. 15 sources, 11 competition definitions, qualification edges 6개, derived rest
+windows 7개, pending official fields 6개를 loader에서 검증한다. 미래 연도는
+`SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1`로 투영하고 공식 일정과 구분한다. 현재 snapshot의
+첫 full cycle anchor는 2027이다. KeSPA Cup은 source가 없어 definition을 만들지 않고
+`SOURCE_DATA_NOT_PRESENT`로만 노출한다.
+
+현재 실제 실행과 연결된 범위는 기존 LCK 정규 R1~2의 18 rounds/90 BO3뿐이다. 2027년
+4월 1일~5월 31일에 round별 한 날짜 slot을 결정적으로 배정하되 fixture ID/root seed/team pairing을
+변경하지 않는다. 날짜 진행은 관리 경기, pending Auto job/outbox, attention 상태와 season rollover를
+건너뛰지 않는다. Auto는 기존 durable League job/receipt/outbox/standings 경로를 사용한다.
+LCK Cup, First Stand, Road to MSI, MSI, EWC, R3~4, 플레이인·플레이오프, 아시안게임과 Worlds는
+구조화해 표시하지만 아직 bracket/qualification/Series 실행 엔진은 아니다.
+
+Backend focused 2 suites / 6 tests와 migration 교정 단일 테스트, frontend `career:verify` 11 scenarios,
+152-module production build가 통과했다. 실제 isolated backend/browser에서 Career 생성 → Calendar 확인
+→ 다음 일정 진행 → reload 후 `2027-01-14`/revision 1 복구와 1280×720 primary action/overflow를
+확인했다. 첫 complete regression은 V5 추가로 기존 migration count가 3→4가 된 test-local assertion
+1건을 발견했고, 이를 교정한 focused test가 통과했다. 최종 complete backend regression은
+268 suites / 2,368 tests / failures 0 / errors 0 / skipped 2, aggregate XML 2,180.060초,
+Gradle wall 37분 14초, `BUILD SUCCESSFUL`이다. 이후 executable production source/resource/Gradle/
+shared fixture는 변경하지 않았다.
+
+상세 내용은 [Career Time and Calendar Progression V1](development/career-time-and-calendar-progression-v1.md)과
+[Calendar API 계약](architecture/career-time-and-calendar-progression-v1-api.md)에 있다. 다음 단계는
+`CAREER_COMPETITION_LIFECYCLE_V1`이다.
 
 ## Career dashboard frontend V1 and load projection hardening
 
@@ -53,8 +87,8 @@ failures 0 / errors 0 / skipped 2, aggregate XML 1,297.578초, Gradle wall 21분
 보강한 뒤 Career/League verifier, build와 bundle verifier를 다시 통과했다. 상세 내용은
 [Career Dashboard Frontend V1](development/career-dashboard-frontend-v1.md)과
 [Career Mode V1 Foundation and Save/Load API](architecture/career-mode-v1-foundation-and-save-load-api.md)에
-있다. 현재 날짜는 진행하지 않고 reference/resource version 변경 save migration, delete/archive도
-없다. 다음 단계는 `CAREER_TIME_AND_CALENDAR_PROGRESSION_V1`이다.
+있다. 이 historical milestone 당시에는 날짜 진행이 없었고, 현재 Calendar progression 결과는 위 최신
+section을 따른다. Reference/resource version 변경 migration과 delete/archive는 아직 없다.
 
 ## Career Mode V1 foundation and save/load API
 

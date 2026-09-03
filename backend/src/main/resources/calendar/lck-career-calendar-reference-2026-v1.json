@@ -1,0 +1,190 @@
+{
+  "schemaVersion": "CAREER_CALENDAR_TEMPLATE_RESOURCE_V1",
+  "templateVersion": "lck-career-calendar-reference-2026-v1",
+  "templateHashAlgorithm": "SHA256_CANONICAL_JSON_TEMPLATE_BODY_V1",
+  "templateHash": "34a837ad384c49518093cc045d054540b889292002f9b71c01d53c20e1382e38",
+  "template": {
+    "referenceYear": 2026,
+    "sourceAsOf": "2026-08-23",
+    "referenceCatalogSnapshotAt": "2026-08-24",
+    "sourceBundleVersion": "lol-esports-2026-calendar-formats-1.0.0",
+    "projectionPolicy": "SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1",
+    "anchorAlgorithm": "FIRST_FULL_CYCLE_AFTER_CURRENT_DATE_V1",
+    "fixtureAllocationPolicy": "ROUND_LINEAR_INCLUSIVE_WINDOW_ONE_SLOT_PER_ROUND_V1",
+    "rawSources": [
+      {"role":"README","fileName":"README_lol_esports_2026.txt","rawSha256":"853851cb54843a6b5393d89915220220faada8b9284593822bd271af837bab26"},
+      {"role":"CALENDAR_FORMATS","fileName":"lol_esports_2026_calendar_formats.json","rawSha256":"b47a681950382b3a67be7d4d7d43ed957796470b667c490dc4ce51e2bf3f7e01"},
+      {"role":"OFFICIAL_REPORT","fileName":"lol_esports_2026_official_report_ko.md","rawSha256":"86b16a278d09763260bdd46b0be1047146eca02c2ebd893f66be6e74f7812b0a"},
+      {"role":"SOURCE_LEDGER","fileName":"lol_esports_2026_source_ledger_ko.md","rawSha256":"0dd2a2818d24d3e212e9f00b51790b8f599b0b57ef67e23486491d80a2dd09b6"}
+    ],
+    "counts": {"sources":15,"calendarDefinitions":11,"qualificationEdges":6,"derivedRestWindows":7,"pendingOfficialFields":6},
+    "statusLegend": [
+      "OFFICIAL_CONFIRMED",
+      "OFFICIAL_BY_NO_CHANGE_STATEMENT",
+      "OFFICIAL_PARTIAL",
+      "DERIVED",
+      "OFFICIAL_PENDING",
+      "SUPERSEDED"
+    ],
+    "evidenceSources": [
+      {"id":"S01","title":"2026 LCK 진행 방식 안내","organization":"Riot Games / LoL Esports","priority":3},
+      {"id":"S02","title":"2026 시즌 시작: LoL e스포츠","organization":"Riot Games / LoL Esports","priority":4},
+      {"id":"S03","title":"2026 LCK 대회별 규정집 (2026-06-29 개정본)","organization":"LCK / Riot Games","priority":1},
+      {"id":"S04","title":"LoL Esports LCK 공식 일정","organization":"Riot Games / LoL Esports","priority":2},
+      {"id":"S05","title":"2026 LCK CUP 결승 안내","organization":"Riot Games / LoL Esports","priority":2},
+      {"id":"S06","title":"First Stand Tournament 2026 Primer","organization":"Riot Games / LoL Esports","priority":2},
+      {"id":"S07","title":"2026 League Handbook — First Stand","organization":"Riot Games / LoL Esports","priority":3},
+      {"id":"S08","title":"MSI 및 월드 챔피언십 업데이트","organization":"Riot Games / LoL Esports","priority":2},
+      {"id":"S09","title":"2026 MSI 안내서","organization":"Riot Games / LoL Esports","priority":2},
+      {"id":"S10","title":"2026 League Handbook — Worlds","organization":"Riot Games / LoL Esports","priority":3},
+      {"id":"S11","title":"League of Legends Rulebook 2026 — Resource Center","organization":"Esports World Cup","priority":2},
+      {"id":"S12","title":"EWC 2026 League of Legends Rulebook","organization":"Esports World Cup","priority":1},
+      {"id":"S13","title":"2026 Asian Games LoL qualifier draw","organization":"Olympic Council of Asia","priority":2},
+      {"id":"S14","title":"20th Asian Games Aichi-Nagoya 2026","organization":"AINAGOC","priority":2},
+      {"id":"S15","title":"2026-07-29 competition schedule update","organization":"AINAGOC","priority":2}
+    ],
+    "competitions": [
+      {
+        "templateId":"LCK_CUP","sourceReferenceId":"lck_cup_2026","displayNameKo":"LCK Cup",
+        "startMonthDay":"01-14","endMonthDay":"03-01","timezone":"Asia/Seoul","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["서울 LoL PARK","홍콩 카이탁 아레나(결승 주말)"],"officialStatus":"OFFICIAL_CONFIRMED",
+        "participationType":"ALL_LCK","participation":"LCK 10개 팀 전원","teamCount":10,"seriesCount":40,
+        "format":"교차 그룹 단일 라운드 로빈 뒤 플레이인과 더블 엘리미네이션 플레이오프",
+        "seriesRules":["Bo3","Bo5"],"draftMode":"FULL_FEARLESS","draftStatus":"OFFICIAL_CONFIRMED",
+        "executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED","sourceIds":["S01","S02","S03","S04","S05"],
+        "stages":[
+          {"stageId":"GROUP_BATTLE","displayNameKo":"그룹 배틀","startMonthDay":"01-14","endMonthDay":"02-01","officialStatus":"OFFICIAL_PARTIAL","teamCount":10,"seriesCount":25,"format":"반대 그룹 5팀과 단일 라운드 로빈","seriesRules":["Bo3","Super Week Bo5"]},
+          {"stageId":"CUP_PLAY_IN","displayNameKo":"컵 플레이인","startMonthDay":null,"endMonthDay":null,"officialStatus":"OFFICIAL_PARTIAL","teamCount":6,"seriesCount":5,"format":"5시리즈 생존전","seriesRules":["Bo3","Bo5"]},
+          {"stageId":"CUP_PLAYOFFS","displayNameKo":"컵 플레이오프","startMonthDay":"02-28","endMonthDay":"03-01","officialStatus":"OFFICIAL_CONFIRMED","teamCount":6,"seriesCount":10,"format":"전체 더블 엘리미네이션","seriesRules":["Bo5"]}
+        ]
+      },
+      {
+        "templateId":"FIRST_STAND","sourceReferenceId":"first_stand_2026","displayNameKo":"First Stand Tournament",
+        "startMonthDay":"03-16","endMonthDay":"03-22","timezone":"America/Sao_Paulo","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["Riot Games Arena, São Paulo, Brazil"],"officialStatus":"OFFICIAL_CONFIRMED",
+        "participationType":"REGION_SLOT","participation":"8팀: LCK·LPL 각 2팀, LEC·LCS·LCP·CBLOL 각 1팀","teamCount":8,"seriesCount":13,
+        "format":"4팀 더블 엘리미네이션 그룹 2개 뒤 4팀 싱글 엘리미네이션","seriesRules":["Bo5"],
+        "draftMode":"FULL_FEARLESS","draftStatus":"OFFICIAL_CONFIRMED","executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED",
+        "sourceIds":["S02","S06","S07"],
+        "stages":[
+          {"stageId":"GROUP_STAGE","displayNameKo":"그룹 스테이지","startMonthDay":"03-16","endMonthDay":"03-20","officialStatus":"OFFICIAL_CONFIRMED","teamCount":8,"seriesCount":10,"format":"4팀 더블 엘리미네이션 그룹 2개","seriesRules":["Bo5"]},
+          {"stageId":"KNOCKOUT","displayNameKo":"녹아웃","startMonthDay":"03-21","endMonthDay":"03-22","officialStatus":"OFFICIAL_CONFIRMED","teamCount":4,"seriesCount":3,"format":"싱글 엘리미네이션","seriesRules":["Bo5"]}
+        ]
+      },
+      {
+        "templateId":"LCK_REGULAR_R1_R2","sourceReferenceId":"lck_regular_r1_r2_2026","displayNameKo":"LCK 정규 시즌 R1~2",
+        "startMonthDay":"04-01","endMonthDay":"05-31","timezone":"Asia/Seoul","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["서울 LoL PARK"],"officialStatus":"OFFICIAL_CONFIRMED","participationType":"ALL_LCK",
+        "participation":"LCK 10개 팀 전원","teamCount":10,"seriesCount":90,"format":"10팀 더블 라운드 로빈",
+        "seriesRules":["Bo3"],"draftMode":"FULL_FEARLESS","draftStatus":"OFFICIAL_CONFIRMED",
+        "executionStatus":"LINKED_EXISTING_LEAGUE_FIXTURES","sourceIds":["S03","S04"],"stages":[]
+      },
+      {
+        "templateId":"LCK_ROAD_TO_MSI","sourceReferenceId":"lck_road_to_msi_2026","displayNameKo":"LCK Road to MSI",
+        "startMonthDay":"06-06","endMonthDay":"06-14","timezone":"Asia/Seoul","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["서울 LoL PARK(초반)","원주 치악체육관(6월 12~14일)"],"officialStatus":"OFFICIAL_CONFIRMED",
+        "participationType":"RANKING_QUALIFIED","participation":"R1~2 상위 6팀","teamCount":6,"seriesCount":5,
+        "format":"상위 6팀 MSI 시드 결정전","seriesRules":["Bo5"],"draftMode":"FULL_FEARLESS",
+        "draftStatus":"OFFICIAL_CONFIRMED","executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED",
+        "sourceIds":["S03","S04"],"stages":[]
+      },
+      {
+        "templateId":"MSI","sourceReferenceId":"msi_2026","displayNameKo":"Mid-Season Invitational",
+        "startMonthDay":"06-28","endMonthDay":"07-12","timezone":"Asia/Seoul","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["대전컨벤션센터 제2전시장"],"officialStatus":"OFFICIAL_CONFIRMED","participationType":"REGION_SLOT",
+        "participation":"LCK·LCS·LCP·LEC·LPL 각 2팀, CBLOL 1팀","teamCount":11,"seriesCount":20,
+        "format":"4팀 더블 엘리미네이션 플레이인 뒤 8팀 더블 엘리미네이션 브래킷","seriesRules":["Bo5"],
+        "draftMode":null,"draftStatus":"OFFICIAL_PENDING","executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED",
+        "sourceIds":["S08","S09"],
+        "stages":[
+          {"stageId":"PLAY_IN","displayNameKo":"플레이인","startMonthDay":"06-28","endMonthDay":"07-01","officialStatus":"OFFICIAL_CONFIRMED","teamCount":4,"seriesCount":6,"format":"4팀 더블 엘리미네이션","seriesRules":["Bo5"]},
+          {"stageId":"BRACKET","displayNameKo":"브래킷","startMonthDay":"07-03","endMonthDay":"07-12","officialStatus":"OFFICIAL_PARTIAL","teamCount":8,"seriesCount":14,"format":"8팀 더블 엘리미네이션","seriesRules":["Bo5"]}
+        ]
+      },
+      {
+        "templateId":"EWC_LOL","sourceReferenceId":"ewc_lol_2026","displayNameKo":"Esports World Cup — League of Legends",
+        "startMonthDay":"07-15","endMonthDay":"07-19","timezone":"Asia/Riyadh","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["Riyadh, Saudi Arabia"],"officialStatus":"OFFICIAL_CONFIRMED","participationType":"REGION_SLOT",
+        "participation":"16팀","teamCount":16,"seriesCount":28,"format":"4개 GSL 그룹 뒤 8팀 싱글 엘리미네이션",
+        "seriesRules":["Bo1","Bo3","Bo5"],"draftMode":"FULL_FEARLESS","draftStatus":"OFFICIAL_CONFIRMED",
+        "executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED","sourceIds":["S11","S12"],"stages":[]
+      },
+      {
+        "templateId":"LCK_REGULAR_R3_R4","sourceReferenceId":"lck_regular_r3_r4_2026","displayNameKo":"LCK 정규 시즌 R3~4",
+        "startMonthDay":"07-29","endMonthDay":"08-23","timezone":"Asia/Seoul","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["서울 LoL PARK"],"officialStatus":"OFFICIAL_CONFIRMED","participationType":"ALL_LCK",
+        "participation":"LCK 10개 팀 Legend/Rise 그룹","teamCount":10,"seriesCount":40,
+        "format":"Legend/Rise 각 그룹 더블 라운드 로빈","seriesRules":["Bo3"],"draftMode":"FULL_FEARLESS",
+        "draftStatus":"OFFICIAL_CONFIRMED","executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED",
+        "sourceIds":["S03","S04"],"stages":[]
+      },
+      {
+        "templateId":"LCK_PLAY_IN","sourceReferenceId":"lck_play_in_2026","displayNameKo":"LCK 정규 시즌 플레이인",
+        "startMonthDay":"08-26","endMonthDay":"08-28","timezone":"Asia/Seoul","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["서울 LoL PARK"],"officialStatus":"OFFICIAL_CONFIRMED","participationType":"RANKING_QUALIFIED",
+        "participation":"R3~4 결과에 따른 4팀","teamCount":4,"seriesCount":3,"format":"3시리즈 플레이인",
+        "seriesRules":["Bo5"],"draftMode":"FULL_FEARLESS","draftStatus":"OFFICIAL_CONFIRMED",
+        "executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED","sourceIds":["S03","S04"],"stages":[]
+      },
+      {
+        "templateId":"LCK_PLAYOFFS","sourceReferenceId":"lck_playoffs_2026","displayNameKo":"LCK 플레이오프",
+        "startMonthDay":"08-29","endMonthDay":"09-13","timezone":"Asia/Seoul","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["서울 LoL PARK"],"officialStatus":"OFFICIAL_CONFIRMED","participationType":"RANKING_QUALIFIED",
+        "participation":"정규 시즌과 플레이인 결과에 따른 6팀","teamCount":6,"seriesCount":10,
+        "format":"1라운드부터 전체 더블 엘리미네이션","seriesRules":["Bo5"],"draftMode":"FULL_FEARLESS",
+        "draftStatus":"OFFICIAL_CONFIRMED","executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED",
+        "sourceIds":["S03","S04"],"stages":[]
+      },
+      {
+        "templateId":"ASIAN_GAMES_LOL_RELEASE","sourceReferenceId":"asian_games_2026_lol","displayNameKo":"아시안게임 LoL 국가대표 차출 창",
+        "startMonthDay":"09-19","endMonthDay":"10-04","timezone":"Asia/Tokyo","timezoneScope":"SINGLE_IANA_ZONE",
+        "locations":["Aichi-Nagoya, Japan"],"officialStatus":"OFFICIAL_PARTIAL","participationType":"NATIONAL_TEAM_RELEASE",
+        "participation":"대한민국은 본선 직행; 구단 선수 차출 가능 기간","teamCount":8,"seriesCount":null,
+        "format":"종목별 본선 일정과 대진 방식은 공식 미확정","seriesRules":[],"draftMode":null,
+        "draftStatus":"OFFICIAL_PENDING","executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED",
+        "sourceIds":["S13","S14","S15"],
+        "stages":[{"stageId":"MAIN_EVENT","displayNameKo":"LoL 본선","startMonthDay":null,"endMonthDay":null,"officialStatus":"OFFICIAL_PENDING","teamCount":8,"seriesCount":null,"format":"공식 세부 일정·대진 미확정","seriesRules":[]}]
+      },
+      {
+        "templateId":"WORLDS","sourceReferenceId":"worlds_2026","displayNameKo":"League of Legends World Championship",
+        "startMonthDay":"10-15","endMonthDay":"11-14","timezone":null,"timezoneScope":"MULTI_ZONE",
+        "locations":["Riot Games Arena, Los Angeles","Credit Union of Texas Event Center, Allen","Barclays Center, Brooklyn"],
+        "officialStatus":"OFFICIAL_CONFIRMED","participationType":"REGION_SLOT","participation":"19팀 지역·국제대회 슬롯",
+        "teamCount":19,"seriesCount":null,"format":"플레이인, 5라운드 Swiss, 싱글 엘리미네이션 녹아웃",
+        "seriesRules":["Bo1","Bo3","Bo5"],"draftMode":null,"draftStatus":"OFFICIAL_PENDING",
+        "executionStatus":"FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED","sourceIds":["S08","S10"],
+        "stages":[
+          {"stageId":"PLAY_IN","displayNameKo":"플레이인","startMonthDay":"10-15","endMonthDay":"10-18","officialStatus":"OFFICIAL_CONFIRMED","teamCount":4,"seriesCount":null,"format":"4팀 더블 엘리미네이션","seriesRules":["Bo5"]},
+          {"stageId":"SWISS","displayNameKo":"Swiss","startMonthDay":"10-23","endMonthDay":"10-31","officialStatus":"OFFICIAL_PARTIAL","teamCount":16,"seriesCount":null,"format":"5라운드 Swiss","seriesRules":["Bo1","Bo3"]},
+          {"stageId":"KNOCKOUT","displayNameKo":"녹아웃","startMonthDay":"11-03","endMonthDay":"11-08","officialStatus":"OFFICIAL_CONFIRMED","teamCount":8,"seriesCount":7,"format":"싱글 엘리미네이션","seriesRules":["Bo5"]},
+          {"stageId":"FINAL","displayNameKo":"결승","startMonthDay":"11-14","endMonthDay":"11-14","officialStatus":"OFFICIAL_CONFIRMED","teamCount":2,"seriesCount":1,"format":"결승","seriesRules":["Bo5"]}
+        ]
+      }
+    ],
+    "qualificationEdges": [
+      {"from":"LCK_CUP","to":"FIRST_STAND","rule":"LCK Cup 우승=1시드, 준우승=2시드","officialStatus":"OFFICIAL_CONFIRMED"},
+      {"from":"FIRST_STAND","to":"MSI","rule":"First Stand 최상위 지역의 MSI 2시드가 브래킷 직행","officialStatus":"OFFICIAL_CONFIRMED"},
+      {"from":"LCK_REGULAR_R1_R2","to":"LCK_ROAD_TO_MSI","rule":"상위 6팀","officialStatus":"OFFICIAL_CONFIRMED"},
+      {"from":"LCK_ROAD_TO_MSI","to":"MSI","rule":"M3 승자=LCK 1시드, M5 승자=LCK 2시드","officialStatus":"OFFICIAL_CONFIRMED"},
+      {"from":"MSI","to":"WORLDS","rule":"우승팀 직접 초청과 준우승 지역 추가 시드","officialStatus":"OFFICIAL_CONFIRMED"},
+      {"from":"LCK_PLAYOFFS","to":"WORLDS","rule":"LCK 슬롯 수에 따라 플레이오프 1~3위 또는 1~4위","officialStatus":"OFFICIAL_CONFIRMED"}
+    ],
+    "derivedRestWindows": [
+      {"after":"LCK_CUP","before":"FIRST_STAND","startMonthDay":"03-02","endMonthDay":"03-15","fullFreeDays":14,"officialStatus":"DERIVED"},
+      {"after":"FIRST_STAND","before":"LCK_REGULAR_R1_R2","startMonthDay":"03-23","endMonthDay":"03-31","fullFreeDays":9,"officialStatus":"DERIVED"},
+      {"after":"LCK_ROAD_TO_MSI","before":"MSI","startMonthDay":"06-15","endMonthDay":"06-27","fullFreeDays":13,"officialStatus":"DERIVED"},
+      {"after":"MSI","before":"EWC_LOL","startMonthDay":"07-13","endMonthDay":"07-14","fullFreeDays":2,"officialStatus":"DERIVED"},
+      {"after":"EWC_LOL","before":"LCK_REGULAR_R3_R4","startMonthDay":"07-20","endMonthDay":"07-28","fullFreeDays":9,"officialStatus":"DERIVED"},
+      {"after":"LCK_PLAYOFFS","before":"ASIAN_GAMES_LOL_RELEASE","startMonthDay":"09-14","endMonthDay":"09-18","fullFreeDays":5,"officialStatus":"DERIVED"},
+      {"after":"ASIAN_GAMES_LOL_RELEASE","before":"WORLDS","startMonthDay":"10-05","endMonthDay":"10-14","fullFreeDays":10,"officialStatus":"DERIVED"}
+    ],
+    "pendingOfficialFields": [
+      {"id":"ASIAN_GAMES_MAIN_EVENT","field":"Asian Games LoL exact main-event dates and bracket","reason":"종목별 본선 세션과 Bo 규칙이 공식 자료에서 확인되지 않음"},
+      {"id":"MSI_FEARLESS","field":"MSI 2026 Fearless Draft","reason":"2026 공식 안내에서 적용 여부를 직접 확인하지 못함"},
+      {"id":"WORLDS_FEARLESS","field":"Worlds 2026 Fearless Draft","reason":"2026 공식 안내에서 적용 여부를 직접 확인하지 못함"},
+      {"id":"WORLDS_DRAW","field":"Worlds detailed seed pools and draw constraints","reason":"지역 성적 기반 세부 시드 규칙이 추후 발표 예정"},
+      {"id":"EWC_QUALIFIERS","field":"EWC regional qualifier mechanics and dates","reason":"지역 예선 상세 규칙은 별도 자료 영역임"},
+      {"id":"WORLDS_EXTRA_SLOT_EDGE","field":"Same-region MSI champion and runner-up Worlds edge case","reason":"LCK 5팀 가능 시나리오의 공식 매핑이 완전히 확인되지 않음"}
+    ]
+  }
+}

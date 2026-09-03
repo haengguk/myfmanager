@@ -153,6 +153,74 @@ class CareerApiV1ControllerTest {
                 SELECT revision FROM league_season WHERE season_id = ?
                 """, Long.class, seasonId)).isEqualTo(standingsRevisionBeforeReads);
 
+        JsonNode calendar = json(mvc.perform(get("/api/v1/careers/" + careerId
+                        + "/calendar"))
+                .andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString());
+        assertThat(calendar.path("schemaVersion").asText())
+                .isEqualTo(CareerApiV1Dtos.CALENDAR_VIEW_SCHEMA);
+        assertThat(calendar.path("activeCalendarSeasonYear").asInt()).isEqualTo(2027);
+        assertThat(calendar.path("currentDate").asText()).isEqualTo("2026-08-24");
+        assertThat(calendar.path("provenance").path("referenceYear").asInt())
+                .isEqualTo(2026);
+        assertThat(calendar.path("provenance").path("sourceAsOf").asText())
+                .isEqualTo("2026-08-23");
+        assertThat(calendar.path("provenance").path("referenceCatalogSnapshotAt").asText())
+                .isEqualTo("2026-08-24");
+        assertThat(calendar.path("provenance").path("sourceCount").asInt()).isEqualTo(15);
+        assertThat(calendar.path("provenance").path("calendarDefinitionCount").asInt())
+                .isEqualTo(11);
+        assertThat(calendar.path("provenance").path("qualificationEdgeCount").asInt())
+                .isEqualTo(6);
+        assertThat(calendar.path("provenance").path("derivedRestWindowCount").asInt())
+                .isEqualTo(7);
+        assertThat(calendar.path("pendingOfficialFields")).hasSize(6);
+        assertThat(calendar.path("upcomingEvents")).hasSize(8);
+        assertThat(calendar.path("upcomingEvents").toString()).doesNotContain("KESPA");
+        assertThat(calendar.path("sourceDataNotes").get(0).path("status").asText())
+                .isEqualTo("SOURCE_DATA_NOT_PRESENT");
+        assertThat(calendar.path("fixtureOverlay").path("scheduleStatus").asText())
+                .isEqualTo("GAME_DERIVED_SCHEDULE_POLICY");
+        assertThat(jdbc.queryForObject("""
+                SELECT lifecycle_revision FROM league_season WHERE season_id = ?
+                """, Long.class, seasonId)).isEqualTo(lifecycleBeforeReads);
+
+        String advanceCommand = UUID.randomUUID().toString();
+        String advanceBody = advanceBody(0, "ADVANCE_TO_NEXT_EVENT", advanceCommand);
+        JsonNode advanced = json(mvc.perform(post("/api/v1/careers/" + careerId
+                        + "/advance").contentType(MediaType.APPLICATION_JSON)
+                        .content(advanceBody)).andExpect(status().isOk()).andReturn()
+                .getResponse().getContentAsString());
+        assertThat(advanced.path("schemaVersion").asText())
+                .isEqualTo(CareerApiV1Dtos.ADVANCE_RESPONSE_SCHEMA);
+        assertThat(advanced.path("pending").asBoolean()).isFalse();
+        assertThat(advanced.path("calendar").path("currentDate").asText())
+                .isEqualTo("2027-01-14");
+        assertThat(advanced.path("calendar").path("calendarRevision").asLong())
+                .isEqualTo(1);
+        int advanceReceipts = count("career_calendar_advance_command");
+        JsonNode advanceReplay = json(mvc.perform(post("/api/v1/careers/" + careerId
+                        + "/advance").contentType(MediaType.APPLICATION_JSON)
+                        .content(advanceBody)).andExpect(status().isOk()).andReturn()
+                .getResponse().getContentAsString());
+        assertThat(advanceReplay.path("replayed").asBoolean()).isTrue();
+        assertThat(advanceReplay.path("calendar").path("calendarRevision").asLong())
+                .isEqualTo(1);
+        assertThat(count("career_calendar_advance_command")).isEqualTo(advanceReceipts);
+        JsonNode staleAdvance = json(mvc.perform(post("/api/v1/careers/" + careerId
+                        + "/advance").contentType(MediaType.APPLICATION_JSON)
+                        .content(advanceBody(0, "ADVANCE_ONE_DAY",
+                                UUID.randomUUID().toString())))
+                .andExpect(status().isConflict()).andReturn().getResponse()
+                .getContentAsString());
+        assertThat(staleAdvance.path("code").asText())
+                .isEqualTo("CAREER_CALENDAR_STALE_REVISION");
+        assertThat(count("career_calendar_advance_command")).isEqualTo(advanceReceipts);
+        assertThat(json(mvc.perform(get("/api/v1/careers/" + careerId))
+                .andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString()).path("currentDate").asText())
+                .isEqualTo("2027-01-14");
+
         int beforeInvalid = count("career_save");
         assertInvalid("""
                 {"schemaVersion":"CAREER_CREATE_REQUEST_V1","saveName":"x",
@@ -293,6 +361,18 @@ class CareerApiV1ControllerTest {
                 "saveName", saveName,
                 "managerName", managerName,
                 "managedTeamCode", teamCode,
+                "clientCommandId", commandId));
+    }
+
+    private static String advanceBody(
+            long revision,
+            String mode,
+            String commandId
+    ) throws Exception {
+        return new ObjectMapper().writeValueAsString(java.util.Map.of(
+                "schemaVersion", CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,
+                "expectedCalendarRevision", revision,
+                "mode", mode,
                 "clientCommandId", commandId));
     }
 }

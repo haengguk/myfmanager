@@ -16,17 +16,20 @@ public final class CareerApplicationService {
     private final SeasonProvisioningPort provisioning;
     private final SeasonReadPort seasons;
     private final TeamPlayerInformationCatalog references;
+    private final CareerCalendarApplicationService calendar;
 
     public CareerApplicationService(
             CareerRelationalStore careers,
             SeasonProvisioningPort provisioning,
             SeasonReadPort seasons,
-            TeamPlayerInformationCatalog references
+            TeamPlayerInformationCatalog references,
+            CareerCalendarApplicationService calendar
     ) {
         this.careers = Objects.requireNonNull(careers, "careers");
         this.provisioning = Objects.requireNonNull(provisioning, "provisioning");
         this.seasons = Objects.requireNonNull(seasons, "seasons");
         this.references = Objects.requireNonNull(references, "references");
+        this.calendar = Objects.requireNonNull(calendar, "calendar");
     }
 
     public CreateResult create(CareerApiV1Dtos.CreateRequest request) {
@@ -72,7 +75,7 @@ public final class CareerApplicationService {
                                 provisioned.productDecisionIdentity(), referenceVersion,
                                 referenceHash, CareerIdentity.BINDING_SCHEMA, bindingHash,
                                 CareerIdentity.CAREER_SCHEMA, "ACTIVE", 0);
-                    });
+                    }, calendar::initializeNew);
             return new CreateResult(stored.replayed(), loadView(stored.career()));
         } catch (CareerRelationalStore.CommandConflict conflict) {
             throw CareerException.commandConflict();
@@ -149,7 +152,7 @@ public final class CareerApplicationService {
                 || !linked.productDecisionIdentity().equals(row.productDecisionHash())) {
             throw CareerException.linkedSeasonIntegrity();
         }
-        return new CareerViewState(row, linked);
+        return new CareerViewState(row, linked, calendar.currentDate(row));
     }
 
     private void validateCareerIdentity(CareerRelationalStore.CareerRow row) {
@@ -281,7 +284,8 @@ public final class CareerApplicationService {
 
     public record CareerViewState(
             CareerRelationalStore.CareerRow career,
-            LinkedSeason linkedSeason
+            LinkedSeason linkedSeason,
+            LocalDate currentGameDate
     ) {}
 
     public record CreateResult(boolean replayed, CareerViewState career) {}

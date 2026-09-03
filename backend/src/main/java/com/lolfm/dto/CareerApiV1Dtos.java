@@ -10,6 +10,11 @@ public final class CareerApiV1Dtos {
     public static final String CREATE_RESPONSE_SCHEMA = "CAREER_CREATE_RESPONSE_V1";
     public static final String LIST_SCHEMA = "CAREER_LIST_V1";
     public static final String VIEW_SCHEMA = "CAREER_VIEW_V1";
+    public static final String CALENDAR_VIEW_SCHEMA = "CAREER_CALENDAR_VIEW_V1";
+    public static final String ADVANCE_REQUEST_SCHEMA =
+            "CAREER_CALENDAR_ADVANCE_REQUEST_V1";
+    public static final String ADVANCE_RESPONSE_SCHEMA =
+            "CAREER_CALENDAR_ADVANCE_RESPONSE_V1";
     public static final String ERROR_SCHEMA = "CAREER_API_ERROR_V1";
 
     private CareerApiV1Dtos() {}
@@ -26,6 +31,22 @@ public final class CareerApiV1Dtos {
             String schemaVersion,
             boolean replayed,
             CareerView career
+    ) {}
+
+    public record AdvanceRequest(
+            String schemaVersion,
+            long expectedCalendarRevision,
+            String mode,
+            String clientCommandId
+    ) {}
+
+    public record AdvanceResponse(
+            String schemaVersion,
+            boolean replayed,
+            boolean pending,
+            String stopReason,
+            boolean backgroundAccepted,
+            CalendarView calendar
     ) {}
 
     public record ListResponse(
@@ -90,6 +111,130 @@ public final class CareerApiV1Dtos {
     ) {
         public ResumeProjection { allowedCommands = List.copyOf(allowedCommands); }
     }
+
+    public record CalendarView(
+            String schemaVersion,
+            String careerId,
+            int activeCalendarSeasonYear,
+            LocalDate currentDate,
+            long calendarRevision,
+            String lifecycleStatus,
+            String blockingReason,
+            String calendarStateHash,
+            String stateHashAlgorithm,
+            CalendarProvenance provenance,
+            String projectionStatus,
+            CalendarEvent currentEvent,
+            CalendarEvent nextEvent,
+            CalendarStage currentStage,
+            CalendarStage nextStage,
+            List<CalendarEvent> upcomingEvents,
+            FixtureOverlay fixtureOverlay,
+            List<CalendarFixture> upcomingFixtures,
+            CalendarFixture nextManagedFixture,
+            List<String> allowedAdvanceModes,
+            List<QualificationEdge> qualificationEdges,
+            List<PendingOfficialField> pendingOfficialFields,
+            List<SourceDataNote> sourceDataNotes
+    ) {
+        public CalendarView {
+            upcomingEvents = List.copyOf(upcomingEvents);
+            upcomingFixtures = List.copyOf(upcomingFixtures);
+            allowedAdvanceModes = List.copyOf(allowedAdvanceModes);
+            qualificationEdges = List.copyOf(qualificationEdges);
+            pendingOfficialFields = List.copyOf(pendingOfficialFields);
+            sourceDataNotes = List.copyOf(sourceDataNotes);
+        }
+    }
+
+    public record CalendarProvenance(
+            int referenceYear,
+            String sourceAsOf,
+            String referenceCatalogSnapshotAt,
+            String templateVersion,
+            String templateHash,
+            String projectionPolicy,
+            String anchorAlgorithm,
+            int sourceCount,
+            int calendarDefinitionCount,
+            int qualificationEdgeCount,
+            int derivedRestWindowCount,
+            int pendingOfficialFieldCount
+    ) {}
+
+    public record CalendarEvent(
+            String eventId,
+            String templateId,
+            String sourceReferenceId,
+            String displayNameKo,
+            LocalDate startDate,
+            LocalDate endDate,
+            String timezone,
+            String timezoneScope,
+            List<String> locations,
+            String officialStatus,
+            String projectionStatus,
+            String participationType,
+            String participation,
+            Integer teamCount,
+            Integer seriesCount,
+            String format,
+            List<String> seriesRules,
+            String draftMode,
+            String draftStatus,
+            String executionStatus,
+            List<CalendarStage> stages
+    ) {
+        public CalendarEvent {
+            locations = List.copyOf(locations);
+            seriesRules = List.copyOf(seriesRules);
+            stages = List.copyOf(stages);
+        }
+    }
+
+    public record CalendarStage(
+            String stageId,
+            String displayNameKo,
+            LocalDate startDate,
+            LocalDate endDate,
+            String officialStatus,
+            Integer teamCount,
+            Integer seriesCount,
+            String format,
+            List<String> seriesRules
+    ) {
+        public CalendarStage { seriesRules = List.copyOf(seriesRules); }
+    }
+
+    public record FixtureOverlay(
+            String schemaVersion,
+            String allocationPolicy,
+            String overlayHash,
+            String scheduleStatus
+    ) {}
+
+    public record CalendarFixture(
+            String fixtureId,
+            int roundNumber,
+            LocalDate date,
+            String scheduleStatus,
+            String executionMode,
+            String firstTeamCode,
+            String secondTeamCode,
+            String lifecycleStatus,
+            String seriesId,
+            String jobStatus,
+            boolean pendingOutbox
+    ) {}
+
+    public record PendingOfficialField(String id, String field, String reason) {}
+    public record QualificationEdge(
+            String fromTemplateId,
+            String toTemplateId,
+            String rule,
+            String officialStatus
+    ) {}
+    public record SourceDataNote(String subject, String status) {}
 
     public record ErrorResponse(
             String schemaVersion,

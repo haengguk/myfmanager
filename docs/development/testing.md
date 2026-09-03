@@ -1296,3 +1296,61 @@ Frontend의 빈 표시 이름 validation과 Player Series 실패 시 League fall
 focused/build/bundle lane을 다시 통과했으므로 backend full regression은 반복하지 않았다. Balance/calibration/
 holdout, 대형 seed population, fresh-JVM proof, artifact writer, JFR, 장시간 BO3/다음 Round E2E는 실행하지
 않았다.
+
+### Career time and calendar progression V1
+
+최종 Calendar/advance production 및 test source에서 기존 Career 테스트 두 class를 확장해 실행했다.
+
+```text
+cd backend
+gradlew.bat test \
+  --tests com.lolfm.league.CareerModePersistenceTest \
+  --tests com.lolfm.controller.CareerApiV1ControllerTest \
+  --console=plain
+```
+
+결과는 2 suites / 6 tests / failures 0 / errors 0 / skipped 0, `BUILD SUCCESSFUL`이다. 검증 범위는
+2027/2028 결정적 투영과 null stage 보존, source/count/KeSPA 경계, 18 rounds/90 fixture overlay의
+window/order/uniqueness 및 ID/seed 불변, advance exact replay/stale revision, 후속 진행 뒤 과거 receipt
+결과 replay, file-H2 restart, V4→V5 no-backdating migration, 관리 경기 stop과 같은 날짜 Auto dispatch다.
+새 backend test class는 추가하지 않았다.
+
+Frontend에서는 다음을 실행했다.
+
+```text
+cd frontend
+npm run career:verify
+npm run build
+```
+
+`career:verify`의 11 scenarios가 모두 통과해
+`CAREER_TIME_AND_CALENDAR_PROGRESSION_V1_CONTRACT_VERIFICATION_PASSED`를 출력했다. Strict
+Calendar/advance response, unknown field fail-close, KeSPA definition 미생성, V1 create pointer의 V2
+`canonicalSelectionKey` migration과 pending advance 최소 pointer를 확인했다. Production build는
+152 modules를 transform하고 성공했다.
+
+실제 isolated backend와 browser에서는 Career 생성 → Calendar GET → 다음 일정 advance → reload의
+GET 복구를 실행해 `2027-01-14`/revision 1이 유지되는 것을 확인했다. 1280×720에서 horizontal
+overflow와 primary action 가시성을 확인했다. Mock/service worker나 사용자 runtime DB는 사용하지
+않았다.
+
+최종 executable backend tree의 첫 complete regression은 2,368 tests 중 기존
+`LeagueRelationalPersistenceAndJobTest` 한 assertion만 실패했다. V5 추가로 V1→latest migration 수가
+3에서 4로 늘어난 의도된 변화였고 product state/behavior 실패가 아니었다. 기대값을 교정한 뒤 해당
+단일 migration/restart 테스트가 `BUILD SUCCESSFUL`로 통과했다. 최종 complete regression 결과는
+다음과 같다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| JUnit suites | 268 |
+| Tests | 2,368 |
+| Failures | 0 |
+| Errors | 0 |
+| Skipped | 2 |
+| Aggregate JUnit XML time | 2,180.060 seconds |
+| Gradle wall duration | 37m 14s |
+| Build | `BUILD SUCCESSFUL` |
+
+두 skip은 기존 explicit 대형 diagnostic이다. Clean full 뒤 executable production Java/resource,
+Gradle과 shared fixture는 변경하지 않고 문서만 갱신했다. 90경기 전체 시즌, 모든 11개 대회의 E2E,
+대형 seed population, balance/calibration/holdout과 fresh-JVM artifact proof는 실행하지 않았다.

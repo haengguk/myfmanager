@@ -1,8 +1,8 @@
 import { realMatchConfig } from '../../real-match/realMatch.config';
 import { CareerApiFailure } from './careerApi.failure';
 export { CareerApiFailure } from './careerApi.failure';
-import type { CareerCreateRequestDto, CareerCreateResponseDto, CareerListResponseDto, CareerViewDto } from './careerApi.types';
-import { CareerContractError, validateCareerCreateResponse, validateCareerError, validateCareerListResponse, validateCareerView } from './careerApi.validation';
+import type { CareerAdvanceRequestDto, CareerAdvanceResponseDto, CareerCalendarViewDto, CareerCreateRequestDto, CareerCreateResponseDto, CareerListResponseDto, CareerViewDto } from './careerApi.types';
+import { CareerContractError, validateCareerAdvanceResponse, validateCareerCalendar, validateCareerCreateResponse, validateCareerError, validateCareerListResponse, validateCareerView } from './careerApi.validation';
 
 const ROOT = `${realMatchConfig.apiBaseUrl}/api/v1/careers`;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -16,6 +16,14 @@ const SAFE_COPY: Readonly<Record<string, string>> = {
   CAREER_COMMAND_RECEIPT_INTEGRITY_FAILURE: '생성 기록의 무결성을 확인할 수 없습니다. 저장 ID는 유지하고 지원이 필요합니다.',
   CAREER_LINKED_SEASON_INTEGRITY_FAILURE: 'Career와 연결된 League Season 무결성을 확인할 수 없습니다. 저장 ID는 유지하고 지원이 필요합니다.',
   CAREER_RESOURCE_INTEGRITY_FAILURE: 'Career 복원에 필요한 reference resource 무결성을 확인할 수 없습니다.',
+  CAREER_CALENDAR_NOT_FOUND: '저장된 Career의 캘린더 상태를 찾을 수 없습니다.',
+  CAREER_CALENDAR_STALE_REVISION: '캘린더가 이미 변경되었습니다. 최신 상태를 다시 불러오세요.',
+  CAREER_CALENDAR_COMMAND_CONFLICT: '이 날짜 진행 작업 ID가 다른 입력에 이미 사용되었습니다.',
+  CAREER_CALENDAR_ADVANCE_ALREADY_PENDING: '완료되지 않은 날짜 진행이 있습니다. 기존 작업으로 다시 확인하세요.',
+  CAREER_CALENDAR_COMMAND_INTEGRITY_FAILURE: '날짜 진행 기록의 무결성을 확인할 수 없습니다.',
+  CAREER_CALENDAR_MIGRATION_REQUIRED: '이 저장은 캘린더 마이그레이션 확인이 필요합니다.',
+  CAREER_CALENDAR_INTEGRITY_FAILURE: '캘린더 또는 연결 일정의 무결성을 확인할 수 없습니다.',
+  CAREER_CALENDAR_BACKGROUND_UNAVAILABLE: '경기 작업은 저장됐지만 worker를 깨우지 못했습니다. 같은 진행 작업으로 다시 시도하세요.',
   CAREER_INTERNAL_ERROR: 'Career 요청을 처리하지 못했습니다. 잠시 뒤 다시 확인하세요.',
 };
 
@@ -68,4 +76,10 @@ export function getCareer(careerId: string, signal: AbortSignal): Promise<Career
 }
 export function createCareer(body: CareerCreateRequestDto, signal: AbortSignal): Promise<CareerCreateResponseDto> {
   return request(ROOT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateCareerCreateResponse, [200, 201]);
+}
+export function getCareerCalendar(careerId: string, signal: AbortSignal): Promise<CareerCalendarViewDto> {
+  return request(`${ROOT}/${encodeURIComponent(careerId)}/calendar`, { method: 'GET' }, signal, validateCareerCalendar, [200]);
+}
+export function advanceCareerCalendar(careerId: string, body: CareerAdvanceRequestDto, signal: AbortSignal): Promise<CareerAdvanceResponseDto> {
+  return request(`${ROOT}/${encodeURIComponent(careerId)}/advance`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateCareerAdvanceResponse, [200, 202]);
 }

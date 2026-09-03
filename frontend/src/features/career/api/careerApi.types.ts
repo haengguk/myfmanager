@@ -3,6 +3,9 @@ export const CAREER_SCHEMAS = {
   createResponse: 'CAREER_CREATE_RESPONSE_V1',
   list: 'CAREER_LIST_V1',
   view: 'CAREER_VIEW_V1',
+  calendarView: 'CAREER_CALENDAR_VIEW_V1',
+  advanceRequest: 'CAREER_CALENDAR_ADVANCE_REQUEST_V1',
+  advanceResponse: 'CAREER_CALENDAR_ADVANCE_RESPONSE_V1',
   error: 'CAREER_API_ERROR_V1',
 } as const;
 
@@ -26,6 +29,9 @@ export interface CareerCreateRequestDto {
   managedTeamCode: string;
   clientCommandId: string;
 }
+
+export type CareerAdvanceMode = 'ADVANCE_ONE_DAY' | 'ADVANCE_TO_NEXT_EVENT';
+export interface CareerAdvanceRequestDto { schemaVersion: typeof CAREER_SCHEMAS.advanceRequest; expectedCalendarRevision: number; mode: CareerAdvanceMode; clientCommandId: string }
 
 export interface CareerResumeDto {
   kind: CareerResumeKind;
@@ -91,6 +97,14 @@ export interface CareerListResponseDto {
   maximumCount: 100;
   remainingCount: number;
 }
+
+export type CalendarOfficialStatus = 'OFFICIAL_CONFIRMED' | 'OFFICIAL_BY_NO_CHANGE_STATEMENT' | 'OFFICIAL_PARTIAL' | 'DERIVED' | 'OFFICIAL_PENDING' | 'SUPERSEDED';
+export interface CareerCalendarStageDto { stageId: string; displayNameKo: string; startDate: string | null; endDate: string | null; officialStatus: CalendarOfficialStatus; teamCount: number | null; seriesCount: number | null; format: string; seriesRules: readonly string[] }
+export interface CareerCalendarEventDto { eventId: string; templateId: string; sourceReferenceId: string; displayNameKo: string; startDate: string; endDate: string; timezone: string | null; timezoneScope: 'SINGLE_IANA_ZONE' | 'MULTI_ZONE'; locations: readonly string[]; officialStatus: CalendarOfficialStatus; projectionStatus: 'REFERENCE_YEAR_SOURCE' | 'GAME_PROJECTED_FROM_2026_TEMPLATE'; participationType: 'ALL_LCK' | 'RANKING_QUALIFIED' | 'REGION_SLOT' | 'NATIONAL_TEAM_RELEASE'; participation: string; teamCount: number | null; seriesCount: number | null; format: string; seriesRules: readonly string[]; draftMode: string | null; draftStatus: string; executionStatus: 'LINKED_EXISTING_LEAGUE_FIXTURES' | 'FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED'; stages: readonly CareerCalendarStageDto[] }
+export interface CareerCalendarFixtureDto { fixtureId: string; roundNumber: number; date: string; scheduleStatus: 'GAME_DERIVED_SCHEDULE_POLICY'; executionMode: 'FULL_AUTO' | 'PLAYER_CONTROLLED'; firstTeamCode: string; secondTeamCode: string; lifecycleStatus: string; seriesId: string; jobStatus: string | null; pendingOutbox: boolean }
+export interface CareerCalendarProvenanceDto { referenceYear: 2026; sourceAsOf: string; referenceCatalogSnapshotAt: string; templateVersion: string; templateHash: string; projectionPolicy: 'SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1'; anchorAlgorithm: 'FIRST_FULL_CYCLE_AFTER_CURRENT_DATE_V1'; sourceCount: 15; calendarDefinitionCount: 11; qualificationEdgeCount: 6; derivedRestWindowCount: 7; pendingOfficialFieldCount: 6 }
+export interface CareerCalendarViewDto { schemaVersion: typeof CAREER_SCHEMAS.calendarView; careerId: string; activeCalendarSeasonYear: number; currentDate: string; calendarRevision: number; lifecycleStatus: 'ACTIVE' | 'SEASON_ROLLOVER_REQUIRED'; blockingReason: string | null; calendarStateHash: string; stateHashAlgorithm: 'CAREER_CALENDAR_STATE_SHA256_CANONICAL_V1'; provenance: CareerCalendarProvenanceDto; projectionStatus: 'REFERENCE_YEAR_SOURCE' | 'GAME_PROJECTED_FROM_2026_TEMPLATE'; currentEvent: CareerCalendarEventDto | null; nextEvent: CareerCalendarEventDto | null; currentStage: CareerCalendarStageDto | null; nextStage: CareerCalendarStageDto | null; upcomingEvents: readonly CareerCalendarEventDto[]; fixtureOverlay: { schemaVersion: 'CAREER_R1_R2_FIXTURE_OVERLAY_V1'; allocationPolicy: 'ROUND_LINEAR_INCLUSIVE_WINDOW_ONE_SLOT_PER_ROUND_V1'; overlayHash: string; scheduleStatus: 'GAME_DERIVED_SCHEDULE_POLICY' }; upcomingFixtures: readonly CareerCalendarFixtureDto[]; nextManagedFixture: CareerCalendarFixtureDto | null; allowedAdvanceModes: readonly CareerAdvanceMode[]; qualificationEdges: readonly { fromTemplateId: string; toTemplateId: string; rule: string; officialStatus: CalendarOfficialStatus }[]; pendingOfficialFields: readonly { id: string; field: string; reason: string }[]; sourceDataNotes: readonly { subject: string; status: 'SOURCE_DATA_NOT_PRESENT' }[] }
+export interface CareerAdvanceResponseDto { schemaVersion: typeof CAREER_SCHEMAS.advanceResponse; replayed: boolean; pending: boolean; stopReason: string | null; backgroundAccepted: boolean; calendar: CareerCalendarViewDto }
 
 export interface CareerErrorDto {
   schemaVersion: typeof CAREER_SCHEMAS.error;
