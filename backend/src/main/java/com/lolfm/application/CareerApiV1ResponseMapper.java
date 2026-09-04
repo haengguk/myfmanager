@@ -50,7 +50,7 @@ public final class CareerApiV1ResponseMapper {
                                 view.fixtureOverlay().provenanceV2().overlayHash())),
                 view.upcomingFixtures().stream().map(this::fixture).toList(),
                 fixture(view.nextManagedFixture()), view.allowedAdvanceModes(),
-                pending(view.activePendingAdvance()),
+                pending(view.activePendingAdvance()), view.advanceRecoveryStatus(),
                 competition(view.competition()),
                 view.qualificationEdges().stream().map(value ->
                         new CareerApiV1Dtos.QualificationEdge(value.from(), value.to(),
@@ -59,7 +59,9 @@ public final class CareerApiV1ResponseMapper {
                         new CareerApiV1Dtos.PendingOfficialField(value.id(), value.field(),
                                 value.reason())).toList(),
                 view.sourceDataNotes().stream().map(value ->
-                        new CareerApiV1Dtos.SourceDataNote(value.subject(), value.status()))
+                        new CareerApiV1Dtos.SourceDataNote(value.subject(), value.status(),
+                                value.sourceReferenceYear(), value.ruleVersion(),
+                                value.blockers()))
                         .toList());
     }
 

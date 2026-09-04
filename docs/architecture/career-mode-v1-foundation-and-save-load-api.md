@@ -68,6 +68,12 @@ Career binding `CAREER_LEAGUE_BINDING_V1`은 Career/team/date/linked IDs/root se
 product decision/reference catalog identity를 canonical SHA-256으로 결속한다. Career row에는 schedule,
 standings, Series 또는 Match graph를 복사하지 않는다.
 
+Targeted competition hardening에서는 새 Career 생성 transaction이 첫 full cycle의
+`OFFICIAL_2026_INITIAL_BOOTSTRAP` Competition V2 graph도 함께 초기화한다. 기존 저장은 일반 GET에서
+read-repair하지 않고 startup recovery가 V1 hash를 먼저 검증한 뒤 V2로 승격한다. 두 번째
+competition season부터는 별도 season rollover command가 직전 게임 내 LCK final ranking을
+`SEALED` authority로 제공해야 하며, 생성/조회 경로가 2026 bootstrap으로 조용히 fallback하지 않는다.
+
 같은 `clientCommandId`와 같은 정규화 payload는 기존 Career를 `replayed=true`, HTTP 200으로
 반환하고 새 row나 fixture를 만들지 않는다. Replay에서는 저장된 command schema, payload hash,
 command에서 결정적으로 파생되는 Career ID, 실제 target Career의 존재와 전체 binding 무결성을 다시

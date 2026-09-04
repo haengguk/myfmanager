@@ -50,6 +50,48 @@ public record CareerCompetitionAggregate(
             String sourceInputHash,
             List<SeededTeam> seeds
     ) {
+        return materialize(rules, careerId, seasonYear, competitionId, managedTeamCode,
+                careerRootSeed, sourceInputHash, seeds, Map.of());
+    }
+
+    public static CareerCompetitionAggregate materializeCup(
+            CareerCompetitionRules rules,
+            String careerId,
+            int seasonYear,
+            String managedTeamCode,
+            long careerRootSeed,
+            CareerCompetitionRules.CupInitialization initialization
+    ) {
+        if (initialization.calendarYear() != seasonYear
+                || initialization.groups().size() != 10) {
+            throw new IllegalArgumentException("LCK_CUP_INITIALIZATION_SCOPE_MISMATCH");
+        }
+        Map<String, String> bindings = initialization.groups().stream().collect(
+                java.util.stream.Collectors.toUnmodifiableMap(
+                        value -> value.groupId() + ":" + value.groupSeed(),
+                        CareerCompetitionRules.CupGroupSeed::teamCode));
+        CareerCompetitionAggregate result = materialize(rules, careerId, seasonYear,
+                "LCK_CUP", managedTeamCode, careerRootSeed, initialization.inputHash(),
+                List.of(), bindings);
+        if (result.fixtures().size() != 40
+                || result.fixtures().stream().filter(value ->
+                "READY".equals(value.lifecycleStatus())).count() != 25) {
+            throw new IllegalStateException("LCK_CUP_MATERIALIZED_GRAPH_MISMATCH");
+        }
+        return result;
+    }
+
+    private static CareerCompetitionAggregate materialize(
+            CareerCompetitionRules rules,
+            String careerId,
+            int seasonYear,
+            String competitionId,
+            String managedTeamCode,
+            long careerRootSeed,
+            String sourceInputHash,
+            List<SeededTeam> seeds,
+            Map<String, String> selectorBindings
+    ) {
         Objects.requireNonNull(rules, "rules");
         CareerCompetitionRules.CompetitionRule rule = rules.rule(competitionId);
         if (!"RULE_SOURCE_COMPLETE".equals(rule.ruleStatus())
@@ -59,8 +101,8 @@ public record CareerCompetitionAggregate(
         Map<Integer, String> ranked = indexSeeds(seeds);
         ArrayList<Fixture> fixtures = new ArrayList<>();
         for (CareerCompetitionRules.MatchRule match : rule.matches()) {
-            String first = resolveInitial(match.first(), ranked);
-            String second = resolveInitial(match.second(), ranked);
+            String first = resolveInitial(match.first(), ranked, selectorBindings);
+            String second = resolveInitial(match.second(), ranked, selectorBindings);
             String seriesId = identity("series_", canonicalIdentity(careerId, seasonYear,
                     competitionId, match.matchId(), "series"));
             long rootSeed = deriveSeed(careerRootSeed, seasonYear, competitionId,
@@ -68,8 +110,8 @@ public record CareerCompetitionAggregate(
             fixtures.add(new Fixture(match.matchId(), identity("competition_fixture_",
                     canonicalIdentity(careerId, seasonYear, competitionId,
                             match.matchId(), "fixture")), rules.projectDate(seasonYear,
-                    match.monthDay()), rule.seriesFormat(), Boolean.TRUE.equals(
-                    rule.hardFearless()), match.first(), match.second(), first, second,
+                    match.monthDay()), match.seriesFormat(), Boolean.TRUE.equals(
+                    match.hardFearless()), match.first(), match.second(), first, second,
                     first != null && second != null ? "READY" : "WAITING_FOR_PREDECESSOR",
                     executionMode(managedTeamCode, first, second), rootSeed, seriesId,
                     match.winnerOutputs(), match.loserOutputs(), null, null, null));
@@ -247,11 +289,18 @@ public record CareerCompetitionAggregate(
 
     private static String resolveInitial(
             CareerCompetitionRules.ParticipantSelector selector,
-            Map<Integer, String> seeds
+            Map<Integer, String> seeds,
+            Map<String, String> selectorBindings
     ) {
         if ("R1_R2_RANK".equals(selector.type())
                 || "PLAY_IN_SEED".equals(selector.type())) {
             return seeds.get(Integer.parseInt(selector.value()));
+        }
+        if ("CUP_GROUP_SEED".equals(selector.type())) {
+            return selectorBindings.get(selector.value());
+        }
+        if ("INITIAL_BOOTSTRAP_TEAM".equals(selector.type())) {
+            return selector.value();
         }
         return null;
     }
@@ -340,6 +389,14 @@ public record CareerCompetitionAggregate(
         return value.toString();
     }
 
+    static String legacyStateHash(
+            String careerId, int year, String competition, String inputHash,
+            long revision, List<Fixture> fixtures, Map<String, String> outputs
+    ) {
+        return CareerCompetitionRules.sha256(canonicalState(careerId, year, competition,
+                inputHash, revision, fixtures, outputs).getBytes(StandardCharsets.UTF_8));
+    }
+
     private static String canonicalR3R4(
             String careerId, int year, String inputHash, List<SeededTeam> ranking,
             List<R3R4Fixture> fixtures
@@ -352,6 +409,14 @@ public record CareerCompetitionAggregate(
         fixtures.forEach(fixture -> value.append("fixture=").append(fixture.canonical())
                 .append('\n'));
         return value.toString();
+    }
+
+    static String legacyR3R4StateHash(
+            String careerId, int year, String inputHash, List<SeededTeam> ranking,
+            List<R3R4Fixture> fixtures
+    ) {
+        return CareerCompetitionRules.sha256(canonicalR3R4(careerId, year, inputHash,
+                ranking, fixtures).getBytes(StandardCharsets.UTF_8));
     }
 
     public record SeededTeam(

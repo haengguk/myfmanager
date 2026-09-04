@@ -15,6 +15,7 @@ public final class CareerException extends RuntimeException {
         CALENDAR_STALE_REVISION,
         CALENDAR_COMMAND_CONFLICT,
         CALENDAR_ADVANCE_ALREADY_PENDING,
+        CALENDAR_LEGACY_PENDING_RECONCILIATION_REQUIRED,
         CALENDAR_COMMAND_INTEGRITY_FAILURE,
         CALENDAR_MIGRATION_REQUIRED,
         CALENDAR_INTEGRITY_FAILURE,
@@ -101,6 +102,14 @@ public final class CareerException extends RuntimeException {
         return new CareerException(Type.CALENDAR_ADVANCE_ALREADY_PENDING,
                 "clientCommandId",
                 "이 Career에는 완료되지 않은 캘린더 진행 요청이 있습니다.", null);
+    }
+
+    public static CareerException calendarLegacyPendingReconciliationRequired() {
+        return new CareerException(
+                Type.CALENDAR_LEGACY_PENDING_RECONCILIATION_REQUIRED,
+                "clientCommandId",
+                "기존 날짜 진행 요청의 원본 mode와 revision을 증명할 수 없어 새 진행을 차단했습니다.",
+                null);
     }
 
     public static CareerException calendarCommandIntegrity() {

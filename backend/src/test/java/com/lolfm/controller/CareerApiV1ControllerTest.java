@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lolfm.career.CareerIdentity;
+import com.lolfm.career.CareerCompetitionRules;
 import com.lolfm.dto.CareerApiV1Dtos;
 import java.util.Set;
 import java.util.UUID;
@@ -88,7 +89,7 @@ class CareerApiV1ControllerTest {
         assertThat(jdbc.queryForObject("""
                 SELECT COUNT(*) FROM career_competition_instance
                 WHERE career_id = ?
-                """, Integer.class, created.path("careerId").asText())).isEqualTo(11);
+                """, Integer.class, created.path("careerId").asText())).isEqualTo(12);
 
         JsonNode replay = json(mvc.perform(post("/api/v1/careers")
                         .contentType(MediaType.APPLICATION_JSON).content(request))
@@ -182,7 +183,11 @@ class CareerApiV1ControllerTest {
         assertThat(calendar.path("upcomingEvents")).hasSize(8);
         assertThat(calendar.path("upcomingEvents").toString()).doesNotContain("KESPA");
         assertThat(calendar.path("sourceDataNotes").get(0).path("status").asText())
-                .isEqualTo("SOURCE_DATA_NOT_PRESENT");
+                .isEqualTo("REFERENCE_TEMPLATE_NOT_OFFICIAL_FOR_2026_OR_FUTURE");
+        assertThat(calendar.path("sourceDataNotes").get(0)
+                .path("sourceReferenceYear").asInt()).isEqualTo(2025);
+        assertThat(calendar.path("sourceDataNotes").get(0).path("blockers"))
+                .hasSize(2);
         assertThat(calendar.path("fixtureOverlay").path("scheduleStatus").asText())
                 .isEqualTo("GAME_DERIVED_SCHEDULE_POLICY");
         assertThat(calendar.path("competition").path("schemaVersion").asText())
@@ -190,10 +195,11 @@ class CareerApiV1ControllerTest {
         assertThat(calendar.path("competition").path("nextCompetition")
                 .path("competitionId").asText()).isEqualTo("LCK_CUP");
         assertThat(calendar.path("competition").path("nextCompetition")
-                .path("blockingReason").asText())
-                .isEqualTo("INITIAL_CYCLE_PRIOR_SEASON_RESULT_REQUIRED");
+                .path("lifecycleStatus").asText()).isEqualTo("READY");
+        assertThat(calendar.path("competition").path("nextCompetition")
+                .path("totalFixtures").asInt()).isEqualTo(40);
         assertThat(calendar.path("competition").path("ruleResourceHash").asText())
-                .isEqualTo("64acfab316162ca7f17c898c434b7ecce496f085370ff45012a83332d445b770");
+                .isEqualTo(CareerCompetitionRules.RESOURCE_HASH);
         assertThat(jdbc.queryForObject("""
                 SELECT lifecycle_revision FROM league_season WHERE season_id = ?
                 """, Long.class, seasonId)).isEqualTo(lifecycleBeforeReads);

@@ -20,6 +20,37 @@ cd backend
 
 Focused correctness test는 큰 seed sample이나 분포 목표가 아니라 formula boundary, state transition, duplicate protection, Random non-consumption, structured event를 검증해야 한다.
 
+### Career competition lifecycle V1 targeted hardening
+
+최종 변경 영역은 기존 test class 네 개로 검증했다.
+
+```bash
+cd backend
+./gradlew test \
+  --tests com.lolfm.career.CareerCompetitionRulesTest \
+  --tests com.lolfm.controller.CareerApiV1ControllerTest \
+  --tests com.lolfm.league.CareerModePersistenceTest \
+  --tests com.lolfm.league.LeagueRelationalPersistenceAndJobTest \
+  --console=plain
+```
+
+결과는 4 suites / 24 tests / failures 0 / errors 0 / skipped 0, aggregate XML 99.935초,
+Gradle wall 2분 18초다. Canonical instance/cycle V2 tamper, V1→V2 증명 후 승격, legacy pending,
+GET read-only, due/overdue LCK Cup gate, 첫 시즌 bootstrap, 두 번째 시즌 sealed ranking, selector origin,
+KeSPA source gap과 V8 migration count를 포함한다.
+
+Frontend는 `npm run career:verify` 17 claims와 세 contract marker, `npm run build` 153 modules /
+7.24초가 통과했다. 1280×720 실제 브라우저에서 pending 자동 재시도 12 POST가 같은 UUID를 유지했고,
+수동 확인은 GET-first 1회 뒤 같은 UUID POST 1회로 terminal/current view를 복구했다. Overflow와 console
+error는 0이었다.
+
+Complete backend `./gradlew test --console=plain`은 269 suites / 2,093 tests / failures 114 /
+errors 0 / skipped 2, aggregate XML 2,153.563초, Gradle wall 36분 35초로 실패했다. 변경 영역 5건은
+교정 후 위 focused lane에서 통과했다. 잔여 109건은 누락된 과거 `build/reports` 진단 산출물 의존
+108건과 full-load League background GET 500 1건이며, 후자는 단독 1 suite / 1 test가 3분 17초에
+통과했다. 전자는 대형 과거 diagnostic pipeline을 요구해 이 작업의 명시적 비범위이고, 동일 환경의
+complete command는 반복하지 않았다. Clean complete regression은 확보하지 못했다.
+
 ### AI League frontend completion recovery
 
 Player Series 완료 반영의 production 상태기는 다음 frontend lane으로 검증한다.

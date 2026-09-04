@@ -26,15 +26,15 @@ public final class CareerCompetitionApplicationService {
         store.initialize(career, calendarSeasonYear);
     }
 
-    public CompetitionView reconcileAndView(
+    public void reconcileForAdvance(
             CareerRelationalStore.CareerRow career,
             int calendarSeasonYear,
-            LocalDate currentDate,
-            String currentCompetitionId,
-            String nextCompetitionId,
             CareerCalendarLeaguePort.SeasonProjection season
     ) {
-        store.initialize(career.careerId(), calendarSeasonYear);
+        // Cycle creation/recovery is an explicit lifecycle boundary. Advance only
+        // loads the already-bound policy so future seasons cannot fall back to the
+        // first-season 2026 bootstrap.
+        store.load(career.careerId(), calendarSeasonYear);
         if ("COMPLETED".equals(season.seasonLifecycleStatus())
                 && season.allFixturesCompleted()) {
             store.sealR1R2(career.careerId(), calendarSeasonYear,
@@ -45,13 +45,21 @@ public final class CareerCompetitionApplicationService {
                                     value.seriesLosses(), value.gameWins(),
                                     value.gameLosses())).toList());
         }
+    }
+
+    public CompetitionView view(
+            CareerRelationalStore.CareerRow career,
+            int calendarSeasonYear,
+            LocalDate currentDate,
+            String currentCompetitionId,
+            String nextCompetitionId
+    ) {
         CareerCompetitionRelationalStore.CycleView cycle = store.load(
                 career.careerId(), calendarSeasonYear);
         CompetitionSummary current = summary(cycle, currentCompetitionId);
         CompetitionSummary next = summary(cycle, nextCompetitionId);
         CareerCompetitionRelationalStore.FixtureRow fixture = cycle.fixtures().stream()
                 .filter(value -> !"COMPLETED".equals(value.lifecycleStatus()))
-                .filter(value -> !value.date().isBefore(currentDate))
                 .findFirst().orElse(null);
         return new CompetitionView("CAREER_COMPETITION_VIEW_V1", cycle.seasonYear(),
                 rules.resourceHash(), CareerCompetitionRules.VERSION,
@@ -73,8 +81,7 @@ public final class CareerCompetitionApplicationService {
     ) {
         if (!"COMPLETED".equals(season.seasonLifecycleStatus())
                 || !season.allFixturesCompleted()) return false;
-        reconcileAndView(career, calendarSeasonYear, career.currentDate(), null, null,
-                season);
+        reconcileForAdvance(career, calendarSeasonYear, season);
         return store.load(career.careerId(), calendarSeasonYear).r1r2ImportHash() != null;
     }
 
@@ -85,15 +92,14 @@ public final class CareerCompetitionApplicationService {
             String competitionId,
             CareerCalendarLeaguePort.SeasonProjection season
     ) {
-        CompetitionView view = reconcileAndView(career, calendarSeasonYear, date,
-                competitionId, null, season);
+        CompetitionView view = view(career, calendarSeasonYear, date,
+                competitionId, null);
         CompetitionSummary current = view.currentCompetition();
-        if (current != null && "LCK_PLAYOFFS".equals(current.competitionId())
-                && "RULE_SOURCE_INCOMPLETE".equals(current.ruleStatus())) {
+        if (current != null && blocked(current)) {
             return new CompetitionGate(current.blockingReason(), null, null);
         }
         CompetitionFixture fixture = view.nextFixture();
-        if (fixture != null && fixture.date().equals(date)
+        if (fixture != null && !fixture.date().isAfter(date)
                 && "READY".equals(fixture.lifecycleStatus())) {
             return new CompetitionGate(fixture.managedTeamIncluded()
                     ? "MANAGED_COMPETITION_FIXTURE_REQUIRED"
@@ -101,6 +107,22 @@ public final class CareerCompetitionApplicationService {
                     fixture.seriesId());
         }
         return CompetitionGate.clear();
+    }
+
+    private static boolean blocked(CompetitionSummary value) {
+        if ("BLOCKED".equals(value.lifecycleStatus())
+                || "SOURCE_GAP".equals(value.lifecycleStatus())
+                || "POLICY_REQUIRED".equals(value.lifecycleStatus())
+                || "EXECUTION_REQUIRED".equals(value.lifecycleStatus())) {
+            return true;
+        }
+        return "RULE_SOURCE_INCOMPLETE".equals(value.ruleStatus())
+                || "PRODUCT_POLICY_REQUIRED".equals(value.ruleStatus())
+                || value.blockingReason() != null && (
+                value.blockingReason().contains("SOURCE_INCOMPLETE")
+                        || value.blockingReason().contains("POLICY_REQUIRED")
+                        || value.blockingReason().contains("EXECUTION_NOT_IMPLEMENTED")
+                        || value.blockingReason().contains("AUTHORITY_MISSING"));
     }
 
     private CompetitionSummary summary(

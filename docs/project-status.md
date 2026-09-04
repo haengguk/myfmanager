@@ -1,46 +1,49 @@
 # Project Status
 
-이 문서는 2026-09-03 working tree의 production source, active resources, 최종 backend regression과 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-09-03 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
-## Career competition lifecycle V1 with Calendar hardening
+## Career competition lifecycle V1 targeted hardening
 
-상태는 `CAREER_COMPETITION_LIFECYCLE_V1_PARTIALLY_IMPLEMENTED_RULE_SOURCE_GAP`이다. 기준 HEAD
-`66bf35a557a0f211181091da1a71f0538f0841b6` 위에서 Phase A Calendar hardening을 먼저 완료하고
-focused gate를 통과한 뒤 Phase B의 source-backed competition authority를 구현했다.
+상태는 `CAREER_COMPETITION_LIFECYCLE_V1_TARGETED_HARDENED_KESPA_SOURCE_GAP`이다. 기준 HEAD
+`921c07ae97375ef1fe6ffa9602a6e823f788a6bf` 위에서 Calendar/Competition V1을 additive V2 integrity와
+source-backed LCK Cup policy로 강화했다.
 
-Phase A는 pending advance의 mode/original revision/status/timestamp를 서버에 영속하고 Calendar GET과
-Career별 frontend pointer에서 복구한다. PAUSED/BLOCKED/CANCELLED/not-ready 및 불완전 COMPLETED
-Season은 날짜 이동과 dispatch 0으로 멈춘다. Completed command replay는 frozen result와 live Calendar를
-분리하고, R1~2 overlay V2는 schedule/team/mode/root seed/bound Series provenance를 결속한다. 기존
-Auto fixture는 Calendar→durable job→receipt/outbox→standings 경로를 한 번만 통과한다.
+Flyway V8과 canonical hash V2는 cycle이 ordered child instance hash를, instance가 실제 seed/fixture/
+selector/resolved team/date/format/Hard Fearless/result/receipt/output/application graph를 인증하게 한다.
+V1 저장은 old hash를 먼저 증명한 경우에만 startup transaction으로 V2 승격하며, Calendar GET은
+read-only다. Legacy pending의 original mode/revision 증거가 없으면 추측하지 않고
+`LEGACY_PENDING_RECONCILIATION_REQUIRED`로 Career를 열되 새 진행은 차단한다. Frontend는 bounded retry
+소진 후에도 같은 UUID를 보존하고 `상태 다시 확인`으로 GET-first reconciliation을 수행한다.
 
-Phase B는 byte-hash가 고정된 executable rule resource와 Flyway V7 competition cycle/instance/seed/
-fixture/output/application ledger를 추가했다. Verified R1~2 90경기와 final ranking을 한 번 봉인해
-Road 5경기와 R3~4 40경기를 결정적으로 materialize한다. Pure aggregate는 source에 있는 Road M1~M5와
-Play-in M1~M3 winner/loser routing 및 qualification output을 구조화하고 exact receipt replay,
-cross-scope rejection, restart recovery를 제공한다. Calendar API와 Dashboard는 current/next competition,
-stage/progress/next fixture/source blocker를 additive compact strip으로 노출한다.
+LCK Cup은 official 2026 format/rulebook/draft/schedule source와 명시적 게임 정책을 구분한다. 첫
+playable 시즌만 현실 2026 Baron `GEN,T1,NS,DNS,BRO` / Elder `HLE,DK,KT,BFX,KRX` seed를 bootstrap하고
+실제 결과는 가져오지 않는다. 두 번째 시즌부터는 직전 게임 내 sealed LCK 1~10위만 사용한다.
+25 cross-group(일반 Bo3/1점, Super Week 동일 seed 5 Bo5/2점), Play-in 5, Playoff 10의 40경기 graph와
+공식 choice right, First Stand seed 1/2 output을 구조화했다. 사람이 선택하지 않는 V1 opponent policy는
+공식 eligible 상대 중 가장 낮은 seed, stable identity tie-break다.
 
-Raw source에는 Cup play-in opponent-choice 정책, Cup playoff 전체 routing, LCK playoff 10경기의
-완전한 winner/loser routing이 없다. 이 edge는 추측하지 않고 structured source blocker로 남겼다.
-또한 competition fixture를 기존 Production V9 Auto/Player Series completion verifier에 연결하는
-실행 adapter와 R3~4 final standings→Play-in seal은 후속 작업이다. 따라서 Road/R3~4/Play-in graph와
-저장은 구현됐지만 실제 competition 경기 실행은 해당 fixture date에서 fail-closed한다. 국제 대회는
-국내 authority 밖의 external limitation과 qualification output만 표현한다.
+KeSPA는 2025 official rulebook을 `REFERENCE_TEMPLATE_ONLY`로 보존하고 2026 existence-only source를
+별도 기록했다. 2026 규칙과 roster authority가 없으므로 14 participant slot이 unresolved이고
+executable fixture/team/result는 0이다. Calendar/API는 source year 2025와
+`KESPA_CUP_2026_RULE_SOURCE_INCOMPLETE`, `EXTERNAL_PARTICIPANT_ROSTER_AUTHORITY_MISSING`를 노출한다.
 
-Phase A backend gate는 3 focused classes가 42초에 통과했다. Phase B final focused는 4 suites /
-19 tests / failures 0 / errors 0 / skipped 0, Gradle wall 33초다. Frontend `career:verify` 15 scenarios와
-153-module production build가 통과했다. 격리 backend의 V7 migration/8085 startup은 확인했지만 WSL
-browser host의 Chrome 부재와 Firefox `libasound2t64` 부재 때문에 Playwright interaction은 환경
-제한으로 실행하지 못했다. 사용자 서버/DB는 건드리지 않았다.
+최종 affected backend는 4 suites / 24 tests, failures/errors/skipped 0, aggregate XML 99.935초,
+Gradle wall 2분 18초로 통과했다. Frontend `career:verify` 17 claims와 세 marker, 153-module build도
+통과했다. 실제 브라우저에서는 자동 retry 12 POST와 수동 GET-first→same-UUID POST 복구, pointer 정리,
+1280×720 overflow 0과 console error 0을 확인했다.
 
-Final executable backend tree의 complete regression은 정확히 한 번 실행해 269 suites /
-2,375 tests / failures 0 / errors 0 / skipped 2, aggregate XML 1,366.527초, Gradle wall 23분,
-`BUILD SUCCESSFUL`로 통과했다. 이후 executable production source/resource/Gradle/shared fixture는
-변경하지 않았다. 90/130경기 전체 LIVE와 대형 diagnostic은 실행하지 않았다. 상세 내용은
-[Career Competition Lifecycle V1](development/career-competition-lifecycle-v1.md)과
-[architecture contract](architecture/career-competition-lifecycle-v1.md)에 있다. 다음 단계는
-`CAREER_COMPETITION_RULE_SOURCE_AND_PRODUCT_DECISION_CLOSURE`다.
+Complete backend는 269 suites / 2,093 tests 중 114 failures, errors 0, skipped 2,
+aggregate XML 2,153.563초, Gradle wall 36분 35초였다. 변경 관련 5건은 수정 후 affected lane에서
+통과했다. 잔여는 체크아웃에 없는 과거 `build/reports` 의존 108건과 full-load background GET 500
+1건이며, 후자는 단독 재실행 1/1 통과했다. 대형 과거 diagnostic pipeline은 비범위라 같은 complete
+command를 반복하지 않았고 clean full은 미확보다. 전체 Cup/KeSPA 실제 Match, 90/130경기 LIVE와
+대형 diagnostic은 실행하지 않았다. 상세 내용은
+[targeted hardening report](development/career-competition-lifecycle-v1.md),
+[architecture contract](architecture/career-competition-lifecycle-v1.md),
+[LCK Cup source policy](architecture/lck-cup-2026-source-and-product-policy.md),
+[KeSPA audit](development/kespa-cup-source-audit.md)에 있다. 다음 구현은
+`CAREER_COMPETITION_SERIES_EXECUTION_AND_RESULT_TRANSITION_V1`, source 후속은
+`CAREER_COMPETITION_RULE_SOURCE_CLOSURE_V1`이다.
 
 ## Career time and calendar progression V1
 

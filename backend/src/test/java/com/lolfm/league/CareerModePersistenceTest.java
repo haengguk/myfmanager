@@ -3,7 +3,10 @@ package com.lolfm.league;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -14,6 +17,7 @@ import com.lolfm.career.CareerApplicationService;
 import com.lolfm.career.CareerCalendarApplicationService;
 import com.lolfm.career.CareerCalendarRelationalStore;
 import com.lolfm.career.CareerCalendarTemplate;
+import com.lolfm.career.CareerCompetitionAggregate;
 import com.lolfm.career.CareerCompetitionApplicationService;
 import com.lolfm.career.CareerCompetitionRelationalStore;
 import com.lolfm.career.CareerCompetitionRules;
@@ -24,14 +28,19 @@ import com.lolfm.dto.CareerApiV1Dtos;
 import com.lolfm.reference.TeamPlayerInformationCatalog;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Clob;
 import java.sql.ResultSetMetaData;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
@@ -57,7 +66,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(7);
+                    .migrationsExecuted).isEqualTo(8);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -296,6 +305,7 @@ class CareerModePersistenceTest {
             Harness harness = harness(dataSource);
             CareerApplicationService.CreateResult created = harness.careers().create(
                     request(UUID.randomUUID().toString()));
+            allowLeagueCalendarCoveragePastCompetitionGate(harness.competitions());
             CareerRelationalStore.CareerRow career = created.career().career();
             careerId = career.careerId();
 
@@ -352,7 +362,11 @@ class CareerModePersistenceTest {
                     .doesNotContain("KESPA_CUP");
             assertThat(initial.sourceDataNotes()).containsExactly(
                     new CareerCalendarApplicationService.SourceDataNote(
-                            "KESPA_CUP", "SOURCE_DATA_NOT_PRESENT"));
+                            "KESPA_CUP",
+                            "REFERENCE_TEMPLATE_NOT_OFFICIAL_FOR_2026_OR_FUTURE",
+                            2025, "KESPA_CUP_REFERENCE_TEMPLATE_2025",
+                            List.of("KESPA_CUP_2026_RULE_SOURCE_INCOMPLETE",
+                                    "EXTERNAL_PARTICIPANT_ROSTER_AUTHORITY_MISSING")));
             String tamperedFixture = initial.fixtureOverlay().fixtures().getFirst()
                     .fixtureId();
             long originalSeed = harness.jdbc().queryForObject("""
@@ -419,6 +433,7 @@ class CareerModePersistenceTest {
             assertThat(Flyway.configure().dataSource(reopened).load().migrate()
                     .migrationsExecuted).isZero();
             Harness harness = harness(reopened);
+            allowLeagueCalendarCoveragePastCompetitionGate(harness.competitions());
             CareerRelationalStore.CareerRow career = harness.careerStore()
                     .find(careerId).orElseThrow();
             CareerCalendarApplicationService.CalendarView restored =
@@ -505,7 +520,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(3);
+                    .migrationsExecuted).isEqualTo(4);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);
@@ -538,6 +553,7 @@ class CareerModePersistenceTest {
             Harness harness = harness(dataSource);
             CareerRelationalStore.CareerRow career = harness.careers().create(
                     request(UUID.randomUUID().toString())).career().career();
+            allowLeagueCalendarCoveragePastCompetitionGate(harness.competitions());
             List<Map<String, Object>> identitiesBefore = harness.jdbc().queryForList("""
                     SELECT fixture_id, fixture_root_seed FROM league_fixture
                     WHERE season_id = ? ORDER BY fixture_id
@@ -587,6 +603,7 @@ class CareerModePersistenceTest {
                     request(UUID.randomUUID().toString())).career().career();
             CareerRelationalStore.CareerRow second = harness.careers().create(
                     request(UUID.randomUUID().toString())).career().career();
+            allowLeagueCalendarCoveragePastCompetitionGate(harness.competitions());
             careerA = first.careerId();
             careerB = second.careerId();
 
@@ -646,6 +663,7 @@ class CareerModePersistenceTest {
             assertThat(Flyway.configure().dataSource(reopened).load().migrate()
                     .migrationsExecuted).isZero();
             Harness harness = harness(reopened);
+            allowLeagueCalendarCoveragePastCompetitionGate(harness.competitions());
             CareerRelationalStore.CareerRow first = harness.careerStore().find(careerA)
                     .orElseThrow();
             CareerRelationalStore.CareerRow second = harness.careerStore().find(careerB)
@@ -675,6 +693,7 @@ class CareerModePersistenceTest {
             Harness harness = harness(dataSource);
             CareerRelationalStore.CareerRow career = harness.careers().create(
                     request(UUID.randomUUID().toString())).career().career();
+            allowLeagueCalendarCoveragePastCompetitionGate(harness.competitions());
             Map<String, String> blocked = new LinkedHashMap<>();
             blocked.put("PAUSED", "SEASON_PAUSED");
             blocked.put("BLOCKED", "ATTENTION_REQUIRED");
@@ -716,6 +735,7 @@ class CareerModePersistenceTest {
             Harness harness = harness(dataSource);
             CareerRelationalStore.CareerRow career = harness.careers().create(
                     request(UUID.randomUUID().toString())).career().career();
+            allowLeagueCalendarCoveragePastCompetitionGate(harness.competitions());
             long revision = 0;
             for (int index = 0; index < 2; index++) {
                 CareerCalendarApplicationService.AdvanceResult result =
@@ -761,12 +781,13 @@ class CareerModePersistenceTest {
                             harness.calendarTemplate());
             CareerCompetitionRules competitionRules = new CareerCompetitionRules(
                     new ObjectMapper().findAndRegisterModules());
-            CareerCompetitionApplicationService competitions =
+            CareerCompetitionApplicationService competitions = spy(
                     new CareerCompetitionApplicationService(
                             new CareerCompetitionRelationalStore(harness.jdbc(),
                                     new DataSourceTransactionManager(dataSource),
                                     Clock.systemUTC(), competitionRules),
-                            competitionRules);
+                            competitionRules));
+            allowLeagueCalendarCoveragePastCompetitionGate(competitions);
             CareerCalendarApplicationService calendar =
                     new CareerCalendarApplicationService(calendarStore,
                             harness.calendarTemplate(), leagueCalendar, competitions);
@@ -837,12 +858,22 @@ class CareerModePersistenceTest {
             assertThat(calendar.competition().nextCompetition().competitionId())
                     .isEqualTo("LCK_CUP");
             assertThat(calendar.competition().nextCompetition().blockingReason())
-                    .isEqualTo("INITIAL_CYCLE_PRIOR_SEASON_RESULT_REQUIRED");
+                    .isNull();
             assertThat(calendar.allowedAdvanceModes()).containsExactly(
                     CareerCalendarApplicationService.ADVANCE_ONE_DAY,
                     CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT);
-            assertThat(count(harness.jdbc(), "career_competition_seed")).isEqualTo(20);
-            assertThat(count(harness.jdbc(), "career_competition_fixture")).isEqualTo(45);
+            assertThat(count(harness.jdbc(), "career_competition_seed")).isEqualTo(10);
+            assertThat(count(harness.jdbc(), "career_competition_fixture")).isEqualTo(40);
+
+            CareerCalendarApplicationService.AdvanceResult advanced =
+                    harness.calendar().advance(career,
+                            CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, 0,
+                            CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT,
+                            UUID.randomUUID().toString());
+            assertThat(advanced.stopReason())
+                    .isEqualTo("MANAGED_COMPETITION_FIXTURE_REQUIRED");
+            assertThat(count(harness.jdbc(), "career_competition_seed")).isEqualTo(30);
+            assertThat(count(harness.jdbc(), "career_competition_fixture")).isEqualTo(85);
 
             var road = harness.competitionStore().loadAggregate(careerId, 2027,
                     "LCK_ROAD_TO_MSI");
@@ -885,6 +916,508 @@ class CareerModePersistenceTest {
         }
     }
 
+    @Test
+    void competitionV2CertifiesMaterializedGraphAndSelectorOrigin() {
+        String url = "jdbc:h2:mem:career-competition-v2-" + UUID.randomUUID()
+                + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource);
+            CareerRelationalStore.CareerRow career = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            harness.jdbc().update("""
+                    UPDATE league_fixture SET lifecycle_status = 'COMPLETED'
+                    WHERE season_id = ?
+                    """, career.seasonId());
+            harness.jdbc().update("""
+                    UPDATE league_season SET lifecycle_status = 'COMPLETED'
+                    WHERE season_id = ?
+                    """, career.seasonId());
+            CareerCalendarApplicationService.AdvanceResult blocked =
+                    harness.calendar().advance(career,
+                            CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, 0,
+                            CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT,
+                            UUID.randomUUID().toString());
+            assertThat(blocked.stopReason())
+                    .isEqualTo("MANAGED_COMPETITION_FIXTURE_REQUIRED");
+            assertThat(harness.competitions().gate(career, 2027,
+                    LocalDate.of(2027, 4, 1), "LCK_REGULAR_R1_R2", null).stopReason())
+                    .isEqualTo("MANAGED_COMPETITION_FIXTURE_REQUIRED");
+
+            assertThat(harness.jdbc().queryForList("""
+                    SELECT DISTINCT first_selector_type FROM career_competition_fixture
+                    WHERE career_id = ? AND competition_id = 'LCK_REGULAR_R3_R4'
+                    """, String.class, career.careerId()))
+                    .containsExactly("R1_R2_RANK");
+            assertThat(harness.jdbc().queryForList("""
+                    SELECT DISTINCT second_selector_type FROM career_competition_fixture
+                    WHERE career_id = ? AND competition_id = 'LCK_REGULAR_R3_R4'
+                    """, String.class, career.careerId()))
+                    .containsExactly("R1_R2_RANK");
+            assertThat(harness.jdbc().queryForObject("""
+                    SELECT hash_algorithm FROM career_competition_cycle
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                    """, String.class, career.careerId()))
+                    .isEqualTo(CareerCompetitionRelationalStore.CYCLE_HASH_ALGORITHM);
+
+            LocalDate originalDate = harness.jdbc().queryForObject("""
+                    SELECT scheduled_date FROM career_competition_fixture
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI' AND match_id = 'M1'
+                    """, LocalDate.class, career.careerId());
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET scheduled_date = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI' AND match_id = 'M1'
+                    """, originalDate.plusDays(1), career.careerId());
+            assertThatThrownBy(() -> harness.competitionStore().load(
+                    career.careerId(), 2027)).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("COMPETITION_INSTANCE_INTEGRITY_FAILURE");
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET scheduled_date = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI' AND match_id = 'M1'
+                    """, originalDate, career.careerId());
+
+            String originalSelector = harness.jdbc().queryForObject("""
+                    SELECT first_selector_value FROM career_competition_fixture
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """, String.class, career.careerId());
+            assertCompetitionTamperRejected(harness, career.careerId(), """
+                    UPDATE career_competition_fixture SET first_selector_value = 'BARON:9'
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """);
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET first_selector_value = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """, originalSelector, career.careerId());
+
+            String originalTeam = harness.jdbc().queryForObject("""
+                    SELECT first_team_code FROM career_competition_fixture
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """, String.class, career.careerId());
+            assertCompetitionTamperRejected(harness, career.careerId(), """
+                    UPDATE career_competition_fixture SET first_team_code = 'TAMPER'
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """);
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET first_team_code = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """, originalTeam, career.careerId());
+
+            assertCompetitionTamperRejected(harness, career.careerId(), """
+                    UPDATE career_competition_fixture SET match_order = 2
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """);
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET match_order = 1
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """, career.careerId());
+
+            assertCompetitionTamperRejected(harness, career.careerId(), """
+                    UPDATE career_competition_fixture SET series_format = 'BO5'
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """);
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET series_format = 'BO3'
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """, career.careerId());
+
+            assertCompetitionTamperRejected(harness, career.careerId(), """
+                    UPDATE career_competition_fixture SET hard_fearless = FALSE
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """);
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET hard_fearless = TRUE
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """, career.careerId());
+
+            var road = harness.competitionStore().loadAggregate(career.careerId(), 2027,
+                    "LCK_ROAD_TO_MSI");
+            var match = road.fixtures().getFirst();
+            String cycleBefore = harness.competitionStore().load(career.careerId(), 2027)
+                    .stateHash();
+            harness.competitionStore().applyCompletion(career.careerId(), 2027,
+                    "LCK_ROAD_TO_MSI", match.matchId(), match.seriesId(),
+                    match.firstTeamCode(), match.secondTeamCode(), match.firstTeamCode(),
+                    "d".repeat(64));
+            String cycleAfter = harness.competitionStore().load(career.careerId(), 2027)
+                    .stateHash();
+            assertThat(cycleAfter).isNotEqualTo(cycleBefore);
+
+            String originalWinner = harness.jdbc().queryForObject("""
+                    SELECT winner_team_code FROM career_competition_fixture
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI' AND match_id = 'M1'
+                    """, String.class, career.careerId());
+            assertCompetitionTamperRejected(harness, career.careerId(), """
+                    UPDATE career_competition_fixture SET winner_team_code = 'TAMPER'
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI' AND match_id = 'M1'
+                    """);
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET winner_team_code = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI' AND match_id = 'M1'
+                    """, originalWinner, career.careerId());
+
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET completion_receipt_hash = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI' AND match_id = 'M1'
+                    """, "e".repeat(64), career.careerId());
+            assertThatThrownBy(() -> harness.competitionStore().load(
+                    career.careerId(), 2027)).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("COMPETITION_INSTANCE_INTEGRITY_FAILURE");
+            harness.jdbc().update("""
+                    UPDATE career_competition_fixture SET completion_receipt_hash = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI' AND match_id = 'M1'
+                    """, "d".repeat(64), career.careerId());
+
+            var directQualifier = harness.competitionStore().loadAggregate(
+                    career.careerId(), 2027, "LCK_ROAD_TO_MSI").fixtures().stream()
+                    .filter(value -> "M3".equals(value.matchId())).findFirst().orElseThrow();
+            harness.competitionStore().applyCompletion(career.careerId(), 2027,
+                    "LCK_ROAD_TO_MSI", directQualifier.matchId(),
+                    directQualifier.seriesId(), directQualifier.firstTeamCode(),
+                    directQualifier.secondTeamCode(), directQualifier.firstTeamCode(),
+                    "f".repeat(64));
+            String outputTeam = harness.jdbc().queryForObject("""
+                    SELECT team_code FROM career_competition_output
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND output_id = 'MSI_LCK_SEED_1'
+                    """, String.class, career.careerId());
+            assertCompetitionTamperRejected(harness, career.careerId(), """
+                    UPDATE career_competition_output SET team_code = 'TAMPER'
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND output_id = 'MSI_LCK_SEED_1'
+                    """);
+            harness.jdbc().update("""
+                    UPDATE career_competition_output SET team_code = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND output_id = 'MSI_LCK_SEED_1'
+                    """, outputTeam, career.careerId());
+
+            String roadHash = harness.jdbc().queryForObject("""
+                    SELECT state_hash FROM career_competition_instance
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI'
+                    """, String.class, career.careerId());
+            assertCompetitionTamperRejected(harness, career.careerId(), """
+                    UPDATE career_competition_instance SET state_hash =
+                      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI'
+                    """);
+            harness.jdbc().update("""
+                    UPDATE career_competition_instance SET state_hash = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_ROAD_TO_MSI'
+                    """, roadHash, career.careerId());
+
+            String currentCycleHash = harness.competitionStore().load(
+                    career.careerId(), 2027).stateHash();
+            harness.jdbc().update("""
+                    UPDATE career_competition_cycle SET state_hash = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                    """, cycleBefore, career.careerId());
+            assertThatThrownBy(() -> harness.competitionStore().load(
+                    career.careerId(), 2027)).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("CAREER_COMPETITION_CYCLE_INTEGRITY_FAILURE");
+            harness.jdbc().update("""
+                    UPDATE career_competition_cycle SET state_hash = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                    """, currentCycleHash, career.careerId());
+
+            harness.jdbc().update("""
+                    INSERT INTO career_competition_fixture(
+                      career_id, calendar_season_year, competition_id, match_id,
+                      fixture_id, series_id, scheduled_date, schedule_status,
+                      series_format, hard_fearless, first_selector_type,
+                      first_selector_value, second_selector_type, second_selector_value,
+                      first_team_code, second_team_code, execution_mode, fixture_root_seed,
+                      seed_algorithm, lifecycle_status, winner_output_ids, loser_output_ids,
+                      winner_team_code, loser_team_code, completion_receipt_hash, revision,
+                      stage_id, match_order, group_id, group_point_value,
+                      selection_right_owner, opponent_choice_policy, side_selection_policy)
+                    SELECT career_id, calendar_season_year, competition_id,
+                      match_id || '_DUP', fixture_id || '_DUP', series_id || '_DUP',
+                      scheduled_date, schedule_status, series_format, hard_fearless,
+                      first_selector_type, first_selector_value, second_selector_type,
+                      second_selector_value, first_team_code, second_team_code,
+                      execution_mode, fixture_root_seed, seed_algorithm, lifecycle_status,
+                      winner_output_ids, loser_output_ids, winner_team_code,
+                      loser_team_code, completion_receipt_hash, revision, stage_id,
+                      match_order, group_id, group_point_value, selection_right_owner,
+                      opponent_choice_policy, side_selection_policy
+                    FROM career_competition_fixture
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """, career.careerId());
+            assertThatThrownBy(() -> harness.competitionStore().load(
+                    career.careerId(), 2027)).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("COMPETITION_INSTANCE_INTEGRITY_FAILURE");
+            harness.jdbc().update("""
+                    DELETE FROM career_competition_fixture
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2_DUP'
+                    """, career.careerId());
+            assertThat(harness.competitionStore().load(career.careerId(), 2027)
+                    .stateHash()).isEqualTo(currentCycleHash);
+
+            harness.jdbc().update("""
+                    DELETE FROM career_competition_fixture
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP' AND match_id = 'GB_B1_E2'
+                    """, career.careerId());
+            assertThatThrownBy(() -> harness.competitionStore().load(
+                    career.careerId(), 2027)).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("COMPETITION_INSTANCE_INTEGRITY_FAILURE");
+        }
+    }
+
+    @Test
+    void futureCupPersistsOnlySealedPriorGameRankingProvenance() {
+        String url = "jdbc:h2:mem:career-future-cup-" + UUID.randomUUID()
+                + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource);
+            CareerRelationalStore.CareerRow career = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            List<CareerCompetitionAggregate.SeededTeam> ranking =
+                    java.util.stream.IntStream.rangeClosed(1, 10).mapToObj(seed ->
+                            new CareerCompetitionAggregate.SeededTeam(seed,
+                                    "T%02d".formatted(seed), 20 - seed, seed,
+                                    40 - seed, seed)).toList();
+            CareerCompetitionRules.PriorLckRanking prior =
+                    new CareerCompetitionRules.PriorLckRanking(career.careerId(),
+                            2027, "SEALED", "9".repeat(64), ranking);
+
+            CareerCompetitionRelationalStore.CycleView created =
+                    harness.competitionStore().initializeFuture(career.careerId(),
+                            2028, 2, prior);
+            assertThat(created.seasonOrdinal()).isEqualTo(2);
+            assertThat(created.initializationPolicyId())
+                    .isEqualTo(CareerCompetitionRules.FUTURE_CUP_POLICY);
+            assertThat(created.initializationInputHash()).matches("[0-9a-f]{64}");
+            assertThat(harness.jdbc().queryForList("""
+                    SELECT team_code FROM career_competition_seed
+                    WHERE career_id = ? AND calendar_season_year = 2028
+                      AND competition_id = 'LCK_CUP'
+                    ORDER BY seed_scope, seed_number
+                    """, String.class, career.careerId()))
+                    .containsExactly("T01", "T03", "T06", "T07", "T10",
+                            "T02", "T04", "T05", "T08", "T09");
+
+            CareerCompetitionRelationalStore.CycleView restored = harness(dataSource)
+                    .competitionStore().load(career.careerId(), 2028);
+            assertThat(restored.stateHash()).isEqualTo(created.stateHash());
+            assertThat(restored.initializationInputHash())
+                    .isEqualTo(created.initializationInputHash());
+            assertThatThrownBy(() -> harness.competitionStore().initialize(
+                    career.careerId(), 2028))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage("CAREER_COMPETITION_INITIALIZATION_CONFLICT");
+        }
+    }
+
+    @Test
+    void provenLegacyCompetitionUpgradesButTamperedPolicyIdentityStaysBlocked() {
+        String url = "jdbc:h2:mem:career-legacy-competition-" + UUID.randomUUID()
+                + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource);
+            CareerRelationalStore.CareerRow career = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            harness.jdbc().update("""
+                    DELETE FROM career_competition_fixture
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP'
+                    """, career.careerId());
+            harness.jdbc().update("""
+                    DELETE FROM career_competition_seed
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP'
+                    """, career.careerId());
+            harness.jdbc().update("""
+                    DELETE FROM career_competition_instance
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'KESPA_CUP'
+                    """, career.careerId());
+
+            for (Map<String, Object> instance : harness.jdbc().queryForList("""
+                    SELECT competition_id, lifecycle_status, blocking_reason,
+                      source_input_hash, revision
+                    FROM career_competition_instance
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                    """, career.careerId())) {
+                String competitionId = (String) instance.get("COMPETITION_ID");
+                String lifecycle = (String) instance.get("LIFECYCLE_STATUS");
+                String blocker = (String) instance.get("BLOCKING_REASON");
+                String sourceInput = (String) instance.get("SOURCE_INPUT_HASH");
+                long revision = ((Number) instance.get("REVISION")).longValue();
+                harness.jdbc().update("""
+                        UPDATE career_competition_instance
+                        SET hash_algorithm = ?, state_hash = ?
+                        WHERE career_id = ? AND calendar_season_year = 2027
+                          AND competition_id = ?
+                        """, CareerCompetitionRelationalStore
+                                .LEGACY_INSTANCE_HASH_ALGORITHM,
+                        legacyCompetitionInstanceHash(career.careerId(), 2027,
+                                competitionId, lifecycle, blocker, sourceInput, revision),
+                        career.careerId(), competitionId);
+            }
+            String legacyCycleHash = legacyCompetitionCycleHash(career.careerId(),
+                    2027, 0, null, null);
+            harness.jdbc().update("""
+                    UPDATE career_competition_cycle
+                    SET cycle_schema = 'CAREER_COMPETITION_CYCLE_V1',
+                      rule_version = 'tampered-rule-version',
+                      rule_resource_hash =
+                        '64acfab316162ca7f17c898c434b7ecce496f085370ff45012a83332d445b770',
+                      game_policy_version = 'CAREER_COMPETITION_GAME_POLICY_V1',
+                      hash_algorithm = ?, state_hash = ?
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                    """, CareerCompetitionRelationalStore.LEGACY_CYCLE_HASH_ALGORITHM,
+                    legacyCycleHash, career.careerId());
+
+            harness.competitionStore().recoverLegacyCompetitions();
+            assertThat(harness.jdbc().queryForObject("""
+                    SELECT hash_algorithm FROM career_competition_cycle
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                    """, String.class, career.careerId()))
+                    .isEqualTo(CareerCompetitionRelationalStore
+                            .LEGACY_CYCLE_HASH_ALGORITHM);
+            assertThatThrownBy(() -> harness.competitionStore().load(
+                    career.careerId(), 2027)).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("COMPETITION_STATE_MIGRATION_REQUIRED");
+
+            harness.jdbc().update("""
+                    UPDATE career_competition_cycle
+                    SET rule_version = 'lck-career-competition-rules-2026-v1'
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                    """, career.careerId());
+            harness.competitionStore().recoverLegacyCompetitions();
+            CareerCompetitionRelationalStore.CycleView upgraded =
+                    harness.competitionStore().load(career.careerId(), 2027);
+            assertThat(upgraded.hashAlgorithm())
+                    .isEqualTo(CareerCompetitionRelationalStore.CYCLE_HASH_ALGORITHM);
+            assertThat(upgraded.competitions()).hasSize(12);
+            assertThat(upgraded.fixtures()).filteredOn(value ->
+                    "LCK_CUP".equals(value.competitionId())).hasSize(40);
+        }
+    }
+
+    private static void assertCompetitionTamperRejected(
+            Harness harness, String careerId, String sql
+    ) {
+        harness.jdbc().update(sql, careerId);
+        assertThatThrownBy(() -> harness.competitionStore().load(careerId, 2027))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("COMPETITION_INSTANCE_INTEGRITY_FAILURE");
+    }
+
+    private static String legacyCompetitionInstanceHash(
+            String careerId, int year, String competitionId, String lifecycle,
+            String blocker, String sourceInputHash, long revision
+    ) {
+        return plainSha256("schema=CAREER_COMPETITION_INSTANCE_V1\ncareerId="
+                + careerId + "\nseasonYear=" + year + "\ncompetitionId="
+                + competitionId + "\nlifecycleStatus=" + lifecycle
+                + "\nblockingReason=" + Objects.toString(blocker, "")
+                + "\nsourceInputHash=" + Objects.toString(sourceInputHash, "")
+                + "\nrevision=" + revision + '\n');
+    }
+
+    private static String legacyCompetitionCycleHash(
+            String careerId, int year, long revision, String importHash,
+            Long standingsRevision
+    ) {
+        return plainSha256("schema=CAREER_COMPETITION_CYCLE_V1\ncareerId="
+                + careerId + "\nseasonYear=" + year
+                + "\nruleVersion=lck-career-competition-rules-2026-v1"
+                + "\nruleResourceHash="
+                + "64acfab316162ca7f17c898c434b7ecce496f085370ff45012a83332d445b770"
+                + "\ngamePolicyVersion=CAREER_COMPETITION_GAME_POLICY_V1"
+                + "\nprojectionPolicy=SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1"
+                + "\nr3r4AllocationPolicy="
+                + "LCK_R3_R4_TEN_MATCHDAYS_LINEAR_INCLUSIVE_WINDOW_V1"
+                + "\nrevision=" + revision + "\nr1r2ImportHash="
+                + Objects.toString(importHash, "") + "\nr1r2StandingsRevision="
+                + Objects.toString(standingsRevision, "") + '\n');
+    }
+
+    private static String plainSha256(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new AssertionError(impossible);
+        }
+    }
+
+    @Test
+    void calendarGetIsReadOnlyAndLegacyPendingOpensWithExplicitRecoveryBlocker() {
+        String url = "jdbc:h2:mem:career-calendar-read-only-" + UUID.randomUUID()
+                + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource);
+            CareerRelationalStore.CareerRow career = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            DatabaseState before = state(harness.jdbc());
+            harness.calendar().view(career);
+            harness.calendar().view(career);
+            assertThat(state(harness.jdbc())).isEqualTo(before);
+            assertThat(count(harness.jdbc(), "league_job")).isZero();
+
+            String commandId = UUID.randomUUID().toString();
+            String mode = CareerCalendarApplicationService.ADVANCE_TO_NEXT_EVENT;
+            String payload = harness.calendarTemplate().advancePayloadHash(
+                    career.careerId(), 0, mode);
+            harness.jdbc().update("""
+                    INSERT INTO career_calendar_advance_command(
+                      client_command_id, career_id, command_schema, payload_hash,
+                      command_status, request_mode, request_expected_revision,
+                      background_required, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, 'PENDING', NULL, NULL, FALSE,
+                      CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                    """, commandId, career.careerId(),
+                    CareerCalendarTemplate.ADVANCE_COMMAND_SCHEMA, payload);
+            DatabaseState pendingBefore = state(harness.jdbc());
+            CareerCalendarApplicationService.CalendarView view =
+                    harness.calendar().view(career);
+            assertThat(view.activePendingAdvance()).isNull();
+            assertThat(view.advanceRecoveryStatus())
+                    .isEqualTo("LEGACY_PENDING_RECONCILIATION_REQUIRED");
+            assertThat(view.blockingReason())
+                    .isEqualTo("LEGACY_PENDING_RECONCILIATION_REQUIRED");
+            assertThat(view.allowedAdvanceModes()).isEmpty();
+            assertThat(state(harness.jdbc())).isEqualTo(pendingBefore);
+            assertThatThrownBy(() -> harness.calendar().advance(career,
+                    CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, 0, mode, commandId))
+                    .isInstanceOf(CareerException.class)
+                    .extracting(error -> ((CareerException) error).type())
+                    .isEqualTo(CareerException.Type
+                            .CALENDAR_LEGACY_PENDING_RECONCILIATION_REQUIRED);
+        }
+    }
+
     private Harness harness(HikariDataSource dataSource) {
         return harness(dataSource, CareerRelationalStore.MAX_CAREERS);
     }
@@ -924,10 +1457,12 @@ class CareerModePersistenceTest {
         CareerCompetitionRelationalStore competitionStore =
                 new CareerCompetitionRelationalStore(jdbc, transactionManager,
                         Clock.systemUTC(), competitionRules);
-        CareerCompetitionApplicationService competitions =
+        calendarStore.recoverLegacyStates();
+        competitionStore.recoverLegacyCompetitions();
+        CareerCompetitionApplicationService competitions = spy(
                 new CareerCompetitionApplicationService(
                         competitionStore,
-                        competitionRules);
+                        competitionRules));
         LeagueSimulationApplicationPort calendarJobs = mock(
                 LeagueSimulationApplicationPort.class);
         LeagueCareerCalendarService calendarLeague = new LeagueCareerCalendarService(
@@ -939,7 +1474,15 @@ class CareerModePersistenceTest {
                 provisioning, read, TeamPlayerInformationCatalog.loadDefault(), calendar);
         return new Harness(jdbc, leagueStore, careerStore, provisioning, bindings,
                 playerSeries, careers, calendar, calendarTemplate, competitionStore,
-                calendarJobs);
+                competitions, calendarJobs);
+    }
+
+    /** Keeps legacy R1-R2 Calendar tests scoped to their original League behavior. */
+    private static void allowLeagueCalendarCoveragePastCompetitionGate(
+            CareerCompetitionApplicationService competitions
+    ) {
+        doReturn(CareerCompetitionApplicationService.CompetitionGate.clear())
+                .when(competitions).gate(any(), anyInt(), any(), any(), any());
     }
 
     private static CareerApiV1Dtos.CreateRequest request(String commandId) {
@@ -1047,6 +1590,7 @@ class CareerModePersistenceTest {
             CareerCalendarApplicationService calendar,
             CareerCalendarTemplate calendarTemplate,
             CareerCompetitionRelationalStore competitionStore,
+            CareerCompetitionApplicationService competitions,
             LeagueSimulationApplicationPort calendarJobs
     ) {}
 

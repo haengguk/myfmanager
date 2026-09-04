@@ -110,7 +110,7 @@ export function logicalCareerAdvance(storage: PointerStorage, careerId: string, 
   writeCareerAdvanceOperation(storage, next); return next;
 }
 export function reconcileCareerAdvanceOperation(storage: PointerStorage, careerId: string, pending: CareerPendingAdvanceDto | null): CareerAdvanceOperation | null {
-  if (!pending) { clearCareerAdvanceOperation(storage, careerId); return null; }
+  if (!pending) return readCareerAdvanceOperation(storage, careerId);
   const server: CareerAdvanceOperation = { schemaVersion: 'CAREER_ADVANCE_OPERATION_V1', careerId, expectedCalendarRevision: pending.expectedCalendarRevision, mode: pending.mode, clientCommandId: pending.clientCommandId };
   writeCareerAdvanceOperation(storage, server); return server;
 }

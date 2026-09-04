@@ -104,6 +104,8 @@ public final class CareerCalendarApplicationService {
             throw CareerException.calendarCommandConflict();
         } catch (CareerCalendarRelationalStore.AdvanceAlreadyPending pending) {
             throw CareerException.calendarAdvanceAlreadyPending();
+        } catch (CareerCalendarRelationalStore.LegacyPendingReconciliationRequired legacy) {
+            throw CareerException.calendarLegacyPendingReconciliationRequired();
         } catch (CareerCalendarRelationalStore.CommandReceiptIntegrityFailure corrupt) {
             throw CareerException.calendarCommandIntegrity();
         } catch (CareerCalendarRelationalStore.CalendarMigrationRequired migration) {
@@ -132,6 +134,7 @@ public final class CareerCalendarApplicationService {
         CareerCalendarTemplate.ProjectedCalendar projected = template.project(
                 state.seasonYear());
         OverlayProjection overlay = overlay(career, state, projected);
+        competitions.reconcileForAdvance(career, state.seasonYear(), overlay.season());
 
         CareerCalendarLeaguePort.GateResult currentGate = gate(career, state.seasonYear(),
                 state.currentDate(), projected, overlay);
@@ -248,8 +251,7 @@ public final class CareerCalendarApplicationService {
         overlay.fixtures().stream().map(FixtureView::date)
                 .filter(value -> value.isAfter(current)).forEach(candidates::add);
         CareerCompetitionApplicationService.CompetitionView competition =
-                competitions.reconcileAndView(career, calendarSeasonYear, current,
-                        null, null, overlay.season());
+                competitions.view(career, calendarSeasonYear, current, null, null);
         if (competition.nextFixture() != null
                 && competition.nextFixture().date().isAfter(current)) {
             candidates.add(competition.nextFixture().date());
@@ -290,12 +292,14 @@ public final class CareerCalendarApplicationService {
                 .filter(value -> !"COMPLETED".equals(value.lifecycleStatus()))
                 .filter(value -> !value.date().isBefore(state.currentDate()))
                 .findFirst().orElse(null);
+        CareerCalendarRelationalStore.PendingStatus pendingStatus =
+                calendars.pendingStatus(state.careerId());
         CareerCalendarRelationalStore.PendingAdvance activePending =
-                calendars.activePending(state.careerId()).orElse(null);
+                pendingStatus.pending().orElse(null);
         CareerCompetitionApplicationService.CompetitionView competition =
-                competitions.reconcileAndView(career, state.seasonYear(),
+                competitions.view(career, state.seasonYear(),
                         state.currentDate(), current == null ? null : current.templateId(),
-                        next == null ? null : next.templateId(), overlay.season());
+                        next == null ? null : next.templateId());
         CareerCompetitionApplicationService.CompetitionGate competitionGate =
                 competitions.gate(career, state.seasonYear(), state.currentDate(),
                         current == null ? null : current.templateId(), overlay.season());
@@ -305,13 +309,16 @@ public final class CareerCalendarApplicationService {
                 && overlay.season().allFixturesCompleted();
         List<String> commands = "ACTIVE".equals(state.lifecycleStatus())
                 && seasonCanAdvance && competitionGate.stopReason() == null
-                && activePending == null
+                && activePending == null && pendingStatus.recoveryBlocker() == null
                 ? ADVANCE_MODES : List.of();
         String blockingReason = lifecycleBlockingReason(
                 overlay.season().seasonLifecycleStatus(),
                 overlay.season().allFixturesCompleted());
         if (blockingReason == null && competitionGate.stopReason() != null) {
             blockingReason = competitionGate.stopReason();
+        }
+        if (pendingStatus.recoveryBlocker() != null) {
+            blockingReason = pendingStatus.recoveryBlocker();
         }
         if (blockingReason == null && !seasonLifecycleBlockingReason(
                 state.blockingReason())) {
@@ -324,10 +331,14 @@ public final class CareerCalendarApplicationService {
                 projected.projectionStatus(), current, next, currentStage, nextStage,
                 upcoming,
                 overlay.overlay(), upcomingFixtures, nextManaged, commands,
-                blockingReason, activePending, competition,
+                blockingReason, activePending, pendingStatus.recoveryBlocker(), competition,
                 template.body().counts(), template.body().qualificationEdges(),
                 template.body().pendingOfficialFields(),
-                List.of(new SourceDataNote("KESPA_CUP", "SOURCE_DATA_NOT_PRESENT")));
+                List.of(new SourceDataNote("KESPA_CUP",
+                        "REFERENCE_TEMPLATE_NOT_OFFICIAL_FOR_2026_OR_FUTURE",
+                        2025, "KESPA_CUP_REFERENCE_TEMPLATE_2025",
+                        List.of("KESPA_CUP_2026_RULE_SOURCE_INCOMPLETE",
+                                "EXTERNAL_PARTICIPANT_ROSTER_AUTHORITY_MISSING"))));
     }
 
     private OverlayProjection overlay(
@@ -442,6 +453,7 @@ public final class CareerCalendarApplicationService {
             List<String> allowedAdvanceModes,
             String blockingReason,
             CareerCalendarRelationalStore.PendingAdvance activePendingAdvance,
+            String advanceRecoveryStatus,
             CareerCompetitionApplicationService.CompetitionView competition,
             CareerCalendarTemplate.Counts counts,
             List<CareerCalendarTemplate.QualificationEdge> qualificationEdges,
@@ -465,7 +477,12 @@ public final class CareerCalendarApplicationService {
             boolean pendingOutbox
     ) {}
 
-    public record SourceDataNote(String subject, String status) {}
+    public record SourceDataNote(
+            String subject, String status, int sourceReferenceYear,
+            String ruleVersion, List<String> blockers
+    ) {
+        public SourceDataNote { blockers = List.copyOf(blockers); }
+    }
 
     public record AdvanceResult(
             boolean replayed, boolean pending, int httpStatus, String stopReason,

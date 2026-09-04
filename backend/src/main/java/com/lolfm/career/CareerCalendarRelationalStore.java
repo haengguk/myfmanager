@@ -71,43 +71,53 @@ public final class CareerCalendarRelationalStore {
         if (inserted != 1) throw new CalendarIntegrityFailure();
     }
 
-    /**
-     * V5 legacy rows are activated only after the unchanged Career V1 binding was
-     * independently validated by CareerApplicationService.
-     */
+    /** Read-only load. Legacy activation is owned by explicit startup recovery. */
     public CalendarRow loadReady(CareerRelationalStore.CareerRow career) {
-        CalendarRow result = transactions.execute(ignored -> {
-            CalendarRow row = findForUpdate(career.careerId()).orElseThrow(
-                    CalendarNotFound::new);
-            requireFrozenTemplate(row);
-            if ("MIGRATION_PENDING".equals(row.lifecycleStatus())) {
-                if (row.calendarRevision() != 0 || row.eventCursor() != 0
-                        || !row.currentDate().equals(career.currentDate())
-                        || !row.calendarStateHash().chars().allMatch(value -> value == '0')) {
-                    markMigrationRequired(row.careerId());
-                    return findForUpdate(row.careerId()).orElseThrow(
-                            CalendarNotFound::new);
-                }
-                int year = template.anchorYear(row.currentDate());
-                String hash = template.stateHash(row.careerId(), year,
-                        row.currentDate(), 0, 0, null, null, "ACTIVE", null);
-                int updated = jdbc.update("""
-                        UPDATE career_calendar_state
-                        SET active_calendar_season_year = ?, calendar_state_hash = ?,
-                            lifecycle_status = 'ACTIVE', blocking_reason = NULL,
-                            updated_at = ?
-                        WHERE career_id = ? AND lifecycle_status = 'MIGRATION_PENDING'
-                        """, year, hash, now(), row.careerId());
-                if (updated != 1) throw new CalendarIntegrityFailure();
-                row = findForUpdate(row.careerId()).orElseThrow(CalendarNotFound::new);
-            }
-            requireStateIntegrity(row);
-            return row;
-        });
-        if ("MIGRATION_REQUIRED".equals(result.lifecycleStatus())) {
+        CalendarRow result = find(career.careerId()).orElseThrow(CalendarNotFound::new);
+        requireFrozenTemplate(result);
+        if ("MIGRATION_REQUIRED".equals(result.lifecycleStatus())
+                || "MIGRATION_PENDING".equals(result.lifecycleStatus())) {
             throw new CalendarMigrationRequired();
         }
+        requireStateIntegrity(result);
         return result;
+    }
+
+    /** Explicit idempotent startup recovery for V5 state rows; never runs from GET. */
+    public void recoverLegacyStates() {
+        List<String> careerIds = jdbc.query("""
+                SELECT career_id FROM career_calendar_state
+                WHERE lifecycle_status = 'MIGRATION_PENDING' ORDER BY career_id
+                """, (result, ignored) -> result.getString(1));
+        for (String careerId : careerIds) {
+            transactions.executeWithoutResult(ignored -> recoverLegacyState(careerId));
+        }
+    }
+
+    private void recoverLegacyState(String careerId) {
+        CalendarRow row = findForUpdate(careerId).orElseThrow(CalendarNotFound::new);
+        if (!"MIGRATION_PENDING".equals(row.lifecycleStatus())) return;
+        requireFrozenTemplate(row);
+        LocalDate careerDate = jdbc.queryForObject(
+                "SELECT current_game_date FROM career_save WHERE career_id = ?",
+                LocalDate.class, careerId);
+        if (row.calendarRevision() != 0 || row.eventCursor() != 0
+                || !row.currentDate().equals(careerDate)
+                || !row.calendarStateHash().chars().allMatch(value -> value == '0')) {
+            markMigrationRequired(row.careerId());
+            return;
+        }
+        int year = template.anchorYear(row.currentDate());
+        String hash = template.stateHash(row.careerId(), year,
+                row.currentDate(), 0, 0, null, null, "ACTIVE", null);
+        int updated = jdbc.update("""
+                UPDATE career_calendar_state
+                SET active_calendar_season_year = ?, calendar_state_hash = ?,
+                    lifecycle_status = 'ACTIVE', blocking_reason = NULL,
+                    updated_at = ?
+                WHERE career_id = ? AND lifecycle_status = 'MIGRATION_PENDING'
+                """, year, hash, now(), row.careerId());
+        if (updated != 1) throw new CalendarIntegrityFailure();
     }
 
     public Optional<CalendarRow> find(String careerId) {
@@ -118,22 +128,30 @@ public final class CareerCalendarRelationalStore {
     }
 
     public Optional<PendingAdvance> activePending(String careerId) {
+        return pendingStatus(careerId).pending();
+    }
+
+    public PendingStatus pendingStatus(String careerId) {
         CareerIdentity.requireCareerId(careerId);
         List<CommandRow> rows = jdbc.query(selectCommand() + """
                  WHERE career_id = ? AND command_status = 'PENDING'
                  ORDER BY created_at, client_command_id
                 """, (result, ignored) -> command(result), careerId);
         if (rows.size() > 1) throw new CommandReceiptIntegrityFailure();
-        if (rows.isEmpty()) return Optional.empty();
+        if (rows.isEmpty()) return new PendingStatus(Optional.empty(), null);
         CommandRow row = rows.getFirst();
-        requireCanonicalRequest(row);
         if (row.completedAt() != null || row.createdAt() == null
                 || row.updatedAt() == null || row.updatedAt().isBefore(row.createdAt())) {
             throw new CommandReceiptIntegrityFailure();
         }
-        return Optional.of(new PendingAdvance(row.commandId(), row.requestMode(),
+        if (row.requestMode() == null && row.requestExpectedRevision() == null) {
+            return new PendingStatus(Optional.empty(),
+                    "LEGACY_PENDING_RECONCILIATION_REQUIRED");
+        }
+        requireCanonicalRequest(row);
+        return new PendingStatus(Optional.of(new PendingAdvance(row.commandId(), row.requestMode(),
                 row.requestExpectedRevision(), row.commandStatus(), row.createdAt(),
-                row.updatedAt()));
+                row.updatedAt())), null);
     }
 
     public AdvanceStoreResult execute(
@@ -170,17 +188,7 @@ public final class CareerCalendarRelationalStore {
                 }
                 if (command.requestMode() == null
                         && command.requestExpectedRevision() == null) {
-                    int upgraded = jdbc.update("""
-                            UPDATE career_calendar_advance_command
-                            SET request_mode = ?, request_expected_revision = ?,
-                                updated_at = ?
-                            WHERE client_command_id = ? AND command_status = 'PENDING'
-                              AND request_mode IS NULL
-                              AND request_expected_revision IS NULL
-                            """, mode, expectedRevision, now(), commandId);
-                    if (upgraded != 1) throw new CommandReceiptIntegrityFailure();
-                    command = findCommand(commandId).orElseThrow(
-                            CommandReceiptIntegrityFailure::new);
+                    throw new LegacyPendingReconciliationRequired();
                 }
                 requireCanonicalRequest(command);
                 if (!mode.equals(command.requestMode())
@@ -195,7 +203,13 @@ public final class CareerCalendarRelationalStore {
                 if (pending == null || pending < 0 || pending > 1) {
                     throw new CommandReceiptIntegrityFailure();
                 }
-                if (pending == 1) throw new AdvanceAlreadyPending();
+                if (pending == 1) {
+                    PendingStatus status = pendingStatus(careerId);
+                    if (status.recoveryBlocker() != null) {
+                        throw new LegacyPendingReconciliationRequired();
+                    }
+                    throw new AdvanceAlreadyPending();
+                }
                 jdbc.update("""
                         INSERT INTO career_calendar_advance_command(
                           client_command_id, career_id, command_schema, payload_hash,
@@ -484,6 +498,10 @@ public final class CareerCalendarRelationalStore {
             OffsetDateTime createdAt, OffsetDateTime updatedAt
     ) {}
 
+    public record PendingStatus(
+            Optional<PendingAdvance> pending, String recoveryBlocker
+    ) {}
+
     public record CommandResult(
             String clientCommandId, String mode, long expectedRevision, String status,
             Integer resultingSeasonYear, LocalDate resultingDate,
@@ -512,5 +530,6 @@ public final class CareerCalendarRelationalStore {
     public static final class CommandConflict extends RuntimeException {}
     public static final class CommandReceiptIntegrityFailure extends RuntimeException {}
     public static final class AdvanceAlreadyPending extends RuntimeException {}
+    public static final class LegacyPendingReconciliationRequired extends RuntimeException {}
     public static final class StaleRevision extends RuntimeException {}
 }

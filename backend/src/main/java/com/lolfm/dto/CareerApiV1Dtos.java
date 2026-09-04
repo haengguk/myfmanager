@@ -153,6 +153,7 @@ public final class CareerApiV1Dtos {
             CalendarFixture nextManagedFixture,
             List<String> allowedAdvanceModes,
             PendingAdvance activePendingAdvance,
+            String advanceRecoveryStatus,
             CompetitionView competition,
             List<QualificationEdge> qualificationEdges,
             List<PendingOfficialField> pendingOfficialFields,
@@ -338,7 +339,12 @@ public final class CareerApiV1Dtos {
             String rule,
             String officialStatus
     ) {}
-    public record SourceDataNote(String subject, String status) {}
+    public record SourceDataNote(
+            String subject, String status, int sourceReferenceYear,
+            String ruleVersion, List<String> blockers
+    ) {
+        public SourceDataNote { blockers = List.copyOf(blockers); }
+    }
 
     public record ErrorResponse(
             String schemaVersion,

@@ -86,7 +86,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
       applyDetail(career, focus);
       try {
         const calendarView = await getCareerCalendar(careerId, controller.signal); if (generation !== generationRef.current || controller.signal.aborted) return;
-        reconcileCareerAdvanceOperation(window.sessionStorage, careerId, calendarView.activePendingAdvance); setCalendar(calendarView); setCalendarError(null);
+        const operation = reconcileCareerAdvanceOperation(window.sessionStorage, careerId, calendarView.activePendingAdvance); if (!calendarView.activePendingAdvance && operation) restoredAdvanceRef.current = null; setCalendar(calendarView); setCalendarError(null);
       } catch (cause) {
         if (controller.signal.aborted || generation !== generationRef.current) return;
         setCalendarError(loadFailure(cause));

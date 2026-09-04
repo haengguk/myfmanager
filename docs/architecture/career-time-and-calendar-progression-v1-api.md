@@ -11,6 +11,10 @@ state hash를 소유한다. 경기 결과, standings, fixture lifecycle, job/lea
 `SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1` 게임 정책으로 같은 현지 월·일에 투영한 값이며 공식
 발표가 아니다. exact date가 없는 stage와 pending field는 미래 연도에도 null/pending이다.
 
+Targeted hardening 이후 `GET /calendar`는 완전한 read-only boundary다. Competition cycle 생성,
+V1→V2 승격, R1~2 seal은 각각 새 Career 생성, startup recovery, 명시적 advance transaction이
+소유한다. GET 반복이나 reload는 revision/hash/updatedAt/fixture/job/Series를 변경하지 않는다.
+
 ## 조회 계약
 
 `GET /api/v1/careers/{careerId}/calendar`는 `CAREER_CALENDAR_VIEW_V1`을 반환한다.
@@ -21,15 +25,18 @@ state hash를 소유한다. 경기 결과, standings, fixture lifecycle, job/lea
   version/hash와 세 projection/allocation policy
 - 일정: current/next event와 stage, bounded upcoming events/fixtures, 다음 관리 경기
 - 상태 구분: official status, future-year projection status, execution status, schedule status
-- 구조화 자료: qualification edge 6개, pending official field 6개, KeSPA Cup
-  `SOURCE_DATA_NOT_PRESENT` note
+- 구조화 자료: qualification edge, pending official field, KeSPA Cup reference/source-gap note
 - 복구 자료: Career별 `activePendingAdvance`의 UUID/mode/original revision/status/timestamp
 - 대회 자료: additive `competition`의 current/next competition·stage, lifecycle revision/hash,
   next fixture/Series, managed 여부, qualification output과 source/external blocker
 
-응답은 11개 정의를 표시한다: LCK Cup, First Stand, LCK 정규 R1~2, LCK Road to MSI, MSI,
+응답은 12개 정의를 표시한다: LCK Cup, First Stand, LCK 정규 R1~2, LCK Road to MSI, MSI,
 EWC LoL, LCK 정규 R3~4, LCK 플레이인, LCK 플레이오프, 아시안게임 LoL 국가대표 차출 창,
-Worlds. KeSPA Cup은 source bundle에 없으므로 competition definition을 만들지 않는다.
+Worlds, KeSPA Cup. KeSPA는 실행 definition이 아니라 `REFERENCE_TEMPLATE_ONLY` instance다.
+`sourceDataNote`는 `subject=KESPA_CUP`, `sourceReferenceYear=2025`,
+`ruleVersion=KESPA_CUP_REFERENCE_TEMPLATE_2025`,
+`status=REFERENCE_TEMPLATE_NOT_OFFICIAL_FOR_2026_OR_FUTURE`와 두 blocker
+`KESPA_CUP_2026_RULE_SOURCE_INCOMPLETE`, `EXTERNAL_PARTICIPANT_ROSTER_AUTHORITY_MISSING`를 반환한다.
 
 ## 날짜 진행 계약
 
@@ -58,6 +65,11 @@ stale revision, 다른 pending command는 409다. Calendar row와 receipt는 DB 
 한 transaction으로 갱신되며 날짜·cursor는 단조 증가한다. 재시작 뒤에도 pending/completed receipt와
 state hash를 검증해 같은 command를 정확히 한 번만 이어 간다.
 
+V5 legacy `PENDING` row에 `request_mode`/`request_expected_revision` 증거가 없으면 payload hash나
+현재 revision에서 값을 추측하지 않는다. Startup recovery는 row를 보존하고 Calendar GET을
+`advanceRecoveryStatus=LEGACY_PENDING_RECONCILIATION_REQUIRED`와 같은 blocker로 정상 반환한다.
+명시적 cancel/reconcile 정책 전까지 새 advance는 차단된다.
+
 R1~2 경기일에는 기존 18라운드/90 fixture만 gate에 참여한다. 같은 날짜의 미완료 FULL_AUTO fixture는
 기존 durable League job 경로로 dispatch하고 202 `AUTO_FIXTURES_PENDING`에서 멈춘다. 관리 경기는
 `MANAGED_FIXTURE_REQUIRED`, blocked/cancelled/restart-required 상태는 `ATTENTION_REQUIRED`로 멈춘다.
@@ -79,4 +91,7 @@ fixture ID/root seed/standings 의미는 변경하지 않는다.
 Competition lifecycle의 현재 구현과 source-gap은
 [Career Competition Lifecycle V1](career-competition-lifecycle-v1.md)을 따른다. Road/R3~4/Play-in
 graph는 구조화됐지만 competition 전용 Series adapter가 아직 없어 해당 fixture에서 fail-closed한다.
-Cup initial prior result와 Cup/LCK playoff edge, 외부 리그 authority도 추측하지 않는다.
+LCK Cup 첫 시즌 40경기 graph는 준비됐고 미완료 fixture를 건너뛰지 않는다. 실제 Cup result→후속
+selector transition, LCK Playoff source closure, 외부 리그/KeSPA roster authority는 추측하지 않는다.
+현재 날짜 이전의 미완료 Cup fixture도 overdue gate로 다시 잡으므로 기존 저장의 날짜가 이미
+R1~2 이후여도 미완료 대회를 조용히 통과시키지 않는다.

@@ -1,0 +1,206 @@
+{
+  "schemaVersion": "CAREER_COMPETITION_RULE_RESOURCE_V2",
+  "ruleVersion": "lck-career-competition-rules-2026-v2",
+  "gamePolicyVersion": "CAREER_COMPETITION_GAME_POLICY_V2",
+  "projectionPolicy": "SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1",
+  "r3r4AllocationPolicy": "LCK_R3_R4_TEN_MATCHDAYS_LINEAR_INCLUSIVE_WINDOW_V1",
+  "rawSources": {
+    "README": "853851cb54843a6b5393d89915220220faada8b9284593822bd271af837bab26",
+    "CALENDAR_FORMATS": "b47a681950382b3a67be7d4d7d43ed957796470b667c490dc4ce51e2bf3f7e01",
+    "OFFICIAL_REPORT": "86b16a278d09763260bdd46b0be1047146eca02c2ebd893f66be6e74f7812b0a",
+    "SOURCE_LEDGER": "0dd2a2818d24d3e212e9f00b51790b8f599b0b57ef67e23486491d80a2dd09b6",
+    "LCK_EVENT_RULEBOOK_2026": "e4c52706feb67dfbac23669ce8cc0a01d5a780be71772b149849d41e9698a670",
+    "KESPA_CUP_RULEBOOK_2025": "574ee7d8993b07a073e3ecc18f96227bbff48dc886ce4b336a61f5d8f4f8542a"
+  },
+  "sources": [
+    {"sourceId":"S01","organization":"Riot Games / LoL Esports","title":"2026 LCK 진행 방식 안내","url":"https://lolesports.com/ko-KR/news/2026-lck-format-explainer","publicationOrVersionDate":"2025-11-06","retrievedAt":"2026-09-03","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["LCK_CUP_SUPER_WEEK","LCK_CUP_ADVANCEMENT","LCK_CUP_CHOICE_RIGHTS","LCK_CUP_FULL_DOUBLE_ELIMINATION"]},
+    {"sourceId":"S02","organization":"Riot Games / LoL Esports","title":"2026 시즌 시작: LoL e스포츠","url":"https://lolesports.com/ko-KR/news/season-start-2026-lol-esports","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["INTERNATIONAL_CALENDAR","FIRST_STAND_SLOTS"]},
+    {"sourceId":"S03","organization":"LCK / Riot Games","title":"2026 LCK 대회별 규정집","url":"https://cmsassets.rgpub.io/sanity/files/dsfx7636/news_live/b5e4819daa2793425433910ca02b1c479b2f15a3.pdf?accountingTag=lol_esports","publicationOrVersionDate":"2026-06-29","retrievedAt":"2026-09-03","classification":"OFFICIAL_PRIMARY","rawSha256":"e4c52706feb67dfbac23669ce8cc0a01d5a780be71772b149849d41e9698a670","provesFields":["LCK_CUP_GROUP_RULES","LCK_CUP_TIEBREAK","LCK_CUP_PLAY_IN_GRAPH","LCK_CUP_PLAYOFF_GRAPH","LCK_CUP_SIDE_RIGHTS","LCK_REGULAR_RULES"]},
+    {"sourceId":"S04","organization":"Riot Games / LoL Esports","title":"LoL Esports LCK 공식 일정","url":"https://lolesports.com/ko-KR/leagues/lck","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["LCK_STAGE_WINDOWS","LCK_MATCH_DATES"]},
+    {"sourceId":"S05","organization":"Riot Games / LoL Esports","title":"2026 LCK CUP 결승 안내","url":"https://lolesports.com/ko-KR/news/2026-lck-cup-finals-guide","publicationOrVersionDate":"2026-01-29","retrievedAt":"2026-09-03","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["LCK_CUP_FINALS_WEEKEND"]},
+    {"sourceId":"S06","organization":"Riot Games / LoL Esports","title":"First Stand Tournament 2026 Primer","url":"https://lolesports.com/ko-KR/news/fst-2026-primer","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["FIRST_STAND_FORMAT","FIRST_STAND_TEAMS"]},
+    {"sourceId":"S07","organization":"Riot Games / LoL Esports","title":"2026 League Handbook — First Stand","url":"https://lolesports.com/en-US/season/115547545029543948/handbook/115548016979679444","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["FIRST_STAND_BRACKET"]},
+    {"sourceId":"S08","organization":"Riot Games / LoL Esports","title":"MSI 및 월드 챔피언십 업데이트","url":"https://lolesports.com/ko-KR/news/msi-and-worlds-updates","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["MSI_FORMAT","WORLDS_FORMAT"]},
+    {"sourceId":"S09","organization":"Riot Games / LoL Esports","title":"2026 MSI 안내서","url":"https://lolesports.com/ko-KR/news/msi-2026-primer","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["MSI_PARTICIPANTS"]},
+    {"sourceId":"S10","organization":"Riot Games / LoL Esports","title":"2026 League Handbook — Worlds","url":"https://lolesports.com/en-US/season/115547545029543948/handbook/115548016979679448","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["WORLDS_STAGES"]},
+    {"sourceId":"S11","organization":"Esports World Cup","title":"League of Legends Rulebook 2026 — Resource Center","url":"https://resources.esportsworldcup.com/en/competitive-ops/rulebooks/lol","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["EWC_RULEBOOK_AUTHORITY"]},
+    {"sourceId":"S12","organization":"Esports World Cup","title":"EWC 2026 League of Legends Rulebook","url":"https://cdn.esportsworldcup.com/resources/uploads/EWC_26_League_of_Legends_Rulebook_a31ae07a83.pdf","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["EWC_BO1_BO3_BO5","EWC_FEARLESS"]},
+    {"sourceId":"S13","organization":"Olympic Council of Asia","title":"2026 Asian Games LoL qualifier draw","url":"https://oca.asia/news/7414-draw-conducted-for-2026-asian-games-esports-league-of-legends-qualifier.html","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["ASIAN_GAMES_LOL_QUALIFIER"]},
+    {"sourceId":"S14","organization":"Aichi-Nagoya Organizing Committee","title":"20th Asian Games Aichi-Nagoya 2026","url":"https://www.aichi-nagoya2026.org/en/","publicationOrVersionDate":"2026","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["ASIAN_GAMES_WINDOW"]},
+    {"sourceId":"S15","organization":"Aichi-Nagoya Organizing Committee","title":"Competition schedule update","url":"https://www.aichi-nagoya2026.org/news/detail/1426/","publicationOrVersionDate":"2026-07-29","retrievedAt":"2026-08-23","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["ASIAN_GAMES_SCHEDULE_AUTHORITY"]},
+    {"sourceId":"S16","organization":"LCK / Riot Games","title":"2026 LCK CUP 드래프트","url":"https://www.youtube.com/watch?v=gzq0Os3loaQ","publicationOrVersionDate":"2026-01-06","retrievedAt":"2026-09-03","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["OFFICIAL_2026_CAPTAINS","OFFICIAL_2026_BARON_ELDER_GROUP_ASSIGNMENT","OFFICIAL_2026_GROUP_SEEDS"]},
+    {"sourceId":"S17","organization":"Korea e-Sports Association","title":"2025 LoL KeSPA CUP 규정 공시","url":"https://www.a-esc.com/user2/board/view/board_cd/notice/wr_no/33","publicationOrVersionDate":"2025-12-12","retrievedAt":"2026-09-03","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["KESPA_2025_DATES","KESPA_2025_STAGE_SUMMARY","KESPA_2025_ROSTER_SIZE"]},
+    {"sourceId":"S18","organization":"Korea e-Sports Association","title":"2025 KeSPA CUP 공식 규정집 V1.1","url":"https://www.a-esc.com/site_data/file/notice/2025/12/1765502569_2ALOHemk_28EAB5ADEB.pdf","publicationOrVersionDate":"2025-11-12","retrievedAt":"2026-09-03","classification":"OFFICIAL_PRIMARY","rawSha256":"574ee7d8993b07a073e3ecc18f96227bbff48dc886ce4b336a61f5d8f4f8542a","provesFields":["KESPA_2025_14_SLOTS","KESPA_2025_GROUP_BO1","KESPA_2025_LCQ_BO3","KESPA_2025_FINAL_DOUBLE_ELIMINATION"]},
+    {"sourceId":"S19","organization":"Korea e-Sports Association","title":"2026 LoL KeSPA CUP 개막일 맞히기 이벤트","url":"https://school.e-sports.or.kr/notice/view/1065","publicationOrVersionDate":"2026-07-02","retrievedAt":"2026-09-03","classification":"OFFICIAL_PRIMARY","rawSha256":null,"provesFields":["KESPA_CUP_2026_EXISTENCE_ONLY"]}
+  ],
+  "lckCup": {
+    "sourceReferenceYear": 2026,
+    "sourceCompletenessStatus": "OFFICIAL_SOURCE_COMPLETE_WITH_EXPLICIT_GAME_POLICIES",
+    "officialSourceIds": ["S01","S03","S04","S05","S16"],
+    "initialBootstrap": {
+      "policyId": "OFFICIAL_2026_INITIAL_BOOTSTRAP",
+      "sourceReferenceYear": 2026,
+      "appliedSeasonOrdinal": 1,
+      "sourceIds": ["S16","S04"],
+      "groups": [
+        {"groupId":"BARON","groupSeed":1,"sourceTeamName":"Gen.G","sourceTeamCode":"GEN","stableTeamCode":"GEN"},
+        {"groupId":"BARON","groupSeed":2,"sourceTeamName":"T1","sourceTeamCode":"T1","stableTeamCode":"T1"},
+        {"groupId":"BARON","groupSeed":3,"sourceTeamName":"Nongshim RedForce","sourceTeamCode":"NS","stableTeamCode":"NS"},
+        {"groupId":"BARON","groupSeed":4,"sourceTeamName":"DN SOOPers","sourceTeamCode":"DNS","stableTeamCode":"DNS"},
+        {"groupId":"BARON","groupSeed":5,"sourceTeamName":"HANJIN BRION","sourceTeamCode":"BRO","stableTeamCode":"BRO"},
+        {"groupId":"ELDER","groupSeed":1,"sourceTeamName":"Hanwha Life Esports","sourceTeamCode":"HLE","stableTeamCode":"HLE"},
+        {"groupId":"ELDER","groupSeed":2,"sourceTeamName":"Dplus KIA","sourceTeamCode":"DK","stableTeamCode":"DK"},
+        {"groupId":"ELDER","groupSeed":3,"sourceTeamName":"KT Rolster","sourceTeamCode":"KT","stableTeamCode":"KT"},
+        {"groupId":"ELDER","groupSeed":4,"sourceTeamName":"BNK FEARX","sourceTeamCode":"BFX","stableTeamCode":"BFX"},
+        {"groupId":"ELDER","groupSeed":5,"sourceTeamName":"Kiwoom DRX","sourceTeamCode":"DRX","stableTeamCode":"KRX"}
+      ],
+      "teamAliases": [
+        {"sourceTeamName":"Gen.G","sourceTeamCode":"GEN","stableTeamCode":"GEN"},
+        {"sourceTeamName":"T1","sourceTeamCode":"T1","stableTeamCode":"T1"},
+        {"sourceTeamName":"Nongshim RedForce","sourceTeamCode":"NS","stableTeamCode":"NS"},
+        {"sourceTeamName":"DN SOOPers","sourceTeamCode":"DNS","stableTeamCode":"DNS"},
+        {"sourceTeamName":"HANJIN BRION","sourceTeamCode":"BRO","stableTeamCode":"BRO"},
+        {"sourceTeamName":"Hanwha Life Esports","sourceTeamCode":"HLE","stableTeamCode":"HLE"},
+        {"sourceTeamName":"Dplus KIA","sourceTeamCode":"DK","stableTeamCode":"DK"},
+        {"sourceTeamName":"KT Rolster","sourceTeamCode":"KT","stableTeamCode":"KT"},
+        {"sourceTeamName":"BNK FEARX","sourceTeamCode":"BFX","stableTeamCode":"BFX"},
+        {"sourceTeamName":"Kiwoom DRX","sourceTeamCode":"DRX","stableTeamCode":"KRX"}
+      ]
+    },
+    "futureGroupPolicy": {
+      "policyId": "LCK_CUP_PREVIOUS_IN_GAME_LCK_RANKING_GROUP_DRAFT_V1",
+      "minimumSeasonOrdinal": 2,
+      "rankingAuthority": "PREVIOUS_IN_GAME_LCK_FINAL_RANKING_VERIFIED_SEALED_TOTAL_ORDER",
+      "firstSelectionOwner": "CHAMPION",
+      "selectionTurns": [
+        {"turn":1,"selectingSlot":"BARON_CAPTAIN","targetGroup":"BARON"},
+        {"turn":2,"selectingSlot":"ELDER_CAPTAIN","targetGroup":"ELDER"},
+        {"turn":3,"selectingSlot":"ELDER_SEED_2","targetGroup":"ELDER"},
+        {"turn":4,"selectingSlot":"BARON_SEED_2","targetGroup":"BARON"},
+        {"turn":5,"selectingSlot":"BARON_SEED_3","targetGroup":"BARON"},
+        {"turn":6,"selectingSlot":"ELDER_SEED_3","targetGroup":"ELDER"},
+        {"turn":7,"selectingSlot":"ELDER_SEED_4","targetGroup":"ELDER"},
+        {"turn":8,"selectingSlot":"BARON_SEED_4","targetGroup":"BARON"}
+      ]
+    },
+    "opponentChoicePolicy": {
+      "policyId": "LCK_CUP_LOWEST_AVAILABLE_SEED_OPPONENT_SELECTION_V1",
+      "officialChoiceRights": "PLAY_IN_R2_SEED_1;PLAYOFF_UB_R1_SEED_3;PLAYOFF_UB_R2_SEED_1",
+      "productChoiceRule": "LOWEST_AVAILABLE_ELIGIBLE_SEED",
+      "finalTieBreak": "STABLE_TEAM_ID_CANONICAL_ORDER"
+    },
+    "scheduleAllocationPolicy": "LCK_CUP_STAGE_WINDOW_ORDERED_SLOTS_FROM_2026_REFERENCE_V1",
+    "individualRankingCriteria": ["MATCH_WINS","GAME_DIFFERENTIAL","HEAD_TO_HEAD_IF_APPLICABLE","STRENGTH_OF_VICTORY","WIN_TIME","TIEBREAKER"],
+    "groupWinnerCriteria": ["GROUP_POINTS","AGGREGATE_GAME_DIFFERENTIAL","RANK_1_AND_5_ALTERNATING_BO5_TIEBREAKER"],
+    "playInSeedAllocationPolicy": "SIX_QUALIFIERS_BY_GROUP_BATTLE_INDIVIDUAL_RANKING_V1",
+    "playoffSeedAllocationPolicy": "WINNER_GROUP_1_2_LOSER_GROUP_1_THEN_PLAY_IN_4_5_6_V1",
+    "qualificationOutputs": ["FIRST_STAND_LCK_SEED_1","FIRST_STAND_LCK_SEED_2"]
+  },
+  "kespaCup": {
+    "templateId": "KESPA_CUP_REFERENCE_TEMPLATE_2025",
+    "sourceReferenceYear": 2025,
+    "status": "REFERENCE_TEMPLATE_NOT_OFFICIAL_FOR_2026_OR_FUTURE",
+    "futureEventStatus": "KESPA_CUP_2026_RULE_SOURCE_INCOMPLETE",
+    "sourceIds": ["S17","S18","S19"],
+    "executionBlockers": ["KESPA_CUP_2026_RULE_SOURCE_INCOMPLETE","EXTERNAL_PARTICIPANT_ROSTER_AUTHORITY_MISSING"],
+    "participantSlots": [
+      {"slotId":"LCK_SLOT_1","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"LCK_SLOT_2","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"LCK_SLOT_3","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"LCK_SLOT_4","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"LCK_SLOT_5","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"LCK_SLOT_6","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"LCK_SLOT_7","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"LCK_SLOT_8","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"LCK_SLOT_9","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"LCK_SLOT_10","authority":"2025_REFERENCE_ONLY","resolved":false},
+      {"slotId":"OVERSEAS_ALL_STAR_SLOT_1","authority":"UNRESOLVED_EXTERNAL_ROSTER","resolved":false},
+      {"slotId":"OVERSEAS_ALL_STAR_SLOT_2","authority":"UNRESOLVED_EXTERNAL_ROSTER","resolved":false},
+      {"slotId":"FOREIGN_TEAM_SLOT_1","authority":"UNRESOLVED_EXTERNAL_ROSTER","resolved":false},
+      {"slotId":"FOREIGN_TEAM_SLOT_2","authority":"UNRESOLVED_EXTERNAL_ROSTER","resolved":false}
+    ],
+    "stages": [
+      {"stageId":"GROUP_STAGE","teamCount":14,"matchCount":26,"seriesFormat":"BO1","routing":"THREE_GROUP_WINNERS_TO_FINAL_AND_THREE_RUNNERS_UP_TO_LCQ","sourceIds":["S17","S18"]},
+      {"stageId":"LCQ","teamCount":3,"matchCount":3,"seriesFormat":"BO3","routing":"ROUND_ROBIN_WINNER_TO_FINAL","sourceIds":["S17","S18"]},
+      {"stageId":"FINAL_STAGE","teamCount":4,"matchCount":6,"seriesFormat":"MIXED_BO3_BO5","routing":"FOUR_TEAM_DOUBLE_ELIMINATION","sourceIds":["S17","S18"]}
+    ]
+  },
+  "competitions": [
+    {
+      "competitionId":"LCK_CUP","ruleStatus":"RULE_SOURCE_COMPLETE","blockingReason":null,
+      "sourceIds":["S01","S03","S04","S05","S16"],"seriesFormat":"MIXED_BO3_BO5","hardFearless":true,
+      "matches":[
+        {"matchId":"GB_B1_E2","stageId":"GROUP_BATTLE","matchOrder":1,"monthDay":"01-14","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:1"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:2"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B3_E4","stageId":"GROUP_BATTLE","matchOrder":2,"monthDay":"01-14","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:3"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:4"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B2_E3","stageId":"GROUP_BATTLE","matchOrder":3,"monthDay":"01-15","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:2"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:3"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B4_E5","stageId":"GROUP_BATTLE","matchOrder":4,"monthDay":"01-15","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:4"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:5"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B5_E1","stageId":"GROUP_BATTLE","matchOrder":5,"monthDay":"01-16","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:5"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:1"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B1_E3","stageId":"GROUP_BATTLE","matchOrder":6,"monthDay":"01-16","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:1"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:3"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B2_E4","stageId":"GROUP_BATTLE","matchOrder":7,"monthDay":"01-17","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:2"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:4"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B5_E2","stageId":"GROUP_BATTLE","matchOrder":8,"monthDay":"01-17","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:5"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:2"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B3_E5","stageId":"GROUP_BATTLE","matchOrder":9,"monthDay":"01-18","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:3"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:5"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B4_E1","stageId":"GROUP_BATTLE","matchOrder":10,"monthDay":"01-18","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:4"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:1"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B1_E4","stageId":"GROUP_BATTLE","matchOrder":11,"monthDay":"01-21","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:1"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:4"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B3_E1","stageId":"GROUP_BATTLE","matchOrder":12,"monthDay":"01-21","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:3"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:1"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B2_E5","stageId":"GROUP_BATTLE","matchOrder":13,"monthDay":"01-22","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:2"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:5"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B4_E2","stageId":"GROUP_BATTLE","matchOrder":14,"monthDay":"01-22","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:4"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:2"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B5_E3","stageId":"GROUP_BATTLE","matchOrder":15,"monthDay":"01-23","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:5"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:3"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B1_E5","stageId":"GROUP_BATTLE","matchOrder":16,"monthDay":"01-23","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:1"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:5"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B2_E1","stageId":"GROUP_BATTLE","matchOrder":17,"monthDay":"01-24","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:2"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:1"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B4_E3","stageId":"GROUP_BATTLE","matchOrder":18,"monthDay":"01-24","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:4"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:3"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B3_E2","stageId":"GROUP_BATTLE","matchOrder":19,"monthDay":"01-25","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:3"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:2"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"GB_B5_E4","stageId":"GROUP_BATTLE","matchOrder":20,"monthDay":"01-25","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:5"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:4"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":1,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"SW_B1_E1","stageId":"GROUP_BATTLE","matchOrder":21,"monthDay":"01-28","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:1"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:1"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":2,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"SW_B2_E2","stageId":"GROUP_BATTLE","matchOrder":22,"monthDay":"01-29","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:2"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:2"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":2,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"SW_B3_E3","stageId":"GROUP_BATTLE","matchOrder":23,"monthDay":"01-30","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:3"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:3"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":2,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"SW_B4_E4","stageId":"GROUP_BATTLE","matchOrder":24,"monthDay":"01-31","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:4"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:4"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":2,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"SW_B5_E5","stageId":"GROUP_BATTLE","matchOrder":25,"monthDay":"02-01","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"CUP_GROUP_SEED","value":"BARON:5"},"second":{"type":"CUP_GROUP_SEED","value":"ELDER:5"},"winnerOutputs":[],"loserOutputs":[],"groupId":"BARON_VS_ELDER","groupPointValue":2,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"LCK_CUP_GROUP_CANONICAL_PARTICIPANT_ORDER_V1"},
+        {"matchId":"PI_R1_M1","stageId":"CUP_PLAY_IN","matchOrder":26,"monthDay":"02-04","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_PLAY_IN_SEED","value":"3"},"second":{"type":"CUP_PLAY_IN_SEED","value":"6"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"HIGHER_GROUP_BATTLE_SEED_FIRST_GAME_ROFS"},
+        {"matchId":"PI_R1_M2","stageId":"CUP_PLAY_IN","matchOrder":27,"monthDay":"02-04","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_PLAY_IN_SEED","value":"4"},"second":{"type":"CUP_PLAY_IN_SEED","value":"5"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"HIGHER_GROUP_BATTLE_SEED_FIRST_GAME_ROFS"},
+        {"matchId":"PI_R2_M1","stageId":"CUP_PLAY_IN","matchOrder":28,"monthDay":"02-05","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_PLAY_IN_SEED","value":"1"},"second":{"type":"LOWEST_AVAILABLE_SEED_MATCH_WINNER","value":"PI_R1_M1,PI_R1_M2"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":"CUP_PLAY_IN_SEED_1","opponentChoicePolicy":"LCK_CUP_LOWEST_AVAILABLE_SEED_OPPONENT_SELECTION_V1","sideSelectionPolicy":"HIGHER_GROUP_BATTLE_SEED_FIRST_GAME_ROFS"},
+        {"matchId":"PI_R2_M2","stageId":"CUP_PLAY_IN","matchOrder":29,"monthDay":"02-05","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO3","hardFearless":true,"first":{"type":"CUP_PLAY_IN_SEED","value":"2"},"second":{"type":"REMAINING_MATCH_WINNER","value":"PI_R1_M1,PI_R1_M2"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"HIGHER_GROUP_BATTLE_SEED_FIRST_GAME_ROFS"},
+        {"matchId":"PI_FINAL","stageId":"CUP_PLAY_IN","matchOrder":30,"monthDay":"02-06","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO5","hardFearless":true,"first":{"type":"MATCH_LOSER","value":"PI_R2_M1"},"second":{"type":"MATCH_LOSER","value":"PI_R2_M2"},"winnerOutputs":["LCK_CUP_PLAYOFF_SEED_6"],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"SEEDED_COIN_TOSS_FIRST_GAME_ROFS_V1"},
+        {"matchId":"PO_UBR1_M1","stageId":"CUP_PLAYOFFS","matchOrder":31,"monthDay":"02-11","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO5","hardFearless":true,"first":{"type":"CUP_PLAYOFF_SEED","value":"3"},"second":{"type":"CUP_PLAYOFF_SEED","value":"6"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":"CUP_PLAYOFF_SEED_3","opponentChoicePolicy":"LCK_CUP_LOWEST_AVAILABLE_SEED_OPPONENT_SELECTION_V1","sideSelectionPolicy":"CUP_PLAYOFF_SEED_3_FIRST_GAME_ROFS"},
+        {"matchId":"PO_UBR1_M2","stageId":"CUP_PLAYOFFS","matchOrder":32,"monthDay":"02-11","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO5","hardFearless":true,"first":{"type":"CUP_PLAYOFF_SEED","value":"4"},"second":{"type":"CUP_PLAYOFF_SEED","value":"5"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"HIGHER_PLAYOFF_SEED_FIRST_GAME_ROFS"},
+        {"matchId":"PO_LBR1","stageId":"CUP_PLAYOFFS","matchOrder":33,"monthDay":"02-12","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO5","hardFearless":true,"first":{"type":"MATCH_LOSER","value":"PO_UBR1_M1"},"second":{"type":"MATCH_LOSER","value":"PO_UBR1_M2"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"SEEDED_COIN_TOSS_FIRST_GAME_ROFS_V1"},
+        {"matchId":"PO_UBR2_M1","stageId":"CUP_PLAYOFFS","matchOrder":34,"monthDay":"02-14","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO5","hardFearless":true,"first":{"type":"CUP_PLAYOFF_SEED","value":"1"},"second":{"type":"LOWEST_AVAILABLE_SEED_MATCH_WINNER","value":"PO_UBR1_M1,PO_UBR1_M2"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":"CUP_PLAYOFF_SEED_1","opponentChoicePolicy":"LCK_CUP_LOWEST_AVAILABLE_SEED_OPPONENT_SELECTION_V1","sideSelectionPolicy":"CUP_PLAYOFF_SEED_1_FIRST_GAME_ROFS"},
+        {"matchId":"PO_UBR2_M2","stageId":"CUP_PLAYOFFS","matchOrder":35,"monthDay":"02-14","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO5","hardFearless":true,"first":{"type":"CUP_PLAYOFF_SEED","value":"2"},"second":{"type":"REMAINING_MATCH_WINNER","value":"PO_UBR1_M1,PO_UBR1_M2"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"CUP_PLAYOFF_SEED_2_FIRST_GAME_ROFS"},
+        {"matchId":"PO_LBR2","stageId":"CUP_PLAYOFFS","matchOrder":36,"monthDay":"02-15","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO5","hardFearless":true,"first":{"type":"MATCH_WINNER","value":"PO_LBR1"},"second":{"type":"LOWER_PLAYOFF_SEED_MATCH_LOSER","value":"PO_UBR2_M1,PO_UBR2_M2"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"UPPER_BRACKET_LOSER_FIRST_GAME_ROFS"},
+        {"matchId":"PO_UBR3","stageId":"CUP_PLAYOFFS","matchOrder":37,"monthDay":"02-21","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO5","hardFearless":true,"first":{"type":"MATCH_WINNER","value":"PO_UBR2_M1"},"second":{"type":"MATCH_WINNER","value":"PO_UBR2_M2"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"SEEDED_COIN_TOSS_FIRST_GAME_ROFS_V1"},
+        {"matchId":"PO_LBR3","stageId":"CUP_PLAYOFFS","matchOrder":38,"monthDay":"02-22","scheduleStatus":"GAME_DERIVED_SCHEDULE_POLICY","seriesFormat":"BO5","hardFearless":true,"first":{"type":"HIGHER_PLAYOFF_SEED_MATCH_LOSER","value":"PO_UBR2_M1,PO_UBR2_M2"},"second":{"type":"MATCH_WINNER","value":"PO_LBR2"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"UPPER_BRACKET_LOSER_FIRST_GAME_ROFS"},
+        {"matchId":"PO_LOWER_FINAL","stageId":"CUP_PLAYOFFS","matchOrder":39,"monthDay":"02-28","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"MATCH_LOSER","value":"PO_UBR3"},"second":{"type":"MATCH_WINNER","value":"PO_LBR3"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"UPPER_BRACKET_LOSER_FIRST_GAME_ROFS"},
+        {"matchId":"PO_FINAL","stageId":"CUP_PLAYOFFS","matchOrder":40,"monthDay":"03-01","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"MATCH_WINNER","value":"PO_UBR3"},"second":{"type":"MATCH_WINNER","value":"PO_LOWER_FINAL"},"winnerOutputs":["FIRST_STAND_LCK_SEED_1"],"loserOutputs":["FIRST_STAND_LCK_SEED_2"],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"UPPER_BRACKET_WINNER_PICK_AND_SIDE_FIRST_GAME_ROFS"}
+      ],
+      "scheduledMonthDays":["01-14","01-15","01-16","01-17","01-18","01-21","01-22","01-23","01-24","01-25","01-28","01-29","01-30","01-31","02-01","02-04","02-05","02-06","02-11","02-12","02-14","02-15","02-21","02-22","02-28","03-01"]
+    },
+    {"competitionId":"LCK_REGULAR_R1_R2","ruleStatus":"RULE_SOURCE_COMPLETE","blockingReason":null,"sourceIds":["S03","S04"],"seriesFormat":"BO3","hardFearless":true,"matches":[],"scheduledMonthDays":[]},
+    {
+      "competitionId":"LCK_ROAD_TO_MSI","ruleStatus":"RULE_SOURCE_COMPLETE","blockingReason":null,"sourceIds":["S03","S04"],"seriesFormat":"BO5","hardFearless":true,
+      "matches":[
+        {"matchId":"M1","stageId":"ROAD_TO_MSI","matchOrder":1,"monthDay":"06-06","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"R1_R2_RANK","value":"5"},"second":{"type":"R1_R2_RANK","value":"6"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"OFFICIAL_HIGHER_SEED_ROFS"},
+        {"matchId":"M2","stageId":"ROAD_TO_MSI","matchOrder":2,"monthDay":"06-07","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"R1_R2_RANK","value":"4"},"second":{"type":"MATCH_WINNER","value":"M1"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"OFFICIAL_HIGHER_SEED_ROFS"},
+        {"matchId":"M3","stageId":"ROAD_TO_MSI","matchOrder":3,"monthDay":"06-12","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"R1_R2_RANK","value":"1"},"second":{"type":"R1_R2_RANK","value":"2"},"winnerOutputs":["MSI_LCK_SEED_1"],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"OFFICIAL_HIGHER_SEED_ROFS"},
+        {"matchId":"M4","stageId":"ROAD_TO_MSI","matchOrder":4,"monthDay":"06-13","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"R1_R2_RANK","value":"3"},"second":{"type":"MATCH_WINNER","value":"M2"},"winnerOutputs":[],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"OFFICIAL_HIGHER_SEED_ROFS"},
+        {"matchId":"M5","stageId":"ROAD_TO_MSI","matchOrder":5,"monthDay":"06-14","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"MATCH_LOSER","value":"M3"},"second":{"type":"MATCH_WINNER","value":"M4"},"winnerOutputs":["MSI_LCK_SEED_2"],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"OFFICIAL_BRACKET_ROFS"}
+      ],
+      "scheduledMonthDays":["06-06","06-07","06-12","06-13","06-14"]
+    },
+    {"competitionId":"LCK_REGULAR_R3_R4","ruleStatus":"RULE_SOURCE_COMPLETE","blockingReason":null,"sourceIds":["S03","S04"],"seriesFormat":"BO3","hardFearless":true,"matches":[],"scheduledMonthDays":[]},
+    {
+      "competitionId":"LCK_PLAY_IN","ruleStatus":"RULE_SOURCE_COMPLETE","blockingReason":null,"sourceIds":["S03","S04"],"seriesFormat":"BO5","hardFearless":true,
+      "matches":[
+        {"matchId":"M1","stageId":"PLAY_IN","matchOrder":1,"monthDay":"08-26","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"PLAY_IN_SEED","value":"1"},"second":{"type":"PLAY_IN_SEED","value":"2"},"winnerOutputs":["LCK_PLAYOFF_SEED_5"],"loserOutputs":[],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"OFFICIAL_HIGHER_SEED_ROFS"},
+        {"matchId":"M2","stageId":"PLAY_IN","matchOrder":2,"monthDay":"08-27","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"PLAY_IN_SEED","value":"3"},"second":{"type":"PLAY_IN_SEED","value":"4"},"winnerOutputs":[],"loserOutputs":["LCK_SEASON_PLACE_8"],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"OFFICIAL_HIGHER_SEED_ROFS"},
+        {"matchId":"M3","stageId":"PLAY_IN","matchOrder":3,"monthDay":"08-28","scheduleStatus":"OFFICIAL_PROJECTED_DATE","seriesFormat":"BO5","hardFearless":true,"first":{"type":"MATCH_LOSER","value":"M1"},"second":{"type":"MATCH_WINNER","value":"M2"},"winnerOutputs":["LCK_PLAYOFF_SEED_6"],"loserOutputs":["LCK_SEASON_PLACE_7"],"groupId":null,"groupPointValue":null,"selectionRightOwner":null,"opponentChoicePolicy":null,"sideSelectionPolicy":"OFFICIAL_BRACKET_ROFS"}
+      ],
+      "scheduledMonthDays":["08-26","08-27","08-28"]
+    },
+    {"competitionId":"LCK_PLAYOFFS","ruleStatus":"RULE_SOURCE_INCOMPLETE","blockingReason":"LCK_PLAYOFF_BRACKET_RULE_SOURCE_INCOMPLETE","sourceIds":["S03","S04"],"seriesFormat":"BO5","hardFearless":true,"matches":[],"scheduledMonthDays":["08-29","08-30","09-01","09-02","09-03","09-04","09-05","09-06","09-12","09-13"]},
+    {"competitionId":"FIRST_STAND","ruleStatus":"RULE_SOURCE_INCOMPLETE","blockingReason":"EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED","sourceIds":["S02","S06","S07"],"seriesFormat":"BO5","hardFearless":true,"matches":[],"scheduledMonthDays":[]},
+    {"competitionId":"MSI","ruleStatus":"RULE_SOURCE_INCOMPLETE","blockingReason":"EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED","sourceIds":["S08","S09"],"seriesFormat":"BO5","hardFearless":null,"matches":[],"scheduledMonthDays":[]},
+    {"competitionId":"EWC_LOL","ruleStatus":"RULE_SOURCE_INCOMPLETE","blockingReason":"EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED","sourceIds":["S11","S12"],"seriesFormat":"MIXED_BO1_BO3_BO5","hardFearless":true,"matches":[],"scheduledMonthDays":[]},
+    {"competitionId":"WORLDS","ruleStatus":"RULE_SOURCE_INCOMPLETE","blockingReason":"EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED","sourceIds":["S08","S10"],"seriesFormat":"MIXED_BO1_BO3_BO5","hardFearless":null,"matches":[],"scheduledMonthDays":[]},
+    {"competitionId":"ASIAN_GAMES_LOL_RELEASE","ruleStatus":"RULE_SOURCE_COMPLETE","blockingReason":"NATIONAL_TEAM_RELEASE_WINDOW_ONLY","sourceIds":["S13","S14","S15"],"seriesFormat":"NONE","hardFearless":null,"matches":[],"scheduledMonthDays":[]},
+    {"competitionId":"KESPA_CUP","ruleStatus":"REFERENCE_TEMPLATE_ONLY","blockingReason":"KESPA_CUP_2026_RULE_SOURCE_INCOMPLETE","sourceIds":["S17","S18","S19"],"seriesFormat":"MIXED_BO1_BO3_BO5","hardFearless":null,"matches":[],"scheduledMonthDays":[]}
+  ]
+}

@@ -114,12 +114,93 @@ class CareerCompetitionRulesTest {
     }
 
     @Test
-    void resourceProvenanceFailsClosedForKnownCupAndPlayoffGaps() {
+    void lckCupInitialBootstrapAndExecutableGraphAreExact() {
         assertThat(rules.resourceHash()).isEqualTo(
                 CareerCompetitionRules.RESOURCE_HASH);
-        assertThat(rules.rawSources()).hasSize(4);
-        assertThat(rules.rule("LCK_CUP").blockingReason())
-                .isEqualTo("INITIAL_CYCLE_PRIOR_SEASON_RESULT_REQUIRED");
+        assertThat(rules.rawSources()).hasSize(6);
+        CareerCompetitionRules.CupInitialization initialization =
+                rules.initialCupInitialization(2027);
+        assertThat(initialization.seasonOrdinal()).isOne();
+        assertThat(initialization.sourceReferenceYear()).isEqualTo(2026);
+        assertThat(initialization.policyId())
+                .isEqualTo(CareerCompetitionRules.INITIAL_CUP_POLICY);
+        assertThat(initialization.groups()).extracting(
+                CareerCompetitionRules.CupGroupSeed::teamCode)
+                .containsExactlyInAnyOrder("GEN", "T1", "NS", "DNS", "BRO",
+                        "HLE", "DK", "KT", "BFX", "KRX");
+
+        CareerCompetitionAggregate cup = CareerCompetitionAggregate.materializeCup(
+                rules, CAREER, 2027, "GEN", 41L, initialization);
+        assertThat(cup.fixtures()).hasSize(40);
+        assertThat(cup.fixtures()).filteredOn(value ->
+                "READY".equals(value.lifecycleStatus())).hasSize(25);
+        assertThat(rules.rule("LCK_CUP").matches()).filteredOn(value ->
+                "GROUP_BATTLE".equals(value.stageId())).hasSize(25);
+        assertThat(rules.rule("LCK_CUP").matches()).filteredOn(value ->
+                Integer.valueOf(2).equals(value.groupPointValue())).hasSize(5)
+                .allSatisfy(value -> assertThat(value.seriesFormat()).isEqualTo("BO5"));
+        assertThat(rules.rule("LCK_CUP").matches()).filteredOn(value ->
+                "CUP_PLAY_IN".equals(value.stageId())).hasSize(5);
+        assertThat(rules.rule("LCK_CUP").matches()).filteredOn(value ->
+                "CUP_PLAYOFFS".equals(value.stageId())).hasSize(10);
+        assertThat(rules.rule("LCK_CUP").matches()).filteredOn(value ->
+                CareerCompetitionRules.CUP_OPPONENT_POLICY.equals(
+                        value.opponentChoicePolicy())).hasSize(3);
+        assertThat(rules.lckCup().qualificationOutputs())
+                .containsExactly("FIRST_STAND_LCK_SEED_1", "FIRST_STAND_LCK_SEED_2");
+        assertThat(cup.qualificationOutputs()).isEmpty();
+
+        List<CareerCompetitionAggregate.SeededTeam> eligible = List.of(
+                new CareerCompetitionAggregate.SeededTeam(4, "T04", 0, 0, 0, 0),
+                new CareerCompetitionAggregate.SeededTeam(6, "T06", 0, 0, 0, 0),
+                new CareerCompetitionAggregate.SeededTeam(5, "T05", 0, 0, 0, 0));
+        CareerCompetitionRules.OpponentChoiceReceipt choice =
+                rules.chooseCupOpponent("T03", eligible);
+        CareerCompetitionRules.OpponentChoiceReceipt reordered =
+                rules.chooseCupOpponent("T03", eligible.reversed());
+        assertThat(choice.chosenTeamCode()).isEqualTo("T06");
+        assertThat(choice.canonicalEligibleOrder())
+                .containsExactly("6:T06", "5:T05", "4:T04");
+        assertThat(reordered).isEqualTo(choice);
+        assertThat(choice.receiptHash()).matches("[0-9a-f]{64}");
+    }
+
+    @Test
+    void futureCupUsesOnlySealedPriorInGameRankingAndKespaRemainsReferenceOnly() {
+        CareerCompetitionRules.PriorLckRanking prior =
+                new CareerCompetitionRules.PriorLckRanking(CAREER, 2027, "SEALED",
+                        hash(7), ranking());
+        CareerCompetitionRules.CupInitialization future =
+                rules.futureCupInitialization(2, 2028, prior);
+        assertThat(future.sourceReferenceYear()).isNull();
+        assertThat(future.sourceCareerId()).isEqualTo(CAREER);
+        assertThat(future.sourceSeasonYear()).isEqualTo(2027);
+        assertThat(future.sourceStateHash()).isEqualTo(hash(7));
+        assertThat(future.policyId()).isEqualTo(CareerCompetitionRules.FUTURE_CUP_POLICY);
+        assertThat(future.groups().stream().filter(value ->
+                "BARON".equals(value.groupId())).map(
+                CareerCompetitionRules.CupGroupSeed::teamCode).toList())
+                .containsExactly("T01", "T03", "T06", "T07", "T10");
+        assertThat(future.groups().stream().filter(value ->
+                "ELDER".equals(value.groupId())).map(
+                CareerCompetitionRules.CupGroupSeed::teamCode).toList())
+                .containsExactly("T02", "T04", "T05", "T08", "T09");
+        assertThat(future.inputHash()).isNotEqualTo(
+                rules.initialCupInitialization(2028).inputHash());
+        assertThatThrownBy(() -> rules.futureCupInitialization(2, 2028,
+                new CareerCompetitionRules.PriorLckRanking(CAREER, 2027, "RUNNING",
+                        hash(7), ranking())))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("LCK_CUP_PRIOR_SEASON_RANKING_REQUIRED");
+
+        assertThat(rules.kespaCup().sourceReferenceYear()).isEqualTo(2025);
+        assertThat(rules.kespaCup().status())
+                .isEqualTo("REFERENCE_TEMPLATE_NOT_OFFICIAL_FOR_2026_OR_FUTURE");
+        assertThat(rules.kespaCup().participantSlots()).hasSize(14)
+                .allSatisfy(slot -> assertThat(slot.resolved()).isFalse());
+        assertThat(rules.rule("KESPA_CUP").matches()).isEmpty();
+        assertThat(rules.rule("KESPA_CUP").ruleStatus())
+                .isEqualTo("REFERENCE_TEMPLATE_ONLY");
         assertThat(rules.rule("LCK_PLAYOFFS").ruleStatus())
                 .isEqualTo("RULE_SOURCE_INCOMPLETE");
         assertThat(rules.rule("LCK_PLAYOFFS").scheduledMonthDays()).hasSize(10);

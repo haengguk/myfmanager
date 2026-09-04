@@ -20,6 +20,7 @@ const SAFE_COPY: Readonly<Record<string, string>> = {
   CAREER_CALENDAR_STALE_REVISION: '캘린더가 이미 변경되었습니다. 최신 상태를 다시 불러오세요.',
   CAREER_CALENDAR_COMMAND_CONFLICT: '이 날짜 진행 작업 ID가 다른 입력에 이미 사용되었습니다.',
   CAREER_CALENDAR_ADVANCE_ALREADY_PENDING: '완료되지 않은 날짜 진행이 있습니다. 기존 작업으로 다시 확인하세요.',
+  CAREER_CALENDAR_LEGACY_PENDING_RECONCILIATION_REQUIRED: '이전 버전의 진행 작업은 원본 요청을 증명할 수 없어 자동 재실행하지 않습니다.',
   CAREER_CALENDAR_COMMAND_INTEGRITY_FAILURE: '날짜 진행 기록의 무결성을 확인할 수 없습니다.',
   CAREER_CALENDAR_MIGRATION_REQUIRED: '이 저장은 캘린더 마이그레이션 확인이 필요합니다.',
   CAREER_CALENDAR_INTEGRITY_FAILURE: '캘린더 또는 연결 일정의 무결성을 확인할 수 없습니다.',
