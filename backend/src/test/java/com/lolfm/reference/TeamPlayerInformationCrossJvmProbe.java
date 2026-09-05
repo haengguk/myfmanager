@@ -1,7 +1,14 @@
 package com.lolfm.reference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.lolfm.LolfmApplication;
+import com.lolfm.application.TeamPlayerInformationApiV1ResponseMapper;
+import com.lolfm.champion.ChampionCatalog;
+import com.lolfm.player.ChampionProficiencyCatalog;
+import com.lolfm.player.PlayerIdentityCatalog;
+import com.lolfm.player.PlayerRatingCatalog;
+import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Import;
 import com.lolfm.application.TeamPlayerInformationApiV1Service;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -24,12 +31,22 @@ public final class TeamPlayerInformationCrossJvmProbe {
     public static void main(String[] args) throws Exception {
         if (args.length != 1) throw new IllegalArgumentException("Expected output directory");
         try (ConfigurableApplicationContext context = new SpringApplicationBuilder(
-                LolfmApplication.class).web(WebApplicationType.NONE)
+                CatalogConfiguration.class).web(WebApplicationType.NONE)
                 .properties("spring.main.banner-mode=off", "logging.level.root=ERROR")
                 .run()) {
             write(context, Path.of(args[0]));
         }
     }
+
+    // Import the same production constructors and Boot Jackson configuration, without
+    // component scanning unrelated gameplay, database, worker or web components.
+    @TestConfiguration(proxyBeanMethods = false)
+    @Import({JacksonAutoConfiguration.class, ChampionCatalog.class,
+            PlayerIdentityCatalog.class, PlayerRatingCatalog.class,
+            ChampionProficiencyCatalog.class, TeamPlayerInformationCatalog.class,
+            TeamPlayerInformationApiV1ResponseMapper.class,
+            TeamPlayerInformationApiV1Service.class})
+    static class CatalogConfiguration { }
 
     static void write(ConfigurableApplicationContext context, Path output) throws IOException {
         Files.createDirectories(output);

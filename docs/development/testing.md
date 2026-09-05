@@ -9,6 +9,10 @@ cd backend
 ./gradlew test --tests 'fully.qualified.TestClass'
 ```
 
+기본 `test`는 고유 회귀 범위를 그대로 실행하며 최대 2개 JVM worker(각 heap 1,536MiB)를 사용한다.
+메모리가 제한된 환경은 `-PtestForks=1`로 실행한다. 테스트 메서드는 병렬 실행하지 않는다.
+실행 비용 개선과 중복 통합 근거는 [실행 비용 개선 V1](backend-regression-runtime-optimization-v1.md)을 참고한다.
+
 현재 test source는 대략 다음 책임으로 나뉜다.
 
 - `com.lolfm.champion`: catalog/resource coverage, power, matchup, active-full/historical-subset integrity

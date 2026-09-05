@@ -43,7 +43,9 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE,
+        properties = {"spring.main.banner-mode=off", "logging.level.root=ERROR",
+                "spring.main.lazy-initialization=true"})
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RealDraftMatchOrchestratorTest {
     private static final long MATCH_SEED = 73L;

@@ -34,7 +34,14 @@ tasks.named('test') {
     useJUnitPlatform {
         excludeTags 'diagnostic'
     }
-    maxHeapSize = '2g'
+    // Two class-level workers, each leaving room for a fresh-JVM probe child.
+    // Use -PtestForks=1 on memory-constrained machines; never parallelize methods.
+    def requestedForks = providers.gradleProperty('testForks').orElse('2').get().toInteger()
+    if (!(requestedForks in 1..2)) {
+        throw new GradleException('testForks must be 1 or 2')
+    }
+    maxParallelForks = Math.min(requestedForks, Runtime.runtime.availableProcessors())
+    maxHeapSize = '1536m'
 }
 
 tasks.register("verifyHistoricalArtifactContracts", Test) {

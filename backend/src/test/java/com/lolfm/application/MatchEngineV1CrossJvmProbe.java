@@ -33,7 +33,7 @@ public final class MatchEngineV1CrossJvmProbe {
         try (ConfigurableApplicationContext context = new SpringApplicationBuilder(
                 LolfmApplication.class)
                 .web(WebApplicationType.NONE)
-                .properties("spring.main.banner-mode=off", "logging.level.root=ERROR")
+                .properties("spring.main.lazy-initialization=true", "spring.main.banner-mode=off", "logging.level.root=ERROR")
                 .run()) {
             write(context, Path.of(args[0]));
         }

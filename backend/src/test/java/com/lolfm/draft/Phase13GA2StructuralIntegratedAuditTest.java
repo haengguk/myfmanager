@@ -47,7 +47,6 @@ class Phase13GA2StructuralIntegratedAuditTest {
     private List<Phase13GASyntheticContextFactory.SyntheticContext> contexts;
     private Phase13GA2AuditSchedule.Schedule schedule;
     private DraftEngine engine;
-    private FinalDraftResult neutralDraft;
     private Phase13GA2StructuralIntegratedAudit audit;
     private Phase13GA2StructuralIntegratedAudit.DraftAudit neutralAudit;
 
@@ -57,9 +56,19 @@ class Phase13GA2StructuralIntegratedAuditTest {
         contexts = Phase13GASyntheticContextFactory.create(resources);
         schedule = Phase13GA2AuditSchedule.freeze(contexts);
         engine = new DraftEngine(resources);
-        neutralDraft = engine.draftDeterministicBest(context("synthetic-neutral"), context("synthetic-neutral"), new SeriesDraftHistory());
         audit = new Phase13GA2StructuralIntegratedAudit();
-        neutralAudit = audit.auditSingle("focused-neutral", "synthetic-neutral", "synthetic-neutral", new SeriesDraftHistory());
+    }
+
+    private Phase13GA2StructuralIntegratedAudit.DraftAudit neutralAudit() {
+        if (neutralAudit == null) {
+            neutralAudit = audit.auditSingle("focused-neutral", "synthetic-neutral",
+                    "synthetic-neutral", new SeriesDraftHistory());
+        }
+        return neutralAudit;
+    }
+
+    private FinalDraftResult neutralDraft() {
+        return neutralAudit().result();
     }
 
     @Test
@@ -155,22 +164,22 @@ class Phase13GA2StructuralIntegratedAuditTest {
 
     @Test
     void everyGameOneDraftCompletesTwentyActions() {
-        assertThat(neutralDraft.decisions()).hasSize(20);
-        assertThat(neutralDraft.blueBans()).hasSize(5);
-        assertThat(neutralDraft.redBans()).hasSize(5);
-        assertThat(neutralDraft.bluePicks()).hasSize(5);
-        assertThat(neutralDraft.redPicks()).hasSize(5);
-        assertThat(neutralDraft.decisions()).allSatisfy(value -> assertThat(value.topAlternatives()).isNotEmpty());
+        assertThat(neutralDraft().decisions()).hasSize(20);
+        assertThat(neutralDraft().blueBans()).hasSize(5);
+        assertThat(neutralDraft().redBans()).hasSize(5);
+        assertThat(neutralDraft().bluePicks()).hasSize(5);
+        assertThat(neutralDraft().redPicks()).hasSize(5);
+        assertThat(neutralDraft().decisions()).allSatisfy(value -> assertThat(value.topAlternatives()).isNotEmpty());
     }
 
     @Test
     void everyFinalDraftHasFiveUniqueLegalRolesPerTeam() {
-        assertThat(neutralDraft.blueFinalRoleAssignments().values()).containsExactlyInAnyOrder(Position.values());
-        assertThat(neutralDraft.redFinalRoleAssignments().values()).containsExactlyInAnyOrder(Position.values());
-        for (Map.Entry<ChampionId, Position> entry : neutralDraft.blueFinalRoleAssignments().entrySet()) {
+        assertThat(neutralDraft().blueFinalRoleAssignments().values()).containsExactlyInAnyOrder(Position.values());
+        assertThat(neutralDraft().redFinalRoleAssignments().values()).containsExactlyInAnyOrder(Position.values());
+        for (Map.Entry<ChampionId, Position> entry : neutralDraft().blueFinalRoleAssignments().entrySet()) {
             assertThat(resources.champions().catalog().supports(new ChampionRoleKey(entry.getKey(), entry.getValue()))).isTrue();
         }
-        for (Map.Entry<ChampionId, Position> entry : neutralDraft.redFinalRoleAssignments().entrySet()) {
+        for (Map.Entry<ChampionId, Position> entry : neutralDraft().redFinalRoleAssignments().entrySet()) {
             assertThat(resources.champions().catalog().supports(new ChampionRoleKey(entry.getKey(), entry.getValue()))).isTrue();
         }
     }
@@ -185,7 +194,7 @@ class Phase13GA2StructuralIntegratedAuditTest {
         DraftScoringPolicy policy = DraftScoringPolicy.standard();
         DraftCandidateGenerator generator = new DraftCandidateGenerator(resources.champions().catalog(), resources.meta(), roles, composition, availability, policy);
         PreDraftPlanner planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(), resources.champions().composition(), roles);
-        for (DraftDecision ignored : neutralDraft.decisions()) {
+        for (DraftDecision ignored : neutralDraft().decisions()) {
             TeamSide side = state.currentTurn().side();
             DraftTeamContext own = neutral.draftContext();
             DraftPlanPortfolio ownPlan = planner.replan(own, own, side, state);
@@ -198,10 +207,10 @@ class Phase13GA2StructuralIntegratedAuditTest {
 
     @Test
     void finalMatchAssignmentsAreExplicitAndStructured() {
-        assertThat(neutralDraft.matchChampionAssignments().selectionMode()).isEqualTo(ChampionSelectionMode.EXPLICIT);
-        assertThat(neutralDraft.matchChampionAssignments().asMap()).hasSize(10);
+        assertThat(neutralDraft().matchChampionAssignments().selectionMode()).isEqualTo(ChampionSelectionMode.EXPLICIT);
+        assertThat(neutralDraft().matchChampionAssignments().asMap()).hasSize(10);
         for (TeamSide side : TeamSide.values()) for (Position position : Position.values()) {
-            ChampionAssignment value = neutralDraft.matchChampionAssignments().get(new PlayerKey(side, position));
+            ChampionAssignment value = neutralDraft().matchChampionAssignments().get(new PlayerKey(side, position));
             assertThat(value.playerKey().position()).isEqualTo(position);
             assertThat(value.selectedPosition()).isEqualTo(position);
             assertThat(resources.champions().catalog().supports(new ChampionRoleKey(value.championId(), position))).isTrue();
@@ -211,10 +220,10 @@ class Phase13GA2StructuralIntegratedAuditTest {
     @Test
     void exactDraftReplayIsDeterministic() {
         FinalDraftResult replay = engine.draftDeterministicBest(context("synthetic-neutral"), context("synthetic-neutral"), new SeriesDraftHistory());
-        assertThat(replay.decisions()).isEqualTo(neutralDraft.decisions());
-        assertThat(replay.blueFinalRoleAssignments()).isEqualTo(neutralDraft.blueFinalRoleAssignments());
-        assertThat(replay.redFinalRoleAssignments()).isEqualTo(neutralDraft.redFinalRoleAssignments());
-        assertThat(replay.matchChampionAssignments().asMap()).isEqualTo(neutralDraft.matchChampionAssignments().asMap());
+        assertThat(replay.decisions()).isEqualTo(neutralDraft().decisions());
+        assertThat(replay.blueFinalRoleAssignments()).isEqualTo(neutralDraft().blueFinalRoleAssignments());
+        assertThat(replay.redFinalRoleAssignments()).isEqualTo(neutralDraft().redFinalRoleAssignments());
+        assertThat(replay.matchChampionAssignments().asMap()).isEqualTo(neutralDraft().matchChampionAssignments().asMap());
     }
 
     @Test
@@ -236,7 +245,7 @@ class Phase13GA2StructuralIntegratedAuditTest {
     @Test
     void hardFearlessBanDoesNotConsumeChampion() {
         SeriesDraftHistory history = new SeriesDraftHistory();
-        FinalDraftResult gameOne = neutralDraft;
+        FinalDraftResult gameOne = neutralDraft();
         history.commitCompleted(gameOne);
         assertThat(history.consumedPicks()).doesNotContainAnyElementsOf(gameOne.blueBans());
         assertThat(history.consumedPicks()).doesNotContainAnyElementsOf(gameOne.redBans());
@@ -263,7 +272,7 @@ class Phase13GA2StructuralIntegratedAuditTest {
 
     @Test
     void componentDistributionContainsNoNaNOrInfinity() {
-        assertThat(neutralDraft.decisions()).allSatisfy(decision ->
+        assertThat(neutralDraft().decisions()).allSatisfy(decision ->
                 assertThat(decision.componentBreakdown().values()).allMatch(Double::isFinite));
     }
 
@@ -335,7 +344,7 @@ class Phase13GA2StructuralIntegratedAuditTest {
                 new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(), new StructureResolver(), new PushResolver(),
                 SimulationOptions.productionDefaults(), resources.champions().matchup());
         MatchTimeline result = simulator.simulate(team(TeamSide.BLUE, "synthetic-neutral"), team(TeamSide.RED, "synthetic-high-baseline"), 1301L,
-                neutralDraft.matchChampionAssignments());
+                neutralDraft().matchChampionAssignments());
         assertThat(result.getWinner()).isNotBlank();
         assertThat(result.getDurationSeconds()).isPositive();
         assertThat(result.getEvents()).isNotEmpty();
@@ -348,9 +357,9 @@ class Phase13GA2StructuralIntegratedAuditTest {
                 new ObjectiveResolver(), new PostFightResolver(), new ObjectiveAttemptResolver(), new StructureResolver(), new PushResolver(),
                 SimulationOptions.productionDefaults(), resources.champions().matchup());
         MatchTimeline first = simulator.simulate(team(TeamSide.BLUE, "synthetic-neutral"), team(TeamSide.RED, "synthetic-high-baseline"), 1302L,
-                neutralDraft.matchChampionAssignments());
+                neutralDraft().matchChampionAssignments());
         MatchTimeline second = simulator.simulate(team(TeamSide.BLUE, "synthetic-neutral"), team(TeamSide.RED, "synthetic-high-baseline"), 1302L,
-                neutralDraft.matchChampionAssignments());
+                neutralDraft().matchChampionAssignments());
         assertThat(first.getWinner()).isEqualTo(second.getWinner());
         assertThat(first.getDurationSeconds()).isEqualTo(second.getDurationSeconds());
         assertCompleteTimelineEquals(first, second);
@@ -366,35 +375,35 @@ class Phase13GA2StructuralIntegratedAuditTest {
     
     @Test
     void rawLegalCandidateCountIsNeverBelowGeneratedShortlist() {
-        assertThat(neutralAudit.success()).isTrue();
-        assertThat(neutralAudit.candidateTrace()).allSatisfy(trace ->
+        assertThat(neutralAudit().success()).isTrue();
+        assertThat(neutralAudit().candidateTrace()).allSatisfy(trace ->
                 assertThat(trace.rawLegalActionCandidateCount()).isGreaterThanOrEqualTo(trace.generatedShortlistCount()));
     }
 
     
     @Test
     void generatedShortlistNeverExceedsTwelve() {
-        assertThat(neutralAudit.candidateTrace()).allSatisfy(trace ->
+        assertThat(neutralAudit().candidateTrace()).allSatisfy(trace ->
                 assertThat(trace.generatedShortlistCount()).isBetween(1, 12));
     }
 
     
     @Test
     void generatedShortlistNeverEmptyOnValidAuditDraft() {
-        assertThat(neutralAudit.success()).isTrue();
-        assertThat(neutralAudit.candidateTrace()).allSatisfy(trace -> assertThat(trace.candidates()).isNotEmpty());
+        assertThat(neutralAudit().success()).isTrue();
+        assertThat(neutralAudit().candidateTrace()).allSatisfy(trace -> assertThat(trace.candidates()).isNotEmpty());
     }
 
     
     @Test
     void selectedChampionAlwaysBelongsToGeneratedShortlist() {
-        assertThat(neutralAudit.candidateTrace()).allSatisfy(trace -> assertThat(trace.selectedInsideGeneratedShortlist()).isTrue());
+        assertThat(neutralAudit().candidateTrace()).allSatisfy(trace -> assertThat(trace.selectedInsideGeneratedShortlist()).isTrue());
     }
 
     
     @Test
     void rawLegalPoolAndGeneratedShortlistAreSeparateMetrics() {
-        assertThat(neutralAudit.candidateTrace()).allSatisfy(trace -> {
+        assertThat(neutralAudit().candidateTrace()).allSatisfy(trace -> {
             assertThat(trace.rawLegalActionCandidateCount()).isNotEqualTo(trace.generatedShortlistCount());
             assertThat(trace.rawAvailableChampionCount()).isGreaterThanOrEqualTo(trace.generatedShortlistCount());
             assertThat(trace.rawAvailableLegalRoleKeyCount()).isPositive();
@@ -404,7 +413,7 @@ class Phase13GA2StructuralIntegratedAuditTest {
     
     @Test
     void candidateCoverageContainsExactly173Champions() {
-        assertThat(audit.candidateCoverageFor(List.of(neutralAudit))).hasSize(173)
+        assertThat(audit.candidateCoverageFor(List.of(neutralAudit()))).hasSize(173)
                 .allSatisfy(row -> assertThat(row).containsKeys("championId", "pickOccurrences", "banOccurrences",
                         "candidateAppearanceCount", "highProficiencyContextCount", "roleAssignmentKeys"));
     }
@@ -428,14 +437,14 @@ class Phase13GA2StructuralIntegratedAuditTest {
     
     @Test
     void componentDistributionContainsGameOneScope() {
-        assertThat(audit.componentDistributionFor("GAME1", List.of(neutralAudit))).isNotEmpty()
+        assertThat(audit.componentDistributionFor("GAME1", List.of(neutralAudit()))).isNotEmpty()
                 .allSatisfy(value -> assertThat(value.scope()).isEqualTo("GAME1"));
     }
 
     
     @Test
     void componentDistributionContainsLaterFearlessScope() {
-        assertThat(audit.componentDistributionFor("LATER_FEARLESS", List.of(neutralAudit))).isNotEmpty()
+        assertThat(audit.componentDistributionFor("LATER_FEARLESS", List.of(neutralAudit()))).isNotEmpty()
                 .allSatisfy(value -> assertThat(value.scope()).isEqualTo("LATER_FEARLESS"));
     }
 
@@ -465,10 +474,10 @@ class Phase13GA2StructuralIntegratedAuditTest {
     
     @Test
     void engineAndValidationLatencyAreReportedSeparately() {
-        assertThat(neutralAudit.engineDraftMillis()).isGreaterThanOrEqualTo(0L);
-        assertThat(neutralAudit.validationMillis()).isGreaterThanOrEqualTo(0L);
-        assertThat(neutralAudit.totalAuditCaseMillis()).isEqualTo(
-                neutralAudit.engineDraftMillis() + neutralAudit.validationMillis());
+        assertThat(neutralAudit().engineDraftMillis()).isGreaterThanOrEqualTo(0L);
+        assertThat(neutralAudit().validationMillis()).isGreaterThanOrEqualTo(0L);
+        assertThat(neutralAudit().totalAuditCaseMillis()).isEqualTo(
+                neutralAudit().engineDraftMillis() + neutralAudit().validationMillis());
     }
 
     

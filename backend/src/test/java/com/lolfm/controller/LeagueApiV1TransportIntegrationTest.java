@@ -19,7 +19,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = {"spring.main.banner-mode=off", "logging.level.root=ERROR"})
+        properties = {"spring.main.banner-mode=off", "logging.level.root=ERROR",
+                "spring.main.lazy-initialization=true"})
 class LeagueApiV1TransportIntegrationTest {
     @LocalServerPort int port;
     @Autowired ObjectMapper mapper;

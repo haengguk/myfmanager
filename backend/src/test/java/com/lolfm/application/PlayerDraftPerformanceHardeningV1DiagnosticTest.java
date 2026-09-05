@@ -8,12 +8,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /** Explicit paired probe for the Player Draft performance-hardening milestone. */
+@EnabledIfEnvironmentVariable(named = "LOLMANAGER_PLAYER_DRAFT_PERFORMANCE_HARDENING_PHASE", matches = "before|after")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE,
         properties = {"spring.main.banner-mode=off", "logging.level.root=ERROR"})
 class PlayerDraftPerformanceHardeningV1DiagnosticTest {
@@ -37,8 +38,6 @@ class PlayerDraftPerformanceHardeningV1DiagnosticTest {
     @Test
     void capturePairedBackendProbe() throws Exception {
         String phase = System.getenv(PHASE);
-        Assumptions.assumeTrue("before".equals(phase) || "after".equals(phase),
-                () -> "Explicit diagnostic only; set " + PHASE + "=before|after");
         PlayerDraftLatencyProfilingV1Harness harness = new PlayerDraftLatencyProfilingV1Harness(
                 mapper, teams, drafts, service, sessions, inputs, matches, simulations,
                 responses, canonicalizer);

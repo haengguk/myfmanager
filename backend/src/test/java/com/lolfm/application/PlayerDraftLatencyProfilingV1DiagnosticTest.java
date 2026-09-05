@@ -13,17 +13,16 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 /** Explicitly environment-gated official small profiling schedule. */
+@EnabledIfEnvironmentVariable(named = "LOLMANAGER_RUN_PLAYER_DRAFT_LATENCY_PROFILE_V1", matches = "1")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE,
         properties = {"spring.main.banner-mode=off", "logging.level.root=ERROR"})
 class PlayerDraftLatencyProfilingV1DiagnosticTest {
-    private static final String ENABLE =
-            "LOLMANAGER_RUN_PLAYER_DRAFT_LATENCY_PROFILE_V1";
 
     @Autowired ObjectMapper mapper;
     @Autowired LckTeamAssembler teams;
@@ -39,8 +38,6 @@ class PlayerDraftLatencyProfilingV1DiagnosticTest {
     @Test
     void captureOfficialPlayerDraftInteractiveAndSimulationLatencyProfile()
             throws Exception {
-        Assumptions.assumeTrue("1".equals(System.getenv(ENABLE)),
-                () -> "Explicit profiling only; set " + ENABLE + "=1");
         Path backend = Path.of("").toAbsolutePath().normalize();
         Path input = backend.resolve("build/reports/"
                 + "player-draft-interactive-simulation-latency-profiling-v1-inputs/"

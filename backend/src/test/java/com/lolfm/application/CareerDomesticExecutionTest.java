@@ -10,7 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = {"spring.datasource.url=jdbc:h2:mem:domestic-engine;DB_CLOSE_DELAY=-1", "logging.level.root=ERROR"})
+        properties = {"spring.main.banner-mode=off", "logging.level.root=ERROR",
+                "spring.main.lazy-initialization=true"})
 class CareerDomesticExecutionTest {
     @Autowired CareerApplicationService careers;
     @Autowired CareerCompetitionRelationalStore store;

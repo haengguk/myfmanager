@@ -21,7 +21,7 @@ public final class LeaguePlayerSeriesHandoffCrossJvmProbe {
         if (args.length != 1) throw new IllegalArgumentException("Expected output file");
         try (var context = new SpringApplicationBuilder(LolfmApplication.class)
                 .web(WebApplicationType.NONE)
-                .properties("spring.main.banner-mode=off", "logging.level.root=ERROR",
+                .properties("spring.main.lazy-initialization=true", "spring.main.banner-mode=off", "logging.level.root=ERROR",
                         "spring.datasource.url=jdbc:h2:mem:player-probe;DB_CLOSE_DELAY=-1")
                 .run()) {
             LeagueProductionSnapshotProvider snapshots = context.getBean(
