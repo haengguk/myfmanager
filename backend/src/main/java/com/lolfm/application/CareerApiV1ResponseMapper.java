@@ -131,7 +131,8 @@ public final class CareerApiV1ResponseMapper {
                         value.activePendingCommand().competitionId(),
                         value.activePendingCommand().matchId(),
                         value.activePendingCommand().commandStatus()),
-                value.allowedCommands());
+                value.allowedCommands(), value.domesticRankingDecisions(), value.finalRanking(),
+                value.domesticRuleCompatibility());
     }
 
     private CareerApiV1Dtos.CompetitionSummary competitionSummary(

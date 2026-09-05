@@ -46,7 +46,7 @@ public final class CareerCompetitionAutomatedSeriesKernel {
                 production.currentTeamCodes());
         binding.requireProductionAuthority(snapshot,
                 production.currentResourceProvenanceHash());
-        SeriesDraftHistory history = new SeriesDraftHistory();
+        SeriesDraftHistory history = new SeriesDraftHistory(binding.initialHistoryPicks());
         HashMap<String, Integer> score = new HashMap<>();
         score.put(binding.firstTeamCode(), 0);
         score.put(binding.secondTeamCode(), 0);
@@ -57,10 +57,12 @@ public final class CareerCompetitionAutomatedSeriesKernel {
                 throw new IllegalStateException("HARD_FEARLESS_LEGAL_POOL_EXHAUSTED");
             }
             int gameNumber = receipts.size() + 1;
-            String blue = fixture.blueTeamCode(gameNumber);
-            String red = fixture.redTeamCode(gameNumber);
+            String blue = binding.loserChoosesNextSide() && !receipts.isEmpty()
+                    ? receipts.getLast().winnerTeamCode().equals(binding.firstTeamCode()) ? binding.secondTeamCode() : binding.firstTeamCode()
+                    : fixture.blueTeamCode(gameNumber);
+            String red = blue.equals(binding.firstTeamCode()) ? binding.secondTeamCode() : binding.firstTeamCode();
             String historyHash = history.identityHash();
-            long gameSeed = fixture.gameSeed(gameNumber, historyHash);
+            long gameSeed = LeagueIdentity.gameSeed(binding.boundSeriesId(), binding.fixtureRootSeed(), gameNumber, blue, red, binding.seedAnchorTeamCode(), historyHash);
             String matchIdentity = "CAREER_COMPETITION:" + binding.careerId()
                     + ":" + binding.seasonYear() + ':' + binding.competitionId()
                     + ':' + binding.matchId() + ":SERIES:" + binding.boundSeriesId()

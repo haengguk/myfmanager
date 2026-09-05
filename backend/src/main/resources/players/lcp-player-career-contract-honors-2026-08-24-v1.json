@@ -1,0 +1,6068 @@
+{
+  "version": "lcp-player-career-contract-honors-2026-08-24-v1",
+  "snapshotAt": "2026-08-24",
+  "scope": {
+    "league": "LCP",
+    "teams": 8,
+    "players": 40,
+    "startersPerTeam": 5,
+    "startersOnly": true,
+    "salaryIncluded": false,
+    "marketValueIncluded": false
+  },
+  "rosterBasis": {
+    "resourceVersion": "lcp-player-identities-2026-08-23-v1",
+    "path": "lcp-player-identities-2026-08-23-v1.json",
+    "policy": "The user-provided 2026-08-23 LCP starter snapshot is the identity basis. Public profile gaps and contract-list omissions are exposed explicitly without replacing the requested player set."
+  },
+  "semantics": {
+    "contract": "Only a publicly verifiable current contract expiration date is promoted to endDate. Salary, buyout, contract start, and inferred terms are excluded. Unknown expiry remains null.",
+    "career": "Public team-history periods with the available date precision retained. Gaps are not silently filled.",
+    "honors": "Major public team achievements and individual awards; not every minor event, weekly award, or placement.",
+    "prizeMoney": "Approximate public cumulative tournament winnings in USD; not salary, bonus, buyout, or market value.",
+    "age": "Completed age as of 2026-08-24, calculated from an exact public birth date."
+  },
+  "players": [
+    {
+      "playerId": "player-pun",
+      "nickname": "Pun",
+      "team": "TSW",
+      "position": "TOP",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Nguyễn Đăng Khoa",
+        "legalNameAliases": [],
+        "birthDate": "2002-07-29",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 24,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-15",
+        "daysRemainingAsOfSnapshot": 448,
+        "status": "VERIFIED_LEAGUEPEDIA_GCD_TIMELINE",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2020-05-15",
+        "yearsActiveAsOfSnapshot": 6.28,
+        "teamHistory": [
+          {
+            "team": "CERBERUS Esports",
+            "from": "2020-05-15",
+            "to": "2024-11-20",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Flash",
+            "from": "2024-11-21",
+            "to": "2025-07-04",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret Whales",
+            "from": "2025-07-16",
+            "to": null,
+            "role": "TOP",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 94916.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "TSW",
+        "requestedSnapshotPosition": "TOP",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Pun",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://lol.fandom.com/wiki/Team_Secret_Whales",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-hizto",
+      "nickname": "Hizto",
+      "team": "TSW",
+      "position": "JUNGLE",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Lê Văn Hoàng Hải",
+        "legalNameAliases": [],
+        "birthDate": "2007-09-15",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 18,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-15",
+        "daysRemainingAsOfSnapshot": 448,
+        "status": "VERIFIED_LEAGUEPEDIA_GCD_TIMELINE",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2024-12-07",
+        "yearsActiveAsOfSnapshot": 1.71,
+        "teamHistory": [
+          {
+            "team": "Secret Whales",
+            "from": "2024-12-07",
+            "to": null,
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [
+          {
+            "season": "2026 Split 2",
+            "award": "Regular Season MVP",
+            "competition": "LCP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "award": "Finals MVP",
+            "competition": "LCP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "award": "1st All-Pro Team",
+            "competition": "LCP",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 88847.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "TSW",
+        "requestedSnapshotPosition": "JUNGLE",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Hizto",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://lol.fandom.com/wiki/Team_Secret_Whales",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-dire",
+      "nickname": "Dire",
+      "team": "TSW",
+      "position": "MID",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Trần Duy Đức",
+        "legalNameAliases": [],
+        "birthDate": "2006-11-22",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 19,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-15",
+        "daysRemainingAsOfSnapshot": 448,
+        "status": "VERIFIED_LEAGUEPEDIA_GCD_TIMELINE",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2023-06-02",
+        "yearsActiveAsOfSnapshot": 3.23,
+        "teamHistory": [
+          {
+            "team": "Baby Whales",
+            "from": "2023-06-02",
+            "to": "2024-12-05",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret Whales",
+            "from": "2024-12-05",
+            "to": null,
+            "role": "MID",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [
+          {
+            "season": "2026 Split 2",
+            "award": "3rd Place Regular Season MVP",
+            "competition": "LCP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "award": "1st All-Pro Team",
+            "competition": "LCP",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 88447.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "TSW",
+        "requestedSnapshotPosition": "MID",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Dire",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://lol.fandom.com/wiki/Team_Secret_Whales",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-eddie",
+      "nickname": "Eddie",
+      "team": "TSW",
+      "position": "ADC",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Hoàng Công Nghĩa",
+        "legalNameAliases": [],
+        "birthDate": "2003-06-17",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 23,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-15",
+        "daysRemainingAsOfSnapshot": 448,
+        "status": "VERIFIED_LEAGUEPEDIA_GCD_TIMELINE",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2020-02-13",
+        "yearsActiveAsOfSnapshot": 6.53,
+        "teamHistory": [
+          {
+            "team": "Team Secret",
+            "from": "2020-02-13",
+            "to": "2020-06-19",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret",
+            "from": "2020-06-19",
+            "to": "2024-03-28",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret",
+            "from": "2024-03-28",
+            "to": "2024-06-03",
+            "role": "INACTIVE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret Whales",
+            "from": "2024-12-07",
+            "to": null,
+            "role": "ADC",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 57285.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "TSW",
+        "requestedSnapshotPosition": "ADC",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Eddie",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://lol.fandom.com/wiki/Team_Secret_Whales",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-bie",
+      "nickname": "Bie",
+      "team": "TSW",
+      "position": "SUPPORT",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Trần Đức Hiếu",
+        "legalNameAliases": [],
+        "birthDate": "1999-12-09",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 26,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-16",
+        "daysRemainingAsOfSnapshot": 84,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2018-01-30",
+        "yearsActiveAsOfSnapshot": 8.56,
+        "teamHistory": [
+          {
+            "team": "Hall of Fame",
+            "from": "2018-01-30",
+            "to": "2018-05-23",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Adonis Esports",
+            "from": "2018-05-23",
+            "to": "2018-12-17",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "FTV Esports",
+            "from": "2019-03-01",
+            "to": "2019-09-28",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "EVOS Esports",
+            "from": "2019-12-11",
+            "to": "2020-11-05",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "GAM Esports",
+            "from": "2020-11-26",
+            "to": "2022-11-27",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Whales",
+            "from": "2022-12-18",
+            "to": "2024-05-09",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Vikings Esports",
+            "from": "2024-06-15",
+            "to": "2024-11-05",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Hyper Vortex",
+            "from": "2025-02-08",
+            "to": "2025-04-07",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret Whales",
+            "from": "2025-12-10",
+            "to": null,
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2021 Spring",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2022 Spring",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2022 Summer",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Team Secret Whales",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 67782.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "TSW",
+        "requestedSnapshotPosition": "SUPPORT",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Bie",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/bie",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-rest",
+      "nickname": "Rest",
+      "team": "CFO",
+      "position": "TOP",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Hsu Shih-chieh",
+        "legalNameAliases": [],
+        "birthDate": "1998-12-11",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 27,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2017-06-06",
+        "yearsActiveAsOfSnapshot": 9.22,
+        "teamHistory": [
+          {
+            "team": "J Team 2",
+            "from": "2017-06-06",
+            "to": "2017-07-22",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "J Team",
+            "from": "2017-07-22",
+            "to": "2021-12-09",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CTBC Flying Oyster",
+            "from": "2022-01-26",
+            "to": null,
+            "role": "TOP",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2025 Split 1",
+            "competition": "LCP",
+            "team": "CTBC Flying Oyster",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 2",
+            "competition": "LCP",
+            "team": "CTBC Flying Oyster",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Season Finals",
+            "competition": "LCP",
+            "team": "CTBC Flying Oyster",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 194411.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "CFO",
+        "requestedSnapshotPosition": "TOP",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Rest",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/rest",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-shad0w",
+      "nickname": "Shad0w",
+      "team": "CFO",
+      "position": "JUNGLE",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Zhao Zhiqiang",
+        "legalNameAliases": [],
+        "birthDate": "2001-02-25",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 25,
+        "nationality": [
+          "Italy",
+          "China"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2017-02-17",
+        "yearsActiveAsOfSnapshot": 9.51,
+        "teamHistory": [
+          {
+            "team": "Outplayed",
+            "from": "2017-02-17",
+            "to": "2018-05-10",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Atlantis",
+            "from": "2018-09-14",
+            "to": "2018-10-16",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "mousesports",
+            "from": "2019-05-28",
+            "to": "2019-10-01",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "MAD Lions",
+            "from": "2019-11-29",
+            "to": "2020-12-18",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "LGD Gaming",
+            "from": "2021-06-05",
+            "to": "2022-12-12",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ninjas in Pyjamas",
+            "from": "2023-03-09",
+            "to": "2023-12-14",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "LNG Esports",
+            "from": "2024-05-25",
+            "to": "2024-12-05",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "FunPlus Phoenix",
+            "from": "2024-12-25",
+            "to": "2025-07-17",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Bilibili Gaming",
+            "from": "2025-07-25",
+            "to": "2025-12-08",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CTBC Flying Oyster",
+            "from": "2025-12-16",
+            "to": null,
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [
+          {
+            "season": "2020 Summer",
+            "award": "1st All-Pro Team",
+            "competition": "LEC",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 110155.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "CFO",
+        "requestedSnapshotPosition": "JUNGLE",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Shad0w",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/shad0w",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-pout",
+      "nickname": "POUT",
+      "team": "CFO",
+      "position": "MID",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Han In-woong",
+        "legalNameAliases": [],
+        "birthDate": "2003-10-03",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 22,
+        "nationality": [
+          "South Korea"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2020-09-06",
+        "yearsActiveAsOfSnapshot": 5.96,
+        "teamHistory": [
+          {
+            "team": "BRION Academy",
+            "from": "2020-09-06",
+            "to": "2020-11-20",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Shadow Corp",
+            "from": "2021-02-21",
+            "to": "2021-03-21",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Shadow EK",
+            "from": "2021-08-28",
+            "to": "2022-01-23",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "SuperMassive Blaze",
+            "from": "2022-05-30",
+            "to": "2022-06-29",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ninjas in Pyjamas",
+            "from": "2023-02-03",
+            "to": "2023-12-14",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "KT Rolster Challengers",
+            "from": "2024-01-04",
+            "to": "2024-11-19",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Hyper Vortex",
+            "from": "2025-02-08",
+            "to": "2025-04-07",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Saigon Dino",
+            "from": "2025-05-12",
+            "to": "2025-10-08",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CTBC Flying Oyster",
+            "from": "2026-04-13",
+            "to": null,
+            "role": "MID",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2024 Spring",
+            "competition": "LCK Challengers League",
+            "team": "KT Rolster Challengers",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024",
+            "competition": "Asia Star Challengers Invitational",
+            "team": "KT Rolster Challengers",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Summer",
+            "competition": "VCS",
+            "team": "Saigon Dino",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Season Finals",
+            "competition": "VCS",
+            "team": "Saigon Dino",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 8945.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "CFO",
+        "requestedSnapshotPosition": "MID",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/POUT",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/pout",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-doggo",
+      "nickname": "Doggo",
+      "team": "CFO",
+      "position": "ADC",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Chiu Tzu-chuan",
+        "legalNameAliases": [],
+        "birthDate": "2003-01-14",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 23,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-16",
+        "daysRemainingAsOfSnapshot": 84,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2019-01-04",
+        "yearsActiveAsOfSnapshot": 7.64,
+        "teamHistory": [
+          {
+            "team": "ahq Fighter",
+            "from": "2019-01-04",
+            "to": "2019-12-08",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "ahq e-Sports Club",
+            "from": "2019-12-08",
+            "to": "2021-01-06",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Beyond Gaming",
+            "from": "2021-02-04",
+            "to": "2021-04-25",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "PSG Talon",
+            "from": "2021-04-25",
+            "to": "2021-05-23",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Beyond Gaming",
+            "from": "2021-05-23",
+            "to": "2021-11-19",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Bilibili Gaming",
+            "from": "2021-12-15",
+            "to": "2022-07-11",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Bilibili Gaming Junior",
+            "from": "2022-07-11",
+            "to": "2022-07-28",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Bilibili Gaming",
+            "from": "2022-07-28",
+            "to": "2022-12-14",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ultra Prime",
+            "from": "2022-12-14",
+            "to": "2024-11-29",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CTBC Flying Oyster",
+            "from": "2024-12-12",
+            "to": null,
+            "role": "ADC",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2025 Split 1",
+            "competition": "LCP",
+            "team": "CTBC Flying Oyster",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 2",
+            "competition": "LCP",
+            "team": "CTBC Flying Oyster",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Season Finals",
+            "competition": "LCP",
+            "team": "CTBC Flying Oyster",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [
+          {
+            "season": "2021 Summer",
+            "award": "Most Potential Player",
+            "competition": "PCS",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025",
+            "award": "Team of the Year",
+            "competition": "LCP",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 151107.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "CFO",
+        "requestedSnapshotPosition": "ADC",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Doggo",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/doggo",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-kino",
+      "nickname": "Kino",
+      "team": "CFO",
+      "position": "SUPPORT",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Wu Hsin-jung",
+        "legalNameAliases": [],
+        "birthDate": "1998-04-12",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 28,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2018-07-11",
+        "yearsActiveAsOfSnapshot": 8.12,
+        "teamHistory": [
+          {
+            "team": "ahq e-Sports Club",
+            "from": "2018-07-11",
+            "to": "2019-05-29",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "ahq Fighter",
+            "from": "2019-05-29",
+            "to": "2020-01-24",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Alpha Esports",
+            "from": "2020-01-24",
+            "to": "2020-05-07",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Beyond Gaming",
+            "from": "2021-02-04",
+            "to": "2023-04-17",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Nate9527",
+            "from": "2023-08-15",
+            "to": "2024-01-22",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CFO Academy",
+            "from": "2024-01-22",
+            "to": "2025-02-09",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "West Point Esports",
+            "from": "2025-02-09",
+            "to": "2025-07-22",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ground Zero Gaming",
+            "from": "2025-07-22",
+            "to": "2025-11-17",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CTBC Flying Oyster",
+            "from": "2026-04-13",
+            "to": null,
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 23080.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "CFO",
+        "requestedSnapshotPosition": "SUPPORT",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Kino",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/kino",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-kiaya",
+      "nickname": "Kiaya",
+      "team": "GAM",
+      "position": "TOP",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Trần Duy Sang",
+        "legalNameAliases": [],
+        "birthDate": "2001-05-17",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 25,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-16",
+        "daysRemainingAsOfSnapshot": 84,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2018-05-25",
+        "yearsActiveAsOfSnapshot": 8.25,
+        "teamHistory": [
+          {
+            "team": "GAM Esports",
+            "from": "2018-05-25",
+            "to": null,
+            "role": "TOP",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2019 Summer",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2021 Spring",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2022 Spring",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2022 Summer",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2023 Dawn",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2023 Dusk",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Spring",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Summer",
+            "competition": "VCS",
+            "team": "GAM Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [
+          {
+            "season": "2026 Split 2",
+            "award": "2nd All-Pro Team",
+            "competition": "LCP",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 116775.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GAM",
+        "requestedSnapshotPosition": "TOP",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Kiaya",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/kiaya",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-draktharr",
+      "nickname": "Draktharr",
+      "team": "GAM",
+      "position": "JUNGLE",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Lê Ngọc Toàn",
+        "legalNameAliases": [],
+        "birthDate": "2003-03-10",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 23,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-16",
+        "daysRemainingAsOfSnapshot": 449,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2020-09-06",
+        "yearsActiveAsOfSnapshot": 5.96,
+        "teamHistory": [
+          {
+            "team": "Burst The Sky",
+            "from": "2020-09-06",
+            "to": "2022-05-08",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CERBERUS Esports",
+            "from": "2022-06-16",
+            "to": "2023-05-23",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Flash",
+            "from": "2023-07-07",
+            "to": "2025-11-24",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "GAM Esports",
+            "from": "2025-11-24",
+            "to": null,
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 8963.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GAM",
+        "requestedSnapshotPosition": "JUNGLE",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Draktharr",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/draktharr",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-gloryy",
+      "nickname": "Gloryy",
+      "team": "GAM",
+      "position": "MID",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Lê Ngọc Vinh",
+        "legalNameAliases": [],
+        "birthDate": "2002-01-12",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 24,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-16",
+        "daysRemainingAsOfSnapshot": 449,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2020-09-06",
+        "yearsActiveAsOfSnapshot": 5.96,
+        "teamHistory": [
+          {
+            "team": "Burst The Sky",
+            "from": "2020-09-06",
+            "to": "2022-05-08",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Whales",
+            "from": "2022-06-28",
+            "to": "2024-03-28",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "GAM Esports",
+            "from": "2026-04-30",
+            "to": null,
+            "role": "MID",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 28951.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GAM",
+        "requestedSnapshotPosition": "MID",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Gloryy",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/gloryy",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-artemis",
+      "nickname": "Artemis",
+      "team": "GAM",
+      "position": "ADC",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Trần Quốc Hưng",
+        "legalNameAliases": [],
+        "birthDate": "2001-02-24",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 25,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-16",
+        "daysRemainingAsOfSnapshot": 84,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2019-05-31",
+        "yearsActiveAsOfSnapshot": 7.23,
+        "teamHistory": [
+          {
+            "team": "Team Flash",
+            "from": "2019-05-31",
+            "to": "2019-12-05",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CERBERUS Esports",
+            "from": "2019-12-10",
+            "to": "2023-05-25",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Whales",
+            "from": "2023-05-25",
+            "to": "2024-11-03",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "GAM Esports",
+            "from": "2024-11-16",
+            "to": null,
+            "role": "ADC",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2021 Winter",
+            "competition": "VCS",
+            "team": "CERBERUS Esports",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 65348.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GAM",
+        "requestedSnapshotPosition": "ADC",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Artemis",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/artemis",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-taki",
+      "nickname": "Taki",
+      "team": "GAM",
+      "position": "SUPPORT",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Đinh Anh Tài",
+        "legalNameAliases": [],
+        "birthDate": "2003-06-30",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 23,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-16",
+        "daysRemainingAsOfSnapshot": 449,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2019-11-15",
+        "yearsActiveAsOfSnapshot": 6.77,
+        "teamHistory": [
+          {
+            "team": "FTV Esports",
+            "from": "2019-11-15",
+            "to": "2020-01-07",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Saigon Buffalo",
+            "from": "2020-11-26",
+            "to": "2022-11-30",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CNJ Esports",
+            "from": "2022-11-30",
+            "to": "2023-02-09",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Saigon Buffalo",
+            "from": "2023-02-09",
+            "to": "2023-05-26",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret",
+            "from": "2023-05-27",
+            "to": "2024-04-01",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret",
+            "from": "2024-04-01",
+            "to": "2024-06-18",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret",
+            "from": "2024-06-18",
+            "to": "2024-12-07",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Secret Whales",
+            "from": "2024-12-07",
+            "to": "2025-11-20",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "GAM Esports",
+            "from": "2025-11-24",
+            "to": null,
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2022 Spring",
+            "competition": "VCS",
+            "team": "Saigon Buffalo",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2022",
+            "competition": "Mid-Season Invitational",
+            "team": "Saigon Buffalo",
+            "result": "5TH-6TH",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 59413.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GAM",
+        "requestedSnapshotPosition": "SUPPORT",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Taki",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/taki",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-kratos",
+      "nickname": "Kratos",
+      "team": "MVK",
+      "position": "TOP",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Ngô Đức Khánh",
+        "legalNameAliases": [],
+        "birthDate": "2005-04-22",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 21,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-15",
+        "daysRemainingAsOfSnapshot": 448,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2024-01-04",
+        "yearsActiveAsOfSnapshot": 2.64,
+        "teamHistory": [
+          {
+            "team": "Vikings Esports",
+            "from": "2024-01-04",
+            "to": "2024-06-03",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "MGN Vikings Esports",
+            "from": "2024-11-29",
+            "to": null,
+            "role": "TOP",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 5777.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "MVK",
+        "requestedSnapshotPosition": "TOP",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Kratos",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/kratos",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-gury",
+      "nickname": "Gury",
+      "team": "MVK",
+      "position": "JUNGLE",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Lương Hải Long",
+        "legalNameAliases": [],
+        "birthDate": "2003-10-28",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 22,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-16",
+        "daysRemainingAsOfSnapshot": 84,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2024-01-05",
+        "yearsActiveAsOfSnapshot": 2.63,
+        "teamHistory": [
+          {
+            "team": "MGN Vikings Esports",
+            "from": "2024-01-05",
+            "to": null,
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 15679.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "MVK",
+        "requestedSnapshotPosition": "JUNGLE",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Gury",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/gury",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-chika",
+      "nickname": "Chika",
+      "team": "MVK",
+      "position": "MID",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Võ Lê Nhân",
+        "legalNameAliases": [],
+        "birthDate": "2006-01-26",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 20,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-15",
+        "daysRemainingAsOfSnapshot": 448,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2024-05-18",
+        "yearsActiveAsOfSnapshot": 2.27,
+        "teamHistory": [
+          {
+            "team": "DRX Academy",
+            "from": "2024-05-18",
+            "to": "2024-12-08",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Vikings Esports",
+            "from": "2024-12-08",
+            "to": "2025-04-17",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Vikings Esports Academy",
+            "from": "2025-04-17",
+            "to": "2025-07-22",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "MGN Vikings Esports",
+            "from": "2025-07-22",
+            "to": "2026-02-16",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "MVK Academy",
+            "from": "2026-02-16",
+            "to": "2026-04-02",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "MGN Vikings Esports",
+            "from": "2026-04-02",
+            "to": null,
+            "role": "MID",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2026 Spring",
+            "competition": "VCS",
+            "team": "MVK Academy",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 3548.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "MVK",
+        "requestedSnapshotPosition": "MID",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Chika",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/chika",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-harky",
+      "nickname": "Harky",
+      "team": "MVK",
+      "position": "ADC",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Nguyễn Văn Hữu",
+        "legalNameAliases": [],
+        "birthDate": "2005-08-21",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 21,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2028-11-21",
+        "daysRemainingAsOfSnapshot": 820,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2023-01-14",
+        "yearsActiveAsOfSnapshot": 3.61,
+        "teamHistory": [
+          {
+            "team": "Team Whales",
+            "from": "2023-01-14",
+            "to": "2023-05-31",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Baby Whales",
+            "from": "2023-05-31",
+            "to": "2023-12-13",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Whales",
+            "from": "2023-12-13",
+            "to": "2024-04-01",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Whales",
+            "from": "2024-04-01",
+            "to": "2024-06-18",
+            "role": "SUBSTITUTE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Saigon Dino",
+            "from": "2025-02-25",
+            "to": "2025-04-07",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Saigon Secret",
+            "from": "2025-05-25",
+            "to": "2025-07-15",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "MVK Academy",
+            "from": "2025-07-15",
+            "to": "2026-04-02",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "MGN Vikings Esports",
+            "from": "2026-04-02",
+            "to": null,
+            "role": "ADC",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 2359.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "MVK",
+        "requestedSnapshotPosition": "ADC",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Harky",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/harky",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-siuloong",
+      "nickname": "SiuLoong",
+      "team": "MVK",
+      "position": "SUPPORT",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Nguyễn Hoàng Lam",
+        "legalNameAliases": [],
+        "birthDate": "2005-09-15",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 20,
+        "nationality": [
+          "Vietnam"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-15",
+        "daysRemainingAsOfSnapshot": 448,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2024-12-08",
+        "yearsActiveAsOfSnapshot": 1.71,
+        "teamHistory": [
+          {
+            "team": "MGN Vikings Esports",
+            "from": "2024-12-08",
+            "to": "2026-02-16",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "MVK Academy",
+            "from": "2026-02-16",
+            "to": "2026-04-02",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "MGN Vikings Esports",
+            "from": "2026-04-02",
+            "to": null,
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2026 Spring",
+            "competition": "VCS",
+            "team": "MVK Academy",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 5758.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "MVK",
+        "requestedSnapshotPosition": "SUPPORT",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/SiuLoong",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/siuloong",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-flauren",
+      "nickname": "Flauren",
+      "team": "DCG",
+      "position": "TOP",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Lo Chak Kin",
+        "legalNameAliases": [],
+        "birthDate": "2006-10-30",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 19,
+        "nationality": [
+          "Hong Kong"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2025-01-24",
+        "yearsActiveAsOfSnapshot": 1.58,
+        "teamHistory": [
+          {
+            "team": "Deep Cross Gaming",
+            "from": "2025-01-24",
+            "to": null,
+            "role": "TOP",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2025 Split 1",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 2",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 3",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [
+          {
+            "season": "2026 Split 2",
+            "award": "Team of the Split",
+            "competition": "LCP",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 17417.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DCG",
+        "requestedSnapshotPosition": "TOP",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Flauren",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/flauren",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-pop9",
+      "nickname": "Pop9",
+      "team": "DCG",
+      "position": "JUNGLE",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Wu Yi-han",
+        "legalNameAliases": [],
+        "birthDate": "2003-03-24",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 23,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2022-02-06",
+        "yearsActiveAsOfSnapshot": 4.54,
+        "teamHistory": [
+          {
+            "team": "Meta Falcon Team",
+            "from": "2022-02-06",
+            "to": "2022-12-17",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Deep Cross Gaming",
+            "from": "2022-12-17",
+            "to": "2023-06-16",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "West Point Esports",
+            "from": "2023-06-16",
+            "to": "2024-01-06",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Deep Cross Gaming",
+            "from": "2024-01-06",
+            "to": "2024-11-01",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Deep Cross Gaming",
+            "from": "2025-01-24",
+            "to": null,
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2025 Split 1",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 2",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 3",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 8862.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DCG",
+        "requestedSnapshotPosition": "JUNGLE",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Pop9",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/pop9",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-hongsuo",
+      "nickname": "HongSuo",
+      "team": "DCG",
+      "position": "MID",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Kuo Bei-yi",
+        "legalNameAliases": [],
+        "birthDate": "2003-03-18",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 23,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2021-07-06",
+        "yearsActiveAsOfSnapshot": 5.13,
+        "teamHistory": [
+          {
+            "team": "Hong Kong Attitude",
+            "from": "2021-07-06",
+            "to": "2021-11-24",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "PSG Talon",
+            "from": "2022-12-17",
+            "to": "2024-11-18",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Deep Cross Gaming",
+            "from": "2025-01-24",
+            "to": null,
+            "role": "MID",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2025 Split 1",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 2",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 3",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [
+          {
+            "season": "2026 Split 2",
+            "award": "Team of the Split",
+            "competition": "LCP",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 17896.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DCG",
+        "requestedSnapshotPosition": "MID",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/HongSuo",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/hongsuo",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-feng",
+      "nickname": "Feng",
+      "team": "DCG",
+      "position": "ADC",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Chen Chun-feng",
+        "legalNameAliases": [],
+        "birthDate": "2003-08-13",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 23,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2022-09-12",
+        "yearsActiveAsOfSnapshot": 3.95,
+        "teamHistory": [
+          {
+            "team": "Beyond Gaming Academy",
+            "from": "2022-09-12",
+            "to": "2022-12-09",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Beyond Gaming",
+            "from": "2022-12-09",
+            "to": "2024-04-20",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Deep Cross Gaming",
+            "from": "2024-05-22",
+            "to": "2024-11-01",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Deep Cross Gaming",
+            "from": "2025-01-24",
+            "to": null,
+            "role": "ADC",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2025 Split 1",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 2",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 3",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 8733.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DCG",
+        "requestedSnapshotPosition": "ADC",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Feng",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/feng",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-shiauc",
+      "nickname": "ShiauC",
+      "team": "DCG",
+      "position": "SUPPORT",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Liu Chia-hao",
+        "legalNameAliases": [],
+        "birthDate": "1999-07-12",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 27,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2017-12-01",
+        "yearsActiveAsOfSnapshot": 8.73,
+        "teamHistory": [
+          {
+            "team": "Flash Wolves",
+            "from": "2017-12-01",
+            "to": "2019-12-13",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "eStar",
+            "from": "2020-01-10",
+            "to": "2021-03-21",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ultra Prime",
+            "from": "2021-03-21",
+            "to": "2022-11-24",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CTBC Flying Oyster",
+            "from": "2023-04-22",
+            "to": "2023-11-22",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Rare Atom",
+            "from": "2023-12-12",
+            "to": "2024-05-21",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Deep Cross Gaming",
+            "from": "2025-01-24",
+            "to": null,
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2018 Spring",
+            "competition": "LMS",
+            "team": "Flash Wolves",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2019 Spring",
+            "competition": "LMS",
+            "team": "Flash Wolves",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 1",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 2",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 3",
+            "competition": "PCS",
+            "team": "Deep Cross Gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 2",
+            "competition": "LCP",
+            "team": "Deep Cross Gaming",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 40608.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DCG",
+        "requestedSnapshotPosition": "SUPPORT",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/ShiauC",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/shiauc",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-1jiang",
+      "nickname": "1Jiang",
+      "team": "GZ",
+      "position": "TOP",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Chen Yi-chin",
+        "legalNameAliases": [],
+        "birthDate": "2003-10-22",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 22,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2023-08-15",
+        "yearsActiveAsOfSnapshot": 3.03,
+        "teamHistory": [
+          {
+            "team": "Nate9527 Academy",
+            "from": "2023-08-15",
+            "to": "2024-01-11",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Frank Esports",
+            "from": "2024-01-11",
+            "to": "2024-12-13",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ultra Prime",
+            "from": "2024-12-13",
+            "to": "2025-12-23",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ground Zero Gaming",
+            "from": "2026-01-09",
+            "to": null,
+            "role": "TOP",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 7443.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GZ",
+        "requestedSnapshotPosition": "TOP",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/1Jiang",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/1jiang",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-husha",
+      "nickname": "Husha",
+      "team": "GZ",
+      "position": "JUNGLE",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Huang Tzu-wei",
+        "legalNameAliases": [],
+        "birthDate": "2001-01-04",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 25,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2019-01-04",
+        "yearsActiveAsOfSnapshot": 7.64,
+        "teamHistory": [
+          {
+            "team": "ahq Fighter",
+            "from": "2019-01-04",
+            "to": "2019-06-16",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "ahq e-Sports Club",
+            "from": "2019-06-26",
+            "to": "2020-06-10",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Beyond Gaming",
+            "from": "2021-02-04",
+            "to": "2022-11-24",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "PSG Talon",
+            "from": "2022-12-17",
+            "to": "2023-02-16",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "PSG Talon",
+            "from": "2023-02-16",
+            "to": "2023-11-21",
+            "role": "SUBSTITUTE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Beyond Gaming",
+            "from": "2023-12-17",
+            "to": "2024-04-20",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CTBC Flying Oyster Academy",
+            "from": "2024-05-27",
+            "to": "2025-02-10",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "The Chiefs Esports Club",
+            "from": "2025-04-10",
+            "to": "2025-07-18",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Frank Esports",
+            "from": "2025-07-28",
+            "to": "2026-01-09",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ground Zero Gaming",
+            "from": "2026-01-09",
+            "to": null,
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2023 Spring",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [
+          {
+            "season": "2021",
+            "award": "Most Improved Player",
+            "competition": "PCS",
+            "sourceUrl": null
+          },
+          {
+            "season": "2022 Summer",
+            "award": "3rd All-Pro Team",
+            "competition": "PCS",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 30371.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GZ",
+        "requestedSnapshotPosition": "JUNGLE",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Husha",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/husha",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-uniboy",
+      "nickname": "Uniboy",
+      "team": "GZ",
+      "position": "MID",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Chen Chang-chu",
+        "legalNameAliases": [],
+        "birthDate": "2001-03-03",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 25,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2017-08-01",
+        "yearsActiveAsOfSnapshot": 9.06,
+        "teamHistory": [
+          {
+            "team": "ahq Fighter",
+            "from": "2017-08-01",
+            "to": "2017-11-28",
+            "role": "MID",
+            "datePrecision": "MONTH"
+          },
+          {
+            "team": "MAD Team",
+            "from": "2017-11-28",
+            "to": "2019-12-04",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "ahq e-Sports Club",
+            "from": "2019-12-04",
+            "to": "2020-09-16",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "PSG Talon",
+            "from": "2020-09-16",
+            "to": "2020-09-27",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "ahq e-Sports Club",
+            "from": "2020-09-27",
+            "to": "2020-12-18",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "LGD Gaming",
+            "from": "2020-12-18",
+            "to": "2021-05-26",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Victory Five",
+            "from": "2021-05-26",
+            "to": "2021-12-14",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "J Team",
+            "from": "2022-01-27",
+            "to": "2022-12-16",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "PSG Talon",
+            "from": "2022-12-16",
+            "to": "2023-05-31",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Rare Atom Period",
+            "from": "2023-06-18",
+            "to": "2024-05-31",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ground Zero Gaming",
+            "from": "2026-07-21",
+            "to": null,
+            "role": "MID",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PARTIAL_PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2023 Spring",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 48238.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GZ",
+        "requestedSnapshotPosition": "MID",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": "The public team-history table has a gap between the 2024 Rare Atom Period exit and the 2026 Ground Zero start. The gap is preserved rather than filled by inference."
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Ubao",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/uniboy",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PARTIAL_PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-betty",
+      "nickname": "Betty",
+      "team": "GZ",
+      "position": "ADC",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Lu Yu-hung",
+        "legalNameAliases": [],
+        "birthDate": "2000-01-16",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 26,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2016-11-07",
+        "yearsActiveAsOfSnapshot": 9.79,
+        "teamHistory": [
+          {
+            "team": "Flash Wolves",
+            "from": "2016-11-07",
+            "to": "2019-11-06",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Royal Never Give Up",
+            "from": "2019-12-15",
+            "to": "2020-12-17",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Rogue Warriors",
+            "from": "2020-12-18",
+            "to": "2021-12-02",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Anyone's Legend",
+            "from": "2021-12-02",
+            "to": "2023-04-21",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Beyond Gaming",
+            "from": "2023-05-20",
+            "to": "2023-12-15",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "PSG Talon",
+            "from": "2023-12-18",
+            "to": "2025-11-18",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ground Zero Gaming",
+            "from": "2026-07-21",
+            "to": null,
+            "role": "ADC",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2017 Spring",
+            "competition": "LMS",
+            "team": "Flash Wolves",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2017 Summer",
+            "competition": "LMS",
+            "team": "Flash Wolves",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2018 Spring",
+            "competition": "LMS",
+            "team": "Flash Wolves",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2018 Summer",
+            "competition": "LMS",
+            "team": "Flash Wolves",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2019 Spring",
+            "competition": "LMS",
+            "team": "Flash Wolves",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Spring",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Summer",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 250761.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GZ",
+        "requestedSnapshotPosition": "ADC",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Betty",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/betty",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-kaiwing",
+      "nickname": "Kaiwing",
+      "team": "GZ",
+      "position": "SUPPORT",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Ling Kai Wing",
+        "legalNameAliases": [],
+        "birthDate": "1996-10-27",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 29,
+        "nationality": [
+          "Hong Kong"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2016-01-06",
+        "yearsActiveAsOfSnapshot": 10.63,
+        "teamHistory": [
+          {
+            "team": "Midnight Sun Esports",
+            "from": "2016-01-06",
+            "to": "2016-12-02",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Hong Kong Attitude",
+            "from": "2017-05-25",
+            "to": "2019-12-09",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "PSG Talon",
+            "from": "2020-01-04",
+            "to": "2022-11-20",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Frank Esports",
+            "from": "2023-01-25",
+            "to": "2024-12-12",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "CTBC Flying Oyster",
+            "from": "2024-12-12",
+            "to": "2025-11-18",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Vivo Keyd Stars",
+            "from": "2025-11-25",
+            "to": "2026-05-27",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Ground Zero Gaming",
+            "from": "2026-07-21",
+            "to": null,
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2020 Spring",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2020 Summer",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2021 Spring",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2021 Summer",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2022 Spring",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 1",
+            "competition": "LCP",
+            "team": "CTBC Flying Oyster",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Split 2",
+            "competition": "LCP",
+            "team": "CTBC Flying Oyster",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2025 Season Finals",
+            "competition": "LCP",
+            "team": "CTBC Flying Oyster",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [
+          {
+            "season": "2025 Season Finals",
+            "award": "Finals MVP",
+            "competition": "LCP",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 212086.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "GZ",
+        "requestedSnapshotPosition": "SUPPORT",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Kaiwing",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/kaiwing",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-evi",
+      "nickname": "Evi",
+      "team": "SHG",
+      "position": "TOP",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Shunsuke Murase",
+        "legalNameAliases": [],
+        "birthDate": "1995-11-15",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 30,
+        "nationality": [
+          "Japan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-16",
+        "daysRemainingAsOfSnapshot": 449,
+        "status": "VERIFIED_LEAGUEPEDIA_GCD_TIMELINE",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2014-06-01",
+        "yearsActiveAsOfSnapshot": 12.23,
+        "teamHistory": [
+          {
+            "team": "Salvage Javelin",
+            "from": "2014-06-01",
+            "to": "2014-10-26",
+            "role": "TOP",
+            "datePrecision": "MONTH"
+          },
+          {
+            "team": "DetonatioN Rising Force",
+            "from": "2014-11-01",
+            "to": "2015-04-15",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "7th heaven",
+            "from": "2015-05-18",
+            "to": "2016-12-21",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Rampage",
+            "from": "2016-12-22",
+            "to": "2017-12-14",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "DetonatioN FocusMe",
+            "from": "2017-12-14",
+            "to": "2022-12-09",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Heretics",
+            "from": "2022-12-10",
+            "to": "2023-11-30",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "from": "2023-12-18",
+            "to": null,
+            "role": "TOP",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2018 Spring",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2018 Summer",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2019 Spring",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2019 Summer",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2020 Spring",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2021 Spring",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2021 Summer",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2022 Spring",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2022 Summer",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Spring",
+            "competition": "LJL",
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Summer",
+            "competition": "LJL",
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 181696.16,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "ESPORTS_EARNINGS_PUBLIC_TOTAL",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "SHG",
+        "requestedSnapshotPosition": "TOP",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Evi",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://lol.fandom.com/wiki/Fukuoka_SoftBank_HAWKS_gaming",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-van1",
+      "nickname": "Van1",
+      "team": "SHG",
+      "position": "JUNGLE",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Kim Seung-hoo",
+        "legalNameAliases": [],
+        "birthDate": "2003-11-21",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 22,
+        "nationality": [
+          "South Korea"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2021-03-21",
+        "yearsActiveAsOfSnapshot": 5.43,
+        "teamHistory": [
+          {
+            "team": "BRION Academy",
+            "from": "2021-03-21",
+            "to": "2021-09-19",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Freecs Academy",
+            "from": "2021-09-19",
+            "to": "2022-04-11",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "T1 Academy",
+            "from": "2022-05-29",
+            "to": "2023-02-26",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Shadow Cool",
+            "from": "2023-02-26",
+            "to": "2024-03-27",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "AXIZ CREST",
+            "from": "2024-06-06",
+            "to": "2024-11-10",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "QT DIG∞",
+            "from": "2025-05-20",
+            "to": "2025-12-06",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "from": "2025-12-06",
+            "to": null,
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2025",
+            "competition": "LJL Finals",
+            "team": "QT DIG∞",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2026 Split 1",
+            "competition": "LCP",
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "result": "3RD",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 41992.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "SHG",
+        "requestedSnapshotPosition": "JUNGLE",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Van_%28Kim_Seung-Hoo%29",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/van1",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-aria",
+      "nickname": "Aria",
+      "team": "SHG",
+      "position": "MID",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Lee Ga-eul",
+        "legalNameAliases": [],
+        "birthDate": "2000-10-14",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 25,
+        "nationality": [
+          "South Korea"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2019-01-15",
+        "yearsActiveAsOfSnapshot": 7.61,
+        "teamHistory": [
+          {
+            "team": "Crest Gaming Act",
+            "from": "2019-01-15",
+            "to": "2020-12-28",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "DetonatioN FocusMe",
+            "from": "2021-01-09",
+            "to": "2021-11-16",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "KT Rolster",
+            "from": "2021-12-01",
+            "to": "2022-11-22",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "DetonatioN FocusMe",
+            "from": "2022-12-12",
+            "to": "2025-11-18",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "from": "2025-12-06",
+            "to": null,
+            "role": "MID",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2021 Spring",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2021 Summer",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2023 Spring",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2023 Summer",
+            "competition": "LJL",
+            "team": "DetonatioN FocusMe",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 89597.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "SHG",
+        "requestedSnapshotPosition": "MID",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Aria",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/aria",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-marble",
+      "nickname": "Marble",
+      "team": "SHG",
+      "position": "ADC",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Rei Shimaya",
+        "legalNameAliases": [],
+        "birthDate": "2002-08-28",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 23,
+        "nationality": [
+          "Japan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2027-11-16",
+        "daysRemainingAsOfSnapshot": 449,
+        "status": "VERIFIED_LEAGUEPEDIA_GCD_TIMELINE",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2021-08-26",
+        "yearsActiveAsOfSnapshot": 4.99,
+        "teamHistory": [
+          {
+            "team": "V3 Esports Academy",
+            "from": "2021-08-26",
+            "to": "2021-10-07",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "V3 Esports",
+            "from": "2021-10-07",
+            "to": "2021-12-02",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "from": "2022-02-08",
+            "to": null,
+            "role": "ADC",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2024 Spring",
+            "competition": "LJL",
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Summer",
+            "competition": "LJL",
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 34630.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "SHG",
+        "requestedSnapshotPosition": "ADC",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Marble",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://lol.fandom.com/wiki/Fukuoka_SoftBank_HAWKS_gaming",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-vsta",
+      "nickname": "Vsta",
+      "team": "SHG",
+      "position": "SUPPORT",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Oh Hyo-seong",
+        "legalNameAliases": [],
+        "birthDate": "2000-10-03",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 25,
+        "nationality": [
+          "South Korea"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2019-08-01",
+        "yearsActiveAsOfSnapshot": 7.06,
+        "teamHistory": [
+          {
+            "team": "Hanwha Life Esports Academy",
+            "from": "2019-08-01",
+            "to": "2019-12-01",
+            "role": "SUPPORT",
+            "datePrecision": "MONTH"
+          },
+          {
+            "team": "Hanwha Life Esports",
+            "from": "2019-12-01",
+            "to": "2022-11-22",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "from": "2022-12-09",
+            "to": "2024-11-19",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "from": "2025-12-06",
+            "to": null,
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2024 Spring",
+            "competition": "LJL",
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Summer",
+            "competition": "LJL",
+            "team": "Fukuoka SoftBank HAWKS gaming",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [
+          {
+            "season": "2026 Split 2",
+            "award": "2nd All-Pro Team",
+            "competition": "LCP",
+            "sourceUrl": null
+          }
+        ],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 61735.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "SHG",
+        "requestedSnapshotPosition": "SUPPORT",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Vsta",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/vsta",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-momo",
+      "nickname": "Momo",
+      "team": "DFM",
+      "position": "TOP",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Sora Tobita",
+        "legalNameAliases": [],
+        "birthDate": "2004-02-26",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 22,
+        "nationality": [
+          "Japan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2021-06-11",
+        "yearsActiveAsOfSnapshot": 5.2,
+        "teamHistory": [
+          {
+            "team": "Crest Gaming Act",
+            "from": "2021-06-11",
+            "to": "2021-07-11",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Crest Gaming Act Academy",
+            "from": "2021-07-11",
+            "to": "2022-11-22",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "FENNEL Academy",
+            "from": "2023-06-07",
+            "to": "2023-12-06",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "DetonatioN FocusMe Academy",
+            "from": "2024-01-24",
+            "to": "2025-08-12",
+            "role": "TOP",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "DetonatioN FocusMe",
+            "from": "2025-08-12",
+            "to": null,
+            "role": "TOP",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 2608.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DFM",
+        "requestedSnapshotPosition": "TOP",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Momo",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/momo",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-citrus",
+      "nickname": "Citrus",
+      "team": "DFM",
+      "position": "JUNGLE",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Byeon Ji-woong",
+        "legalNameAliases": [],
+        "birthDate": "2001-04-14",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 25,
+        "nationality": [
+          "South Korea"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2019-10-20",
+        "yearsActiveAsOfSnapshot": 6.84,
+        "teamHistory": [
+          {
+            "team": "Afreeca Freecs Academy",
+            "from": "2019-10-20",
+            "to": "2019-12-19",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Team Dynamics",
+            "from": "2019-12-19",
+            "to": "2020-01-15",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Griffin",
+            "from": "2020-06-08",
+            "to": "2020-11-11",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Kwangdong Freecs Challengers",
+            "from": "2021-01-12",
+            "to": "2022-11-21",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Nigma Galaxy",
+            "from": "2024-02-02",
+            "to": "2024-05-10",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "AEGIS",
+            "from": "2024-05-10",
+            "to": "2024-10-09",
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Bushido Wildcats",
+            "from": "2025-02-01",
+            "to": "2025-04-30",
+            "role": "JUNGLE",
+            "datePrecision": "MONTH"
+          },
+          {
+            "team": "DetonatioN FocusMe",
+            "from": "2025-07-26",
+            "to": null,
+            "role": "JUNGLE",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PARTIAL_PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2021 Summer",
+            "competition": "LCK Challengers League",
+            "team": "Kwangdong Freecs Challengers",
+            "result": "RUNNER-UP",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Spring",
+            "competition": "Arabian League",
+            "team": "Nigma Galaxy",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 5794.37,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "ESPORTS_EARNINGS_PUBLIC_TOTAL",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DFM",
+        "requestedSnapshotPosition": "JUNGLE",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": "The public career trail has gaps and one Bushido Wildcats period is only month-precise. No intermediate team was inferred."
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Citrus",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/citrus",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PARTIAL_PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-fisher",
+      "nickname": "Fisher",
+      "team": "DFM",
+      "position": "MID",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Lee Jeong-tae",
+        "legalNameAliases": [],
+        "birthDate": "2004-07-05",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 22,
+        "nationality": [
+          "South Korea"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2021-07-18",
+        "yearsActiveAsOfSnapshot": 5.1,
+        "teamHistory": [
+          {
+            "team": "Shadow Battlica",
+            "from": "2021-07-18",
+            "to": "2021-12-07",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Liiv SANDBOX Challengers",
+            "from": "2022-06-03",
+            "to": "2022-11-04",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "EDward Gaming Youth Team",
+            "from": "2022-11-05",
+            "to": "2022-12-18",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "EDward Gaming",
+            "from": "2022-12-18",
+            "to": "2024-05-17",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Nongshim RedForce",
+            "from": "2024-05-23",
+            "to": "2025-04-18",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Nongshim RedForce Challengers",
+            "from": "2025-04-18",
+            "to": "2025-11-17",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "BRION",
+            "from": "2025-11-22",
+            "to": "2026-03-13",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "DetonatioN FocusMe",
+            "from": "2026-03-26",
+            "to": null,
+            "role": "MID",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 23093.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DFM",
+        "requestedSnapshotPosition": "MID",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Fisher",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/fisher",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    },
+    {
+      "playerId": "player-kakkun",
+      "nickname": "Kakkun",
+      "team": "DFM",
+      "position": "ADC",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Kamon Nomoto",
+        "legalNameAliases": [],
+        "birthDate": "2002-02-05",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 24,
+        "nationality": [
+          "Japan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": null,
+        "daysRemainingAsOfSnapshot": null,
+        "status": "NOT_PUBLICLY_LISTED_AT_CHECK",
+        "note": "The player is present in the requested DFM roster, but the public contract surfaces checked on 2026-08-24 contained no current expiry.",
+        "sourceType": "PUBLIC_ROSTER_PROFILE_NO_CONTRACT_DATE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2022-01-12",
+        "yearsActiveAsOfSnapshot": 4.61,
+        "teamHistory": [
+          {
+            "team": "Crest Gaming Act Academy",
+            "from": "2022-01-12",
+            "to": "2023-06-07",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "FENNEL Academy",
+            "from": "2023-06-07",
+            "to": "2023-12-06",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Sengoku Gaming",
+            "from": "2024-01-06",
+            "to": "2024-11-01",
+            "role": "MID",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "DetonatioN FocusMe",
+            "from": "2025-01-17",
+            "to": null,
+            "role": "ADC",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 3800.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DFM",
+        "requestedSnapshotPosition": "ADC",
+        "status": "CONTRACT_NOT_PUBLICLY_LISTED",
+        "note": "The requested DFM ADC is publicly listed on the roster, but no current contract expiration was available in the checked public surfaces."
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Kakkun",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_ROSTER_PROFILE_NO_CONTRACT_DATE",
+          "url": "https://www.sheepesports.com/en/lol/players/Kakkun",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "RECENT_ROSTER_OR_PROFILE_SOURCE",
+          "url": "https://www.sheepesports.com/en/lol/players/Kakkun",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "RECENT_ROSTER_OR_PROFILE_SOURCE",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "NOT_PUBLICLY_LISTED",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "CONTRACT_NOT_PUBLICLY_LISTED"
+      }
+    },
+    {
+      "playerId": "player-woody",
+      "nickname": "Woody",
+      "team": "DFM",
+      "position": "SUPPORT",
+      "snapshotAt": "2026-08-24",
+      "personal": {
+        "legalName": "Lin Hung-yu",
+        "legalNameAliases": [],
+        "birthDate": "1998-04-11",
+        "reportedBirthDateCandidates": [],
+        "ageAsOfSnapshot": 28,
+        "nationality": [
+          "Taiwan"
+        ],
+        "availability": {
+          "legalName": "AVAILABLE",
+          "birthDate": "AVAILABLE",
+          "nationality": "AVAILABLE"
+        }
+      },
+      "contract": {
+        "endDate": "2026-11-17",
+        "daysRemainingAsOfSnapshot": 85,
+        "status": "VERIFIED_PUBLIC_GCD",
+        "note": null,
+        "sourceType": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+        "sourceSnapshotAt": null,
+        "checkedAt": "2026-08-24"
+      },
+      "career": {
+        "debutDate": "2017-06-06",
+        "yearsActiveAsOfSnapshot": 9.22,
+        "teamHistory": [
+          {
+            "team": "J Team 2",
+            "from": "2017-06-06",
+            "to": "2017-12-25",
+            "role": "ADC",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "J Team",
+            "from": "2017-12-25",
+            "to": "2018-06-06",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "J Team",
+            "from": "2019-12-16",
+            "to": "2022-01-27",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "Deep Cross Gaming",
+            "from": "2022-01-29",
+            "to": "2022-11-14",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "PSG Talon",
+            "from": "2022-12-17",
+            "to": "2025-11-18",
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          },
+          {
+            "team": "DetonatioN FocusMe",
+            "from": "2026-03-26",
+            "to": null,
+            "role": "SUPPORT",
+            "datePrecision": "DAY"
+          }
+        ],
+        "coverage": "PUBLIC_TEAM_HISTORY"
+      },
+      "honors": {
+        "teamAchievements": [
+          {
+            "season": "2023 Spring",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2023 Summer",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Spring",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          },
+          {
+            "season": "2024 Summer",
+            "competition": "PCS",
+            "team": "PSG Talon",
+            "result": "CHAMPION",
+            "sourceUrl": null
+          }
+        ],
+        "individualAwards": [],
+        "coverage": "MAJOR_PUBLIC_HONORS_ONLY"
+      },
+      "careerPrizeMoney": {
+        "amountUsd": 93106.0,
+        "status": "AVAILABLE_APPROXIMATE_PUBLIC_TOTAL",
+        "sourceType": "LIQUIPEDIA_APPROXIMATE_TOTAL_WINNINGS",
+        "checkedAt": "2026-08-24"
+      },
+      "rosterValidation": {
+        "requestedSnapshotTeam": "DFM",
+        "requestedSnapshotPosition": "SUPPORT",
+        "status": "MATCH_OR_RECENT_PUBLIC_ROSTER",
+        "note": null
+      },
+      "sources": [
+        {
+          "type": "USER_PROVIDED_ROSTER_SNAPSHOT",
+          "path": "lcp-player-identities-2026-08-23-v1.json",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LIQUIPEDIA_PLAYER_PROFILE",
+          "url": "https://liquipedia.net/leagueoflegends/Woody",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "LCP_EVENT_ROSTER_CONTEXT",
+          "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Split_3",
+          "checkedAt": "2026-08-24"
+        },
+        {
+          "type": "PUBLIC_RIOT_GCD_OR_LEAGUEPEDIA_CONTRACT_SURFACE",
+          "url": "https://esportstransfer.com/en/lol/player/woody",
+          "checkedAt": "2026-08-24",
+          "sourceSnapshotAt": null
+        },
+        {
+          "type": "CONTRACT_METHOD",
+          "url": "https://esportstransfer.com/en/data",
+          "checkedAt": "2026-08-24"
+        }
+      ],
+      "dataQuality": {
+        "personal": "HIGH_PUBLIC_PROFILE",
+        "contract": "HIGH_PUBLIC_GCD_OR_CONTRACT_TIMELINE",
+        "career": "PUBLIC_TEAM_HISTORY",
+        "honors": "MAJOR_PUBLIC_HONORS_ONLY",
+        "prizeMoney": "APPROXIMATE_PUBLIC_TOURNAMENT_WINNINGS",
+        "roster": "MATCH_OR_RECENT_PUBLIC_ROSTER"
+      }
+    }
+  ]
+}

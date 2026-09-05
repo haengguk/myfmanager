@@ -122,7 +122,7 @@ public final class SeriesLifecycleService {
         SeriesGame first = newGame(binding.boundSeriesId(), 1,
                 binding.game1BlueTeamCode(), binding.game1RedTeamCode(),
                 binding.managedTeamCode(), Long.toString(binding.fixtureRootSeed()),
-                binding.initialHistoryHash(), Set.of(), SeriesOrigin.COMPETITION_BOUND,
+                binding.initialHistoryHash(), binding.initialHistoryPicks(), SeriesOrigin.COMPETITION_BOUND,
                 binding.fixtureRootSeed(), binding.seedAnchorTeamCode());
         LinkedHashMap<String, Integer> score = new LinkedHashMap<>();
         score.put(binding.firstTeamCode(), 0);
@@ -132,10 +132,10 @@ public final class SeriesLifecycleService {
                 binding.firstTeamCode(), binding.secondTeamCode(),
                 binding.managedTeamCode(), binding.game1BlueTeamCode(),
                 Long.toString(binding.fixtureRootSeed()), binding.fixtureRootSeed(),
-                score, List.of(first), Set.of(), binding.initialHistoryHash(), null,
+                score, List.of(first), binding.initialHistoryPicks(), binding.initialHistoryHash(), null,
                 now, now, repository.parentExpiresAt(now), Map.of(),
                 SeriesOrigin.COMPETITION_BOUND, binding.bindingHash(),
-                binding.seedAnchorTeamCode());
+                binding.seedAnchorTeamCode(), binding.loserChoosesNextSide() ? binding.sideSelectionPolicy() : null);
         SeriesRepository.CreateResult result = repository.create(
                 "COMPETITION_BINDING:" + binding.bindingHash(),
                 binding.bindingHash(), aggregate);
@@ -264,7 +264,10 @@ public final class SeriesLifecycleService {
                 && aggregate.teamBCode().equals(binding.secondTeamCode())
                 && aggregate.managedTeamCode().equals(binding.managedTeamCode())
                 && aggregate.game1BlueTeamCode().equals(binding.game1BlueTeamCode())
-                && aggregate.rootSeed() == binding.fixtureRootSeed();
+                && aggregate.rootSeed() == binding.fixtureRootSeed()
+                && Set.copyOf(aggregate.games().getFirst().historyBefore()).equals(binding.initialHistoryPicks())
+                && aggregate.games().getFirst().historyBeforeHash().equals(binding.initialHistoryHash())
+                && Objects.equals(aggregate.competitionSidePolicy(), binding.loserChoosesNextSide() ? binding.sideSelectionPolicy() : null);
         if (!valid) throw new IllegalStateException(
                 "COMPETITION_PLAYER_SERIES_BINDING_MISMATCH");
     }
@@ -837,8 +840,10 @@ public final class SeriesLifecycleService {
                 throw error(aggregate, HttpStatus.INTERNAL_SERVER_ERROR,
                         "SERIES_GAME_COUNT_INVARIANT_FAILED", false);
             }
-            String nextBlue = game.redTeamCode();
-            String nextRed = game.blueTeamCode();
+            String nextBlue = CareerCompetitionSeriesBindingV1.loserRoFs(aggregate.competitionSidePolicy())
+                    ? winnerTeam.equals(game.blueTeamCode()) ? game.redTeamCode() : game.blueTeamCode()
+                    : game.redTeamCode();
+            String nextRed = nextBlue.equals(game.blueTeamCode()) ? game.redTeamCode() : game.blueTeamCode();
             SeriesGame next = newGame(aggregate.seriesId(), nextNumber, nextBlue, nextRed,
                     aggregate.managedTeamCode(), aggregate.canonicalRootSeed(), historyHash,
                     consumed, aggregate.origin(), aggregate.rootSeed(),

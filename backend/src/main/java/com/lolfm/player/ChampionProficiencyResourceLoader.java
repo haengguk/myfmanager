@@ -48,13 +48,22 @@ public final class ChampionProficiencyResourceLoader {
 
     static LoadedResource load(ObjectMapper mapper, InputStream input, String expectedSha256,
                                PlayerRatingCatalog ratings, ChampionCatalog champions) {
+        if (!PlayerRatingResourceLoader.VERSION.equals(ratings.version())) {
+            throw new IllegalStateException("Champion proficiency rating prerequisite mismatch");
+        }
+        return load(mapper, input, new PlayerResourceSpec(
+                "LCK", 10, VERSION, RESEARCH_AS_OF, expectedSha256, null), ratings, champions);
+    }
+
+    public static LoadedResource load(ObjectMapper mapper, InputStream input, PlayerResourceSpec spec,
+                                      PlayerRatingCatalog ratings, ChampionCatalog champions) {
+        Objects.requireNonNull(spec, "spec");
         Objects.requireNonNull(mapper, "mapper");
-        Objects.requireNonNull(expectedSha256, "expectedSha256");
         Objects.requireNonNull(ratings, "ratings");
         Objects.requireNonNull(champions, "champions");
         byte[] bytes = readBytes(input);
         String sha256 = sha256(bytes);
-        if (!expectedSha256.equals(sha256)) {
+        if (!spec.sha256().equals(sha256)) {
             throw new IllegalStateException("Champion proficiency resource SHA-256 mismatch: " + sha256);
         }
 
@@ -64,7 +73,7 @@ public final class ChampionProficiencyResourceLoader {
         } catch (IOException error) {
             throw new IllegalStateException("Failed to load champion proficiency resource", error);
         }
-        validateEnvelope(raw, ratings, champions);
+        validateEnvelope(raw, ratings, champions, spec);
 
         Map<PlayerRatingKey, RawPlayer> rawBySubject = indexSubjects(raw.players());
         validateSubjectSet(rawBySubject, ratings);
@@ -126,16 +135,15 @@ public final class ChampionProficiencyResourceLoader {
     }
 
     private static void validateEnvelope(RawResource raw, PlayerRatingCatalog ratings,
-                                         ChampionCatalog champions) {
+                                         ChampionCatalog champions, PlayerResourceSpec spec) {
         if (raw == null) throw new IllegalStateException("Champion proficiency resource is empty");
-        if (!VERSION.equals(raw.version())) {
+        if (!spec.version().equals(raw.version())) {
             throw new IllegalStateException("Unsupported champion proficiency version: " + raw.version());
         }
-        if (!RESEARCH_AS_OF.equals(raw.researchAsOf())) {
+        if (!spec.snapshotAt().equals(raw.researchAsOf())) {
             throw new IllegalStateException("Champion proficiency researchAsOf mismatch");
         }
-        if (!ratings.version().equals(raw.requiredPlayerRatingResourceVersion())
-                || !PlayerRatingResourceLoader.VERSION.equals(raw.requiredPlayerRatingResourceVersion())) {
+        if (!ratings.version().equals(raw.requiredPlayerRatingResourceVersion())) {
             throw new IllegalStateException("Champion proficiency rating prerequisite mismatch");
         }
         if (!champions.championPoolVersion().equals(raw.requiredChampionPoolVersion())
@@ -165,8 +173,8 @@ public final class ChampionProficiencyResourceLoader {
             throw new IllegalStateException("Champion proficiency semantics envelope mismatch");
         }
         RawScope scope = raw.scope();
-        if (scope == null || !"LCK".equals(scope.league()) || scope.teams() != 10
-                || scope.players() != 50 || scope.substitutesIncluded()) {
+        if (scope == null || !spec.leagueCode().equals(scope.league()) || scope.teams() != spec.teamCount()
+                || scope.players() != spec.playerCount() || scope.substitutesIncluded()) {
             throw new IllegalStateException("Champion proficiency scope mismatch");
         }
         if (raw.players() == null || raw.players().size() != scope.players()) {

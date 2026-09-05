@@ -29,6 +29,41 @@ class TeamPlayerInformationApiV1ControllerTest {
     @Autowired ObjectMapper mapper;
 
     @Test
+    void globalRosterEndpointsExposeRegisteredLeaguesAndAuthoredForeignProfiles() throws Exception {
+        String base = "/api/v1/reference/rosters";
+        mvc.perform(get(base)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.leagues.length()").value(6))
+                .andExpect(jsonPath("$.leagues[1].leagueCode").value("LPL"))
+                .andExpect(jsonPath("$.leagues[1].playerCount").value(60));
+        mvc.perform(get(base + "/LEC")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.teams.length()").value(10))
+                .andExpect(jsonPath("$.sources.length()").value(4))
+                .andExpect(jsonPath("$.careerReferenceMetadata.scope.startersOnly").value(true));
+        mvc.perform(get(base + "/LEC/teams/G2")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.players.length()").value(5))
+                .andExpect(jsonPath("$.rosterSnapshotIdentity").value(org.hamcrest.Matchers.matchesPattern("[0-9a-f]{64}")))
+                .andExpect(jsonPath("$.players[0].ratings.mechanics").isNumber())
+                .andExpect(jsonPath("$.players[0].omittedLegalRoleProficiency").value(14));
+        mvc.perform(get(base + "/LPL/players/player-breathe")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.teamCode").value("AL"))
+                .andExpect(jsonPath("$.player.careerReference.contract.endDate").value(org.hamcrest.Matchers.nullValue()))
+                .andExpect(jsonPath("$.player.careerReference.rosterValidation.status")
+                        .value("REQUESTED_SNAPSHOT_CONFLICTS_WITH_PUBLIC_PROFILE"));
+    }
+
+    @Test
+    void globalRosterLookupKeepsLeagueBoundariesAndReturnsReferenceErrors() throws Exception {
+        String base = "/api/v1/reference/rosters";
+        mvc.perform(get(base + "/UNKNOWN")).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REFERENCE_LEAGUE_NOT_FOUND"));
+        mvc.perform(get(base + "/LCK/teams/G2")).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REFERENCE_TEAM_NOT_FOUND"));
+        mvc.perform(get(base + "/LEC/players/player-faker")).andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("REFERENCE_PLAYER_NOT_FOUND"));
+        mvc.perform(get(base + "/LEC/players/invalid")).andExpect(status().isNotFound());
+    }
+
+    @Test
     void metadataPublishesExactCatalogCountsHashesAndLimitations() throws Exception {
         mvc.perform(get(BASE))
                 .andExpect(status().isOk())

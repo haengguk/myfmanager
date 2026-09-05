@@ -1,0 +1,254 @@
+{
+  "version": "lcp-player-identities-2026-08-23-v1",
+  "snapshotAt": "2026-08-23",
+  "requiredPlayerRatingResourceVersion": "lcp-player-ratings-2026-08-23-v1",
+  "scope": {
+    "league": "LCP",
+    "teams": 8,
+    "startersPerTeam": 5,
+    "players": 40,
+    "substitutesIncluded": false
+  },
+  "players": [
+    {
+      "playerId": "player-pun",
+      "team": "TSW",
+      "position": "TOP",
+      "nickname": "Pun"
+    },
+    {
+      "playerId": "player-hizto",
+      "team": "TSW",
+      "position": "JUNGLE",
+      "nickname": "Hizto"
+    },
+    {
+      "playerId": "player-dire",
+      "team": "TSW",
+      "position": "MID",
+      "nickname": "Dire"
+    },
+    {
+      "playerId": "player-eddie",
+      "team": "TSW",
+      "position": "ADC",
+      "nickname": "Eddie"
+    },
+    {
+      "playerId": "player-bie",
+      "team": "TSW",
+      "position": "SUPPORT",
+      "nickname": "Bie"
+    },
+    {
+      "playerId": "player-rest",
+      "team": "CFO",
+      "position": "TOP",
+      "nickname": "Rest"
+    },
+    {
+      "playerId": "player-shad0w",
+      "team": "CFO",
+      "position": "JUNGLE",
+      "nickname": "Shad0w"
+    },
+    {
+      "playerId": "player-pout",
+      "team": "CFO",
+      "position": "MID",
+      "nickname": "POUT"
+    },
+    {
+      "playerId": "player-doggo",
+      "team": "CFO",
+      "position": "ADC",
+      "nickname": "Doggo"
+    },
+    {
+      "playerId": "player-kino",
+      "team": "CFO",
+      "position": "SUPPORT",
+      "nickname": "Kino"
+    },
+    {
+      "playerId": "player-kiaya",
+      "team": "GAM",
+      "position": "TOP",
+      "nickname": "Kiaya"
+    },
+    {
+      "playerId": "player-draktharr",
+      "team": "GAM",
+      "position": "JUNGLE",
+      "nickname": "Draktharr"
+    },
+    {
+      "playerId": "player-gloryy",
+      "team": "GAM",
+      "position": "MID",
+      "nickname": "Gloryy"
+    },
+    {
+      "playerId": "player-artemis",
+      "team": "GAM",
+      "position": "ADC",
+      "nickname": "Artemis"
+    },
+    {
+      "playerId": "player-taki",
+      "team": "GAM",
+      "position": "SUPPORT",
+      "nickname": "Taki"
+    },
+    {
+      "playerId": "player-kratos",
+      "team": "MVK",
+      "position": "TOP",
+      "nickname": "Kratos"
+    },
+    {
+      "playerId": "player-gury",
+      "team": "MVK",
+      "position": "JUNGLE",
+      "nickname": "Gury"
+    },
+    {
+      "playerId": "player-chika",
+      "team": "MVK",
+      "position": "MID",
+      "nickname": "Chika"
+    },
+    {
+      "playerId": "player-harky",
+      "team": "MVK",
+      "position": "ADC",
+      "nickname": "Harky"
+    },
+    {
+      "playerId": "player-siuloong",
+      "team": "MVK",
+      "position": "SUPPORT",
+      "nickname": "SiuLoong"
+    },
+    {
+      "playerId": "player-flauren",
+      "team": "DCG",
+      "position": "TOP",
+      "nickname": "Flauren"
+    },
+    {
+      "playerId": "player-pop9",
+      "team": "DCG",
+      "position": "JUNGLE",
+      "nickname": "Pop9"
+    },
+    {
+      "playerId": "player-hongsuo",
+      "team": "DCG",
+      "position": "MID",
+      "nickname": "HongSuo"
+    },
+    {
+      "playerId": "player-feng",
+      "team": "DCG",
+      "position": "ADC",
+      "nickname": "Feng"
+    },
+    {
+      "playerId": "player-shiauc",
+      "team": "DCG",
+      "position": "SUPPORT",
+      "nickname": "ShiauC"
+    },
+    {
+      "playerId": "player-1jiang",
+      "team": "GZ",
+      "position": "TOP",
+      "nickname": "1Jiang"
+    },
+    {
+      "playerId": "player-husha",
+      "team": "GZ",
+      "position": "JUNGLE",
+      "nickname": "Husha"
+    },
+    {
+      "playerId": "player-uniboy",
+      "team": "GZ",
+      "position": "MID",
+      "nickname": "Uniboy"
+    },
+    {
+      "playerId": "player-betty",
+      "team": "GZ",
+      "position": "ADC",
+      "nickname": "Betty"
+    },
+    {
+      "playerId": "player-kaiwing",
+      "team": "GZ",
+      "position": "SUPPORT",
+      "nickname": "Kaiwing"
+    },
+    {
+      "playerId": "player-evi",
+      "team": "SHG",
+      "position": "TOP",
+      "nickname": "Evi"
+    },
+    {
+      "playerId": "player-van1",
+      "team": "SHG",
+      "position": "JUNGLE",
+      "nickname": "Van1"
+    },
+    {
+      "playerId": "player-aria",
+      "team": "SHG",
+      "position": "MID",
+      "nickname": "Aria"
+    },
+    {
+      "playerId": "player-marble",
+      "team": "SHG",
+      "position": "ADC",
+      "nickname": "Marble"
+    },
+    {
+      "playerId": "player-vsta",
+      "team": "SHG",
+      "position": "SUPPORT",
+      "nickname": "Vsta"
+    },
+    {
+      "playerId": "player-momo",
+      "team": "DFM",
+      "position": "TOP",
+      "nickname": "Momo"
+    },
+    {
+      "playerId": "player-citrus",
+      "team": "DFM",
+      "position": "JUNGLE",
+      "nickname": "Citrus"
+    },
+    {
+      "playerId": "player-fisher",
+      "team": "DFM",
+      "position": "MID",
+      "nickname": "Fisher"
+    },
+    {
+      "playerId": "player-kakkun",
+      "team": "DFM",
+      "position": "ADC",
+      "nickname": "Kakkun"
+    },
+    {
+      "playerId": "player-woody",
+      "team": "DFM",
+      "position": "SUPPORT",
+      "nickname": "Woody"
+    }
+  ]
+}

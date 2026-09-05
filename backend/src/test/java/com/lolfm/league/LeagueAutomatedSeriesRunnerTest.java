@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-class LeagueAutomatedSeriesRunnerTest {
+public class LeagueAutomatedSeriesRunnerTest {
     private static final String RESOURCE_HASH = LeagueDomainTestFixtures.hash(
             "production-resource-provenance");
 
@@ -435,6 +435,20 @@ class LeagueAutomatedSeriesRunnerTest {
         String winner(Request request) {
             return winners.get(request.gameNumber() - 1);
         }
+    }
+
+    public static LeagueFixtureGameReceiptV1 syntheticGame(String identity, int number, String blue, String red,
+            long seed, SeriesDraftHistory history, String winner) {
+        LeagueFixture fixture = org.mockito.Mockito.mock(LeagueFixture.class);
+        org.mockito.Mockito.when(fixture.fixtureId()).thenReturn(identity);
+        var request = new LeagueAutomatedSeriesGameExecutor.Request(fixture, number, blue, red, seed, identity,
+                history, SimulationInstrumentation.disabled());
+        var draft = draft(number + history.consumedPicks().size() / 10, history.consumedPicks());
+        HashSet<ChampionId> after = new HashSet<>(history.consumedPicks());
+        after.addAll(draft.bluePicks()); after.addAll(draft.redPicks());
+        var receipt = gameReceipt(request, draft, after.stream().sorted(java.util.Comparator.comparing(ChampionId::value)).toList(), winner);
+        history.commitCompleted(draft);
+        return receipt;
     }
 
     private static FinalDraftResult draft(int game, Set<ChampionId> historyBefore) {

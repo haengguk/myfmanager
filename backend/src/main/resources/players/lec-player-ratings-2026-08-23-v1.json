@@ -1,0 +1,975 @@
+{
+  "version": "lec-player-ratings-2026-08-23-v1",
+  "snapshotAt": "2026-08-23T00:00:00+02:00",
+  "dataCutoff": "2026-08-22",
+  "scale": {
+    "min": 1,
+    "max": 20
+  },
+  "scope": {
+    "league": "LEC",
+    "teams": 10,
+    "startersPerTeam": 5,
+    "players": 50,
+    "substitutesIncluded": false
+  },
+  "semantics": {
+    "commonAttributeCount": 6,
+    "roleSpecificAttributeCount": 6,
+    "activeAttributesPerPlayer": 12,
+    "championProficiencySeparate": true,
+    "displayCaIncludedInRuntime": false
+  },
+  "players": [
+    {
+      "team": "G2",
+      "nickname": "BrokenBlade",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 19,
+        "consistency": 17,
+        "csAcquisition": 18,
+        "trading": 18,
+        "waveManagement": 17,
+        "lanePressure": 18,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 19
+      }
+    },
+    {
+      "team": "G2",
+      "nickname": "SkewMond",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 16,
+        "combatExecution": 18,
+        "consistency": 17,
+        "pathing": 19,
+        "jungleResourceManagement": 18,
+        "enemyJungleTracking": 18,
+        "laneIntervention": 18,
+        "objectiveDecision": 17,
+        "objectiveSecuring": 16
+      }
+    },
+    {
+      "team": "G2",
+      "nickname": "Caps",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 18,
+        "mapAwareness": 19,
+        "positioning": 17,
+        "combatExecution": 19,
+        "consistency": 17,
+        "csAcquisition": 17,
+        "trading": 17,
+        "waveManagement": 19,
+        "lanePressure": 18,
+        "initiativeConversion": 20,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "G2",
+      "nickname": "Hans Sama",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 18,
+        "combatExecution": 19,
+        "consistency": 17,
+        "csAcquisition": 19,
+        "trading": 19,
+        "waveManagement": 18,
+        "lanePressure": 19,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "G2",
+      "nickname": "Labrov",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 18,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 18,
+        "consistency": 17,
+        "visionControl": 18,
+        "laneSupport": 17,
+        "roamCoordination": 18,
+        "engage": 18,
+        "allyProtection": 17,
+        "zoneSetup": 18
+      }
+    },
+    {
+      "team": "KC",
+      "nickname": "Canna",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 16,
+        "positioning": 17,
+        "combatExecution": 19,
+        "consistency": 17,
+        "csAcquisition": 18,
+        "trading": 18,
+        "waveManagement": 17,
+        "lanePressure": 19,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 19
+      }
+    },
+    {
+      "team": "KC",
+      "nickname": "Yike",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 19,
+        "consistency": 17,
+        "pathing": 18,
+        "jungleResourceManagement": 18,
+        "enemyJungleTracking": 18,
+        "laneIntervention": 19,
+        "objectiveDecision": 17,
+        "objectiveSecuring": 18
+      }
+    },
+    {
+      "team": "KC",
+      "nickname": "kyeahoo",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 18,
+        "consistency": 17,
+        "csAcquisition": 18,
+        "trading": 18,
+        "waveManagement": 18,
+        "lanePressure": 18,
+        "initiativeConversion": 18,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "KC",
+      "nickname": "Caliste",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 19,
+        "combatExecution": 19,
+        "consistency": 19,
+        "csAcquisition": 20,
+        "trading": 19,
+        "waveManagement": 19,
+        "lanePressure": 19,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 18
+      }
+    },
+    {
+      "team": "KC",
+      "nickname": "Busio",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 17,
+        "mapAwareness": 19,
+        "positioning": 17,
+        "combatExecution": 18,
+        "consistency": 17,
+        "visionControl": 19,
+        "laneSupport": 18,
+        "roamCoordination": 19,
+        "engage": 19,
+        "allyProtection": 18,
+        "zoneSetup": 19
+      }
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Myrwn",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 15,
+        "combatExecution": 17,
+        "consistency": 14,
+        "csAcquisition": 16,
+        "trading": 17,
+        "waveManagement": 15,
+        "lanePressure": 18,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Elyoya",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 18,
+        "positioning": 17,
+        "combatExecution": 18,
+        "consistency": 17,
+        "pathing": 19,
+        "jungleResourceManagement": 17,
+        "enemyJungleTracking": 18,
+        "laneIntervention": 18,
+        "objectiveDecision": 18,
+        "objectiveSecuring": 17
+      }
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Jojopyun",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 19,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 18,
+        "consistency": 15,
+        "csAcquisition": 18,
+        "trading": 18,
+        "waveManagement": 16,
+        "lanePressure": 19,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Supa",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 15,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 16,
+        "lanePressure": 16,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Alvaro",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 16,
+        "combatExecution": 18,
+        "consistency": 16,
+        "visionControl": 17,
+        "laneSupport": 17,
+        "roamCoordination": 17,
+        "engage": 17,
+        "allyProtection": 17,
+        "zoneSetup": 18
+      }
+    },
+    {
+      "team": "GX",
+      "nickname": "Oscarinin",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "csAcquisition": 17,
+        "trading": 17,
+        "waveManagement": 16,
+        "lanePressure": 17,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "GX",
+      "nickname": "ISMA",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 17,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 17,
+        "pathing": 17,
+        "jungleResourceManagement": 17,
+        "enemyJungleTracking": 17,
+        "laneIntervention": 17,
+        "objectiveDecision": 16,
+        "objectiveSecuring": 16
+      }
+    },
+    {
+      "team": "GX",
+      "nickname": "Jackies",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "csAcquisition": 17,
+        "trading": 17,
+        "waveManagement": 16,
+        "lanePressure": 17,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "GX",
+      "nickname": "Flakked",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 17,
+        "consistency": 17,
+        "csAcquisition": 17,
+        "trading": 17,
+        "waveManagement": 17,
+        "lanePressure": 17,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "GX",
+      "nickname": "Jun",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 18,
+        "positioning": 16,
+        "combatExecution": 16,
+        "consistency": 16,
+        "visionControl": 18,
+        "laneSupport": 16,
+        "roamCoordination": 18,
+        "engage": 16,
+        "allyProtection": 16,
+        "zoneSetup": 17
+      }
+    },
+    {
+      "team": "VIT",
+      "nickname": "Naak Nako",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "csAcquisition": 18,
+        "trading": 17,
+        "waveManagement": 16,
+        "lanePressure": 18,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "VIT",
+      "nickname": "Lyncas",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 17,
+        "mapAwareness": 18,
+        "positioning": 17,
+        "combatExecution": 17,
+        "consistency": 17,
+        "pathing": 18,
+        "jungleResourceManagement": 18,
+        "enemyJungleTracking": 17,
+        "laneIntervention": 19,
+        "objectiveDecision": 17,
+        "objectiveSecuring": 17
+      }
+    },
+    {
+      "team": "VIT",
+      "nickname": "FIESTA",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "csAcquisition": 17,
+        "trading": 18,
+        "waveManagement": 16,
+        "lanePressure": 18,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "VIT",
+      "nickname": "Carzzy",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 19,
+        "consistency": 17,
+        "csAcquisition": 18,
+        "trading": 18,
+        "waveManagement": 17,
+        "lanePressure": 17,
+        "initiativeConversion": 19,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "VIT",
+      "nickname": "Fleshy",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 18,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "visionControl": 18,
+        "laneSupport": 16,
+        "roamCoordination": 18,
+        "engage": 17,
+        "allyProtection": 16,
+        "zoneSetup": 17
+      }
+    },
+    {
+      "team": "NAVI",
+      "nickname": "Maynter",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 15,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 16,
+        "lanePressure": 16,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 15
+      }
+    },
+    {
+      "team": "NAVI",
+      "nickname": "Rhilech",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 16,
+        "consistency": 16,
+        "pathing": 17,
+        "jungleResourceManagement": 16,
+        "enemyJungleTracking": 16,
+        "laneIntervention": 17,
+        "objectiveDecision": 16,
+        "objectiveSecuring": 16
+      }
+    },
+    {
+      "team": "NAVI",
+      "nickname": "Poby",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 16,
+        "consistency": 16,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 17,
+        "lanePressure": 16,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 15
+      }
+    },
+    {
+      "team": "NAVI",
+      "nickname": "SamD",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 17,
+        "combatExecution": 17,
+        "consistency": 16,
+        "csAcquisition": 18,
+        "trading": 16,
+        "waveManagement": 17,
+        "lanePressure": 16,
+        "initiativeConversion": 16,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "NAVI",
+      "nickname": "Parus",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 17,
+        "positioning": 16,
+        "combatExecution": 16,
+        "consistency": 16,
+        "visionControl": 17,
+        "laneSupport": 16,
+        "roamCoordination": 17,
+        "engage": 16,
+        "allyProtection": 16,
+        "zoneSetup": 17
+      }
+    },
+    {
+      "team": "FNC",
+      "nickname": "Soboro",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 15,
+        "combatExecution": 17,
+        "consistency": 15,
+        "csAcquisition": 17,
+        "trading": 18,
+        "waveManagement": 16,
+        "lanePressure": 17,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "FNC",
+      "nickname": "Razork",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 19,
+        "positioning": 17,
+        "combatExecution": 18,
+        "consistency": 17,
+        "pathing": 19,
+        "jungleResourceManagement": 17,
+        "enemyJungleTracking": 19,
+        "laneIntervention": 19,
+        "objectiveDecision": 17,
+        "objectiveSecuring": 17
+      }
+    },
+    {
+      "team": "FNC",
+      "nickname": "Vladi",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 17,
+        "consistency": 17,
+        "csAcquisition": 17,
+        "trading": 17,
+        "waveManagement": 17,
+        "lanePressure": 18,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "FNC",
+      "nickname": "Upset",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 18,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 19,
+        "combatExecution": 18,
+        "consistency": 17,
+        "csAcquisition": 19,
+        "trading": 17,
+        "waveManagement": 18,
+        "lanePressure": 18,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "FNC",
+      "nickname": "Lospa",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 17,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "visionControl": 17,
+        "laneSupport": 16,
+        "roamCoordination": 17,
+        "engage": 16,
+        "allyProtection": 17,
+        "zoneSetup": 17
+      }
+    },
+    {
+      "team": "SK",
+      "nickname": "Wunder",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 17,
+        "mapAwareness": 17,
+        "positioning": 17,
+        "combatExecution": 17,
+        "consistency": 17,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 18,
+        "lanePressure": 16,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 17
+      }
+    },
+    {
+      "team": "SK",
+      "nickname": "Skeanz",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 15,
+        "mapAwareness": 16,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 15,
+        "pathing": 16,
+        "jungleResourceManagement": 16,
+        "enemyJungleTracking": 15,
+        "laneIntervention": 16,
+        "objectiveDecision": 15,
+        "objectiveSecuring": 15
+      }
+    },
+    {
+      "team": "SK",
+      "nickname": "SlowQ",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 15,
+        "csAcquisition": 16,
+        "trading": 16,
+        "waveManagement": 15,
+        "lanePressure": 16,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 14
+      }
+    },
+    {
+      "team": "SK",
+      "nickname": "Jopa",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 15,
+        "csAcquisition": 18,
+        "trading": 17,
+        "waveManagement": 16,
+        "lanePressure": 17,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "SK",
+      "nickname": "Mikyx",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 17,
+        "mapAwareness": 18,
+        "positioning": 15,
+        "combatExecution": 18,
+        "consistency": 15,
+        "visionControl": 18,
+        "laneSupport": 16,
+        "roamCoordination": 18,
+        "engage": 17,
+        "allyProtection": 17,
+        "zoneSetup": 18
+      }
+    },
+    {
+      "team": "SHFT",
+      "nickname": "Rooster",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 14,
+        "mapAwareness": 14,
+        "positioning": 14,
+        "combatExecution": 16,
+        "consistency": 14,
+        "csAcquisition": 16,
+        "trading": 16,
+        "waveManagement": 15,
+        "lanePressure": 16,
+        "initiativeConversion": 14,
+        "sideLaneManagement": 15
+      }
+    },
+    {
+      "team": "SHFT",
+      "nickname": "Sheo",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 15,
+        "mapAwareness": 16,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 15,
+        "pathing": 15,
+        "jungleResourceManagement": 16,
+        "enemyJungleTracking": 16,
+        "laneIntervention": 16,
+        "objectiveDecision": 15,
+        "objectiveSecuring": 15
+      }
+    },
+    {
+      "team": "SHFT",
+      "nickname": "nuc",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 16,
+        "mapAwareness": 18,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 17,
+        "lanePressure": 16,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "SHFT",
+      "nickname": "Paduck",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 14,
+        "mapAwareness": 14,
+        "positioning": 15,
+        "combatExecution": 16,
+        "consistency": 14,
+        "csAcquisition": 16,
+        "trading": 15,
+        "waveManagement": 15,
+        "lanePressure": 15,
+        "initiativeConversion": 14,
+        "sideLaneManagement": 15
+      }
+    },
+    {
+      "team": "SHFT",
+      "nickname": "Stend",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 15,
+        "decisionMaking": 15,
+        "mapAwareness": 16,
+        "positioning": 15,
+        "combatExecution": 15,
+        "consistency": 15,
+        "visionControl": 16,
+        "laneSupport": 15,
+        "roamCoordination": 16,
+        "engage": 15,
+        "allyProtection": 15,
+        "zoneSetup": 16
+      }
+    },
+    {
+      "team": "TH",
+      "nickname": "Tracyn",
+      "position": "TOP",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 15,
+        "combatExecution": 17,
+        "consistency": 15,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 16,
+        "lanePressure": 17,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "TH",
+      "nickname": "Daglas",
+      "position": "JUNGLE",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "pathing": 16,
+        "jungleResourceManagement": 16,
+        "enemyJungleTracking": 16,
+        "laneIntervention": 16,
+        "objectiveDecision": 16,
+        "objectiveSecuring": 16
+      }
+    },
+    {
+      "team": "TH",
+      "nickname": "Serin",
+      "position": "MID",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 16,
+        "csAcquisition": 16,
+        "trading": 15,
+        "waveManagement": 17,
+        "lanePressure": 16,
+        "initiativeConversion": 17,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "TH",
+      "nickname": "Hype",
+      "position": "ADC",
+      "ratings": {
+        "mechanics": 17,
+        "decisionMaking": 15,
+        "mapAwareness": 15,
+        "positioning": 16,
+        "combatExecution": 17,
+        "consistency": 15,
+        "csAcquisition": 17,
+        "trading": 16,
+        "waveManagement": 16,
+        "lanePressure": 17,
+        "initiativeConversion": 15,
+        "sideLaneManagement": 16
+      }
+    },
+    {
+      "team": "TH",
+      "nickname": "Way",
+      "position": "SUPPORT",
+      "ratings": {
+        "mechanics": 16,
+        "decisionMaking": 16,
+        "mapAwareness": 16,
+        "positioning": 16,
+        "combatExecution": 15,
+        "consistency": 16,
+        "visionControl": 17,
+        "laneSupport": 16,
+        "roamCoordination": 17,
+        "engage": 16,
+        "allyProtection": 16,
+        "zoneSetup": 17
+      }
+    }
+  ]
+}

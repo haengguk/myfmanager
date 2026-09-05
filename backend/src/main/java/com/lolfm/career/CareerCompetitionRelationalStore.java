@@ -42,11 +42,11 @@ public final class CareerCompetitionRelationalStore {
             "lck-career-competition-rules-2026-v1";
     private static final String LEGACY_GAME_POLICY_VERSION =
             "CAREER_COMPETITION_GAME_POLICY_V1";
-    private final JdbcTemplate jdbc;
+    final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
-    private final Clock clock;
-    private final CareerCompetitionRules rules;
-    private final ObjectMapper json;
+    final Clock clock;
+    final CareerCompetitionRules rules;
+    final ObjectMapper json;
 
     public CareerCompetitionRelationalStore(
             JdbcTemplate jdbc,
@@ -179,6 +179,39 @@ public final class CareerCompetitionRelationalStore {
         });
     }
 
+    public void reconcileDomesticR1R2(String careerId, int year) {
+        transactions.executeWithoutResult(ignored -> {
+            lockCycle(careerId, year); load(careerId, year);
+            if (isCurrentRules(careerId, year)) new CareerDomesticCompetition(this).r1r2(careerId, year);
+        });
+    }
+
+    static List<FixtureRow> orderFixtures(List<FixtureRow> fixtures) {
+        List<String> order = List.of("LCK_CUP", "LCK_REGULAR_R1_R2", "LCK_ROAD_TO_MSI", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN", "LCK_PLAYOFFS");
+        return fixtures.stream().sorted(java.util.Comparator.comparingInt((FixtureRow f) -> order.indexOf(f.competitionId()))
+                .thenComparingInt(f -> !"COMPLETED".equals(f.lifecycleStatus()) && f.stageId().endsWith("TIEBREAKER") ? 0 : 1)
+                .thenComparing(FixtureRow::date).thenComparingInt(FixtureRow::matchOrder).thenComparing(FixtureRow::matchId)).toList();
+    }
+
+    private Set<com.lolfm.champion.ChampionId> inheritedPicks(String careerId, int year, FixtureRow fixture) {
+        if (!"CUP_GROUP_TIEBREAKER".equals(fixture.stageId())) return Set.of();
+        var state = jdbc.query("""
+                SELECT decision_json FROM career_domestic_ranking_decision WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_CUP' AND decision_id = 'CUP_GROUP_WINNER'
+                """, (r,n) -> CareerDomesticEvidence.read(json, r.getString(1), CareerDomesticCompetition.MixedGroupState.class), careerId, year).getFirst();
+        if (!fixture.matchId().equals(state.nextMatchId())) throw new IllegalStateException("CUP_GROUP_CHILD_SCOPE_MISMATCH");
+        if (state.completedMatches().isEmpty()) return Set.of();
+        String previous = state.completedMatches().getLast();
+        var binding = loadBinding(careerId, year, previous);
+        if (!hasAppliedCompletion(binding)) throw new IllegalStateException("CUP_GROUP_PREVIOUS_GAME_NOT_APPLIED");
+        var receipt = jdbc.queryForObject("SELECT receipt_json FROM career_competition_completion_receipt WHERE binding_hash = ?",
+                (r,n) -> CareerDomesticEvidence.read(json, r.getString(1), CareerCompetitionFixtureCompletionReceiptV1.class), binding.bindingHash());
+        if (receipt.orderedGames().size() != 1) throw new IllegalStateException("CUP_GROUP_GAME_EVIDENCE_REQUIRED");
+        var picks = Set.copyOf(receipt.orderedGames().getFirst().historyAfterPicks());
+        if (picks.size() != state.completedMatches().size() * 10) throw new IllegalStateException("CUP_GROUP_FEARLESS_CONTINUITY_MISMATCH");
+        return picks;
+    }
+
     public CycleView load(String careerId, int seasonYear) {
         List<CycleRow> rows = findCycle(careerId, seasonYear, false);
         if (rows.size() != 1) throw new IllegalStateException(
@@ -211,6 +244,7 @@ public final class CareerCompetitionRelationalStore {
                 // Deliberately leave V1 untouched. Reads expose migration-required.
             }
         }
+        recoverDormantRules();
         List<String> missing = jdbc.query("""
                 SELECT s.career_id || '|' || s.active_calendar_season_year
                 FROM career_calendar_state s
@@ -232,6 +266,31 @@ public final class CareerCompetitionRelationalStore {
                 // previous in-game LCK final ranking exists.
             }
         }
+    }
+
+    /** No result, binding, seed import or ranking may be silently reinterpreted. */
+    private void recoverDormantRules() {
+        var candidates = jdbc.query("""
+                SELECT career_id, calendar_season_year FROM career_competition_cycle
+                WHERE rule_version = ? ORDER BY career_id, calendar_season_year
+                """, (r,n) -> Map.entry(r.getString(1), r.getInt(2)), CareerCompetitionRules.PREVIOUS_VERSION);
+        for (var key : candidates) transactions.executeWithoutResult(ignored -> {
+            String career = key.getKey(); int year = key.getValue();
+            var cycle = lockCycle(career, year); validateAndView(cycle);
+            if (cycle.r1r2ImportHash() != null || countRows("career_competition_application", career, year) != 0
+                    || countRows("career_competition_series_binding", career, year) != 0
+                    || countRows("career_lck_cup_standing", career, year) != 0
+                    || countRows("career_lck_final_ranking_snapshot", career, year) != 0) return;
+            jdbc.update("""
+                    UPDATE career_competition_cycle SET rule_version = ?, rule_resource_hash = ?, game_policy_version = ?,
+                      revision = revision + 1 WHERE career_id = ? AND calendar_season_year = ?
+                    """, CareerCompetitionRules.VERSION, rules.resourceHash(), CareerCompetitionRules.GAME_POLICY_VERSION, career, year);
+            jdbc.update("""
+                    UPDATE career_competition_instance SET rule_status = 'RULE_SOURCE_COMPLETE', lifecycle_status = 'WAITING_FOR_SEEDS',
+                      blocking_reason = 'LCK_PLAYOFF_SEEDS_REQUIRED' WHERE career_id = ? AND calendar_season_year = ? AND competition_id = 'LCK_PLAYOFFS'
+                    """, career, year);
+            refreshAllInstanceHashes(career, year); refreshCycleHash(career, year);
+        });
     }
 
     private void requireFirstCycleBootstrapAuthority(String careerId, int year) {
@@ -285,6 +344,7 @@ public final class CareerCompetitionRelationalStore {
         if (!calculated.equals(header.stateHash())) {
             throw new IllegalStateException("PRIOR_SEASON_RANKING_INTEGRITY_FAILURE");
         }
+        finalRanking(careerId, priorYear); // Also validate new rule/result authority when present.
         return new VerifiedPriorLckRanking(header.seasonOrdinal(),
                 new CareerCompetitionRules.PriorLckRanking(careerId, priorYear,
                         header.lifecycleStatus(), calculated, ranking));
@@ -315,6 +375,58 @@ public final class CareerCompetitionRelationalStore {
                 StandardCharsets.UTF_8));
     }
 
+    public List<DomesticDecisionView> domesticDecisions(String careerId, int year) {
+        return jdbc.query("""
+                SELECT competition_id, decision_id, lifecycle_status, input_hash, policy_version, decision_json, decision_hash
+                FROM career_domestic_ranking_decision WHERE career_id = ? AND calendar_season_year = ? ORDER BY competition_id, decision_id
+                """, (r,n) -> {
+            if (!CareerDomesticCompetition.hash(r.getString(6)).equals(r.getString(7))) throw new IllegalStateException("DOMESTIC_DECISION_INTEGRITY_FAILURE");
+            return new DomesticDecisionView(r.getString(1), r.getString(2), r.getString(3), r.getString(4), r.getString(5),
+                    CareerDomesticEvidence.read(json, r.getString(6), com.fasterxml.jackson.databind.JsonNode.class));
+        }, careerId, year);
+    }
+
+    public FinalRankingView finalRanking(String careerId, int year) {
+        var headers = jdbc.queryForList("SELECT * FROM career_lck_final_ranking_snapshot WHERE career_id = ? AND calendar_season_year = ?", careerId, year);
+        if (headers.isEmpty()) return null;
+        var header = headers.getFirst();
+        var ranking = jdbc.query("""
+                SELECT rank_number, team_code, series_wins, series_losses, game_wins, game_losses
+                FROM career_lck_final_ranking_row WHERE career_id = ? AND calendar_season_year = ? ORDER BY rank_number
+                """, (r,n) -> new CareerCompetitionAggregate.SeededTeam(r.getInt(1), r.getString(2), r.getInt(3), r.getInt(4), r.getInt(5), r.getInt(6)), careerId, year);
+        String source = (String) header.get("source_season_id");
+        String state = finalRankingStateHash(careerId, year, ((Number) header.get("season_ordinal")).intValue(), source, ranking);
+        if (ranking.size() != 10 || ranking.stream().map(CareerCompetitionAggregate.SeededTeam::teamCode).distinct().count() != 10
+                || !"SEALED".equals(header.get("lifecycle_status")) || !state.equals(header.get("state_hash")))
+            throw new IllegalStateException("LCK_FINAL_RANKING_INTEGRITY_FAILURE");
+        String evidence = (String) header.get("result_evidence_hash"), authority = (String) header.get("authority_hash");
+        String champion = ranking.getFirst().teamCode(), runner = ranking.get(1).teamCode();
+        if (authority != null && (!CareerDomesticCompetition.finalAuthority(state, evidence, champion, runner).equals(authority)
+                || !CareerCompetitionRules.VERSION.equals(header.get("rule_version"))
+                || !CareerDomesticRanking.POLICY.equals(header.get("policy_version"))
+                || !"REGULAR_R1_R2_AND_R3_R4_ONLY".equals(header.get("record_scope"))
+                || !champion.equals(header.get("champion_team_code")) || !runner.equals(header.get("runner_up_team_code"))))
+            throw new IllegalStateException("LCK_FINAL_RANKING_AUTHORITY_MISMATCH");
+        for (int i = 0; i < ranking.size(); i++) if (ranking.get(i).seed() != i + 1)
+            throw new IllegalStateException("LCK_FINAL_RANKING_PLACE_SEQUENCE_MISMATCH");
+        var seal = domesticDecisions(careerId, year).stream().filter(d -> d.competitionId().equals("LCK_PLAYOFFS") && d.decisionId().equals("LCK_FINAL_RANKING")).findFirst();
+        if (seal.isPresent() && (!"SEALED".equals(seal.get().status())
+                || !seal.get().detail().path("stateHash").asText().equals(state)
+                || !seal.get().detail().path("authorityHash").asText().equals(authority)
+                || !seal.get().detail().path("resultEvidenceHash").asText().equals(evidence)))
+            throw new IllegalStateException("LCK_FINAL_RANKING_SEAL_MISMATCH");
+        return new FinalRankingView("SEALED", year, source, champion, runner, ranking, state,
+                (String) header.get("rule_version"), (String) header.get("policy_version"), evidence,
+                "PENDING_IN_GAME_INTERNATIONAL_EVIDENCE", List.of("REGIONAL_SLOT_ALLOCATION", "MSI_CHAMPION_AND_DOMESTIC_PLAYOFF_ELIGIBILITY"));
+    }
+
+    public record DomesticDecisionView(String competitionId, String decisionId, String status, String inputHash,
+                                       String policyVersion, com.fasterxml.jackson.databind.JsonNode detail) {}
+    public record FinalRankingView(String status, int sourceSeasonYear, String sourceSeasonId, String championTeamCode,
+                                   String runnerUpTeamCode, List<CareerCompetitionAggregate.SeededTeam> ranking, String stateHash,
+                                   String ruleVersion, String policyVersion, String resultEvidenceHash, String worldsStatus,
+                                   List<String> requiredInternationalEvidence) {}
+
     private void upgradeLegacyCycle(String careerId, int year) {
         CycleRow cycle = lockCycle(careerId, year);
         if (!LEGACY_CYCLE_HASH_ALGORITHM.equals(cycle.hashAlgorithm())) return;
@@ -334,8 +446,8 @@ public final class CareerCompetitionRelationalStore {
                     season_ordinal = ?, initialization_policy_id = ?,
                     initialization_input_hash = ?, updated_at = ?
                 WHERE career_id = ? AND calendar_season_year = ?
-                """, CYCLE_SCHEMA, CareerCompetitionRules.VERSION, rules.resourceHash(),
-                CareerCompetitionRules.GAME_POLICY_VERSION,
+                """, CYCLE_SCHEMA, CareerCompetitionRules.PREVIOUS_VERSION, CareerCompetitionRules.PREVIOUS_RESOURCE_HASH,
+                CareerCompetitionRules.PREVIOUS_POLICY,
                 CareerCompetitionRules.PROJECTION_POLICY,
                 CareerCompetitionRules.R3_R4_ALLOCATION_POLICY,
                 CYCLE_HASH_ALGORITHM, "0".repeat(64), 1,
@@ -343,7 +455,7 @@ public final class CareerCompetitionRelationalStore {
                 careerId, year);
         for (InstanceRow instance : instances) {
             CareerCompetitionRules.CompetitionRule rule = rules.rule(
-                    instance.competitionId());
+                    instance.competitionId(), CareerCompetitionRules.PREVIOUS_VERSION);
             boolean cup = "LCK_CUP".equals(instance.competitionId());
             String inputHash = cup ? cupInitialization.inputHash()
                     : instance.sourceInputHash();
@@ -548,7 +660,7 @@ public final class CareerCompetitionRelationalStore {
         }
     }
 
-    private CareerBinding careerBinding(String careerId) {
+    CareerBinding careerBinding(String careerId) {
         List<CareerBinding> values = jdbc.query("""
                 SELECT managed_team_code, career_root_seed
                 FROM career_save WHERE career_id = ?
@@ -634,7 +746,7 @@ public final class CareerCompetitionRelationalStore {
             for (int index = 0; index < road.fixtures().size(); index++) {
                 insertFixture(careerId, seasonYear, "LCK_ROAD_TO_MSI",
                         road.fixtures().get(index), "ROAD_TO_MSI", index + 1,
-                        null, null, null, null, null,
+                        null, null, null, null, rules.rule("LCK_ROAD_TO_MSI").matches().get(index).sideSelectionPolicy(),
                         "OFFICIAL_PROJECTED_DATE");
             }
             CareerCompetitionAggregate.R3R4Stage r3r4 =
@@ -680,24 +792,30 @@ public final class CareerCompetitionRelationalStore {
     /** Creates or replays the immutable server-owned execution authority. */
     public CareerCompetitionSeriesBindingV1 bindFixture(
             String careerId, int seasonYear, String matchId,
-            LeagueSeasonFrozenSnapshot productionSnapshot,
-            String resourceProvenanceHash
-    ) {
+            LeagueSeasonFrozenSnapshot productionSnapshot, String resourceProvenanceHash) {
+        var matching = load(careerId, seasonYear).fixtures().stream().filter(f -> f.matchId().equals(matchId)).toList();
+        if (matching.size() != 1) throw new IllegalArgumentException("COMPETITION_MATCH_SCOPE_REQUIRED");
+        return bindFixture(careerId, seasonYear, matching.getFirst().competitionId(), matchId, productionSnapshot, resourceProvenanceHash);
+    }
+    public CareerCompetitionSeriesBindingV1 bindFixture(
+            String careerId, int seasonYear, String competitionId, String matchId,
+            LeagueSeasonFrozenSnapshot productionSnapshot, String resourceProvenanceHash) {
         return transactions.execute(ignored -> {
+            lockCycle(careerId, seasonYear);
             CycleView cycle = load(careerId, seasonYear);
             FixtureRow fixture = cycle.fixtures().stream()
-                    .filter(value -> value.matchId().equals(matchId))
-                    .findFirst().orElseThrow(() -> new IllegalArgumentException(
-                            "COMPETITION_MATCH_NOT_FOUND"));
+                    .filter(value -> value.competitionId().equals(competitionId) && value.matchId().equals(matchId))
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException("COMPETITION_MATCH_NOT_FOUND"));
             InstanceRow instance = cycle.competitions().stream()
                     .filter(value -> value.competitionId().equals(
                             fixture.competitionId()))
                     .findFirst().orElseThrow();
+            if (!isCurrentRules(careerId, seasonYear)) throw new IllegalStateException("DOMESTIC_RULE_VERSION_REQUIRES_NEW_CYCLE");
             String managedTeam = careerBinding(careerId).managedTeamCode();
             CareerCompetitionSeriesBindingV1 candidate =
                     CareerCompetitionSeriesBindingV1.create(cycle, instance,
                             fixture, managedTeam, rules.resourceHash(),
-                            productionSnapshot, resourceProvenanceHash);
+                            productionSnapshot, resourceProvenanceHash, inheritedPicks(careerId, seasonYear, fixture));
             List<String> prior = jdbc.query("""
                     SELECT binding_canonical FROM career_competition_series_binding
                     WHERE career_id = ? AND calendar_season_year = ?
@@ -818,7 +936,7 @@ public final class CareerCompetitionRelationalStore {
                 FROM career_competition_seed
                 WHERE career_id = ? AND calendar_season_year = ?
                   AND seed_scope IN ('CUP_PLAY_IN_SEED', 'CUP_PLAYOFF_SEED',
-                    'PLAY_IN_SEED')
+                    'PLAY_IN_SEED', 'LCK_PLAYOFF_SEED')
                 ORDER BY competition_id, seed_scope, seed_number
                 """, (result, row) -> new SeedView(result.getString(1),
                 result.getString(2), result.getInt(3), result.getString(4),
@@ -899,6 +1017,7 @@ public final class CareerCompetitionRelationalStore {
             throw new IllegalStateException("COMPETITION_PERSISTED_COMPLETION_MISMATCH");
         }
         load(binding.careerId(), binding.seasonYear()); // Validate canonical graph and ledger integrity.
+        if (binding.competitionId().equals("LCK_PLAYOFFS") && binding.matchId().equals("PO_F")) finalRanking(binding.careerId(), binding.seasonYear());
         return true;
     }
 
@@ -993,8 +1112,14 @@ public final class CareerCompetitionRelationalStore {
         });
     }
 
+    boolean isCurrentRules(String careerId, int year) {
+        return CareerCompetitionRules.VERSION.equals(findCycle(careerId, year, false).getFirst().ruleVersion());
+    }
+
     private void advanceResultGraph(String careerId, int year, String competitionId) {
-        if ("LCK_CUP".equals(competitionId)) {
+        if (isCurrentRules(careerId, year)) {
+            new CareerDomesticCompetition(this).advance(careerId, year, competitionId);
+        } else if ("LCK_CUP".equals(competitionId)) {
             advanceCupGraph(careerId, year);
         } else if ("LCK_REGULAR_R3_R4".equals(competitionId)) {
             materializeLckPlayInWhenReady(careerId, year);
@@ -1220,7 +1345,7 @@ public final class CareerCompetitionRelationalStore {
                 StandardCharsets.UTF_8));
     }
 
-    private void insertDerivedSeeds(
+    void insertDerivedSeeds(
             String careerId, int year, String scope, List<String> teams,
             String sourceHash, int firstSeed
     ) {
@@ -1237,7 +1362,7 @@ public final class CareerCompetitionRelationalStore {
         }
     }
 
-    private void deriveCupPlayoffSeeds(String careerId, int year) {
+    void deriveCupPlayoffSeeds(String careerId, int year) {
         Map<String, Integer> playInSeeds = seedByTeam(careerId, year,
                 "CUP_PLAY_IN_SEED");
         Map<String, Outcome> outcomes = cupOutcomes(careerId, year);
@@ -1267,7 +1392,7 @@ public final class CareerCompetitionRelationalStore {
         }
     }
 
-    private void resolveCupFixtures(String careerId, int year) {
+    void resolveCupFixtures(String careerId, int year) {
         Map<Integer, String> playIn = seedByNumber(careerId, year,
                 "CUP_PLAY_IN_SEED");
         Map<Integer, String> playoff = seedByNumber(careerId, year,
@@ -1478,7 +1603,7 @@ public final class CareerCompetitionRelationalStore {
         return new CareerCompetitionAggregate.SeededTeam(number, team, 0, 0, 0, 0);
     }
 
-    private String writeJson(Object value) {
+    String writeJson(Object value) {
         try {
             return json.writeValueAsString(value);
         } catch (JsonProcessingException failure) {
@@ -1681,7 +1806,7 @@ public final class CareerCompetitionRelationalStore {
                 StandardCharsets.UTF_8));
     }
 
-    private void insertTransitionOutput(
+    void insertTransitionOutput(
             String careerId, int year, String competitionId, String outputId,
             String teamCode
     ) {
@@ -1917,7 +2042,7 @@ public final class CareerCompetitionRelationalStore {
         }
         instances.forEach(value -> {
             CareerCompetitionRules.CompetitionRule rule = rules.rule(
-                    value.competitionId());
+                    value.competitionId(), cycle.ruleVersion());
             CareerIdentity.requireSha256(value.stateHash(), "competitionStateHash");
             if (!rule.ruleStatus().equals(value.ruleStatus())
                     || !INSTANCE_HASH_ALGORITHM.equals(value.hashAlgorithm())
@@ -1953,10 +2078,11 @@ public final class CareerCompetitionRelationalStore {
                 cycle.r1r2ImportHash(), cycle.r1r2StandingsRevision(),
                 cycle.hashAlgorithm(), cycle.seasonOrdinal(),
                 cycle.initializationPolicyId(), cycle.initializationInputHash(),
-                List.copyOf(instances), List.copyOf(fixtures), List.copyOf(outputs));
+                cycle.ruleVersion(), cycle.ruleResourceHash(), cycle.gamePolicyVersion(),
+                List.copyOf(instances), orderFixtures(fixtures), List.copyOf(outputs));
     }
 
-    private List<CycleRow> findCycle(String careerId, int year, boolean lock) {
+    List<CycleRow> findCycle(String careerId, int year, boolean lock) {
         return jdbc.query("""
                 SELECT career_id, calendar_season_year, cycle_schema, rule_version,
                        rule_resource_hash, game_policy_version, projection_policy,
@@ -1970,7 +2096,7 @@ public final class CareerCompetitionRelationalStore {
                 careerId, year);
     }
 
-    private CycleRow lockCycle(String careerId, int year) {
+    CycleRow lockCycle(String careerId, int year) {
         List<CycleRow> rows = findCycle(careerId, year, true);
         if (rows.size() != 1) throw new IllegalStateException(
                 "CAREER_COMPETITION_CYCLE_NOT_FOUND");
@@ -1979,10 +2105,8 @@ public final class CareerCompetitionRelationalStore {
 
     private void validateCycle(CycleRow value, List<InstanceRow> instances) {
         if (!CYCLE_SCHEMA.equals(value.cycleSchema())
-                || !CareerCompetitionRules.VERSION.equals(value.ruleVersion())
-                || !rules.resourceHash().equals(value.ruleResourceHash())
-                || !CareerCompetitionRules.GAME_POLICY_VERSION.equals(
-                value.gamePolicyVersion())
+                || !CareerCompetitionRules.supportedIdentity(value.ruleVersion(),
+                value.ruleResourceHash(), value.gamePolicyVersion())
                 || !CareerCompetitionRules.PROJECTION_POLICY.equals(
                 value.projectionPolicy())
                 || !CareerCompetitionRules.R3_R4_ALLOCATION_POLICY.equals(
@@ -1993,7 +2117,7 @@ public final class CareerCompetitionRelationalStore {
         }
     }
 
-    private void insertSeeds(
+    void insertSeeds(
             String careerId, int year, String competitionId, String scope,
             String inputHash, List<CareerCompetitionAggregate.SeededTeam> ranking
     ) {
@@ -2011,7 +2135,7 @@ public final class CareerCompetitionRelationalStore {
         }
     }
 
-    private void insertFixture(
+    void insertFixture(
             String careerId, int year, String competitionId,
             CareerCompetitionAggregate.Fixture value, String stageId, int matchOrder,
             String groupId, Integer groupPointValue, String selectionRightOwner,
@@ -2062,11 +2186,12 @@ public final class CareerCompetitionRelationalStore {
                 value.secondTeamCode(), "READY", value.executionMode(), value.rootSeed(),
                 value.seriesId(), List.of(), List.of(), null, null, null);
         insertFixture(careerId, year, "LCK_REGULAR_R3_R4", fixture,
-                value.groupId(), matchOrder, value.groupId(), null, null, null, null,
+                value.groupId(), matchOrder, value.groupId(), null, null, null,
+                "SCHEDULED_FIRST_TEAM_BLUE_ALTERNATING_V1",
                 "GAME_DERIVED_SCHEDULE_POLICY");
     }
 
-    private void updateInstance(
+    void updateInstance(
             String careerId, int year, String competitionId, String lifecycle,
             String blocker, String sourceInputHash, long revision, String stateHash,
             OffsetDateTime now
@@ -2082,7 +2207,7 @@ public final class CareerCompetitionRelationalStore {
                 "CAREER_COMPETITION_INSTANCE_NOT_FOUND");
     }
 
-    private void setInstanceMaterializationAuthority(
+    void setInstanceMaterializationAuthority(
             String careerId, int year, String competitionId, String policyId,
             String receiptHash, OffsetDateTime updatedAt
     ) {
@@ -2099,7 +2224,7 @@ public final class CareerCompetitionRelationalStore {
                 "CAREER_COMPETITION_INSTANCE_NOT_FOUND");
     }
 
-    private InstanceRow instance(String careerId, int year, String competitionId) {
+    InstanceRow instance(String careerId, int year, String competitionId) {
         List<InstanceRow> values = jdbc.query("""
                 SELECT competition_id, rule_status, lifecycle_status, blocking_reason,
                        source_input_hash, revision, state_hash, hash_algorithm,
@@ -2129,13 +2254,13 @@ public final class CareerCompetitionRelationalStore {
                 """, (result, row) -> instance(result), careerId, year);
     }
 
-    private void refreshAllInstanceHashes(String careerId, int year) {
+    void refreshAllInstanceHashes(String careerId, int year) {
         for (InstanceRow value : loadInstances(careerId, year)) {
             refreshInstanceHash(careerId, year, value.competitionId());
         }
     }
 
-    private void refreshInstanceHash(String careerId, int year, String competitionId) {
+    void refreshInstanceHash(String careerId, int year, String competitionId) {
         InstanceRow value = instance(careerId, year, competitionId);
         String hash = instanceHashV2(careerId, year, value);
         int updated = jdbc.update("""
@@ -2146,7 +2271,7 @@ public final class CareerCompetitionRelationalStore {
                 "CAREER_COMPETITION_INSTANCE_NOT_FOUND");
     }
 
-    private void refreshCycleHash(String careerId, int year) {
+    void refreshCycleHash(String careerId, int year) {
         CycleRow cycle = lockCycle(careerId, year);
         String hash = cycleHashV2(cycle, loadInstances(careerId, year));
         int updated = jdbc.update("""
@@ -2164,9 +2289,10 @@ public final class CareerCompetitionRelationalStore {
         field(canonical, "careerId", careerId);
         field(canonical, "calendarSeasonYear", year);
         field(canonical, "competitionId", instance.competitionId());
-        field(canonical, "ruleVersion", CareerCompetitionRules.VERSION);
-        field(canonical, "ruleResourceHash", rules.resourceHash());
-        field(canonical, "gamePolicyVersion", CareerCompetitionRules.GAME_POLICY_VERSION);
+        CycleRow authority = findCycle(careerId, year, false).getFirst();
+        field(canonical, "ruleVersion", authority.ruleVersion());
+        field(canonical, "ruleResourceHash", authority.ruleResourceHash());
+        field(canonical, "gamePolicyVersion", authority.gamePolicyVersion());
         field(canonical, "ruleStatus", instance.ruleStatus());
         field(canonical, "materializationPolicyId", instance.materializationPolicyId());
         field(canonical, "materializationReceiptHash",
@@ -2281,7 +2407,20 @@ public final class CareerCompetitionRelationalStore {
                     result.getInt(7), result.getInt(8), result.getInt(9),
                     result.getString(10), result.getString(11)), careerId, year);
             if (!standings.isEmpty()) rows(canonical, "cupStanding", standings);
+            var exactMetrics = jdbc.query("""
+                    SELECT group_id, group_rank, strength_twice, winning_game_seconds, winning_game_count
+                    FROM career_lck_cup_standing WHERE career_id = ? AND calendar_season_year = ?
+                    AND strength_twice IS NOT NULL ORDER BY group_id, group_rank
+                    """, (r,n) -> row("cupExactMetric", r.getString(1), r.getInt(2), r.getInt(3), r.getObject(4), r.getObject(5)), careerId, year);
+            if (!exactMetrics.isEmpty()) rows(canonical, "cupExactMetric", exactMetrics);
         }
+        List<String> domestic = jdbc.query("""
+                SELECT decision_id, input_hash, policy_version, decision_json, decision_hash, lifecycle_status
+                FROM career_domestic_ranking_decision WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = ? ORDER BY decision_id
+                """, (r, n) -> row("domesticDecision", r.getString(1), r.getString(2), r.getString(3),
+                r.getString(4), r.getString(5), r.getString(6)), careerId, year, instance.competitionId());
+        if (!domestic.isEmpty()) rows(canonical, "domesticDecision", domestic);
         return CareerCompetitionRules.sha256(canonical.toString().getBytes(
                 StandardCharsets.UTF_8));
     }
@@ -2334,12 +2473,12 @@ public final class CareerCompetitionRelationalStore {
                 .append(text).append('\n');
     }
 
-    private OffsetDateTime now() { return clock.instant().atOffset(ZoneOffset.UTC); }
+    OffsetDateTime now() { return clock.instant().atOffset(ZoneOffset.UTC); }
 
     private static String initialLifecycle(String id) {
         return switch (id) {
             case "LCK_CUP" -> "READY";
-            case "LCK_PLAYOFFS" -> "BLOCKED";
+            case "LCK_PLAYOFFS" -> "WAITING_FOR_SEEDS";
             case "LCK_REGULAR_R1_R2" -> "ACTIVE";
             case "FIRST_STAND", "MSI", "EWC_LOL", "WORLDS" -> "EXTERNAL_ONLY";
             case "ASIAN_GAMES_LOL_RELEASE" -> "WINDOW_ONLY";
@@ -2353,6 +2492,7 @@ public final class CareerCompetitionRelationalStore {
             case "LCK_ROAD_TO_MSI", "LCK_REGULAR_R3_R4" ->
                     "R1_R2_FINAL_STANDINGS_REQUIRED";
             case "LCK_PLAY_IN" -> "R3_R4_FINAL_STANDINGS_REQUIRED";
+            case "LCK_PLAYOFFS" -> "LCK_PLAYOFF_SEEDS_REQUIRED";
             default -> rule.blockingReason();
         };
     }
@@ -2418,7 +2558,7 @@ public final class CareerCompetitionRelationalStore {
                 result.getString(17), result.getString(18));
     }
 
-    private static InstanceRow instance(ResultSet result) throws SQLException {
+    static InstanceRow instance(ResultSet result) throws SQLException {
         return new InstanceRow(result.getString(1), result.getString(2),
                 result.getString(3), result.getString(4), result.getString(5),
                 result.getLong(6), result.getString(7), result.getString(8),
@@ -2462,10 +2602,20 @@ public final class CareerCompetitionRelationalStore {
             String blockingReason, long revision, String stateHash,
             String r1r2ImportHash, Long r1r2StandingsRevision,
             String hashAlgorithm, int seasonOrdinal, String initializationPolicyId,
-            String initializationInputHash,
+            String initializationInputHash, String ruleVersion, String ruleResourceHash, String gamePolicyVersion,
             List<InstanceRow> competitions, List<FixtureRow> fixtures,
             List<OutputRow> outputs
-    ) {}
+    ) {
+        public CycleView(String careerId, int seasonYear, String lifecycleStatus, String blockingReason,
+                long revision, String stateHash, String r1r2ImportHash, Long r1r2StandingsRevision,
+                String hashAlgorithm, int seasonOrdinal, String initializationPolicyId, String initializationInputHash,
+                List<InstanceRow> competitions, List<FixtureRow> fixtures, List<OutputRow> outputs) {
+            this(careerId, seasonYear, lifecycleStatus, blockingReason, revision, stateHash, r1r2ImportHash,
+                    r1r2StandingsRevision, hashAlgorithm, seasonOrdinal, initializationPolicyId, initializationInputHash,
+                    CareerCompetitionRules.VERSION, CareerCompetitionRules.RESOURCE_HASH, CareerCompetitionRules.GAME_POLICY_VERSION,
+                    competitions, fixtures, outputs);
+        }
+    }
     public record InstanceRow(
             String competitionId, String ruleStatus, String lifecycleStatus,
             String blockingReason, String sourceInputHash, long revision,
@@ -2502,7 +2652,7 @@ public final class CareerCompetitionRelationalStore {
     ) {}
     public record SealResult(CycleView cycle, boolean replayed, String importHash) {}
     public record CompletionResult(CareerCompetitionAggregate aggregate, boolean replayed) {}
-    private record CycleRow(
+    record CycleRow(
             String careerId, int seasonYear, String cycleSchema, String ruleVersion,
             String ruleResourceHash, String gamePolicyVersion, String projectionPolicy,
             String r3r4AllocationPolicy, String lifecycleStatus, String blockingReason,
@@ -2521,7 +2671,7 @@ public final class CareerCompetitionRelationalStore {
                     && seriesId.equals(series);
         }
     }
-    private record CareerBinding(String managedTeamCode, long rootSeed) {}
+    record CareerBinding(String managedTeamCode, long rootSeed) {}
     private record PriorRankingHeader(
             int seasonOrdinal, String sourceSeasonId, String lifecycleStatus,
             String stateHash

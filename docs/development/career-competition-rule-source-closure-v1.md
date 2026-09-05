@@ -135,7 +135,7 @@ Cup 그룹내 비교는5위표, 통합시드는10위표; R3/R4는 Legend1–5/Ri
 다자간 재경기 seed/RoFS: H2H(3팀예외)→H2H득실→SoV→시간→coin.
 진출·상금 무관 재경기는 생략; 필요한 총1/2/3+경기는 각각 BO5/BO3/BO1.
 
-현재 구현과의 **미해결 차이**(이번 네 결함 수정과 별도):
+**V2 당시 미해결 차이**(아래 목록은 조사 시점의 기록):
 
 1. `sealCupGroupStandings`의 `strength`는 이긴 상대의 `matchWins` 합이다. 순위별 배수 표가 아니다.
 2. `winTime`은 승리 **Series 전체** `durationSeconds` 합이다. receipt의 ordered game evidence를
@@ -147,7 +147,11 @@ Cup 그룹내 비교는5위표, 통합시드는10위표; R3/R4는 Legend1–5/Ri
 5. 따라서 blocker에 도달한 경우만 고치면 충분하지 않다. 현행 정렬이 결론을 냈지만 공식 순서로는
    결론이 달라지거나 추가 증거가 필요한 입력도 후속 회귀 사례로 다뤄야 한다.
 
-후속 해결 순서:
+이후 [국내 구현 V1](career-domestic-ranking-playoffs-finalization-v1.md)에서 아래 국내 항목을 연결했다.
+V3는 SoV/평균/H2H/실제 동률 fixture/10경기 PO/최종1–10위를 구현하며, V2 결과는 보존한다.
+표본 없는 평균과 진출·상금 무관 위치 배정, 날짜·추첨·자동 선택의 게임 정책은 해당 보고서를 따른다.
+
+당시 제시한 해결 순서:
 
 1. R1/R2 import의 합계 순위뿐 아니라 scope/hash로 인증된 H2H 경기·세트 원장을 확보한다.
    Cup/R3R4 receipt의 game winner와 duration을 읽고, 몰수 등 미지원 상태는 추정하지 않는다.
@@ -316,12 +320,12 @@ LCK2가 우승팀 슬롯을 승계한다. §2.5에는 대체 참가자 규정도
 운영진 재량의 seeded 추첨·불가능한 draw 처리, 추가 경기 날짜, KeSPA reference 전환이다.
 미구현 대회 건너뛰기/국내 전용 시즌/임의 동률 해소/대체연도 채택은 승인되지 않았으며 적용하지 않았다.
 
-## 다음 구현 순서
+## 국내 구현 반영과 다음 구현 순서
 
-1. **국내 순위 authority 교정**: Cup SoV/승리시간/통합 seed와 R3/R4 H2H를 먼저 고정한다.
-   추가 경기 표현·resume·저장 버전 처리까지 완료해야 downstream seed를 신뢰할 수 있다.
-2. **시즌 말 LCK Playoffs**: 위10경기 graph와 선택권·side/format·1–10위·조건부 Worlds output 구현.
-   기존 Cup Playoffs를 재설계하지 않는다.
+1. **국내 순위 authority 교정 — 구현 반영**: V3에서 Cup SoV/승리시간/통합 seed, R1/R2·R3/R4 H2H,
+   다자간 추가 경기·resume·저장 버전 처리를 연결했다.
+2. **시즌 말 LCK Playoffs — 구현 반영**: 10경기 graph·선택권·별도 픽/진영 정책·최종1–10위 봉인과
+   국제 증거 대기 Worlds 입력을 연결했다. 검증 결과는 [구현 보고서](career-domestic-ranking-playoffs-finalization-v1.md)를 따른다.
 3. **외부 authority 기반 + First Stand**: 참가/roster/snapshot과 추첨 정책을 확보하고13경기 및 지역 성과 output 구현.
    Calendar의 첫 외부 진행 차단점을 해소하는 작업이다. 국내 PO 개발과 독립 진행 가능하다.
 4. **MSI → Worlds**: FST 지역 성과/외부팀 → MSI → 국내 PO와 결합한 Worlds 슬롯 → Swiss/KO 순서.

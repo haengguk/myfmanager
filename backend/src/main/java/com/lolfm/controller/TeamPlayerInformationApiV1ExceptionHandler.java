@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /** Error boundary scoped to the additive reference controller. */
-@RestControllerAdvice(assignableTypes = TeamPlayerInformationApiV1Controller.class)
+@RestControllerAdvice(assignableTypes = {TeamPlayerInformationApiV1Controller.class, GlobalRosterApiV1Controller.class})
 public final class TeamPlayerInformationApiV1ExceptionHandler {
     @ExceptionHandler(TeamPlayerInformationApiV1Exception.class)
     public ResponseEntity<TeamPlayerInformationApiV1Dtos.ErrorResponse> reference(

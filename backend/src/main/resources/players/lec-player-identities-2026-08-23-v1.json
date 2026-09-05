@@ -1,0 +1,314 @@
+{
+  "version": "lec-player-identities-2026-08-23-v1",
+  "snapshotAt": "2026-08-23",
+  "requiredPlayerRatingResourceVersion": "lec-player-ratings-2026-08-23-v1",
+  "scope": {
+    "league": "LEC",
+    "teams": 10,
+    "startersPerTeam": 5,
+    "players": 50,
+    "substitutesIncluded": false
+  },
+  "players": [
+    {
+      "playerId": "player-brokenblade",
+      "team": "G2",
+      "position": "TOP",
+      "nickname": "BrokenBlade"
+    },
+    {
+      "playerId": "player-skewmond",
+      "team": "G2",
+      "position": "JUNGLE",
+      "nickname": "SkewMond"
+    },
+    {
+      "playerId": "player-caps",
+      "team": "G2",
+      "position": "MID",
+      "nickname": "Caps"
+    },
+    {
+      "playerId": "player-hans-sama",
+      "team": "G2",
+      "position": "ADC",
+      "nickname": "Hans Sama"
+    },
+    {
+      "playerId": "player-labrov",
+      "team": "G2",
+      "position": "SUPPORT",
+      "nickname": "Labrov"
+    },
+    {
+      "playerId": "player-canna",
+      "team": "KC",
+      "position": "TOP",
+      "nickname": "Canna"
+    },
+    {
+      "playerId": "player-yike",
+      "team": "KC",
+      "position": "JUNGLE",
+      "nickname": "Yike"
+    },
+    {
+      "playerId": "player-kyeahoo",
+      "team": "KC",
+      "position": "MID",
+      "nickname": "kyeahoo"
+    },
+    {
+      "playerId": "player-caliste",
+      "team": "KC",
+      "position": "ADC",
+      "nickname": "Caliste"
+    },
+    {
+      "playerId": "player-busio",
+      "team": "KC",
+      "position": "SUPPORT",
+      "nickname": "Busio"
+    },
+    {
+      "playerId": "player-myrwn",
+      "team": "MKOI",
+      "position": "TOP",
+      "nickname": "Myrwn"
+    },
+    {
+      "playerId": "player-elyoya",
+      "team": "MKOI",
+      "position": "JUNGLE",
+      "nickname": "Elyoya"
+    },
+    {
+      "playerId": "player-jojopyun",
+      "team": "MKOI",
+      "position": "MID",
+      "nickname": "Jojopyun"
+    },
+    {
+      "playerId": "player-supa",
+      "team": "MKOI",
+      "position": "ADC",
+      "nickname": "Supa"
+    },
+    {
+      "playerId": "player-alvaro",
+      "team": "MKOI",
+      "position": "SUPPORT",
+      "nickname": "Alvaro"
+    },
+    {
+      "playerId": "player-oscarinin",
+      "team": "GX",
+      "position": "TOP",
+      "nickname": "Oscarinin"
+    },
+    {
+      "playerId": "player-isma",
+      "team": "GX",
+      "position": "JUNGLE",
+      "nickname": "ISMA"
+    },
+    {
+      "playerId": "player-jackies",
+      "team": "GX",
+      "position": "MID",
+      "nickname": "Jackies"
+    },
+    {
+      "playerId": "player-flakked",
+      "team": "GX",
+      "position": "ADC",
+      "nickname": "Flakked"
+    },
+    {
+      "playerId": "player-jun",
+      "team": "GX",
+      "position": "SUPPORT",
+      "nickname": "Jun"
+    },
+    {
+      "playerId": "player-naak-nako",
+      "team": "VIT",
+      "position": "TOP",
+      "nickname": "Naak Nako"
+    },
+    {
+      "playerId": "player-lyncas",
+      "team": "VIT",
+      "position": "JUNGLE",
+      "nickname": "Lyncas"
+    },
+    {
+      "playerId": "player-fiesta",
+      "team": "VIT",
+      "position": "MID",
+      "nickname": "FIESTA"
+    },
+    {
+      "playerId": "player-carzzy",
+      "team": "VIT",
+      "position": "ADC",
+      "nickname": "Carzzy"
+    },
+    {
+      "playerId": "player-fleshy",
+      "team": "VIT",
+      "position": "SUPPORT",
+      "nickname": "Fleshy"
+    },
+    {
+      "playerId": "player-maynter",
+      "team": "NAVI",
+      "position": "TOP",
+      "nickname": "Maynter"
+    },
+    {
+      "playerId": "player-rhilech",
+      "team": "NAVI",
+      "position": "JUNGLE",
+      "nickname": "Rhilech"
+    },
+    {
+      "playerId": "player-poby",
+      "team": "NAVI",
+      "position": "MID",
+      "nickname": "Poby"
+    },
+    {
+      "playerId": "player-samd",
+      "team": "NAVI",
+      "position": "ADC",
+      "nickname": "SamD"
+    },
+    {
+      "playerId": "player-parus",
+      "team": "NAVI",
+      "position": "SUPPORT",
+      "nickname": "Parus"
+    },
+    {
+      "playerId": "player-soboro",
+      "team": "FNC",
+      "position": "TOP",
+      "nickname": "Soboro"
+    },
+    {
+      "playerId": "player-razork",
+      "team": "FNC",
+      "position": "JUNGLE",
+      "nickname": "Razork"
+    },
+    {
+      "playerId": "player-vladi",
+      "team": "FNC",
+      "position": "MID",
+      "nickname": "Vladi"
+    },
+    {
+      "playerId": "player-upset",
+      "team": "FNC",
+      "position": "ADC",
+      "nickname": "Upset"
+    },
+    {
+      "playerId": "player-lospa",
+      "team": "FNC",
+      "position": "SUPPORT",
+      "nickname": "Lospa"
+    },
+    {
+      "playerId": "player-wunder",
+      "team": "SK",
+      "position": "TOP",
+      "nickname": "Wunder"
+    },
+    {
+      "playerId": "player-skeanz",
+      "team": "SK",
+      "position": "JUNGLE",
+      "nickname": "Skeanz"
+    },
+    {
+      "playerId": "player-slowq",
+      "team": "SK",
+      "position": "MID",
+      "nickname": "SlowQ"
+    },
+    {
+      "playerId": "player-jopa",
+      "team": "SK",
+      "position": "ADC",
+      "nickname": "Jopa"
+    },
+    {
+      "playerId": "player-mikyx",
+      "team": "SK",
+      "position": "SUPPORT",
+      "nickname": "Mikyx"
+    },
+    {
+      "playerId": "player-rooster",
+      "team": "SHFT",
+      "position": "TOP",
+      "nickname": "Rooster"
+    },
+    {
+      "playerId": "player-sheo",
+      "team": "SHFT",
+      "position": "JUNGLE",
+      "nickname": "Sheo"
+    },
+    {
+      "playerId": "player-nuc",
+      "team": "SHFT",
+      "position": "MID",
+      "nickname": "nuc"
+    },
+    {
+      "playerId": "player-paduck",
+      "team": "SHFT",
+      "position": "ADC",
+      "nickname": "Paduck"
+    },
+    {
+      "playerId": "player-stend",
+      "team": "SHFT",
+      "position": "SUPPORT",
+      "nickname": "Stend"
+    },
+    {
+      "playerId": "player-tracyn",
+      "team": "TH",
+      "position": "TOP",
+      "nickname": "Tracyn"
+    },
+    {
+      "playerId": "player-daglas",
+      "team": "TH",
+      "position": "JUNGLE",
+      "nickname": "Daglas"
+    },
+    {
+      "playerId": "player-serin",
+      "team": "TH",
+      "position": "MID",
+      "nickname": "Serin"
+    },
+    {
+      "playerId": "player-hype",
+      "team": "TH",
+      "position": "ADC",
+      "nickname": "Hype"
+    },
+    {
+      "playerId": "player-way",
+      "team": "TH",
+      "position": "SUPPORT",
+      "nickname": "Way"
+    }
+  ]
+}

@@ -1,0 +1,3578 @@
+{
+  "version": "lec-champion-proficiency-2026-08-23-v1",
+  "researchAsOf": "2026-08-23",
+  "requiredPlayerRatingResourceVersion": "lec-player-ratings-2026-08-23-v1",
+  "requiredChampionPoolVersion": "full-173-2026-08-v1",
+  "requiredLegalRoleKeyCount": 216,
+  "scale": {
+    "min": 1,
+    "max": 20,
+    "neutralFallback": 14
+  },
+  "semantics": {
+    "identity": "PlayerRatingKey(teamCode, Position) x ChampionRoleKey(championId, same Position)",
+    "sparseOverridesOnly": true,
+    "omittedLegalRoleBehavior": "ChampionProficiencies.NEUTRAL_14",
+    "highProficiencyThreshold": 17,
+    "playerRatingsSeparate": true,
+    "draftMetaSeparate": true,
+    "absenceOfPlayDoesNotImplyLowProficiency": true,
+    "belowNeutralOverridesAuthoredInV1": false
+  },
+  "scope": {
+    "league": "LEC",
+    "teams": 10,
+    "players": 50,
+    "substitutesIncluded": false,
+    "potentialPlayerRoleKeysAtRosterPositions": 2160,
+    "authoredOverrides": 636,
+    "neutralFallbackKeys": 1524
+  },
+  "authoringSummary": {
+    "scoreDistribution": {
+      "15": 5,
+      "16": 123,
+      "17": 248,
+      "18": 200,
+      "19": 57,
+      "20": 3
+    },
+    "highProficiency17PlusCount": 508,
+    "elite19PlusCount": 60,
+    "worldBenchmark20Count": 3,
+    "scopeInexpressibleEvidenceCount": 12,
+    "freshnessCaveat": "Roster identity was frozen from the latest completed official LEC series before 2026-08-23. Ratings use evidence through 2026-08-22; 2026-08-23 matches were excluded. Current-event indexing gaps and absence of recent champion play were never treated as negative evidence."
+  },
+  "players": [
+    {
+      "team": "G2",
+      "nickname": "BrokenBlade",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 19
+        },
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 19
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "yone",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "gragas",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "camille",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "aatrox",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "gwen",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "kennen",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "poppy",
+          "position": "TOP",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "G2",
+      "nickname": "SkewMond",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 19
+        },
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "lillia",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "naafiri",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "G2",
+      "nickname": "Caps",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 20
+        },
+        {
+          "championId": "leblanc",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "akali",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "ryze",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "cassiopeia",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "zoe",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "twisted-fate",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "galio",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "annie",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "lissandra",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "tristana",
+          "position": "MID",
+          "value": 17
+        }
+      ]
+    },
+    {
+      "team": "G2",
+      "nickname": "Hans Sama",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "draven",
+          "position": "ADC",
+          "value": 20
+        },
+        {
+          "championId": "kalista",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "caitlyn",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "jhin",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "sivir",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "miss-fortune",
+          "position": "ADC",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "G2",
+      "nickname": "Labrov",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "lulu",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "milio",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "poppy",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "pyke",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "bard",
+          "position": "SUPPORT",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "KC",
+      "nickname": "Canna",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "jayce",
+          "position": "TOP",
+          "value": 19
+        },
+        {
+          "championId": "kennen",
+          "position": "TOP",
+          "value": 19
+        },
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "camille",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "aatrox",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "gwen",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "gragas",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "yone",
+          "position": "TOP",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "KC",
+      "nickname": "Yike",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 19
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 19
+        },
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "lillia",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "nidalee",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "qiyana",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "KC",
+      "nickname": "kyeahoo",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "cassiopeia",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "anivia",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "ryze",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "galio",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "zoe",
+          "position": "MID",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "KC",
+      "nickname": "Caliste",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "caitlyn",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "yunara",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "sivir",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "jhin",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "corki",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "kalista",
+          "position": "ADC",
+          "value": 17
+        }
+      ]
+    },
+    {
+      "team": "KC",
+      "nickname": "Busio",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "milio",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "lulu",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "karma",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "poppy",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "bard",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "pyke",
+          "position": "SUPPORT",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Myrwn",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "varus",
+          "position": "TOP",
+          "value": 19
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ambessa",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "yone",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "vayne",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "poppy",
+          "position": "TOP",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Elyoya",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 19
+        },
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 19
+        },
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "nidalee",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "qiyana",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "kindred",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "trundle",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Jojopyun",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "akali",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "leblanc",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "cassiopeia",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "jayce",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "tristana",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "ryze",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "zoe",
+          "position": "MID",
+          "value": 17
+        }
+      ]
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Supa",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "kalista",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "caitlyn",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "sivir",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "jhin",
+          "position": "ADC",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "MKOI",
+      "nickname": "Alvaro",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "thresh",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "pyke",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "lulu",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "milio",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "poppy",
+          "position": "SUPPORT",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "GX",
+      "nickname": "Oscarinin",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "gwen",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "aatrox",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ambessa",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "gragas",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "varus",
+          "position": "TOP",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "GX",
+      "nickname": "ISMA",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "qiyana",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "naafiri",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "GX",
+      "nickname": "Jackies",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "cassiopeia",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "leblanc",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "galio",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "ryze",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "zoe",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "hwei",
+          "position": "MID",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "GX",
+      "nickname": "Flakked",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "senna",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "seraphine",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "ziggs",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "jhin",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "sivir",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "caitlyn",
+          "position": "ADC",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "GX",
+      "nickname": "Jun",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "poppy",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "milio",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "lulu",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "karma",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "pyke",
+          "position": "SUPPORT",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "VIT",
+      "nickname": "Naak Nako",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ambessa",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "gwen",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "aatrox",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "gragas",
+          "position": "TOP",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "VIT",
+      "nickname": "Lyncas",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "lillia",
+          "position": "JUNGLE",
+          "value": 19
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "nidalee",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "qiyana",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "VIT",
+      "nickname": "FIESTA",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "akali",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "cassiopeia",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "galio",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "leblanc",
+          "position": "MID",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "VIT",
+      "nickname": "Carzzy",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "jhin",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "kalista",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "caitlyn",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "sivir",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "miss-fortune",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "senna",
+          "position": "ADC",
+          "value": 17
+        }
+      ]
+    },
+    {
+      "team": "VIT",
+      "nickname": "Fleshy",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "pyke",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "poppy",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "karma",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "thresh",
+          "position": "SUPPORT",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "NAVI",
+      "nickname": "Maynter",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "ambessa",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "gwen",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "aatrox",
+          "position": "TOP",
+          "value": 15
+        }
+      ]
+    },
+    {
+      "team": "NAVI",
+      "nickname": "Rhilech",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "naafiri",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "NAVI",
+      "nickname": "Poby",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "ryze",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "galio",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "lissandra",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "annie",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "akali",
+          "position": "MID",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "NAVI",
+      "nickname": "SamD",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "caitlyn",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "kalista",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "sivir",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "jhin",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "corki",
+          "position": "ADC",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "NAVI",
+      "nickname": "Parus",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "milio",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "lulu",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "thresh",
+          "position": "SUPPORT",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "FNC",
+      "nickname": "Soboro",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ambessa",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "gwen",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "aatrox",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "jayce",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "FNC",
+      "nickname": "Razork",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 19
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 19
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 19
+        },
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "nidalee",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "trundle",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "qiyana",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "taliyah",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "graves",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "FNC",
+      "nickname": "Vladi",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "akali",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "cassiopeia",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "leblanc",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "ryze",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "galio",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "zoe",
+          "position": "MID",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "FNC",
+      "nickname": "Upset",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 19
+        },
+        {
+          "championId": "caitlyn",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "kalista",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "sivir",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "jhin",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "draven",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "miss-fortune",
+          "position": "ADC",
+          "value": 17
+        }
+      ]
+    },
+    {
+      "team": "FNC",
+      "nickname": "Lospa",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "milio",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "lulu",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "poppy",
+          "position": "SUPPORT",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "SK",
+      "nickname": "Wunder",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 19
+        },
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 19
+        },
+        {
+          "championId": "gragas",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "camille",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "gwen",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "aatrox",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "kennen",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "vayne",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "olaf",
+          "position": "TOP",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "SK",
+      "nickname": "Skeanz",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "trundle",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "SK",
+      "nickname": "SlowQ",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "akali",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "leblanc",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "ryze",
+          "position": "MID",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "SK",
+      "nickname": "Jopa",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "caitlyn",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "kalista",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "sivir",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "jhin",
+          "position": "ADC",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "SK",
+      "nickname": "Mikyx",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 20
+        },
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "pyke",
+          "position": "SUPPORT",
+          "value": 19
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "thresh",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "bard",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "lulu",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "poppy",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "karma",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "milio",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "tahm-kench",
+          "position": "SUPPORT",
+          "value": 17
+        }
+      ]
+    },
+    {
+      "team": "SHFT",
+      "nickname": "Rooster",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "ambessa",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 15
+        },
+        {
+          "championId": "aatrox",
+          "position": "TOP",
+          "value": 15
+        }
+      ]
+    },
+    {
+      "team": "SHFT",
+      "nickname": "Sheo",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "trundle",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "SHFT",
+      "nickname": "nuc",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 19
+        },
+        {
+          "championId": "cassiopeia",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "ryze",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "galio",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "leblanc",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "twisted-fate",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "annie",
+          "position": "MID",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "SHFT",
+      "nickname": "Paduck",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "sivir",
+          "position": "ADC",
+          "value": 15
+        }
+      ]
+    },
+    {
+      "team": "SHFT",
+      "nickname": "Stend",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "lulu",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "milio",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 15
+        }
+      ]
+    },
+    {
+      "team": "TH",
+      "nickname": "Tracyn",
+      "position": "TOP",
+      "proficiencies": [
+        {
+          "championId": "renekton",
+          "position": "TOP",
+          "value": 18
+        },
+        {
+          "championId": "gnar",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "rumble",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ksante",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "jax",
+          "position": "TOP",
+          "value": 17
+        },
+        {
+          "championId": "ambessa",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "gwen",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "sion",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "ornn",
+          "position": "TOP",
+          "value": 16
+        },
+        {
+          "championId": "aatrox",
+          "position": "TOP",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "TH",
+      "nickname": "Daglas",
+      "position": "JUNGLE",
+      "proficiencies": [
+        {
+          "championId": "jarvan-iv",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "vi",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "wukong",
+          "position": "JUNGLE",
+          "value": 18
+        },
+        {
+          "championId": "xin-zhao",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "viego",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "lee-sin",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "sejuani",
+          "position": "JUNGLE",
+          "value": 17
+        },
+        {
+          "championId": "nocturne",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "poppy",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "maokai",
+          "position": "JUNGLE",
+          "value": 16
+        },
+        {
+          "championId": "trundle",
+          "position": "JUNGLE",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "TH",
+      "nickname": "Serin",
+      "position": "MID",
+      "proficiencies": [
+        {
+          "championId": "azir",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "taliyah",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "sylas",
+          "position": "MID",
+          "value": 18
+        },
+        {
+          "championId": "ahri",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "orianna",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "syndra",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "yone",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "ryze",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "galio",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "viktor",
+          "position": "MID",
+          "value": 17
+        },
+        {
+          "championId": "cassiopeia",
+          "position": "MID",
+          "value": 16
+        },
+        {
+          "championId": "akali",
+          "position": "MID",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "TH",
+      "nickname": "Hype",
+      "position": "ADC",
+      "proficiencies": [
+        {
+          "championId": "aphelios",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "ezreal",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "varus",
+          "position": "ADC",
+          "value": 18
+        },
+        {
+          "championId": "kaisa",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "xayah",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "jinx",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "zeri",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "lucian",
+          "position": "ADC",
+          "value": 17
+        },
+        {
+          "championId": "caitlyn",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "kalista",
+          "position": "ADC",
+          "value": 16
+        },
+        {
+          "championId": "ashe",
+          "position": "ADC",
+          "value": 16
+        }
+      ]
+    },
+    {
+      "team": "TH",
+      "nickname": "Way",
+      "position": "SUPPORT",
+      "proficiencies": [
+        {
+          "championId": "rakan",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "nautilus",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "alistar",
+          "position": "SUPPORT",
+          "value": 18
+        },
+        {
+          "championId": "rell",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "leona",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "braum",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "renata-glasc",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "lulu",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "milio",
+          "position": "SUPPORT",
+          "value": 17
+        },
+        {
+          "championId": "neeko",
+          "position": "SUPPORT",
+          "value": 16
+        },
+        {
+          "championId": "poppy",
+          "position": "SUPPORT",
+          "value": 16
+        }
+      ]
+    }
+  ]
+}

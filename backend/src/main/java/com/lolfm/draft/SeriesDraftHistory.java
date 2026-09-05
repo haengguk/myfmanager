@@ -14,6 +14,13 @@ public final class SeriesDraftHistory {
     private final LinkedHashSet<ChampionId> consumedPicks = new LinkedHashSet<>();
     private final Set<String> committedDrafts = new HashSet<>();
 
+    public SeriesDraftHistory() {}
+
+    /** Frozen exclusions from a parent competition; this child owns fresh commits. */
+    public SeriesDraftHistory(Set<ChampionId> inheritedExclusions) {
+        consumedPicks.addAll(Set.copyOf(inheritedExclusions));
+    }
+
     public Set<ChampionId> consumedPicks() { return Set.copyOf(consumedPicks); }
     public int committedGameCount() { return committedDrafts.size(); }
     public String identityHash() {

@@ -37,12 +37,21 @@ public final class PlayerIdentityResourceLoader {
 
     static LoadedResource load(ObjectMapper mapper, InputStream input, String expectedSha256,
                                PlayerRatingResourceLoader.LoadedResource ratings) {
+        if (!PlayerRatingResourceLoader.VERSION.equals(ratings.version())) {
+            throw new IllegalStateException("Player identity rating prerequisite mismatch");
+        }
+        return load(mapper, input, new PlayerResourceSpec(
+                "LCK", 10, VERSION, SNAPSHOT_AT, expectedSha256, null), ratings);
+    }
+
+    public static LoadedResource load(ObjectMapper mapper, InputStream input, PlayerResourceSpec spec,
+                                      PlayerRatingResourceLoader.LoadedResource ratings) {
+        Objects.requireNonNull(spec, "spec");
         Objects.requireNonNull(mapper, "mapper");
-        Objects.requireNonNull(expectedSha256, "expectedSha256");
         Objects.requireNonNull(ratings, "ratings");
         byte[] bytes = readBytes(input);
         String sha256 = sha256(bytes);
-        if (!expectedSha256.equals(sha256)) {
+        if (!spec.sha256().equals(sha256)) {
             throw new IllegalStateException("Player identity resource SHA-256 mismatch: " + sha256);
         }
 
@@ -52,7 +61,7 @@ public final class PlayerIdentityResourceLoader {
         } catch (IOException error) {
             throw new IllegalStateException("Failed to load player identity resource", error);
         }
-        validateEnvelope(raw, ratings);
+        validateEnvelope(raw, ratings, spec);
 
         Map<PlayerId, PlayerIdentity> byId = new LinkedHashMap<>();
         Map<PlayerRatingKey, PlayerIdentity> byRatingKey = new LinkedHashMap<>();
@@ -84,24 +93,23 @@ public final class PlayerIdentityResourceLoader {
     }
 
     private static void validateEnvelope(RawResource raw,
-                                         PlayerRatingResourceLoader.LoadedResource ratings) {
+                                         PlayerRatingResourceLoader.LoadedResource ratings, PlayerResourceSpec spec) {
         if (raw == null) throw new IllegalStateException("Player identity resource is empty");
-        if (!VERSION.equals(raw.version())) {
+        if (!spec.version().equals(raw.version())) {
             throw new IllegalStateException("Unsupported player identity version: " + raw.version());
         }
         if (raw.snapshotAt() == null || raw.snapshotAt().isBlank()
-                || !SNAPSHOT_AT.equals(raw.snapshotAt())) {
+                || !spec.snapshotAt().equals(raw.snapshotAt())) {
             throw new IllegalStateException("Player identity snapshotAt mismatch: " + raw.snapshotAt());
         }
-        if (!PlayerRatingResourceLoader.VERSION.equals(raw.requiredPlayerRatingResourceVersion())
-                || !ratings.version().equals(raw.requiredPlayerRatingResourceVersion())) {
+        if (!ratings.version().equals(raw.requiredPlayerRatingResourceVersion())) {
             throw new IllegalStateException("Player identity rating prerequisite mismatch");
         }
         RawScope scope = raw.scope();
-        if (scope == null || !"LCK".equals(scope.league()) || scope.teams() != 10
-                || scope.startersPerTeam() != 5 || scope.players() != 50
+        if (scope == null || !spec.leagueCode().equals(scope.league()) || scope.teams() != spec.teamCount()
+                || scope.startersPerTeam() != 5 || scope.players() != spec.playerCount()
                 || scope.substitutesIncluded()) {
-            throw new IllegalStateException("Player identity scope must be 10 teams, 5 starters, 50 players, no substitutes");
+            throw new IllegalStateException("Player identity scope does not match the selected starter dataset");
         }
         if (raw.players() == null || raw.players().size() != scope.players()) {
             throw new IllegalStateException("Player identity player count mismatch");

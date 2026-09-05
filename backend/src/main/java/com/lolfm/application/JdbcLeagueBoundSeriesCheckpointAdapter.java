@@ -195,7 +195,7 @@ final class JdbcLeagueBoundSeriesCheckpointAdapter
                 aggregate.historyHash(), aggregate.winnerTeamCode(), aggregate.createdAt(),
                 aggregate.lastActivityAt(), aggregate.expiresAt(), receipts,
                 aggregate.origin(), aggregate.leagueBindingHash(),
-                aggregate.leagueSeedAnchorTeamCode());
+                aggregate.leagueSeedAnchorTeamCode(), aggregate.competitionSidePolicy());
     }
 
     private static SeriesChildDraft sanitize(SeriesChildDraft child) {

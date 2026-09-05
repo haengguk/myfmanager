@@ -97,7 +97,9 @@ public final class SeriesApiV1Dtos {
             Instant lastActivityAt,
             Instant expiresAt,
             boolean processLocalRestartLoss,
-            ProductionIdentity productionIdentity
+            ProductionIdentity productionIdentity,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            CompetitionContext competitionContext
     ) {
         public SeriesView {
             teams = List.copyOf(teams);
@@ -107,6 +109,10 @@ public final class SeriesApiV1Dtos {
             allowedCommands = List.copyOf(allowedCommands);
         }
     }
+
+    public record CompetitionContext(String sideSelectionPolicy, List<String> inheritedChampionIds,
+                                     String firstPickTeamCode, String firstSideChoiceTeamCode, String firstSideChoice,
+                                     boolean previousLoserOwnsNextSelection) {}
 
     public record TeamIdentity(String teamCode, String displayName) {}
 

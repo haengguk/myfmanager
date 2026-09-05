@@ -304,7 +304,8 @@ class CareerCompetitionRulesTest {
         assertThat(rules.rule("KESPA_CUP").ruleStatus())
                 .isEqualTo("REFERENCE_TEMPLATE_ONLY");
         assertThat(rules.rule("LCK_PLAYOFFS").ruleStatus())
-                .isEqualTo("RULE_SOURCE_INCOMPLETE");
+                .isEqualTo("RULE_SOURCE_COMPLETE");
+        assertThat(rules.rule("LCK_PLAYOFFS").matches()).hasSize(10);
         assertThat(rules.rule("LCK_PLAYOFFS").scheduledMonthDays()).hasSize(10);
         assertThat(rules.competitions()).filteredOn(value ->
                 "EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED".equals(

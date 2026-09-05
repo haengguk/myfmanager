@@ -1,0 +1,254 @@
+{
+  "version": "cblol-player-identities-2026-08-23-v1",
+  "snapshotAt": "2026-08-23",
+  "requiredPlayerRatingResourceVersion": "cblol-player-ratings-2026-08-23-v1",
+  "scope": {
+    "league": "CBLOL",
+    "teams": 8,
+    "startersPerTeam": 5,
+    "players": 40,
+    "substitutesIncluded": false
+  },
+  "players": [
+    {
+      "playerId": "player-zest",
+      "team": "LOS",
+      "position": "TOP",
+      "nickname": "Zest"
+    },
+    {
+      "playerId": "player-curse",
+      "team": "LOS",
+      "position": "JUNGLE",
+      "nickname": "Curse"
+    },
+    {
+      "playerId": "player-feisty",
+      "team": "LOS",
+      "position": "MID",
+      "nickname": "Feisty"
+    },
+    {
+      "playerId": "player-duduhh",
+      "team": "LOS",
+      "position": "ADC",
+      "nickname": "Duduhh"
+    },
+    {
+      "playerId": "player-ackerman",
+      "team": "LOS",
+      "position": "SUPPORT",
+      "nickname": "Ackerman"
+    },
+    {
+      "playerId": "player-xyno",
+      "team": "LOUD",
+      "position": "TOP",
+      "nickname": "Xyno"
+    },
+    {
+      "playerId": "player-sinatra",
+      "team": "LOUD",
+      "position": "JUNGLE",
+      "nickname": "Sinatra"
+    },
+    {
+      "playerId": "player-kaze",
+      "team": "LOUD",
+      "position": "MID",
+      "nickname": "Kaze"
+    },
+    {
+      "playerId": "player-rabelo",
+      "team": "LOUD",
+      "position": "ADC",
+      "nickname": "Rabelo"
+    },
+    {
+      "playerId": "player-uzent",
+      "team": "LOUD",
+      "position": "SUPPORT",
+      "nickname": "uZent"
+    },
+    {
+      "playerId": "player-guigo",
+      "team": "FUR",
+      "position": "TOP",
+      "nickname": "Guigo"
+    },
+    {
+      "playerId": "player-tatu",
+      "team": "FUR",
+      "position": "JUNGLE",
+      "nickname": "Tatu"
+    },
+    {
+      "playerId": "player-tutsz",
+      "team": "FUR",
+      "position": "MID",
+      "nickname": "Tutsz"
+    },
+    {
+      "playerId": "player-ayu",
+      "team": "FUR",
+      "position": "ADC",
+      "nickname": "Ayu"
+    },
+    {
+      "playerId": "player-jojo",
+      "team": "FUR",
+      "position": "SUPPORT",
+      "nickname": "JoJo"
+    },
+    {
+      "playerId": "player-zekas",
+      "team": "VKS",
+      "position": "TOP",
+      "nickname": "ZekaS"
+    },
+    {
+      "playerId": "player-disamis",
+      "team": "VKS",
+      "position": "JUNGLE",
+      "nickname": "Disamis"
+    },
+    {
+      "playerId": "player-mireu",
+      "team": "VKS",
+      "position": "MID",
+      "nickname": "Mireu"
+    },
+    {
+      "playerId": "player-jeskla",
+      "team": "VKS",
+      "position": "ADC",
+      "nickname": "Jeskla"
+    },
+    {
+      "playerId": "player-scamber",
+      "team": "VKS",
+      "position": "SUPPORT",
+      "nickname": "scamber"
+    },
+    {
+      "playerId": "player-boal",
+      "team": "PNG",
+      "position": "TOP",
+      "nickname": "Boal"
+    },
+    {
+      "playerId": "player-cariok",
+      "team": "PNG",
+      "position": "JUNGLE",
+      "nickname": "CarioK"
+    },
+    {
+      "playerId": "player-keine",
+      "team": "PNG",
+      "position": "MID",
+      "nickname": "Keine"
+    },
+    {
+      "playerId": "player-hena",
+      "team": "PNG",
+      "position": "ADC",
+      "nickname": "Hena"
+    },
+    {
+      "playerId": "player-ceos",
+      "team": "PNG",
+      "position": "SUPPORT",
+      "nickname": "Ceos"
+    },
+    {
+      "playerId": "player-zynts",
+      "team": "RED",
+      "position": "TOP",
+      "nickname": "zynts"
+    },
+    {
+      "playerId": "player-stepz",
+      "team": "RED",
+      "position": "JUNGLE",
+      "nickname": "STEPZ"
+    },
+    {
+      "playerId": "player-fuuu",
+      "team": "RED",
+      "position": "MID",
+      "nickname": "Fuuu"
+    },
+    {
+      "playerId": "player-morttheus",
+      "team": "RED",
+      "position": "ADC",
+      "nickname": "Morttheus"
+    },
+    {
+      "playerId": "player-manel",
+      "team": "RED",
+      "position": "SUPPORT",
+      "nickname": "Manel"
+    },
+    {
+      "playerId": "player-zothve",
+      "team": "FXW7",
+      "position": "TOP",
+      "nickname": "Zothve"
+    },
+    {
+      "playerId": "player-peach",
+      "team": "FXW7",
+      "position": "JUNGLE",
+      "nickname": "Peach"
+    },
+    {
+      "playerId": "player-cody",
+      "team": "FXW7",
+      "position": "MID",
+      "nickname": "cody"
+    },
+    {
+      "playerId": "player-bao",
+      "team": "FXW7",
+      "position": "ADC",
+      "nickname": "BAO"
+    },
+    {
+      "playerId": "player-momochi",
+      "team": "FXW7",
+      "position": "SUPPORT",
+      "nickname": "Momochi"
+    },
+    {
+      "playerId": "player-devost",
+      "team": "LEV",
+      "position": "TOP",
+      "nickname": "Devost"
+    },
+    {
+      "playerId": "player-booki",
+      "team": "LEV",
+      "position": "JUNGLE",
+      "nickname": "Booki"
+    },
+    {
+      "playerId": "player-enga",
+      "team": "LEV",
+      "position": "MID",
+      "nickname": "Enga"
+    },
+    {
+      "playerId": "player-strensh",
+      "team": "LEV",
+      "position": "ADC",
+      "nickname": "Strensh"
+    },
+    {
+      "playerId": "player-shiku",
+      "team": "LEV",
+      "position": "SUPPORT",
+      "nickname": "Shiku"
+    }
+  ]
+}

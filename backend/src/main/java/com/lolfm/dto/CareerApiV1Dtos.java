@@ -297,13 +297,17 @@ public final class CareerApiV1Dtos {
             List<CompetitionSeed> currentSeeds,
             boolean externalExecutionLimited,
             PendingCompetitionCommand activePendingCommand,
-            List<String> allowedCommands
+            List<String> allowedCommands,
+            List<com.lolfm.career.CareerCompetitionRelationalStore.DomesticDecisionView> domesticRankingDecisions,
+            com.lolfm.career.CareerCompetitionRelationalStore.FinalRankingView finalRanking,
+            String domesticRuleCompatibility
     ) {
         public CompetitionView {
             qualificationOutputs = List.copyOf(qualificationOutputs);
             groupStandings = List.copyOf(groupStandings);
             currentSeeds = List.copyOf(currentSeeds);
             allowedCommands = List.copyOf(allowedCommands);
+            domesticRankingDecisions = List.copyOf(domesticRankingDecisions);
         }
     }
 

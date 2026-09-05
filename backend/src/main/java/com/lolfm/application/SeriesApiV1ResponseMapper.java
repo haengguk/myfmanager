@@ -63,7 +63,15 @@ public final class SeriesApiV1ResponseMapper {
                 policy.configurationHash(), policy.activeGameplayRulesVersion(),
                 policy.engineImplementationVersion(), draftEngine.activeDraftMetaVersion(),
                 draftEngine.activeRequiredLegalRoleKeyHash(),
-                draftEngine.activeActualLegalRoleKeyHash()));
+                draftEngine.activeActualLegalRoleKeyHash()),
+                aggregate.competitionSidePolicy() == null ? null :
+                new SeriesApiV1Dtos.CompetitionContext(aggregate.competitionSidePolicy(),
+                        aggregate.games().getFirst().historyBefore().stream().map(v -> v.value()).sorted().toList(),
+                        aggregate.games().getFirst().blueTeamCode(),
+                        aggregate.competitionSidePolicy() != null && aggregate.competitionSidePolicy().startsWith("LCK_FINAL_")
+                                ? aggregate.games().getFirst().blueTeamCode() : aggregate.games().getFirst().redTeamCode(),
+                        aggregate.competitionSidePolicy() != null && aggregate.competitionSidePolicy().startsWith("LCK_FINAL_") ? "BLUE" : "RED",
+                        aggregate.competitionSidePolicy() != null));
     }
 
     public SeriesApiV1Dtos.SeriesGameView game(SeriesGame game) {

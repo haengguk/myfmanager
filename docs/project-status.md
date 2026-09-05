@@ -2,6 +2,21 @@
 
 이 문서는 2026-09-05 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career 국내 순위·시즌 말 PO·최종 순위 (2026-09-05)
+
+시작 HEAD `87df2df344d41029567dd164ad886c5398477280`에서 V3 규칙/V11 저장으로 Cup SoV·승리 세트 평균·
+통합 Play-in seed, R1/R2 및 R3/R4 H2H·다자간 실제 동률 경기, 시즌 말 PO10 BO5와 최종1–10위 봉인을 연결했다.
+Cup 그룹 동률은 5위/1위 팀이 BO1 자식 경기에 교대 출전하고 부모 Fearless 기록을 상속한다.
+최종 snapshot/row와 직전 SEALED 순위 소비 계약을 재사용하며, 정규시즌 기록과 최종 대회 순위를 구분한다.
+실행 전 V2만 전환하고 사용한 V2 결과/binding은 보존한다. Worlds 자격은 국제 증거 대기이며
+국제대회·아시안게임·KeSPA gate 및 rollover 제한은 유지한다.
+
+집중7 suites/51 tests와 마지막 전이18 tests, Career/Series 프런트 계약, production build,
+기존 Calendar 컴포넌트 브라우저 흐름이 통과했다. 최종 전체 회귀는 한 번 실행하여
+263 suites/2,011 tests, failures0/errors0/skipped2, Gradle36분51초로 통과했다.
+상세 근거·게임 정책·검증은 [국내 구현 보고서](development/career-domestic-ranking-playoffs-finalization-v1.md)를 따른다.
+아래 안정화 및 최초 구현 기록의 테스트 수는 당시 결과로 보존한다.
+
 ## Career competition 실행 안정화와 규칙 근거 조사 (2026-09-05)
 
 시작 HEAD는 `bab58776b94acade3237c1a0303c12bd9705ee49`다. V10에서 opponent choice의 저장 키를
@@ -18,9 +33,10 @@ kernel 재계산 없이 반환한다. 화면은 Career/controller/generation을 
 
 [규칙 근거 조사](development/career-competition-rule-source-closure-v1.md)는 시즌 말 LCK PO10경기,
 공식 동률 순서, First Stand/MSI/Worlds2026 규정집, EWC 및 KeSPA2026 협회 발표를 직접 확인했다.
-Cup SoV/승리시간/통합 Play-in seed와 R3/R4 정렬의 공식 규칙 차이, 국제 roster/snapshot,
+당시 Cup SoV/승리시간/통합 Play-in seed와 R3/R4 정렬의 공식 규칙 차이, 국제 roster/snapshot,
 현실 결과가 반영된 pool의 미래 적용 정책, KeSPA 세부 규정은 후속 과제로 분리했다.
-runtime 규칙 JSON/readiness/gate는 변경하지 않았다. 국내 순위 authority 교정→시즌 말 PO,
+해당 안정화에서는 runtime 규칙 JSON/readiness/gate를 변경하지 않았다. 국내 순위/PO 후속 구현은 위 V3 항목에 반영했다.
+당시 의존 순서는 국내 순위 authority 교정→시즌 말 PO,
 외부 authority+First Stand→MSI→Worlds가 주요 의존 순서이며 EWC/KeSPA는 별도 근거·데이터 경로다.
 아시안게임은 이번 조사·구현·후속 우선순위에서 제외하고 기존 gate를 보존했다.
 

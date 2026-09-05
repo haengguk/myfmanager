@@ -2,16 +2,14 @@
 
 ## 현재 상태
 
-국내 실행 baseline은
-`CAREER_COMPETITION_SERIES_EXECUTION_AND_RESULT_TRANSITION_V1_ACCEPTED`이며,
-2026-09-05 안정화에서 V10 scoped choice key, 실행·검증 중 heartbeat, 원자적 완료 fence,
-durable 완료 replay와 화면 request identity 격리를 추가했다.
-source-complete 국내 대회 graph는 기존 BO3/BO5, Player/Auto Draft, Hard Fearless와 Production V9에
-연결됐고 verified Series 결과만 다음 대진과 qualification output을 바꾼다. KeSPA Cup과
-runtime에서 source-incomplete로 분류된 LCK Playoffs, 실제 국제대회 실행은 계속 명시적으로 차단한다.
-최신 공식 규칙과 현행 구현의 차이는
-[규칙 근거 조사](../development/career-competition-rule-source-closure-v1.md), 실행 검증은
-[안정화 보고서](../development/career-competition-execution-stabilization-v1.md)를 따른다.
+국내 실행은 규칙 resource V3와 V11 저장을 사용한다. Cup SoV·승리 세트 평균·통합 Play-in seed,
+R1/R2와 R3/R4의 H2H·다자간 동률, 실제 추가 경기, 시즌 말 LCK_PLAYOFFS 10경기,
+우승팀·최종1–10위 봉인을 기존 Competition/Series/League 경계에 연결했다.
+2026-09-05 안정화의 V10 scoped choice key, heartbeat, 원자적 완료 fence 및 durable replay를 유지한다.
+BO1 동률전은 기존 BO3/BO5 실행 계층의 additive 확장이며 Cup 그룹 동률은 부모 아래 고정 두 팀 BO1 자식들로 표현한다.
+KeSPA Cup, 국제대회와 아시안게임 gate, 실제 rollover는 여전히 미구현 범위다.
+[국내 순위·PO·최종 순위 보고서](../development/career-domestic-ranking-playoffs-finalization-v1.md)에
+공식 근거, 게임 정책, 기존 저장 처리 및 실제 검증 결과를 기록한다.
 
 ## Authority와 mutation 경계
 
@@ -129,22 +127,29 @@ engine replay를 호출하지 않는다. 최초 completion verifier는 그대로
 
 ## LCK Cup과 다른 국내 대회 전이
 
-LCK Cup Group Battle 25경기가 모두 verified completion인 경우에만 그룹 포인트와 개인 순위를
-봉인한다. 일반 BO3 승리는 1점, Super Week BO5 승리는 2점이다. ordered standings와 tie-break
-trace/hash를 저장하며 필요한 공식 추가 tiebreak evidence가 없으면 stable team code로 결과를
-창작하지 않고 `LCK_CUP_TIEBREAKER_REQUIRED`에서 멈춘다. 봉인 결과로 Play-in 6 seed와 Playoff
-직행 seed를 만들고, 5개 Play-in과 10개 Playoff selector를 predecessor/seed/choice dependency 순서로
-resolve한다. 세 opponent choice는 eligible seed order, owner, chosen opponent, policy ID/hash receipt를
-남긴다. Final 결과는 First Stand LCK seed 1/2만 만들며 국제 상대나 결과는 만들지 않는다.
+LCK Cup Group Battle 25경기의 verified 세트 원장을 읽어 SoV와 승리 시간 평균으로 그룹 순위를 판정한다.
+개인/통합 시드 동률과 그룹 포인트·득실 동률은 필요한 추가 fixture를 먼저 실행한다.
+그룹 동률 부모 BO5의 홀수/짝수 세트는 각각 그룹5위/1위 팀이 참가하고, 각 BO1 자식은 고유한 팀·로스터·binding을 갖는다.
+전 세트 picks를 다음 자식의 initial history에 결속하여 Hard Fearless를 공유한다.
+진출6팀은 통합 성적순으로 시드를 받고 기존 Cup 5개 Play-in과 10개 Playoff graph를 진행한다.
+Cup Final은 First Stand LCK seed1/2를 만들며 국제 결과를 만들지 않는다.
 
-동일 adapter는 source-complete인 `LCK_ROAD_TO_MSI` 5경기, sealed R1~2 ranking을 carry하는
-`LCK_REGULAR_R3_R4` 40경기, `LCK_PLAY_IN` 3경기에 사용한다. 기존 `LCK_REGULAR_R1_R2` 90경기는
-계속 League Season authority가 소유한다.
+`LCK_REGULAR_R1_R2` 90경기 실행·원장은 계속 League가 소유한다. Competition은 같은 Career/year의
+V2 완료 봉투·세트 원장·standings application을 읽어 선행 H2H 순위를 교정한다.
+그 순위로 Road5경기와 Legend/Rise40경기를 만들며, 합계130경기 원장으로 후속 그룹 순위를 결정한다.
+Play-in3경기와 Legend상위4에서 PO s1–6이 확정되면 시즌 말 `LCK_PLAYOFFS` 10 BO5를 materialize한다.
+선택권자는 s3/s1, 자동 상대 선택은 eligible 최하위 시드이며 scoped receipt로 저장한다.
+U2패자 중 낮은/높은 시드는 각각 L2/L3으로 전달한다. 단일 결승이며 reset은 없다.
 
-현행 Cup SoV/승리시간/통합 Play-in seed 및 R3/R4 동률 정렬에는 공식 조항과 차이가 남아 있다.
-`TIEBREAKER_REQUIRED`에 도달하지 않은 입력도 영향을 받을 수 있다. 위 설명은 현재 전이 범위이며
-공식 동률 처리 전체 구현을 뜻하지 않는다. 구체적 차이와 추가 경기·저장 호환 작업은 규칙 근거 조사의
-동률 절을 따른다. 이번 안정화는 순위 알고리즘이나 Cup Playoff 10경기를 변경하지 않았다.
+순위 판정은 `career_domestic_ranking_decision`에 대상·기준·exact 지표·input hash·pending fixture·정책을 보존한다.
+2–10팀 추가 대진은 seeded deterministic 순서로 재개하며, 같은 단계의 필요 경기 수로 BO5/BO3/BO1을 정한다.
+진출·상금 무관 하위 묶음의 경기 생략과 고유 저장 위치 배정은 보고서에 명시한 게임 정책이다.
+Calendar는 미결 동률 fixture를 후속 대진보다 먼저 노출한다. 화면 API는 판정·최종 순위·규칙 호환 상태를 additive하게 제공한다.
+
+PO 결과1–6, Play-in탈락7–8, Rise하위9–10을 기존 `career_lck_final_ranking_snapshot/row`에 봉인한다.
+마지막 검증 결과 적용과 봉인은 같은 transaction이며, 10팀·10위치의 유일성 및 source/rule/policy/result hash를 검증한다.
+승패/세트 열은 정규시즌130경기만 집계한다. 같은 Career의 다음 cycle 초기화 소비자는 직전 SEALED 순위를 읽는다.
+Worlds 지역 슬롯·MSI 특례는 게임 내 국제 증거 대기로 남기며 국내 봉인을 막지 않는다.
 
 ## KeSPA Cup source gap
 
@@ -198,3 +203,13 @@ durable result/application exactly-once를 제공하지만 single-node local wor
 게임의 CPU 계산 자체는 같은 frozen input으로 다시 수행할 수 있다.
 2026-09-05 source 조사에서 LCK Playoffs routing과 국제 형식을 확인했지만 production readiness는
 바꾸지 않았다. 규칙 근거 문서의 미결 질문·제품 선택·의존 순서를 다음 작업 기준으로 사용한다.
+
+## V3 규칙과 V11 저장 호환
+
+V2 canonical carrier는 유지하고 새 판정/exact metric 행이 있는 경우에만 이를 해시에 추가한다.
+V2 resource는 기존 바이트와 해시를 계속 검증한다. startup은 결과·binding·R1/R2 import·Cup standings·최종 순위가
+없는 V2만 V3로 전환한다. 사용한 V2는 기존 결과/진행 binding을 보존하고 신규 실행을 차단한다.
+기존 pending command 재개와 완료 replay는 해당 저장 규칙을 따른다.
+V11은 판정 표, 최종 snapshot의 rule/policy/champion/runner/result authority, Cup exact metric 열을 추가한다.
+Series checkpoint의 optional competition side policy와 initial exclusions는 기존 빈 history 저장의 의미를 유지한다.
+첫 픽/진영 선택의 주체·결과는 `SeriesView.competitionContext`로 분리하여 제공한다.

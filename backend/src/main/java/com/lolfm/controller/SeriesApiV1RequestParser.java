@@ -26,6 +26,7 @@ public final class SeriesApiV1RequestParser {
         catch (IllegalArgumentException error) {
             throw bad("SERIES_UNSUPPORTED_FORMAT", "format", "format은 BO3 또는 BO5여야 합니다.");
         }
+        if (format == SeriesFormat.BO1) throw bad("SERIES_UNSUPPORTED_FORMAT", "format", "BO1은 대회 동률전 전용입니다.");
         String rootSeed = text(body, "rootSeed");
         seed(rootSeed);
         return new SeriesApiV1Dtos.CreateRequest(

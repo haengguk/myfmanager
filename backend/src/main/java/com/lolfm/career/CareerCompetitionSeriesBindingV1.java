@@ -43,6 +43,7 @@ public final class CareerCompetitionSeriesBindingV1 {
     private final String seedAlgorithm;
     private final String boundSeriesId;
     private final String initialHistoryHash;
+    private final Set<com.lolfm.champion.ChampionId> initialHistoryPicks;
     private final String initializationPolicyId;
     private final String initializationInputHash;
     private final String materializationPolicyId;
@@ -68,7 +69,7 @@ public final class CareerCompetitionSeriesBindingV1 {
             SeriesFormat seriesFormat, boolean hardFearless, String executionMode,
             String sideSelectionPolicy, String game1BlueTeamCode,
             String game1RedTeamCode, long fixtureRootSeed, String seedAlgorithm,
-            String boundSeriesId, String initialHistoryHash,
+            String boundSeriesId, String initialHistoryHash, Set<com.lolfm.champion.ChampionId> initialHistoryPicks,
             String initializationPolicyId, String initializationInputHash,
             String materializationPolicyId, String materializationReceiptHash,
             String productionSnapshotIdentity,
@@ -122,7 +123,7 @@ public final class CareerCompetitionSeriesBindingV1 {
             throw new IllegalArgumentException("boundSeriesId");
         }
         CareerIdentity.requireSha256(initialHistoryHash, "initialHistoryHash");
-        if (!initialHistoryHash.equals(SeriesDraftHistory.identityHash(0, Set.of()))) {
+        if (!initialHistoryHash.equals(SeriesDraftHistory.identityHash(0, initialHistoryPicks))) {
             throw new IllegalArgumentException("initialHistoryHash");
         }
         required(initializationPolicyId, "initializationPolicyId");
@@ -174,6 +175,7 @@ public final class CareerCompetitionSeriesBindingV1 {
         this.seedAlgorithm = seedAlgorithm;
         this.boundSeriesId = boundSeriesId;
         this.initialHistoryHash = initialHistoryHash;
+        this.initialHistoryPicks = Set.copyOf(initialHistoryPicks);
         this.initializationPolicyId = initializationPolicyId;
         this.initializationInputHash = initializationInputHash;
         this.materializationPolicyId = materializationPolicyId;
@@ -194,6 +196,12 @@ public final class CareerCompetitionSeriesBindingV1 {
         this.bindingHash = actual;
     }
 
+    static CareerCompetitionSeriesBindingV1 create(CareerCompetitionRelationalStore.CycleView cycle,
+            CareerCompetitionRelationalStore.InstanceRow instance, CareerCompetitionRelationalStore.FixtureRow fixture,
+            String managedTeamCode, String ruleResourceHash, LeagueSeasonFrozenSnapshot snapshot, String provenance) {
+        return create(cycle, instance, fixture, managedTeamCode, ruleResourceHash, snapshot, provenance, Set.of());
+    }
+
     static CareerCompetitionSeriesBindingV1 create(
             CareerCompetitionRelationalStore.CycleView cycle,
             CareerCompetitionRelationalStore.InstanceRow instance,
@@ -201,7 +209,7 @@ public final class CareerCompetitionSeriesBindingV1 {
             String managedTeamCode,
             String ruleResourceHash,
             LeagueSeasonFrozenSnapshot productionSnapshot,
-            String resourceProvenanceHash
+            String resourceProvenanceHash, Set<com.lolfm.champion.ChampionId> initialPicks
     ) {
         if (!"READY".equals(fixture.lifecycleStatus())
                 || fixture.firstTeamCode() == null || fixture.secondTeamCode() == null) {
@@ -211,8 +219,8 @@ public final class CareerCompetitionSeriesBindingV1 {
         String red = blue.equals(fixture.firstTeamCode())
                 ? fixture.secondTeamCode() : fixture.firstTeamCode();
         return new CareerCompetitionSeriesBindingV1(cycle.careerId(), cycle.seasonYear(),
-                fixture.competitionId(), ruleResourceHash, CareerCompetitionRules.VERSION,
-                CareerCompetitionRules.GAME_POLICY_VERSION, cycle.hashAlgorithm(),
+                fixture.competitionId(), ruleResourceHash, cycle.ruleVersion(),
+                cycle.gamePolicyVersion(), cycle.hashAlgorithm(),
                 instance.stateHash(), instance.revision(), fixture.fixtureId(),
                 fixture.matchId(), fixture.matchOrder(), fixture.stageId(),
                 new CareerCompetitionRules.ParticipantSelector(
@@ -223,7 +231,7 @@ public final class CareerCompetitionSeriesBindingV1 {
                 SeriesFormat.valueOf(fixture.seriesFormat()), fixture.hardFearless(),
                 fixture.executionMode(), fixture.sideSelectionPolicy(), blue, red,
                 fixture.rootSeed(), CareerCompetitionAggregate.SEED_ALGORITHM,
-                fixture.seriesId(), SeriesDraftHistory.identityHash(0, Set.of()),
+                fixture.seriesId(), SeriesDraftHistory.identityHash(0, initialPicks), initialPicks,
                 cycle.initializationPolicyId(), cycle.initializationInputHash(),
                 instance.materializationPolicyId(), instance.materializationReceiptHash(),
                 productionSnapshot.snapshotIdentity(),
@@ -279,6 +287,7 @@ public final class CareerCompetitionSeriesBindingV1 {
                         required(fields, "seedAlgorithm"),
                         required(fields, "boundSeriesId"),
                         required(fields, "initialHistoryHash"),
+                        fields.containsKey("initialHistoryPicks") ? java.util.Arrays.stream(fields.get("initialHistoryPicks").split(",")).map(com.lolfm.champion.ChampionId::new).collect(java.util.stream.Collectors.toUnmodifiableSet()) : Set.of(),
                         required(fields, "initializationPolicyId"),
                         required(fields, "initializationInputHash"),
                         required(fields, "materializationPolicyId"),
@@ -311,6 +320,11 @@ public final class CareerCompetitionSeriesBindingV1 {
     private static String firstGameBlue(
             CareerCompetitionRelationalStore.FixtureRow fixture
     ) {
+        if (loserRoFs(fixture.sideSelectionPolicy())) {
+            String owner = fixture.selectionRightOwner();
+            if (!Set.of(fixture.firstTeamCode(), fixture.secondTeamCode()).contains(owner)) throw new IllegalStateException("COMPETITION_ROFS_OWNER_REQUIRED");
+            return owner;
+        }
         if (fixture.sideSelectionPolicy().contains("COIN_TOSS")) {
             String choice = CareerCompetitionRules.sha256((
                     "policy=" + fixture.sideSelectionPolicy() + '\n'
@@ -354,6 +368,7 @@ public final class CareerCompetitionSeriesBindingV1 {
                 + "seedAlgorithm=" + seedAlgorithm + '\n'
                 + "boundSeriesId=" + boundSeriesId + '\n'
                 + "initialHistoryHash=" + initialHistoryHash + '\n'
+                + (initialHistoryPicks.isEmpty() ? "" : "initialHistoryPicks=" + initialHistoryPicks.stream().map(com.lolfm.champion.ChampionId::value).sorted().collect(java.util.stream.Collectors.joining(",")) + '\n')
                 + "initializationPolicyId=" + initializationPolicyId + '\n'
                 + "initializationInputHash=" + initializationInputHash + '\n'
                 + "materializationPolicyId=" + materializationPolicyId + '\n'
@@ -390,6 +405,13 @@ public final class CareerCompetitionSeriesBindingV1 {
     }
     public long fixtureRootSeed() { return fixtureRootSeed; }
     public String initialHistoryHash() { return initialHistoryHash; }
+    public Set<com.lolfm.champion.ChampionId> initialHistoryPicks() { return initialHistoryPicks; }
+    public String sideSelectionPolicy() { return sideSelectionPolicy; }
+    public boolean loserChoosesNextSide() { return loserRoFs(sideSelectionPolicy); }
+    public static boolean loserRoFs(String policy) {
+        return "LCK_ROFS_FIRST_PICK_OTHER_TEAM_RED_LOSER_ROFS_V1".equals(policy)
+                || "LCK_FINAL_UPPER_WINNER_BLUE_FIRST_PICK_LOSER_ROFS_V1".equals(policy);
+    }
     public String ruleResourceHash() { return ruleResourceHash; }
     public String ruleVersion() { return ruleVersion; }
     public String gamePolicyVersion() { return gamePolicyVersion; }

@@ -40,10 +40,16 @@ public final class PlayerRatingResourceLoader {
     }
 
     public static LoadedResource load(ObjectMapper mapper, InputStream input) {
+        return load(mapper, input, new PlayerResourceSpec(
+                "LCK", 10, VERSION, SNAPSHOT_AT, EXPECTED_SHA256, DATA_CUTOFF));
+    }
+
+    public static LoadedResource load(ObjectMapper mapper, InputStream input, PlayerResourceSpec spec) {
+        Objects.requireNonNull(spec, "spec");
         Objects.requireNonNull(mapper, "mapper");
         byte[] bytes = readBytes(input);
         String sha256 = sha256(bytes);
-        if (!EXPECTED_SHA256.equals(sha256)) {
+        if (!spec.sha256().equals(sha256)) {
             throw new IllegalStateException("Player rating resource SHA-256 mismatch: " + sha256);
         }
 
@@ -53,7 +59,7 @@ public final class PlayerRatingResourceLoader {
         } catch (IOException error) {
             throw new IllegalStateException("Failed to load player rating resource", error);
         }
-        validateEnvelope(raw);
+        validateEnvelope(raw, spec);
 
         Map<PlayerRatingKey, PlayerRatingResource> indexed = new LinkedHashMap<>();
         Map<String, Set<Position>> positionsByTeam = new HashMap<>();
@@ -116,18 +122,18 @@ public final class PlayerRatingResourceLoader {
         return new PlayerRatings(player.position(), values);
     }
 
-    private static void validateEnvelope(RawResource raw) {
+    private static void validateEnvelope(RawResource raw, PlayerResourceSpec spec) {
         if (raw == null) throw new IllegalStateException("Player rating resource is empty");
-        if (!VERSION.equals(raw.version())) throw new IllegalStateException("Unsupported player rating version: " + raw.version());
-        if (!SNAPSHOT_AT.equals(raw.snapshotAt()) || !DATA_CUTOFF.equals(raw.dataCutoff())) {
+        if (!spec.version().equals(raw.version())) throw new IllegalStateException("Unsupported player rating version: " + raw.version());
+        if (!spec.snapshotAt().equals(raw.snapshotAt()) || !Objects.equals(spec.dataCutoff(), raw.dataCutoff())) {
             throw new IllegalStateException("Player rating snapshot/data cutoff mismatch");
         }
         if (raw.scale() == null || raw.scale().min() != PlayerRatings.MIN || raw.scale().max() != PlayerRatings.MAX) {
             throw new IllegalStateException("Player rating scale must be exactly 1..20");
         }
-        if (raw.scope() == null || !"LCK".equals(raw.scope().league()) || raw.scope().teams() != 10 || raw.scope().startersPerTeam() != 5
-                || raw.scope().players() != 50 || raw.scope().substitutesIncluded()) {
-            throw new IllegalStateException("Player rating scope must be 10 teams, 5 starters, 50 players, no substitutes");
+        if (raw.scope() == null || !spec.leagueCode().equals(raw.scope().league()) || raw.scope().teams() != spec.teamCount() || raw.scope().startersPerTeam() != 5
+                || raw.scope().players() != spec.playerCount() || raw.scope().substitutesIncluded()) {
+            throw new IllegalStateException("Player rating scope does not match the selected starter dataset");
         }
         if (raw.semantics() == null || raw.semantics().commonAttributeCount() != 6
                 || raw.semantics().roleSpecificAttributeCount() != 6

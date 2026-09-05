@@ -154,6 +154,7 @@ public record CareerCompetitionAggregate(
         // The selectors stored on every fixture are sufficient for ordered propagation.
         for (int candidate = index + 1; candidate < nextFixtures.size(); candidate++) {
             Fixture pending = nextFixtures.get(candidate);
+            if ("COMPLETED".equals(pending.lifecycleStatus())) continue;
             String first = resolve(pending.firstSelector(), pending.firstTeamCode(), outcomes);
             String second = resolve(pending.secondSelector(), pending.secondTeamCode(), outcomes);
             String status = first != null && second != null
@@ -293,7 +294,7 @@ public record CareerCompetitionAggregate(
             Map<String, String> selectorBindings
     ) {
         if ("R1_R2_RANK".equals(selector.type())
-                || "PLAY_IN_SEED".equals(selector.type())) {
+                || "PLAY_IN_SEED".equals(selector.type()) || "LCK_PLAYOFF_SEED".equals(selector.type())) {
             return seeds.get(Integer.parseInt(selector.value()));
         }
         if ("CUP_GROUP_SEED".equals(selector.type())) {
@@ -344,7 +345,7 @@ public record CareerCompetitionAggregate(
                 ? "PLAYER_CONTROLLED" : "FULL_AUTO";
     }
 
-    private static long deriveSeed(long rootSeed, int year, String competition, String match) {
+    static long deriveSeed(long rootSeed, int year, String competition, String match) {
         byte[] digest;
         try {
             digest = java.security.MessageDigest.getInstance("SHA-256").digest((

@@ -1,0 +1,254 @@
+{
+  "version": "lcs-player-identities-2026-08-23-v1",
+  "snapshotAt": "2026-08-23",
+  "requiredPlayerRatingResourceVersion": "lcs-player-ratings-2026-08-23-v1",
+  "scope": {
+    "league": "LCS",
+    "teams": 8,
+    "startersPerTeam": 5,
+    "players": 40,
+    "substitutesIncluded": false
+  },
+  "players": [
+    {
+      "playerId": "player-morgan",
+      "team": "TLAW",
+      "position": "TOP",
+      "nickname": "Morgan"
+    },
+    {
+      "playerId": "player-josedeodo",
+      "team": "TLAW",
+      "position": "JUNGLE",
+      "nickname": "Josedeodo"
+    },
+    {
+      "playerId": "player-quid",
+      "team": "TLAW",
+      "position": "MID",
+      "nickname": "Quid"
+    },
+    {
+      "playerId": "player-yeon",
+      "team": "TLAW",
+      "position": "ADC",
+      "nickname": "Yeon"
+    },
+    {
+      "playerId": "player-corejj",
+      "team": "TLAW",
+      "position": "SUPPORT",
+      "nickname": "CoreJJ"
+    },
+    {
+      "playerId": "player-dhokla",
+      "team": "LYON",
+      "position": "TOP",
+      "nickname": "Dhokla"
+    },
+    {
+      "playerId": "player-inspired",
+      "team": "LYON",
+      "position": "JUNGLE",
+      "nickname": "Inspired"
+    },
+    {
+      "playerId": "player-saint",
+      "team": "LYON",
+      "position": "MID",
+      "nickname": "Saint"
+    },
+    {
+      "playerId": "player-berserker",
+      "team": "LYON",
+      "position": "ADC",
+      "nickname": "Berserker"
+    },
+    {
+      "playerId": "player-isles",
+      "team": "LYON",
+      "position": "SUPPORT",
+      "nickname": "Isles"
+    },
+    {
+      "playerId": "player-thanatos",
+      "team": "C9",
+      "position": "TOP",
+      "nickname": "Thanatos"
+    },
+    {
+      "playerId": "player-blaber",
+      "team": "C9",
+      "position": "JUNGLE",
+      "nickname": "Blaber"
+    },
+    {
+      "playerId": "player-loki",
+      "team": "C9",
+      "position": "MID",
+      "nickname": "Loki"
+    },
+    {
+      "playerId": "player-tactical",
+      "team": "C9",
+      "position": "ADC",
+      "nickname": "Tactical"
+    },
+    {
+      "playerId": "player-vulcan",
+      "team": "C9",
+      "position": "SUPPORT",
+      "nickname": "Vulcan"
+    },
+    {
+      "playerId": "player-impact",
+      "team": "SEN",
+      "position": "TOP",
+      "nickname": "Impact"
+    },
+    {
+      "playerId": "player-hambak",
+      "team": "SEN",
+      "position": "JUNGLE",
+      "nickname": "HamBak"
+    },
+    {
+      "playerId": "player-darkwings",
+      "team": "SEN",
+      "position": "MID",
+      "nickname": "DARKWINGS"
+    },
+    {
+      "playerId": "player-rahel",
+      "team": "SEN",
+      "position": "ADC",
+      "nickname": "Rahel"
+    },
+    {
+      "playerId": "player-huhi",
+      "team": "SEN",
+      "position": "SUPPORT",
+      "nickname": "huhi"
+    },
+    {
+      "playerId": "player-fudge",
+      "team": "SR",
+      "position": "TOP",
+      "nickname": "Fudge"
+    },
+    {
+      "playerId": "player-contractz",
+      "team": "SR",
+      "position": "JUNGLE",
+      "nickname": "Contractz"
+    },
+    {
+      "playerId": "player-zinie",
+      "team": "SR",
+      "position": "MID",
+      "nickname": "Zinie"
+    },
+    {
+      "playerId": "player-bvoy",
+      "team": "SR",
+      "position": "ADC",
+      "nickname": "Bvoy"
+    },
+    {
+      "playerId": "player-zeyzal",
+      "team": "SR",
+      "position": "SUPPORT",
+      "nickname": "Zeyzal"
+    },
+    {
+      "playerId": "player-gakgos",
+      "team": "FLY",
+      "position": "TOP",
+      "nickname": "GaKGoS"
+    },
+    {
+      "playerId": "player-gryffinn",
+      "team": "FLY",
+      "position": "JUNGLE",
+      "nickname": "Gryffinn"
+    },
+    {
+      "playerId": "player-quad",
+      "team": "FLY",
+      "position": "MID",
+      "nickname": "Quad"
+    },
+    {
+      "playerId": "player-massu",
+      "team": "FLY",
+      "position": "ADC",
+      "nickname": "Massu"
+    },
+    {
+      "playerId": "player-cryogen",
+      "team": "FLY",
+      "position": "SUPPORT",
+      "nickname": "Cryogen"
+    },
+    {
+      "playerId": "player-srtty",
+      "team": "DSG",
+      "position": "TOP",
+      "nickname": "Srtty"
+    },
+    {
+      "playerId": "player-kryra",
+      "team": "DSG",
+      "position": "JUNGLE",
+      "nickname": "KryRa"
+    },
+    {
+      "playerId": "player-callme",
+      "team": "DSG",
+      "position": "MID",
+      "nickname": "callme"
+    },
+    {
+      "playerId": "player-sajed",
+      "team": "DSG",
+      "position": "ADC",
+      "nickname": "Sajed"
+    },
+    {
+      "playerId": "player-lyonz",
+      "team": "DSG",
+      "position": "SUPPORT",
+      "nickname": "Lyonz"
+    },
+    {
+      "playerId": "player-denathor",
+      "team": "DIG",
+      "position": "TOP",
+      "nickname": "Denathor"
+    },
+    {
+      "playerId": "player-exyu",
+      "team": "DIG",
+      "position": "JUNGLE",
+      "nickname": "eXyu"
+    },
+    {
+      "playerId": "player-palafox",
+      "team": "DIG",
+      "position": "MID",
+      "nickname": "Palafox"
+    },
+    {
+      "playerId": "player-fbi",
+      "team": "DIG",
+      "position": "ADC",
+      "nickname": "FBI"
+    },
+    {
+      "playerId": "player-ignar",
+      "team": "DIG",
+      "position": "SUPPORT",
+      "nickname": "IgNar"
+    }
+  ]
+}

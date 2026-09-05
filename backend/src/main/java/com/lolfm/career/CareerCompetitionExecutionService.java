@@ -79,8 +79,7 @@ public final class CareerCompetitionExecutionService {
                 "CAREER_COMPETITION_STALE_REVISION");
         CareerCompetitionRelationalStore.FixtureRow fixture = cycle.fixtures().stream()
                 .filter(value -> !"COMPLETED".equals(value.lifecycleStatus()))
-                .min(java.util.Comparator.comparingInt(
-                        CareerCompetitionRelationalStore.FixtureRow::matchOrder))
+                .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
                         "CAREER_COMPETITION_NO_PENDING_FIXTURE"));
         if (!"READY".equals(fixture.lifecycleStatus())) throw new IllegalStateException(
@@ -97,7 +96,7 @@ public final class CareerCompetitionExecutionService {
                     "COMPETITION_PRODUCTION_AUTHORITY_CHANGED_DURING_BIND");
         }
         CareerCompetitionSeriesBindingV1 binding = store.bindFixture(
-                career.careerId(), seasonYear, fixture.matchId(), productionSnapshot,
+                career.careerId(), seasonYear, fixture.competitionId(), fixture.matchId(), productionSnapshot,
                 resourceProvenanceHash);
         registerCommand(binding, clientCommandId, commandPayload);
         if ("PLAYER_CONTROLLED".equals(binding.executionMode())) {

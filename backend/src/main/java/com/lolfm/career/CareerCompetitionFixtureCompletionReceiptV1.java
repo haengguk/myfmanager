@@ -117,8 +117,9 @@ public record CareerCompetitionFixtureCompletionReceiptV1(
             }
             LeagueFixtureGameReceiptV1 game = games.get(index);
             int gameNumber = index + 1;
-            String blue = gameNumber % 2 == 1 ? binding.game1BlueTeamCode()
-                    : binding.game1RedTeamCode();
+            String blue = binding.loserChoosesNextSide() && index > 0
+                    ? games.get(index - 1).winnerTeamCode().equals(binding.firstTeamCode()) ? binding.secondTeamCode() : binding.firstTeamCode()
+                    : gameNumber % 2 == 1 ? binding.game1BlueTeamCode() : binding.game1RedTeamCode();
             String red = blue.equals(binding.firstTeamCode())
                     ? binding.secondTeamCode() : binding.firstTeamCode();
             long seed = LeagueIdentity.gameSeed(binding.boundSeriesId(),

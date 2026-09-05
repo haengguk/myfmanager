@@ -67,7 +67,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(10);
+                    .migrationsExecuted).isEqualTo(11);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -521,7 +521,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(6);
+                    .migrationsExecuted).isEqualTo(7);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);
@@ -866,6 +866,11 @@ class CareerModePersistenceTest {
             assertThat(count(harness.jdbc(), "career_competition_seed")).isEqualTo(10);
             assertThat(count(harness.jdbc(), "career_competition_fixture")).isEqualTo(40);
 
+            var source = harness.leagueStore().loadSeason(career.seasonId());
+            harness.competitionStore().sealR1R2(career.careerId(), 2027, career.managedTeamCode(), career.rootSeed(),
+                    source.schedule().scheduleIdentity(), source.revision(),
+                    java.util.stream.IntStream.range(0, 10).mapToObj(i -> new CareerCompetitionAggregate.SeededTeam(
+                            i + 1, LeagueDomainTestFixtures.TEAM_CODES.get(i), 0, 0, 0, 0)).toList());
             CareerCalendarApplicationService.AdvanceResult advanced =
                     harness.calendar().advance(career,
                             CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, 0,
@@ -925,7 +930,7 @@ class CareerModePersistenceTest {
         String url = "jdbc:h2:mem:career-cup-transition-" + UUID.randomUUID()
                 + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
         try (HikariDataSource dataSource = dataSource(url)) {
-            Flyway.configure().dataSource(dataSource).target("9").load().migrate();
+            Flyway.configure().dataSource(dataSource).load().migrate();
             Harness harness = harness(dataSource);
             for (int careerNumber = 0; careerNumber < 2; careerNumber++) {
             CareerRelationalStore.CareerRow career = harness.careers().create(
@@ -1016,7 +1021,7 @@ class CareerModePersistenceTest {
                 var beforeUpgrade = harness.competitionStore().load(career.careerId(), 2027);
                 var choices = rows(harness.jdbc(), "career_competition_opponent_choice", "match_id");
                 assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                        .migrationsExecuted).isOne();
+                        .migrationsExecuted).isZero();
                 assertThat(rows(harness.jdbc(), "career_competition_opponent_choice", "match_id"))
                         .isEqualTo(choices);
                 assertThat(harness.competitionStore().load(career.careerId(), 2027))
@@ -1026,6 +1031,158 @@ class CareerModePersistenceTest {
             assertThat(harness.jdbc().queryForObject(
                     "SELECT COUNT(DISTINCT choice_hash) FROM career_competition_opponent_choice",
                     Integer.class)).isEqualTo(3);
+        }
+    }
+
+    @Test
+    void cupGroupTieAlternatesFifthAndFirstTeamsWithDurableSharedFearless() throws Exception {
+        try (HikariDataSource ds = dataSource("jdbc:h2:mem:cup-mixed-" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1")) {
+            Flyway.configure().dataSource(ds).load().migrate();
+            Harness h = harness(ds);
+            var career = h.careers().create(request(UUID.randomUUID().toString())).career().career();
+            var group = h.competitionStore().load(career.careerId(), 2027).fixtures().stream()
+                    .filter(f -> f.stageId().equals("GROUP_BATTLE")).toList();
+            int normal = 0, superWeek = 0;
+            for (var f : group) {
+                boolean baron = f.seriesFormat().equals("BO3") ? ++normal <= 11 : ++superWeek <= 2;
+                var binding = h.competitionStore().bindFixture(career.careerId(), 2027, "LCK_CUP", f.matchId(), LeagueDomainTestFixtures.snapshot(), "c".repeat(64));
+                CareerCompetitionTestSupport.applySyntheticScore(h.competitionStore(), binding,
+                        baron ? f.firstTeamCode() : f.secondTeamCode(), normal == 1 && f.seriesFormat().equals("BO3") ? 1 : 0);
+            }
+            int children = 0, attempts = 0;
+            while (children < 3) {
+                var f = h.competitionStore().load(career.careerId(), 2027).fixtures().stream()
+                        .filter(x -> x.competitionId().equals("LCK_CUP") && !x.lifecycleStatus().equals("COMPLETED")).findFirst().orElseThrow();
+                assertThat(f.stageId()).endsWith("TIEBREAKER");
+                var binding = h.competitionStore().bindFixture(career.careerId(), 2027, "LCK_CUP", f.matchId(), LeagueDomainTestFixtures.snapshot(), "c".repeat(64));
+                String winner = f.firstTeamCode();
+                if (f.stageId().equals("CUP_GROUP_TIEBREAKER")) {
+                    var detail = h.competitionStore().domesticDecisions(career.careerId(), 2027).stream()
+                            .filter(d -> d.decisionId().equals("CUP_GROUP_WINNER")).findFirst().orElseThrow().detail();
+                    int rank = children % 2 == 0 ? 4 : 0;
+                    String baron = detail.path("groupRankings").path("BARON").get(rank).asText();
+                    String elder = detail.path("groupRankings").path("ELDER").get(rank).asText();
+                    assertThat(Set.of(f.firstTeamCode(), f.secondTeamCode())).isEqualTo(Set.of(baron, elder));
+                    assertThat(binding.seriesFormat()).isEqualTo(com.lolfm.application.SeriesFormat.BO1);
+                    assertThat(binding.initialHistoryPicks()).hasSize(children * 10);
+                    winner = baron; children++;
+                }
+                CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(h.competitionStore(), binding, winner);
+                var state = h.competitionStore().load(career.careerId(), 2027).stateHash();
+                h = harness(ds);
+                assertThat(h.competitionStore().load(career.careerId(), 2027).stateHash()).isEqualTo(state);
+                assertThat(CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(h.competitionStore(), binding, winner).replayed()).isTrue();
+                assertThat(++attempts).isLessThan(35);
+            }
+            assertThat(h.competitionStore().domesticDecisions(career.careerId(), 2027)).filteredOn(d -> d.decisionId().equals("CUP_GROUP_WINNER"))
+                    .singleElement().satisfies(d -> assertThat(d.status()).isEqualTo("SEALED"));
+        }
+    }
+
+    @Test
+    void previousRulesUpgradeOnlyDormantCyclesAndPreserveAppliedResults() {
+        try (HikariDataSource ds = dataSource("jdbc:h2:mem:previous-domestic-" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1")) {
+            Flyway.configure().dataSource(ds).load().migrate();
+            Harness h = harness(ds);
+            var dormant = h.careers().create(request(UUID.randomUUID().toString())).career().career();
+            var used = h.careers().create(request(UUID.randomUUID().toString())).career().career();
+            for (var c : List.of(dormant, used)) CareerCompetitionTestSupport.restorePreviousRuleIdentity(h.competitionStore(), c.careerId(), 2027);
+            var fixture = h.competitionStore().load(used.careerId(), 2027).fixtures().getFirst();
+            CareerCompetitionTestSupport.applyCompletion(h.competitionStore(), used.careerId(), 2027, "LCK_CUP", fixture.matchId(),
+                    fixture.seriesId(), fixture.firstTeamCode(), fixture.secondTeamCode(), fixture.firstTeamCode(), "f".repeat(64));
+            var before = h.competitionStore().load(used.careerId(), 2027);
+            Harness restarted = harness(ds);
+            assertThat(restarted.competitionStore().load(dormant.careerId(), 2027).ruleVersion()).isEqualTo(CareerCompetitionRules.VERSION);
+            assertThat(restarted.competitionStore().load(used.careerId(), 2027)).isEqualTo(before);
+            assertThat(restarted.competitions().view(used, 2027, LocalDate.of(2027, 1, 14), "LCK_CUP", null).allowedCommands()).isEmpty();
+        }
+    }
+
+    @Test
+    void domesticResultsReachTenPlayoffsSealFinalRankingAndReplayAfterRestart() throws Exception {
+        try (HikariDataSource ds = dataSource("jdbc:h2:mem:domestic-final-" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1")) {
+            Flyway.configure().dataSource(ds).load().migrate();
+            Harness h = harness(ds);
+            var career = h.careers().create(request(UUID.randomUUID().toString())).career().career();
+            prepareRegularLedger(h, career);
+            h.competitionStore().reconcileDomesticR1R2(career.careerId(), 2027);
+            assertThat(h.competitionStore().load(career.careerId(), 2027).r1r2ImportHash()).isNotNull();
+            com.lolfm.career.CareerCompetitionSeriesBindingV1 last = null;
+            String winner = null;
+            for (String competition : List.of("LCK_REGULAR_R3_R4", "LCK_PLAY_IN", "LCK_PLAYOFFS")) {
+                int games = 0;
+                while (true) {
+                    var pending = h.competitionStore().load(career.careerId(), 2027).fixtures().stream()
+                            .filter(f -> f.competitionId().equals(competition) && !f.lifecycleStatus().equals("COMPLETED")).findFirst();
+                    if (pending.isEmpty()) break;
+                    var f = pending.orElseThrow();
+                    assertThat(f.lifecycleStatus()).as(f.matchId()).isEqualTo("READY");
+                    last = h.competitionStore().bindFixture(career.careerId(), 2027, competition, f.matchId(),
+                            LeagueDomainTestFixtures.snapshot(), "c".repeat(64));
+                    if (competition.equals("LCK_PLAYOFFS")) {
+                        assertThat(last.loserChoosesNextSide()).isTrue();
+                        var poSeeds = h.competitionStore().currentSeeds(career.careerId(), 2027).stream()
+                                .filter(seed -> seed.seedScope().equals("LCK_PLAYOFF_SEED")).collect(java.util.stream.Collectors.toMap(
+                                        CareerCompetitionRelationalStore.SeedView::teamCode, CareerCompetitionRelationalStore.SeedView::seedNumber));
+                        if (f.matchId().equals("PO_U1A")) assertThat(poSeeds.get(f.secondTeamCode())).isEqualTo(6);
+                        if (Set.of("PO_L2", "PO_L3").contains(f.matchId())) {
+                            var losers = h.jdbc().queryForList("SELECT loser_team_code FROM career_competition_fixture WHERE career_id = ? AND competition_id = 'LCK_PLAYOFFS' AND match_id IN ('PO_U2A','PO_U2B')", String.class, career.careerId());
+                            var sorted = losers.stream().sorted(java.util.Comparator.comparingInt(poSeeds::get)).toList();
+                            assertThat(f.secondTeamCode()).isEqualTo(sorted.get(f.matchId().equals("PO_L2") ? 1 : 0));
+                            assertThat(last.game1BlueTeamCode()).isEqualTo(f.secondTeamCode());
+                        }
+                        if (f.matchId().equals("PO_F")) assertThat(last.game1BlueTeamCode()).isEqualTo(f.firstTeamCode());
+                    }
+                    // Stronger regular team wins; PO alternates upset/first-team wins to exercise loser routing.
+                    winner = competition.equals("LCK_REGULAR_R3_R4")
+                            ? (f.firstTeamCode().compareTo(f.secondTeamCode()) < 0 ? f.firstTeamCode() : f.secondTeamCode())
+                            : games % 2 == 0 ? f.secondTeamCode() : f.firstTeamCode();
+                    if (f.matchId().equals("PO_F")) assertThat(h.competitionStore().finalRanking(career.careerId(), 2027)).isNull();
+                    CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(h.competitionStore(), last, winner);
+                    assertThat(++games).isLessThan(60);
+                }
+                assertThat(games).isEqualTo(competition.equals("LCK_REGULAR_R3_R4") ? 40 : competition.equals("LCK_PLAY_IN") ? 3 : 10);
+            }
+            var finalRanking = h.competitionStore().finalRanking(career.careerId(), 2027);
+            assertThat(finalRanking).isNotNull();
+            assertThat(finalRanking.championTeamCode()).isEqualTo(winner);
+            assertThat(finalRanking.ranking()).hasSize(10).extracting(CareerCompetitionAggregate.SeededTeam::teamCode).doesNotHaveDuplicates();
+            assertThat(finalRanking.ranking()).allSatisfy(r -> assertThat(r.seriesWins() + r.seriesLosses()).isEqualTo(26));
+            assertThat(finalRanking.worldsStatus()).isEqualTo("PENDING_IN_GAME_INTERNATIONAL_EVIDENCE");
+            var before = rows(h.jdbc(), "career_lck_final_ranking_snapshot", "career_id");
+            Harness restarted = harness(ds);
+            assertThat(restarted.competitionStore().finalRanking(career.careerId(), 2027)).isEqualTo(finalRanking);
+            assertThat(CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(restarted.competitionStore(), last, winner).replayed()).isTrue();
+            assertThat(rows(h.jdbc(), "career_lck_final_ranking_snapshot", "career_id")).isEqualTo(before);
+            var future = restarted.competitionStore().initializeFuture(career.careerId(), 2028);
+            assertThat(future.seasonOrdinal()).isEqualTo(2);
+        }
+    }
+
+    private static void prepareRegularLedger(Harness h, CareerRelationalStore.CareerRow career) throws Exception {
+        var season = h.leagueStore().loadSeason(career.seasonId());
+        var json = new ObjectMapper().findAndRegisterModules();
+        int revision = 0;
+        for (var fixture : season.schedule().fixtures()) {
+            var history = new com.lolfm.draft.SeriesDraftHistory();
+            var games = new java.util.ArrayList<LeagueFixtureGameReceiptV1>();
+            String first = fixture.firstTeamCode(), second = fixture.secondTeamCode();
+            for (int n = 1; n <= 2; n++) games.add(LeagueAutomatedSeriesRunnerTest.syntheticGame(fixture.fixtureId() + ":" + n,
+                    n, n == 1 ? first : second, n == 1 ? second : first, n, history, first));
+            String hash = "a".repeat(64);
+            var body = new LeagueFixtureCompletionReceiptV1(LeagueFixtureCompletionReceiptV1.SCHEMA,
+                    LeagueFixtureCompletionReceiptV1.HASH_ALGORITHM, career.seasonId(), fixture.fixtureId(), fixture.boundSeriesId(),
+                    LeagueFixtureExecutionMode.FULL_AUTO, first, second, first, second, fixture.seriesFormat(), fixture.fixtureRootSeed(),
+                    "TEST", "TEST", season.schedule().scheduleIdentity(), hash, hash, hash, hash, hash, hash, hash, hash, hash,
+                    games, 2, 0, first, second, 2, null);
+            var receipt = new LeagueFixtureCompletionReceiptV2(LeagueFixtureCompletionReceiptV2.SCHEMA,
+                    LeagueFixtureCompletionReceiptV2.HASH_ALGORITHM, career.leagueId(), null, body,
+                    List.of(LeagueFixtureDraftAuthorityReceiptV1.fullAuto(1), LeagueFixtureDraftAuthorityReceiptV1.fullAuto(2)), null);
+            h.jdbc().update("INSERT INTO league_completion_receipt(receipt_hash, season_id, fixture_id, execution_mode, receipt_schema, receipt_canonical, receipt_json, created_at) VALUES (?, ?, ?, 'FULL_AUTO', ?, ?, ?, CURRENT_TIMESTAMP)",
+                    receipt.canonicalFixtureReceiptHash(), career.seasonId(), fixture.fixtureId(), receipt.schemaVersion(), receipt.canonicalText(), json.writeValueAsString(receipt));
+            h.jdbc().update("INSERT INTO league_standings_application(season_id, fixture_id, receipt_hash, applied_season_revision, applied_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                    career.seasonId(), fixture.fixtureId(), receipt.canonicalFixtureReceiptHash(), ++revision);
+            h.jdbc().update("UPDATE league_fixture SET lifecycle_status = 'COMPLETED' WHERE season_id = ? AND fixture_id = ?", career.seasonId(), fixture.fixtureId());
         }
     }
 
@@ -1232,6 +1389,11 @@ class CareerModePersistenceTest {
                     UPDATE league_season SET lifecycle_status = 'COMPLETED'
                     WHERE season_id = ?
                     """, career.seasonId());
+            var source = harness.leagueStore().loadSeason(career.seasonId());
+            harness.competitionStore().sealR1R2(career.careerId(), 2027, career.managedTeamCode(), career.rootSeed(),
+                    source.schedule().scheduleIdentity(), source.revision(),
+                    java.util.stream.IntStream.range(0, 10).mapToObj(i -> new CareerCompetitionAggregate.SeededTeam(
+                            i + 1, LeagueDomainTestFixtures.TEAM_CODES.get(i), 0, 0, 0, 0)).toList());
             CareerCalendarApplicationService.AdvanceResult blocked =
                     harness.calendar().advance(career,
                             CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA, 0,

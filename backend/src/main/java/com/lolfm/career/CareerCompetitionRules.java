@@ -22,13 +22,17 @@ import org.springframework.stereotype.Component;
 /** Strict executable rules; presentation text is deliberately absent. */
 @Component
 public final class CareerCompetitionRules {
+    public static final String PREVIOUS_VERSION = "lck-career-competition-rules-2026-v2";
+    public static final String PREVIOUS_RESOURCE_HASH = "f544319c2bb126fb26304a856a612edd8f75a77db551f9a4e923b69ad1ae2468";
+    public static final String PREVIOUS_POLICY = "CAREER_COMPETITION_GAME_POLICY_V2";
+    public static final String PLAYOFF_OPPONENT_POLICY = "LCK_PLAYOFFS_LOWEST_AVAILABLE_SEED_OPPONENT_SELECTION_V1";
     public static final String RESOURCE =
-            "/competition/lck-career-competition-rules-2026-v2.json";
-    public static final String SCHEMA = "CAREER_COMPETITION_RULE_RESOURCE_V2";
-    public static final String VERSION = "lck-career-competition-rules-2026-v2";
+            "/competition/lck-career-competition-rules-2026-v3.json";
+    public static final String SCHEMA = "CAREER_COMPETITION_RULE_RESOURCE_V3";
+    public static final String VERSION = "lck-career-competition-rules-2026-v3";
     public static final String RESOURCE_HASH =
-            "f544319c2bb126fb26304a856a612edd8f75a77db551f9a4e923b69ad1ae2468";
-    public static final String GAME_POLICY_VERSION = "CAREER_COMPETITION_GAME_POLICY_V2";
+            "3cc24980f76293d06e202a299d544a58e16c72965b82a5054e6e61fef952ba2a";
+    public static final String GAME_POLICY_VERSION = "CAREER_COMPETITION_GAME_POLICY_V3";
     public static final String PROJECTION_POLICY =
             "SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1";
     public static final String R3_R4_ALLOCATION_POLICY =
@@ -49,7 +53,8 @@ public final class CareerCompetitionRules {
     private static final Set<String> SELECTORS = Set.of(
             "R1_R2_RANK", "MATCH_WINNER", "MATCH_LOSER", "PLAY_IN_SEED",
             "INITIAL_BOOTSTRAP_TEAM", "CUP_GROUP_SEED", "LCK_FINAL_RANK",
-            "CUP_PLAY_IN_SEED", "CUP_PLAYOFF_SEED",
+            "CUP_PLAY_IN_SEED", "CUP_PLAYOFF_SEED", "LCK_PLAYOFF_SEED",
+            "LOWEST_AVAILABLE_PLAYOFF_SEED", "REMAINING_PLAYOFF_SEED",
             "LOWEST_AVAILABLE_SEED_MATCH_WINNER", "REMAINING_MATCH_WINNER",
             "HIGHER_PLAYOFF_SEED_MATCH_LOSER", "LOWER_PLAYOFF_SEED_MATCH_LOSER");
     private static final Set<String> EXPECTED = Set.of(
@@ -68,6 +73,7 @@ public final class CareerCompetitionRules {
 
     private final ResourceBody body;
     private final Map<String, CompetitionRule> indexed;
+    private final Map<String, CompetitionRule> previous;
 
     @org.springframework.beans.factory.annotation.Autowired
     public CareerCompetitionRules(ObjectMapper mapper) {
@@ -80,6 +86,32 @@ public final class CareerCompetitionRules {
         LinkedHashMap<String, CompetitionRule> values = new LinkedHashMap<>();
         body.competitions().forEach(value -> values.put(value.competitionId(), value));
         this.indexed = Map.copyOf(values);
+        try (InputStream input = CareerCompetitionRules.class.getResourceAsStream(
+                "/competition/lck-career-competition-rules-2026-v2.json")) {
+            byte[] bytes = Objects.requireNonNull(input).readAllBytes();
+            if (!PREVIOUS_RESOURCE_HASH.equals(sha256(bytes))) throw new IllegalStateException("Previous competition resource mismatch");
+            ResourceBody old = new ObjectMapper().readValue(bytes, ResourceBody.class);
+            this.previous = old.competitions().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(CompetitionRule::competitionId, v -> v));
+        } catch (IOException error) { throw new IllegalStateException("Previous competition resource unavailable", error); }
+    }
+
+    public CompetitionRule rule(String competitionId, String version) {
+        if (VERSION.equals(version)) return rule(competitionId);
+        if (PREVIOUS_VERSION.equals(version) && previous.containsKey(competitionId)) return previous.get(competitionId);
+        throw new IllegalArgumentException("UNSUPPORTED_COMPETITION_RULE_VERSION");
+    }
+    static boolean supportedIdentity(String version, String resource, String policy) {
+        return VERSION.equals(version) && RESOURCE_HASH.equals(resource) && GAME_POLICY_VERSION.equals(policy)
+                || PREVIOUS_VERSION.equals(version) && PREVIOUS_RESOURCE_HASH.equals(resource) && PREVIOUS_POLICY.equals(policy);
+    }
+
+    public OpponentChoiceReceipt choosePlayoffOpponent(String owner, List<CareerCompetitionAggregate.SeededTeam> eligible) {
+        OpponentChoiceReceipt cup = chooseCupOpponent(owner, eligible);
+        String policyHash = sha256((PLAYOFF_OPPONENT_POLICY + "\nOFFICIAL_OWNER_AND_ELIGIBLE_POOL\nLOWEST_AVAILABLE_SEED\n").getBytes(StandardCharsets.UTF_8));
+        String content = PLAYOFF_OPPONENT_POLICY + '\n' + policyHash + '\n' + owner + '\n'
+                + String.join(",", cup.canonicalEligibleOrder()) + '\n' + cup.chosenTeamCode() + '\n';
+        return new OpponentChoiceReceipt(PLAYOFF_OPPONENT_POLICY, policyHash, owner,
+                cup.canonicalEligibleOrder(), cup.chosenTeamCode(), sha256(content.getBytes(StandardCharsets.UTF_8)));
     }
 
     public CompetitionRule rule(String competitionId) {
@@ -327,6 +359,8 @@ public final class CareerCompetitionRules {
                 || rule(value, "LCK_ROAD_TO_MSI").matches().size() != 5
                 || rule(value, "LCK_PLAY_IN").matches().size() != 3
                 || rule(value, "LCK_PLAYOFFS").scheduledMonthDays().size() != 10
+                || rule(value, "LCK_PLAYOFFS").matches().size() != 10
+                || rule(value, "LCK_PLAYOFFS").matches().stream().anyMatch(m -> !"BO5".equals(m.seriesFormat()) || !m.hardFearless())
                 || !"RULE_SOURCE_COMPLETE".equals(rule(value, "LCK_CUP").ruleStatus())
                 || rule(value, "LCK_CUP").blockingReason() != null
                 || !"REFERENCE_TEMPLATE_ONLY".equals(
@@ -491,7 +525,7 @@ public final class CareerCompetitionRules {
             }
         }
         if (Set.of("R1_R2_RANK", "PLAY_IN_SEED", "CUP_PLAY_IN_SEED",
-                "CUP_PLAYOFF_SEED", "LCK_FINAL_RANK").contains(selector.type())) {
+                "CUP_PLAYOFF_SEED", "LCK_PLAYOFF_SEED", "LCK_FINAL_RANK").contains(selector.type())) {
             int rank = Integer.parseInt(selector.value());
             if (rank < 1 || rank > 10) throw new IllegalStateException(
                     "Competition seed out of range");

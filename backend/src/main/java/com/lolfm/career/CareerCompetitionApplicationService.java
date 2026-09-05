@@ -37,13 +37,7 @@ public final class CareerCompetitionApplicationService {
         store.load(career.careerId(), calendarSeasonYear);
         if ("COMPLETED".equals(season.seasonLifecycleStatus())
                 && season.allFixturesCompleted()) {
-            store.sealR1R2(career.careerId(), calendarSeasonYear,
-                    career.managedTeamCode(), career.rootSeed(), season.scheduleIdentity(),
-                    season.standingsRevision(), season.ranking().stream().map(value ->
-                            new CareerCompetitionAggregate.SeededTeam(value.rank(),
-                                    value.teamCode(), value.seriesWins(),
-                                    value.seriesLosses(), value.gameWins(),
-                                    value.gameLosses())).toList());
+            store.reconcileDomesticR1R2(career.careerId(), calendarSeasonYear);
         }
     }
 
@@ -78,8 +72,8 @@ public final class CareerCompetitionApplicationService {
                 : new PendingCompetitionCommand(execution.clientCommandId(),
                 fixture.competitionId(), fixture.matchId(), pendingStatus);
         return new CompetitionView("CAREER_COMPETITION_VIEW_V1", cycle.seasonYear(),
-                rules.resourceHash(), CareerCompetitionRules.VERSION,
-                CareerCompetitionRules.GAME_POLICY_VERSION,
+                cycle.ruleResourceHash(), cycle.ruleVersion(),
+                cycle.gamePolicyVersion(),
                 CareerCompetitionRules.PROJECTION_POLICY,
                 CareerCompetitionRules.R3_R4_ALLOCATION_POLICY,
                 cycle.lifecycleStatus(), cycle.revision(), cycle.stateHash(),
@@ -98,7 +92,9 @@ public final class CareerCompetitionApplicationService {
                                 value.seedScope(), value.seedNumber(), value.teamCode(),
                                 value.sourceInputHash())).toList(),
                 externalLimited(current) || externalLimited(next), pending,
-                allowedCommands(projectedFixture, currentDate));
+                CareerCompetitionRules.VERSION.equals(cycle.ruleVersion()) || pending != null ? allowedCommands(projectedFixture, currentDate) : List.of(),
+                store.domesticDecisions(career.careerId(), calendarSeasonYear), store.finalRanking(career.careerId(), calendarSeasonYear),
+                CareerCompetitionRules.VERSION.equals(cycle.ruleVersion()) ? "CURRENT" : "PRESERVED_PREVIOUS_RULES");
     }
 
     private static String pendingStatus(
@@ -128,7 +124,7 @@ public final class CareerCompetitionApplicationService {
                 CareerCompetitionRules.PROJECTION_POLICY,
                 CareerCompetitionRules.R3_R4_ALLOCATION_POLICY,
                 "BLOCKED", 0, null, current, next, null, List.of(), List.of(),
-                List.of(), false, null, List.of());
+                List.of(), false, null, List.of(), List.of(), null, "PRIOR_SEASON_REQUIRED");
     }
 
     private static CompetitionSummary missingFutureSummary(String competitionId) {
@@ -159,6 +155,8 @@ public final class CareerCompetitionApplicationService {
         CompetitionView view = view(career, calendarSeasonYear, date,
                 competitionId, null);
         CompetitionSummary current = view.currentCompetition();
+        if ("PRESERVED_PREVIOUS_RULES".equals(view.domesticRuleCompatibility()) && view.activePendingCommand() == null)
+            return new CompetitionGate("DOMESTIC_RULE_VERSION_REQUIRES_NEW_CYCLE", null, null);
         if (current != null && blocked(current)) {
             return new CompetitionGate(current.blockingReason(), null, null);
         }
@@ -210,9 +208,7 @@ public final class CareerCompetitionApplicationService {
         CareerCompetitionRelationalStore.FixtureRow nextFixture = cycle.fixtures().stream()
                 .filter(value -> competitionId.equals(value.competitionId()))
                 .filter(value -> !"COMPLETED".equals(value.lifecycleStatus()))
-                .min(java.util.Comparator.comparingInt(
-                        CareerCompetitionRelationalStore.FixtureRow::matchOrder)
-                        .thenComparing(CareerCompetitionRelationalStore.FixtureRow::matchId))
+                .findFirst()
                 .orElse(null);
         String stage = total > 0 && completed == total ? "COMPLETED"
                 : nextFixture == null ? stageId(competitionId) : nextFixture.stageId();
@@ -344,13 +340,17 @@ public final class CareerCompetitionApplicationService {
             List<CompetitionSeed> currentSeeds,
             boolean externalExecutionLimited,
             PendingCompetitionCommand activePendingCommand,
-            List<String> allowedCommands
+            List<String> allowedCommands,
+            List<CareerCompetitionRelationalStore.DomesticDecisionView> domesticRankingDecisions,
+            CareerCompetitionRelationalStore.FinalRankingView finalRanking,
+            String domesticRuleCompatibility
     ) {
         public CompetitionView {
             qualificationOutputs = List.copyOf(qualificationOutputs);
             groupStandings = List.copyOf(groupStandings);
             currentSeeds = List.copyOf(currentSeeds);
             allowedCommands = List.copyOf(allowedCommands);
+            domesticRankingDecisions = List.copyOf(domesticRankingDecisions);
         }
     }
 
