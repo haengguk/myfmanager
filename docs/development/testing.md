@@ -361,7 +361,7 @@ cd frontend
 npm run build
 ```
 
-Production source, resource, runtime wiring, shared fixture 또는 Gradle/test configuration 변경을 마친 뒤 complete backend `test`를 final verification으로 한 번 실행한다. 실제 product regression을 발견해 고친 경우에만 affected focused tests 뒤 최종 full regression을 한 번 더 실행하며, 정상적으로는 최대 2회다. Clean full pass 이후 docs/report wording/assertion-only/isolated test-local fixture만 바뀌면 full regression을 반복하지 않는다. 현재 실행 수치는 [Project Status](../project-status.md)를 따른다.
+전체 회귀의 실행 시점, clean pass 재사용, 변경 후 재실행 조건과 실행 예산은 [AGENTS.md의 Full regression budget](../../AGENTS.md#full-regression-budget)을 따른다. 변경 표면별 검증 선택은 [LoL Manager Verification](../../.agents/skills/lolmanager-verification/SKILL.md#verification-router)을 참고한다. 현재 실행 수치는 [Project Status](../project-status.md)를 따른다.
 
 ### Matchup/Composition production activation
 

@@ -1,3 +1,16 @@
+## Task execution and approvals
+
+Continue requested implementation, necessary verification, and fixes for discovered
+regressions within the authorized scope unless a separate explicit approval is
+required. Instructions to confirm a declaration, verify a result, record a reason,
+or report findings do not by themselves require asking the user for permission.
+Before asking a question, check the conversation and relevant files for the answer.
+
+Pause only work that depends on missing information or required approval. Continue
+independent authorized work. Do not omit required verification or report incomplete
+work as complete. These rules do not relax explicit action-time approvals, scope
+restrictions, or environment permissions.
+
 ## Simulation Integration Rules
 
 ### Match-scoped state
@@ -587,6 +600,8 @@ A new full regression is required when a post-pass change affects:
 
 If a third full regression appears necessary, first establish why focused
 tests are insufficient and record that reason in the verification report.
+Recording that reason is not an approval request. Unless a separate explicit
+approval is required, record the reason and continue the necessary verification.
 
 If a full regression is aborted by an environment or tooling failure, do not
 immediately repeat the unchanged command. Diagnose or fix the external failure

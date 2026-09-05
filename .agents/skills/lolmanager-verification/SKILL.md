@@ -91,7 +91,7 @@ an explicitly requested release gate.
 | Backend production Java, API contract, runtime wiring, or production resource | Focused behavioral tests for the changed path and directly affected invariants | One final run after the production tree is complete |
 | Random order, determinism, global/static state, shared fixture, or Gradle/test configuration | Focused determinism and affected contract tests | Required on the final tree |
 | Frontend source | `npm run build`; add browser verification only when the requested user flow needs it | No backend full run unless backend/runtime also changed |
-| Diagnostic harness or generated artifact | Focused contract/smoke plus input binding and manifest checks | No by default; apply the executable surface rules above |
+| Diagnostic harness or generated artifact | Focused contract/smoke; add input binding and manifest checks only when the requested acceptance contract requires them | No by default; apply the executable surface rules above |
 | Calibration, holdout, distribution, or full-population audit | Do not run unless explicitly requested or correctness cannot establish the claim | Not a substitute for the default backend regression |
 
 ## Project-specific selection
@@ -118,10 +118,13 @@ instead of listing every repository verifier "for safety."
   uncovered risk.
 - Make adjacent suites conditional on the files or shared contracts actually
   changed; do not require them merely because the feature lives in the same app.
-- For frontend-only work, normally request the feature-focused check, production
-  build, and one representative browser flow. Add a second viewport only when
+- For frontend-only work, normally request the feature-focused check and production
+  build. Add a representative browser flow only when the requested user flow needs
+  browser evidence under the verification router. Add a second viewport only when
   responsive layout changed and a failure boundary only when state recovery or
-  stale-response behavior is part of the feature.
+  stale-response behavior is part of the feature. Browser-tool skills implement
+  the selected checks; they do not automatically expand verification scope or waive
+  a product-specific requirement for an explicit browser-testing request.
 - For a read-only API, normally cover one representative detail, population/count or
   ordering invariants, and representative 4xx/5xx handling. Do not generate an
   audit artifact or test every subject independently.
@@ -148,7 +151,10 @@ diagnostics.
 
 ## Artifact-bound finalization
 
-When completion depends on a generated fixed response, baseline, or handoff artifact:
+Apply this workflow only when the requested acceptance contract depends on artifact
+provenance binding, an immutable baseline, deterministic regeneration, or official
+promotion. An example response, build output, screenshot, or handoff report alone
+does not trigger it. Preserve the integrity requirements of official baselines.
 
 1. Define the artifact's semantic acceptance checks, generation command, expected
    output, and execution budget before the first full regression.
@@ -164,6 +170,10 @@ When completion depends on a generated fixed response, baseline, or handoff arti
 5. After a clean full regression, only bind, promote, or deterministically regenerate
    the official artifact and verify its focused acceptance checks and manifest. Do
    not reopen exploratory production analysis that could have run on the candidate.
+   Apply the `AGENTS.md` post-pass change rules to promotion and regeneration too:
+   if they change production resources or runtime inputs, run the required full
+   regression again. Do not classify a runtime artifact as a mere report to reuse
+   a result from before those inputs changed.
 6. Keep full-regression reuse identity distinct from focused artifact-acceptance
    evidence. An assertion-only or isolated acceptance-test change that `AGENTS.md`
    permits after a clean full run must not force another full run merely to refresh a
