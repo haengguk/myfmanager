@@ -5,16 +5,16 @@
     "position": "TOP",
     "nickname": "Zest",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-zest.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/g9aEsnRALe0iCFrwMnTlk1Jh7l-9CrT9x1YW5KID3zBnKgneEpPbciWB6--Ph8vh41BP4mbNFr6AYlWNVsvqVkR2PKJdF5guG0PV72YcKE_Cxin9Yp5Rd49otF0_UnDuWru7X5S5Ovqp-r4u3Y_c_w.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EA%B9%80%EB%8F%99%EB%AF%BC%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LOS",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOS Zest 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -40,11 +40,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Zest%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EA%B9%80%EB%8F%99%EB%AF%BC%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOS Zest 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Kim Dong-min"
+    "legalName": "Kim Dong-min",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LOS Zest 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "LOS No.26 Zest [1] 김동민 (Kim Dong-min) ",
+      "birthDateOnPage": "2003-11-05",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "photoSeasonYear": 2026
   },
   "player-curse": {
     "playerId": "player-curse",
@@ -52,16 +68,16 @@
     "position": "JUNGLE",
     "nickname": "Curse",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-curse.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/X7MA0RY7LinDU49877oa3prVKmKmGbDWTZ32vq1CScFkvKKcTH3dzZMXo19RWy7OMn9oRM3cMTl0ljBi7aZzdbaDg6DLhfcjOvsPvtia6VD3_LbfL6MFDpo4Z9O16tWs8S07DxZe2bhLEJe1vSiCjQ.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%ED%95%98%EC%9D%B4%20%EC%95%BC%EB%A7%88%EB%8B%A4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LOS",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOS Curse 2026 S.... 생일 표기는 기존 2005-05-18 / 문서 2005-05-08로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -87,11 +103,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Curse%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%ED%95%98%EC%9D%B4%20%EC%95%BC%EB%A7%88%EB%8B%A4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOS Curse 2026 S.... 생일 표기는 기존 2005-05-18 / 문서 2005-05-08로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Raí Yamada"
+    "legalName": "Raí Yamada",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LOS Curse 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "LOS Curse [1] 하이 야마다 (Raí Yamada) ",
+      "birthDateOnPage": "2005-05-08",
+      "birthDateMatchesExisting": false
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LOS_Curse_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-feisty": {
     "playerId": "player-feisty",
@@ -99,16 +134,16 @@
     "position": "MID",
     "nickname": "Feisty",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-feisty.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/kTMAYSMcmxYaf__QQHln-qF-Z6VwyqFJbQ5V52zJyaZpYHzGIA2qaW1vfNR2JME23yZvrv7hE_7sCOPtO8gOjY5G8VMtfru6aOViUp8qaFWbbpTBUlGLMvtuHB9M9gq1MERvmIKXS52bYae3fiazWg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%A0%95%EC%84%B1%ED%9B%88%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LOS",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOS Feisty 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -134,11 +169,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Feisty%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%A0%95%EC%84%B1%ED%9B%88%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOS Feisty 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Jeong Seong-hoon"
+    "legalName": "Jeong Seong-hoon",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LOS Feisty 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "LOS No.70 Feisty [1] 정성훈 (Jeong Seong-hoon) ",
+      "birthDateOnPage": "2003-12-19",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LOS_Feisty_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-duduhh": {
     "playerId": "player-duduhh",
@@ -146,16 +200,16 @@
     "position": "ADC",
     "nickname": "Duduhh",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-duduhh.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/lKXjyMHgKUY5OsPIlsdnDDvdj2OlkksSpGguvptS7NPA1lW89ZvsgNG8PHFRy4WdjmnGnvoRx7KsFb4gPeFPHAD-9kLj6o1T5BBrnrVcqh7Ot6N_LFxmemZKF5Ul64GXQL0qA82JssDFJqs-G8xmlg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%99%88%EB%A6%AC%EC%86%A1%20%ED%94%84%EB%9E%80%EC%8B%9C%EC%8A%A4%EC%BF%A0",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LOS",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOS Duduhh 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -181,11 +235,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Duduhh%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%99%88%EB%A6%AC%EC%86%A1%20%ED%94%84%EB%9E%80%EC%8B%9C%EC%8A%A4%EC%BF%A0",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOS Duduhh 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Wallyson Silva"
+    "legalName": "Wallyson Silva",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LOS Duduhh 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "LOS No.0 Duduhh 왈리송 프란시스쿠 (Wallyson Francisco) ",
+      "birthDateOnPage": "2008-04-18",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LOS_Duduhh_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-ackerman": {
     "playerId": "player-ackerman",
@@ -286,16 +359,16 @@
     "position": "JUNGLE",
     "nickname": "Sinatra",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-sinatra.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/33WKqyNiAH2gXGVZYlRheAV91HVU9Y7cLjn_b_Tgo11jGw_V--iFtQdp1ObHjDyYpNycwahcjp-2MT_OU0WGCYeUSH-TeU_REZqYjWFmTF7FRngEWismIo93qc3_UEVKdZPVAxtf6N4QZ5_7aYYTuQ.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%97%94%EC%A3%BC%20%ED%8E%98%ED%97%A4%EC%9D%B4%EB%9D%BC",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LOUD",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOUD Sinatra 202.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -321,11 +394,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Sinatra%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%97%94%EC%A3%BC%20%ED%8E%98%ED%97%A4%EC%9D%B4%EB%9D%BC",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOUD Sinatra 202.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Enzo Candido Ferreira"
+    "legalName": "Enzo Candido Ferreira",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LOUD Sinatra 202...",
+    "sourceIdentity": {
+      "profileHeading": "LOUD Sinatra 엔주 칸지두 페헤이라 (Enzo Candido Ferreira) ",
+      "birthDateOnPage": "2007-05-06",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LOUD_Sinatra_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-kaze": {
     "playerId": "player-kaze",
@@ -333,16 +425,16 @@
     "position": "MID",
     "nickname": "Kaze",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-kaze.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/LsDkugFy5tLUnbbHrOoLGCN0iYKegCzPF2Cd_3Mpd-MAwWM0NwLkQwaZZ37cqI01AE6Edx1hzTdkHJ5mXtB_mmUtMnxPuAeZ8CGwT78jfRWDFaKpWDr2woulExzcjSwwv5E5XIrs3MyhK5Bvjn48_A.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%A3%A8%EC%B9%B4%EC%8A%A4%20%EC%84%B8%EB%B0%94%EC%8A%A4%ED%8B%B0%EC%95%88",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LOUD",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOUD Kaze 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -368,11 +460,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Kaze%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%A3%A8%EC%B9%B4%EC%8A%A4%20%EC%84%B8%EB%B0%94%EC%8A%A4%ED%8B%B0%EC%95%88",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOUD Kaze 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Lucas Sebastián Fe"
+    "legalName": "Lucas Sebastián Fe",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LOUD Kaze 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "LOUD Kaze 루카스 세바스티안 페 (Lucas Sebastian Fe) ",
+      "birthDateOnPage": "2006-01-11",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LOUD_Kaze_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-rabelo": {
     "playerId": "player-rabelo",
@@ -380,16 +491,16 @@
     "position": "ADC",
     "nickname": "Rabelo",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-rabelo.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/uUQ2foPQj5wi6yvJFa4_9G3q_hFJe8GJxaiBNQIGb3gQCdnyXLUg5GaY9HGy3coQCXyCKGQ8Od3KsIeK9wk9iH-eDa3zXKA9DqxwhRBpMfvDrD-884etnAsPI2azrSuDn_050gkguBm6GXr6lzDeoA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EA%B8%B8%EB%A1%80%EB%A5%B4%EB%AF%B8%20%ED%95%98%EB%B2%A8%EB%A3%A8",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LOUD",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOUD Rabelo 2026.... 생일 표기는 기존 2004-08-21 / 문서 2004-08-11로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -415,11 +526,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Rabelo%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EA%B8%B8%EB%A1%80%EB%A5%B4%EB%AF%B8%20%ED%95%98%EB%B2%A8%EB%A3%A8",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOUD Rabelo 2026.... 생일 표기는 기존 2004-08-21 / 문서 2004-08-11로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Guilherme Muniz"
+    "legalName": "Guilherme Muniz",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LOUD Rabelo 2026...",
+    "sourceIdentity": {
+      "profileHeading": "LOUD Rabelo 길례르미 하벨루 무니스 (Guilherme Rabelo Muniz) ",
+      "birthDateOnPage": "2004-08-11",
+      "birthDateMatchesExisting": false
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LOUD_Rabelo_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-uzent": {
     "playerId": "player-uzent",
@@ -427,16 +557,16 @@
     "position": "SUPPORT",
     "nickname": "uZent",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-uzent.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/vN3g-YDMVxbQugiP8vpDuzoY3D-VzO7ry3U9NXcc3LAgV698BqKhRfBB5Eqi_vo4O3otK7E--CJXQwnAkoDyacoeN3qJ2ZToSVPg_RkWSOvAyr9iSQMKbYxPqQVK_IeXz7Ln2ksrQGiC_smlsr4oQg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%A7%88%ED%85%8C%EC%9A%B0%EC%8A%A4%20%ED%8E%98%ED%97%A4%EC%9D%B4%EB%9D%BC",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LOUD",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOUD uZent 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -462,11 +592,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22uZent%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%A7%88%ED%85%8C%EC%9A%B0%EC%8A%A4%20%ED%8E%98%ED%97%A4%EC%9D%B4%EB%9D%BC",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LOUD uZent 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Matheus Ferreira"
+    "legalName": "Matheus Ferreira",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LOUD uZent 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "LOUD uZent 마테우스 페헤이라 (Matheus Ferreira) ",
+      "birthDateOnPage": "2005-04-21",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LOUD_uZent_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-guigo": {
     "playerId": "player-guigo",
@@ -744,16 +893,16 @@
     "position": "TOP",
     "nickname": "ZekaS",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-zekas.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/ujrXkQsV9Tq1x43CQ-F0BT0lWECx65zQi1JKNfATqrxBOru3UVY73iPZMxESAfCKRvVrcvY7TkhEN4gjd5IMrsNt2p-VisdAz62Bkzbfiy6oG1kpOj6OrRsrM7hXsgylFiEZpWM_t8nWl2wCAuLrjw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%84%B8%EC%9E%90%EB%A5%B4%20%ED%94%84%EB%9E%80%EC%82%AC",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Vivo Keyd Stars",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: VKS Zekas 2026 S....",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -784,11 +933,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22ZekaS%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%84%B8%EC%9E%90%EB%A5%B4%20%ED%94%84%EB%9E%80%EC%82%AC",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: VKS Zekas 2026 S...."
       }
     ],
-    "reason": "검색의 Zeka(HLE)는 등록 선수 ZekaS와 다른 선수다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "César Berteli"
+    "legalName": "César Berteli",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "VKS Zekas 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "Vivo Keyd Stars zekas 세자르 베르텔리 프란사 César Berteli França ",
+      "birthDateOnPage": "2002-06-11",
+      "birthDateMatchesExisting": null
+    },
+    "width": 500,
+    "height": 500,
+    "sourceFileNames": [
+      "VKS_Zekas_2026_Split_1.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-disamis": {
     "playerId": "player-disamis",
@@ -894,16 +1062,16 @@
     "position": "ADC",
     "nickname": "Jeskla",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-jeskla.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/Nm9QNEioZPQqYczt-KY3d1Pj_Ncjo3HNYnr91nL4EAtRSBzYUINVuZSBgKu5Iz8szwJ66SncabmT5aBGgIrcXz9GiRTJ-TSGWOw1zEXC2si5Ys049Cj8WDeG1M5IN2jankueflLkxIoShj1ppLCvkQ.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%98%88%EC%8A%A4%ED%8E%98%EB%A5%B4%20%EC%8A%A4%ED%8A%B8%EB%A3%80%EB%B2%A0%EB%A6%AC",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Vivo Keyd Stars",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: VKS Jeskla 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -934,11 +1102,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Jeskla%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%98%88%EC%8A%A4%ED%8E%98%EB%A5%B4%20%EC%8A%A4%ED%8A%B8%EB%A3%80%EB%B2%A0%EB%A6%AC",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: VKS Jeskla 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Jesper Klarin Strömberg"
+    "legalName": "Jesper Klarin Strömberg",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "VKS Jeskla 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "Vivo Keyd Stars Jeskla 예스페르 클라린 스트룀베리 Jesper Klarin Strömberg ",
+      "birthDateOnPage": "2000-08-07",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "VKS_Jeskla_2026_Split_2.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-scamber": {
     "playerId": "player-scamber",
@@ -946,16 +1133,16 @@
     "position": "SUPPORT",
     "nickname": "scamber",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-scamber.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/Ok4opwlcmzoSZiUGSITwTUp3Vy-G-iXAxAnBMa1rzqGsUq2mc7DmabPqxOhK-OVI30OcOrL-sYzfxt3e8hDG1gkR42r0Eo0RyY_1syh35ryAq5ovdr56xo8SQqUCNKGC2_4L61lrDw5Yj_yXx9GeVg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%ED%8E%98%EB%93%9C%EB%A3%A8%20%EB%A0%88%EB%AC%B4%EC%8A%A4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Vivo Keyd Stars",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: VKS Scamber 2026.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -986,11 +1173,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22scamber%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%ED%8E%98%EB%93%9C%EB%A3%A8%20%EB%A0%88%EB%AC%B4%EC%8A%A4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: VKS Scamber 2026.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Pedro Lemos Soares Maximiniano"
+    "legalName": "Pedro Lemos Soares Maximiniano",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "VKS Scamber 2026...",
+    "sourceIdentity": {
+      "profileHeading": "Vivo Keyd Stars scamber 페드루 레무스 소아레스 막시미니아노 Pedro Lemos Soares Maximiniano ",
+      "birthDateOnPage": "2000-06-27",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 512,
+    "sourceFileNames": [
+      "VKS_Scamber_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-boal": {
     "playerId": "player-boal",
@@ -1130,16 +1336,16 @@
     "position": "ADC",
     "nickname": "Hena",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-hena.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/pW-Z4XElvXaeaSLNKAGv_xply595O1U9B08ObXYL6_1QuCKfxPt0MtyKu-bZbyVlksJgRLIz8eHIAvVT4fph1vAQYuQeUwWyGTMS29cf4QSuo3BNpWVKg3JWZfz7hLD4nOETFDez0OhFDemOto8x3g.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%B0%95%EC%A6%9D%ED%99%98",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "paiN Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: PAIN Hena 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1165,11 +1371,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Hena%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%B0%95%EC%A6%9D%ED%99%98",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: PAIN Hena 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Park Jeung-hwan"
+    "legalName": "Park Jeung-hwan",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "PAIN Hena 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "paiN Gaming Hena [1] 박증환 (朴增煥 | Park Jeung-hwan) ",
+      "birthDateOnPage": "1999-10-08",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "photoSeasonYear": 2026
   },
   "player-ceos": {
     "playerId": "player-ceos",
@@ -1177,16 +1399,16 @@
     "position": "SUPPORT",
     "nickname": "Ceos",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-ceos.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/RrfvIWnPXwhSxpJSvTHw7f1QPv7UNSkcpwBZLCqLpf6wbebnmuqaGqberMqjp3klwTnQ6MB8tqPnuWt_LbmrKDeOJXoSCcFvhHQFU-unYJILTkSNMfk5_yIiTkNjo7LqurmGS0OyYUXEgLT4hmT41w.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%8D%B0%EB%8B%88%EC%9A%B0%EC%86%A1%20%EA%B3%A4%EC%82%AC%EC%9A%B0%EB%B2%A0%EC%8A%A4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "paiN Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: PAIN Ceos 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1212,11 +1434,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Ceos%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%8D%B0%EB%8B%88%EC%9A%B0%EC%86%A1%20%EA%B3%A4%EC%82%AC%EC%9A%B0%EB%B2%A0%EC%8A%A4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: PAIN Ceos 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "검색의 Ceo(Rainbow7)는 등록 선수 Ceos와 다른 닉네임·신원이다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Denilson Oliveira Gonçalves"
+    "legalName": "Denilson Oliveira Gonçalves",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "PAIN Ceos 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "paiN Gaming Ceos 데니우송 올리베이라 곤사우베스 (Denilson Oliveira Gonçalves) ",
+      "birthDateOnPage": "1998-08-08",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "PAIN_Ceos_2026_Split_2.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-zynts": {
     "playerId": "player-zynts",
@@ -1224,16 +1465,16 @@
     "position": "TOP",
     "nickname": "zynts",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-zynts.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/p9EEkl96TfcsGCgxMVOPGjrb0F8ZRSX74YMuLhaS1uo5nRnRIga2n8MIVyWLwdHHag2hn_Q57Tr5_3GRHRUpok3aaTMKqxaL4ENjbQquJZIBgK1rdNEDqZyPCt4Nd9D36TeCFhkgMXXWSbCgP22IFg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%A7%88%ED%85%8C%EC%9A%B0%EC%8A%A4%20%EC%9D%B4%EB%A7%88%EB%88%84%EC%97%90%EC%9A%B0",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "RED Canids Kalunga",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: RED zynts 2026 S.... 기존 career 생일과도 일치. 본문 zyntz / 파일 zynts 표기 차이는 실명 Matheus Emanuel·생일·RED 소속을 함께 대조.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1259,11 +1500,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22zynts%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%A7%88%ED%85%8C%EC%9A%B0%EC%8A%A4%20%EC%9D%B4%EB%A7%88%EB%88%84%EC%97%90%EC%9A%B0",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: RED zynts 2026 S.... 기존 career 생일과도 일치. 본문 zyntz / 파일 zynts 표기 차이는 실명 Matheus Emanuel·생일·RED 소속을 함께 대조."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Matheus Emanuel"
+    "legalName": "Matheus Emanuel",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "RED zynts 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "RED Canids Kalunga zyntz 마테우스 이마누에우 (Matheus Emanuel) ",
+      "birthDateOnPage": "2006-12-08",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "RED_zynts_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-stepz": {
     "playerId": "player-stepz",
@@ -1271,16 +1531,16 @@
     "position": "JUNGLE",
     "nickname": "STEPZ",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-stepz.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/pGgH3xuqMYzFl1hrmAiCjI0J5dt_vfe2WDAEkH28Q_pOvOO3_mHzNvmW5AXpyKUkw_yJAcUVM17YYWZKRcs7UvIUvpKh92Nqoo1YRoGSA0ZBssFR1mSam2MYtzVikaD_SZS-MkSOL1DwWg2oEcCXAA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9D%BC%EB%A1%9C%EC%9D%B4%20%EB%A1%9C%EB%93%9C%EB%A6%AC%EA%B2%8C%EC%8A%A4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "RED Canids Kalunga",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: RED STEPZ 2026 S.... 생일 표기는 기존 2006-07-01 / 문서 2006-06-01로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1306,11 +1566,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22STEPZ%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9D%BC%EB%A1%9C%EC%9D%B4%20%EB%A1%9C%EB%93%9C%EB%A6%AC%EA%B2%8C%EC%8A%A4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: RED STEPZ 2026 S.... 생일 표기는 기존 2006-07-01 / 문서 2006-06-01로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Eloy Rodríguez"
+    "legalName": "Eloy Rodríguez",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "RED STEPZ 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "RED Canids Kalunga STEPZ 일로이 로드리게스 (Eloy Rodríguez) ",
+      "birthDateOnPage": "2006-06-01",
+      "birthDateMatchesExisting": false
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "RED_STEPZ_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-fuuu": {
     "playerId": "player-fuuu",
@@ -1318,16 +1597,16 @@
     "position": "MID",
     "nickname": "Fuuu",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-fuuu.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/AkDfk0DwBuh__JrKmsI3Bn-TLMnt-sg74V5L0JjNZcqbmiG6JCaxfz-7DMWwNYdC6tJAZBC-kgebPQ3HlBaPBgg6_I5NZ8pwmfqSBFK0J94_be6FI4sBCekZT1Pa9yh2BxkQIDxeaR_DTQXmwfLRlA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EA%B0%80%EB%B8%8C%EB%A6%AC%EC%97%90%EC%9A%B0%20%ED%91%B8%EB%A3%A8%EC%B9%98",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "RED Canids Kalunga",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: RED Fuuu 2026 Sp....",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1353,11 +1632,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Fuuu%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EA%B0%80%EB%B8%8C%EB%A6%AC%EC%97%90%EC%9A%B0%20%ED%91%B8%EB%A3%A8%EC%B9%98",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: RED Fuuu 2026 Sp...."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Gabriel Furuuti"
+    "legalName": "Gabriel Furuuti",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "RED Fuuu 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "RED Canids Kalunga Fuuu 가브리에우 푸루치 (Gabriel Furuuti) ",
+      "birthDateOnPage": "2003-07-31",
+      "birthDateMatchesExisting": null
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "RED_Fuuu_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-morttheus": {
     "playerId": "player-morttheus",
@@ -1419,16 +1717,16 @@
     "position": "SUPPORT",
     "nickname": "Manel",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
-    "photographer": null,
-    "rightsHolder": null,
-    "usageTerms": null,
-    "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "localPath": "/images/players/player-manel.webp",
+    "originalImageUrl": "https://cdn.sanity.io/images/9rqbl8zs/production/8a04165ef278f02e4bdec62ff524e492e318359e-2048x1365.jpg",
+    "sourcePageUrl": "https://www.sheepesports.com/en/articles/manel-about-his-cblol-debut-and-fast-growth-at-red-canids-it-s-my-time/en",
+    "photographer": "Bruno Alvares",
+    "rightsHolder": "CBLOL",
+    "usageTerms": "공식 사진 크레딧이 명시된 인터뷰 사진 · 별도 사용 허가 미확인",
+    "photoYear": 2026,
+    "teamAtCapture": "RED Canids",
+    "status": "acquired",
+    "identityEvidence": "Sheep Esports의 해당 선수 단독 인터뷰 본문에서 Emanoel Lopes와 Manel를 함께 명시하고, 사진 캡션에서 선수·팀 및 Bruno Alvares / CBLOL를 명시. 캡션의 주제 인물을 크롭.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1454,11 +1752,31 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Manel%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI",
+        "url": "https://namu.wiki/Search?q=Manel",
+        "result": "닉네임·실명 검색에서 해당 선수 사진 문서 미확인"
+      },
+      {
+        "type": "CREDITED_ESPORTS_INTERVIEW",
+        "url": "https://www.sheepesports.com/en/articles/manel-about-his-cblol-debut-and-fast-growth-at-red-canids-it-s-my-time/en",
+        "result": "Sheep Esports의 해당 선수 단독 인터뷰 본문에서 Emanoel Lopes와 Manel를 함께 명시하고, 사진 캡션에서 선수·팀 및 Bruno Alvares / CBLOL를 명시. 캡션의 주제 인물을 크롭."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Emanoel Lopes"
+    "legalName": "Emanoel Lopes",
+    "photoSourceType": "CREDITED_ESPORTS_INTERVIEW",
+    "sourceDisplayName": "Sheep Esports",
+    "cropBox": [
+      560,
+      0,
+      1660,
+      1365
+    ],
+    "width": 413,
+    "height": 512
   },
   "player-zothve": {
     "playerId": "player-zothve",
@@ -1520,16 +1838,16 @@
     "position": "JUNGLE",
     "nickname": "Peach",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-peach.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/b7MOTk4Tl8FqlUujRYUSnos7XrlbvEZaE2uRYkQMNsgHuKtN-AihbYBDSPpx7V_HqpWo6eGAZ59UKQoL5ElLM_sTJEoIZH1JNSMMmHpGcaEyCUzvZDpo2RE1Tx2vTmoit8Zlzei2NQ4SLJN3c8etbA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9D%B4%EB%AF%BC%EA%B7%9C%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Fluxo W7M",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: FX Peach 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1555,11 +1873,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Peach%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9D%B4%EB%AF%BC%EA%B7%9C%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: FX Peach 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Lee Min-gyu"
+    "legalName": "Lee Min-gyu",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "FX Peach 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Fluxo W7M Peach 이민규 (Lee Min-gyu) ",
+      "birthDateOnPage": "2000-03-28",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "photoSeasonYear": 2026
   },
   "player-cody": {
     "playerId": "player-cody",
@@ -1621,16 +1955,16 @@
     "position": "ADC",
     "nickname": "BAO",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-bao.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/57OFUnqOMopz430pz14hc2r-AbkhYpBYRi04O29oMU2GS9OffNxL58tpXyefNDGVpu3xHW2gTYg8Ys2Dyx6DfeADTxO4PKqi9BbZ87Nb_DAt-0odl5JYPtCzPEBHsu-XJSMiqRYeIUv6L1iZF6bZ4w.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%A0%95%ED%98%84%EC%9A%B0%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Fluxo W7M",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: FX BAO 2026 Spli.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1656,11 +1990,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22BAO%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%A0%95%ED%98%84%EC%9A%B0%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: FX BAO 2026 Spli.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Jeong Hyeon-woo"
+    "legalName": "Jeong Hyeon-woo",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "FX BAO 2026 Spli...",
+    "sourceIdentity": {
+      "profileHeading": "Fluxo W7M BAO [1] 정현우 (Chung Hyeon-woo) ",
+      "birthDateOnPage": "2001-09-20",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "photoSeasonYear": 2026
   },
   "player-momochi": {
     "playerId": "player-momochi",
@@ -1668,16 +2018,16 @@
     "position": "SUPPORT",
     "nickname": "Momochi",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-momochi.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/qDkcqBHuGK2ve33LEQJQ7qeETTDMk6huW-6B1oZggaLjGLU5neZWnCinZ__ZDeWhJiDZ7MNo1ayDarC2qLwcLQpEMqz4GrTOe7G9740-nG3weEZeYKQtPw4gJoOypE6sRzH0G0998DYYklrVrfA8mg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EA%B0%80%EB%B8%8C%EB%A6%AC%EC%97%90%EC%9A%B0%20%EC%86%8C%EC%9A%B0%EC%9E%90",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Fluxo W7M",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: FX Momochi 2026 ....",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1703,11 +2053,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Momochi%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EA%B0%80%EB%B8%8C%EB%A6%AC%EC%97%90%EC%9A%B0%20%EC%86%8C%EC%9A%B0%EC%9E%90",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: FX Momochi 2026 ...."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Gabriel Sousa"
+    "legalName": "Gabriel Sousa",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "FX Momochi 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "Fluxo W7M Momochi 가브리에우 소우자 (Gabriel Sousa) ",
+      "birthDateOnPage": "2004-09-01",
+      "birthDateMatchesExisting": null
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "FX_Momochi_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-devost": {
     "playerId": "player-devost",
@@ -1715,16 +2084,16 @@
     "position": "TOP",
     "nickname": "Devost",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-devost.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/d4DpsCRIxYZ98fwQx05kjat_ZVAfDdIB24ym5QnVSNwkAP-RqpSv1GRn7zgjYyxtkvhT1nPmX1qArwoHSDau1HSVffvO_BGClHG9qxkXaMvr5rCbALKp2KbbrLDQMI0mjTRNWzlm6qdi5C94d50pOg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%ED%9B%8C%EB%A6%AC%EC%95%88%20%EC%98%A4%EB%A1%9C%EC%8A%A4%EC%BD%94",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Leviatán",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Devost 2026 ....",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1750,11 +2119,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Devost%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%ED%9B%8C%EB%A6%AC%EC%95%88%20%EC%98%A4%EB%A1%9C%EC%8A%A4%EC%BD%94",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Devost 2026 ...."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Julian Orozco"
+    "legalName": "Julian Orozco",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LEV Devost 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "Leviatán Devost 훌리안 산티아고 오로스코 차베스 Julian Santiago Orozco Chaves 국적 콜롬비아 포지션 탑 소속 Rainbow7 Academy (2023.03.26 ~ 2023.12.14) Peace Angels (2024.03.11 ~ 2024.04.18) GeekSide Esports (2024.06.06 ~ 2024.09.03) Dark Project (2024.09.03 ~ 2025.03.18) Fuego (2025.03.18 ~ 2026.01.05) Leviatán (2026.01.05 ~ 2026.11.16 예정 )",
+      "birthDateOnPage": null,
+      "birthDateMatchesExisting": null
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LEV_Devost_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-booki": {
     "playerId": "player-booki",
@@ -1762,16 +2150,16 @@
     "position": "JUNGLE",
     "nickname": "Booki",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-booki.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/WP3_uUF5Mgpd4abDRFUjf2cZT6Tp_fpg5i8QMOL02KkYbzxyqDmZiCO-ljNeWbDNvVKGSYKbN-e0NH_qofI4Cl5nIBzGecnGnO2jhIQyCYiQT_GgKRpR5aUs-pGOqYlDHXXq3oPh1EqJsaCPes-r_A.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%ED%94%BC%EC%97%90%EB%A1%9C%20%EA%B0%88%EB%9D%BC%EB%A5%B4%EC%82%AC",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Leviatán",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Booki 2026 S.... 생일 표기는 기존 2007-03-27 / 문서 2007-03-23로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1797,11 +2185,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Booki%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%ED%94%BC%EC%97%90%EB%A1%9C%20%EA%B0%88%EB%9D%BC%EB%A5%B4%EC%82%AC",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Booki 2026 S.... 생일 표기는 기존 2007-03-27 / 문서 2007-03-23로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Piero Aldo Medina Galarza"
+    "legalName": "Piero Aldo Medina Galarza",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LEV Booki 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "Leviatán Booki 피에로 알도 메디나 갈라르사 Piero Aldo Medina Galarza ",
+      "birthDateOnPage": "2007-03-23",
+      "birthDateMatchesExisting": false
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LEV_Booki_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-enga": {
     "playerId": "player-enga",
@@ -1809,16 +2216,16 @@
     "position": "MID",
     "nickname": "Enga",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-enga.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/G2qcEs5ZTjmvggz6bnzO63bC_c8EDqD65_c-o-RoHZw5BEti0ME--cl616g6_RlZAoPiC-ZC9brP-4ZDqYBsK7pW4zxRLH-4R6CpukmeRQYaasSq3xC9mKQExEd5pRMDvDWJQNRBqwB5alb2VxJSHw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%97%90%EB%84%A4%EC%95%84%EC%8A%A4%20%ED%94%84%EB%A1%9C%ED%8B%B0",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Leviatán",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Enga 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1844,11 +2251,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Enga%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%97%90%EB%84%A4%EC%95%84%EC%8A%A4%20%ED%94%84%EB%A1%9C%ED%8B%B0",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Enga 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Eneas Protti"
+    "legalName": "Eneas Protti",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LEV Enga 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Leviatán Enga 에네아스 프로티 (Eneas Protti) ",
+      "birthDateOnPage": "2000-01-24",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LEV_Enga_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-strensh": {
     "playerId": "player-strensh",
@@ -1856,16 +2282,16 @@
     "position": "ADC",
     "nickname": "Strensh",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-strensh.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/sP8w4ZGnEuPjQLdJXZR5TEN0U2_Z6H3zL4FIU7CBMJrJpnlGYj0JZ0NrIQQ4RggIOiMiL3tOcqZcj1-LUI_DrPFmbicALvVdn_4FM4NoVPwBHUP1qymZ_ePEbOYUgV-eRsnbARin7czip_L1mZPMwg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%ED%81%AC%EB%A6%AC%EC%8A%A4%ED%86%A0%ED%8E%98%EB%A5%B4%20%EA%B3%A4%EC%9E%98%EB%A0%88%EC%8A%A4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Leviatán",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Strensh CBLO.... 생일 표기는 기존 2004-07-21 / 문서 2004-06-21로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1891,11 +2317,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Strensh%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%ED%81%AC%EB%A6%AC%EC%8A%A4%ED%86%A0%ED%8E%98%EB%A5%B4%20%EA%B3%A4%EC%9E%98%EB%A0%88%EC%8A%A4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Strensh CBLO.... 생일 표기는 기존 2004-07-21 / 문서 2004-06-21로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Cristopher Gustavo González Plaza"
+    "legalName": "Cristopher Gustavo González Plaza",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LEV Strensh CBLO...",
+    "sourceIdentity": {
+      "profileHeading": "Leviatán Strensh [1] 크리스토퍼 구스타보 곤잘레스 플라자 Cristopher Gustavo Gonzalez Plaza ",
+      "birthDateOnPage": "2004-06-21",
+      "birthDateMatchesExisting": false
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LEV_Strensh_CBLOL_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-shiku": {
     "playerId": "player-shiku",
@@ -1903,16 +2348,16 @@
     "position": "SUPPORT",
     "nickname": "Shiku",
     "league": "CBLOL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-shiku.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/G3byF2cuz2Ey4B8znkRsPVnqR-H1jR-ZBKuexltZ6tWBxOurcWyak8FQ9HEThuQPtCWh7G_TptJH7FCQ6DAnxFEShyKfk4qkiw3rZi2xmqY5Z1N4ntkSn2LRX1taGgE8iW6ah5d7q49rUsz7SabQ0g.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%B9%B4%EB%A5%BC%EB%A1%9C%20%EC%82%AC%ED%8C%8C%ED%83%80",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Leviatán",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Shiku CBLOL .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -1938,11 +2383,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Shiku%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%B9%B4%EB%A5%BC%EB%A1%9C%20%EC%82%AC%ED%8C%8C%ED%83%80",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LEV Shiku CBLOL .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Carlo Andre Carrion Zapata"
+    "legalName": "Carlo Andre Carrion Zapata",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LEV Shiku CBLOL ...",
+    "sourceIdentity": {
+      "profileHeading": "Leviatán Shiku 카를로 안드레 카리온 사파타 Carlo Andre Carrion Zapata ",
+      "birthDateOnPage": "2004-04-28",
+      "birthDateMatchesExisting": true
+    },
+    "width": 375,
+    "height": 297,
+    "sourceFileNames": [
+      "LEV_Shiku_CBLOL_2026_Split_2.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-kiin": {
     "playerId": "player-kiin",
@@ -2667,16 +3131,16 @@
     "position": "ADC",
     "nickname": "FenRir",
     "league": "LCK",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-fenrir.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/UyiIHQOHbmDnP_6PDfKSoLXxmE5lWpxy786y4WUm2s9LQBvIbpAD_6KSOME7P0vt09xplv5KPRHac3zaKgC0wa0bOm-BPV1Q6hw5kdQtqQfTjRXebor4Rsl0aA9bmgS0JtLu5NpCUA1hZA8XXQgSmw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%B0%95%EA%B0%95%EC%A4%80",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "kt Rolster Challengers",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: KT.C FenRir 2026.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -2712,11 +3176,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22FenRir%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%B0%95%EA%B0%95%EC%A4%80",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: KT.C FenRir 2026.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Park Kang-jun"
+    "legalName": "Park Kang-jun",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "KT.C FenRir 2026...",
+    "sourceIdentity": {
+      "profileHeading": "KT Challengers FenRir 박강준 (Park Kang-jun) ",
+      "birthDateOnPage": "2006-06-24",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 436,
+    "photoSeasonYear": 2026
   },
   "player-effort": {
     "playerId": "player-effort",
@@ -2768,16 +3248,16 @@
     "position": "TOP",
     "nickname": "Siwoo",
     "league": "LCK",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-siwoo.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/fD_N8vd9JPfoTMXxqd1hCXpHPR9VZ6z1Dl6yekDywgGfvRTc-GWNM2cXmvm6x0RTI3QPah4YUedUuHJR9BHTo8FT8dz9jIFVXUkD2QUHv1TPanTicTDWy3RZa7NSXwVEpO2P13xP72Hp5slZvJawjg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%A0%84%EC%8B%9C%EC%9A%B0",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Dplus KIA",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DK Siwoo 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -2808,11 +3288,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Siwoo%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%A0%84%EC%8B%9C%EC%9A%B0",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DK Siwoo 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Jeon Si-woo"
+    "legalName": "Jeon Si-woo",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "DK Siwoo 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Dplus Kia Siwoo 전시우 (田恃宇 | Jeon Si-woo) ",
+      "birthDateOnPage": "2007-11-24",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 453,
+    "photoSeasonYear": 2026
   },
   "player-lucid": {
     "playerId": "player-lucid",
@@ -2908,16 +3404,16 @@
     "position": "ADC",
     "nickname": "Smash",
     "league": "LCK",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-smash.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/V0f-F_YXrtVJkfVQX9HgjmqBFJW9YuOy2bhCgobHpvXgzZ5q2Kf2g58zGa--_94hdFRx0-vaaBrCndUT0Qi7GFBEaxb2zVQ2amBG8Vt9u03nKth66mG2ZcFChJh3Vur9eId0FB4k73oKAY3Ao4omGw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%8B%A0%EA%B8%88%EC%9E%AC",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Dplus KIA",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DK Smash 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -2948,11 +3444,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Smash%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%8B%A0%EA%B8%88%EC%9E%AC",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DK Smash 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Sin Geum-jae"
+    "legalName": "Sin Geum-jae",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "DK Smash 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Dplus Kia Smash [1] 신금재 (Shin Geum-jae) ",
+      "birthDateOnPage": "2006-07-20",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 459,
+    "photoSeasonYear": 2026
   },
   "player-career": {
     "playerId": "player-career",
@@ -2960,16 +3472,16 @@
     "position": "SUPPORT",
     "nickname": "Career",
     "league": "LCK",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-career.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/hZhT1ugXbuHl51K-1k-VYrDMtu4u8liDQyqDVcMPs0Ly_jpyhY5bMlZmv4D2jfiH4zSeiuoi8NaeIj2I6Ep_hWvC3v4Hlme4OADnxN3yNBW9B11WPeGH39s7WVKeBQi1eTGutY6daNlSzW0pyrnyBg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%98%A4%ED%98%95%EC%84%9D",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Dplus KIA",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DK Career 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -3000,11 +3512,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Career%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%98%A4%ED%98%95%EC%84%9D",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DK Career 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Oh Hyung-suk"
+    "legalName": "Oh Hyung-suk",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "DK Career 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "Dplus Kia Career 오형석 (Oh Hyung-seok) ",
+      "birthDateOnPage": "2004-08-29",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 465,
+    "photoSeasonYear": 2026
   },
   "player-kingen": {
     "playerId": "player-kingen",
@@ -3432,16 +3960,16 @@
     "position": "TOP",
     "nickname": "DuDu",
     "league": "LCK",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-dudu.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/46OaeXKS3MJLnsHgaatAznljghbiwdnlNevHJHV5OThUsN4_A1o_lIC-tJoIHrkqB0G1QGCESreTbFklyoTIliacK9SVNg0rq54qHy9dPeN6vZjsfEUX8CcqHYVSfdm0IQgccUK_C0jcnAy1bNkHkg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9D%B4%EB%8F%99%EC%A3%BC%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "DN SOOPers",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DNS DuDu 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -3467,11 +3995,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22DuDu%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9D%B4%EB%8F%99%EC%A3%BC%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DNS DuDu 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Lee Dong-ju"
+    "legalName": "Lee Dong-ju",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "DNS DuDu 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "DN SOOPers C DuDu [1] 이동주 (李東珠 | Lee Dong-ju) ",
+      "birthDateOnPage": "2001-03-08",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 468,
+    "photoSeasonYear": 2026
   },
   "player-sharvel": {
     "playerId": "player-sharvel",
@@ -3479,16 +4023,16 @@
     "position": "JUNGLE",
     "nickname": "Sharvel",
     "league": "LCK",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-sharvel.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/aONDrVJtWBHeGaSSNTs1ZZ5rM_DOf1DqVGSYIk4v1cdA9mpeBRBPOY2zWn6Bb3BxdJPGYmki69dvo_7zhmZOLvWLnQni9ArSgneMseIoCuP1-UqgIACyZbtS7LiXftkd42rBuLLW9Gcv9NNRefifUg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EA%B9%80%EB%8B%A8%EC%9A%B0%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
     "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DNS Sharvel2. 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -3514,11 +4058,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Sharvel%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EA%B9%80%EB%8B%A8%EC%9A%B0%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DNS Sharvel2. 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Kim Dan-woo"
+    "legalName": "Kim Dan-woo",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "DNS Sharvel2",
+    "sourceIdentity": {
+      "profileHeading": "DN SOOPers Sharvel [1] 김단우 (Kim Dan-woo) ",
+      "birthDateOnPage": "2007-08-26",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 479,
+    "sourceFileNames": [
+      "DNS_Sharvel2.png"
+    ],
+    "photoSeasonYear": null
   },
   "player-clozer": {
     "playerId": "player-clozer",
@@ -3526,16 +4089,16 @@
     "position": "MID",
     "nickname": "Clozer",
     "league": "LCK",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-clozer.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/O9WBJ_k16Blm9VQkMzSPB0wFC9zOjFoAI_LXBHRV0xHaAFsmgizJGNYsNqN8nXH0A5-4tP_JlZc6dzrdSty-QgbdN9JyONwP0iLrvoZHUqnAmZ4ZkTibeLF-Qd6EtQtxwalcaqdd434QdRtPddbnvw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9D%B4%EC%A3%BC%ED%98%84%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "DN SOOPers",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DNS Clozer 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -3561,11 +4124,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Clozer%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9D%B4%EC%A3%BC%ED%98%84%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DNS Clozer 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Lee Ju-hyeon"
+    "legalName": "Lee Ju-hyeon",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "DNS Clozer 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "DN SOOPers Clozer [1] 이주현 (李周炫 | Lee Ju-hyeon) ",
+      "birthDateOnPage": "2003-07-27",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 462,
+    "photoSeasonYear": 2026
   },
   "player-deokdam": {
     "playerId": "player-deokdam",
@@ -3876,16 +4455,16 @@
     "position": "TOP",
     "nickname": "Casting",
     "league": "LCK",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-casting.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/7Byd7kfdORBR8xIEGCyNUdFiaRmA-F8FALEIoVViEa1iE-a-0Q2Fpp2abxUojacvZmcyxc-KzF3esqBUwFBSGR09gO2RWvxnskf8qJlWdYJjewM8lxdxSzfLxr5uxisIg4TG5BHAYBGN_A76cYBsrA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%8B%A0%EB%AF%BC%EC%A0%9C",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "HANJIN BRION",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: BRO Casting 2026.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -3916,11 +4495,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Casting%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%8B%A0%EB%AF%BC%EC%A0%9C",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: BRO Casting 2026.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Shin Min-jae"
+    "legalName": "Shin Min-jae",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "BRO Casting 2026...",
+    "sourceIdentity": {
+      "profileHeading": "HANJIN BRION Casting [1] 신민제 (Shin Min-je) ",
+      "birthDateOnPage": "2003-10-30",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 471,
+    "sourceFileNames": [
+      "BRO_Casting_2026_Split_1.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-gideon": {
     "playerId": "player-gideon",
@@ -4116,16 +4714,16 @@
     "position": "SUPPORT",
     "nickname": "Namgung",
     "league": "LCK",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-namgung.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/Omkii1oBBKc97jG07RVwlVcOwhXcOlele4R2DN6osAtTIxC8tZH6icF4xZl84PHMZosZSjrPn5RXZaFupthSWwHzcZ3-8g_EjD1OiLyYmSisFy19t6MsHDnAk8LkyebyD1sZyBsULUertwpTsXqC9Q.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%82%A8%EA%B6%81%EC%84%B1%ED%9B%88",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "HANJIN BRION",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: BRO Namgung 2026.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -4156,11 +4754,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Namgung%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%82%A8%EA%B6%81%EC%84%B1%ED%9B%88",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: BRO Namgung 2026.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Namgung Seong-hoon"
+    "legalName": "Namgung Seong-hoon",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "BRO Namgung 2026...",
+    "sourceIdentity": {
+      "profileHeading": "HANJIN BRION Namgung 남궁성훈 (Namgung Seong-hoon) ",
+      "birthDateOnPage": "2003-10-04",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 457,
+    "photoSeasonYear": 2026
   },
   "player-pun": {
     "playerId": "player-pun",
@@ -4753,16 +5367,16 @@
     "position": "TOP",
     "nickname": "Kratos",
     "league": "LCP",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-kratos.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/KG3oGOJXg439hWteWKy2uD9LNZKyumxhZVv4OUji9h7pcIkpC_JqkqjVQrG7t2i9y1okRQdg9hbknXTmUR_IJ1VLZCJM3Ies1RUpHgSikFryl6WdfBAjFe9luQQ03g-ZsvT3Sva_iDrm9b-qwMyQTw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9D%91%EC%98%A4%EB%93%9D%EC%B9%B4%EC%9D%B8",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "MVK Esports",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: MVK Kratos 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -4783,11 +5397,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Kratos%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9D%91%EC%98%A4%EB%93%9D%EC%B9%B4%EC%9D%B8",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: MVK Kratos 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Ngô Đức Khánh"
+    "legalName": "Ngô Đức Khánh",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "MVK Kratos 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "MVK Esports Kratos 응오득카인 (吳德慶 [1] | Ngô Đức Khánh ) ",
+      "birthDateOnPage": "2005-04-22",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 425,
+    "sourceFileNames": [
+      "MVK_Kratos_2026_Split_1.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-gury": {
     "playerId": "player-gury",
@@ -4834,16 +5467,16 @@
     "position": "MID",
     "nickname": "Chika",
     "league": "LCP",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-chika.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/IpFg8yt75VfLCrgpZRpZaU0JcADcK3b_7wzIZ1Z0TgT3BzICD8UyS9UJBtKnBksy4P1VC244BAw6mb7eCOgpUpJYVm01TncW6iqEcTEsZm-_KHLhsqPTLSJtbxGBEorhSt0s53L4ypKPwNoFzfhXLw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%B3%B4%EB%A0%88%EB%85%84",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "MVK Esports",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: MVK Chika 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -4864,11 +5497,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Chika%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%B3%B4%EB%A0%88%EB%85%84",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: MVK Chika 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "검색의 Chikapi는 TFT 선수이며 Chika의 신원 근거가 아니다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Võ Lê Nhân"
+    "legalName": "Võ Lê Nhân",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "MVK Chika 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "MVK Esports Chika 보레년 (武黎人 [1] | Võ Lê Nhân) ",
+      "birthDateOnPage": "2006-01-26",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 425,
+    "sourceFileNames": [
+      "MVK_Chika_2026_Split_2.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-harky": {
     "playerId": "player-harky",
@@ -4876,16 +5528,16 @@
     "position": "ADC",
     "nickname": "Harky",
     "league": "LCP",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-harky.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/9awN9_DZzWSpq8K2yduQ-_AXXL2ebswKOZmhk9GIxa0yaDquLta4K3Id-eRPBkhtZnMxkVRlLv8N61NsxHLv4hQ-in_dhkW4F6ntp6ww1QU2sGXz0BkOum8WfR-ZHLBM1-w_KNM_DPiE5SkpBek6kQ.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9D%91%EC%9A%B0%EC%98%8C%EB%B0%98%ED%9D%90%EC%9A%B0",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "MVK Esports Academy",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: MVKA Harky VCS 2.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -4906,11 +5558,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Harky%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9D%91%EC%9A%B0%EC%98%8C%EB%B0%98%ED%9D%90%EC%9A%B0",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: MVKA Harky VCS 2.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Nguyễn Văn Hữu"
+    "legalName": "Nguyễn Văn Hữu",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "MVKA Harky VCS 2...",
+    "sourceIdentity": {
+      "profileHeading": "MVK Esports Harky 응우옌반흐우(阮文右 [1] | Nguyễn Văn Hữu) ",
+      "birthDateOnPage": "2005-08-21",
+      "birthDateMatchesExisting": true
+    },
+    "width": 413,
+    "height": 512,
+    "sourceFileNames": [
+      "MVKA_Harky_VCS_2026.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-siuloong": {
     "playerId": "player-siuloong",
@@ -4918,16 +5589,16 @@
     "position": "SUPPORT",
     "nickname": "SiuLoong",
     "league": "LCP",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-siuloong.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/dyeu49ZunkIaKcGCM5mk0iDnRMk4qetbWYC7JCrs7e6eFHxY-GIqQMjRF13pMMstfe-5ktF4EHU2XUgNL6olediLwO0c2g5QxmRpn5rtO3ojdZ58T8u45a_ecbmzlqH74GqYkQxGZPfxSewuxIbSww.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9D%91%EC%9A%B0%EC%98%8C%ED%98%B8%EC%95%99%EB%9E%8C",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "MGN Vikings Esports",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: MVKE SiuLoong 20.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -4948,11 +5619,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22SiuLoong%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9D%91%EC%9A%B0%EC%98%8C%ED%98%B8%EC%95%99%EB%9E%8C",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: MVKE SiuLoong 20.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Nguyễn Hoàng Lam"
+    "legalName": "Nguyễn Hoàng Lam",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "MVKE SiuLoong 20...",
+    "sourceIdentity": {
+      "profileHeading": "MVK Esports SiuLoong [1] 응우옌호앙람 (阮黃藍 [2] | Nguyễn Hoàng Lam) ",
+      "birthDateOnPage": "2005-09-15",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 425,
+    "sourceFileNames": [
+      "MVKE_SiuLoong_2025_Split_3.png"
+    ],
+    "photoSeasonYear": 2025
   },
   "player-flauren": {
     "playerId": "player-flauren",
@@ -5205,16 +5895,16 @@
     "position": "TOP",
     "nickname": "1Jiang",
     "league": "LCP",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-1jiang.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/bGFEz_-gkpgFrN0DgdB3OsPdH0K-jk1Cx2ZiNlSYx0iJ7HIrhzLT9amZbOF-k7FqOHSSRjGZbu1kQmHKl1cR6JFgDieKmwnpqD9yUPeBgolmS9KSY4jOj7sozgHlLCMNAUlaadPgCHWs-5kEwq6ilA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%B2%9C%EC%9D%B4%EC%A7%84",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Ground Zero Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: GZ 1Jiang 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -5235,11 +5925,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%221Jiang%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%B2%9C%EC%9D%B4%EC%A7%84",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: GZ 1Jiang 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Chen Yi-chin"
+    "legalName": "Chen Yi-chin",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "GZ 1Jiang 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "Ground Zero Gaming C 1Jiang 천이진 (陳俋錦 [1] | Chen Yichin) ",
+      "birthDateOnPage": "2003-10-22",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 425,
+    "sourceFileNames": [
+      "GZ_1Jiang_2026_Split_1.webp"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-husha": {
     "playerId": "player-husha",
@@ -7187,16 +7896,16 @@
     "position": "JUNGLE",
     "nickname": "KryRa",
     "league": "LCS",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
-    "photographer": null,
-    "rightsHolder": null,
-    "usageTerms": null,
-    "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "localPath": "/images/players/player-kryra.webp",
+    "originalImageUrl": "https://cdn.sanity.io/images/9rqbl8zs/production/e2031673a364c71ea9879b05fc6dbace01892040-1920x1080.webp",
+    "sourcePageUrl": "https://www.sheepesports.com/fr/articles/dsg-kryra-today-could-be-a-reality-check-for-me-which-will-help-i-will-learn-a-lot-from-this/en",
+    "photographer": "Christian Betancourt",
+    "rightsHolder": "Riot Games",
+    "usageTerms": "공식 사진 크레딧이 명시된 인터뷰 사진 · 별도 사용 허가 미확인",
+    "photoYear": 2026,
+    "teamAtCapture": "Disguised",
+    "status": "acquired",
+    "identityEvidence": "Sheep Esports의 해당 선수 단독 인터뷰 본문에서 Christian Rahaian와 KryRa를 함께 명시하고, 사진 캡션에서 선수·팀 및 Christian Betancourt / Riot Games를 명시. 캡션의 주제 인물을 크롭.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -7222,11 +7931,31 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22KryRa%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI",
+        "url": "https://namu.wiki/w/%ED%81%AC%EB%A6%AC%EC%8A%A4%ED%8B%B0%EC%95%88%20%EB%9D%BC%ED%95%98%EC%9D%B4%EC%95%88",
+        "result": "선수 문서 프로필 자리에 이미지 없이 width=100% 문구만 표시"
+      },
+      {
+        "type": "CREDITED_ESPORTS_INTERVIEW",
+        "url": "https://www.sheepesports.com/fr/articles/dsg-kryra-today-could-be-a-reality-check-for-me-which-will-help-i-will-learn-a-lot-from-this/en",
+        "result": "Sheep Esports의 해당 선수 단독 인터뷰 본문에서 Christian Rahaian와 KryRa를 함께 명시하고, 사진 캡션에서 선수·팀 및 Christian Betancourt / Riot Games를 명시. 캡션의 주제 인물을 크롭."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Christian Rahaian"
+    "legalName": "Christian Rahaian",
+    "photoSourceType": "CREDITED_ESPORTS_INTERVIEW",
+    "sourceDisplayName": "Sheep Esports",
+    "cropBox": [
+      965,
+      0,
+      1829,
+      1080
+    ],
+    "width": 410,
+    "height": 512
   },
   "player-callme": {
     "playerId": "player-callme",
@@ -7381,16 +8110,16 @@
     "position": "TOP",
     "nickname": "Denathor",
     "league": "LCS",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-denathor.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/Q7Ksaf7J07nOctQwZoo39kinC1FA7GQTycoCwX59G8JJTTdPaKIynFZ1fFlmDu9b-DC5gcPfZ89rRa9JOrOHC4poGUbClW4Yo78mr6aZHGVE5caDjW_sQHslazUR94aDxk1_5S10mbvyW95rNlGS-A.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%85%B8%EC%95%84%20%EC%97%90%EB%A6%AD%EC%86%90",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
     "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DIG Denathor.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -7416,11 +8145,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Denathor%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%85%B8%EC%95%84%20%EC%97%90%EB%A6%AD%EC%86%90",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: DIG Denathor."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Noah Erikson"
+    "legalName": "Noah Erikson",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "DIG Denathor",
+    "sourceIdentity": {
+      "profileHeading": "Dignitas Denathor 노아 에릭손 (Noah Erikson) 국적 미국 포지션 탑 소속 Tempest Gaming (2022.05.17 ~ 2022.08.04) Winthrop University (2022.06.27 ~ 2026.07.15) Mirage Alliance (2023.02.24 ~ 2023.05.31) Dignitas (2026.07.15 ~ )",
+      "birthDateOnPage": null,
+      "birthDateMatchesExisting": null
+    },
+    "width": 475,
+    "height": 512,
+    "sourceFileNames": [
+      "DIGDenathor.webp"
+    ],
+    "photoSeasonYear": null
   },
   "player-exyu": {
     "playerId": "player-exyu",
@@ -8507,16 +9255,16 @@
     "position": "MID",
     "nickname": "FIESTA",
     "league": "LEC",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-fiesta.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/pU02VEqLoqbF2voZHgQPsbL0qRAkpAgJTnf-i3fZYaCKcPq5PbTsdnAeCl5cWPnDD9uwwFJEBR2B5chuSulhCM8nSashxo_PkgspN2q5RqVrILfjqpvgpOycePMrA_hH8TpPmcm0LoE0Q0BqR1QdKw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%95%88%ED%98%84%EC%84%9C%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team Vitality",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: VIT FIESTA 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -8552,11 +9300,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22FIESTA%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%95%88%ED%98%84%EC%84%9C%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: VIT FIESTA 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "An Hyeon-seo"
+    "legalName": "An Hyeon-seo",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "VIT FIESTA 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "Team Vitality FIESTA [1] 안현서 (Ahn Hyeon-seo) ",
+      "birthDateOnPage": "2003-05-04",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 414,
+    "sourceFileNames": [
+      "VIT_FIESTA_2026_Split_3.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-carzzy": {
     "playerId": "player-carzzy",
@@ -9105,16 +9872,16 @@
     "position": "MID",
     "nickname": "SlowQ",
     "league": "LEC",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-slowq.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/xyG2vNt7d9XQvS4JtqddRG9m7naYbePMptym9-hVcJx2KqTUNNOLl7x6UrzXLqAD8lcZGLTzSFdcxs13lS9fkEYyVXQOL6FmBPd7eRfb41qS-O8VyUJKUVuzw1l25CWrpKe3Vc2mYmc9wIj-bo3Y5A.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%84%9C%EC%98%88%EB%B9%9B",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "SK Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: SK SlowQ 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -9150,11 +9917,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22SlowQ%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%84%9C%EC%98%88%EB%B9%9B",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: SK SlowQ 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Seo Ye-bit"
+    "legalName": "Seo Ye-bit",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "SK SlowQ 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "SK Gaming SlowQ 서예빛 (Seo Ye-bit) ",
+      "birthDateOnPage": "2004-03-20",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 414,
+    "photoSeasonYear": 2026
   },
   "player-jopa": {
     "playerId": "player-jopa",
@@ -9250,16 +10033,16 @@
     "position": "TOP",
     "nickname": "Rooster",
     "league": "LEC",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-rooster.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/hMWTTu6zFcETUAUCgNIe3qq9d15lvJLHYlx0kbXzfwAhkbI2m6AjCE7Hdn0LXwRUxwNazNFWuxKxNqWjny4ZWLbH1p7I72lnmJhi4xvaMCWQlcBZ80lHCzI0CqH51OMvSDGlTgc3T1K6cJJKe4s8mA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%8B%A0%EC%9C%A4%ED%99%98",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Shifters",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: SHFT Rooster 202.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -9285,11 +10068,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Rooster%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "검색 파일은 무관한 미디어로 선수 사진 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%8B%A0%EC%9C%A4%ED%99%98",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: SHFT Rooster 202.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Shin Yun-hwan"
+    "legalName": "Shin Yun-hwan",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "SHFT Rooster 202...",
+    "sourceIdentity": {
+      "profileHeading": "Shifters Rooster [1] 신윤환 (Shin Yoon-hwan) ",
+      "birthDateOnPage": "2005-04-28",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 461,
+    "photoSeasonYear": null
   },
   "player-sheo": {
     "playerId": "player-sheo",
@@ -9405,16 +10204,16 @@
     "position": "ADC",
     "nickname": "Paduck",
     "league": "LEC",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-paduck.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/UKdJjBeyHm1F0a30wPwfHUCbaFiwCy3sFbKh1tEkL3EbAv9ZokcGhl0ykn3zNHx3q8AHgw9o5_IR4mBES9DOLfvGp0hzpKBvuTyHxQriPdVoU4uD40l8ohb_NIxV0ESruzVmtTmDDXz9uu0n3dRnsQ.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%B0%95%EC%84%9D%ED%98%84",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Shifters",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: SHFT Paduck 2026.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -9440,11 +10239,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Paduck%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%B0%95%EC%84%9D%ED%98%84",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: SHFT Paduck 2026.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Park Seok-hyeon"
+    "legalName": "Park Seok-hyeon",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "SHFT Paduck 2026...",
+    "sourceIdentity": {
+      "profileHeading": "Shifters Paduck [1] 박석현 (Park Suk-hyeon) ",
+      "birthDateOnPage": "2005-02-12",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 447,
+    "photoSeasonYear": 2026
   },
   "player-stend": {
     "playerId": "player-stend",
@@ -9452,16 +10267,16 @@
     "position": "SUPPORT",
     "nickname": "Stend",
     "league": "LEC",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-stend.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/lkOdrOWWij-fYukOV0MVYhMvIfaX7MdCc2adg2ALwhdvHkawoJkqFOGLCtDrAj__Vgk8Yr8loIOHXARDXgqDxZHiuIj3pAaA7T9sw94M8aIOnxIx9Z_rtMfSgrSY8w2IFxD-SV09aQX0cuKQhtYNtA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%ED%8F%B4%20%EB%9D%BC%EB%A5%B4%EB%8C%95",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team Heretics",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TH Stend 2026 Sp.... 생일 표기는 기존 2001-07-13 / 문서 2001-06-13로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -9487,11 +10302,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Stend%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%ED%8F%B4%20%EB%9D%BC%EB%A5%B4%EB%8C%95",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TH Stend 2026 Sp.... 생일 표기는 기존 2001-07-13 / 문서 2001-06-13로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Paul Lardin"
+    "legalName": "Paul Lardin",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TH Stend 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Shifters Stend 폴 라르댕 (Paul Lardin) ",
+      "birthDateOnPage": "2001-06-13",
+      "birthDateMatchesExisting": false
+    },
+    "width": 512,
+    "height": 419,
+    "sourceFileNames": [
+      "TH_Stend_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-tracyn": {
     "playerId": "player-tracyn",
@@ -9499,16 +10333,16 @@
     "position": "TOP",
     "nickname": "Tracyn",
     "league": "LEC",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-tracyn.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/1RKyFyh_3Hjz5pYRYhXeE4aqkFBG70qoiX2FA7CFzoGYWvKjOOuH6pd1TNozEpBPGT5oos3RbtmAEklqBuDsVyEmhfU1lbpNFt51s4RyCnsWFCwMZIBPqbExAAo1SyaI1hB7I7FEP0WYCa_uQBg4IA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%84%B8%EB%B0%94%EC%8A%A4%ED%8B%B0%EC%95%88%20%EB%B3%B4%EC%9D%B4%ED%86%A4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team Heretics",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TH Tracyn 2026 S.... 생일 표기는 기존 2005-09-16 / 문서 2005-08-16로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -9539,11 +10373,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Tracyn%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%84%B8%EB%B0%94%EC%8A%A4%ED%8B%B0%EC%95%88%20%EB%B3%B4%EC%9D%B4%ED%86%A4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TH Tracyn 2026 S.... 생일 표기는 기존 2005-09-16 / 문서 2005-08-16로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Sebastian Wojtoń"
+    "legalName": "Sebastian Wojtoń",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TH Tracyn 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "Team Heretics Tracyn 세바스티안 보이톤 (Sebastian Wojtoń) ",
+      "birthDateOnPage": "2005-08-16",
+      "birthDateMatchesExisting": false
+    },
+    "width": 512,
+    "height": 463,
+    "sourceFileNames": [
+      "TH_Tracyn_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-daglas": {
     "playerId": "player-daglas",
@@ -9551,16 +10404,16 @@
     "position": "JUNGLE",
     "nickname": "Daglas",
     "league": "LEC",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-daglas.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/TXC_io1UbkGxcYQ3Yqiv5FEF7H-H-onBiOYGZHRCAEpOX6Yyo1DnNRh9F1uPj0F6MnjNzu1ATKvJsc38fzXv9dbx4yjm3txcrd0PeUbK9WKuMJ0Yd4_E9JVxj1Lfnufn7AD_8fT8LuQOoe97074yQg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/Daglas",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team Heretics",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TH Daglas 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -9591,11 +10444,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Daglas%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/Daglas",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TH Daglas 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Kacper Dagiel"
+    "legalName": "Kacper Dagiel",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TH Daglas 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "Team Heretics Daglas 카츠페르 다기엘 (Kacper Dagiel) ",
+      "birthDateOnPage": "2005-10-23",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 406,
+    "photoSeasonYear": 2026
   },
   "player-serin": {
     "playerId": "player-serin",
@@ -9662,16 +10531,16 @@
     "position": "ADC",
     "nickname": "Hype",
     "league": "LEC",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-hype.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/t4beOstpQCTpnz0Wfv_sds7z1VXmdSJ8dOIkhhCOup21uXQnZ2x2E22Y0f4mjJKHt0tdSokTLXlVz_VSC-Ip_LmDmOBdvvIq1BkfjvSZgO3Sv8-pjZ6qudv9bOo2goTQxam_4Cz1CXjIkDvYrqMG1w.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%B3%80%EC%A0%95%ED%98%84%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team Heretics",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TH Hype. 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -9702,11 +10571,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Hype%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%B3%80%EC%A0%95%ED%98%84%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TH Hype. 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Byeon Jeong-hyeon"
+    "legalName": "Byeon Jeong-hyeon",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TH Hype",
+    "sourceIdentity": {
+      "profileHeading": "Team Heretics Hype 변정현 (Byeon Jeong-hyeon) ",
+      "birthDateOnPage": "2003-09-09",
+      "birthDateMatchesExisting": true
+    },
+    "width": 500,
+    "height": 500,
+    "sourceFileNames": [
+      "TH_Hype.jpg"
+    ],
+    "photoSeasonYear": null
   },
   "player-way": {
     "playerId": "player-way",
@@ -9714,16 +10602,16 @@
     "position": "SUPPORT",
     "nickname": "Way",
     "league": "LEC",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-way.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/KF_E65SJvUtWmcCcY8TZWCYbUPwu9YNc-Y082hib0ejOMJm3PeKEyv8YxY87OYHsUNXuIPxayWBzIyqFhcRMKUAXaLNbySZQmFYtMSZZhS4PzFeUF03G_8BpFpk-05GLxrklp2MxX5eV-TAX38Pbqg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%ED%95%9C%EA%B8%B8",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
     "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: Way (Han Gil). 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -9754,11 +10642,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Way%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR HTTP Error 429: Too Many Requests"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%ED%95%9C%EA%B8%B8",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: Way (Han Gil). 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Han Gil"
+    "legalName": "Han Gil",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "Way (Han Gil)",
+    "sourceIdentity": {
+      "profileHeading": "Team Heretics Way 한길 (Han Gill) ",
+      "birthDateOnPage": "2002-06-29",
+      "birthDateMatchesExisting": true
+    },
+    "width": 512,
+    "height": 405,
+    "photoSeasonYear": null
   },
   "player-breathe": {
     "playerId": "player-breathe",
@@ -10226,16 +11130,16 @@
     "position": "TOP",
     "nickname": "Zdz",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-zdz.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/KEnslktSwpluOzFlzymIjlQh-GdzMVGtE6vlEu2GTLRZoIvJ2Ev4McUP9JsY4KDvLDPxgTZdmFhNomzXe2hPnYeYkGmbwKwUmbRH40-2wEjpEP0mH9QaQxscspKAOT7-0rhLcRiAueAepQZ3u_hyBw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/Zdz",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Edward Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG Zdz 2026 Spl.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -10256,11 +11160,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Zdz%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR The read operation timed out"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/Zdz",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG Zdz 2026 Spl.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Zhu Dezhang"
+    "legalName": "Zhu Dezhang",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "EDG Zdz 2026 Spl...",
+    "sourceIdentity": {
+      "profileHeading": "Edward Gaming Zdz [1] 주더장 (朱德彰 [2] | Zhu Dezhang) ",
+      "birthDateOnPage": "2001-12-03",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-jiejie": {
     "playerId": "player-jiejie",
@@ -10317,16 +11237,16 @@
     "position": "MID",
     "nickname": "BuLLDoG",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-bulldog.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/t6yFWFKc51XS3LdT4l1hs5uMmjZ84JwPg5O9RapN6KbE_mt51tSTko0C4_p_sRMT0o9_rL2KlX0FNyiKT8VhONaF1DwE12dvECCY3Rp1CCOyclPhAmxp7fvgkhk7JxgX4l3V-lQrB02Z_FWbDuGhBQ.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9D%B4%ED%83%9C%EC%98%81%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Edward Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG BuLLDoG 2026.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -10347,11 +11267,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22BuLLDoG%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "FETCH_ERROR <urlopen error _ssl.c:983: The handshake operation timed out>"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9D%B4%ED%83%9C%EC%98%81%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG BuLLDoG 2026.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Lee Tae-young"
+    "legalName": "Lee Tae-young",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "EDG BuLLDoG 2026...",
+    "sourceIdentity": {
+      "profileHeading": "Edward Gaming BuLLDoG 이태영 (李泰永 | Lee Tae-young) ",
+      "birthDateOnPage": "2005-04-15",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-leave": {
     "playerId": "player-leave",
@@ -10359,16 +11295,16 @@
     "position": "ADC",
     "nickname": "Leave",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-leave.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/U-4OuM9TY4gyFbJP7uGaRc8VfJ6hZHy-xa1SaUjh399WfFvoy2V0cvKP4zsAbqJgrajtW2C3Xdv89-9-qdfzwXJrVknx44lLieLQrTXp2iV8WamwWmdt4bWPzskVXNGVcdgBGylBKG_nN4t1-d_zpA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%ED%9B%84%ED%9B%99%EC%B0%A8%EC%98%A4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Edward Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG Leave 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -10389,11 +11325,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%ED%9B%84%ED%9B%99%EC%B0%A8%EC%98%A4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG Leave 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Hu Hongchao"
+    "legalName": "Hu Hongchao",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "EDG Leave 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "Edward Gaming Leave 후훙차오 (胡洪超 [1] | Hu Hongchao) ",
+      "birthDateOnPage": "2002-09-29",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "EDG_Leave_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-parukia": {
     "playerId": "player-parukia",
@@ -10401,16 +11356,16 @@
     "position": "SUPPORT",
     "nickname": "Parukia",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-parukia.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/z3unipQWcQcJ3-SDwtbg-DlTiPyQLdgD88sFePpl9RPIfyRNRq_nMlo6YLkpO3cFHM0Hlh7A89mlInUf71cfBmlwhdH6yU4AO-mUvI83jqbQFeyzVab06pq3tueSv2OdetdCvFd6Req7ikz0G_90ZQ.webp",
+    "sourcePageUrl": "https://namu.wiki/w/Parukia",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Edward Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG Parukia 2026.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -10431,11 +11386,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/Parukia",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG Parukia 2026.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Wang Bingyang"
+    "legalName": "Wang Bingyang",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "EDG Parukia 2026...",
+    "sourceIdentity": {
+      "profileHeading": "Edward Gaming Parukia 왕핑양 (王冰洋 [1] | Wang Pingyang) ",
+      "birthDateOnPage": "2006-12-30",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-theshy": {
     "playerId": "player-theshy",
@@ -10570,16 +11541,16 @@
     "position": "ADC",
     "nickname": "Assum",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-assum.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/7Ey2rknDZWwofUcRSe60ignXCUGFNcKLKE4pBg2E7s9cN1bPOacO7tym8RHkmp05uN18rvxYc0hsJ_JShOtfxnsjeL16SOnBYYmjAHmuyFVCb4-vXEeQkX65w3MjpOxr_t5KBrJV6NjLJj_dKN_t4Q.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%A9%8C%EC%9A%B0%EC%9B%A8%EC%9D%B4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Invictus Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: IG Assum 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -10600,11 +11571,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%A9%8C%EC%9A%B0%EC%9B%A8%EC%9D%B4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: IG Assum 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Zou Wei"
+    "legalName": "Zou Wei",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "IG Assum 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Invictus Gaming Assum 쩌우웨이 (邹维 [1] | Zou Wei) ",
+      "birthDateOnPage": "2003-11-30",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "IG_Assum_2026_Split_3.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-meiko": {
     "playerId": "player-meiko",
@@ -10895,16 +11885,16 @@
     "position": "JUNGLE",
     "nickname": "Heng",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-heng.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/_cZuxJDL8bM5g-j8SY7JErZ5DSXXOaYcJ7z9dbrcR2hIBqfz38gthyIazNzoQ7P8-OLdTL5F_buyKus21Y6OFf57fM5HT68JdEB_IV2MHj1MxcU0b_qrXLUCfFdzvYZZyF7IsgikdwIHGyKtPdnckw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/Heng",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LGD Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LGD Heng 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -10925,11 +11915,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/Heng",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LGD Heng 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Yang Cuiheng"
+    "legalName": "Yang Cuiheng",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LGD Heng 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "LGD Gaming Heng 양추이헝 (杨翠衡 [1] | Yang Cuiheng) ",
+      "birthDateOnPage": "2001-07-16",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-tangyuan": {
     "playerId": "player-tangyuan",
@@ -10937,16 +11943,16 @@
     "position": "MID",
     "nickname": "Tangyuan",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-tangyuan.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/uDLo5REAg3KIjXgbdcWrSFpk6GKLIsqnYGPcoKEG80ALEOb4ImICbtPnwXYssb-PVUSNrnUAzZ266lCGDnkOZBm8xu1OJczKYwcldXyi42HvvhRJZnvt7PEKtdiqj8kIT4NjujA3nNrcDOhGsTNLMw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%A6%B0%EC%9C%84%ED%9B%99",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LGD Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LGD Tangyuan 202.... 생일 표기는 기존 2004-01-30 / 문서 2004-01-31로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -10967,11 +11973,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%A6%B0%EC%9C%84%ED%9B%99",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LGD Tangyuan 202.... 생일 표기는 기존 2004-01-30 / 문서 2004-01-31로 차이가 있으나 닉네임·실명·소속 이력이 일치한다. 기존 선수 데이터는 변경하지 않음."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Lin Yuhong"
+    "legalName": "Lin Yuhong",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LGD Tangyuan 202...",
+    "sourceIdentity": {
+      "profileHeading": "LGD Gaming Tangyuan 린위훙 (林宇鸿 [1] | Lin Yuhong) ",
+      "birthDateOnPage": "2004-01-31",
+      "birthDateMatchesExisting": false
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "LGD_Tangyuan_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-shaoye": {
     "playerId": "player-shaoye",
@@ -10979,16 +12004,16 @@
     "position": "ADC",
     "nickname": "Shaoye",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-shaoye.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/MA7O333rBWJortd89akT86b6zCAofMTugu7rpVH3WDgkFHgKJqzzT4oMJefS0K6aVHrUWiTRCcg26E0qLR9rtmlGNDeNU9TOmysk_Ytlyk9qhoOtSKWYPnvASALNGQ91N9l6brI8uZmhwWuTEAONog.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%B6%94%EA%B6%88%EB%B9%88",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LGD Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LGD Shaoye 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11009,11 +12034,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%B6%94%EA%B6%88%EB%B9%88",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LGD Shaoye 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Qiu Guobin"
+    "legalName": "Qiu Guobin",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LGD Shaoye 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "LGD Gaming C Shaoye [1] 추궈빈 (仇国斌 [2] | Qiu Guobin) ",
+      "birthDateOnPage": "2001-09-14",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "LGD_Shaoye_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-crisp": {
     "playerId": "player-crisp",
@@ -11060,16 +12104,16 @@
     "position": "TOP",
     "nickname": "sheer",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-sheer.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/Zrq8_2L_NeLBb1_hsaFbHnpHUpSj5COfTOUmxOoe1Bc5lMJXID3xKaLm7br_X_biWtYhnIqN2CJBnS5wyDVyzXQK9GJ97ERV8YyYuCifzz7VmWMqoEDcM-amBdgEQ2iutxAEEcHiMoA8oMM9QMtlyA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%89%AC%EC%9B%90%EC%A0%9C",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LNG Esports",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LNG sheer 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11090,11 +12134,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%89%AC%EC%9B%90%EC%A0%9C",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LNG sheer 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Xu Wenjie"
+    "legalName": "Xu Wenjie",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LNG sheer 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "LNG Esports sheer 쉬원제 (徐文杰 [1] | Xu Wenjie) ",
+      "birthDateOnPage": "2005-12-06",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "LNG_sheer_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-weiwei": {
     "playerId": "player-weiwei",
@@ -11141,16 +12204,16 @@
     "position": "MID",
     "nickname": "Nia",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-nia.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/k7dzcDRsdnUgLGnTZiKyy85AOCuTOLrALIvZuQ6lBs54rEoWXXgdachRLGQerqD0bzxDZmoBSkmEt3h5T6g5eDcSgLmk4MTDMGYglLM0bk4GTkbCqlNKS4WPdYuJ10siscHZN8Qm54JWGAOCZrF6kA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%A9%8C%EC%9A%B0%EA%B4%91%EB%A3%A8",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Invictus Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: IG Nia.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11171,11 +12234,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%A9%8C%EC%9A%B0%EA%B4%91%EB%A3%A8",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: IG Nia."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Zou Guanglu"
+    "legalName": "Zou Guanglu",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "IG Nia",
+    "sourceIdentity": {
+      "profileHeading": "LNG Esports Nia 쩌우광루 (邹广禄 | Zou Guang-Lu) ",
+      "birthDateOnPage": "2006",
+      "birthDateMatchesExisting": null
+    },
+    "width": 440,
+    "height": 440,
+    "photoSeasonYear": null
   },
   "player-1xn": {
     "playerId": "player-1xn",
@@ -11183,16 +12262,16 @@
     "position": "ADC",
     "nickname": "1xn",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-1xn.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/bkfnuTI7OO6u7uPhLHOQyJ-0WVPK9w7MUwm3nWc6MpcnvjBxCA7U_9pcCcg_apHTGUDxlPkHCB2FxF_AIDdMZ4IptKKuQ9FOv-INY-KJ2PCPPlBtckpCWEaIYZbrkTSP1g5Y4kDWQGavEtgYIifA6A.webp",
+    "sourcePageUrl": "https://namu.wiki/w/1xn",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LNG Esports",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LNG 1xn 2026 Spl.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11213,11 +12292,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/1xn",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LNG 1xn 2026 Spl.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Li Sau Nam"
+    "legalName": "Li Sau Nam",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LNG 1xn 2026 Spl...",
+    "sourceIdentity": {
+      "profileHeading": "LNG Esports C 1xn 리슈난 (李修楠 [1] | Li Sau Nam) ",
+      "birthDateOnPage": "2004-05-01",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-ycx": {
     "playerId": "player-ycx",
@@ -11225,16 +12320,16 @@
     "position": "SUPPORT",
     "nickname": "Ycx",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-ycx.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/n69N8hBK_dHlEce24uCnbnfAw5oP8ObhOJbIovFnohL36LESqe6EIsLrc6wvVn4AA8voxWBNw7ptoeGXvhVyMbC8mlVaqo2nOCRUlYIK38EBYKRrfdXqRvY7YGYWsgKDkav99GmWy47EatIBMCTTMA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9E%90%EC%98%A4%EC%9B%90%ED%95%98%EC%98%A4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "LGD Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LGD Ycx 2026 Spl.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11255,11 +12350,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9E%90%EC%98%A4%EC%9B%90%ED%95%98%EC%98%A4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: LGD Ycx 2026 Spl.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Zhao Wenhao"
+    "legalName": "Zhao Wenhao",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "LGD Ycx 2026 Spl...",
+    "sourceIdentity": {
+      "profileHeading": "LNG Esports Ycx [1] [2] 자오원하오 (赵文浩 [3] | Zhao Wenhao) ",
+      "birthDateOnPage": "2001-08-11",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "LGD_Ycx_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-hoya": {
     "playerId": "player-hoya",
@@ -11267,16 +12381,16 @@
     "position": "TOP",
     "nickname": "Hoya",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-hoya.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/QDvSX-4rORH9Z84MdXxaGPgIaZnxRGc0vApdLOorbOHKBhuNKUnCjhvHwBf0o-yeTKfNWumNhWHPQff2IrC7udCjCd3hlftV9qwOpbO3_puS82gj74hNV6YIpJX2EJ2eRNogMO8uvd67sIk4-zb7IQ.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%9C%A4%EC%9A%A9%ED%98%B8%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Ninjas in Pyjamas",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP HOYA 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11302,11 +12416,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%9C%A4%EC%9A%A9%ED%98%B8%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP HOYA 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Yoon Yong-ho"
+    "legalName": "Yoon Yong-ho",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "NIP HOYA 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Ninjas in Pyjamas HOYA [1] 윤용호 (尹龍鎬 [2] | Yoon Yong-ho) ",
+      "birthDateOnPage": "2000-08-25",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "NIP_HOYA_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-guwon": {
     "playerId": "player-guwon",
@@ -11314,16 +12447,16 @@
     "position": "JUNGLE",
     "nickname": "Guwon",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-guwon.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/7HmK_UGSCExHFZH9d9e98SaPW7lzARFN_scgxfFoAo8VtJBio8umebhZoY95AzNni6pTeAOsK7rT3d4GazZJ3ZyH_btzSuCF0iazjqpHAcNAfTlZEC1HULEytnQkFHdVOt8PdmiUgFrFIoDjK5Bhxw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EA%B5%AC%EA%B4%80%EB%AA%A8",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Ninjas in Pyjamas",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP Guwon 2026 S.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11349,11 +12482,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EA%B5%AC%EA%B4%80%EB%AA%A8",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP Guwon 2026 S.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Koo Kwan-mo"
+    "legalName": "Koo Kwan-mo",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "NIP Guwon 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "Ninjas in Pyjamas Guwon [1] 구관모 (具官謀 | Koo Kwan-mo) ",
+      "birthDateOnPage": "2003-12-19",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-care": {
     "playerId": "player-care",
@@ -11361,16 +12510,16 @@
     "position": "MID",
     "nickname": "Care",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-care.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/e4DToYzQR5PI8DugvMwQN2f699QrvEuFMq6recAITrlTFvomfUtuu8ZYrDRH_BrKVQVtwVZe_y0xoX74GecyvNgbpim75EAj83u6HSAu8doSvC7vn6laE7LcfqRkpT-JP47TEmqZuzxi0gkdRckSag.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%96%91%EC%A0%9C%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Ninjas in Pyjamas",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP Care 2026 Sp....",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11396,11 +12545,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%96%91%EC%A0%9C%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP Care 2026 Sp...."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Yang Jie"
+    "legalName": "Yang Jie",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "NIP Care 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Ninjas in Pyjamas C Care 양제 (阳杰 [1] | Yang Jie) ",
+      "birthDateOnPage": "2004-02-28",
+      "birthDateMatchesExisting": null
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "NIP_Care_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-photic": {
     "playerId": "player-photic",
@@ -11408,16 +12576,16 @@
     "position": "ADC",
     "nickname": "Photic",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-photic.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/FSPDYFXbWunJ14X0DFICOb5Ize3fPqLTy9pGtuzvXe0RZaUvQIS2FjPSdWO8kYkJB6UbWaRfLc17-NvL26TeTk563nFhptelSS5Zcg3GDfCUyQBlJ1h_YP8TuFG_AIIrZeZnGYBjeqtGvBu6NvzwMg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/Photic",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Ninjas in Pyjamas",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP Photic 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11443,11 +12611,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/Photic",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP Photic 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Ying Qishen"
+    "legalName": "Ying Qishen",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "NIP Photic 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "Ninjas in Pyjamas Photic 잉치선 (应祺燊 [1] | Ying Qishen) ",
+      "birthDateOnPage": "2002-10-11",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-fengyue": {
     "playerId": "player-fengyue",
@@ -11455,16 +12639,16 @@
     "position": "SUPPORT",
     "nickname": "fengyue",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-fengyue.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/63IF5bIxQKQWEYS5vw_6EfVU-NpVmWbYEGGI_DxQ7MkX7xe4UuXd9sohmzKo3MvsHv5wycr2VamBmuiXcE_HdCX6gYB-b2CoxwnKxeWkVdMROwWL4YjtBGCSmNFJf46Knn1V_-c1lhxhbkK6ZV2_Aw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%99%95%EB%A3%AC%EB%9D%BC%EC%9D%B4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Ninjas in Pyjamas",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP fengyue 2026.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11490,11 +12674,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22fengyue%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%99%95%EB%A3%AC%EB%9D%BC%EC%9D%B4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: NIP fengyue 2026.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Wang Runlai"
+    "legalName": "Wang Runlai",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "NIP fengyue 2026...",
+    "sourceIdentity": {
+      "profileHeading": "Ninjas in Pyjamas fengyue [1] 왕룬라이 (王润来 [2] | Wang Runlai) ",
+      "birthDateOnPage": "2005-11-06",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "NIP_fengyue_2026_Split_3.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-zuian": {
     "playerId": "player-zuian",
@@ -11668,16 +12871,16 @@
     "position": "SUPPORT",
     "nickname": "Zhuo",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-zhuo.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/WYpO9Ro6jLZN5VuBXFDe6knjWGMJhOt5U-rpsvl3PR_qw_6qzeJ4HdmvyPqWVYvmFexSUlGceGMCyGFy21QTyhXTt5qruuIMxe_vXssS3yrIB95ecluRFFXKihngyUfd_1Fii3XvHzXNkEcp-TcofA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/Zhuo",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Top Esports",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TES Zhuo 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11698,11 +12901,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/Zhuo",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TES Zhuo 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "검색의 Zhuo는 knight의 실명 일부로, 등록 선수 Zhuo의 사진이 아니다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Wang Xuzhuo"
+    "legalName": "Wang Xuzhuo",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TES Zhuo 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Top Esports Zhuo [1] 왕쉬줘 (王旭卓 [2] | Wang Xuzhuo) ",
+      "birthDateOnPage": "2001-02-13",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-keshi": {
     "playerId": "player-keshi",
@@ -11710,16 +12929,16 @@
     "position": "TOP",
     "nickname": "Keshi",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-keshi.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/yblvCD9xfnyIyYZp-VO5bIlejoPxi6r_lOh3tnHfW9sME7ggeboyUGjt2IitW8bHWaOY1V3aD37ua2_2c7wSKSYF4BTSQzuXfsZmAaZJcKWa6HPJITVPVoOq8VeKZXAIEX4zmoQvexWcSMKBE775Eg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%A6%AC%EC%B9%AD%ED%99%94",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Thunder Talk Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Keshi 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11740,11 +12959,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%A6%AC%EC%B9%AD%ED%99%94",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Keshi 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Li Qinghua"
+    "legalName": "Li Qinghua",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TT Keshi 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Thunder Talk Gaming Keshi [1] 리칭화 (Li Qinghua/李清华 [2] ) ",
+      "birthDateOnPage": "2006-03-02",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "TT_Keshi_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-junhao": {
     "playerId": "player-junhao",
@@ -11752,16 +12990,16 @@
     "position": "JUNGLE",
     "nickname": "Junhao",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-junhao.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/SznyicXn1mbhzXbSq6DCscZB9F8IwBZhaca2dStg_JtqnuscmKB6sEwrTfk06Du3z-iGyzgFZJFB3vAlhVsYwIYKOr6ys9NtUok45ULE5pep2xuA_aSo83h7WfBhF-dGPBtLyNPr33T3X-GCQYofmg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%A4%84%EC%A5%94%ED%95%98%EC%98%A4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Thunder Talk Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Junhao 2026 S....",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11782,11 +13020,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%A4%84%EC%A5%94%ED%95%98%EC%98%A4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Junhao 2026 S...."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Luo Junhao"
+    "legalName": "Luo Junhao",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TT Junhao 2026 S...",
+    "sourceIdentity": {
+      "profileHeading": "Thunder Talk Gaming C Junhao 뤄쥔하오 (Luo Junhao/罗君豪 [1] ) ",
+      "birthDateOnPage": "2004-03-13",
+      "birthDateMatchesExisting": null
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "TT_Junhao_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-heru": {
     "playerId": "player-heru",
@@ -11794,16 +13051,16 @@
     "position": "MID",
     "nickname": "Heru",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-heru.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/Qyir0trHB2voBtyv3_zjYpZCd1iIhqNwR6o2rHsOJ-69QWx04KeNhrKfuj6m_osKyXGpckufIJMMEqq_IyTn3DzZOaDZdOyDEKsSYI04zNDK7tN390EhiS5fnO4Pd5jWLaSzsaAw9SXcFfdI5c9DOw.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EA%B9%80%EB%AF%BC%EC%84%B1%282006%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Thunder Talk Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Heru 2026 Spl.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11824,11 +13081,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EA%B9%80%EB%AF%BC%EC%84%B1%282006%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Heru 2026 Spl.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Kim Min-seong"
+    "legalName": "Kim Min-seong",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TT Heru 2026 Spl...",
+    "sourceIdentity": {
+      "profileHeading": "Thunder Talk Gaming Heru 김민성 (金敏省 | Kim Min-seong) ",
+      "birthDateOnPage": "2006-08-21",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "TT_Heru_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-ahn": {
     "playerId": "player-ahn",
@@ -11836,16 +13112,16 @@
     "position": "ADC",
     "nickname": "Ahn",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-ahn.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/mp7ai_5pnaA3va7YWQ9ijmqyD3N6O-O74nxYDUGvuDqHUrWwMF5LmmK3va5avZC7lNdGEnlNhSnHOYuRzjUCQlYHWN1hQW6QCc2wSYERQ_8Q3Zr3JgjlMDLXU0n8kOLxE9aUFDK1-3w9NzJaRvfn5w.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%95%88%EC%82%B0%EC%98%88",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Thunder Talk Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Ahn 2026 Spli.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11866,11 +13142,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%95%88%EC%82%B0%EC%98%88",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Ahn 2026 Spli.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "검색의 Ahn은 TFT 사진으로 해당 LoL 선수임을 확인할 수 없다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "An Shanye"
+    "legalName": "An Shanye",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TT Ahn 2026 Spli...",
+    "sourceIdentity": {
+      "profileHeading": "Thunder Talk Gaming Ahn [1] 안산예 (安善业 [2] | An Shanye) ",
+      "birthDateOnPage": "2001-03-15",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "TT_Ahn_2026_Split_2.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-feather": {
     "playerId": "player-feather",
@@ -11878,16 +13173,16 @@
     "position": "SUPPORT",
     "nickname": "Feather",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-feather.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/y0jwKp437l76YTAcWN88I2lUiSoxn0VRXGFp4bpr77ALLnhaECfN4I0z1msi9NesNz6dM7JxcUmrL3fcl7VNsLbOmX-PRxV1dV_ylsJm7-n8P2R-8BWWsrgwbRFuZTK_a-eaxSBZxy9rS2ijfxDlKg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EC%99%95%ED%86%88%EC%B8%A0%ED%91%B8",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Thunder Talk Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Feather 2026 .... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11908,11 +13203,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EC%99%95%ED%86%88%EC%B8%A0%ED%91%B8",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: TT Feather 2026 .... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Wang Tiancifu"
+    "legalName": "Wang Tiancifu",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "TT Feather 2026 ...",
+    "sourceIdentity": {
+      "profileHeading": "Thunder Talk Gaming Feather 왕톈츠푸 (王天赐福 [1] | Wang Tiancifu) ",
+      "birthDateOnPage": "2003-08-01",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "TT_Feather_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-zika": {
     "playerId": "player-zika",
@@ -11969,16 +13283,16 @@
     "position": "JUNGLE",
     "nickname": "Xiaohao",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-xiaohao.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/7LwtQaTjfnxhL1WCQoxGbjfFFsOdQRAJ0DBNb3K1X8ful2TEnxsAUgNb1jhpeOIfHUk6KQe4Zctfuexan4BmZ2KxSX0XnIgsIeJWNiHdfDdnDOpnhU7qqP8lSMMDtS21ZpAs7b-_RJ3atz0uD7sbxA.webp",
+    "sourcePageUrl": "https://namu.wiki/w/Xiaohao",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Edward Gaming",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG Xiaohao 2026.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -11999,11 +13313,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/Xiaohao",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: EDG Xiaohao 2026.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Peng Hao"
+    "legalName": "Peng Hao",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "EDG Xiaohao 2026...",
+    "sourceIdentity": {
+      "profileHeading": "Weibo Gaming Xiaohao 펑하오 (彭浩 [1] | Peng Hao) ",
+      "birthDateOnPage": "2002-07-19",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-xiaohu": {
     "playerId": "player-xiaohu",
@@ -12138,16 +13468,16 @@
     "position": "TOP",
     "nickname": "Cube",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-cube.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/6pWyrE8DK8SVRVJbUJn_CpHLyJLJEmQM5OKKRDkVp3CJ8SaGx2ibzHNMuTXGaRx9TXVQqNHF3XqUfEDC33d-dLOsCZ25mo4pK1X3uqbj0qH4Sl0G1cjNaKrgkeOu3Mk5Z2wTtcwc_zMugzwxBlyGVg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%8B%A4%EC%9D%B4%EC%9D%B4",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team WE",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE Cube 2026 Spl.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -12168,11 +13498,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/w/api.php?action=query&format=json&generator=search&gsrsearch=%22Cube%22+%22League+of+Legends%22&gsrnamespace=6&gsrlimit=8&prop=imageinfo&iiprop=url%7Cextmetadata&iiurlwidth=512",
         "result": "조건에 맞는 파일 검색 결과 없음"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%8B%A4%EC%9D%B4%EC%9D%B4",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE Cube 2026 Spl.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons 검색에서도 적합한 선수 사진을 확인하지 못했다.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Dai Yi"
+    "legalName": "Dai Yi",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "WE Cube 2026 Spl...",
+    "sourceIdentity": {
+      "profileHeading": "Team WE Cube 다이이 (戴逸 [1] | Dai Yi) ",
+      "birthDateOnPage": "2002-07-14",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "WE_Cube_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-monki": {
     "playerId": "player-monki",
@@ -12180,16 +13529,16 @@
     "position": "JUNGLE",
     "nickname": "Monki",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-monki.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/PSEb3IY8YoJBj9U-nwwP9a3Aot2F4JkWK6GB7xQ2zF7SNYzSaxSvOGekwxnKIiMsHLA7awvm5znPlj1qtQVvo2ARL4KFreu0FMH2n5_HRcFzy2J88d7BPk13EbbyTzBhYLKRMXMcWavoEWFCUR_6Bg.webp",
+    "sourcePageUrl": "https://namu.wiki/w/Monki",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team WE",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE Monki 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -12210,11 +13559,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/Monki",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE Monki 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Wang Mengqi"
+    "legalName": "Wang Mengqi",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "WE Monki 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Team WE C Monki [1] 왕멍치 (王梦齐 [2] | Wang Mengqi) ",
+      "birthDateOnPage": "2004-02-16",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-karis": {
     "playerId": "player-karis",
@@ -12222,16 +13587,16 @@
     "position": "MID",
     "nickname": "Karis",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-karis.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/qS9ZbvBbO7apKBJm9PS0EYwwiae4egOqwgKmBDLwKgecuDTDqM9jwpNNU0cK8mmPo6yXOGYs3X4GEdYXjsBdP79YORCcTn94Uzx_JhN4pQtSKenOtLjjGCRVgGZHStLRWZF_62jh33mwF8OviUrljQ.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EA%B9%80%ED%99%8D%EC%A1%B0",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team WE",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE Karis 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -12252,11 +13617,27 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EA%B9%80%ED%99%8D%EC%A1%B0",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE Karis 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Kim Hong-jo"
+    "legalName": "Kim Hong-jo",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "WE Karis 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Team WE Karis 김홍조 (金洪調 | Kim Hong-jo) ",
+      "birthDateOnPage": "2003-05-21",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   },
   "player-about": {
     "playerId": "player-about",
@@ -12264,16 +13645,16 @@
     "position": "ADC",
     "nickname": "About",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-about.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/C8LpQqhkv-cYr3uG1EhBbgCmuTaHcceF_Q61ouZKtps4ifnhRQo347ASEqkLEse9v9ojKg4xMiVhjJhYRmcB6PJ29le-o12fd0AEhn5bmwPaWxEoIUBumFx6IILyJCVHl49IZj-1K1HSM9c7bPIF9A.webp",
+    "sourcePageUrl": "https://namu.wiki/w/%EB%AC%B8%ED%98%95%EC%84%9D%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team WE",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE About 2026 Sp.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -12294,11 +13675,30 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/%EB%AC%B8%ED%98%95%EC%84%9D%28%ED%94%84%EB%A1%9C%EA%B2%8C%EC%9D%B4%EB%A8%B8%29",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE About 2026 Sp.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Moon Hyeong-seok"
+    "legalName": "Moon Hyeong-seok",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "WE About 2026 Sp...",
+    "sourceIdentity": {
+      "profileHeading": "Team WE About 문형석 (文炯皙 | Moon Hyeong-seok) ",
+      "birthDateOnPage": "2005-04-17",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "sourceFileNames": [
+      "WE_About_2026_Split_1.png"
+    ],
+    "photoSeasonYear": 2026
   },
   "player-erha": {
     "playerId": "player-erha",
@@ -12306,16 +13706,16 @@
     "position": "SUPPORT",
     "nickname": "Erha",
     "league": "LPL",
-    "localPath": null,
-    "originalImageUrl": null,
-    "sourcePageUrl": null,
+    "localPath": "/images/players/player-erha.webp",
+    "originalImageUrl": "https://i.namu.wiki/i/9_9NUO-TamQIna4Ut5epnFmRBHvHDVDRwqLRt2Ws-d7EFxFekpcruINl-oFs5MvdV3NBsXDVn3DMKEcYneCJkW1YqghyN8pQxVyfeMpw_QtjbzkHpzDJYtc6Ya_TDOi_Wx4YfJvWF69YHDopOc6K2Q.webp",
+    "sourcePageUrl": "https://namu.wiki/w/Erha",
     "photographer": null,
     "rightsHolder": null,
-    "usageTerms": null,
+    "usageTerms": "나무위키 게시 사진 · 개별 사진 사용 조건 미확인",
     "photoYear": null,
-    "teamAtCapture": null,
-    "status": "missing",
-    "identityEvidence": null,
+    "teamAtCapture": "Team WE",
+    "status": "acquired",
+    "identityEvidence": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE Erha 2026 Spl.... 기존 career 생일과도 일치.",
     "checkedSources": [
       {
         "type": "TEAM_PAGE",
@@ -12336,10 +13736,26 @@
         "type": "WIKIMEDIA_COMMONS",
         "url": "https://commons.wikimedia.org/wiki/Category:League_of_Legends_players",
         "result": "Commons HTTP 429 요청 제한으로 이후 조회 중단"
+      },
+      {
+        "type": "NAMUWIKI_PLAYER_INFOBOX",
+        "url": "https://namu.wiki/w/Erha",
+        "result": "나무위키 선수 인포박스의 닉네임·실명·소속 이력과 같은 인포박스의 선수 사진을 대조. 사진 파일 표시명: WE Erha 2026 Spl.... 기존 career 생일과도 일치."
       }
     ],
-    "reason": "확인한 팀 페이지·공식 앨범에서 이 선수로 명시된 사용 가능한 단독 사진을 확인하지 못했다. Commons는 HTTP 429 요청 제한으로 추가 확인 불가.",
+    "reason": null,
     "checkedAt": "2026-09-05",
-    "legalName": "Shi Xunye"
+    "legalName": "Shi Xunye",
+    "photoSourceType": "NAMUWIKI_PLAYER_INFOBOX",
+    "sourceDisplayName": "나무위키",
+    "sourcePhotoLabel": "WE Erha 2026 Spl...",
+    "sourceIdentity": {
+      "profileHeading": "Team WE Erha 스쉬예 (施旭烨 [1] | Shi Xuye) ",
+      "birthDateOnPage": "2003-09-28",
+      "birthDateMatchesExisting": true
+    },
+    "width": 250,
+    "height": 250,
+    "photoSeasonYear": 2026
   }
 }

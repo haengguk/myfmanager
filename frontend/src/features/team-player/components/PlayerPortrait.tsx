@@ -35,8 +35,8 @@ export function PlayerPhotoCredit({ playerId }: { playerId: string }) {
   if (!photo) return <p className="tp-photo-credit">선수 사진 미확보</p>;
   return (
     <p className="tp-photo-credit">
-      사진 · <a href={photo.sourcePageUrl!} target="_blank" rel="noreferrer">{photo.photographer ?? photo.rightsHolder ?? '출처'}</a>
-      {photo.photoYear ? ` · ${photo.photoYear}` : ''}{photo.teamAtCapture ? ` · ${photo.teamAtCapture}` : ''}
+      사진 · <a href={photo.sourcePageUrl!} target="_blank" rel="noreferrer">{photo.photographer ?? photo.rightsHolder ?? photo.sourceDisplayName ?? '출처'}</a>
+      {photo.photoYear ? ` · ${photo.photoYear}` : photo.photoSeasonYear ? ` · ${photo.photoSeasonYear} 시즌` : ''}{photo.teamAtCapture ? ` · ${photo.teamAtCapture}` : ''}
       <br />{photo.usageTerms ?? '사용 조건 미확인'}
     </p>
   );

@@ -9,6 +9,8 @@ export interface PlayerPhoto {
   rightsHolder: string | null;
   usageTerms: string | null;
   photoYear: number | null;
+  photoSeasonYear?: number | null;
+  sourceDisplayName?: string;
   teamAtCapture: string | null;
   status: string;
 }
