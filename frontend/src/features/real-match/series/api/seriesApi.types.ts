@@ -1,7 +1,7 @@
 import type { PlayerDraftMatchPayloadDto, PlayerDraftSessionResponseDto } from '../../player-draft/api/playerDraftApi.types';
 import type { TeamSide } from '../../realMatch.contract';
 
-export type SeriesFormat = 'BO3' | 'BO5';
+export type SeriesFormat = 'BO1' | 'BO3' | 'BO5';
 export type SeriesStatus = 'ACTIVE' | 'BLOCKED' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED';
 export type SeriesGameStatus =
   | 'DRAFT_PENDING'
@@ -153,6 +153,7 @@ export interface SeriesProductionIdentityDto {
 }
 
 export interface SeriesViewDto {
+  competitionContext?: { sideSelectionPolicy: string | null; inheritedChampionIds: readonly string[]; firstPickTeamCode: string; firstSideChoiceTeamCode: string; firstSideChoice: TeamSide; previousLoserOwnsNextSelection: boolean };
   schemaVersion: 'SERIES_VIEW_V1';
   seriesId: string;
   revision: number;

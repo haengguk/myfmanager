@@ -22,7 +22,7 @@ import type {
 type JsonRecord = Record<string, unknown>;
 
 const SIDES = ['BLUE', 'RED'] as const;
-const FORMATS = ['BO3', 'BO5'] as const;
+const FORMATS = ['BO1', 'BO3', 'BO5'] as const;
 const SERIES_STATUSES = ['ACTIVE', 'BLOCKED', 'COMPLETED', 'CANCELLED', 'EXPIRED'] as const;
 const GAME_STATUSES = [
   'DRAFT_PENDING', 'DRAFT_ACTIVE', 'DRAFT_COMPLETED', 'SIMULATION_IN_PROGRESS',
@@ -252,13 +252,14 @@ export function validateSeriesViewPayload(value: unknown): SeriesViewDto {
     'seedDerivationAlgorithm', 'currentGameSeed', 'excludedChampionIds', 'seriesHistoryBeforeHash',
     'games', 'activeDraftSession', 'reservation', 'allowedCommands', 'winnerTeamCode',
     'createdAt', 'lastActivityAt', 'expiresAt', 'processLocalRestartLoss', 'productionIdentity',
+    ...('competitionContext' in root ? ['competitionContext'] : []),
   ], '$');
   literal(root.schemaVersion, 'SERIES_VIEW_V1', '$.schemaVersion');
   identity(root.seriesId, SERIES_ID, '$.seriesId', 'Series ID'); integer(root.revision, '$.revision');
   const status = oneOf(root.status, SERIES_STATUSES, '$.status') as SeriesStatus; nullableText(root.terminalReason, '$.terminalReason');
   const format = oneOf(root.format, FORMATS, '$.format') as SeriesFormat;
   const winsRequired = integer(root.winsRequired, '$.winsRequired', 1);
-  if (winsRequired !== (format === 'BO3' ? 2 : 3)) fail('$.winsRequired', 'format의 required wins와 일치해야 합니다.');
+  if (winsRequired !== (format === 'BO1' ? 1 : format === 'BO3' ? 2 : 3)) fail('$.winsRequired', 'format의 required wins와 일치해야 합니다.');
   const teamValues = array(root.teams, '$.teams'); if (teamValues.length !== 2) fail('$.teams', '참가 팀 두 개가 필요합니다.');
   const teamCodes = teamValues.map((team, index) => validateTeam(team, `$.teams[${index}]`));
   if (new Set(teamCodes).size !== 2) fail('$.teams', '서로 다른 참가 팀이 필요합니다.');
@@ -271,7 +272,7 @@ export function validateSeriesViewPayload(value: unknown): SeriesViewDto {
   const currentGameNumber = integer(root.currentGameNumber, '$.currentGameNumber', 1);
   signedInt64(root.rootSeed, '$.rootSeed'); text(root.seedDerivationAlgorithm, '$.seedDerivationAlgorithm'); const currentSeed = signedInt64(root.currentGameSeed, '$.currentGameSeed');
   const excluded = uniqueStrings(root.excludedChampionIds, '$.excludedChampionIds', true); sha(root.seriesHistoryBeforeHash, '$.seriesHistoryBeforeHash');
-  const gameValues = array(root.games, '$.games'); if (gameValues.length < 1 || gameValues.length > (format === 'BO3' ? 3 : 5)) fail('$.games', 'format의 game 범위를 벗어났습니다.');
+  const gameValues = array(root.games, '$.games'); if (gameValues.length < 1 || gameValues.length > (format === 'BO1' ? 1 : format === 'BO3' ? 3 : 5)) fail('$.games', 'format의 game 범위를 벗어났습니다.');
   const partial = value as SeriesViewDto;
   const games = gameValues.map((game, index) => validateGame(game, teamCodes, managed, index + 1, `$.games[${index}]`));
   const current = games[games.length - 1];
@@ -295,7 +296,22 @@ export function validateSeriesViewPayload(value: unknown): SeriesViewDto {
   teamCodes.forEach((teamCode) => {
     if (score[teamCode] !== winnerTally[teamCode]) fail(`$.score.${teamCode}`, 'COMMITTED game winner 집계와 정확히 일치해야 합니다.');
   });
-  if (excluded.length !== committed.length * 10) fail('$.excludedChampionIds', 'committed game당 정확히 10개 pick이 누적돼야 합니다.');
+  let inherited: readonly string[] = [];
+  if (root.competitionContext !== undefined) {
+    const context = record(root.competitionContext, '$.competitionContext');
+    exact(context, ['sideSelectionPolicy', 'inheritedChampionIds', 'firstPickTeamCode', 'firstSideChoiceTeamCode', 'firstSideChoice', 'previousLoserOwnsNextSelection'], '$.competitionContext');
+    nullableText(context.sideSelectionPolicy, '$.competitionContext.sideSelectionPolicy');
+    inherited = uniqueStrings(context.inheritedChampionIds, '$.competitionContext.inheritedChampionIds', true);
+    exactValues(inherited, games[0].historyBeforeChampionIds, '$.competitionContext.inheritedChampionIds');
+    if (inherited.length % 10 !== 0 || inherited.some(id => !excluded.includes(id))) fail('$.competitionContext.inheritedChampionIds', '부모 대회의 Fearless 기록이 필요합니다.');
+    if (context.firstPickTeamCode !== games[0].blueTeamCode || !teamCodes.includes(text(context.firstSideChoiceTeamCode, '$.competitionContext.firstSideChoiceTeamCode'))) fail('$.competitionContext', '선택 팀이 참가 팀과 일치해야 합니다.');
+    side(context.firstSideChoice, '$.competitionContext.firstSideChoice');
+    if (bool(context.previousLoserOwnsNextSelection, '$.competitionContext.previousLoserOwnsNextSelection')) games.slice(1).forEach((game, i) => {
+      const previous = games[i];
+      if (previous.result?.winnerTeamCode !== game.redTeamCode) fail('$.games', '이전 패자의 첫 픽 선택과 진영 결속이 일치해야 합니다.');
+    });
+  } else if (games[0].historyBeforeChampionIds.length !== 0) fail('$.games[0]', '상속된 Fearless 기록의 대회 근거가 필요합니다.');
+  if (excluded.length !== inherited.length + committed.length * 10) fail('$.excludedChampionIds', 'committed game당 정확히 10개 pick이 누적돼야 합니다.');
   if (root.activeDraftSession !== null) validateChild(root.activeDraftSession, partial, current, '$.activeDraftSession');
   if ((root.activeDraftSession === null) !== (current.childDraftSessionId === null)) fail('$.activeDraftSession', 'current game child projection과 일치해야 합니다.');
   if (root.reservation !== null) {

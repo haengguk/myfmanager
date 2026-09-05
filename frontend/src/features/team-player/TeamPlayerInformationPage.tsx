@@ -4,6 +4,7 @@ import type { PlayerSummaryDto, TeamPlayerWorkspaceDto } from './api/teamPlayerA
 import { createPlayerProfile, type PlayerProfileViewModel } from './teamPlayer.adapter';
 import { PlayerDetailRequestCoordinator, resolveInitialSelection, selectTeam, selectedPlayer, type TeamPlayerSelection, writeSelection } from './teamPlayer.selection';
 import { PlayerProfile } from './components/PlayerProfile';
+import { PlayerPortrait } from './components/PlayerPortrait';
 
 type WorkspaceState =
   | { status: 'loading'; data: null; error: null }
@@ -148,7 +149,7 @@ export function TeamPlayerInformationPage({ searchValue, onSearchChange }: TeamP
             <ol className="tp-player-list">
               {canonicalPlayers.map((player) => {
                 const active = player.playerId === selection?.playerId;
-                return <li key={player.playerId}><button type="button" className={active ? 'is-selected' : ''} aria-current={active ? 'true' : undefined} onClick={() => choosePlayer(player)}><span className="tp-player-list__position">{player.position}</span><span><strong>{player.nickname}</strong><code>{player.playerId}</code></span>{searchValue.trim() ? <small>{player.currentTeamCode}</small> : <small>{active ? '선택됨' : '보기'}</small>}<i aria-hidden="true" /></button></li>;
+                return <li key={player.playerId}><button type="button" className={active ? 'is-selected' : ''} aria-current={active ? 'true' : undefined} onClick={() => choosePlayer(player)}><span className="tp-player-list__identity"><PlayerPortrait playerId={player.playerId} nickname={player.nickname} size="thumbnail" /><span className="tp-player-list__position">{player.position}</span></span><span><strong>{player.nickname}</strong><code>{player.playerId}</code></span>{searchValue.trim() ? <small>{player.currentTeamCode}</small> : <small>{active ? '선택됨' : '보기'}</small>}<i aria-hidden="true" /></button></li>;
               })}
             </ol>
           )}

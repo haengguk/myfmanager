@@ -276,3 +276,12 @@ await acceptsAsync('committed recovery remains replay-only after transient repla
 });
 
 if (!process.exitCode) console.log('SERIES_FRONTEND_CONTRACT_VERIFICATION_PASSED');
+
+accepts('competition BO1 preserves parent Fearless exclusions and separate side choice', () => {
+  const inherited = Array.from({ length: 10 }, (_, i) => `parent-${i}`);
+  const value = view({ format: 'BO1', games: [game(1, { history: inherited })], excluded: inherited });
+  value.winsRequired = 1;
+  value.competitionContext = { sideSelectionPolicy: 'LCK_ROFS_FIRST_PICK_OTHER_TEAM_RED_LOSER_ROFS_V1', inheritedChampionIds: inherited, firstPickTeamCode: 'DK', firstSideChoiceTeamCode: 'HLE', firstSideChoice: 'RED', previousLoserOwnsNextSelection: true };
+  validateSeriesViewPayload(value);
+});
+rejects('standalone cannot invent inherited competition exclusions', () => view({ games: [game(1, { history: ['invented'] })] }));

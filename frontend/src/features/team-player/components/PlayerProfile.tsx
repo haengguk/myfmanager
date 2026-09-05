@@ -2,6 +2,8 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEv
 import type { ChampionProficiencyDto } from '../api/teamPlayerApi.types';
 import type { LinkViewModel, PlayerProfileViewModel } from '../teamPlayer.adapter';
 
+import { PlayerPortrait, PlayerPhotoCredit } from './PlayerPortrait';
+
 const TABS = [
   { id: 'ratings', label: '능력치' },
   { id: 'proficiency', label: '챔피언 숙련도' },
@@ -183,9 +185,8 @@ export function PlayerProfile({ profile }: PlayerProfileProps) {
       </header>
       <div className="tp-profile__body">
         <aside className="tp-identity" aria-label="선수 핵심 프로필">
-          <div className="tp-player-placeholder" role="img" aria-label={`${profile.nickname} 선수 사진 없음, 이니셜 대체`}>
-            <span>NO PLAYER PHOTO</span><strong>{profile.initials}</strong><small>{profile.position}</small>
-          </div>
+          <PlayerPortrait playerId={profile.playerId} nickname={profile.nickname} />
+          <PlayerPhotoCredit playerId={profile.playerId} />
           <div className="tp-identity__headline"><span>LEGAL NAME</span><strong>{profile.legalName}</strong></div>
           <dl className="tp-identity__facts">
             <div><dt>국적</dt><dd>{profile.nationality}</dd></div>

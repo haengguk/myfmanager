@@ -225,3 +225,22 @@ if (!process.exitCode) {
 
 // Shared by the real-browser deferred-response check; no second DTO fixture catalog.
 export { view, summary, hardenedCalendarView, competitionCommandResponse };
+
+function domesticCalendar() {
+  const value = hardenedCalendarView();
+  Object.assign(value.competition, { ruleVersion: 'lck-career-competition-rules-2026-v3', gamePolicyVersion: 'CAREER_COMPETITION_GAME_POLICY_V3', domesticRuleCompatibility: 'CURRENT', domesticRankingDecisions: [{ competitionId: 'LCK_CUP', decisionId: 'CUP_BARON', status: 'RUNNING', inputHash: hash, policyVersion: 'LCK_DOMESTIC_RANKING_AND_SEEDED_TIE_DRAW_V1', detail: { pendingMatches: [{ matchId: 'TB_CUP_1', first: 'GEN', second: 'HLE' }] } }], finalRanking: null });
+  value.competition.nextFixture.seriesFormat = 'BO1';
+  value.competition.nextFixture.stageId = 'CUP_BARON_TIEBREAKER';
+  value.competition.nextFixture.matchId = 'TB_CUP_1';
+  return value;
+}
+function sealedDomesticCalendar() {
+  const value = domesticCalendar();
+  value.competition.domesticRankingDecisions = [];
+  value.competition.finalRanking = { status: 'SEALED', sourceSeasonYear: 2027, sourceSeasonId: seasonId, championTeamCode: 'GEN', runnerUpTeamCode: 'T1', ranking: ['GEN', 'T1', 'HLE', 'DK', 'KT', 'NS', 'DNS', 'BRO', 'BFX', 'KRX'].map((teamCode, index) => ({ seed: index + 1, teamCode, seriesWins: 13, seriesLosses: 13, gameWins: 26, gameLosses: 26 })), stateHash: hash, ruleVersion: value.competition.ruleVersion, policyVersion: 'LCK_DOMESTIC_RANKING_AND_SEEDED_TIE_DRAW_V1', resultEvidenceHash: hash, worldsStatus: 'PENDING_IN_GAME_INTERNATIONAL_EVIDENCE', requiredInternationalEvidence: ['REGIONAL_SLOT_ALLOCATION', 'MSI_CHAMPION_AND_DOMESTIC_PLAYOFF_ELIGIBILITY'] };
+  return value;
+}
+accepts('domestic BO1 tiebreak action carries resumable structured decision', () => validateCareerCalendar(domesticCalendar()));
+accepts('ten sealed domestic places remain separate from pending Worlds evidence', () => validateCareerCalendar(sealedDomesticCalendar()));
+rejects('duplicate final team cannot be presented as sealed', () => { const value = sealedDomesticCalendar(); value.competition.finalRanking.ranking[9].teamCode = 'GEN'; validateCareerCalendar(value); });
+rejects('new rules require domestic decision projection', () => { const value = domesticCalendar(); delete value.competition.domesticRankingDecisions; delete value.competition.finalRanking; delete value.competition.domesticRuleCompatibility; validateCareerCalendar(value); });
