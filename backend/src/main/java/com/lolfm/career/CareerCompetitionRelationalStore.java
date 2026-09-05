@@ -825,6 +825,98 @@ public final class CareerCompetitionRelationalStore {
                 result.getString(5)), careerId, seasonYear);
     }
 
+    /** Lock the job before touching the graph; completion and fence share one commit. */
+    public CompletionResult applyAutoVerifiedCompletion(
+            VerifiedCompetitionFixtureCompletion verification, String jobId,
+            String leaseToken, java.time.Duration duration
+    ) {
+        return transactions.execute(ignored -> {
+            OffsetDateTime at = now();
+            int owned = jdbc.update("""
+                    UPDATE career_competition_job SET lease_expires_at = ?, updated_at = ?
+                    WHERE job_id = ? AND binding_hash = ? AND lifecycle_status = 'RUNNING'
+                      AND lease_token = ? AND lease_expires_at > ?
+                    """, at.plus(duration), at, jobId, verification.receipt().bindingHash(),
+                    leaseToken, at);
+            if (owned != 1) throw new IllegalStateException(CareerCompetitionJobLease.FENCE_REJECTED);
+            CompletionResult applied = applyVerifiedCompletion(verification);
+            int completed = jdbc.update("""
+                    UPDATE career_competition_job
+                    SET lifecycle_status = 'COMPLETED', completion_receipt_hash = ?,
+                        lease_token = NULL, lease_expires_at = NULL, updated_at = ?
+                    WHERE job_id = ? AND lifecycle_status = 'RUNNING'
+                      AND lease_token = ? AND lease_expires_at > ?
+                    """, verification.receipt().receiptHash(), now(), jobId, leaseToken, now());
+            if (completed != 1) throw new IllegalStateException(CareerCompetitionJobLease.FENCE_REJECTED);
+            return applied;
+        });
+    }
+
+    /** Durable verified evidence, application and fixture must agree before bypassing replay. */
+    public boolean hasAppliedCompletion(CareerCompetitionSeriesBindingV1 binding) {
+        List<String> hashes = jdbc.query("""
+                SELECT completion_receipt_hash FROM career_competition_series_binding
+                WHERE binding_hash = ? AND lifecycle_status = 'COMPLETED'
+                """, (result, row) -> result.getString(1), binding.bindingHash());
+        if (hashes.isEmpty()) return false;
+        List<CareerCompetitionFixtureCompletionReceiptV1> receipts = jdbc.query("""
+                SELECT r.receipt_json, r.receipt_canonical
+                FROM career_competition_completion_receipt r
+                JOIN career_competition_application a ON a.receipt_hash = r.receipt_hash
+                JOIN career_competition_result_detail d ON d.receipt_hash = r.receipt_hash
+                JOIN career_competition_fixture f
+                  ON f.career_id = a.career_id AND f.calendar_season_year = a.calendar_season_year
+                 AND f.competition_id = a.competition_id AND f.match_id = a.match_id
+                WHERE r.receipt_hash = ? AND r.binding_hash = ?
+                  AND a.career_id = ? AND a.calendar_season_year = ?
+                  AND a.competition_id = ? AND a.match_id = ? AND a.series_id = ?
+                  AND d.career_id = a.career_id AND d.calendar_season_year = a.calendar_season_year
+                  AND d.competition_id = a.competition_id AND d.match_id = a.match_id
+                  AND d.binding_hash = r.binding_hash
+                  AND d.first_score = r.first_score AND d.second_score = r.second_score
+                  AND d.total_duration_seconds = r.total_duration_seconds
+                  AND f.completion_receipt_hash = r.receipt_hash AND f.lifecycle_status = 'COMPLETED'
+                  AND f.winner_team_code = r.winner_team_code AND f.loser_team_code = r.loser_team_code
+                  AND f.first_team_code = ? AND f.second_team_code = ?
+                """, (result, row) -> {
+            try {
+                var receipt = json.readValue(result.getString(1),
+                        CareerCompetitionFixtureCompletionReceiptV1.class);
+                if (!receipt.canonicalText().equals(result.getString(2))) {
+                    throw new IllegalStateException("COMPETITION_PERSISTED_COMPLETION_MISMATCH");
+                }
+                return receipt;
+            } catch (JsonProcessingException invalid) {
+                throw new IllegalStateException("COMPETITION_PERSISTED_COMPLETION_MISMATCH", invalid);
+            }
+        }, hashes.getFirst(), binding.bindingHash(), binding.careerId(), binding.seasonYear(),
+                binding.competitionId(), binding.matchId(), binding.boundSeriesId(),
+                binding.firstTeamCode(), binding.secondTeamCode());
+        if (receipts.size() != 1) throw new IllegalStateException("COMPETITION_PERSISTED_COMPLETION_MISMATCH");
+        var receipt = receipts.getFirst();
+        requireReceiptScope(binding, receipt);
+        if (!receipt.receiptHash().equals(hashes.getFirst())) {
+            throw new IllegalStateException("COMPETITION_PERSISTED_COMPLETION_MISMATCH");
+        }
+        load(binding.careerId(), binding.seasonYear()); // Validate canonical graph and ledger integrity.
+        return true;
+    }
+
+    private static void requireReceiptScope(CareerCompetitionSeriesBindingV1 binding,
+                                           CareerCompetitionFixtureCompletionReceiptV1 receipt) {
+        if (!binding.bindingHash().equals(receipt.bindingHash())
+                || !binding.careerId().equals(receipt.careerId())
+                || binding.seasonYear() != receipt.seasonYear()
+                || !binding.competitionId().equals(receipt.competitionId())
+                || !binding.matchId().equals(receipt.matchId())
+                || !binding.fixtureId().equals(receipt.fixtureId())
+                || !binding.boundSeriesId().equals(receipt.seriesId())
+                || !binding.firstTeamCode().equals(receipt.firstTeamCode())
+                || !binding.secondTeamCode().equals(receipt.secondTeamCode())) {
+            throw new IllegalArgumentException("COMPETITION_VERIFIED_RECEIPT_SCOPE_MISMATCH");
+        }
+    }
+
     /** Applies only an opaque token minted by the Series replay verifier. */
     public CompletionResult applyVerifiedCompletion(
             VerifiedCompetitionFixtureCompletion verification
@@ -833,16 +925,20 @@ public final class CareerCompetitionRelationalStore {
         return transactions.execute(ignored -> {
             CareerCompetitionFixtureCompletionReceiptV1 receipt =
                     verification.receipt();
+            lockCycle(receipt.careerId(), receipt.seasonYear());
             CareerCompetitionSeriesBindingV1 binding = loadBinding(
                     receipt.careerId(), receipt.seasonYear(), receipt.matchId());
-            if (!binding.bindingHash().equals(receipt.bindingHash())
-                    || !binding.competitionId().equals(receipt.competitionId())
-                    || !binding.fixtureId().equals(receipt.fixtureId())
-                    || !binding.boundSeriesId().equals(receipt.seriesId())
-                    || !binding.firstTeamCode().equals(receipt.firstTeamCode())
-                    || !binding.secondTeamCode().equals(receipt.secondTeamCode())) {
-                throw new IllegalArgumentException(
-                        "COMPETITION_VERIFIED_RECEIPT_SCOPE_MISMATCH");
+            requireReceiptScope(binding, receipt);
+            if (hasAppliedCompletion(binding)) {
+                String appliedHash = jdbc.queryForObject("""
+                        SELECT completion_receipt_hash FROM career_competition_series_binding
+                        WHERE binding_hash = ?
+                        """, String.class, binding.bindingHash());
+                if (!receipt.receiptHash().equals(appliedHash)) {
+                    throw new IllegalStateException("COMPETITION_RECEIPT_HASH_CONFLICT");
+                }
+                return new CompletionResult(loadAggregate(receipt.careerId(),
+                        receipt.seasonYear(), receipt.competitionId()), true);
             }
             List<String> existing = jdbc.query("""
                     SELECT receipt_canonical FROM career_competition_completion_receipt

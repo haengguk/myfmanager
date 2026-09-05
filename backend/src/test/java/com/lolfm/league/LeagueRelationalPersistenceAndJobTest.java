@@ -40,7 +40,7 @@ class LeagueRelationalPersistenceAndJobTest {
             var first = Flyway.configure().dataSource(dataSource).target("1").load().migrate();
             assertThat(first.migrationsExecuted).isOne();
             var upgraded = Flyway.configure().dataSource(dataSource).load().migrate();
-            assertThat(upgraded.migrationsExecuted).isEqualTo(8);
+            assertThat(upgraded.migrationsExecuted).isEqualTo(9);
             var repeated = Flyway.configure().dataSource(dataSource).load().migrate();
             assertThat(repeated.migrationsExecuted).isZero();
 

@@ -2,6 +2,28 @@
 
 이 문서는 2026-09-05 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career competition 실행 안정화와 규칙 근거 조사 (2026-09-05)
+
+시작 HEAD는 `bab58776b94acade3237c1a0303c12bd9705ee49`다. V10에서 opponent choice의 저장 키를
+Career/year/competition/match로 분리했고, Auto game·완료 검증 중 heartbeat와 DB 적용 경계의
+원자적 lease fence를 추가했다. 완료된 Player 요청은 durable receipt/application 관계를 확인해
+kernel 재계산 없이 반환한다. 화면은 Career/controller/generation을 검사해 다른 Career로 이동한
+뒤의 늦은 응답을 무효화하면서 원래 command UUID를 보존한다.
+
+최종 focused backend 2 suites/19 tests, Career frontend 계약21개, 실제 컴포넌트 브라우저6개,
+153-module production build가 통과했다. 최종 전체 backend regression은 한 번 실행해
+260 suites/1,984 tests, failures0/errors0/skipped2, Gradle36분42초로 통과했다.
+상세 결과는 [안정화 검증 보고서](development/career-competition-execution-stabilization-v1.md)에 있다.
+아래 기존 ACCEPTED와 테스트 수는 이전 기능 구현의 역사적 결과다.
+
+[규칙 근거 조사](development/career-competition-rule-source-closure-v1.md)는 시즌 말 LCK PO10경기,
+공식 동률 순서, First Stand/MSI/Worlds2026 규정집, EWC 및 KeSPA2026 협회 발표를 직접 확인했다.
+Cup SoV/승리시간/통합 Play-in seed와 R3/R4 정렬의 공식 규칙 차이, 국제 roster/snapshot,
+현실 결과가 반영된 pool의 미래 적용 정책, KeSPA 세부 규정은 후속 과제로 분리했다.
+runtime 규칙 JSON/readiness/gate는 변경하지 않았다. 국내 순위 authority 교정→시즌 말 PO,
+외부 authority+First Stand→MSI→Worlds가 주요 의존 순서이며 EWC/KeSPA는 별도 근거·데이터 경로다.
+아시안게임은 이번 조사·구현·후속 우선순위에서 제외하고 기존 gate를 보존했다.
+
 ## Career Competition Series execution and result transition V1
 
 상태는

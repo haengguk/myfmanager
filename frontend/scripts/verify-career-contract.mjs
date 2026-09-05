@@ -222,3 +222,6 @@ if (!process.exitCode) {
   console.log('CAREER_COMPETITION_LIFECYCLE_V1_FRONTEND_CONTRACT_VERIFICATION_PASSED');
   console.log('CAREER_COMPETITION_SERIES_EXECUTION_AND_RESULT_TRANSITION_V1_FRONTEND_CONTRACT_VERIFICATION_PASSED');
 }
+
+// Shared by the real-browser deferred-response check; no second DTO fixture catalog.
+export { view, summary, hardenedCalendarView, competitionCommandResponse };

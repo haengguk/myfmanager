@@ -21,7 +21,14 @@ const COMMAND_COPY: Readonly<Record<string, string>> = {
 };
 
 function dateTime(value: string): string { return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)); }
-function wait(milliseconds: number, signal: AbortSignal): Promise<void> { return new Promise((resolve, reject) => { const timer = window.setTimeout(resolve, milliseconds); signal.addEventListener('abort', () => { window.clearTimeout(timer); reject(new DOMException('aborted', 'AbortError')); }, { once: true }); }); }
+function wait(milliseconds: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) { reject(new DOMException('aborted', 'AbortError')); return; }
+    const abort = () => { window.clearTimeout(timer); reject(new DOMException('aborted', 'AbortError')); };
+    const timer = window.setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, milliseconds);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
 function summaryFromView(career: CareerViewDto): CareerSummaryDto {
   return { careerId: career.careerId, saveName: career.saveName, managerName: career.managerName, managedTeamCode: career.managedTeamCode, currentDate: career.currentDate, leagueId: career.leagueId, seasonId: career.seasonId, lifecycleStatus: career.lifecycleStatus, resumeKind: career.resume.kind, updatedAt: career.updatedAt };
 }
@@ -70,18 +77,29 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
   const competitionRequestRef = useRef<AbortController | null>(null);
   const restoredAdvanceRef = useRef<string | null>(null);
   const generationRef = useRef(0);
+  const selectedIdRef = useRef<string | null>(null);
   const newCareerRef = useRef<HTMLButtonElement>(null);
   const detailTitleRef = useRef<HTMLHeadingElement>(null);
   const teamsRef = useRef(teams); teamsRef.current = teams;
   const catalogRef = useRef<CatalogIdentity | null>(null);
 
   const applyDetail = useCallback((career: CareerViewDto, focus = false) => {
+    selectedIdRef.current = career.careerId;
     writeCareerPointer(window.sessionStorage, career.careerId); setSelectedId(career.careerId); setDetail(career); setIntegrityError(false);
     if (focus) window.requestAnimationFrame(() => detailTitleRef.current?.focus());
   }, []);
 
+  const invalidateScreenRequests = useCallback(() => {
+    ++generationRef.current;
+    requestRef.current?.abort(); createRequestRef.current?.abort();
+    advanceRequestRef.current?.abort(); competitionRequestRef.current?.abort();
+    setAdvancePending(false); setCompetitionPending(false); setCreatePending(false);
+    restoredAdvanceRef.current = null;
+  }, []);
+
   const loadDetail = useCallback(async (careerId: string, focus = false) => {
-    const generation = ++generationRef.current; const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller;
+    invalidateScreenRequests(); const generation = generationRef.current; const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller;
+    selectedIdRef.current = careerId;
     setSelectedId(careerId); setDetail(null); setCalendar(null); setDetailLoading(true); setCalendarLoading(true); setCalendarError(null); setError(null); setIntegrityError(false);
     try {
       const career = await getCareer(careerId, controller.signal); if (generation !== generationRef.current || controller.signal.aborted) return;
@@ -100,10 +118,10 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
       if (action === 'CLEAR_NOT_FOUND') { clearCareerPointer(window.sessionStorage); setSelectedId(null); setDetail(null); setError('선택한 저장을 서버에서 찾을 수 없어 브라우저의 Career ID를 정리했습니다.'); }
       else { setError(failure.userMessage); setIntegrityError(action === 'KEEP_INTEGRITY' || action === 'KEEP_CONTRACT'); }
     } finally { if (!controller.signal.aborted && generation === generationRef.current) { setDetailLoading(false); setCalendarLoading(false); } if (requestRef.current === controller) requestRef.current = null; }
-  }, [applyDetail]);
+  }, [applyDetail, invalidateScreenRequests]);
 
   const loadWorkspace = useCallback(async () => {
-    const generation = ++generationRef.current; const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller;
+    invalidateScreenRequests(); const generation = generationRef.current; const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller;
     setInitialLoading(true); setError(null); setIntegrityError(false);
     try {
       const [nextList, teamResponse] = await Promise.all([getCareers(controller.signal), fetchLckTeams(controller.signal)]);
@@ -120,9 +138,9 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
         requireCareerReference(career, teamResponse.teams, catalog);
         applyDetail(career);
         setCalendarLoading(true);
-        try { const calendarView = await getCareerCalendar(career.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, career.careerId, calendarView.activePendingAdvance); reconcileCareerCompetitionOperation(window.sessionStorage, career.careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); setCalendarError(null); }
-        catch (calendarCause) { if (!controller.signal.aborted) setCalendarError(loadFailure(calendarCause)); }
-        finally { if (!controller.signal.aborted) setCalendarLoading(false); }
+        try { const calendarView = await getCareerCalendar(career.careerId, controller.signal); if (controller.signal.aborted || generation !== generationRef.current) return; reconcileCareerAdvanceOperation(window.sessionStorage, career.careerId, calendarView.activePendingAdvance); reconcileCareerCompetitionOperation(window.sessionStorage, career.careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); setCalendarError(null); }
+        catch (calendarCause) { if (!controller.signal.aborted && generation === generationRef.current) setCalendarError(loadFailure(calendarCause)); }
+        finally { if (!controller.signal.aborted && generation === generationRef.current) setCalendarLoading(false); }
       } catch (cause) {
         if (controller.signal.aborted || generation !== generationRef.current) return;
         const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause)); const action = careerPointerRecoveryAction(failure);
@@ -131,44 +149,52 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
       }
     } catch (cause) { if (!controller.signal.aborted && generation === generationRef.current) setError(loadFailure(cause)); }
     finally { if (!controller.signal.aborted && generation === generationRef.current) setInitialLoading(false); if (requestRef.current === controller) requestRef.current = null; }
-  }, [applyDetail]);
+  }, [applyDetail, invalidateScreenRequests]);
 
-  useEffect(() => { void loadWorkspace(); return () => { requestRef.current?.abort(); createRequestRef.current?.abort(); advanceRequestRef.current?.abort(); competitionRequestRef.current?.abort(); }; }, [loadWorkspace]);
+  useEffect(() => { void loadWorkspace(); return () => { ++generationRef.current; requestRef.current?.abort(); createRequestRef.current?.abort(); advanceRequestRef.current?.abort(); competitionRequestRef.current?.abort(); }; }, [loadWorkspace]);
 
   const create = useCallback(async (selection: CareerCreateSelection) => {
     if (createPending) return;
     const operation = logicalCareerCreate(window.sessionStorage, selection); const controller = new AbortController(); createRequestRef.current?.abort(); createRequestRef.current = controller;
+    const generation = generationRef.current;
+    const isCurrent = () => !controller.signal.aborted && generation === generationRef.current && createRequestRef.current === controller;
     setCreatePending(true); setCreateError(null);
     try {
       const response = await createCareer({ schemaVersion: CAREER_SCHEMAS.createRequest, ...operation.selection, clientCommandId: operation.clientCommandId }, controller.signal);
+      if (!isCurrent()) return;
       requireCareerReference(response.career, teamsRef.current, catalogRef.current);
       clearCareerCreateOperation(window.sessionStorage); setError(null); setIntegrityError(false); applyDetail(response.career, true); setDialogOpen(false);
       setCalendarLoading(true); setCalendarError(null);
-      try { const calendarView = await getCareerCalendar(response.career.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, response.career.careerId, calendarView.activePendingAdvance); reconcileCareerCompetitionOperation(window.sessionStorage, response.career.careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); }
-      catch (calendarCause) { if (!controller.signal.aborted) setCalendarError(loadFailure(calendarCause)); }
-      finally { if (!controller.signal.aborted) setCalendarLoading(false); }
+      try { const calendarView = await getCareerCalendar(response.career.careerId, controller.signal); if (!isCurrent()) return; reconcileCareerAdvanceOperation(window.sessionStorage, response.career.careerId, calendarView.activePendingAdvance); reconcileCareerCompetitionOperation(window.sessionStorage, response.career.careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); }
+      catch (calendarCause) { if (isCurrent()) setCalendarError(loadFailure(calendarCause)); }
+      finally { if (isCurrent()) setCalendarLoading(false); }
+      if (!isCurrent()) return;
       onNotify(response.replayed ? 'Career 생성 결과 복원' : 'Career 생성 완료', `${response.career.saveName} · ${response.career.managedTeamCode} Hybrid Season을 서버에서 확인했습니다.`);
-      try { setList(await getCareers(controller.signal)); } catch { setList((current) => withCreatedCareer(current, response.career)); }
+      try { const refreshed = await getCareers(controller.signal); if (isCurrent()) setList(refreshed); } catch { if (isCurrent()) setList((current) => withCreatedCareer(current, response.career)); }
     } catch (cause) {
-      if (controller.signal.aborted) return;
+      if (!isCurrent()) return;
       const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause));
       if (!isAmbiguousCareerCreateFailure(failure)) clearCareerCreateOperation(window.sessionStorage);
       setCreateError(failure.userMessage);
-    } finally { if (!controller.signal.aborted) setCreatePending(false); if (createRequestRef.current === controller) createRequestRef.current = null; }
+    } finally { if (isCurrent()) setCreatePending(false); if (createRequestRef.current === controller) createRequestRef.current = null; }
   }, [applyDetail, createPending, onNotify]);
 
   const advance = useCallback(async (mode: CareerAdvanceMode, restored?: CareerAdvanceOperation) => {
     if (!detail || !calendar || advancePending) return;
     const operation = restored ?? logicalCareerAdvance(window.sessionStorage, detail.careerId, calendar.calendarRevision, mode);
     const controller = new AbortController(); advanceRequestRef.current?.abort(); advanceRequestRef.current = controller;
+    const generation = generationRef.current;
+    const careerId = detail.careerId;
+    const isCurrent = () => !controller.signal.aborted && generation === generationRef.current
+      && selectedIdRef.current === careerId && advanceRequestRef.current === controller;
     setAdvancePending(true); setCalendarError(null);
     try {
-      let response = await advanceCareerCalendar(detail.careerId, { schemaVersion: CAREER_SCHEMAS.advanceRequest, expectedCalendarRevision: operation.expectedCalendarRevision, mode: operation.mode, clientCommandId: operation.clientCommandId }, controller.signal);
+      let response = await advanceCareerCalendar(detail.careerId, { schemaVersion: CAREER_SCHEMAS.advanceRequest, expectedCalendarRevision: operation.expectedCalendarRevision, mode: operation.mode, clientCommandId: operation.clientCommandId }, controller.signal); if (!isCurrent()) return;
       reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, response.calendar.competition.revision, response.calendar.competition.activePendingCommand); setCalendar(response.calendar);
       for (const delay of [400, 800, 1_200, 2_000, 3_000]) {
         if (!response.pending) break;
-        await wait(delay, controller.signal);
-        response = await advanceCareerCalendar(detail.careerId, { schemaVersion: CAREER_SCHEMAS.advanceRequest, expectedCalendarRevision: operation.expectedCalendarRevision, mode: operation.mode, clientCommandId: operation.clientCommandId }, controller.signal);
+        await wait(delay, controller.signal); if (!isCurrent()) return;
+        response = await advanceCareerCalendar(detail.careerId, { schemaVersion: CAREER_SCHEMAS.advanceRequest, expectedCalendarRevision: operation.expectedCalendarRevision, mode: operation.mode, clientCommandId: operation.clientCommandId }, controller.signal); if (!isCurrent()) return;
         reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, response.calendar.competition.revision, response.calendar.competition.activePendingCommand); setCalendar(response.calendar);
       }
       if (response.pending) {
@@ -177,19 +203,20 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
       }
       clearCareerAdvanceOperation(window.sessionStorage, detail.careerId); restoredAdvanceRef.current = null;
       setError(null); setIntegrityError(false);
-      const latest = await getCareer(detail.careerId, controller.signal); requireCareerReference(latest, teamsRef.current, catalogRef.current); applyDetail(latest);
-      try { setList(await getCareers(controller.signal)); } catch { setList((current) => ({ ...current, careers: current.careers.map((entry) => entry.careerId === detail.careerId ? { ...entry, currentDate: response.calendar.currentDate } : entry) })); }
+      const latest = await getCareer(detail.careerId, controller.signal); if (!isCurrent()) return; requireCareerReference(latest, teamsRef.current, catalogRef.current); applyDetail(latest);
+      try { const refreshed = await getCareers(controller.signal); if (!isCurrent()) return; setList(refreshed); } catch { if (isCurrent()) setList((current) => ({ ...current, careers: current.careers.map((entry) => entry.careerId === detail.careerId ? { ...entry, currentDate: response.calendar.currentDate } : entry) })); }
+      if (!isCurrent()) return;
       if (response.stopReason === 'MANAGED_FIXTURE_REQUIRED') onNotify('관리 경기 도착', 'League 화면에서 관리 팀 Player Series를 완료하면 날짜 진행을 이어갈 수 있습니다.');
       else if (response.stopReason === 'ATTENTION_REQUIRED') onNotify('League 확인 필요', '차단 또는 재시작 필요 상태를 해결하기 전에는 날짜가 지나가지 않습니다.');
       else if (response.stopReason === 'SEASON_ROLLOVER_REQUIRED') onNotify('시즌 경계 도착', '새 시즌을 자동 생성하지 않고 시즌 전환 지점에서 멈췄습니다.');
       else onNotify(response.replayed ? '날짜 진행 결과 복원' : '날짜 진행 완료', `${response.calendar.currentDate} 서버 상태를 확인했습니다.`);
     } catch (cause) {
-      if (controller.signal.aborted) return;
+      if (!isCurrent()) return;
       const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause));
       if (!isAmbiguousCareerCreateFailure(failure)) { clearCareerAdvanceOperation(window.sessionStorage, detail.careerId); restoredAdvanceRef.current = null; }
       setCalendarError(failure.userMessage);
-      try { const calendarView = await getCareerCalendar(detail.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, detail.careerId, calendarView.activePendingAdvance); reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); } catch { /* original failure remains visible */ }
-    } finally { if (!controller.signal.aborted) setAdvancePending(false); if (advanceRequestRef.current === controller) advanceRequestRef.current = null; }
+      try { const calendarView = await getCareerCalendar(detail.careerId, controller.signal); if (!isCurrent()) return; reconcileCareerAdvanceOperation(window.sessionStorage, detail.careerId, calendarView.activePendingAdvance); reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); } catch { /* original failure remains visible */ }
+    } finally { if (isCurrent()) setAdvancePending(false); if (advanceRequestRef.current === controller) advanceRequestRef.current = null; }
   }, [advancePending, applyDetail, calendar, detail, onNotify]);
 
   const executeCompetition = useCallback(async () => {
@@ -205,11 +232,15 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
       clientCommandId: operation.clientCommandId,
     } as const;
     const controller = new AbortController(); competitionRequestRef.current?.abort(); competitionRequestRef.current = controller;
+    const generation = generationRef.current;
+    const careerId = detail.careerId;
+    const isCurrent = () => !controller.signal.aborted && generation === generationRef.current
+      && selectedIdRef.current === careerId && competitionRequestRef.current === controller;
     setCompetitionPending(true); setCalendarError(null);
     try {
       const response = command === 'RECONCILE_COMPETITION_FIXTURE'
         ? await reconcileCareerCompetition(detail.careerId, body, controller.signal)
-        : await startOrResumeCareerCompetition(detail.careerId, body, controller.signal);
+        : await startOrResumeCareerCompetition(detail.careerId, body, controller.signal); if (!isCurrent()) return;
       if (response.executionMode === 'PLAYER_CONTROLLED' && response.status !== 'COMPLETED') {
         if (!response.seriesId || !onOpenCompetitionSeries) throw new CareerApiFailure('CONTRACT', '관리 대회 Series 진입 정보를 확인할 수 없습니다.');
         onOpenCompetitionSeries(response.seriesId, detail,
@@ -223,8 +254,8 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
       let latest = calendar;
       if (response.executionMode === 'FULL_AUTO' && ['PENDING', 'RUNNING'].includes(response.status)) {
         for (const delay of [400, 800, 1_200, 2_000, 3_000]) {
-          await wait(delay, controller.signal);
-          latest = await getCareerCalendar(detail.careerId, controller.signal); reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, latest.competition.revision, latest.competition.activePendingCommand); setCalendar(latest);
+          await wait(delay, controller.signal); if (!isCurrent()) return;
+          latest = await getCareerCalendar(detail.careerId, controller.signal); if (!isCurrent()) return; reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, latest.competition.revision, latest.competition.activePendingCommand); setCalendar(latest);
           if (latest.competition.nextFixture?.fixtureId !== fixture.fixtureId
             || latest.competition.nextFixture?.resultApplicationStatus === 'APPLIED') break;
         }
@@ -235,20 +266,25 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
         }
       }
       clearCareerCompetitionOperation(window.sessionStorage, detail.careerId);
-      await loadDetail(detail.careerId);
+      const latestDetail = await getCareer(careerId, controller.signal); if (!isCurrent()) return;
+      requireCareerReference(latestDetail, teamsRef.current, catalogRef.current);
+      const latestCalendar = await getCareerCalendar(careerId, controller.signal); if (!isCurrent()) return;
+      reconcileCareerAdvanceOperation(window.sessionStorage, careerId, latestCalendar.activePendingAdvance);
+      reconcileCareerCompetitionOperation(window.sessionStorage, careerId, latestCalendar.competition.revision, latestCalendar.competition.activePendingCommand);
+      applyDetail(latestDetail); setCalendar(latestCalendar);
       onNotify(response.replayed ? '대회 결과 복원' : '대회 경기 완료',
         `${fixture.competitionId} ${fixture.matchId} 결과가 다음 대진에 반영됐습니다.`);
     } catch (cause) {
-      if (controller.signal.aborted) return;
+      if (!isCurrent()) return;
       const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause));
       if (!isAmbiguousCareerCreateFailure(failure)) clearCareerCompetitionOperation(window.sessionStorage, detail.careerId);
       setCalendarError(failure.userMessage);
-      try { const latest = await getCareerCalendar(detail.careerId, controller.signal); reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, latest.competition.revision, latest.competition.activePendingCommand); setCalendar(latest); } catch { /* original failure remains visible */ }
+      try { const latest = await getCareerCalendar(detail.careerId, controller.signal); if (!isCurrent()) return; reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, latest.competition.revision, latest.competition.activePendingCommand); setCalendar(latest); } catch { /* original failure remains visible */ }
     } finally {
-      if (!controller.signal.aborted) setCompetitionPending(false);
+      if (isCurrent()) setCompetitionPending(false);
       if (competitionRequestRef.current === controller) competitionRequestRef.current = null;
     }
-  }, [calendar, competitionPending, detail, loadDetail, onNotify, onOpenCompetitionSeries]);
+  }, [calendar, competitionPending, detail, applyDetail, onNotify, onOpenCompetitionSeries]);
 
   useEffect(() => {
     if (!detail || !calendar || advancePending) return;

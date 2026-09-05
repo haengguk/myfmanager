@@ -1,0 +1,232 @@
+LoL Manager — Career 대회 실행 안정화 및 대회 규칙 근거 확정
+
+이 프롬프트는 구현 작업 지시다. 아래 1번의 네 결함을 수정하고 필요한 검증을 완료한 뒤,
+2번의 대회 규칙·근거·미구현 범위를 조사하여 후속 구현 기준을 문서로 확정해라.
+계획이나 진단만 제시하고 끝내지 말고, 승인된 범위의 코드 수정·검증·문서화를 수행해라.
+규칙 자료 조사는 1번 수정 중에도 병행할 수 있으나, 실행 안정화와 근거 확정의 결과는 구분해라.
+
+0. 기준과 범위
+
+- 저장소: /mnt/c/Users/guddn/dev/lolmanager
+- 검토 대상 기능 커밋: 829916e8a1c1b13bbde890748adebf0f1635748f
+- 해당 기능의 기준 부모 커밋: 8ce3ddc789e0fee54fffbb081bc1f907611d2487
+- 시작 시 실제 HEAD와 git status --short를 확인해라. 위 커밋으로 reset/checkout하지 말고
+  현재 트리의 변경을 확인하여 이미 해결된 문제는 중복 수정하지 마라.
+- AGENTS.md, .agents/skills/lolmanager-verification/SKILL.md를 적용해라.
+  검증 명령 선택 시 docs/development/testing.md와 실제 build/script 선언을 확인해라.
+- 기존 사용자 변경과 무관한 파일을 보존하고 prompts/, 능력치/, 선수정보/, 일정/lck일정/을
+  이 작업에 섞어 수정하지 마라. AGENTS.md와 스킬 자체의 추가 개정은 이번 범위가 아니다.
+- 아시안게임은 이번 조사·구현·후속 우선순위에서 제외한다. 이 제외는 기존 Calendar 이벤트나
+  DB 데이터를 삭제하거나 런타임 gate를 우회하라는 뜻이 아니다. 기존 흔적의 영향이 있다면
+  관찰 결과만 기록하고 이 작업에서 차출·효과·대회 실행을 구현하지 마라.
+- 새 국제대회 전체 실행, 시즌 말 LCK Playoffs 전체 구현, KeSPA 실제 경기 실행,
+  시즌 rollover, 이적·훈련·피로·부상·재정, 다중 노드 운영은 이번 구현 범위가 아니다.
+- 현재 LCK Cup의 Playoffs 10경기는 이미 구현되어 있다. 미구현인 시즌 말 LCK Playoffs와
+  혼동하거나 Cup 전체를 다시 설계하지 마라.
+- 자동 커밋·push·배포는 하지 말고, 마지막에 변경 내용에 맞는 커밋 메시지만 제안해라.
+
+읽을 핵심 문서:
+- docs/project-status.md
+- docs/architecture/career-competition-lifecycle-v1.md
+- docs/development/career-competition-series-execution-and-result-transition-v1.md
+- docs/development/kespa-cup-source-audit.md
+- 필요할 때 docs/architecture/career-time-and-calendar-progression-v1-api.md
+
+1. 대회 실행 경로의 네 결함 수정
+
+아래는 이전 리뷰의 발견 사항이다. 현재 코드에서 원인과 영향 범위를 확인해라.
+기존 테스트와 작은 재현 사례를 우선 사용하고, 임시 리뷰 파일이 남아 있다고 가정하지 마라.
+
+1-A. [P1] 서로 다른 Career의 opponent choice 저장 키 충돌
+
+확인할 파일:
+- backend/src/main/resources/db/migration/V9__career_competition_execution_and_transition.sql
+- backend/src/main/java/com/lolfm/career/CareerCompetitionRules.java
+- backend/src/main/java/com/lolfm/career/CareerCompetitionRelationalStore.java
+
+발견 근거:
+- career_competition_opponent_choice는 choice_hash를 전역 PRIMARY KEY로 사용한다.
+- chooseCupOpponent의 내용 해시는 정책·선택권자·eligible seed order·선택 팀을 포함하지만
+  Career/year/competition/match의 저장 레코드 범위를 포함하지 않는다.
+- 별도 Career 두 개에서 같은 선택 내용이 나오면 정상적인 두 번째 저장이 PK 충돌할 수 있다.
+  이전 H2 재현에서는 첫 Career의 Cup 40경기 전이가 완료되고, 같은 결과 패턴의 두 번째
+  Career는 26경기 반영 뒤 27번째 결과 전이에서 충돌했다. 실제 엔진 80 Series를 돌린 재현은 아니다.
+
+수정 요구:
+- 선택 내용의 무결성 해시와 저장 레코드의 범위 식별자를 구분해라. 복합 PK 또는 별도 scoped ID 등
+  기존 계약에 맞는 최소 변경을 선택하고 같은 fixture의 중복 방지는 유지해라.
+- 적용된 기존 migration을 고치지 말고 새 migration으로 기존 데이터와 참조를 보존해라.
+  다른 DB 참조·조회·해시 소비자가 있는지 확인하여 필요한 부분만 함께 수정해라.
+- 서로 다른 Career/season에서는 같은 선택 내용을 저장할 수 있고, 같은 fixture의 재요청은
+  중복 레코드나 추가 전이를 만들지 않는다는 것을 검증해라. 다른 범위의 receipt 오용은 계속 거부해야 한다.
+- 신규 DB 초기화와 기존 V9 데이터가 있는 DB의 업그레이드를 적절한 작은 migration 검증으로 확인해라.
+
+1-B. [P1] Auto 실행 시간이 lease를 넘으면 정상 결과가 반영되지 않는 문제
+
+확인할 파일:
+- backend/src/main/java/com/lolfm/career/CareerCompetitionExecutionService.java
+- backend/src/main/java/com/lolfm/career/CareerCompetitionBackgroundJobExecutor.java
+- backend/src/main/java/com/lolfm/league/CareerCompetitionAutomatedSeriesKernel.java
+- 관련 store의 결과 적용·job 소유권 검증 경계
+
+발견 근거:
+- 현재 실행 흐름은 5분 lease를 획득하고 auto.run(binding) 및 검증을 완료한 다음에야 갱신한다.
+- 갱신은 기존 lease가 아직 유효해야 하므로 긴 정상 실행도 결과 반영 전에 거부될 수 있다.
+  이전 제어 Clock 재현에서는 301초 소요를 두 번 주었을 때 모두 RUNNING, 적용 건수 0이었다.
+  이는 실제 엔진 소요 시간 측정이 아니라 만료 경계의 제어된 재현이다.
+
+수정 요구:
+- 실제 실행과 완료 검증 중에도 소유권을 유지할 수 있게 heartbeat/갱신 수명주기를 구현해라.
+  단일 game이 긴 경우도 고려하고, 단순히 5분을 큰 상수로 바꾸어 해결했다고 하지 마라.
+- lease 시간과 갱신 주기는 적절한 설정에 두고, 테스트에서는 Clock과 제어 가능한 실행을 사용해라.
+- 완료·실패·종료 시 갱신 작업을 정리하고, 갱신 실패나 소유권 상실 뒤에는 해당 worker가
+  fixture 결과·다음 대진을 반영하지 못하게 해라. 만료 조건이나 fence 검사를 제거하지 마라.
+- 소유권 확인과 결과 적용 사이의 경쟁 조건을 확인해라. 필요한 fencing 검증은 실제 적용 경계에서
+  효력을 가져야 하며, 오래된 worker가 새 worker의 상태를 덮어쓰면 안 된다.
+- lease보다 긴 정상 실행의 완료, 소유권 상실 worker의 적용 거부, 만료 job 재획득 후 한 번만 반영을
+  작은 결정적 테스트로 확인해라. 벽시계로 5분씩 기다리는 테스트는 만들지 마라.
+- 기존 command UUID/job/Series 복구 계약과 single-node 범위를 유지해라.
+  crash 중 미완료 계산의 재실행 가능성과 결과 반영 exactly-once를 구분해 설명해라.
+
+1-C. [P2] 이미 반영된 Player reconcile이 경기 검증 계산을 다시 수행하는 문제
+
+확인할 파일:
+- backend/src/main/java/com/lolfm/career/CareerCompetitionExecutionService.java
+- backend/src/main/java/com/lolfm/application/SeriesLifecycleService.java
+- backend/src/main/java/com/lolfm/application/SeriesMatchExecutor.java
+- backend/src/main/java/com/lolfm/application/CareerCompetitionPlayerSeriesKernel.java
+
+발견 근거:
+- Player reconcile은 store의 이미 반영된 결과를 확인하기 전에 completedEvidence를 요청한다.
+- 해당 경로는 게임별 executeTrusted를 통해 실제 match 실행으로 이어질 수 있다.
+- 이전 probe는 이미 적용된 상태에서 completedEvidence 호출이 발생함을 확인했다.
+  실제 모든 게임을 재실행한 성능 측정 결과로 과장하지 마라.
+
+수정 요구:
+- persisted command/binding/application/receipt의 범위와 완료 증거를 확인하고,
+  이미 정상 적용된 동일 요청은 durable 결과로 응답하는 조기 반환 경로를 마련해라.
+- 최초 완료 검증은 유지해라. 단순 status 문자열만 믿거나 검증되지 않은 결과를 승인하면 안 된다.
+- 재요청은 player resume/completedEvidence/경기 실행 등 불필요한 복원·재계산을 거치지 않고
+  올바른 응답을 반환해야 한다. UUID payload 충돌 및 다른 Career/season/binding 오용은 계속 거부해라.
+- 최초 검증·적용과 적용 후 반복 reconcile을 구분하여, 반복 시 엔진 호출과 추가 mutation이
+  없음을 테스트해라. 단순 동일 응답 비교만으로 재계산 방지를 입증하지 마라.
+
+1-D. [P2] Career 전환 후 이전 비동기 응답이 현재 화면을 덮어쓰는 문제
+
+확인할 파일:
+- frontend/src/features/career/CareerDashboardPage.tsx
+- 관련 Career API 호출·operation 복구·화면 verifier
+
+발견 근거:
+- competition 실행/polling 중 다른 Career를 선택할 수 있으나, 이전 요청의 setCalendar와
+  loadDetail(oldCareerId) 등이 현재 선택을 확인하지 않고 실행될 수 있다.
+- 이전 리뷰에서는 정적 분석으로 확인한 위험이며 실제 브라우저 재현 완료로 보고하지 않았다.
+
+수정 요구:
+- Career 선택 변경 시 이전 화면 요청을 취소하고, 요청이 끝나는 시점의 Career ID와
+  request generation/identity를 확인해 늦은 성공·오류·finally·Series 이동 응답을 무효화해라.
+- 이전 요청이 새 화면의 Calendar, pending/error, 알림 또는 navigation을 덮어쓰지 못하게 해라.
+- 화면 요청 취소는 서버의 durable Auto job 취소가 아니다. Career별 원래 command UUID와
+  pending operation 복구를 보존하고, 돌아왔을 때 서버 상태로 같은 작업을 이어서 확인해야 한다.
+- 제어된 지연 응답으로 A 실행 중 B 선택 → A 응답 도착 상황을 검증해라.
+  polling뿐 아니라 Player Series 이동 및 실패 정리도 관련 위험에 맞게 작은 사례로 확인해라.
+- 대표 브라우저 흐름으로 Career 전환 후 B가 유지되고 A로 복귀 시 같은 작업이 복구됨을 확인해라.
+  기존 테스트·브라우저 도구를 재사용하고, 이 흐름을 위해 전체 시즌을 실제 시뮬레이션하지 마라.
+
+2. 대회 규칙 근거 확정 및 후속 구현 기준 정리
+
+이번 단계의 산출물은 근거가 있는 규칙 명세와 구현 공백 목록이다.
+새 대회 실행이나 동률 해결 엔진을 이번 단계에서 구현하는 것으로 범위를 넓히지 마라.
+규칙 미확정, 실행 데이터 부족, 코드 미구현을 서로 다른 상태로 기록해라.
+
+2-A. 조사 대상
+
+- 시즌 말 LCK Playoffs: 참가·시드, 대진, 승자/패자 이동, 상대 선택권, BO 형식,
+  최종 순위 산출과 Worlds 진출 연결. 기존 Cup Playoffs와 명확히 구분해라.
+- LCK Cup 및 정규시즌 R3/R4: 적용 중인 동률 규칙의 순서, 추가 증거/경기가 필요한 조건,
+  LCK_CUP_TIEBREAKER_REQUIRED 및 LCK_R3_R4_TIEBREAKER_REQUIRED 이후 필요한 해결 경로.
+- First Stand·MSI·EWC·Worlds: 참가 자격·지역별 슬롯·시드·단계별 형식·대진 연결과
+  실제 실행에 필요한 외부 팀·선수·로스터·스냅샷의 공백을 구분해라.
+  전체 해외 선수 능력치 데이터 구축이나 실제 대회 구현은 하지 마라.
+- KeSPA Cup: 기존 2025 템플릿과 2026 근거를 다시 대조하고, 대상 연도의 규칙·참가자·일정 중
+  공식 자료로 채울 수 있는 부분과 여전히 없는 부분을 구분해라.
+- 각 항목의 현재 Calendar blocker와 다음 날짜 진행에 미치는 영향을 확인해라.
+  자료 확인만 하면 해제 가능한지, 추가 경기/대진/참가자/제품 정책 구현이 필요한지 구별해라.
+
+2-B. 출처와 연도 처리
+
+- 저장소의 source reference와 구현을 먼저 읽고, 공식 규정집·리그/주최 측 발표 등 1차 자료를
+  웹에서 직접 확인해라. 검색 요약만으로 확정하지 말고 근거 페이지나 문서를 읽어라.
+- 기존 문서의 'source incomplete'를 현재 현실에서도 미확정이라는 뜻으로 재사용하지 마라.
+  새 자료가 나왔을 수 있으므로 조사일, 발행일/개정판, 적용 연도와 대회를 기록해라.
+- 프로젝트의 첫 playable cycle 연도와 규칙 reference year는 다를 수 있다.
+  확인한 기준을 명시하고 최신 연도 규칙을 기존 Career에 자동 소급 적용하지 마라.
+- 각 핵심 규칙에 직접 URL과 관련 절/페이지 또는 근거 설명을 연결해라.
+  자료가 충돌하면 적용 시점과 개정판을 비교하고, 해결되지 않는 충돌은 그대로 기록해라.
+- 공식 사실, 기존 승인된 게임 정책, 미래 시즌 일정 투영, 신규 제품 선택안을 분리해라.
+  현실의 대회 결과·우승팀을 Career의 경기 결과로 주입하지 마라.
+- 공식 자료가 없는 부분을 다른 연도 규칙이나 임의 seed/team code 정렬로 채우지 마라.
+  접근할 수 없는 자료는 확인 실패 사유와 필요한 근거를 기록하고 나머지 조사는 계속해라.
+
+2-C. 반영 경계와 산출물
+
+- 조사 결과는 docs/development/career-competition-rule-source-closure-v1.md에 작성해라.
+  동등한 기존 문서가 있다면 중복 문서를 만들지 말고 갱신해라.
+- 대회/단계별로 다음을 간결한 표로 정리해라:
+  공식 규칙과 근거 / 현재 코드·resource 위치 / 부족한 자료 / 미구현 코드·데이터 /
+  현재 blocker / 이를 해소할 다음 작업과 의존 순서.
+- 후속 구현자가 대진 연결과 동률 처리 순서를 추측할 필요가 없도록 확인된 부분은 구체적으로 써라.
+  외부 자료가 부족한 부분은 정확한 질문·필요한 증거까지 남겨라.
+- 확인된 규칙은 문서에 확정하되, production 규칙 JSON이나 runtime readiness 상태를
+  조사 결과만으로 바꾸지 마라. 새로운 규칙의 실행 반영·저장 호환성 처리는 후속 구현으로 명시해라.
+- 기존 공식 선택권과 승인된 자동 상대 선택 정책을 혼동하지 마라. 사람 선택 UI 또는
+  다른 선택 정책으로 전환하는 것은 별도 제품 선택안으로 표시해라.
+- 미구현 대회 건너뛰기, 국내 전용 시즌 모드, 임의 동률 해소, 대체 연도 규칙 채택은
+  이번에 자동 적용하지 마라. 필요하면 선택안과 영향을 제시하되 새 정책 승인으로 간주하지 마라.
+- docs/project-status.md 및 architecture 문서는 이번 코드 변경과 조사 결과에 필요한 부분만 갱신해라.
+  과거 보고서의 테스트 수와 ACCEPTED 기록을 이번 검증 결과처럼 덮어쓰지 마라.
+- 자료 공백이 남으면 조사한 범위의 완료와 규칙 확정의 미완료를 구분해라.
+  근거 없이 전체 SOURCE_CLOSED/구현 가능/시즌 완주 가능이라고 선언하지 마라.
+
+3. 검증 범위와 실행 비용
+
+핵심 주장은 두 가지다:
+① Career 간 데이터 격리와 lease/fence를 보존하면서 긴 실행·재요청이 올바르게 완료되고 한 번만 반영된다.
+② 화면 선택이 바뀌어도 늦은 응답이 현재 Career와 복구 정보를 오염시키지 않는다.
+
+- 가장 가까운 기존 테스트와 fixture를 확장해라. backend 신규 테스트 클래스는 기본 2~3개 이내,
+  frontend는 기존 verifier 또는 한 테스트 파일의 약 5~8개 의미 있는 시나리오를 우선해라.
+  이는 correctness의 상한이 아니다. 별도 계층/파일이 필요하면 잡을 고유 위험과 기존 계층으로
+  부족한 이유를 짧게 기록하고 필요한 검증을 계속해라. 기록 자체를 승인 요청으로 만들지 마라.
+- DB migration/transaction/fencing은 실제 DB 경계의 작은 통합 테스트로 확인해라.
+  lease는 제어된 Clock/실행으로, 재계산 방지는 호출 관찰로 검증하여 실제 긴 엔진 실행을 피할 수 있다.
+- 상태 전이 검증을 위해 40개 Cup Series나 90/130개 정규시즌 경기를 실제 엔진으로 실행하지 마라.
+  대규모 seed 통계, balance audit, 전체 모집단 검사, 별도 범용 harness/증거 manifest는 요구하지 않는다.
+- 변경된 Career frontend 검사와 production build를 실행해라. 기존 Series 검사는 실제 변경된
+  공용 계약·코드가 영향을 주는 경우에 선택해라. 모든 frontend verifier를 무조건 나열하지 마라.
+- 1-D의 대표 브라우저 흐름을 검증해라. 재시작 복구 경계를 변경했다면 기존 방식으로 필요한
+  복구 사례를 추가하되 전체 시즌 E2E로 확대하지 마라.
+- backend production 및 migration/runtime 변경이 끝난 최종 트리에서 전체 Gradle test를 실행해라.
+  수정 도중에는 집중 테스트를 사용하고 AGENTS.md의 Full regression budget을 그대로 적용해라.
+  이전 작업의 260 suites/1,980 tests 통과 기록을 이번 production 변경의 검증으로 재사용하지 마라.
+- 새 변경·실패·미해결 위험 없이 통과한 검사를 반복하지 마라. 2번의 문서만 수정한 뒤에는
+  backend 전체 회귀를 다시 돌리지 마라.
+- 환경 문제는 원인을 진단한 뒤 재시도하고, 실행하지 못한 검사는 구체적인 이유와 함께 남겨라.
+  테스트 실패를 피하려고 correctness 검사를 제외하거나 무관한 Gradle 재분류를 섞지 마라.
+- git diff --check와 최종 변경 범위를 확인해라. 임시 서버를 띄웠다면 자신이 시작한 것만 정리해라.
+
+4. 작업 완료 및 보고
+
+- 1번은 네 결함의 코드 수정, 기존 저장 호환성, 필요한 집중/브라우저 검증과 최종 전체 회귀가
+  완료되어야 완료로 보고해라. 현재 코드에서 이미 해결된 항목은 그 근거를 대신 제시해라.
+- 2번은 조사 결과와 구현 공백을 출처·연도·파일에 연결하고, 확정 가능한 규칙을 문서화해라.
+  남은 외부 근거 부족이나 제품 선택은 정확한 미결 항목으로 남기되 독립된 작업은 마저 완료해라.
+- 대화와 저장소에서 판단할 수 있는 일상적 구현 선택은 스스로 해결해라.
+  명시적 별도 승인이 필요한 행동이나 실제로 결정할 수 없는 제품 선택만 구분하여 제시해라.
+- 최종 답변은 다음을 중심으로 간결하게 작성해라:
+  1) 실제 시작 HEAD와 수정한 네 항목, 사용자에게 달라진 동작
+  2) 실행한 검증 명령·결과 및 검증하지 못한 부분
+  3) 대회별 확정 규칙 / 근거 부족 / 미구현 코드·데이터 / 제품 선택 필요 사항
+  4) 아시안게임을 제외한 다음 구현 작업과 의존 순서
+  5) 변경 문서 링크와 커밋 메시지 제안
+- 실행 안정화 완료를 전체 국제대회 구현 완료나 한 시즌 완주 가능 상태로 표현하지 마라.

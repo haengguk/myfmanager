@@ -67,7 +67,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(9);
+                    .migrationsExecuted).isEqualTo(10);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -521,7 +521,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(5);
+                    .migrationsExecuted).isEqualTo(6);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);
@@ -925,8 +925,9 @@ class CareerModePersistenceTest {
         String url = "jdbc:h2:mem:career-cup-transition-" + UUID.randomUUID()
                 + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
         try (HikariDataSource dataSource = dataSource(url)) {
-            Flyway.configure().dataSource(dataSource).load().migrate();
+            Flyway.configure().dataSource(dataSource).target("9").load().migrate();
             Harness harness = harness(dataSource);
+            for (int careerNumber = 0; careerNumber < 2; careerNumber++) {
             CareerRelationalStore.CareerRow career = harness.careers().create(
                     request(UUID.randomUUID().toString())).career().career();
             Map<String, Integer> strength = new LinkedHashMap<>();
@@ -996,11 +997,11 @@ class CareerModePersistenceTest {
                     value.outputId().startsWith("FIRST_STAND_LCK_SEED_"))
                     .hasSize(2);
             assertThat(count(harness.jdbc(), "career_competition_application"))
-                    .isEqualTo(40);
+                    .isEqualTo(40 * (careerNumber + 1));
             assertThat(count(harness.jdbc(), "career_competition_result_detail"))
-                    .isEqualTo(40);
+                    .isEqualTo(40 * (careerNumber + 1));
             assertThat(count(harness.jdbc(), "career_competition_opponent_choice"))
-                    .isEqualTo(3);
+                    .isEqualTo(3 * (careerNumber + 1));
 
             var replay = CareerCompetitionTestSupport
                     .applySyntheticVerifiedCompletion(harness.competitionStore(),
@@ -1008,10 +1009,210 @@ class CareerModePersistenceTest {
                             Objects.requireNonNull(lastWinner));
             assertThat(replay.replayed()).isTrue();
             assertThat(count(harness.jdbc(), "career_competition_application"))
-                    .isEqualTo(40);
+                    .isEqualTo(40 * (careerNumber + 1));
             assertThat(count(harness.jdbc(), "career_competition_result_detail"))
-                    .isEqualTo(40);
+                    .isEqualTo(40 * (careerNumber + 1));
+            if (careerNumber == 0) {
+                var beforeUpgrade = harness.competitionStore().load(career.careerId(), 2027);
+                var choices = rows(harness.jdbc(), "career_competition_opponent_choice", "match_id");
+                assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
+                        .migrationsExecuted).isOne();
+                assertThat(rows(harness.jdbc(), "career_competition_opponent_choice", "match_id"))
+                        .isEqualTo(choices);
+                assertThat(harness.competitionStore().load(career.careerId(), 2027))
+                        .isEqualTo(beforeUpgrade);
+            }
+            }
+            assertThat(harness.jdbc().queryForObject(
+                    "SELECT COUNT(DISTINCT choice_hash) FROM career_competition_opponent_choice",
+                    Integer.class)).isEqualTo(3);
         }
+    }
+
+    @Test
+    void competitionHeartbeatCoversLongRunAndVerificationWithAtomicCompletion() {
+        try (HikariDataSource source = dataSource("jdbc:h2:mem:heartbeat-" + UUID.randomUUID());
+             var lease = CareerCompetitionTestSupport.controlledLease()) {
+            Flyway.configure().dataSource(source).load().migrate();
+            Harness harness = harness(source);
+            var career = harness.careers().create(new CareerApiV1Dtos.CreateRequest(
+                    CareerApiV1Dtos.CREATE_REQUEST_SCHEMA, "Auto", "감독", "BRO",
+                    UUID.randomUUID().toString())).career().career();
+            var instant = new java.util.concurrent.atomic.AtomicReference<>(java.time.Instant.parse("2026-09-05T00:00:00Z"));
+            Clock clock = mock(Clock.class);
+            when(clock.instant()).thenAnswer(ignored -> instant.get());
+            var auto = mock(CareerCompetitionAutomatedSeriesKernel.class);
+            var player = mock(com.lolfm.application.CareerCompetitionPlayerSeriesKernel.class);
+            var store = new CareerCompetitionRelationalStore(harness.jdbc(),
+                    new DataSourceTransactionManager(source), clock,
+                    new CareerCompetitionRules(new ObjectMapper().findAndRegisterModules()));
+            var execution = competitionExecution(source, store, auto, player, clock, lease.leases);
+            Runnable pulse = () -> { instant.updateAndGet(at -> at.plusSeconds(240)); lease.pulse(); };
+            when(auto.run(any())).thenAnswer(ignored -> { pulse.run(); pulse.run(); return null; });
+            String command = UUID.randomUUID().toString();
+            var started = execution.startOrResume(career, 2027, LocalDate.of(2027, 3, 1), 0, command);
+            CareerCompetitionTestSupport.withSyntheticVerification(pulse, calls -> {
+                assertThat(execution.executeAutoJob(started.jobId()).status()).isEqualTo("COMPLETED");
+                assertThat(calls.get()).isOne();
+                var beforeReplay = state(harness.jdbc());
+                assertThat(execution.executeAutoJob(started.jobId()).replayed()).isTrue();
+                assertThat(execution.reconcile(career.careerId(), 2027, 0, command).status()).isEqualTo("COMPLETED");
+                assertThat(state(harness.jdbc())).isEqualTo(beforeReplay);
+            });
+            assertThat(count(harness.jdbc(), "career_competition_application")).isOne();
+            verify(auto).run(any());
+            verifyNoInteractions(player);
+        }
+    }
+
+    @Test
+    void expiredCompetitionWorkerCannotOverwriteReacquiredJobOrApplyTwice() {
+        try (HikariDataSource source = dataSource("jdbc:h2:mem:competition-fence-" + UUID.randomUUID());
+             var oldLease = CareerCompetitionTestSupport.controlledLease();
+             var newLease = CareerCompetitionTestSupport.controlledLease()) {
+            Flyway.configure().dataSource(source).load().migrate();
+            Harness harness = harness(source);
+            var career = harness.careers().create(new CareerApiV1Dtos.CreateRequest(
+                    CareerApiV1Dtos.CREATE_REQUEST_SCHEMA, "Auto", "감독", "BRO",
+                    UUID.randomUUID().toString())).career().career();
+            var instant = new java.util.concurrent.atomic.AtomicReference<>(java.time.Instant.parse("2026-09-05T00:00:00Z"));
+            Clock clock = mock(Clock.class);
+            when(clock.instant()).thenAnswer(ignored -> instant.get());
+            var store = new CareerCompetitionRelationalStore(harness.jdbc(),
+                    new DataSourceTransactionManager(source), clock,
+                    new CareerCompetitionRules(new ObjectMapper().findAndRegisterModules()));
+            var oldAuto = mock(CareerCompetitionAutomatedSeriesKernel.class);
+            var newAuto = mock(CareerCompetitionAutomatedSeriesKernel.class);
+            var player = mock(com.lolfm.application.CareerCompetitionPlayerSeriesKernel.class);
+            var oldWorker = competitionExecution(source, store, oldAuto, player, clock, oldLease.leases);
+            var newWorker = competitionExecution(source, store, newAuto, player, clock, newLease.leases);
+            var started = oldWorker.startOrResume(career, 2027, LocalDate.of(2027, 3, 1),
+                    0, UUID.randomUUID().toString());
+            when(oldAuto.run(any())).thenAnswer(ignored -> {
+                instant.updateAndGet(at -> at.plusSeconds(301));
+                assertThat(newWorker.executeAutoJob(started.jobId()).status()).isEqualTo("COMPLETED");
+                // Deliberately no heartbeat: the DB application fence must reject the old worker.
+                return null;
+            });
+            CareerCompetitionTestSupport.withSyntheticVerification(() -> {}, calls -> {
+                assertThat(oldWorker.executeAutoJob(started.jobId()).status()).isEqualTo("COMPLETED");
+                assertThat(calls.get()).isEqualTo(2);
+            });
+            assertThat(count(harness.jdbc(), "career_competition_application")).isOne();
+            assertThat(harness.jdbc().queryForObject("SELECT attempt_number FROM career_competition_job WHERE job_id = ?", Integer.class, started.jobId())).isEqualTo(2);
+            assertThat(harness.jdbc().queryForObject("SELECT failure_code FROM career_competition_job WHERE job_id = ?", String.class, started.jobId())).isNull();
+            oldLease.pulse(); // Stale callbacks cannot revive or overwrite a completed job.
+            verify(newAuto).run(any());
+        }
+    }
+
+    @Test
+    void renewalFailureIsStickyAndExpiredFinalCommitRollsBackTheEntireGraph() {
+        for (boolean renewalFailure : List.of(true, false)) {
+            try (HikariDataSource source = dataSource("jdbc:h2:mem:competition-loss-" + UUID.randomUUID());
+                 var lease = CareerCompetitionTestSupport.controlledLease()) {
+                Flyway.configure().dataSource(source).load().migrate();
+                Harness harness = harness(source);
+                var career = harness.careers().create(new CareerApiV1Dtos.CreateRequest(
+                        CareerApiV1Dtos.CREATE_REQUEST_SCHEMA, "Auto", "감독", "BRO",
+                        UUID.randomUUID().toString())).career().career();
+                var instant = new java.util.concurrent.atomic.AtomicReference<>(java.time.Instant.parse("2026-09-05T00:00:00Z"));
+                Clock clock = mock(Clock.class);
+                when(clock.instant()).thenAnswer(ignored -> instant.get());
+                var store = spy(new CareerCompetitionRelationalStore(harness.jdbc(),
+                        new DataSourceTransactionManager(source), clock,
+                        new CareerCompetitionRules(new ObjectMapper().findAndRegisterModules())));
+                var auto = mock(CareerCompetitionAutomatedSeriesKernel.class);
+                var execution = competitionExecution(source, store, auto,
+                        mock(com.lolfm.application.CareerCompetitionPlayerSeriesKernel.class), clock, lease.leases);
+                var started = execution.startOrResume(career, 2027, LocalDate.of(2027, 3, 1), 0, UUID.randomUUID().toString());
+                var before = store.load(career.careerId(), 2027);
+                if (renewalFailure) {
+                    when(auto.run(any())).thenAnswer(ignored -> {
+                        instant.updateAndGet(at -> at.plusSeconds(300)); // Equality is expiry.
+                        lease.pulse();
+                        return null;
+                    });
+                } else {
+                    org.mockito.Mockito.doAnswer(invocation -> {
+                        Object applied = invocation.callRealMethod();
+                        instant.updateAndGet(at -> at.plusSeconds(301));
+                        return applied;
+                    }).when(store).applyVerifiedCompletion(any());
+                }
+                CareerCompetitionTestSupport.withSyntheticVerification(() -> {}, calls -> {
+                    assertThat(execution.executeAutoJob(started.jobId()).status()).isEqualTo("RUNNING");
+                    assertThat(calls.get()).isEqualTo(renewalFailure ? 0 : 1);
+                });
+                assertThat(store.load(career.careerId(), 2027)).isEqualTo(before);
+                assertThat(count(harness.jdbc(), "career_competition_application")).isZero();
+                assertThat(count(harness.jdbc(), "career_competition_completion_receipt")).isZero();
+                assertThat(count(harness.jdbc(), "career_competition_result_detail")).isZero();
+            }
+        }
+    }
+
+    @Test
+    void appliedPlayerReconcileUsesDurableEvidenceWithoutAnyKernelCallsOrMutation() {
+        try (HikariDataSource source = dataSource("jdbc:h2:mem:player-reconcile-" + UUID.randomUUID());
+             var lease = CareerCompetitionTestSupport.controlledLease()) {
+            Flyway.configure().dataSource(source).load().migrate();
+            Harness harness = harness(source);
+            var career = harness.careers().create(request(UUID.randomUUID().toString())).career().career();
+            var auto = mock(CareerCompetitionAutomatedSeriesKernel.class);
+            var player = mock(com.lolfm.application.CareerCompetitionPlayerSeriesKernel.class);
+            var execution = competitionExecution(source, harness.competitionStore(), auto, player, Clock.systemUTC(), lease.leases);
+            when(player.start(any())).thenAnswer(invocation -> {
+                com.lolfm.career.CareerCompetitionSeriesBindingV1 binding = invocation.getArgument(0);
+                return new com.lolfm.application.CareerCompetitionPlayerSeriesKernel.Reference(binding.boundSeriesId(), binding.bindingHash(), 0,
+                        com.lolfm.application.SeriesStatus.ACTIVE, 1, false);
+            });
+            when(player.resume(any())).thenAnswer(invocation -> {
+                com.lolfm.career.CareerCompetitionSeriesBindingV1 binding = invocation.getArgument(0);
+                return new com.lolfm.application.CareerCompetitionPlayerSeriesKernel.Reference(binding.boundSeriesId(), binding.bindingHash(), 2,
+                        com.lolfm.application.SeriesStatus.COMPLETED, 2, true);
+            });
+            String command = UUID.randomUUID().toString();
+            var started = execution.startOrResume(career, 2027, LocalDate.of(2027, 3, 1), 0, command);
+            CareerCompetitionTestSupport.withSyntheticVerification(() -> {}, calls -> {
+                assertThat(execution.reconcile(career.careerId(), 2027, 0, command).replayed()).isFalse();
+                assertThat(calls.get()).isOne();
+                verify(player).completedEvidence(any());
+                org.mockito.Mockito.clearInvocations(player);
+                var before = state(harness.jdbc());
+                for (int retry = 0; retry < 3; retry++) {
+                    assertThat(execution.reconcile(career.careerId(), 2027, 0, command).status()).isEqualTo("COMPLETED");
+                    assertThat(execution.startOrResume(career, 2027, LocalDate.of(2027, 3, 1), 0, command).replayed()).isTrue();
+                }
+                assertThat(calls.get()).isOne();
+                verifyNoInteractions(player, auto);
+                assertThat(state(harness.jdbc())).isEqualTo(before);
+                assertThatThrownBy(() -> execution.reconcile(career.careerId(), 2027, 1, command))
+                        .hasMessage("COMPETITION_COMMAND_ID_CONFLICT");
+                assertThat(execution.reconcile(career.careerId(), 2028, 0, command).status()).isEqualTo("NOT_STARTED");
+                var other = harness.careers().create(request(UUID.randomUUID().toString())).career().career();
+                execution.startOrResume(other, 2027, LocalDate.of(2027, 3, 1), 0, command);
+                harness.jdbc().update("UPDATE career_competition_command SET binding_hash = ? WHERE career_id = ?", started.bindingHash(), other.careerId());
+                assertThatThrownBy(() -> execution.reconcile(other.careerId(), 2027, 0, command))
+                        .hasMessage("COMPETITION_COMMAND_BINDING_SCOPE_MISMATCH");
+                harness.jdbc().update("UPDATE career_competition_series_binding SET completion_receipt_hash = ? WHERE binding_hash = ?", "f".repeat(64), started.bindingHash());
+                assertThatThrownBy(() -> execution.reconcile(career.careerId(), 2027, 0, command))
+                        .hasMessage("COMPETITION_PERSISTED_COMPLETION_MISMATCH");
+            });
+        }
+    }
+
+    private static com.lolfm.career.CareerCompetitionExecutionService competitionExecution(
+            HikariDataSource source, CareerCompetitionRelationalStore store,
+            CareerCompetitionAutomatedSeriesKernel auto,
+            com.lolfm.application.CareerCompetitionPlayerSeriesKernel player,
+            Clock clock, com.lolfm.career.CareerCompetitionJobLease leases) {
+        var production = mock(LeagueProductionSnapshotProvider.class);
+        when(production.currentTeamCodes()).thenReturn(Set.copyOf(LeagueDomainTestFixtures.TEAM_CODES));
+        when(production.currentSnapshot(any())).thenReturn(LeagueDomainTestFixtures.snapshot());
+        when(production.currentResourceProvenanceHash()).thenReturn("c".repeat(64));
+        return new com.lolfm.career.CareerCompetitionExecutionService(store, auto, player,
+                production, new JdbcTemplate(source), new DataSourceTransactionManager(source), clock, leases);
     }
 
     @Test
@@ -1354,6 +1555,22 @@ class CareerModePersistenceTest {
                     career.careerId(), 2028))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("CAREER_COMPETITION_INITIALIZATION_CONFLICT");
+            // Storage scope, independently of content, permits the same receipt in another year.
+            String insertChoice = """
+                    INSERT INTO career_competition_opponent_choice(
+                      choice_hash, career_id, calendar_season_year, competition_id,
+                      match_id, choice_owner_team_code, eligible_seed_order, chosen_team_code,
+                      policy_id, policy_hash, created_at)
+                    VALUES (?, ?, ?, 'LCK_CUP', 'PI_R2_M1', 'GEN', '6:DK,5:T1', 'DK',
+                      'STORAGE_SCOPE_TEST', ?, CURRENT_TIMESTAMP)
+                    """;
+            for (int year : List.of(2027, 2028)) {
+                harness.jdbc().update(insertChoice, "a".repeat(64), career.careerId(), year, "b".repeat(64));
+            }
+            assertThat(count(harness.jdbc(), "career_competition_opponent_choice")).isEqualTo(2);
+            assertThatThrownBy(() -> harness.jdbc().update(insertChoice,
+                    "c".repeat(64), career.careerId(), 2028, "b".repeat(64)))
+                    .isInstanceOf(org.springframework.dao.DuplicateKeyException.class);
         }
     }
 
@@ -1636,6 +1853,12 @@ class CareerModePersistenceTest {
                 "career_competition_output", "career_id, calendar_season_year, output_id"));
         tables.put("career_competition_application", rows(jdbc,
                 "career_competition_application", "receipt_hash"));
+        for (String table : List.of("career_competition_series_binding",
+                "career_competition_command", "career_competition_job",
+                "career_competition_completion_receipt", "career_competition_result_detail",
+                "career_competition_opponent_choice")) {
+            tables.put(table, rows(jdbc, table, "1"));
+        }
         tables.put("league_registry", rows(jdbc, "league_registry", "league_id"));
         tables.put("league_season", rows(jdbc, "league_season", "season_id"));
         tables.put("league_round", rows(jdbc, "league_round",

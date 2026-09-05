@@ -31,6 +31,7 @@ public final class CareerCompetitionExecutionService {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
     private final Clock clock;
+    private final CareerCompetitionJobLease leases;
 
     public CareerCompetitionExecutionService(
             CareerCompetitionRelationalStore store,
@@ -39,7 +40,8 @@ public final class CareerCompetitionExecutionService {
             LeagueProductionSnapshotProvider production,
             JdbcTemplate jdbc,
             PlatformTransactionManager transactionManager,
-            Clock clock
+            Clock clock,
+            CareerCompetitionJobLease leases
     ) {
         this.store = Objects.requireNonNull(store, "store");
         this.auto = Objects.requireNonNull(auto, "auto");
@@ -49,6 +51,7 @@ public final class CareerCompetitionExecutionService {
         this.transactions = new TransactionTemplate(Objects.requireNonNull(
                 transactionManager, "transactionManager"));
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.leases = Objects.requireNonNull(leases, "leases");
     }
 
     public ExecutionResult startOrResume(
@@ -67,7 +70,7 @@ public final class CareerCompetitionExecutionService {
             if (!priorCommand.payloadHash().equals(commandPayload)) {
                 throw new IllegalStateException("COMPETITION_COMMAND_ID_CONFLICT");
             }
-            return replayCommand(priorCommand.bindingHash(), expectedRevision,
+            return replayCommand(career.careerId(), seasonYear, priorCommand.bindingHash(), expectedRevision,
                     clientCommandId);
         }
         CareerCompetitionRelationalStore.CycleView cycle = store.load(
@@ -114,9 +117,11 @@ public final class CareerCompetitionExecutionService {
     }
 
     private ExecutionResult replayCommand(
-            String bindingHash, long expectedRevision, String clientCommandId
+            String careerId, int seasonYear, String bindingHash, long expectedRevision, String clientCommandId
     ) {
         CareerCompetitionSeriesBindingV1 binding = bindingByHash(bindingHash);
+        requireScope(binding, bindingHash, careerId, seasonYear);
+        if (store.hasAppliedCompletion(binding)) return completedReplay(binding);
         if ("PLAYER_CONTROLLED".equals(binding.executionMode())) {
             CareerCompetitionPlayerSeriesKernel.Reference reference =
                     player.start(binding);
@@ -148,6 +153,8 @@ public final class CareerCompetitionExecutionService {
         }
         CareerCompetitionSeriesBindingV1 binding = bindingByHash(
                 command.bindingHash());
+        requireScope(binding, command.bindingHash(), careerId, seasonYear);
+        if (store.hasAppliedCompletion(binding)) return completedReplay(binding);
         if ("FULL_AUTO".equals(binding.executionMode())) {
             List<JobRow> jobs = jobs(binding.bindingHash());
             if (jobs.isEmpty()) return queueAuto(binding, expectedRevision,
@@ -229,42 +236,25 @@ public final class CareerCompetitionExecutionService {
                     lease_token = ?, lease_expires_at = ?,
                     updated_at = ?
                 WHERE job_id = ? AND lifecycle_status = 'PENDING'
-                """, lease, claimedAt.plusMinutes(5), claimedAt, jobId);
+                """, lease, claimedAt.plus(leases.duration()), claimedAt, jobId);
         if (claimed != 1) {
             JobRow current = jobs(binding.bindingHash()).getFirst();
             return new ExecutionResult("FULL_AUTO", binding.fixtureId(),
                     binding.matchId(), binding.boundSeriesId(), binding.bindingHash(),
                     jobId, current.status(), true, current.failureCode());
         }
-        try {
+        try (CareerCompetitionJobLease.Guard guard = leases.maintain(
+                () -> renewLease(jobId, lease))) {
             CareerCompetitionAutomatedSeriesKernel.CompletedSeriesEvidence evidence =
                     auto.run(binding);
+            guard.requireOwned();
             VerifiedCompetitionFixtureCompletion verified =
                     CareerCompetitionFixtureCompletionReceiptV1.verifyAutomated(
                             binding, evidence);
-            OffsetDateTime renewedAt = now();
-            int renewed = jdbc.update("""
-                    UPDATE career_competition_job
-                    SET lease_expires_at = ?, updated_at = ?
-                    WHERE job_id = ? AND lifecycle_status = 'RUNNING'
-                      AND lease_token = ? AND lease_expires_at > ?
-                    """, renewedAt.plusMinutes(5), renewedAt, jobId, lease,
-                    renewedAt);
-            if (renewed != 1) throw new IllegalStateException(
-                    "COMPETITION_AUTO_JOB_FENCE_REJECTED");
+            guard.requireOwned();
             CareerCompetitionRelationalStore.CompletionResult applied =
-                    store.applyVerifiedCompletion(verified);
-            int completed = jdbc.update("""
-                    UPDATE career_competition_job
-                    SET lifecycle_status = 'COMPLETED', completion_receipt_hash =
-                      (SELECT completion_receipt_hash
-                       FROM career_competition_series_binding WHERE binding_hash = ?),
-                      lease_token = NULL, lease_expires_at = NULL, updated_at = ?
-                    WHERE job_id = ? AND lifecycle_status = 'RUNNING'
-                      AND lease_token = ?
-                    """, binding.bindingHash(), now(), jobId, lease);
-            if (completed != 1) throw new IllegalStateException(
-                    "COMPETITION_AUTO_JOB_FENCE_REJECTED");
+                    guard.complete(() -> store.applyAutoVerifiedCompletion(
+                            verified, jobId, lease, leases.duration()));
             return new ExecutionResult("FULL_AUTO", binding.fixtureId(),
                     binding.matchId(), binding.boundSeriesId(), binding.bindingHash(),
                     jobId, "COMPLETED", applied.replayed(), null);
@@ -297,6 +287,32 @@ public final class CareerCompetitionExecutionService {
                     binding.matchId(), binding.boundSeriesId(), binding.bindingHash(),
                     jobId, "BLOCKED", false, code);
         }
+    }
+
+    private boolean renewLease(String jobId, String lease) {
+        OffsetDateTime at = now();
+        return jdbc.update("""
+                UPDATE career_competition_job
+                SET lease_expires_at = ?, updated_at = ?
+                WHERE job_id = ? AND lifecycle_status = 'RUNNING'
+                  AND lease_token = ? AND lease_expires_at > ?
+                """, at.plus(leases.duration()), at, jobId, lease, at) == 1;
+    }
+
+    private static void requireScope(CareerCompetitionSeriesBindingV1 binding,
+                                     String hash, String careerId, int year) {
+        if (!hash.equals(binding.bindingHash()) || !careerId.equals(binding.careerId())
+                || year != binding.seasonYear()) {
+            throw new IllegalStateException("COMPETITION_COMMAND_BINDING_SCOPE_MISMATCH");
+        }
+    }
+
+    private ExecutionResult completedReplay(CareerCompetitionSeriesBindingV1 binding) {
+        List<JobRow> values = jobs(binding.bindingHash());
+        String jobId = values.isEmpty() ? null : values.getFirst().jobId();
+        return new ExecutionResult(binding.executionMode(), binding.fixtureId(),
+                binding.matchId(), binding.boundSeriesId(), binding.bindingHash(),
+                jobId, "COMPLETED", true, null);
     }
 
     private JobBinding jobBinding(String jobId) {
