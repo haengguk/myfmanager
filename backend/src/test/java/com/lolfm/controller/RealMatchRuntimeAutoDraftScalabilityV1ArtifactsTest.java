@@ -10,12 +10,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 class RealMatchRuntimeAutoDraftScalabilityV1ArtifactsTest {
     @TempDir Path temporary;
 
     @Test
+    @Tag("diagnostic")
+    @Tag("historical-artifact")
     void existingPerformanceBaselineManifestIsIndependentlyVerifiedFourOfFour()
             throws Exception {
         var evidence = RealMatchRuntimeAutoDraftScalabilityV1Artifacts

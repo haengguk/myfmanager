@@ -2,10 +2,11 @@
 
 ## 현재 상태
 
-현재 상태는 `CAREER_COMPETITION_LIFECYCLE_V1_TARGETED_HARDENED_KESPA_SOURCE_GAP`이다.
-Competition graph와 Calendar recovery 경계는 V2 무결성 계약으로 강화했고, LCK Cup은 2026 공식
-구조와 명시적 게임 정책으로 40경기 graph를 materialize한다. KeSPA Cup은 2026 대회 존재만
-확인됐으므로 2025 공식 규칙을 참고 템플릿으로만 보존하고 실행은 차단한다.
+현재 상태는
+`CAREER_COMPETITION_SERIES_EXECUTION_AND_RESULT_TRANSITION_V1_ACCEPTED`이다.
+source-complete 국내 대회 graph는 기존 BO3/BO5, Player/Auto Draft, Hard Fearless와 Production V9에
+연결됐고 verified Series 결과만 다음 대진과 qualification output을 바꾼다. KeSPA Cup과
+source-incomplete LCK Playoffs, 실제 국제대회 실행은 계속 명시적으로 차단한다.
 
 ## Authority와 mutation 경계
 
@@ -14,6 +15,8 @@ Competition graph와 Calendar recovery 경계는 V2 무결성 계약으로 강�
 - Competition instance: seed, fixture graph, selector provenance, 결과/receipt/output, lifecycle
 - League Season: 기존 R1~2 18 rounds/90 fixtures, standings, job/outbox/receipt
 - Series/Match: score, Draft/Hard Fearless history, Production V9와 seeded gameplay Random
+- Competition execution: immutable binding, Player checkpoint 또는 Auto job/lease/fence, command recovery
+- Completion application: verified compact receipt, result detail/application ledger, graph transition/outbox
 
 `GET /calendar`와 Career 조회는 read-only다. cycle 생성, V1→V2 migration, R1~2 결과 봉인과
 competition transition은 새 Career 생성 transaction, startup recovery 또는 명시적 advance/command
@@ -37,7 +40,8 @@ stored hash와 exact 비교한다.
 V1 저장은 startup recovery가 V1 canonical hash와 11개 instance를 먼저 검증한 경우에만 한
 transaction에서 V2로 승격한다. 증명할 수 없는 V1은 덮어쓰지 않고
 `COMPETITION_STATE_MIGRATION_REQUIRED` 또는 legacy integrity error로 차단한다. V8은 새 field만
-additive하게 추가하며 기존 migration은 수정하지 않는다.
+additive하게 추가한다. V9은 binding, command, Auto job, result detail/application, Cup standings/seed,
+opponent-choice와 outbox table을 추가한다. 기존 migration은 수정하지 않는다.
 
 ## Selector와 stable identity
 
@@ -81,6 +85,42 @@ Cup resource는 25 group match, Play-in 5 match, Playoff 10 match의 40개 order
 `OFFICIAL_PROJECTED_DATE`다. 두 값 모두 source year 2026의 month/day를 미래 Calendar에
 `SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1`로 투영하며 “공식 미래 일정”이라고 부르지 않는다.
 
+## Series 실행과 완료 권위
+
+Fixture start 요청은 schema, expected Competition revision, logical UUID만 받는다. 팀, 상대, side,
+format, seed, score, winner, receipt와 qualification output은 서버가 persisted graph와 production
+snapshot에서 결정한다. Canonical binding은 Career/year/competition, rule/resource/game-policy,
+instance hash/revision, fixture/match/stage/order, original selector와 resolved team, BO3/BO5,
+Hard Fearless, execution mode/side policy/root seed, bound Series와 production resource identity를
+explicit order UTF-8로 결속한다.
+
+관리 팀 fixture는 `COMPETITION_BOUND` Series checkpoint를 만들고 기존 Player Draft/Series UI와
+Production V9을 그대로 사용한다. 비관리 fixture는 fixture 하나를 durable job/lease/fence 단위로
+삼고, 내부 game은 같은 frozen binding과 seed로 순차 실행한다. 두 경로 모두 current production
+resource가 binding과 다르면 실행하거나 자동 치유하지 않는다.
+
+Completion verifier는 ordered game compact receipt에서 side/team/game seed, Hard Fearless history,
+Draft 결정/final assignment, policy/profile/configuration/engine/resource, output/replay/timeline/Random
+fingerprint, decisive score와 winner를 다시 확인한다. 이 verifier만 private-constructor opaque verified
+value를 만들 수 있고 store의 raw apply 경계는 외부 application flow에 공개하지 않는다. 적용
+transaction은 fixture/result/application ledger, dependent selector, instance/cycle revision/hash,
+standings/seed/output과 outbox를 함께 갱신한다. 같은 receipt replay는 mutation 0이며 cross-fixture,
+cross-Career, cross-season receipt 재사용은 거부한다.
+
+## LCK Cup과 다른 국내 대회 전이
+
+LCK Cup Group Battle 25경기가 모두 verified completion인 경우에만 그룹 포인트와 개인 순위를
+봉인한다. 일반 BO3 승리는 1점, Super Week BO5 승리는 2점이다. ordered standings와 tie-break
+trace/hash를 저장하며 필요한 공식 추가 tiebreak evidence가 없으면 stable team code로 결과를
+창작하지 않고 `LCK_CUP_TIEBREAKER_REQUIRED`에서 멈춘다. 봉인 결과로 Play-in 6 seed와 Playoff
+직행 seed를 만들고, 5개 Play-in과 10개 Playoff selector를 predecessor/seed/choice dependency 순서로
+resolve한다. 세 opponent choice는 eligible seed order, owner, chosen opponent, policy ID/hash receipt를
+남긴다. Final 결과는 First Stand LCK seed 1/2만 만들며 국제 상대나 결과는 만들지 않는다.
+
+동일 adapter는 source-complete인 `LCK_ROAD_TO_MSI` 5경기, sealed R1~2 ranking을 carry하는
+`LCK_REGULAR_R3_R4` 40경기, `LCK_PLAY_IN` 3경기에 사용한다. 기존 `LCK_REGULAR_R1_R2` 90경기는
+계속 League Season authority가 소유한다.
+
 ## KeSPA Cup source gap
 
 KeSPA 분류는 다음과 같다.
@@ -110,15 +150,17 @@ Startup recovery는 해당 row를 그대로 두고 Calendar를
 `LEGACY_PENDING_RECONCILIATION_REQUIRED` 상태로 열며 새 advance를 차단한다. 새 command는
 mode/revision/UUID/payload/Career binding을 모두 저장한다.
 
-Frontend pending pointer는 Career별 UUID와 logical operation을 유지한다. bounded automatic retry가
-소진돼도 현재 Calendar를 표시하고 활성 `상태 다시 확인`으로 authoritative GET을 먼저 수행한다.
-서버 pending이 해제되면 새 UUID가 아니라 같은 UUID로 exact replay/reconciliation한다. 명시적
-terminal 상태에서만 pointer를 지운다.
+Frontend pending pointer는 Career별 UUID와 logical operation을 유지한다. Calendar GET의
+`activePendingCommand`가 브라우저 저장보다 우선하므로 탭뿐 아니라 브라우저 프로세스를 다시 열어도
+원래 UUID를 복원한다. bounded automatic retry가 소진돼도 현재 Calendar를 표시하고 활성
+`대회 결과 확인`으로 authoritative GET/reconcile을 수행한다. completion으로 Competition revision이
+바뀐 뒤에만 stale pointer를 지운다. Player는 같은 Series ID로 돌아가고 Auto는 같은 job ID를 다시
+submit하므로 새 Series/gameplay/application을 만들지 않는다.
 
 ## 남은 제한
 
-Competition fixture를 Production V9 Auto/Player Series에 연결하는 실행 adapter와 실제 result→다음
-Cup selector materialization, R3~4 final ranking→Play-in, LCK Playoff source closure, Career season
-rollover는 아직 없다. 따라서 graph와 무결성은 준비됐지만 Cup/KeSPA 전체 경기를 실행했다고
-표현하지 않는다. 다음 구현 작업은 `CAREER_COMPETITION_SERIES_EXECUTION_AND_RESULT_TRANSITION_V1`,
-source gap 정리는 `CAREER_COMPETITION_RULE_SOURCE_CLOSURE_V1`이다.
+KeSPA 2026 규칙/참가자, LCK Playoffs bracket source, First Stand/MSI/EWC/Worlds 실제 상대·roster·fixture,
+Asian Games 차출 효과, Career season rollover, 이적·훈련·피로·부상·재정은 아직 없다. Auto job은
+durable result/application exactly-once를 제공하지만 single-node local worker이며 crash 시 미완료
+게임의 CPU 계산 자체는 같은 frozen input으로 다시 수행할 수 있다. 다음 source 작업은
+`CAREER_COMPETITION_RULE_SOURCE_CLOSURE_V1`이다.

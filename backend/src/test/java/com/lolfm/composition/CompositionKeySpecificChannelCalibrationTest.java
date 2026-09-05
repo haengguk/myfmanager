@@ -10,10 +10,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("diagnostic")
+@Tag("historical-artifact")
 class CompositionKeySpecificChannelCalibrationTest {
     static List<CompositionKeySpecificChannelCalibration.ScheduleRow> schedule;
     static CompositionKeySpecificChannelCalibration.Split split;

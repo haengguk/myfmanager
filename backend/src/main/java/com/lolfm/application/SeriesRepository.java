@@ -227,7 +227,7 @@ final class SeriesRepository {
             cleanupObserver.beforeAtomicCleanup(id);
             series.computeIfPresent(id, (key, current) -> {
                 SeriesAggregate live = expire(current, now);
-                if (live.origin() == SeriesOrigin.LEAGUE_BOUND) {
+                if (live.origin().durableBound()) {
                     saveLeagueSeries(live);
                     return live;
                 }
@@ -250,7 +250,7 @@ final class SeriesRepository {
     }
 
     private void saveLeagueSeries(SeriesAggregate aggregate) {
-        if (durableLeagueSeries != null && aggregate.origin() == SeriesOrigin.LEAGUE_BOUND) {
+        if (durableLeagueSeries != null && aggregate.origin().durableBound()) {
             durableLeagueSeries.save(aggregate);
         }
     }

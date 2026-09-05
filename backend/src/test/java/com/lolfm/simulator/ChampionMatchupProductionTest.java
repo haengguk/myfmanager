@@ -8,6 +8,7 @@ import com.lolfm.dto.MatchSimulateRequest;
 import com.lolfm.testsupport.FrontendTextSourceScanner;
 import java.nio.file.*;
 import java.util.*;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 class ChampionMatchupProductionTest {
@@ -26,8 +27,11 @@ class ChampionMatchupProductionTest {
     @Test void productionCatalogHasExactCoverage() { assertThat(profiles.profiles()).hasSize(216); assertThat(profiles.profiles().keySet()).filteredOn(k->k.position()==Position.TOP).hasSize(54); assertThat(profiles.profiles().keySet()).filteredOn(k->k.position()==Position.JUNGLE).hasSize(51); assertThat(profiles.profiles().keySet()).filteredOn(k->k.position()==Position.MID).hasSize(45); assertThat(profiles.profiles().keySet()).filteredOn(k->k.position()==Position.ADC).hasSize(31); assertThat(profiles.profiles().keySet()).filteredOn(k->k.position()==Position.SUPPORT).hasSize(35); }
     @Test void unsupportedProfileFailsBeforeMatchStartWhenOn() { assertThatThrownBy(()->evaluator.evaluate(key("unsupported",Position.TOP),key("ornn",Position.TOP),ProgressionCombatContext.LANE_COMBAT,ChampionMatchupMode.GEOMETRIC_V2)).isInstanceOf(UnsupportedChampionRoleMatchupProfileException.class).hasMessageContaining(UnsupportedChampionRoleMatchupProfileException.CODE); }
     @Test void unsupportedProfileDoesNotBreakOffMode() { assertThat(evaluator.evaluate(key("unsupported",Position.TOP),key("also-unsupported",Position.TOP),ProgressionCombatContext.LANE_COMBAT,ChampionMatchupMode.OFF).finalEdge()).isZero(); }
+    @Tag("diagnostic") @Tag("historical-artifact")
     @Test void productionEvaluatorMatches675CandidateRows() throws Exception { assertThat(matrixParity()).isEqualTo(675); }
+    @Tag("diagnostic") @Tag("historical-artifact")
     @Test void dynamicArtifactParityIsExact() throws Exception { assertThat(dynamicParity()).containsExactly(1920L,1920L,0L); }
+    @Tag("diagnostic") @Tag("historical-artifact")
     @Test void growthRatesUseEligibleRowsOnly() throws Exception { var lines=Files.readAllLines(Path.of("build/reports/geometric-candidate-influence/geometric-candidate-focused-dynamic.csv"));String[]h=lines.getFirst().split(",");int scenario=i(h,"scenario"),eligible=i(h,"growthPackageEligible"),overcome=i(h,"overcome");for(String name:List.of("COMBINED_LEAD_SMALL","COMBINED_LEAD_LARGE")){var rows=lines.stream().skip(1).map(x->x.split(",",-1)).filter(x->x[scenario].equals(name)&&Boolean.parseBoolean(x[eligible])).toList();assertThat(rows).isNotEmpty().allMatch(x->Boolean.parseBoolean(x[overcome]));} }
     @Test void participantPairingUsesPositionIdentity() { assertThat(key("ornn",Position.TOP).position()).isEqualTo(Position.TOP); assertThatThrownBy(()->evaluator.evaluate(key("ornn",Position.TOP),key("viktor",Position.MID),ProgressionCombatContext.LANE_COMBAT,ChampionMatchupMode.GEOMETRIC_V2)).isInstanceOf(IllegalArgumentException.class); }
     @Test void evaluationDoesNotMutateGameState() { var f=new ChampionMatchupTestFixture(ChampionMatchupMode.OFF,false);int before=f.state().getCurrentTimeSeconds();evaluator.evaluate(key("ornn",Position.TOP),key("gwen",Position.TOP),ProgressionCombatContext.LANE_COMBAT,ChampionMatchupMode.GEOMETRIC_V2);assertThat(f.state().getCurrentTimeSeconds()).isEqualTo(before); }

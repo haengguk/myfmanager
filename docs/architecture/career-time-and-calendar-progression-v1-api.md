@@ -27,8 +27,11 @@ V1→V2 승격, R1~2 seal은 각각 새 Career 생성, startup recovery, 명시�
 - 상태 구분: official status, future-year projection status, execution status, schedule status
 - 구조화 자료: qualification edge, pending official field, KeSPA Cup reference/source-gap note
 - 복구 자료: Career별 `activePendingAdvance`의 UUID/mode/original revision/status/timestamp
-- 대회 자료: additive `competition`의 current/next competition·stage, lifecycle revision/hash,
-  next fixture/Series, managed 여부, qualification output과 source/external blocker
+- 대회 자료: additive `competition`의 current/next competition·실제 stage, lifecycle revision/hash,
+  next fixture/Series, selector/resolved team, managed 여부, binding/job/application 상태, group standings,
+  seed, qualification output과 source/external blocker
+- 대회 복구: `activePendingCommand`의 server-owned UUID/competition/match/status와
+  authoritative `allowedCommands`
 
 응답은 12개 정의를 표시한다: LCK Cup, First Stand, LCK 정규 R1~2, LCK Road to MSI, MSI,
 EWC LoL, LCK 정규 R3~4, LCK 플레이인, LCK 플레이오프, 아시안게임 LoL 국가대표 차출 창,
@@ -37,6 +40,33 @@ Worlds, KeSPA Cup. KeSPA는 실행 definition이 아니라 `REFERENCE_TEMPLATE_O
 `ruleVersion=KESPA_CUP_REFERENCE_TEMPLATE_2025`,
 `status=REFERENCE_TEMPLATE_NOT_OFFICIAL_FOR_2026_OR_FUTURE`와 두 blocker
 `KESPA_CUP_2026_RULE_SOURCE_INCOMPLETE`, `EXTERNAL_PARTICIPANT_ROSTER_AUTHORITY_MISSING`를 반환한다.
+
+Source-complete 국내 대회의 event `executionStatus`는
+`LINKED_COMPETITION_SERIES_EXECUTION`, 기존 R1~2는 `LINKED_EXISTING_LEAGUE_FIXTURES`, 국제/source-gap
+대회는 `FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED` 등 기존 제한 상태를 사용한다. Frontend는 이 값과
+`stageId`를 표시 문자열에서 재구성하지 않는다.
+
+## 국내 대회 Series command 계약
+
+두 additive endpoint가 같은 exact request field를 받는다.
+
+| Method/path | 의미 |
+| --- | --- |
+| `POST /api/v1/careers/{careerId}/competition/start-or-resume` | 현재 due fixture binding 생성 후 Player Series 시작/재개 또는 Auto job 생성·제출 |
+| `POST /api/v1/careers/{careerId}/competition/reconcile` | server가 투영한 기존 command UUID로 Player completion 적용 또는 Auto job 재제출/상태 확인 |
+
+```json
+{
+  "schemaVersion": "CAREER_COMPETITION_COMMAND_REQUEST_V1",
+  "expectedCompetitionRevision": 0,
+  "clientCommandId": "00000000-0000-4000-8000-000000000001"
+}
+```
+
+응답 `CAREER_COMPETITION_COMMAND_RESPONSE_V1`은 execution mode, fixture/match/Series/binding/job ID,
+status, replay/background accepted/failure code만 반환한다. Player/Auto 팀, side, seed, winner, score,
+receipt와 output을 request로 받지 않는다. 미래 날짜 fixture는 allowed command가 없고 직접 호출도
+`CAREER_COMPETITION_FIXTURE_NOT_DUE` 계열 409로 거부한다.
 
 ## 날짜 진행 계약
 
@@ -90,8 +120,7 @@ fixture ID/root seed/standings 의미는 변경하지 않는다.
 
 Competition lifecycle의 현재 구현과 source-gap은
 [Career Competition Lifecycle V1](career-competition-lifecycle-v1.md)을 따른다. Road/R3~4/Play-in
-graph는 구조화됐지만 competition 전용 Series adapter가 아직 없어 해당 fixture에서 fail-closed한다.
-LCK Cup 첫 시즌 40경기 graph는 준비됐고 미완료 fixture를 건너뛰지 않는다. 실제 Cup result→후속
-selector transition, LCK Playoff source closure, 외부 리그/KeSPA roster authority는 추측하지 않는다.
-현재 날짜 이전의 미완료 Cup fixture도 overdue gate로 다시 잡으므로 기존 저장의 날짜가 이미
-R1~2 이후여도 미완료 대회를 조용히 통과시키지 않는다.
+graph와 LCK Cup 40경기는 Competition Series adapter와 verified result transition으로 실행 가능하다.
+현재 날짜 이전의 첫 non-terminal fixture는 READY/WAITING과 무관하게 overdue gate로 다시 잡고,
+predecessor/seed/choice가 해결되지 않으면 구조화 blocker에서 멈춘다. LCK Playoffs source closure,
+외부 리그/KeSPA roster authority는 계속 추측하지 않는다.

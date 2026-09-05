@@ -1,5 +1,8 @@
 package com.lolfm.career;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.league.LeagueSeasonFrozenSnapshot;
 import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -8,10 +11,12 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.stereotype.Component;
@@ -41,6 +46,7 @@ public final class CareerCompetitionRelationalStore {
     private final TransactionTemplate transactions;
     private final Clock clock;
     private final CareerCompetitionRules rules;
+    private final ObjectMapper json;
 
     public CareerCompetitionRelationalStore(
             JdbcTemplate jdbc,
@@ -53,6 +59,7 @@ public final class CareerCompetitionRelationalStore {
                 transactionManager, "transactionManager"));
         this.clock = Objects.requireNonNull(clock, "clock");
         this.rules = Objects.requireNonNull(rules, "rules");
+        this.json = new ObjectMapper().findAndRegisterModules();
     }
 
     public CycleView initialize(
@@ -61,28 +68,40 @@ public final class CareerCompetitionRelationalStore {
     ) {
         return initialize(career.careerId(), calendarSeasonYear,
                 career.managedTeamCode(), career.rootSeed(),
-                rules.initialCupInitialization(calendarSeasonYear));
+                rules.initialCupInitialization(calendarSeasonYear), true);
     }
 
     public CycleView initialize(String careerId, int calendarSeasonYear) {
         CareerBinding binding = careerBinding(careerId);
         return initialize(careerId, calendarSeasonYear, binding.managedTeamCode(),
-                binding.rootSeed(), rules.initialCupInitialization(calendarSeasonYear));
+                binding.rootSeed(), rules.initialCupInitialization(calendarSeasonYear), true);
     }
 
+    /**
+     * Legacy signature is intentionally non-authoritative. A caller-built ranking, even
+     * with a well-formed hash, can never initialize a future Career cycle.
+     */
+    @Deprecated
     public CycleView initializeFuture(
             String careerId,
             int calendarSeasonYear,
             int seasonOrdinal,
             CareerCompetitionRules.PriorLckRanking priorRanking
     ) {
-        if (priorRanking == null || !careerId.equals(priorRanking.careerId())) {
-            throw new IllegalArgumentException("LCK_CUP_PRIOR_SEASON_CAREER_MISMATCH");
-        }
-        CareerBinding binding = careerBinding(careerId);
-        return initialize(careerId, calendarSeasonYear, binding.managedTeamCode(),
-                binding.rootSeed(), rules.futureCupInitialization(seasonOrdinal,
-                        calendarSeasonYear, priorRanking));
+        throw new IllegalArgumentException("UNVERIFIED_PRIOR_LCK_RANKING_REJECTED");
+    }
+
+    /** Initializes a future cycle only from a verified SEALED DB ranking snapshot. */
+    public CycleView initializeFuture(String careerId, int calendarSeasonYear) {
+        return transactions.execute(ignored -> {
+            VerifiedPriorLckRanking verified = verifiedPriorLckRanking(
+                    careerId, calendarSeasonYear);
+            CareerBinding binding = careerBinding(careerId);
+            return initialize(careerId, calendarSeasonYear, binding.managedTeamCode(),
+                    binding.rootSeed(), rules.futureCupInitialization(
+                            verified.seasonOrdinal() + 1, calendarSeasonYear,
+                            verified.ranking()), false);
+        });
     }
 
     private CycleView initialize(
@@ -90,7 +109,8 @@ public final class CareerCompetitionRelationalStore {
             int calendarSeasonYear,
             String managedTeamCode,
             long careerRootSeed,
-            CareerCompetitionRules.CupInitialization cupInitialization
+            CareerCompetitionRules.CupInitialization cupInitialization,
+            boolean initialBootstrapRequest
     ) {
         return transactions.execute(ignored -> {
             List<CycleRow> prior = findCycle(careerId, calendarSeasonYear, true);
@@ -105,6 +125,12 @@ public final class CareerCompetitionRelationalStore {
                             "CAREER_COMPETITION_INITIALIZATION_CONFLICT");
                 }
                 return validateAndView(prior.getFirst());
+            }
+            if (initialBootstrapRequest) {
+                requireFirstCycleBootstrapAuthority(careerId, calendarSeasonYear);
+            } else if (!CareerCompetitionRules.FUTURE_CUP_POLICY.equals(
+                    cupInitialization.policyId())) {
+                throw new IllegalStateException("PRIOR_SEASON_SEALED_RANKING_REQUIRED");
             }
             OffsetDateTime now = now();
             jdbc.update("""
@@ -196,9 +222,97 @@ public final class CareerCompetitionRelationalStore {
                 """, (result, ignored) -> result.getString(1));
         for (String key : missing) {
             int separator = key.lastIndexOf('|');
-            initialize(key.substring(0, separator),
-                    Integer.parseInt(key.substring(separator + 1)));
+            try {
+                initialize(key.substring(0, separator),
+                        Integer.parseInt(key.substring(separator + 1)));
+            } catch (IllegalStateException missingFutureAuthority) {
+                if (!"PRIOR_SEASON_SEALED_RANKING_REQUIRED".equals(
+                        missingFutureAuthority.getMessage())) throw missingFutureAuthority;
+                // Future cycle recovery is intentionally non-mutating until a verified
+                // previous in-game LCK final ranking exists.
+            }
         }
+    }
+
+    private void requireFirstCycleBootstrapAuthority(String careerId, int year) {
+        Integer cycleCount = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM career_competition_cycle WHERE career_id = ?
+                """, Integer.class, careerId);
+        Integer activeYear = jdbc.queryForObject("""
+                SELECT active_calendar_season_year FROM career_calendar_state
+                WHERE career_id = ?
+                """, Integer.class, careerId);
+        if (cycleCount == null || cycleCount != 0 || activeYear == null
+                || activeYear != year) {
+            throw new IllegalStateException("PRIOR_SEASON_SEALED_RANKING_REQUIRED");
+        }
+    }
+
+    private VerifiedPriorLckRanking verifiedPriorLckRanking(
+            String careerId, int targetYear
+    ) {
+        int priorYear = targetYear - 1;
+        List<PriorRankingHeader> headers = jdbc.query("""
+                SELECT season_ordinal, source_season_id, lifecycle_status, state_hash
+                FROM career_lck_final_ranking_snapshot
+                WHERE career_id = ? AND calendar_season_year = ?
+                FOR UPDATE
+                """, (result, ignored) -> new PriorRankingHeader(result.getInt(1),
+                result.getString(2), result.getString(3), result.getString(4)),
+                careerId, priorYear);
+        if (headers.size() != 1 || !"SEALED".equals(
+                headers.getFirst().lifecycleStatus())) {
+            throw new IllegalStateException("PRIOR_SEASON_SEALED_RANKING_REQUIRED");
+        }
+        PriorRankingHeader header = headers.getFirst();
+        List<CycleRow> priorCycles = findCycle(careerId, priorYear, false);
+        if (priorCycles.size() != 1
+                || priorCycles.getFirst().seasonOrdinal() != header.seasonOrdinal()) {
+            throw new IllegalStateException("PRIOR_SEASON_SEALED_RANKING_REQUIRED");
+        }
+        List<CareerCompetitionAggregate.SeededTeam> ranking = jdbc.query("""
+                SELECT rank_number, team_code, series_wins, series_losses,
+                       game_wins, game_losses
+                FROM career_lck_final_ranking_row
+                WHERE career_id = ? AND calendar_season_year = ?
+                ORDER BY rank_number
+                """, (result, ignored) -> new CareerCompetitionAggregate.SeededTeam(
+                result.getInt(1), result.getString(2), result.getInt(3),
+                result.getInt(4), result.getInt(5), result.getInt(6)), careerId,
+                priorYear);
+        String calculated = finalRankingStateHash(careerId, priorYear,
+                header.seasonOrdinal(), header.sourceSeasonId(), ranking);
+        if (!calculated.equals(header.stateHash())) {
+            throw new IllegalStateException("PRIOR_SEASON_RANKING_INTEGRITY_FAILURE");
+        }
+        return new VerifiedPriorLckRanking(header.seasonOrdinal(),
+                new CareerCompetitionRules.PriorLckRanking(careerId, priorYear,
+                        header.lifecycleStatus(), calculated, ranking));
+    }
+
+    public static String finalRankingStateHash(
+            String careerId, int seasonYear, int seasonOrdinal, String sourceSeasonId,
+            List<CareerCompetitionAggregate.SeededTeam> ranking
+    ) {
+        CareerIdentity.requireCareerId(careerId);
+        if (seasonOrdinal < 1 || sourceSeasonId == null || sourceSeasonId.isBlank()) {
+            throw new IllegalArgumentException("Invalid LCK final ranking identity");
+        }
+        StringBuilder canonical = new StringBuilder(
+                "schema=CAREER_LCK_FINAL_RANKING_SNAPSHOT_V1\ncareerId=")
+                .append(careerId).append("\ncalendarSeasonYear=").append(seasonYear)
+                .append("\nseasonOrdinal=").append(seasonOrdinal)
+                .append("\nsourceSeasonId=").append(sourceSeasonId)
+                .append("\nlifecycleStatus=SEALED\n");
+        ranking.stream().sorted(java.util.Comparator.comparingInt(
+                CareerCompetitionAggregate.SeededTeam::seed)).forEach(value -> canonical
+                .append("rank=").append(value.seed()).append('|')
+                .append(value.teamCode()).append('|').append(value.seriesWins())
+                .append('|').append(value.seriesLosses()).append('|')
+                .append(value.gameWins()).append('|').append(value.gameLosses())
+                .append('\n'));
+        return CareerCompetitionRules.sha256(canonical.toString().getBytes(
+                StandardCharsets.UTF_8));
     }
 
     private void upgradeLegacyCycle(String careerId, int year) {
@@ -538,6 +652,13 @@ public final class CareerCompetitionRelationalStore {
                     null, importHash, road.revision(), "0".repeat(64), now);
             updateInstance(careerId, seasonYear, "LCK_REGULAR_R3_R4", "READY",
                     null, importHash, 0, "0".repeat(64), now);
+            setInstanceMaterializationAuthority(careerId, seasonYear,
+                    "LCK_ROAD_TO_MSI", "SEALED_R1_R2_RANKING_GRAPH_V1",
+                    road.stateHash(), now);
+            setInstanceMaterializationAuthority(careerId, seasonYear,
+                    "LCK_REGULAR_R3_R4",
+                    CareerCompetitionRules.R3_R4_ALLOCATION_POLICY,
+                    r3r4.stateHash(), now);
             refreshInstanceHash(careerId, seasonYear, "LCK_REGULAR_R1_R2");
             refreshInstanceHash(careerId, seasonYear, "LCK_ROAD_TO_MSI");
             refreshInstanceHash(careerId, seasonYear, "LCK_REGULAR_R3_R4");
@@ -556,7 +677,982 @@ public final class CareerCompetitionRelationalStore {
         });
     }
 
-    public CompletionResult applyCompletion(
+    /** Creates or replays the immutable server-owned execution authority. */
+    public CareerCompetitionSeriesBindingV1 bindFixture(
+            String careerId, int seasonYear, String matchId,
+            LeagueSeasonFrozenSnapshot productionSnapshot,
+            String resourceProvenanceHash
+    ) {
+        return transactions.execute(ignored -> {
+            CycleView cycle = load(careerId, seasonYear);
+            FixtureRow fixture = cycle.fixtures().stream()
+                    .filter(value -> value.matchId().equals(matchId))
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException(
+                            "COMPETITION_MATCH_NOT_FOUND"));
+            InstanceRow instance = cycle.competitions().stream()
+                    .filter(value -> value.competitionId().equals(
+                            fixture.competitionId()))
+                    .findFirst().orElseThrow();
+            String managedTeam = careerBinding(careerId).managedTeamCode();
+            CareerCompetitionSeriesBindingV1 candidate =
+                    CareerCompetitionSeriesBindingV1.create(cycle, instance,
+                            fixture, managedTeam, rules.resourceHash(),
+                            productionSnapshot, resourceProvenanceHash);
+            List<String> prior = jdbc.query("""
+                    SELECT binding_canonical FROM career_competition_series_binding
+                    WHERE career_id = ? AND calendar_season_year = ?
+                      AND competition_id = ? AND match_id = ?
+                    """, (result, row) -> result.getString(1), careerId, seasonYear,
+                    fixture.competitionId(), matchId);
+            if (!prior.isEmpty()) {
+                CareerCompetitionSeriesBindingV1 restored =
+                        CareerCompetitionSeriesBindingV1.restoreCanonical(
+                                prior.getFirst());
+                if (!restored.bindingHash().equals(candidate.bindingHash())) {
+                    throw new IllegalStateException(
+                            "COMPETITION_FIXTURE_BINDING_CONFLICT");
+                }
+                return restored;
+            }
+            OffsetDateTime now = now();
+            jdbc.update("""
+                    INSERT INTO career_competition_series_binding(
+                      binding_hash, career_id, calendar_season_year,
+                      competition_id, match_id, fixture_id, series_id,
+                      execution_mode, binding_schema, binding_canonical,
+                      lifecycle_status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CREATED', ?, ?)
+                    """, candidate.bindingHash(), careerId, seasonYear,
+                    fixture.competitionId(), matchId, fixture.fixtureId(),
+                    fixture.seriesId(), fixture.executionMode(),
+                    CareerCompetitionSeriesBindingV1.SCHEMA,
+                    candidate.canonicalText(), now, now);
+            return candidate;
+        });
+    }
+
+    public CareerCompetitionSeriesBindingV1 loadBinding(
+            String careerId, int seasonYear, String matchId
+    ) {
+        List<String> values = jdbc.query("""
+                SELECT binding_canonical FROM career_competition_series_binding
+                WHERE career_id = ? AND calendar_season_year = ? AND match_id = ?
+                """, (result, row) -> result.getString(1), careerId, seasonYear,
+                matchId);
+        if (values.size() != 1) throw new IllegalStateException(
+                "COMPETITION_FIXTURE_BINDING_NOT_FOUND");
+        return CareerCompetitionSeriesBindingV1.restoreCanonical(values.getFirst());
+    }
+
+    public ExecutionProjection executionProjection(
+            String careerId, int seasonYear, String matchId
+    ) {
+        List<ExecutionProjection> values = jdbc.query("""
+                SELECT b.binding_hash, b.series_id, b.lifecycle_status,
+                       j.job_id, j.lifecycle_status,
+                       COALESCE(j.client_command_id, c.client_command_id),
+                       j.failure_code,
+                       CASE WHEN r.match_id IS NULL THEN 'NOT_APPLIED'
+                            ELSE 'APPLIED' END
+                FROM career_competition_series_binding b
+                LEFT JOIN career_competition_job j
+                  ON j.binding_hash = b.binding_hash
+                LEFT JOIN career_competition_command c
+                  ON c.binding_hash = b.binding_hash
+                 AND c.command_type = 'START_OR_RESUME'
+                LEFT JOIN career_competition_result_detail r
+                  ON r.binding_hash = b.binding_hash
+                WHERE b.career_id = ? AND b.calendar_season_year = ?
+                  AND b.match_id = ?
+                ORDER BY j.created_at DESC NULLS LAST,
+                         c.created_at ASC, c.client_command_id ASC
+                LIMIT 1
+                """, (result, row) -> new ExecutionProjection(result.getString(1),
+                result.getString(2), result.getString(3), result.getString(4),
+                result.getString(5), result.getString(6), result.getString(7),
+                result.getString(8)), careerId, seasonYear, matchId);
+        return values.isEmpty() ? null : values.getFirst();
+    }
+
+    public List<CupStandingView> cupStandings(String careerId, int seasonYear) {
+        Map<String, Integer> points = new LinkedHashMap<>();
+        points.put("BARON", 0);
+        points.put("ELDER", 0);
+        jdbc.query("""
+                SELECT s.seed_scope, SUM(f.group_point_value)
+                FROM career_competition_fixture f
+                JOIN career_competition_seed s
+                  ON s.career_id = f.career_id
+                 AND s.calendar_season_year = f.calendar_season_year
+                 AND s.competition_id = f.competition_id
+                 AND s.team_code = f.winner_team_code
+                WHERE f.career_id = ? AND f.calendar_season_year = ?
+                  AND f.competition_id = 'LCK_CUP'
+                  AND f.stage_id = 'GROUP_BATTLE'
+                  AND f.lifecycle_status = 'COMPLETED'
+                  AND s.seed_scope IN ('CUP_GROUP_BARON', 'CUP_GROUP_ELDER')
+                GROUP BY s.seed_scope
+                ORDER BY s.seed_scope
+                """, (RowCallbackHandler) result -> points.put(
+                result.getString(1).substring("CUP_GROUP_".length()),
+                result.getInt(2)), careerId, seasonYear);
+        return jdbc.query("""
+                SELECT group_id, group_rank, team_code, match_wins, match_losses,
+                       game_wins, game_losses, strength_of_victory,
+                       win_time_seconds, tie_break_trace, standings_hash
+                FROM career_lck_cup_standing
+                WHERE career_id = ? AND calendar_season_year = ?
+                ORDER BY group_id, group_rank
+                """, (result, row) -> new CupStandingView(result.getString(1),
+                points.getOrDefault(result.getString(1), 0), result.getInt(2),
+                result.getString(3), result.getInt(4), result.getInt(5),
+                result.getInt(6), result.getInt(7), result.getInt(8),
+                result.getInt(9), result.getString(10), result.getString(11)),
+                careerId, seasonYear);
+    }
+
+    public List<SeedView> currentSeeds(String careerId, int seasonYear) {
+        return jdbc.query("""
+                SELECT competition_id, seed_scope, seed_number, team_code,
+                       source_input_hash
+                FROM career_competition_seed
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND seed_scope IN ('CUP_PLAY_IN_SEED', 'CUP_PLAYOFF_SEED',
+                    'PLAY_IN_SEED')
+                ORDER BY competition_id, seed_scope, seed_number
+                """, (result, row) -> new SeedView(result.getString(1),
+                result.getString(2), result.getInt(3), result.getString(4),
+                result.getString(5)), careerId, seasonYear);
+    }
+
+    /** Applies only an opaque token minted by the Series replay verifier. */
+    public CompletionResult applyVerifiedCompletion(
+            VerifiedCompetitionFixtureCompletion verification
+    ) {
+        Objects.requireNonNull(verification, "verification");
+        return transactions.execute(ignored -> {
+            CareerCompetitionFixtureCompletionReceiptV1 receipt =
+                    verification.receipt();
+            CareerCompetitionSeriesBindingV1 binding = loadBinding(
+                    receipt.careerId(), receipt.seasonYear(), receipt.matchId());
+            if (!binding.bindingHash().equals(receipt.bindingHash())
+                    || !binding.competitionId().equals(receipt.competitionId())
+                    || !binding.fixtureId().equals(receipt.fixtureId())
+                    || !binding.boundSeriesId().equals(receipt.seriesId())
+                    || !binding.firstTeamCode().equals(receipt.firstTeamCode())
+                    || !binding.secondTeamCode().equals(receipt.secondTeamCode())) {
+                throw new IllegalArgumentException(
+                        "COMPETITION_VERIFIED_RECEIPT_SCOPE_MISMATCH");
+            }
+            List<String> existing = jdbc.query("""
+                    SELECT receipt_canonical FROM career_competition_completion_receipt
+                    WHERE receipt_hash = ?
+                    """, (result, row) -> result.getString(1), receipt.receiptHash());
+            if (!existing.isEmpty() && !existing.getFirst().equals(
+                    receipt.canonicalText())) {
+                throw new IllegalStateException("COMPETITION_RECEIPT_HASH_CONFLICT");
+            }
+            if (existing.isEmpty()) {
+                jdbc.update("""
+                        INSERT INTO career_competition_completion_receipt(
+                          receipt_hash, binding_hash, receipt_schema,
+                          receipt_canonical, receipt_json, first_score, second_score,
+                          winner_team_code, loser_team_code, total_duration_seconds,
+                          created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, receipt.receiptHash(), receipt.bindingHash(),
+                        CareerCompetitionFixtureCompletionReceiptV1.SCHEMA,
+                        receipt.canonicalText(), writeJson(receipt),
+                        receipt.firstScore(), receipt.secondScore(),
+                        receipt.winnerTeamCode(), receipt.loserTeamCode(),
+                        receipt.totalDurationSeconds(), now());
+            }
+            CompletionResult result = applyCompletionState(receipt.careerId(),
+                    receipt.seasonYear(), receipt.competitionId(), receipt.matchId(),
+                    receipt.seriesId(), receipt.firstTeamCode(),
+                    receipt.secondTeamCode(), receipt.winnerTeamCode(),
+                    receipt.receiptHash());
+            if (!result.replayed()) {
+                jdbc.update("""
+                        INSERT INTO career_competition_result_detail(
+                          career_id, calendar_season_year, competition_id, match_id,
+                          binding_hash, receipt_hash, first_score, second_score,
+                          total_duration_seconds, applied_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, receipt.careerId(), receipt.seasonYear(),
+                        receipt.competitionId(), receipt.matchId(),
+                        receipt.bindingHash(), receipt.receiptHash(),
+                        receipt.firstScore(), receipt.secondScore(),
+                        receipt.totalDurationSeconds(), now());
+                advanceResultGraph(receipt.careerId(), receipt.seasonYear(),
+                        receipt.competitionId());
+            }
+            jdbc.update("""
+                    UPDATE career_competition_series_binding
+                    SET lifecycle_status = 'COMPLETED', completion_receipt_hash = ?,
+                        updated_at = ? WHERE binding_hash = ?
+                    """, receipt.receiptHash(), now(), receipt.bindingHash());
+            return new CompletionResult(loadAggregate(receipt.careerId(),
+                    receipt.seasonYear(), receipt.competitionId()), result.replayed());
+        });
+    }
+
+    private void advanceResultGraph(String careerId, int year, String competitionId) {
+        if ("LCK_CUP".equals(competitionId)) {
+            advanceCupGraph(careerId, year);
+        } else if ("LCK_REGULAR_R3_R4".equals(competitionId)) {
+            materializeLckPlayInWhenReady(careerId, year);
+        }
+        refreshInstanceHash(careerId, year, competitionId);
+        refreshCycleHash(careerId, year);
+    }
+
+    private void advanceCupGraph(String careerId, int year) {
+        Integer completedGroups = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM career_competition_fixture
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_CUP' AND stage_id = 'GROUP_BATTLE'
+                  AND lifecycle_status = 'COMPLETED'
+                """, Integer.class, careerId, year);
+        if (completedGroups != null && completedGroups == 25
+                && countRows("career_lck_cup_standing", careerId, year) == 0) {
+            sealCupGroupStandings(careerId, year);
+        }
+        if (countRows("career_lck_cup_standing", careerId, year) == 10) {
+            deriveCupPlayoffSeeds(careerId, year);
+            resolveCupFixtures(careerId, year);
+        }
+    }
+
+    private int countRows(String table, String careerId, int year) {
+        Integer count = jdbc.queryForObject(("SELECT COUNT(*) FROM " + table
+                + " WHERE career_id = ? AND calendar_season_year = ?"),
+                Integer.class, careerId, year);
+        return count == null ? 0 : count;
+    }
+
+    private void sealCupGroupStandings(String careerId, int year) {
+        Map<String, String> groups = new LinkedHashMap<>();
+        jdbc.query("""
+                SELECT seed_scope, team_code FROM career_competition_seed
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_CUP'
+                  AND seed_scope IN ('CUP_GROUP_BARON', 'CUP_GROUP_ELDER')
+                ORDER BY seed_scope, seed_number
+                """, (RowCallbackHandler) result -> groups.put(result.getString(2),
+                result.getString(1).substring("CUP_GROUP_".length())), careerId, year);
+        if (groups.size() != 10) throw new IllegalStateException(
+                "LCK_CUP_GROUP_MEMBERSHIP_INTEGRITY_FAILURE");
+        LinkedHashMap<String, MutableCupStanding> standings = new LinkedHashMap<>();
+        groups.forEach((team, group) -> standings.put(team,
+                new MutableCupStanding(team, group)));
+        List<CupGroupResultRow> results = jdbc.query("""
+                SELECT f.match_id, f.first_team_code, f.second_team_code,
+                       f.winner_team_code, f.group_point_value, f.series_format,
+                       d.first_score, d.second_score, d.total_duration_seconds
+                FROM career_competition_fixture f
+                JOIN career_competition_result_detail d
+                  ON d.career_id = f.career_id
+                 AND d.calendar_season_year = f.calendar_season_year
+                 AND d.competition_id = f.competition_id
+                 AND d.match_id = f.match_id
+                WHERE f.career_id = ? AND f.calendar_season_year = ?
+                  AND f.competition_id = 'LCK_CUP'
+                  AND f.stage_id = 'GROUP_BATTLE'
+                ORDER BY f.match_order
+                """, (result, row) -> new CupGroupResultRow(result.getString(1),
+                result.getString(2), result.getString(3), result.getString(4),
+                result.getInt(5), result.getString(6), result.getInt(7),
+                result.getInt(8), result.getInt(9)), careerId, year);
+        if (results.size() != 25) throw new IllegalStateException(
+                "LCK_CUP_GROUP_RESULT_EVIDENCE_REQUIRED");
+        LinkedHashMap<String, Integer> groupPoints = new LinkedHashMap<>();
+        groupPoints.put("BARON", 0);
+        groupPoints.put("ELDER", 0);
+        HashSet<String> exposure = new HashSet<>();
+        for (CupGroupResultRow result : results) {
+            MutableCupStanding first = standings.get(result.firstTeam());
+            MutableCupStanding second = standings.get(result.secondTeam());
+            String exposureKey = result.firstTeam().compareTo(result.secondTeam()) < 0
+                    ? result.firstTeam() + '|' + result.secondTeam()
+                    : result.secondTeam() + '|' + result.firstTeam();
+            if (first == null || second == null || first.group.equals(second.group)
+                    || !exposure.add(exposureKey)
+                    || result.pointValue() != ("BO5".equals(result.seriesFormat())
+                    ? 2 : 1)) {
+                throw new IllegalStateException(
+                        "LCK_CUP_GROUP_EXPOSURE_INTEGRITY_FAILURE");
+            }
+            first.gameWins += result.firstScore();
+            first.gameLosses += result.secondScore();
+            second.gameWins += result.secondScore();
+            second.gameLosses += result.firstScore();
+            MutableCupStanding winner = standings.get(result.winnerTeam());
+            if (winner != first && winner != second) throw new IllegalStateException(
+                    "LCK_CUP_GROUP_WINNER_INTEGRITY_FAILURE");
+            MutableCupStanding loser = winner == first ? second : first;
+            winner.matchWins++;
+            winner.winTime += result.durationSeconds();
+            winner.defeated.add(loser.team);
+            loser.matchLosses++;
+            groupPoints.compute(winner.group,
+                    (ignored, value) -> Objects.requireNonNull(value)
+                            + result.pointValue());
+        }
+        if (exposure.size() != 25) throw new IllegalStateException(
+                "LCK_CUP_GROUP_EXPOSURE_INTEGRITY_FAILURE");
+        standings.values().forEach(value -> value.strength = value.defeated.stream()
+                .mapToInt(team -> standings.get(team).matchWins).sum());
+        Map<String, List<MutableCupStanding>> ordered = new LinkedHashMap<>();
+        for (String group : List.of("BARON", "ELDER")) {
+            List<MutableCupStanding> rows = standings.values().stream()
+                    .filter(value -> value.group.equals(group))
+                    .sorted(java.util.Comparator
+                            .comparingInt((MutableCupStanding value) -> value.matchWins)
+                            .reversed()
+                            .thenComparing(java.util.Comparator.comparingInt(
+                                    MutableCupStanding::gameDifferential).reversed())
+                            .thenComparing(java.util.Comparator.comparingInt(
+                                    (MutableCupStanding value) -> value.strength).reversed())
+                            .thenComparingInt(value -> value.matchWins == 0
+                                    ? Integer.MAX_VALUE : value.winTime))
+                    .toList();
+            if (rows.size() != 5 || unresolvedCupTie(rows)) {
+                blockCup(careerId, year, "LCK_CUP_TIEBREAKER_REQUIRED");
+                return;
+            }
+            ordered.put(group, rows);
+        }
+        int baronDiff = ordered.get("BARON").stream().mapToInt(
+                MutableCupStanding::gameDifferential).sum();
+        int elderDiff = ordered.get("ELDER").stream().mapToInt(
+                MutableCupStanding::gameDifferential).sum();
+        String winnerGroup;
+        if (!groupPoints.get("BARON").equals(groupPoints.get("ELDER"))) {
+            winnerGroup = groupPoints.get("BARON") > groupPoints.get("ELDER")
+                    ? "BARON" : "ELDER";
+        } else if (baronDiff != elderDiff) {
+            winnerGroup = baronDiff > elderDiff ? "BARON" : "ELDER";
+        } else {
+            blockCup(careerId, year, "LCK_CUP_TIEBREAKER_REQUIRED");
+            return;
+        }
+        String standingsHash = cupStandingsHash(careerId, year, groupPoints,
+                ordered, winnerGroup);
+        for (Map.Entry<String, List<MutableCupStanding>> group : ordered.entrySet()) {
+            for (int index = 0; index < group.getValue().size(); index++) {
+                MutableCupStanding row = group.getValue().get(index);
+                jdbc.update("""
+                        INSERT INTO career_lck_cup_standing(
+                          career_id, calendar_season_year, group_id, group_rank,
+                          team_code, match_wins, match_losses, game_wins, game_losses,
+                          strength_of_victory, win_time_seconds, tie_break_trace,
+                          standings_hash)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, careerId, year, group.getKey(), index + 1, row.team,
+                        row.matchWins, row.matchLosses, row.gameWins, row.gameLosses,
+                        row.strength, row.winTime,
+                        "MATCH_WINS>GAME_DIFFERENTIAL>HEAD_TO_HEAD_NOT_APPLICABLE_"
+                                + "CROSS_GROUP>STRENGTH_OF_VICTORY>WIN_TIME",
+                        standingsHash);
+            }
+        }
+        String loserGroup = winnerGroup.equals("BARON") ? "ELDER" : "BARON";
+        List<MutableCupStanding> winner = ordered.get(winnerGroup);
+        List<MutableCupStanding> loser = ordered.get(loserGroup);
+        insertDerivedSeeds(careerId, year, "CUP_PLAYOFF_SEED",
+                List.of(winner.get(0).team, winner.get(1).team, loser.get(0).team),
+                standingsHash, 1);
+        insertDerivedSeeds(careerId, year, "CUP_PLAY_IN_SEED",
+                List.of(winner.get(2).team, loser.get(1).team, winner.get(3).team,
+                        loser.get(2).team, winner.get(4).team, loser.get(3).team),
+                standingsHash, 1);
+        jdbc.update("""
+                UPDATE career_competition_instance
+                SET lifecycle_status = 'RUNNING', blocking_reason = NULL,
+                    updated_at = ?
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_CUP'
+                """, now(), careerId, year);
+    }
+
+    private static boolean unresolvedCupTie(List<MutableCupStanding> ordered) {
+        for (int index = 1; index < ordered.size(); index++) {
+            MutableCupStanding left = ordered.get(index - 1);
+            MutableCupStanding right = ordered.get(index);
+            if (left.matchWins == right.matchWins
+                    && left.gameDifferential() == right.gameDifferential()
+                    && left.strength == right.strength
+                    && left.winTime == right.winTime) return true;
+        }
+        return false;
+    }
+
+    private void blockCup(String careerId, int year, String reason) {
+        jdbc.update("""
+                UPDATE career_competition_instance
+                SET lifecycle_status = 'BLOCKED', blocking_reason = ?, updated_at = ?
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_CUP'
+                """, reason, now(), careerId, year);
+    }
+
+    private String cupStandingsHash(
+            String careerId, int year, Map<String, Integer> points,
+            Map<String, List<MutableCupStanding>> ordered, String winnerGroup
+    ) {
+        StringBuilder canonical = new StringBuilder(
+                "schema=CAREER_LCK_CUP_GROUP_STANDINGS_V1\n")
+                .append("careerId=").append(careerId).append('\n')
+                .append("calendarSeasonYear=").append(year).append('\n')
+                .append("winnerGroup=").append(winnerGroup).append('\n');
+        for (String group : List.of("BARON", "ELDER")) {
+            canonical.append("groupPoints=").append(group).append('|')
+                    .append(points.get(group)).append('\n');
+            List<MutableCupStanding> rows = ordered.get(group);
+            for (int index = 0; index < rows.size(); index++) {
+                MutableCupStanding row = rows.get(index);
+                canonical.append("standing=").append(group).append('|')
+                        .append(index + 1).append('|').append(row.team).append('|')
+                        .append(row.matchWins).append('|').append(row.matchLosses)
+                        .append('|').append(row.gameWins).append('|')
+                        .append(row.gameLosses).append('|').append(row.strength)
+                        .append('|').append(row.winTime).append('\n');
+            }
+        }
+        return CareerCompetitionRules.sha256(canonical.toString().getBytes(
+                StandardCharsets.UTF_8));
+    }
+
+    private void insertDerivedSeeds(
+            String careerId, int year, String scope, List<String> teams,
+            String sourceHash, int firstSeed
+    ) {
+        for (int index = 0; index < teams.size(); index++) {
+            jdbc.update("""
+                    INSERT INTO career_competition_seed(
+                      career_id, calendar_season_year, competition_id, seed_scope,
+                      seed_number, team_code, imported_series_wins,
+                      imported_series_losses, imported_game_wins,
+                      imported_game_losses, source_input_hash)
+                    VALUES (?, ?, 'LCK_CUP', ?, ?, ?, 0, 0, 0, 0, ?)
+                    """, careerId, year, scope, firstSeed + index,
+                    teams.get(index), sourceHash);
+        }
+    }
+
+    private void deriveCupPlayoffSeeds(String careerId, int year) {
+        Map<String, Integer> playInSeeds = seedByTeam(careerId, year,
+                "CUP_PLAY_IN_SEED");
+        Map<String, Outcome> outcomes = cupOutcomes(careerId, year);
+        Outcome first = outcomes.get("PI_R2_M1");
+        Outcome second = outcomes.get("PI_R2_M2");
+        if (first != null && second != null
+                && seedByNumber(careerId, year, "CUP_PLAYOFF_SEED").size() == 3) {
+            List<String> winners = List.of(first.winner(), second.winner()).stream()
+                    .sorted(java.util.Comparator.comparingInt(playInSeeds::get))
+                    .toList();
+            String source = CareerCompetitionRules.sha256(("schema=CUP_PLAY_IN_"
+                    + "PLAYOFF_SEED_4_5_V1\nfirst=" + winners.get(0)
+                    + "\nsecond=" + winners.get(1) + '\n').getBytes(
+                    StandardCharsets.UTF_8));
+            insertDerivedSeeds(careerId, year, "CUP_PLAYOFF_SEED", winners,
+                    source, 4);
+        }
+        Outcome finalResult = outcomes.get("PI_FINAL");
+        if (finalResult != null
+                && seedByNumber(careerId, year, "CUP_PLAYOFF_SEED").size() == 5) {
+            String source = CareerCompetitionRules.sha256((
+                    "schema=CUP_PLAY_IN_PLAYOFF_SEED_6_V1\nwinner="
+                            + finalResult.winner() + '\n').getBytes(
+                    StandardCharsets.UTF_8));
+            insertDerivedSeeds(careerId, year, "CUP_PLAYOFF_SEED",
+                    List.of(finalResult.winner()), source, 6);
+        }
+    }
+
+    private void resolveCupFixtures(String careerId, int year) {
+        Map<Integer, String> playIn = seedByNumber(careerId, year,
+                "CUP_PLAY_IN_SEED");
+        Map<Integer, String> playoff = seedByNumber(careerId, year,
+                "CUP_PLAYOFF_SEED");
+        Map<String, Integer> allSeeds = new LinkedHashMap<>(seedByTeam(careerId,
+                year, "CUP_PLAY_IN_SEED"));
+        allSeeds.putAll(seedByTeam(careerId, year, "CUP_PLAYOFF_SEED"));
+        Map<String, Outcome> outcomes = cupOutcomes(careerId, year);
+        List<PendingCupFixture> fixtures = jdbc.query("""
+                SELECT match_id, first_selector_type, first_selector_value,
+                       second_selector_type, second_selector_value,
+                       first_team_code, second_team_code, opponent_choice_policy
+                FROM career_competition_fixture
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_CUP'
+                  AND lifecycle_status = 'WAITING_FOR_PREDECESSOR'
+                ORDER BY match_order
+                """, (result, row) -> new PendingCupFixture(result.getString(1),
+                result.getString(2), result.getString(3), result.getString(4),
+                result.getString(5), result.getString(6), result.getString(7),
+                result.getString(8)), careerId, year);
+        Map<String, String> choices = existingChoices(careerId, year);
+        for (PendingCupFixture fixture : fixtures) {
+            String first = fixture.firstTeam() == null ? resolveCupSelector(careerId,
+                    year, fixture.matchId(), fixture.firstType(), fixture.firstValue(),
+                    playIn, playoff, allSeeds, outcomes, choices, null)
+                    : fixture.firstTeam();
+            String second = fixture.secondTeam() == null ? resolveCupSelector(careerId,
+                    year, fixture.matchId(), fixture.secondType(), fixture.secondValue(),
+                    playIn, playoff, allSeeds, outcomes, choices, first)
+                    : fixture.secondTeam();
+            if (first != null && second != null && !first.equals(second)) {
+                String mode = Set.of(first, second).contains(
+                        careerBinding(careerId).managedTeamCode())
+                        ? "PLAYER_CONTROLLED" : "FULL_AUTO";
+                jdbc.update("""
+                        UPDATE career_competition_fixture
+                        SET first_team_code = ?, second_team_code = ?,
+                            execution_mode = ?, lifecycle_status = 'READY',
+                            revision = revision + 1
+                        WHERE career_id = ? AND calendar_season_year = ?
+                          AND competition_id = 'LCK_CUP' AND match_id = ?
+                          AND lifecycle_status = 'WAITING_FOR_PREDECESSOR'
+                        """, first, second, mode, careerId, year, fixture.matchId());
+            }
+        }
+        if (playoff.size() == 6) {
+            recordFixedChoice(careerId, year, "PO_UBR1_M1", playoff.get(3),
+                    List.of(seed(playoff, 4), seed(playoff, 5), seed(playoff, 6)));
+        }
+    }
+
+    private String resolveCupSelector(
+            String careerId, int year, String targetMatch, String type, String value,
+            Map<Integer, String> playIn, Map<Integer, String> playoff,
+            Map<String, Integer> allSeeds, Map<String, Outcome> outcomes,
+            Map<String, String> choices, String choiceOwner
+    ) {
+        if ("CUP_PLAY_IN_SEED".equals(type)) return playIn.get(Integer.parseInt(value));
+        if ("CUP_PLAYOFF_SEED".equals(type)) return playoff.get(Integer.parseInt(value));
+        if ("MATCH_WINNER".equals(type)) return outcome(outcomes, value, true);
+        if ("MATCH_LOSER".equals(type)) return outcome(outcomes, value, false);
+        if ("LOWEST_AVAILABLE_SEED_MATCH_WINNER".equals(type)) {
+            List<CareerCompetitionAggregate.SeededTeam> candidates = matchValues(value)
+                    .stream().map(outcomes::get).filter(Objects::nonNull)
+                    .map(Outcome::winner).map(team -> seed(allSeeds, team)).toList();
+            if (candidates.size() != matchValues(value).size() || choiceOwner == null) {
+                return null;
+            }
+            CareerCompetitionRules.OpponentChoiceReceipt choice =
+                    rules.chooseCupOpponent(choiceOwner, candidates);
+            storeChoice(careerId, year, targetMatch, choice);
+            choices.put(value, choice.chosenTeamCode());
+            return choice.chosenTeamCode();
+        }
+        if ("REMAINING_MATCH_WINNER".equals(type)) {
+            String chosen = choices.get(value);
+            if (chosen == null) return null;
+            return matchValues(value).stream().map(outcomes::get)
+                    .filter(Objects::nonNull).map(Outcome::winner)
+                    .filter(team -> !team.equals(chosen)).findFirst().orElse(null);
+        }
+        if ("HIGHER_PLAYOFF_SEED_MATCH_LOSER".equals(type)
+                || "LOWER_PLAYOFF_SEED_MATCH_LOSER".equals(type)) {
+            List<String> losers = matchValues(value).stream().map(outcomes::get)
+                    .filter(Objects::nonNull).map(Outcome::loser).toList();
+            if (losers.size() != matchValues(value).size()) return null;
+            java.util.Comparator<String> comparator =
+                    java.util.Comparator.comparingInt(allSeeds::get);
+            return ("HIGHER_PLAYOFF_SEED_MATCH_LOSER".equals(type)
+                    ? losers.stream().min(comparator) : losers.stream().max(comparator))
+                    .orElse(null);
+        }
+        return null;
+    }
+
+    private void recordFixedChoice(
+            String careerId, int year, String matchId, String owner,
+            List<CareerCompetitionAggregate.SeededTeam> eligible
+    ) {
+        if (owner == null || eligible.stream().anyMatch(value ->
+                value.teamCode() == null)) return;
+        storeChoice(careerId, year, matchId,
+                rules.chooseCupOpponent(owner, eligible));
+    }
+
+    private void storeChoice(
+            String careerId, int year, String matchId,
+            CareerCompetitionRules.OpponentChoiceReceipt choice
+    ) {
+        Integer count = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM career_competition_opponent_choice
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_CUP' AND match_id = ?
+                """, Integer.class, careerId, year, matchId);
+        if (count != null && count > 0) return;
+        jdbc.update("""
+                INSERT INTO career_competition_opponent_choice(
+                  choice_hash, career_id, calendar_season_year, competition_id,
+                  match_id, choice_owner_team_code, eligible_seed_order,
+                  chosen_team_code, policy_id, policy_hash, created_at)
+                VALUES (?, ?, ?, 'LCK_CUP', ?, ?, ?, ?, ?, ?, ?)
+                """, choice.receiptHash(), careerId, year, matchId,
+                choice.choiceOwnerTeamCode(), String.join(",",
+                        choice.canonicalEligibleOrder()), choice.chosenTeamCode(),
+                choice.policyId(), choice.policyHash(), now());
+    }
+
+    private Map<String, String> existingChoices(String careerId, int year) {
+        LinkedHashMap<String, String> values = new LinkedHashMap<>();
+        jdbc.query("""
+                SELECT f.second_selector_value, c.chosen_team_code
+                FROM career_competition_opponent_choice c
+                JOIN career_competition_fixture f
+                  ON f.career_id = c.career_id
+                 AND f.calendar_season_year = c.calendar_season_year
+                 AND f.competition_id = c.competition_id
+                 AND f.match_id = c.match_id
+                WHERE c.career_id = ? AND c.calendar_season_year = ?
+                  AND c.competition_id = 'LCK_CUP'
+                  AND f.second_selector_type = 'LOWEST_AVAILABLE_SEED_MATCH_WINNER'
+                """, (RowCallbackHandler) result -> values.put(
+                result.getString(1), result.getString(2)), careerId, year);
+        return values;
+    }
+
+    private Map<Integer, String> seedByNumber(
+            String careerId, int year, String scope
+    ) {
+        LinkedHashMap<Integer, String> values = new LinkedHashMap<>();
+        jdbc.query("""
+                SELECT seed_number, team_code FROM career_competition_seed
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_CUP' AND seed_scope = ?
+                ORDER BY seed_number
+                """, (RowCallbackHandler) result -> values.put(result.getInt(1),
+                result.getString(2)), careerId, year, scope);
+        return values;
+    }
+
+    private Map<String, Integer> seedByTeam(
+            String careerId, int year, String scope
+    ) {
+        LinkedHashMap<String, Integer> values = new LinkedHashMap<>();
+        seedByNumber(careerId, year, scope).forEach((seed, team) ->
+                values.put(team, seed));
+        return values;
+    }
+
+    private Map<String, Outcome> cupOutcomes(String careerId, int year) {
+        LinkedHashMap<String, Outcome> values = new LinkedHashMap<>();
+        jdbc.query("""
+                SELECT match_id, winner_team_code, loser_team_code
+                FROM career_competition_fixture
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_CUP'
+                  AND lifecycle_status = 'COMPLETED'
+                ORDER BY match_order
+                """, (RowCallbackHandler) result -> values.put(result.getString(1),
+                new Outcome(result.getString(2), result.getString(3))), careerId,
+                year);
+        return values;
+    }
+
+    private static String outcome(Map<String, Outcome> outcomes, String match,
+                                  boolean winner) {
+        Outcome value = outcomes.get(match);
+        return value == null ? null : winner ? value.winner() : value.loser();
+    }
+
+    private static List<String> matchValues(String value) {
+        return List.of(value.split(","));
+    }
+
+    private static CareerCompetitionAggregate.SeededTeam seed(
+            Map<Integer, String> seeds, int number
+    ) {
+        return new CareerCompetitionAggregate.SeededTeam(number, seeds.get(number),
+                0, 0, 0, 0);
+    }
+
+    private static CareerCompetitionAggregate.SeededTeam seed(
+            Map<String, Integer> seeds, String team
+    ) {
+        Integer number = seeds.get(team);
+        if (number == null) throw new IllegalStateException(
+                "LCK_CUP_TEAM_SEED_NOT_FOUND");
+        return new CareerCompetitionAggregate.SeededTeam(number, team, 0, 0, 0, 0);
+    }
+
+    private String writeJson(Object value) {
+        try {
+            return json.writeValueAsString(value);
+        } catch (JsonProcessingException failure) {
+            throw new IllegalStateException("COMPETITION_RECEIPT_JSON_FAILED", failure);
+        }
+    }
+
+    private void materializeLckPlayInWhenReady(String careerId, int year) {
+        Integer completed = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM career_competition_fixture
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_REGULAR_R3_R4'
+                  AND lifecycle_status = 'COMPLETED'
+                """, Integer.class, careerId, year);
+        if (completed == null || completed != 40) return;
+        Integer evidence = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM career_competition_result_detail
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_REGULAR_R3_R4'
+                """, Integer.class, careerId, year);
+        if (evidence == null || evidence != 40) throw new IllegalStateException(
+                "R3_R4_VERIFIED_RESULT_EVIDENCE_REQUIRED");
+        Integer existing = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM career_competition_fixture
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_PLAY_IN'
+                """, Integer.class, careerId, year);
+        if (existing != null && existing > 0) return;
+
+        LinkedHashMap<String, MutableStageStanding> standings = new LinkedHashMap<>();
+        jdbc.query("""
+                SELECT seed_number, team_code, imported_series_wins,
+                       imported_series_losses, imported_game_wins,
+                       imported_game_losses
+                FROM career_competition_seed
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = 'LCK_REGULAR_R3_R4'
+                  AND seed_scope = 'R1_R2_FINAL_RANK'
+                ORDER BY seed_number
+                """, (RowCallbackHandler) result -> {
+            int originalRank = result.getInt(1);
+            standings.put(result.getString(2), new MutableStageStanding(
+                    result.getString(2), originalRank <= 5 ? "LEGEND" : "RISE",
+                    result.getInt(3), result.getInt(4), result.getInt(5),
+                    result.getInt(6)));
+        }, careerId, year);
+        if (standings.size() != 10) throw new IllegalStateException(
+                "R3_R4_CARRIED_STANDINGS_REQUIRED");
+
+        List<StageResultRow> results = jdbc.query("""
+                SELECT f.first_team_code, f.second_team_code, f.winner_team_code,
+                       d.first_score, d.second_score
+                FROM career_competition_fixture f
+                JOIN career_competition_result_detail d
+                  ON d.career_id = f.career_id
+                 AND d.calendar_season_year = f.calendar_season_year
+                 AND d.competition_id = f.competition_id
+                 AND d.match_id = f.match_id
+                WHERE f.career_id = ? AND f.calendar_season_year = ?
+                  AND f.competition_id = 'LCK_REGULAR_R3_R4'
+                ORDER BY f.match_order, f.match_id
+                """, (result, row) -> new StageResultRow(result.getString(1),
+                result.getString(2), result.getString(3), result.getInt(4),
+                result.getInt(5)), careerId, year);
+        if (results.size() != 40) throw new IllegalStateException(
+                "R3_R4_VERIFIED_RESULT_EVIDENCE_REQUIRED");
+        for (StageResultRow result : results) {
+            MutableStageStanding first = standings.get(result.firstTeam());
+            MutableStageStanding second = standings.get(result.secondTeam());
+            if (first == null || second == null || !first.group.equals(second.group)
+                    || !java.util.Set.of(first.team, second.team).contains(
+                    result.winnerTeam())) {
+                throw new IllegalStateException("R3_R4_RESULT_SCOPE_MISMATCH");
+            }
+            first.gameWins += result.firstScore();
+            first.gameLosses += result.secondScore();
+            second.gameWins += result.secondScore();
+            second.gameLosses += result.firstScore();
+            MutableStageStanding winner = result.winnerTeam().equals(first.team)
+                    ? first : second;
+            MutableStageStanding loser = winner == first ? second : first;
+            winner.seriesWins++;
+            loser.seriesLosses++;
+        }
+
+        LinkedHashMap<String, List<MutableStageStanding>> ordered =
+                new LinkedHashMap<>();
+        for (String group : List.of("LEGEND", "RISE")) {
+            List<MutableStageStanding> rows = standings.values().stream()
+                    .filter(value -> value.group.equals(group))
+                    .sorted(java.util.Comparator
+                            .comparingInt((MutableStageStanding value) ->
+                                    value.seriesWins).reversed()
+                            .thenComparing(java.util.Comparator.comparingInt(
+                                    MutableStageStanding::gameDifferential).reversed())
+                            .thenComparing(java.util.Comparator.comparingInt(
+                                    (MutableStageStanding value) -> value.gameWins)
+                                    .reversed()))
+                    .toList();
+            if (rows.size() != 5 || unresolvedStageTie(rows)) {
+                blockInstance(careerId, year, "LCK_REGULAR_R3_R4",
+                        "LCK_R3_R4_TIEBREAKER_REQUIRED");
+                return;
+            }
+            ordered.put(group, rows);
+        }
+        String standingsHash = r3r4StandingsHash(careerId, year, ordered);
+        List<MutableStageStanding> legend = ordered.get("LEGEND");
+        List<MutableStageStanding> rise = ordered.get("RISE");
+
+        insertTransitionOutput(careerId, year, "LCK_REGULAR_R3_R4",
+                "LCK_PLAYOFF_SEED_1", legend.get(0).team);
+        insertTransitionOutput(careerId, year, "LCK_REGULAR_R3_R4",
+                "LCK_PLAYOFF_SEED_2", legend.get(1).team);
+        insertTransitionOutput(careerId, year, "LCK_REGULAR_R3_R4",
+                "LCK_PLAYOFF_SEED_3", legend.get(2).team);
+        insertTransitionOutput(careerId, year, "LCK_REGULAR_R3_R4",
+                "LCK_PLAYOFF_SEED_4", legend.get(3).team);
+        insertTransitionOutput(careerId, year, "LCK_REGULAR_R3_R4",
+                "LCK_SEASON_PLACE_9", rise.get(3).team);
+        insertTransitionOutput(careerId, year, "LCK_REGULAR_R3_R4",
+                "LCK_SEASON_PLACE_10", rise.get(4).team);
+
+        List<CareerCompetitionAggregate.SeededTeam> playInSeeds = List.of(
+                stageSeed(1, legend.get(4)), stageSeed(2, rise.get(0)),
+                stageSeed(3, rise.get(1)), stageSeed(4, rise.get(2)));
+        insertSeeds(careerId, year, "LCK_PLAY_IN", "PLAY_IN_SEED",
+                standingsHash, playInSeeds);
+        CareerBinding career = careerBinding(careerId);
+        CareerCompetitionAggregate aggregate = CareerCompetitionAggregate.materialize(
+                rules, careerId, year, "LCK_PLAY_IN", career.managedTeamCode(),
+                career.rootSeed(), standingsHash, playInSeeds);
+        Map<String, CareerCompetitionRules.MatchRule> matchRules =
+                rules.rule("LCK_PLAY_IN").matches().stream().collect(
+                        java.util.stream.Collectors.toUnmodifiableMap(
+                                CareerCompetitionRules.MatchRule::matchId,
+                                value -> value));
+        for (CareerCompetitionAggregate.Fixture fixture : aggregate.fixtures()) {
+            CareerCompetitionRules.MatchRule match = matchRules.get(fixture.matchId());
+            insertFixture(careerId, year, "LCK_PLAY_IN", fixture,
+                    match.stageId(), match.matchOrder(), match.groupId(),
+                    match.groupPointValue(), match.selectionRightOwner(),
+                    match.opponentChoicePolicy(), match.sideSelectionPolicy(),
+                    match.scheduleStatus());
+        }
+        OffsetDateTime transitionTime = now();
+        updateInstance(careerId, year, "LCK_PLAY_IN", "READY", null,
+                standingsHash, aggregate.revision(), "0".repeat(64), transitionTime);
+        setInstanceMaterializationAuthority(careerId, year, "LCK_PLAY_IN",
+                "SEALED_R3_R4_STANDINGS_PLAY_IN_GRAPH_V1", standingsHash,
+                transitionTime);
+        refreshInstanceHash(careerId, year, "LCK_PLAY_IN");
+    }
+
+    private static CareerCompetitionAggregate.SeededTeam stageSeed(
+            int seed, MutableStageStanding value
+    ) {
+        return new CareerCompetitionAggregate.SeededTeam(seed, value.team,
+                value.seriesWins, value.seriesLosses, value.gameWins,
+                value.gameLosses);
+    }
+
+    private static boolean unresolvedStageTie(
+            List<MutableStageStanding> ordered
+    ) {
+        for (int index = 1; index < ordered.size(); index++) {
+            MutableStageStanding first = ordered.get(index - 1);
+            MutableStageStanding second = ordered.get(index);
+            if (first.seriesWins == second.seriesWins
+                    && first.gameDifferential() == second.gameDifferential()
+                    && first.gameWins == second.gameWins) return true;
+        }
+        return false;
+    }
+
+    private static String r3r4StandingsHash(
+            String careerId, int year,
+            Map<String, List<MutableStageStanding>> ordered
+    ) {
+        StringBuilder canonical = new StringBuilder(
+                "schema=CAREER_LCK_R3_R4_FINAL_STANDINGS_V1\n")
+                .append("careerId=").append(careerId).append('\n')
+                .append("calendarSeasonYear=").append(year).append('\n')
+                .append("recordCarry=R1_R2_SERIES_AND_GAMES\n")
+                .append("ranking=SERIES_WINS>GAME_DIFFERENTIAL>GAME_WINS>"
+                        + "OFFICIAL_TIEBREAKER_REQUIRED\n");
+        for (String group : List.of("LEGEND", "RISE")) {
+            List<MutableStageStanding> rows = ordered.get(group);
+            for (int index = 0; index < rows.size(); index++) {
+                MutableStageStanding value = rows.get(index);
+                canonical.append("standing=").append(group).append('|')
+                        .append(index + 1).append('|').append(value.team).append('|')
+                        .append(value.seriesWins).append('|')
+                        .append(value.seriesLosses).append('|')
+                        .append(value.gameWins).append('|')
+                        .append(value.gameLosses).append('\n');
+            }
+        }
+        return CareerCompetitionRules.sha256(canonical.toString().getBytes(
+                StandardCharsets.UTF_8));
+    }
+
+    private void insertTransitionOutput(
+            String careerId, int year, String competitionId, String outputId,
+            String teamCode
+    ) {
+        List<OutputRow> prior = jdbc.query("""
+                SELECT competition_id, output_id, team_code
+                FROM career_competition_output
+                WHERE career_id = ? AND calendar_season_year = ? AND output_id = ?
+                """, (result, row) -> new OutputRow(result.getString(1),
+                result.getString(2), result.getString(3)), careerId, year, outputId);
+        if (!prior.isEmpty()) {
+            OutputRow value = prior.getFirst();
+            if (!competitionId.equals(value.competitionId())
+                    || !teamCode.equals(value.teamCode())) {
+                throw new IllegalStateException("COMPETITION_OUTPUT_CONFLICT");
+            }
+            return;
+        }
+        List<OutcomeSource> sources = jdbc.query("""
+                SELECT match_id, completion_receipt_hash
+                FROM career_competition_fixture
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = ? AND lifecycle_status = 'COMPLETED'
+                ORDER BY match_order DESC, match_id DESC
+                LIMIT 1
+                """, (result, row) -> new OutcomeSource(result.getString(1),
+                result.getString(2)), careerId, year, competitionId);
+        if (sources.size() != 1 || sources.getFirst().receiptHash() == null) {
+            throw new IllegalStateException("COMPETITION_OUTPUT_SOURCE_REQUIRED");
+        }
+        OutcomeSource source = sources.getFirst();
+        jdbc.update("""
+                INSERT INTO career_competition_output(
+                  career_id, calendar_season_year, competition_id, output_id,
+                  team_code, source_match_id, source_receipt_hash, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, careerId, year, competitionId, outputId, teamCode,
+                source.matchId(), source.receiptHash(), now());
+    }
+
+    private void blockInstance(
+            String careerId, int year, String competitionId, String reason
+    ) {
+        jdbc.update("""
+                UPDATE career_competition_instance
+                SET lifecycle_status = 'BLOCKED', blocking_reason = ?, updated_at = ?
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = ?
+                """, reason, now(), careerId, year, competitionId);
+    }
+
+    CompletionResult applyCompletionForTesting(
+            String careerId,
+            int seasonYear,
+            String competitionId,
+            String matchId,
+            String seriesId,
+            String firstTeamCode,
+            String secondTeamCode,
+            String winnerTeamCode,
+            String receiptHash
+    ) {
+        return applyCompletionState(careerId, seasonYear, competitionId, matchId,
+                seriesId, firstTeamCode, secondTeamCode, winnerTeamCode,
+                receiptHash);
+    }
+
+    private CompletionResult applyCompletionState(
             String careerId,
             int seasonYear,
             String competitionId,
@@ -890,6 +1986,23 @@ public final class CareerCompetitionRelationalStore {
                 "CAREER_COMPETITION_INSTANCE_NOT_FOUND");
     }
 
+    private void setInstanceMaterializationAuthority(
+            String careerId, int year, String competitionId, String policyId,
+            String receiptHash, OffsetDateTime updatedAt
+    ) {
+        CareerIdentity.requireSha256(receiptHash, "materializationReceiptHash");
+        int updated = jdbc.update("""
+                UPDATE career_competition_instance
+                SET materialization_policy_id = ?, materialization_receipt_hash = ?,
+                    updated_at = ?
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = ?
+                """, policyId, receiptHash, updatedAt, careerId, year,
+                competitionId);
+        if (updated != 1) throw new IllegalStateException(
+                "CAREER_COMPETITION_INSTANCE_NOT_FOUND");
+    }
+
     private InstanceRow instance(String careerId, int year, String competitionId) {
         List<InstanceRow> values = jdbc.query("""
                 SELECT competition_id, rule_status, lifecycle_status, blocking_reason,
@@ -1030,6 +2143,49 @@ public final class CareerCompetitionRelationalStore {
                 result.getString(2), result.getString(3), result.getLong(4)), careerId, year,
                 instance.competitionId());
         rows(canonical, "application", applications);
+
+        List<String> resultDetails = jdbc.query("""
+                SELECT match_id, binding_hash, receipt_hash, first_score,
+                       second_score, total_duration_seconds
+                FROM career_competition_result_detail
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = ?
+                ORDER BY match_id, receipt_hash
+                """, (result, ignored) -> row("resultDetail", result.getString(1),
+                result.getString(2), result.getString(3), result.getInt(4),
+                result.getInt(5), result.getInt(6)), careerId, year,
+                instance.competitionId());
+        if (!resultDetails.isEmpty()) rows(canonical, "resultDetail", resultDetails);
+
+        List<String> choices = jdbc.query("""
+                SELECT match_id, choice_hash, choice_owner_team_code,
+                       eligible_seed_order, chosen_team_code, policy_id, policy_hash
+                FROM career_competition_opponent_choice
+                WHERE career_id = ? AND calendar_season_year = ?
+                  AND competition_id = ?
+                ORDER BY match_id, choice_hash
+                """, (result, ignored) -> row("opponentChoice",
+                result.getString(1), result.getString(2), result.getString(3),
+                result.getString(4), result.getString(5), result.getString(6),
+                result.getString(7)), careerId, year, instance.competitionId());
+        if (!choices.isEmpty()) rows(canonical, "opponentChoice", choices);
+
+        if ("LCK_CUP".equals(instance.competitionId())) {
+            List<String> standings = jdbc.query("""
+                    SELECT group_id, group_rank, team_code, match_wins,
+                           match_losses, game_wins, game_losses,
+                           strength_of_victory, win_time_seconds, tie_break_trace,
+                           standings_hash
+                    FROM career_lck_cup_standing
+                    WHERE career_id = ? AND calendar_season_year = ?
+                    ORDER BY group_id, group_rank
+                    """, (result, ignored) -> row("cupStanding",
+                    result.getString(1), result.getInt(2), result.getString(3),
+                    result.getInt(4), result.getInt(5), result.getInt(6),
+                    result.getInt(7), result.getInt(8), result.getInt(9),
+                    result.getString(10), result.getString(11)), careerId, year);
+            if (!standings.isEmpty()) rows(canonical, "cupStanding", standings);
+        }
         return CareerCompetitionRules.sha256(canonical.toString().getBytes(
                 StandardCharsets.UTF_8));
     }
@@ -1233,6 +2389,21 @@ public final class CareerCompetitionRelationalStore {
             String opponentChoicePolicy, String sideSelectionPolicy
     ) {}
     public record OutputRow(String competitionId, String outputId, String teamCode) {}
+    public record ExecutionProjection(
+            String bindingHash, String seriesId, String bindingStatus,
+            String jobId, String jobStatus, String clientCommandId,
+            String failureCode, String resultApplicationStatus
+    ) {}
+    public record CupStandingView(
+            String groupId, int groupPoints, int groupRank, String teamCode,
+            int matchWins, int matchLosses, int gameWins, int gameLosses,
+            int strengthOfVictory, int winTimeSeconds, String tieBreakTrace,
+            String standingsHash
+    ) {}
+    public record SeedView(
+            String competitionId, String seedScope, int seedNumber,
+            String teamCode, String sourceInputHash
+    ) {}
     public record SealResult(CycleView cycle, boolean replayed, String importHash) {}
     public record CompletionResult(CareerCompetitionAggregate aggregate, boolean replayed) {}
     private record CycleRow(
@@ -1255,4 +2426,67 @@ public final class CareerCompetitionRelationalStore {
         }
     }
     private record CareerBinding(String managedTeamCode, long rootSeed) {}
+    private record PriorRankingHeader(
+            int seasonOrdinal, String sourceSeasonId, String lifecycleStatus,
+            String stateHash
+    ) {}
+    private record VerifiedPriorLckRanking(
+            int seasonOrdinal, CareerCompetitionRules.PriorLckRanking ranking
+    ) {}
+    private record CupGroupResultRow(
+            String matchId, String firstTeam, String secondTeam, String winnerTeam,
+            int pointValue, String seriesFormat, int firstScore, int secondScore,
+            int durationSeconds
+    ) {}
+    private record PendingCupFixture(
+            String matchId, String firstType, String firstValue,
+            String secondType, String secondValue, String firstTeam,
+            String secondTeam, String opponentChoicePolicy
+    ) {}
+    private record Outcome(String winner, String loser) {}
+    private record StageResultRow(
+            String firstTeam, String secondTeam, String winnerTeam,
+            int firstScore, int secondScore
+    ) {}
+    private record OutcomeSource(String matchId, String receiptHash) {}
+    private static final class MutableCupStanding {
+        private final String team;
+        private final String group;
+        private final List<String> defeated = new ArrayList<>();
+        private int matchWins;
+        private int matchLosses;
+        private int gameWins;
+        private int gameLosses;
+        private int strength;
+        private int winTime;
+
+        private MutableCupStanding(String team, String group) {
+            this.team = team;
+            this.group = group;
+        }
+
+        private int gameDifferential() { return gameWins - gameLosses; }
+    }
+    private static final class MutableStageStanding {
+        private final String team;
+        private final String group;
+        private int seriesWins;
+        private int seriesLosses;
+        private int gameWins;
+        private int gameLosses;
+
+        private MutableStageStanding(
+                String team, String group, int seriesWins, int seriesLosses,
+                int gameWins, int gameLosses
+        ) {
+            this.team = team;
+            this.group = group;
+            this.seriesWins = seriesWins;
+            this.seriesLosses = seriesLosses;
+            this.gameWins = gameWins;
+            this.gameLosses = gameLosses;
+        }
+
+        private int gameDifferential() { return gameWins - gameLosses; }
+    }
 }

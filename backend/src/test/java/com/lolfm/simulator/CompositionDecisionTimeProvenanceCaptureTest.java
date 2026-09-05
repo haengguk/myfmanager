@@ -6,10 +6,13 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Tag("diagnostic")
+@Tag("historical-artifact")
 class CompositionDecisionTimeProvenanceCaptureTest {
     private static final Path OUT = CompositionDecisionTimeProvenanceCapture.OUT;
     private static final Path HISTORICAL = historicalFixture();

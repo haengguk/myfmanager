@@ -19,7 +19,10 @@ public final class CareerException extends RuntimeException {
         CALENDAR_COMMAND_INTEGRITY_FAILURE,
         CALENDAR_MIGRATION_REQUIRED,
         CALENDAR_INTEGRITY_FAILURE,
-        CALENDAR_BACKGROUND_UNAVAILABLE
+        CALENDAR_BACKGROUND_UNAVAILABLE,
+        COMPETITION_STALE_REVISION,
+        COMPETITION_COMMAND_CONFLICT,
+        COMPETITION_BACKGROUND_UNAVAILABLE
     }
 
     private final Type type;
@@ -130,6 +133,24 @@ public final class CareerException extends RuntimeException {
     public static CareerException calendarBackgroundUnavailable() {
         return new CareerException(Type.CALENDAR_BACKGROUND_UNAVAILABLE, null,
                 "경기 작업은 저장되었지만 계산 worker를 깨우지 못했습니다. 같은 요청으로 다시 시도해 주세요.",
+                null);
+    }
+
+    public static CareerException competitionStaleRevision() {
+        return new CareerException(Type.COMPETITION_STALE_REVISION,
+                "expectedCompetitionRevision",
+                "대회 revision이 변경되었습니다. 최신 캘린더를 다시 불러오세요.", null);
+    }
+
+    public static CareerException competitionCommandConflict() {
+        return new CareerException(Type.COMPETITION_COMMAND_CONFLICT,
+                "clientCommandId",
+                "현재 대회 경기 상태와 명령이 충돌합니다. 최신 상태를 다시 불러오세요.", null);
+    }
+
+    public static CareerException competitionBackgroundUnavailable() {
+        return new CareerException(Type.COMPETITION_BACKGROUND_UNAVAILABLE, null,
+                "대회 경기 작업은 저장되었지만 계산 worker를 깨우지 못했습니다. 같은 요청으로 다시 시도해 주세요.",
                 null);
     }
 

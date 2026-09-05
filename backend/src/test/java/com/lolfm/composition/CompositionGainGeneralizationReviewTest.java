@@ -6,6 +6,8 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Tag("diagnostic")
+@Tag("historical-artifact")
 class CompositionGainGeneralizationReviewTest {
  CompositionGainGeneralizationReview.Review r;
  @BeforeAll void load()throws Exception{r=CompositionGainGeneralizationReview.analyze();}

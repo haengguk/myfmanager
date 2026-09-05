@@ -12,6 +12,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /** Relational authority for frozen Seasons, compact receipts, standings and outbox. */
@@ -21,6 +22,7 @@ public final class LeagueRelationalStore {
 
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
+    private final TransactionTemplate repeatableReads;
     private final LeagueJsonCodec json;
     private final Clock clock;
 
@@ -40,8 +42,13 @@ public final class LeagueRelationalStore {
             Clock clock
     ) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
-        this.transactions = new TransactionTemplate(
-                Objects.requireNonNull(transactionManager, "transactionManager"));
+        PlatformTransactionManager requiredTransactionManager = Objects.requireNonNull(
+                transactionManager, "transactionManager");
+        this.transactions = new TransactionTemplate(requiredTransactionManager);
+        this.repeatableReads = new TransactionTemplate(requiredTransactionManager);
+        this.repeatableReads.setIsolationLevel(
+                TransactionDefinition.ISOLATION_REPEATABLE_READ);
+        this.repeatableReads.setReadOnly(true);
         this.json = Objects.requireNonNull(json, "json");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
@@ -120,6 +127,14 @@ public final class LeagueRelationalStore {
     }
 
     public Optional<LeagueSeasonAggregate> findSeason(String seasonId) {
+        return repeatableReads.execute(ignored -> findSeasonSnapshot(seasonId));
+    }
+
+    /**
+     * Rebuilds a season from one database snapshot. The season revision, applied
+     * receipts and materialized standings must never straddle an outbox commit.
+     */
+    private Optional<LeagueSeasonAggregate> findSeasonSnapshot(String seasonId) {
         List<SeasonRow> values = jdbc.query("""
                 SELECT league_id, season_id, revision, season_mode, managed_team_code,
                        managed_team_snapshot_hash, season_root_seed, product_decision_hash,

@@ -4,6 +4,7 @@ import com.lolfm.simulator.TeamSide;
 import com.lolfm.simulator.SimulationOptions;
 import com.lolfm.composition.TeamCompositionGameplayMode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -190,6 +191,8 @@ final class CompositionEligibleContextGainScreeningTest {
     }
 
     @Test
+    @Tag("diagnostic")
+    @Tag("historical-artifact")
     void outcomeLikeExtraColumnsDoNotChangeParsedInput( @TempDir Path tempDir) throws Exception {
         List<String> firstTwo; try (Stream<String> stream = Files.lines(Path.of("build/reports/composition-shadow-wiring-gate-closure/composition-shadow-observations-gate.csv"))) { firstTwo = stream.limit(2).toList(); }
         Path plain = tempDir.resolve("plain.csv"); Path extra = tempDir.resolve("extra.csv");

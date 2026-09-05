@@ -62,6 +62,8 @@ public final class CareerCalendarTemplate {
     private static final Set<String> EXECUTION_STATUSES = Set.of(
             "LINKED_EXISTING_LEAGUE_FIXTURES",
             "FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED");
+    private static final Set<String> COMPETITION_SERIES_EXECUTION_TEMPLATE_IDS = Set.of(
+            "LCK_CUP", "LCK_ROAD_TO_MSI", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN");
     private static final Set<String> EXPECTED_TEMPLATE_IDS = Set.of(
             "LCK_CUP", "FIRST_STAND", "LCK_REGULAR_R1_R2", "LCK_ROAD_TO_MSI",
             "MSI", "EWC_LOL", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN",
@@ -311,7 +313,14 @@ public final class CareerCalendarTemplate {
                         : "GAME_PROJECTED_FROM_2026_TEMPLATE",
                 value.participationType(), value.participation(), value.teamCount(),
                 value.seriesCount(), value.format(), value.seriesRules(),
-                value.draftMode(), value.draftStatus(), value.executionStatus(), stages);
+                value.draftMode(), value.draftStatus(), projectedExecutionStatus(value),
+                stages);
+    }
+
+    private static String projectedExecutionStatus(Competition value) {
+        return COMPETITION_SERIES_EXECUTION_TEMPLATE_IDS.contains(value.templateId())
+                ? "LINKED_COMPETITION_SERIES_EXECUTION"
+                : value.executionStatus();
     }
 
     private static void validate(Envelope value, String measuredHash) {

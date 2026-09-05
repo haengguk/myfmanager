@@ -10,10 +10,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Tag("diagnostic")
+@Tag("historical-artifact")
 class CompositionAuditOnlySemanticsRuntimeTest {
     private static CompositionAuditOnlySemanticsRuntime.ScheduleCase row;
     private static MatchChampionAssignments assignments;

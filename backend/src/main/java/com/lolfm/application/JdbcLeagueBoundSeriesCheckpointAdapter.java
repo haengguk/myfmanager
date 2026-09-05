@@ -31,7 +31,7 @@ import java.io.IOException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
-/** Compact immutable-aggregate checkpoint; no timeline or frontend projection is authority. */
+/** Compact immutable-aggregate checkpoint for League and Career-owned Series. */
 @Component
 final class JdbcLeagueBoundSeriesCheckpointAdapter
         implements LeagueBoundSeriesPersistencePort {
@@ -64,28 +64,33 @@ final class JdbcLeagueBoundSeriesCheckpointAdapter
 
     @Override
     public void save(SeriesAggregate aggregate) {
-        if (aggregate.origin() != SeriesOrigin.LEAGUE_BOUND) return;
+        if (!aggregate.origin().durableBound()) return;
         SeriesAggregate durable = sanitize(aggregate);
         String value = write(durable);
         String hash = LeagueIdentity.sha256(
                 "checkpointSchema=" + SCHEMA + '\n' + "checkpointJson=" + value + '\n');
         OffsetDateTime now = clock.instant().atOffset(ZoneOffset.UTC);
+        String checkpointTable = durable.origin() == SeriesOrigin.LEAGUE_BOUND
+                ? "league_player_series_checkpoint"
+                : "career_competition_series_checkpoint";
         int updated = jdbc.update("""
-                UPDATE league_player_series_checkpoint
+                UPDATE %s
                 SET checkpoint_json = ?, checkpoint_hash = ?, series_revision = ?,
                     series_status = ?, updated_at = ?
                 WHERE binding_hash = ? AND series_id = ?
                   AND series_revision <= ?
-                """, value, hash, durable.revision(), durable.status().name(), now,
+                """.formatted(checkpointTable), value, hash, durable.revision(),
+                durable.status().name(), now,
                 durable.leagueBindingHash(), durable.seriesId(), durable.revision());
         if (updated == 0) {
             try {
                 jdbc.update("""
-                        INSERT INTO league_player_series_checkpoint(
+                        INSERT INTO %s(
                           binding_hash, series_id, checkpoint_schema, checkpoint_json,
                           checkpoint_hash, series_revision, series_status, updated_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """, durable.leagueBindingHash(), durable.seriesId(), SCHEMA,
+                        """.formatted(checkpointTable), durable.leagueBindingHash(),
+                        durable.seriesId(), SCHEMA,
                         value, hash, durable.revision(), durable.status().name(), now);
             } catch (org.springframework.dao.DuplicateKeyException duplicate) {
                 throw new IllegalStateException("LEAGUE_SERIES_CHECKPOINT_STALE_WRITE",
@@ -99,13 +104,22 @@ final class JdbcLeagueBoundSeriesCheckpointAdapter
         List<Row> rows = jdbc.query("""
                 SELECT c.binding_hash, c.checkpoint_schema, c.checkpoint_json,
                        c.checkpoint_hash, c.series_revision, c.series_status,
-                       b.binding_hash
+                       b.binding_hash, 'LEAGUE_BOUND'
                 FROM league_player_series_checkpoint c
                 JOIN league_player_binding b ON b.binding_hash = c.binding_hash
                 WHERE c.series_id = ?
+                UNION ALL
+                SELECT c.binding_hash, c.checkpoint_schema, c.checkpoint_json,
+                       c.checkpoint_hash, c.series_revision, c.series_status,
+                       b.binding_hash, 'COMPETITION_BOUND'
+                FROM career_competition_series_checkpoint c
+                JOIN career_competition_series_binding b
+                  ON b.binding_hash = c.binding_hash
+                WHERE c.series_id = ?
                 """, (result, row) -> new Row(result.getString(1), result.getString(2),
                 result.getString(3), result.getString(4), result.getLong(5),
-                result.getString(6), result.getString(7)), seriesId);
+                result.getString(6), result.getString(7),
+                SeriesOrigin.valueOf(result.getString(8))), seriesId, seriesId);
         if (rows.isEmpty()) return Optional.empty();
         Row row = rows.getFirst();
         String expected = LeagueIdentity.sha256(
@@ -120,8 +134,8 @@ final class JdbcLeagueBoundSeriesCheckpointAdapter
                 || !aggregate.leagueBindingHash().equals(row.bindingHash())
                 || aggregate.revision() != row.revision()
                 || !aggregate.status().name().equals(row.status())
-                || aggregate.origin() != SeriesOrigin.LEAGUE_BOUND) {
-            throw new IllegalStateException("LEAGUE_SERIES_CHECKPOINT_BINDING_MISMATCH");
+                || aggregate.origin() != row.origin()) {
+            throw new IllegalStateException("BOUND_SERIES_CHECKPOINT_BINDING_MISMATCH");
         }
         SeriesAggregate recovered = recoverLostReservation(aggregate);
         if (recovered != aggregate) save(recovered);
@@ -215,7 +229,8 @@ final class JdbcLeagueBoundSeriesCheckpointAdapter
 
     private record Row(
             String bindingHash, String schema, String json, String hash,
-            long revision, String status, String authorityBindingHash
+            long revision, String status, String authorityBindingHash,
+            SeriesOrigin origin
     ) {}
 
     /** Public API hides clientActionId; this checkpoint-only codec retains it. */

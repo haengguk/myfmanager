@@ -1,10 +1,12 @@
 import type { CareerApiFailure } from './api/careerApi.failure';
-import type { CareerPendingAdvanceDto } from './api/careerApi.types';
+import type { CareerCompetitionViewDto, CareerPendingAdvanceDto } from './api/careerApi.types';
 
 export const CAREER_POINTER_KEY = 'lolmanager.career.pointer.v1';
 export const CAREER_CREATE_OPERATION_KEY = 'lolmanager.career.create-operation.v2';
 const LEGACY_CAREER_CREATE_OPERATION_KEY = 'lolmanager.career.create-operation.v1';
 export const CAREER_ADVANCE_OPERATION_KEY = 'lolmanager.career.advance-operations.v2';
+export const CAREER_COMPETITION_OPERATION_KEY =
+  'lolmanager.career.competition-operations.v1';
 const LEGACY_CAREER_ADVANCE_OPERATION_KEY = 'lolmanager.career.advance-operation.v1';
 export const CAREER_RETURN_CONTEXT_KEY = 'lolmanager.career.return-context.v1';
 const CAREER_ID = /^career_[0-9a-f]{64}$/;
@@ -13,6 +15,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export interface CareerCreateSelection { saveName: string; managerName: string; managedTeamCode: string }
 export interface CareerCreateOperation { schemaVersion: 'CAREER_CREATE_OPERATION_V2'; canonicalSelectionKey: string; selection: CareerCreateSelection; clientCommandId: string }
 export interface CareerAdvanceOperation { schemaVersion: 'CAREER_ADVANCE_OPERATION_V1'; careerId: string; expectedCalendarRevision: number; mode: 'ADVANCE_ONE_DAY' | 'ADVANCE_TO_NEXT_EVENT'; clientCommandId: string }
+export interface CareerCompetitionOperation { schemaVersion: 'CAREER_COMPETITION_OPERATION_V1'; careerId: string; expectedCompetitionRevision: number; clientCommandId: string }
 interface CareerAdvanceOperations { schemaVersion: 'CAREER_ADVANCE_OPERATIONS_V2'; operations: Record<string, CareerAdvanceOperation> }
 export interface CareerReturnContext { schemaVersion: 'CAREER_RETURN_CONTEXT_V1'; careerId: string }
 export interface PointerStorage { getItem(key: string): string | null; setItem(key: string, value: string): void; removeItem(key: string): void }
@@ -119,6 +122,67 @@ export function clearCareerAdvanceOperation(storage: PointerStorage, careerId: s
   delete current.operations[careerId];
   if (Object.keys(current.operations).length) storage.setItem(CAREER_ADVANCE_OPERATION_KEY, JSON.stringify(current));
   else storage.removeItem(CAREER_ADVANCE_OPERATION_KEY);
+}
+export function readCareerCompetitionOperation(
+  storage: PointerStorage,
+  careerId: string,
+): CareerCompetitionOperation | null {
+  const raw = storage.getItem(CAREER_COMPETITION_OPERATION_KEY); if (!raw) return null;
+  try {
+    const values = JSON.parse(raw) as Record<string, CareerCompetitionOperation>;
+    const value = values[careerId];
+    if (!value || value.schemaVersion !== 'CAREER_COMPETITION_OPERATION_V1'
+      || value.careerId !== careerId || !CAREER_ID.test(value.careerId)
+      || !Number.isSafeInteger(value.expectedCompetitionRevision)
+      || value.expectedCompetitionRevision < 0 || !UUID.test(value.clientCommandId)) return null;
+    return value;
+  } catch { storage.removeItem(CAREER_COMPETITION_OPERATION_KEY); return null; }
+}
+export function logicalCareerCompetition(
+  storage: PointerStorage,
+  careerId: string,
+  expectedCompetitionRevision: number,
+  uuid: () => string = () => crypto.randomUUID(),
+): CareerCompetitionOperation {
+  const current = readCareerCompetitionOperation(storage, careerId);
+  if (current) return current;
+  const next: CareerCompetitionOperation = {
+    schemaVersion: 'CAREER_COMPETITION_OPERATION_V1', careerId,
+    expectedCompetitionRevision, clientCommandId: uuid(),
+  };
+  if (!CAREER_ID.test(careerId) || !Number.isSafeInteger(expectedCompetitionRevision)
+    || expectedCompetitionRevision < 0 || !UUID.test(next.clientCommandId)) throw new Error('invalid Competition operation');
+  let values: Record<string, CareerCompetitionOperation> = {};
+  try { values = JSON.parse(storage.getItem(CAREER_COMPETITION_OPERATION_KEY) ?? '{}') as Record<string, CareerCompetitionOperation>; } catch { /* replace invalid map */ }
+  values[careerId] = next; storage.setItem(CAREER_COMPETITION_OPERATION_KEY, JSON.stringify(values)); return next;
+}
+export function reconcileCareerCompetitionOperation(
+  storage: PointerStorage,
+  careerId: string,
+  expectedCompetitionRevision: number,
+  pending: CareerCompetitionViewDto['activePendingCommand'],
+): CareerCompetitionOperation | null {
+  const current = readCareerCompetitionOperation(storage, careerId);
+  if (!pending) {
+    if (current && current.expectedCompetitionRevision !== expectedCompetitionRevision) {
+      clearCareerCompetitionOperation(storage, careerId); return null;
+    }
+    return current;
+  }
+  const server: CareerCompetitionOperation = {
+    schemaVersion: 'CAREER_COMPETITION_OPERATION_V1', careerId,
+    expectedCompetitionRevision, clientCommandId: pending.clientCommandId,
+  };
+  if (!CAREER_ID.test(careerId) || !Number.isSafeInteger(expectedCompetitionRevision)
+    || expectedCompetitionRevision < 0 || !UUID.test(server.clientCommandId)) throw new Error('invalid Competition recovery operation');
+  let values: Record<string, CareerCompetitionOperation> = {};
+  try { values = JSON.parse(storage.getItem(CAREER_COMPETITION_OPERATION_KEY) ?? '{}') as Record<string, CareerCompetitionOperation>; } catch { /* replace invalid map */ }
+  values[careerId] = server; storage.setItem(CAREER_COMPETITION_OPERATION_KEY, JSON.stringify(values)); return server;
+}
+export function clearCareerCompetitionOperation(storage: PointerStorage, careerId: string): void {
+  let values: Record<string, CareerCompetitionOperation> = {};
+  try { values = JSON.parse(storage.getItem(CAREER_COMPETITION_OPERATION_KEY) ?? '{}') as Record<string, CareerCompetitionOperation>; } catch { storage.removeItem(CAREER_COMPETITION_OPERATION_KEY); return; }
+  delete values[careerId]; if (Object.keys(values).length) storage.setItem(CAREER_COMPETITION_OPERATION_KEY, JSON.stringify(values)); else storage.removeItem(CAREER_COMPETITION_OPERATION_KEY);
 }
 export function isAmbiguousCareerCreateFailure(failure: CareerApiFailure): boolean {
   return ['NETWORK', 'TIMEOUT', 'CANCELLED'].includes(failure.kind) || failure.retryable || failure.httpStatus === 503;

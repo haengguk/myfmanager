@@ -49,7 +49,7 @@ public final class SeriesApiV1ResponseMapper {
                 aggregate.managedTeamCode(), aggregate.managedTeamCode().equals(
                 aggregate.teamACode()) ? aggregate.teamBCode() : aggregate.teamACode(),
                 aggregate.score(), current.gameNumber(), aggregate.canonicalRootSeed(),
-                aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+                aggregate.origin().durableBound()
                         ? com.lolfm.league.LeagueIdentity.GAME_SEED_ALGORITHM
                         : SeriesIdentity.GAME_SEED_ALGORITHM,
                 Long.toString(current.matchSeed()),
@@ -57,7 +57,8 @@ public final class SeriesApiV1ResponseMapper {
                 aggregate.historyHash(), aggregate.games().stream().map(this::game).toList(),
                 childEnvelope, reservation, allowedCommands(aggregate),
                 aggregate.winnerTeamCode(), aggregate.createdAt(), aggregate.lastActivityAt(),
-                aggregate.expiresAt(), true, new SeriesApiV1Dtos.ProductionIdentity(
+                aggregate.expiresAt(), !aggregate.origin().durableBound(),
+                new SeriesApiV1Dtos.ProductionIdentity(
                 policy.policyId(), policy.policyHash(), policy.retainedRuntimeProfileId().name(),
                 policy.configurationHash(), policy.activeGameplayRulesVersion(),
                 policy.engineImplementationVersion(), draftEngine.activeDraftMetaVersion(),
@@ -128,7 +129,7 @@ public final class SeriesApiV1ResponseMapper {
         if (aggregate.status() == SeriesStatus.ACTIVE) {
             SeriesGame game = aggregate.currentGame();
             if (game.reservation() != null) return aggregate.origin()
-                    == SeriesOrigin.LEAGUE_BOUND ? List.of("GET")
+                    .durableBound() ? List.of("GET")
                     : List.of("GET", "CANCEL_SERIES");
             List<String> commands = switch (game.status()) {
                 case DRAFT_PENDING, DRAFT_CANCELLED, DRAFT_EXPIRED -> List.of(
@@ -139,12 +140,12 @@ public final class SeriesApiV1ResponseMapper {
                 case DRAFT_COMPLETED -> List.of("SIMULATE", "CANCEL_SERIES");
                 default -> List.of("GET", "CANCEL_SERIES");
             };
-            return aggregate.origin() == SeriesOrigin.LEAGUE_BOUND
+            return aggregate.origin().durableBound()
                     ? commands.stream().filter(value -> !value.equals("CANCEL_SERIES")).toList()
                     : commands;
         }
         if (aggregate.status() == SeriesStatus.BLOCKED) return aggregate.origin()
-                == SeriesOrigin.LEAGUE_BOUND ? List.of("GET")
+                .durableBound() ? List.of("GET")
                 : List.of("GET", "CANCEL_SERIES");
         return List.of("GET");
     }

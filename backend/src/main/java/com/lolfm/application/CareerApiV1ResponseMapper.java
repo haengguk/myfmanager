@@ -3,12 +3,25 @@ package com.lolfm.application;
 import com.lolfm.career.CareerApplicationService;
 import com.lolfm.career.CareerCalendarApplicationService;
 import com.lolfm.career.CareerCalendarTemplate;
+import com.lolfm.career.CareerCompetitionExecutionService;
 import com.lolfm.dto.CareerApiV1Dtos;
 import org.springframework.stereotype.Component;
 
 /** Field-by-field Career API projection; no JDBC or domain object is exposed. */
 @Component
 public final class CareerApiV1ResponseMapper {
+    public CareerApiV1Dtos.CompetitionCommandResponse competitionCommand(
+            CareerCompetitionExecutionService.ExecutionResult result,
+            boolean backgroundAccepted
+    ) {
+        return new CareerApiV1Dtos.CompetitionCommandResponse(
+                CareerApiV1Dtos.COMPETITION_COMMAND_RESPONSE_SCHEMA,
+                result.executionMode(), result.fixtureId(), result.matchId(),
+                result.seriesId(), result.bindingHash(), result.jobId(),
+                result.status(), result.replayed(), backgroundAccepted,
+                result.failureCode());
+    }
+
     public CareerApiV1Dtos.AdvanceResponse advanced(
             CareerCalendarApplicationService.AdvanceResult result
     ) {
@@ -100,6 +113,18 @@ public final class CareerApiV1ResponseMapper {
                         new CareerApiV1Dtos.CompetitionQualificationOutput(
                                 output.competitionId(), output.outputId(),
                                 output.teamCode())).toList(),
+                value.groupStandings().stream().map(standing ->
+                        new CareerApiV1Dtos.CompetitionStanding(standing.groupId(),
+                                standing.groupPoints(), standing.groupRank(),
+                                standing.teamCode(), standing.matchWins(),
+                                standing.matchLosses(), standing.gameWins(),
+                                standing.gameLosses(), standing.strengthOfVictory(),
+                                standing.winTimeSeconds(), standing.tieBreakTrace(),
+                                standing.standingsHash())).toList(),
+                value.currentSeeds().stream().map(seed ->
+                        new CareerApiV1Dtos.CompetitionSeed(seed.competitionId(),
+                                seed.seedScope(), seed.seedNumber(), seed.teamCode(),
+                                seed.sourceInputHash())).toList(),
                 value.externalExecutionLimited(), value.activePendingCommand() == null
                 ? null : new CareerApiV1Dtos.PendingCompetitionCommand(
                         value.activePendingCommand().clientCommandId(),
@@ -127,7 +152,14 @@ public final class CareerApiV1ResponseMapper {
                 value.seriesId(), value.date(), value.scheduleStatus(),
                 value.seriesFormat(), value.hardFearless(), value.firstTeamCode(),
                 value.secondTeamCode(), value.executionMode(), value.lifecycleStatus(),
-                value.managedTeamIncluded(), value.rootSeed(), value.seedAlgorithm());
+                value.managedTeamIncluded(), value.rootSeed(), value.seedAlgorithm(),
+                value.firstSelector() == null ? null : value.firstSelector().type(),
+                value.firstSelector() == null ? null : value.firstSelector().value(),
+                value.secondSelector() == null ? null : value.secondSelector().type(),
+                value.secondSelector() == null ? null : value.secondSelector().value(),
+                value.stageId(), value.blockingReason(), value.bindingHash(),
+                value.jobId(), value.jobStatus(), value.resultApplicationStatus(),
+                value.failureCode());
     }
 
     public CareerApiV1Dtos.CreateResponse created(

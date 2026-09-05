@@ -63,6 +63,11 @@ class LeagueApiV1BackgroundExecutionIntegrationTest {
         List<JsonNode> terminal = List.of();
         while (Instant.now().isBefore(deadline)) {
             ArrayList<JsonNode> latest = new ArrayList<>();
+            // Exercise the public season rebuild while outbox delivery commits
+            // standings revisions in the background. Every GET must observe one
+            // repeatable database snapshot rather than straddling two revisions.
+            json(mvc.perform(get(base)).andExpect(status().isOk()).andReturn()
+                    .getResponse().getContentAsString());
             for (String jobId : jobIds) {
                 latest.add(json(mvc.perform(get(base + "/jobs/" + jobId))
                         .andExpect(status().isOk()).andReturn().getResponse()

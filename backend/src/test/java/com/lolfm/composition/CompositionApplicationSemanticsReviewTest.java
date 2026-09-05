@@ -2,6 +2,8 @@ package com.lolfm.composition;
 import static org.assertj.core.api.Assertions.*;
 import com.lolfm.simulator.CombatOutcomeProbabilityEvaluator;import java.util.*;import org.junit.jupiter.api.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Tag("diagnostic")
+@Tag("historical-artifact")
 class CompositionApplicationSemanticsReviewTest{
  CompositionApplicationSemanticsReview.Result r;@BeforeAll void load()throws Exception{r=CompositionApplicationSemanticsReview.analyze();}
  @Test void marginRepairHashesAreExact(){assertThat(CompositionApplicationSemanticsReview.RSH).isEqualTo("07594a77ccea8746fc26203b77eb84753d2443719d96515beddc0f1e443aef20");assertThat(CompositionApplicationSemanticsReview.RAH).isEqualTo("273a269f5ca477d6afd2b36726ec4b4496f9b674f6daa4a223849ac02a494b09");}

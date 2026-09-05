@@ -2,6 +2,7 @@ package com.lolfm.composition;
 
 import com.lolfm.simulator.TeamSide;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.math.BigDecimal;
@@ -282,6 +283,8 @@ final class CompositionGainPolicyReviewTest {
     }
 
     @Test
+    @Tag("diagnostic")
+    @Tag("historical-artifact")
     void reviewReadsSourceAndProducesFrozenCandidateWithoutRuntimeActivation(@TempDir Path tempDir) throws Exception {
         var result = CompositionGainPolicyReview.review(CompositionGainPolicyReview.SOURCE_OBSERVATIONS,
                 CompositionGainPolicyReview.SOURCE_OUTPUT, tempDir.resolve("review"));

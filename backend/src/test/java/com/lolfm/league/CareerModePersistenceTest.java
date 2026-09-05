@@ -21,6 +21,7 @@ import com.lolfm.career.CareerCompetitionAggregate;
 import com.lolfm.career.CareerCompetitionApplicationService;
 import com.lolfm.career.CareerCompetitionRelationalStore;
 import com.lolfm.career.CareerCompetitionRules;
+import com.lolfm.career.CareerCompetitionTestSupport;
 import com.lolfm.career.CareerException;
 import com.lolfm.career.CareerIdentity;
 import com.lolfm.career.CareerRelationalStore;
@@ -66,7 +67,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(8);
+                    .migrationsExecuted).isEqualTo(9);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -520,7 +521,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(4);
+                    .migrationsExecuted).isEqualTo(5);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);
@@ -883,7 +884,8 @@ class CareerModePersistenceTest {
             first = fixture.firstTeamCode();
             second = fixture.secondTeamCode();
             winner = first;
-            var applied = harness.competitionStore().applyCompletion(careerId, 2027,
+            var applied = CareerCompetitionTestSupport.applyCompletion(
+                    harness.competitionStore(), careerId, 2027,
                     "LCK_ROAD_TO_MSI", matchId, seriesId, first, second, winner,
                     receiptHash);
             assertThat(applied.replayed()).isFalse();
@@ -902,17 +904,113 @@ class CareerModePersistenceTest {
             var restored = harness.competitionStore().loadAggregate(careerId, 2027,
                     "LCK_ROAD_TO_MSI");
             assertThat(restored.stateHash()).isEqualTo(stateHash);
-            var replay = harness.competitionStore().applyCompletion(careerId, 2027,
+            var replay = CareerCompetitionTestSupport.applyCompletion(
+                    harness.competitionStore(), careerId, 2027,
                     "LCK_ROAD_TO_MSI", matchId, seriesId, first, second, winner,
                     receiptHash);
             assertThat(replay.replayed()).isTrue();
             assertThat(replay.aggregate().stateHash()).isEqualTo(stateHash);
             assertThat(count(harness.jdbc(), "career_competition_application")).isOne();
-            assertThatThrownBy(() -> harness.competitionStore().applyCompletion(
-                    careerId, 2027, "LCK_REGULAR_R3_R4", matchId, seriesId,
+            assertThatThrownBy(() -> CareerCompetitionTestSupport.applyCompletion(
+                    harness.competitionStore(), careerId, 2027,
+                    "LCK_REGULAR_R3_R4", matchId, seriesId,
                     first, second, winner, receiptHash))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("COMPETITION_RECEIPT_SCOPE_MISMATCH");
+        }
+    }
+
+    @Test
+    void cupVerifiedResultsSealGroupsResolveFivePlusTenGraphAndOutputOnce() {
+        String url = "jdbc:h2:mem:career-cup-transition-" + UUID.randomUUID()
+                + ";DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=10000";
+        try (HikariDataSource dataSource = dataSource(url)) {
+            Flyway.configure().dataSource(dataSource).load().migrate();
+            Harness harness = harness(dataSource);
+            CareerRelationalStore.CareerRow career = harness.careers().create(
+                    request(UUID.randomUUID().toString())).career().career();
+            Map<String, Integer> strength = new LinkedHashMap<>();
+            harness.jdbc().query("""
+                    SELECT seed_scope, seed_number, team_code
+                    FROM career_competition_seed
+                    WHERE career_id = ? AND calendar_season_year = 2027
+                      AND competition_id = 'LCK_CUP'
+                    ORDER BY seed_number, seed_scope
+                    """, result -> {
+                int base = 12 - result.getInt(2) * 2;
+                strength.put(result.getString(3), base
+                        + ("CUP_GROUP_BARON".equals(result.getString(1)) ? 1 : 0));
+            }, career.careerId());
+            assertThat(strength).hasSize(10);
+
+            com.lolfm.career.CareerCompetitionSeriesBindingV1 lastBinding = null;
+            String lastWinner = null;
+            for (int completed = 0; completed < 40; completed++) {
+                CareerCompetitionRelationalStore.CycleView cycle =
+                        harness.competitionStore().load(career.careerId(), 2027);
+                CareerCompetitionRelationalStore.FixtureRow fixture = cycle.fixtures()
+                        .stream().filter(value -> "LCK_CUP".equals(
+                                value.competitionId()))
+                        .filter(value -> !"COMPLETED".equals(value.lifecycleStatus()))
+                        .min(java.util.Comparator.comparingInt(
+                                CareerCompetitionRelationalStore.FixtureRow::matchOrder))
+                        .orElseThrow();
+                assertThat(fixture.lifecycleStatus()).isEqualTo("READY");
+                lastBinding = harness.competitionStore().bindFixture(
+                        career.careerId(), 2027, fixture.matchId(),
+                        LeagueDomainTestFixtures.snapshot(), "c".repeat(64));
+                lastWinner = completed < 25
+                        ? (strength.get(fixture.firstTeamCode())
+                        > strength.get(fixture.secondTeamCode())
+                        ? fixture.firstTeamCode() : fixture.secondTeamCode())
+                        : fixture.firstTeamCode();
+                CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(
+                        harness.competitionStore(), lastBinding, lastWinner);
+                if (completed == 24) {
+                    assertThat(harness.competitionStore().cupStandings(
+                            career.careerId(), 2027)).hasSize(10);
+                    assertThat(harness.competitionStore().currentSeeds(
+                            career.careerId(), 2027))
+                            .filteredOn(value -> "CUP_PLAY_IN_SEED".equals(
+                                    value.seedScope())).hasSize(6);
+                    assertThat(harness.competitionStore().currentSeeds(
+                            career.careerId(), 2027))
+                            .filteredOn(value -> "CUP_PLAYOFF_SEED".equals(
+                                    value.seedScope())).hasSize(3);
+                }
+            }
+
+            CareerCompetitionRelationalStore.CycleView completedCycle =
+                    harness.competitionStore().load(career.careerId(), 2027);
+            assertThat(completedCycle.competitions()).filteredOn(value ->
+                    "LCK_CUP".equals(value.competitionId()))
+                    .singleElement().extracting(
+                            CareerCompetitionRelationalStore.InstanceRow::lifecycleStatus)
+                    .isEqualTo("COMPLETED");
+            assertThat(completedCycle.outputs()).filteredOn(value ->
+                    "LCK_CUP".equals(value.competitionId()))
+                    .extracting(CareerCompetitionRelationalStore.OutputRow::outputId)
+                    .contains("FIRST_STAND_LCK_SEED_1",
+                            "FIRST_STAND_LCK_SEED_2");
+            assertThat(completedCycle.outputs()).filteredOn(value ->
+                    value.outputId().startsWith("FIRST_STAND_LCK_SEED_"))
+                    .hasSize(2);
+            assertThat(count(harness.jdbc(), "career_competition_application"))
+                    .isEqualTo(40);
+            assertThat(count(harness.jdbc(), "career_competition_result_detail"))
+                    .isEqualTo(40);
+            assertThat(count(harness.jdbc(), "career_competition_opponent_choice"))
+                    .isEqualTo(3);
+
+            var replay = CareerCompetitionTestSupport
+                    .applySyntheticVerifiedCompletion(harness.competitionStore(),
+                            Objects.requireNonNull(lastBinding),
+                            Objects.requireNonNull(lastWinner));
+            assertThat(replay.replayed()).isTrue();
+            assertThat(count(harness.jdbc(), "career_competition_application"))
+                    .isEqualTo(40);
+            assertThat(count(harness.jdbc(), "career_competition_result_detail"))
+                    .isEqualTo(40);
         }
     }
 
@@ -1049,7 +1147,8 @@ class CareerModePersistenceTest {
             var match = road.fixtures().getFirst();
             String cycleBefore = harness.competitionStore().load(career.careerId(), 2027)
                     .stateHash();
-            harness.competitionStore().applyCompletion(career.careerId(), 2027,
+            CareerCompetitionTestSupport.applyCompletion(harness.competitionStore(),
+                    career.careerId(), 2027,
                     "LCK_ROAD_TO_MSI", match.matchId(), match.seriesId(),
                     match.firstTeamCode(), match.secondTeamCode(), match.firstTeamCode(),
                     "d".repeat(64));
@@ -1090,7 +1189,8 @@ class CareerModePersistenceTest {
             var directQualifier = harness.competitionStore().loadAggregate(
                     career.careerId(), 2027, "LCK_ROAD_TO_MSI").fixtures().stream()
                     .filter(value -> "M3".equals(value.matchId())).findFirst().orElseThrow();
-            harness.competitionStore().applyCompletion(career.careerId(), 2027,
+            CareerCompetitionTestSupport.applyCompletion(harness.competitionStore(),
+                    career.careerId(), 2027,
                     "LCK_ROAD_TO_MSI", directQualifier.matchId(),
                     directQualifier.seriesId(), directQualifier.firstTeamCode(),
                     directQualifier.secondTeamCode(), directQualifier.firstTeamCode(),
@@ -1207,9 +1307,31 @@ class CareerModePersistenceTest {
                     new CareerCompetitionRules.PriorLckRanking(career.careerId(),
                             2027, "SEALED", "9".repeat(64), ranking);
 
+            assertThatThrownBy(() -> harness.competitionStore().initializeFuture(
+                    career.careerId(), 2028, 2, prior))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("UNVERIFIED_PRIOR_LCK_RANKING_REJECTED");
+            String sourceSeasonId = career.seasonId();
+            String stateHash = CareerCompetitionRelationalStore.finalRankingStateHash(
+                    career.careerId(), 2027, 1, sourceSeasonId, ranking);
+            harness.jdbc().update("""
+                    INSERT INTO career_lck_final_ranking_snapshot(
+                      career_id, calendar_season_year, season_ordinal,
+                      source_season_id, lifecycle_status, state_hash, created_at)
+                    VALUES (?, 2027, 1, ?, 'SEALED', ?, CURRENT_TIMESTAMP)
+                    """, career.careerId(), sourceSeasonId, stateHash);
+            ranking.forEach(value -> harness.jdbc().update("""
+                    INSERT INTO career_lck_final_ranking_row(
+                      career_id, calendar_season_year, rank_number, team_code,
+                      series_wins, series_losses, game_wins, game_losses)
+                    VALUES (?, 2027, ?, ?, ?, ?, ?, ?)
+                    """, career.careerId(), value.seed(), value.teamCode(),
+                    value.seriesWins(), value.seriesLosses(), value.gameWins(),
+                    value.gameLosses()));
+
             CareerCompetitionRelationalStore.CycleView created =
                     harness.competitionStore().initializeFuture(career.careerId(),
-                            2028, 2, prior);
+                            2028);
             assertThat(created.seasonOrdinal()).isEqualTo(2);
             assertThat(created.initializationPolicyId())
                     .isEqualTo(CareerCompetitionRules.FUTURE_CUP_POLICY);

@@ -1,8 +1,8 @@
 import { realMatchConfig } from '../../real-match/realMatch.config';
 import { CareerApiFailure } from './careerApi.failure';
 export { CareerApiFailure } from './careerApi.failure';
-import type { CareerAdvanceRequestDto, CareerAdvanceResponseDto, CareerCalendarViewDto, CareerCreateRequestDto, CareerCreateResponseDto, CareerListResponseDto, CareerViewDto } from './careerApi.types';
-import { CareerContractError, validateCareerAdvanceResponse, validateCareerCalendar, validateCareerCreateResponse, validateCareerError, validateCareerListResponse, validateCareerView } from './careerApi.validation';
+import type { CareerAdvanceRequestDto, CareerAdvanceResponseDto, CareerCalendarViewDto, CareerCompetitionCommandRequestDto, CareerCompetitionCommandResponseDto, CareerCreateRequestDto, CareerCreateResponseDto, CareerListResponseDto, CareerViewDto } from './careerApi.types';
+import { CareerContractError, validateCareerAdvanceResponse, validateCareerCalendar, validateCareerCompetitionCommandResponse, validateCareerCreateResponse, validateCareerError, validateCareerListResponse, validateCareerView } from './careerApi.validation';
 
 const ROOT = `${realMatchConfig.apiBaseUrl}/api/v1/careers`;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -25,6 +25,9 @@ const SAFE_COPY: Readonly<Record<string, string>> = {
   CAREER_CALENDAR_MIGRATION_REQUIRED: '이 저장은 캘린더 마이그레이션 확인이 필요합니다.',
   CAREER_CALENDAR_INTEGRITY_FAILURE: '캘린더 또는 연결 일정의 무결성을 확인할 수 없습니다.',
   CAREER_CALENDAR_BACKGROUND_UNAVAILABLE: '경기 작업은 저장됐지만 worker를 깨우지 못했습니다. 같은 진행 작업으로 다시 시도하세요.',
+  CAREER_COMPETITION_STALE_REVISION: '대회 상태가 이미 변경되었습니다. 최신 캘린더를 다시 불러오세요.',
+  CAREER_COMPETITION_COMMAND_CONFLICT: '현재 대회 경기 상태와 작업이 충돌합니다. 최신 상태를 다시 확인하세요.',
+  CAREER_COMPETITION_BACKGROUND_UNAVAILABLE: '대회 경기 작업은 저장됐지만 worker를 깨우지 못했습니다. 같은 작업 ID로 다시 시도하세요.',
   CAREER_INTERNAL_ERROR: 'Career 요청을 처리하지 못했습니다. 잠시 뒤 다시 확인하세요.',
 };
 
@@ -83,4 +86,10 @@ export function getCareerCalendar(careerId: string, signal: AbortSignal): Promis
 }
 export function advanceCareerCalendar(careerId: string, body: CareerAdvanceRequestDto, signal: AbortSignal): Promise<CareerAdvanceResponseDto> {
   return request(`${ROOT}/${encodeURIComponent(careerId)}/advance`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateCareerAdvanceResponse, [200, 202]);
+}
+export function startOrResumeCareerCompetition(careerId: string, body: CareerCompetitionCommandRequestDto, signal: AbortSignal): Promise<CareerCompetitionCommandResponseDto> {
+  return request(`${ROOT}/${encodeURIComponent(careerId)}/competition/start-or-resume`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateCareerCompetitionCommandResponse, [200, 202]);
+}
+export function reconcileCareerCompetition(careerId: string, body: CareerCompetitionCommandRequestDto, signal: AbortSignal): Promise<CareerCompetitionCommandResponseDto> {
+  return request(`${ROOT}/${encodeURIComponent(careerId)}/competition/reconcile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateCareerCompetitionCommandResponse, [200, 202]);
 }

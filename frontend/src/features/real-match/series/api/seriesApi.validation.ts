@@ -312,7 +312,7 @@ export function validateSeriesViewPayload(value: unknown): SeriesViewDto {
   if (status === 'ACTIVE' && teamCodes.some((teamCode) => score[teamCode] >= winsRequired)) fail('$.status', 'required wins에 도달한 Series는 ACTIVE일 수 없습니다.');
   if (status !== 'ACTIVE' && status !== 'BLOCKED' && commands.some((command) => command !== 'GET')) fail('$.allowedCommands', 'terminal Series는 GET만 허용할 수 있습니다.');
   instant(root.createdAt, '$.createdAt'); instant(root.lastActivityAt, '$.lastActivityAt'); instant(root.expiresAt, '$.expiresAt');
-  if (bool(root.processLocalRestartLoss, '$.processLocalRestartLoss') !== true) fail('$.processLocalRestartLoss', 'V1 process-local restart loss는 true여야 합니다.');
+  bool(root.processLocalRestartLoss, '$.processLocalRestartLoss');
   validateProductionIdentity(root.productionIdentity, '$.productionIdentity');
   return value as SeriesViewDto;
 }

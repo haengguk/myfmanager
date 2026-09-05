@@ -10,10 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Tag("diagnostic")
+@Tag("historical-artifact")
 class CompositionKeySpecificSemanticsDesignTest {
     private CompositionKeySpecificSemanticsDesign.Blueprint blueprint;
 

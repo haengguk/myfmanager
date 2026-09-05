@@ -21,7 +21,8 @@ public record LeagueFixture(
         String seedAnchorTeamCode
 ) {
     public LeagueFixture {
-        if (fixtureId == null || !fixtureId.matches("fixture_[0-9a-f]{64}")) {
+        if (fixtureId == null || !fixtureId.matches(
+                "(?:fixture|competition_fixture)_[0-9a-f]{64}")) {
             throw new IllegalArgumentException("Invalid fixture ID");
         }
         if (pairId == null || !pairId.matches("pair_[A-Z0-9]{2,8}_[A-Z0-9]{2,8}")) {

@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lolfm.career.CareerApplicationService;
+import com.lolfm.career.CareerCompetitionExecutionService;
 import com.lolfm.career.CareerIdentity;
 import com.lolfm.career.CareerCompetitionRules;
 import com.lolfm.dto.CareerApiV1Dtos;
@@ -26,6 +28,8 @@ class CareerApiV1ControllerTest {
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper mapper;
     @Autowired JdbcTemplate jdbc;
+    @Autowired CareerApplicationService careers;
+    @Autowired CareerCompetitionExecutionService competitionExecution;
 
     @Test
     void createListGetReplayConflictAndStrictErrorsPreserveLeagueState() throws Exception {
@@ -182,6 +186,9 @@ class CareerApiV1ControllerTest {
         assertThat(calendar.path("pendingOfficialFields")).hasSize(6);
         assertThat(calendar.path("upcomingEvents")).hasSize(8);
         assertThat(calendar.path("upcomingEvents").toString()).doesNotContain("KESPA");
+        assertThat(findEvent(calendar.path("upcomingEvents"), "LCK_CUP")
+                .path("executionStatus").asText())
+                .isEqualTo("LINKED_COMPETITION_SERIES_EXECUTION");
         assertThat(calendar.path("sourceDataNotes").get(0).path("status").asText())
                 .isEqualTo("REFERENCE_TEMPLATE_NOT_OFFICIAL_FOR_2026_OR_FUTURE");
         assertThat(calendar.path("sourceDataNotes").get(0)
@@ -200,6 +207,22 @@ class CareerApiV1ControllerTest {
                 .path("totalFixtures").asInt()).isEqualTo(40);
         assertThat(calendar.path("competition").path("ruleResourceHash").asText())
                 .isEqualTo(CareerCompetitionRules.RESOURCE_HASH);
+        assertThat(calendar.path("competition").path("groupStandings").isArray())
+                .isTrue();
+        assertThat(calendar.path("competition").path("currentSeeds").isArray())
+                .isTrue();
+        assertThat(calendar.path("competition").path("allowedCommands")).isEmpty();
+        int bindingsBeforeEarlyStart = count("career_competition_series_binding");
+        JsonNode earlyStart = json(mvc.perform(post("/api/v1/careers/" + careerId
+                        + "/competition/start-or-resume")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(competitionBody(0, UUID.randomUUID().toString())))
+                .andExpect(status().isConflict()).andReturn().getResponse()
+                .getContentAsString());
+        assertThat(earlyStart.path("code").asText())
+                .isEqualTo("CAREER_COMPETITION_COMMAND_CONFLICT");
+        assertThat(count("career_competition_series_binding"))
+                .isEqualTo(bindingsBeforeEarlyStart);
         assertThat(jdbc.queryForObject("""
                 SELECT lifecycle_revision FROM league_season WHERE season_id = ?
                 """, Long.class, seasonId)).isEqualTo(lifecycleBeforeReads);
@@ -240,6 +263,75 @@ class CareerApiV1ControllerTest {
                 .getContentAsString()).path("currentDate").asText())
                 .isEqualTo("2027-01-14");
 
+        JsonNode competition = advanced.path("calendar").path("competition");
+        JsonNode competitionFixture = competition.path("nextFixture");
+        assertThat(competitionFixture.path("blockingReason").isNull()).isTrue();
+        assertThat(competitionFixture.path("executionMode").asText())
+                .isEqualTo("PLAYER_CONTROLLED");
+        assertThat(competition.path("allowedCommands"))
+                .extracting(JsonNode::asText)
+                .containsExactly("START_PLAYER_COMPETITION_SERIES");
+        String competitionCommandId = UUID.randomUUID().toString();
+        String competitionBody = competitionBody(
+                competition.path("revision").asLong(), competitionCommandId);
+        JsonNode startedCompetition = json(mvc.perform(post("/api/v1/careers/"
+                        + careerId + "/competition/start-or-resume")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(competitionBody)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        assertThat(startedCompetition.path("executionMode").asText())
+                .isEqualTo("PLAYER_CONTROLLED");
+        assertThat(startedCompetition.path("fixtureId"))
+                .isEqualTo(competitionFixture.path("fixtureId"));
+        assertThat(startedCompetition.path("seriesId"))
+                .isEqualTo(competitionFixture.path("seriesId"));
+        assertThat(startedCompetition.path("bindingHash").asText())
+                .matches("[0-9a-f]{64}");
+        assertThat(startedCompetition.path("status").asText()).isEqualTo("ACTIVE");
+        assertThat(startedCompetition.path("backgroundAccepted").asBoolean())
+                .isFalse();
+        JsonNode startedSeries = json(mvc.perform(get("/api/v1/series/"
+                        + startedCompetition.path("seriesId").asText()))
+                .andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString());
+        assertThat(startedSeries.path("format").asText())
+                .isEqualTo(competitionFixture.path("seriesFormat").asText());
+        assertThat(startedSeries.path("processLocalRestartLoss").asBoolean())
+                .isFalse();
+        JsonNode playerRecovery = json(mvc.perform(get("/api/v1/careers/"
+                        + careerId + "/calendar")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString())
+                .path("competition").path("activePendingCommand");
+        assertThat(playerRecovery.path("clientCommandId").asText())
+                .isEqualTo(competitionCommandId);
+        assertThat(playerRecovery.path("commandStatus").asText())
+                .isEqualTo("RUNNING");
+        int competitionBindings = count("career_competition_series_binding");
+        JsonNode competitionReplay = json(mvc.perform(post("/api/v1/careers/"
+                        + careerId + "/competition/start-or-resume")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(competitionBody)).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        assertThat(competitionReplay.path("replayed").asBoolean()).isTrue();
+        assertThat(competitionReplay.path("seriesId"))
+                .isEqualTo(startedCompetition.path("seriesId"));
+        assertThat(count("career_competition_series_binding"))
+                .isEqualTo(competitionBindings);
+        JsonNode rejectedCompetitionInjection = json(mvc.perform(post(
+                        "/api/v1/careers/" + careerId
+                                + "/competition/start-or-resume")
+                        .contentType(MediaType.APPLICATION_JSON).content("""
+                                {"schemaVersion":"CAREER_COMPETITION_COMMAND_REQUEST_V1",
+                                 "expectedCompetitionRevision":0,
+                                 "clientCommandId":"%s","winnerTeamCode":"GEN"}
+                                """.formatted(UUID.randomUUID())))
+                .andExpect(status().isBadRequest()).andReturn().getResponse()
+                .getContentAsString());
+        assertThat(rejectedCompetitionInjection.path("code").asText())
+                .isEqualTo("CAREER_REQUEST_INVALID");
+        assertThat(count("career_competition_series_binding"))
+                .isEqualTo(competitionBindings);
+
         int beforeInvalid = count("career_save");
         assertInvalid("""
                 {"schemaVersion":"CAREER_CREATE_REQUEST_V1","saveName":"x",
@@ -266,7 +358,7 @@ class CareerApiV1ControllerTest {
 
         JsonNode secondCareer = json(mvc.perform(post("/api/v1/careers")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(createBody("GEN 장기 저장", "김 감독", "GEN",
+                        .content(createBody("T1 장기 저장", "김 감독", "T1",
                                 UUID.randomUUID().toString())))
                 .andExpect(status().isCreated()).andReturn().getResponse()
                 .getContentAsString()).path("career");
@@ -277,6 +369,62 @@ class CareerApiV1ControllerTest {
         assertThat(count("career_save") - careersBefore).isEqualTo(2);
         assertThat(count("league_season") - seasonsBefore).isEqualTo(2);
         assertThat(count("league_fixture") - fixturesBefore).isEqualTo(180);
+
+        String secondCareerId = secondCareer.path("careerId").asText();
+        JsonNode secondAdvanced = json(mvc.perform(post("/api/v1/careers/"
+                        + secondCareerId + "/advance")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(advanceBody(0, "ADVANCE_TO_NEXT_EVENT",
+                                UUID.randomUUID().toString())))
+                .andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString());
+        assertThat(secondAdvanced.path("stopReason").asText())
+                .isEqualTo("AUTO_COMPETITION_FIXTURE_REQUIRED");
+        String autoCommandId = UUID.randomUUID().toString();
+        int jobsBeforeAuto = count("career_competition_job");
+        var autoStarted = competitionExecution.startOrResume(
+                careers.get(secondCareerId).career(), 2027,
+                java.time.LocalDate.of(2027, 1, 14), 0, autoCommandId);
+        assertThat(autoStarted.executionMode()).isEqualTo("FULL_AUTO");
+        assertThat(autoStarted.status()).isEqualTo("PENDING");
+        assertThat(autoStarted.jobId()).startsWith("competition_job_");
+        assertThat(count("career_competition_job") - jobsBeforeAuto).isOne();
+        var autoReplay = competitionExecution.startOrResume(
+                careers.get(secondCareerId).career(), 2027,
+                java.time.LocalDate.of(2027, 1, 14), 0, autoCommandId);
+        assertThat(autoReplay.replayed()).isTrue();
+        assertThat(autoReplay.jobId()).isEqualTo(autoStarted.jobId());
+        assertThat(count("career_competition_job") - jobsBeforeAuto).isOne();
+        var autoReconciled = competitionExecution.reconcile(secondCareerId, 2027,
+                0, autoCommandId);
+        assertThat(autoReconciled.jobId()).isEqualTo(autoStarted.jobId());
+        assertThat(autoReconciled.status()).isEqualTo("PENDING");
+        assertThat(competitionExecution.reconcile(secondCareerId, 2027, 0,
+                UUID.randomUUID().toString()).executionMode()).isEqualTo("NONE");
+        int autoApplicationsBefore = count("career_competition_application");
+        var autoCompleted = competitionExecution.executeAutoJob(autoStarted.jobId());
+        assertThat(autoCompleted.status())
+                .as("Auto execution failureCode=%s", autoCompleted.failureCode())
+                .isEqualTo("COMPLETED");
+        assertThat(autoCompleted.replayed()).isFalse();
+        assertThat(count("career_competition_application") - autoApplicationsBefore)
+                .isOne();
+        var autoCompletedReplay = competitionExecution.executeAutoJob(
+                autoStarted.jobId());
+        assertThat(autoCompletedReplay.status()).isEqualTo("COMPLETED");
+        assertThat(autoCompletedReplay.replayed()).isTrue();
+        assertThat(count("career_competition_application") - autoApplicationsBefore)
+                .isOne();
+        JsonNode autoAdvancedCalendar = json(mvc.perform(get("/api/v1/careers/"
+                        + secondCareerId + "/calendar"))
+                .andExpect(status().isOk()).andReturn().getResponse()
+                .getContentAsString());
+        assertThat(autoAdvancedCalendar.path("competition").path("currentCompetition")
+                .path("completedFixtures").asInt()).isOne();
+        assertThat(autoAdvancedCalendar.path("competition").path("nextFixture")
+                .path("fixtureId")).isNotEqualTo(
+                secondAdvanced.path("calendar").path("competition")
+                        .path("nextFixture").path("fixtureId"));
 
         jdbc.update("""
                 UPDATE career_create_command SET command_schema = 'TAMPERED'
@@ -344,6 +492,15 @@ class CareerApiV1ControllerTest {
                 """, frozen, careerId);
     }
 
+    private static JsonNode findEvent(JsonNode events, String templateId) {
+        for (JsonNode event : events) {
+            if (templateId.equals(event.path("templateId").asText())) {
+                return event;
+            }
+        }
+        throw new AssertionError("Missing calendar event " + templateId);
+    }
+
     private void assertInvalid(String body, int status, String code) throws Exception {
         JsonNode response = json(mvc.perform(post("/api/v1/careers")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
@@ -392,6 +549,14 @@ class CareerApiV1ControllerTest {
                 "schemaVersion", CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,
                 "expectedCalendarRevision", revision,
                 "mode", mode,
+                "clientCommandId", commandId));
+    }
+
+    private static String competitionBody(long revision, String commandId)
+            throws Exception {
+        return new ObjectMapper().writeValueAsString(java.util.Map.of(
+                "schemaVersion", CareerApiV1Dtos.COMPETITION_COMMAND_REQUEST_SCHEMA,
+                "expectedCompetitionRevision", revision,
                 "clientCommandId", commandId));
     }
 }

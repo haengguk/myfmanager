@@ -79,14 +79,14 @@ record SeriesAggregate(
         Objects.requireNonNull(expiresAt, "expiresAt");
         commandReceipts = Map.copyOf(new LinkedHashMap<>(commandReceipts));
         Objects.requireNonNull(origin, "origin");
-        if (origin == SeriesOrigin.LEAGUE_BOUND) {
+        if (origin.durableBound()) {
             if (leagueBindingHash == null || !leagueBindingHash.matches("[0-9a-f]{64}")
                     || leagueSeedAnchorTeamCode == null
                     || !Set.of(teamACode, teamBCode).contains(leagueSeedAnchorTeamCode)) {
-                throw new IllegalArgumentException("League-bound Series identity invariant");
+                throw new IllegalArgumentException("Durable-bound Series identity invariant");
             }
         } else if (leagueBindingHash != null || leagueSeedAnchorTeamCode != null) {
-            throw new IllegalArgumentException("Standalone Series cannot claim League binding");
+            throw new IllegalArgumentException("Standalone Series cannot claim authority binding");
         }
         validate(format, teamACode, teamBCode, managedTeamCode, game1BlueTeamCode,
                 score, games, consumedPicks, historyHash, status, winnerTeamCode);

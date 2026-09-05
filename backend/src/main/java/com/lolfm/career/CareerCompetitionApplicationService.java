@@ -54,24 +54,88 @@ public final class CareerCompetitionApplicationService {
             String currentCompetitionId,
             String nextCompetitionId
     ) {
-        CareerCompetitionRelationalStore.CycleView cycle = store.load(
-                career.careerId(), calendarSeasonYear);
+        CareerCompetitionRelationalStore.CycleView cycle;
+        try {
+            cycle = store.load(career.careerId(), calendarSeasonYear);
+        } catch (IllegalStateException missingCycle) {
+            if (!"CAREER_COMPETITION_CYCLE_NOT_FOUND".equals(
+                    missingCycle.getMessage())) throw missingCycle;
+            return missingFutureCycle(calendarSeasonYear, currentCompetitionId,
+                    nextCompetitionId);
+        }
         CompetitionSummary current = summary(cycle, currentCompetitionId);
         CompetitionSummary next = summary(cycle, nextCompetitionId);
         CareerCompetitionRelationalStore.FixtureRow fixture = cycle.fixtures().stream()
                 .filter(value -> !"COMPLETED".equals(value.lifecycleStatus()))
                 .findFirst().orElse(null);
+        CareerCompetitionRelationalStore.ExecutionProjection execution = fixture == null
+                ? null : store.executionProjection(career.careerId(),
+                calendarSeasonYear, fixture.matchId());
+        CompetitionFixture projectedFixture = fixture == null ? null
+                : fixture(fixture, career.managedTeamCode(), execution);
+        String pendingStatus = pendingStatus(execution);
+        PendingCompetitionCommand pending = pendingStatus == null ? null
+                : new PendingCompetitionCommand(execution.clientCommandId(),
+                fixture.competitionId(), fixture.matchId(), pendingStatus);
         return new CompetitionView("CAREER_COMPETITION_VIEW_V1", cycle.seasonYear(),
                 rules.resourceHash(), CareerCompetitionRules.VERSION,
                 CareerCompetitionRules.GAME_POLICY_VERSION,
                 CareerCompetitionRules.PROJECTION_POLICY,
                 CareerCompetitionRules.R3_R4_ALLOCATION_POLICY,
                 cycle.lifecycleStatus(), cycle.revision(), cycle.stateHash(),
-                current, next, fixture == null ? null : fixture(fixture,
-                career.managedTeamCode()), cycle.outputs().stream().map(value ->
+                current, next, projectedFixture, cycle.outputs().stream().map(value ->
                 new QualificationOutput(value.competitionId(), value.outputId(),
                         value.teamCode())).toList(),
-                externalLimited(current) || externalLimited(next), null, List.of());
+                store.cupStandings(career.careerId(), calendarSeasonYear).stream()
+                        .map(value -> new CompetitionStanding(value.groupId(),
+                                value.groupPoints(), value.groupRank(), value.teamCode(),
+                                value.matchWins(), value.matchLosses(), value.gameWins(),
+                                value.gameLosses(), value.strengthOfVictory(),
+                                value.winTimeSeconds(), value.tieBreakTrace(),
+                                value.standingsHash())).toList(),
+                store.currentSeeds(career.careerId(), calendarSeasonYear).stream()
+                        .map(value -> new CompetitionSeed(value.competitionId(),
+                                value.seedScope(), value.seedNumber(), value.teamCode(),
+                                value.sourceInputHash())).toList(),
+                externalLimited(current) || externalLimited(next), pending,
+                allowedCommands(projectedFixture, currentDate));
+    }
+
+    private static String pendingStatus(
+            CareerCompetitionRelationalStore.ExecutionProjection execution
+    ) {
+        if (execution == null || execution.clientCommandId() == null
+                || "APPLIED".equals(execution.resultApplicationStatus())) return null;
+        if (execution.jobStatus() != null
+                && ("PENDING".equals(execution.jobStatus())
+                || "RUNNING".equals(execution.jobStatus()))) {
+            return execution.jobStatus();
+        }
+        return List.of("PLAYER_ACTIVE", "SERIES_COMPLETED").contains(
+                execution.bindingStatus()) ? "RUNNING" : null;
+    }
+
+    private CompetitionView missingFutureCycle(
+            int calendarSeasonYear,
+            String currentCompetitionId,
+            String nextCompetitionId
+    ) {
+        CompetitionSummary current = missingFutureSummary(currentCompetitionId);
+        CompetitionSummary next = missingFutureSummary(nextCompetitionId);
+        return new CompetitionView("CAREER_COMPETITION_VIEW_V1", calendarSeasonYear,
+                rules.resourceHash(), CareerCompetitionRules.VERSION,
+                CareerCompetitionRules.GAME_POLICY_VERSION,
+                CareerCompetitionRules.PROJECTION_POLICY,
+                CareerCompetitionRules.R3_R4_ALLOCATION_POLICY,
+                "BLOCKED", 0, null, current, next, null, List.of(), List.of(),
+                List.of(), false, null, List.of());
+    }
+
+    private static CompetitionSummary missingFutureSummary(String competitionId) {
+        if (competitionId == null) return null;
+        return new CompetitionSummary(competitionId, "UNMATERIALIZED",
+                "VERIFIED_PRIOR_SEASON_REQUIRED", "BLOCKED",
+                "PRIOR_SEASON_SEALED_RANKING_REQUIRED", 0, null, 0, 0);
     }
 
     public boolean transitionReady(
@@ -100,10 +164,14 @@ public final class CareerCompetitionApplicationService {
         }
         CompetitionFixture fixture = view.nextFixture();
         if (fixture != null && !fixture.date().isAfter(date)
-                && "READY".equals(fixture.lifecycleStatus())) {
-            return new CompetitionGate(fixture.managedTeamIncluded()
-                    ? "MANAGED_COMPETITION_FIXTURE_REQUIRED"
-                    : "AUTO_COMPETITION_FIXTURE_REQUIRED", fixture.fixtureId(),
+                && !"COMPLETED".equals(fixture.lifecycleStatus())) {
+            if ("READY".equals(fixture.lifecycleStatus())) {
+                return new CompetitionGate(fixture.managedTeamIncluded()
+                        ? "MANAGED_COMPETITION_FIXTURE_REQUIRED"
+                        : "AUTO_COMPETITION_FIXTURE_REQUIRED", fixture.fixtureId(),
+                        fixture.seriesId());
+            }
+            return new CompetitionGate(fixtureBlocker(fixture), fixture.fixtureId(),
                     fixture.seriesId());
         }
         return CompetitionGate.clear();
@@ -139,15 +207,25 @@ public final class CareerCompetitionApplicationService {
         long completed = cycle.fixtures().stream().filter(value -> competitionId.equals(
                 value.competitionId()) && "COMPLETED".equals(value.lifecycleStatus()))
                 .count();
-        return new CompetitionSummary(instance.competitionId(), stageId(competitionId),
+        CareerCompetitionRelationalStore.FixtureRow nextFixture = cycle.fixtures().stream()
+                .filter(value -> competitionId.equals(value.competitionId()))
+                .filter(value -> !"COMPLETED".equals(value.lifecycleStatus()))
+                .min(java.util.Comparator.comparingInt(
+                        CareerCompetitionRelationalStore.FixtureRow::matchOrder)
+                        .thenComparing(CareerCompetitionRelationalStore.FixtureRow::matchId))
+                .orElse(null);
+        String stage = total > 0 && completed == total ? "COMPLETED"
+                : nextFixture == null ? stageId(competitionId) : nextFixture.stageId();
+        return new CompetitionSummary(instance.competitionId(), stage,
                 instance.ruleStatus(),
                 instance.lifecycleStatus(), instance.blockingReason(), instance.revision(),
                 instance.stateHash(), (int) completed, (int) total);
     }
 
-    private static CompetitionFixture fixture(
+    private CompetitionFixture fixture(
             CareerCompetitionRelationalStore.FixtureRow value,
-            String managedTeamCode
+            String managedTeamCode,
+            CareerCompetitionRelationalStore.ExecutionProjection execution
     ) {
         return new CompetitionFixture(value.competitionId(), value.matchId(),
                 value.fixtureId(), value.seriesId(), value.date(), value.scheduleStatus(),
@@ -157,12 +235,81 @@ public final class CareerCompetitionApplicationService {
                         && (managedTeamCode.equals(value.firstTeamCode())
                         || managedTeamCode.equals(value.secondTeamCode())),
                 Long.toString(value.rootSeed()),
-                CareerCompetitionAggregate.SEED_ALGORITHM);
+                CareerCompetitionAggregate.SEED_ALGORITHM,
+                new CareerCompetitionRules.ParticipantSelector(
+                        value.firstSelectorType(), value.firstSelectorValue()),
+                new CareerCompetitionRules.ParticipantSelector(
+                        value.secondSelectorType(), value.secondSelectorValue()),
+                value.stageId(), "READY".equals(value.lifecycleStatus())
+                ? null : fixtureBlocker(value),
+                execution == null ? null : execution.bindingHash(),
+                execution == null ? null : execution.jobId(),
+                execution == null ? null : execution.jobStatus(),
+                execution == null ? "NOT_APPLIED"
+                        : execution.resultApplicationStatus(),
+                execution == null ? null : execution.failureCode());
+    }
+
+    private static List<String> allowedCommands(
+            CompetitionFixture fixture,
+            LocalDate currentDate
+    ) {
+        if (fixture == null || fixture.date().isAfter(currentDate)
+                || !"READY".equals(fixture.lifecycleStatus())) {
+            return List.of();
+        }
+        if (fixture.bindingHash() == null) {
+            return List.of(fixture.managedTeamIncluded()
+                    ? "START_PLAYER_COMPETITION_SERIES"
+                    : "DISPATCH_AUTO_COMPETITION_FIXTURE");
+        }
+        if (fixture.managedTeamIncluded()) {
+            return List.of("RECONCILE_COMPETITION_FIXTURE",
+                    "RESUME_PLAYER_COMPETITION_SERIES");
+        }
+        return List.of("RECONCILE_COMPETITION_FIXTURE");
     }
 
     private static boolean externalLimited(CompetitionSummary value) {
         return value != null && "EXTERNAL_COMPETITION_EXECUTION_NOT_IMPLEMENTED".equals(
                 value.blockingReason());
+    }
+
+    private static String fixtureBlocker(CompetitionFixture fixture) {
+        CareerCompetitionRules.ParticipantSelector first = fixture.firstSelector();
+        CareerCompetitionRules.ParticipantSelector second = fixture.secondSelector();
+        List<String> types = List.of(first.type(), second.type());
+        if ("LCK_CUP".equals(fixture.competitionId()) && types.stream().anyMatch(type ->
+                "CUP_PLAY_IN_SEED".equals(type) || "CUP_PLAYOFF_SEED".equals(type))) {
+            return "LCK_CUP_GROUP_STANDINGS_REQUIRED";
+        }
+        if (types.stream().anyMatch(type -> type.contains("LOWEST_AVAILABLE")
+                || type.contains("REMAINING"))) {
+            return "COMPETITION_OPPONENT_CHOICE_REQUIRED";
+        }
+        if (types.stream().anyMatch(type -> type.endsWith("_SEED"))) {
+            return "COMPETITION_SEED_REQUIRED";
+        }
+        return "COMPETITION_PREDECESSOR_RESULT_REQUIRED";
+    }
+
+    private static String fixtureBlocker(
+            CareerCompetitionRelationalStore.FixtureRow fixture
+    ) {
+        List<String> types = List.of(fixture.firstSelectorType(),
+                fixture.secondSelectorType());
+        if ("LCK_CUP".equals(fixture.competitionId()) && types.stream().anyMatch(type ->
+                "CUP_PLAY_IN_SEED".equals(type) || "CUP_PLAYOFF_SEED".equals(type))) {
+            return "LCK_CUP_GROUP_STANDINGS_REQUIRED";
+        }
+        if (types.stream().anyMatch(type -> type.contains("LOWEST_AVAILABLE")
+                || type.contains("REMAINING"))) {
+            return "COMPETITION_OPPONENT_CHOICE_REQUIRED";
+        }
+        if (types.stream().anyMatch(type -> type.endsWith("_SEED"))) {
+            return "COMPETITION_SEED_REQUIRED";
+        }
+        return "COMPETITION_PREDECESSOR_RESULT_REQUIRED";
     }
 
     private static String stageId(String competitionId) {
@@ -193,12 +340,16 @@ public final class CareerCompetitionApplicationService {
             CompetitionSummary nextCompetition,
             CompetitionFixture nextFixture,
             List<QualificationOutput> qualificationOutputs,
+            List<CompetitionStanding> groupStandings,
+            List<CompetitionSeed> currentSeeds,
             boolean externalExecutionLimited,
             PendingCompetitionCommand activePendingCommand,
             List<String> allowedCommands
     ) {
         public CompetitionView {
             qualificationOutputs = List.copyOf(qualificationOutputs);
+            groupStandings = List.copyOf(groupStandings);
+            currentSeeds = List.copyOf(currentSeeds);
             allowedCommands = List.copyOf(allowedCommands);
         }
     }
@@ -230,11 +381,46 @@ public final class CareerCompetitionApplicationService {
             String lifecycleStatus,
             boolean managedTeamIncluded,
             String rootSeed,
-            String seedAlgorithm
-    ) {}
+            String seedAlgorithm,
+            CareerCompetitionRules.ParticipantSelector firstSelector,
+            CareerCompetitionRules.ParticipantSelector secondSelector,
+            String stageId,
+            String blockingReason,
+            String bindingHash,
+            String jobId,
+            String jobStatus,
+            String resultApplicationStatus,
+            String failureCode
+    ) {
+        public CompetitionFixture(
+                String competitionId, String matchId, String fixtureId, String seriesId,
+                LocalDate date, String scheduleStatus, String seriesFormat,
+                boolean hardFearless, String firstTeamCode, String secondTeamCode,
+                String executionMode, String lifecycleStatus, boolean managedTeamIncluded,
+                String rootSeed, String seedAlgorithm
+        ) {
+            this(competitionId, matchId, fixtureId, seriesId, date, scheduleStatus,
+                    seriesFormat, hardFearless, firstTeamCode, secondTeamCode,
+                    executionMode, lifecycleStatus, managedTeamIncluded, rootSeed,
+                    seedAlgorithm, null, null, null, null, null, null, null,
+                    "NOT_APPLIED", null);
+        }
+    }
 
     public record QualificationOutput(
             String competitionId, String outputId, String teamCode
+    ) {}
+
+    public record CompetitionStanding(
+            String groupId, int groupPoints, int groupRank, String teamCode,
+            int matchWins, int matchLosses, int gameWins, int gameLosses,
+            int strengthOfVictory, int winTimeSeconds, String tieBreakTrace,
+            String standingsHash
+    ) {}
+
+    public record CompetitionSeed(
+            String competitionId, String seedScope, int seedNumber,
+            String teamCode, String sourceInputHash
     ) {}
 
     public record PendingCompetitionCommand(

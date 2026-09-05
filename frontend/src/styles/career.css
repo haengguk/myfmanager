@@ -110,6 +110,18 @@
 .ca-calendar__competition > p b { color: var(--lm-text); font-weight: 650; }
 .ca-calendar__competition > p em, .ca-calendar__competition > i { overflow: hidden; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .ca-calendar__competition > i { grid-column: 2 / -1; color: var(--lm-warning); font-size: 8px; }
+.ca-calendar__competition > button { grid-column: 2; justify-self: start; min-height: 28px; padding: 0 12px; font-size: 9px; }
+.ca-calendar__competition-data { grid-column: 1 / -1; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--lm-border); }
+.ca-calendar__competition-data > span, .ca-calendar__competition-seeds > span { display: block; margin-bottom: 5px; color: var(--lm-muted); font: 700 8px var(--lm-font-mono); letter-spacing: .08em; }
+.ca-calendar__competition-data ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin: 0; padding: 0; list-style: none; }
+.ca-calendar__competition-data li { display: grid; grid-template-columns: 58px 38px minmax(0, 1fr); gap: 6px; align-items: center; min-width: 0; font-size: 8px; }
+.ca-calendar__competition-data li b { color: var(--lm-accent); font: 700 8px var(--lm-font-mono); }
+.ca-calendar__competition-data li strong { color: var(--lm-text); }
+.ca-calendar__competition-data li small { overflow: hidden; color: var(--lm-muted); text-overflow: ellipsis; white-space: nowrap; }
+.ca-calendar__competition-seeds { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 10px; padding-top: 4px; }
+.ca-calendar__competition-seeds > span { flex-basis: 100%; margin-bottom: 0; }
+.ca-calendar__competition-seeds small { color: var(--lm-muted); font: 8px var(--lm-font-mono); }
+.ca-calendar__competition-seeds b { color: var(--lm-text); }
 .ca-calendar__controls { display: flex; gap: 7px; padding: 10px 14px; border-bottom: 1px solid var(--lm-border); }
 .ca-calendar__controls .lm-text-button { margin-left: auto; }
 .ca-calendar__grid { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(190px, .82fr); }

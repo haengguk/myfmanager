@@ -6,16 +6,23 @@ const STATUS_COPY: Readonly<Record<string, string>> = {
 const COMPETITION_COPY: Readonly<Record<string, string>> = {
   LCK_CUP: 'LCK Cup', LCK_REGULAR_R1_R2: 'LCK R1–R2', LCK_ROAD_TO_MSI: 'Road to MSI', LCK_REGULAR_R3_R4: 'LCK R3–R4', LCK_PLAY_IN: 'LCK 플레이인', LCK_PLAYOFFS: 'LCK 플레이오프', FIRST_STAND: 'First Stand', MSI: 'MSI', EWC_LOL: 'EWC', WORLDS: 'Worlds', ASIAN_GAMES_LOL_RELEASE: '아시안게임 차출 기간', KESPA_CUP: 'KeSPA Cup',
 };
+const EXECUTION_COPY: Readonly<Record<CareerCalendarViewDto['upcomingEvents'][number]['executionStatus'], string>> = {
+  LINKED_EXISTING_LEAGUE_FIXTURES: 'League 연동',
+  LINKED_COMPETITION_SERIES_EXECUTION: '대회 Series 연동',
+  FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED: '형식만 정의됨',
+};
 
 function range(start: string, end: string): string { return start === end ? start : `${start} — ${end}`; }
 
-export function CareerCalendarPanel({ calendar, loading, pending, error, onAdvance, onRefresh, onReconcilePending = onRefresh }: {
+export function CareerCalendarPanel({ calendar, loading, pending, competitionPending = false, error, onAdvance, onRefresh, onCompetitionAction, onReconcilePending = onRefresh }: {
   calendar: CareerCalendarViewDto | null;
   loading: boolean;
   pending: boolean;
+  competitionPending?: boolean;
   error: string | null;
   onAdvance: (mode: CareerAdvanceMode) => void;
   onRefresh: () => void;
+  onCompetitionAction?: () => void;
   onReconcilePending?: () => void;
 }) {
   if (loading) return <section className="ca-calendar ca-calendar--loading" aria-label="Career 캘린더" aria-busy="true"><span>CAREER TIME</span><strong>캘린더 확인 중…</strong></section>;
@@ -23,6 +30,11 @@ export function CareerCalendarPanel({ calendar, loading, pending, error, onAdvan
   const current = calendar.currentEvent;
   const reconciling = pending || calendar.activePendingAdvance !== null;
   const competition = calendar.competition.currentCompetition ?? calendar.competition.nextCompetition;
+  const competitionCommand = calendar.competition.allowedCommands[0] ?? null;
+  const competitionActionLabel = competitionCommand === 'START_PLAYER_COMPETITION_SERIES' ? '관리 Series 시작'
+    : competitionCommand === 'RESUME_PLAYER_COMPETITION_SERIES' ? '관리 Series 계속'
+      : competitionCommand === 'DISPATCH_AUTO_COMPETITION_FIXTURE' ? 'Auto 경기 실행'
+        : competitionCommand === 'RECONCILE_COMPETITION_FIXTURE' ? '대회 결과 확인' : null;
   return <section className="ca-calendar" aria-label="Career 캘린더">
     <header>
       <div><span>CAREER TIME / {calendar.activeCalendarSeasonYear}</span><strong><time dateTime={calendar.currentDate}>{calendar.currentDate}</time></strong><small>{current ? current.displayNameKo : '첫 공식 일정 이전'}{calendar.currentStage ? ` · ${calendar.currentStage.displayNameKo}` : calendar.nextStage ? ` · 다음 단계 ${calendar.nextStage.displayNameKo}` : ''}</small></div>
@@ -33,7 +45,10 @@ export function CareerCalendarPanel({ calendar, loading, pending, error, onAdvan
       <span>{calendar.competition.currentCompetition ? 'CURRENT COMPETITION' : 'NEXT COMPETITION'}</span>
       <strong>{COMPETITION_COPY[competition.competitionId] ?? competition.competitionId}</strong>
       <small>{competition.stageId} · {competition.lifecycleStatus} · {competition.completedFixtures}/{competition.totalFixtures}{competition.blockingReason ? ` · ${competition.blockingReason}` : ''}</small>
-      {calendar.competition.nextFixture ? <p><time>{calendar.competition.nextFixture.date}</time><b>{COMPETITION_COPY[calendar.competition.nextFixture.competitionId] ?? calendar.competition.nextFixture.competitionId} {calendar.competition.nextFixture.matchId}</b><em>{calendar.competition.nextFixture.firstTeamCode ?? 'TBD'} vs {calendar.competition.nextFixture.secondTeamCode ?? 'TBD'} · {calendar.competition.nextFixture.seriesFormat} · {calendar.competition.nextFixture.executionMode === 'PLAYER_CONTROLLED' ? '관리 경기' : 'Auto'}</em></p> : null}
+      {calendar.competition.nextFixture ? <p><time>{calendar.competition.nextFixture.date}</time><b>{COMPETITION_COPY[calendar.competition.nextFixture.competitionId] ?? calendar.competition.nextFixture.competitionId} {calendar.competition.nextFixture.matchId}</b><em>{calendar.competition.nextFixture.firstTeamCode ?? 'TBD'} vs {calendar.competition.nextFixture.secondTeamCode ?? 'TBD'} · {calendar.competition.nextFixture.seriesFormat} · {calendar.competition.nextFixture.executionMode === 'PLAYER_CONTROLLED' ? '관리 경기' : 'Auto'}{calendar.competition.nextFixture.jobStatus ? ` · ${calendar.competition.nextFixture.jobStatus}` : ''}{calendar.competition.nextFixture.blockingReason ? ` · ${calendar.competition.nextFixture.blockingReason}` : ''}</em></p> : null}
+      {competitionActionLabel && onCompetitionAction ? <button type="button" className="lm-primary-button" disabled={competitionPending} onClick={onCompetitionAction}>{competitionPending ? '대회 상태 확인 중…' : competitionActionLabel}</button> : null}
+      {calendar.competition.groupStandings.length ? <div className="ca-calendar__competition-data"><span>GROUP STANDINGS</span><ol>{calendar.competition.groupStandings.map((standing) => <li key={`${standing.groupId}-${standing.teamCode}`}><b>{standing.groupId} {standing.groupRank}</b><strong>{standing.teamCode}</strong><small>{standing.matchWins}승 {standing.matchLosses}패 · {standing.gameWins - standing.gameLosses >= 0 ? '+' : ''}{standing.gameWins - standing.gameLosses} · 그룹 {standing.groupPoints}점</small></li>)}</ol></div> : null}
+      {calendar.competition.currentSeeds.length ? <div className="ca-calendar__competition-seeds"><span>CURRENT SEEDS</span>{calendar.competition.currentSeeds.map((seed) => <small key={`${seed.competitionId}-${seed.seedScope}-${seed.seedNumber}`}>{seed.seedScope} {seed.seedNumber} · <b>{seed.teamCode}</b></small>)}</div> : null}
       {calendar.competition.externalExecutionLimited ? <i>국제대회는 LCK 진출 slot만 보존하며 경기는 실행하지 않습니다.</i> : null}
     </div> : null}
     <div className="ca-calendar__controls">
@@ -42,7 +57,7 @@ export function CareerCalendarPanel({ calendar, loading, pending, error, onAdvan
       <button type="button" className="lm-text-button" disabled={reconciling} onClick={onRefresh}>새로고침</button>
     </div>
     <div className="ca-calendar__grid">
-      <div className="ca-calendar__events"><span>UPCOMING / OFFICIAL + PROJECTED</span><ol>{calendar.upcomingEvents.slice(0, 6).map((event) => <li key={event.eventId}><time>{range(event.startDate, event.endDate)}</time><div><strong>{event.displayNameKo}</strong><small>{STATUS_COPY[event.officialStatus] ?? event.officialStatus} · {event.executionStatus === 'LINKED_EXISTING_LEAGUE_FIXTURES' ? 'League 연동' : '형식만 정의됨'}</small></div></li>)}</ol></div>
+      <div className="ca-calendar__events"><span>UPCOMING / OFFICIAL + PROJECTED</span><ol>{calendar.upcomingEvents.slice(0, 6).map((event) => <li key={event.eventId}><time>{range(event.startDate, event.endDate)}</time><div><strong>{event.displayNameKo}</strong><small>{STATUS_COPY[event.officialStatus] ?? event.officialStatus} · {EXECUTION_COPY[event.executionStatus]}</small></div></li>)}</ol></div>
       <div className="ca-calendar__fixtures"><span>R1–R2 FIXTURE OVERLAY</span>{calendar.upcomingFixtures.length ? <ol>{calendar.upcomingFixtures.slice(0, 4).map((fixture) => <li key={fixture.fixtureId}><time>{fixture.date}</time><strong>R{fixture.roundNumber} · {fixture.firstTeamCode} vs {fixture.secondTeamCode}</strong><small>{fixture.executionMode === 'PLAYER_CONTROLLED' ? '관리 경기' : fixture.jobStatus ?? fixture.lifecycleStatus}</small></li>)}</ol> : <p>남은 R1–R2 fixture가 없습니다.</p>}<footer><span>공식 미정 {calendar.pendingOfficialFields.length}</span><span>KeSPA Cup · 2025 참고 규칙 · 2026 공식 규칙/외부 참가팀 미확정</span></footer></div>
     </div>
   </section>;

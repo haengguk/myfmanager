@@ -4,6 +4,7 @@ import com.lolfm.champion.ChampionId;
 import com.lolfm.champion.ChampionRoleKey;
 import com.lolfm.domain.Position;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -47,8 +48,8 @@ class CompositionInteractionTest {
     @Test void interactionInputIsImmutable() { var input = fixtureInput("immutable"); assertThatThrownBy(() -> input.capabilityCoverage().clear()).isInstanceOf(UnsupportedOperationException.class); assertThatThrownBy(() -> input.patternReadiness().clear()).isInstanceOf(UnsupportedOperationException.class); }
     @Test void evaluatorIsStatelessAndDoesNotMutateInput() { var input = fixtureInput("stateless"); var before = input.capabilityCoverage(); new CompositionInteractionEvaluator().evaluate(input, fixtureInput("other"), CompositionInteractionFormula.GAP_REFERENCE); assertThat(input.capabilityCoverage()).isEqualTo(before); }
     @Test void explanationMatchesEvaluation() { var result = new CompositionInteractionEvaluator().evaluate(fixtureInput("a"), fixtureInput("b"), CompositionInteractionFormula.PRODUCT_EXPOSURE); for (TeamCompositionContext context : TeamCompositionContext.values()) { var actual = result.contexts().get(context); var explanation = result.explanation().contexts().get(context); assertThat(explanation.teamAToTeamBPressure()).isEqualTo(actual.teamAToTeamB().pressure()); assertThat(explanation.teamBToTeamAPressure()).isEqualTo(actual.teamBToTeamA().pressure()); assertThat(explanation.teamASignedEdge()).isEqualTo(actual.teamASignedEdge()); } }
-    @Test void representativeSelectionProducesExactlySixtyLineupsAndIncludesAnchors() throws Exception { var rows = CompositionInteractionContextAudit.readLineups(CompositionInteractionContextAudit.SOURCE); var selected = CompositionInteractionContextAudit.selectRepresentatives(rows); assertThat(selected).hasSize(60); assertThat(selected.stream().filter(x -> x.selectionSource().equals("ANCHOR"))).hasSize(12); }
-    @Test void representativeSelectionIsDeterministic() throws Exception { var rows = CompositionInteractionContextAudit.readLineups(CompositionInteractionContextAudit.SOURCE); assertThat(CompositionInteractionContextAudit.selectRepresentatives(rows).stream().map(CompositionInteractionContextAudit.RepresentativeLineup::lineupId)).containsExactlyElementsOf(CompositionInteractionContextAudit.selectRepresentatives(rows).stream().map(CompositionInteractionContextAudit.RepresentativeLineup::lineupId).toList()); }
+    @Test @Tag("diagnostic") @Tag("historical-artifact") void representativeSelectionProducesExactlySixtyLineupsAndIncludesAnchors() throws Exception { var rows = CompositionInteractionContextAudit.readLineups(CompositionInteractionContextAudit.SOURCE); var selected = CompositionInteractionContextAudit.selectRepresentatives(rows); assertThat(selected).hasSize(60); assertThat(selected.stream().filter(x -> x.selectionSource().equals("ANCHOR"))).hasSize(12); }
+    @Test @Tag("diagnostic") @Tag("historical-artifact") void representativeSelectionIsDeterministic() throws Exception { var rows = CompositionInteractionContextAudit.readLineups(CompositionInteractionContextAudit.SOURCE); assertThat(CompositionInteractionContextAudit.selectRepresentatives(rows).stream().map(CompositionInteractionContextAudit.RepresentativeLineup::lineupId)).containsExactlyElementsOf(CompositionInteractionContextAudit.selectRepresentatives(rows).stream().map(CompositionInteractionContextAudit.RepresentativeLineup::lineupId).toList()); }
 
     private static CompositionInteractionInput fixtureInput(String id) {
         EnumMap<Position, ChampionRoleKey> lineupMap = new EnumMap<>(Position.class);

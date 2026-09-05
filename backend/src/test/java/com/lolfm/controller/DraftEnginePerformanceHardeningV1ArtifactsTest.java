@@ -8,12 +8,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 class DraftEnginePerformanceHardeningV1ArtifactsTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
+    @Tag("diagnostic")
+    @Tag("historical-artifact")
     void verifiesFrozenUpstreamManifestScheduleAndCompleteSemanticRows()
             throws Exception {
         Path backendRoot = Path.of("").toAbsolutePath().normalize();

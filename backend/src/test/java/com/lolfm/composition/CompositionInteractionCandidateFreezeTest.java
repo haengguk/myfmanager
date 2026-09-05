@@ -1,12 +1,15 @@
 package com.lolfm.composition;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 import java.util.Comparator;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Tag("diagnostic")
+@Tag("historical-artifact")
 class CompositionInteractionCandidateFreezeTest {
     @Test void anchorExpectationUsesTargetRulePressureNotContextPressure() throws Exception {
         var snapshot = CompositionInteractionCandidateFreeze.compute();

@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 
 class MatchEngineV9FreshRequalificationContractTest {
     @Test
@@ -42,6 +43,8 @@ class MatchEngineV9FreshRequalificationContractTest {
     }
 
     @Test
+    @Tag("diagnostic")
+    @Tag("historical-artifact")
     void completeConsumedLedgerProvesAllOfficialAndDryRunSeedsFresh() throws Exception {
         var ledger = MatchEngineV9ConsumedSeedLedger.create(new ObjectMapper(), Path.of("."));
         assertThat(ledger.complete()).isTrue();

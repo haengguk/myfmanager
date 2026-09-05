@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchLckTeams, TeamPlayerApiFailure } from '../team-player/api/teamPlayerApi.client';
 import type { TeamSummaryDto } from '../team-player/api/teamPlayerApi.types';
-import { CareerApiFailure, advanceCareerCalendar, createCareer, getCareer, getCareerCalendar, getCareers } from './api/careerApi.client';
+import { CareerApiFailure, advanceCareerCalendar, createCareer, getCareer, getCareerCalendar, getCareers, reconcileCareerCompetition, startOrResumeCareerCompetition } from './api/careerApi.client';
 import { CAREER_SCHEMAS, type CareerAdvanceMode, type CareerCalendarViewDto, type CareerListResponseDto, type CareerSummaryDto, type CareerViewDto } from './api/careerApi.types';
 import { CAREER_RESUME_COPY } from './career.adapter';
 import { CareerCreateDialog } from './CareerCreateDialog';
 import { CareerCalendarPanel } from './CareerCalendarPanel';
 import {
-  careerPointerRecoveryAction, clearCareerAdvanceOperation, clearCareerCreateOperation, clearCareerPointer,
+  careerPointerRecoveryAction, clearCareerAdvanceOperation, clearCareerCompetitionOperation, clearCareerCreateOperation, clearCareerPointer,
   isAmbiguousCareerCreateFailure, logicalCareerCreate, readCareerCreateOperation,
-  logicalCareerAdvance, readCareerAdvanceOperation, readCareerPointer,
-  reconcileCareerAdvanceOperation, writeCareerPointer,
+  logicalCareerAdvance, logicalCareerCompetition, readCareerAdvanceOperation, readCareerPointer,
+  reconcileCareerAdvanceOperation, reconcileCareerCompetitionOperation, writeCareerPointer,
   type CareerAdvanceOperation, type CareerCreateSelection,
 } from './career.pointer';
 
@@ -42,9 +42,10 @@ function requireCareerReference(career: CareerViewDto, teams: readonly TeamSumma
   if (!catalog || career.referenceCatalogVersion !== catalog.catalogVersion || career.referenceCatalogHash !== catalog.catalogHash) throw new CareerApiFailure('CONTRACT', 'Career와 LCK reference generation이 일치하지 않습니다.');
 }
 
-export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
+export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSeries, onNotify }: {
   searchValue: string;
   onResume: (career: CareerViewDto) => void;
+  onOpenCompetitionSeries?: (seriesId: string, career: CareerViewDto, matchup: string) => void;
   onNotify: (title: string, message: string) => void;
 }) {
   const [list, setList] = useState<CareerListResponseDto>(EMPTY_CAPACITY);
@@ -55,6 +56,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [advancePending, setAdvancePending] = useState(false);
+  const [competitionPending, setCompetitionPending] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +67,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
   const requestRef = useRef<AbortController | null>(null);
   const createRequestRef = useRef<AbortController | null>(null);
   const advanceRequestRef = useRef<AbortController | null>(null);
+  const competitionRequestRef = useRef<AbortController | null>(null);
   const restoredAdvanceRef = useRef<string | null>(null);
   const generationRef = useRef(0);
   const newCareerRef = useRef<HTMLButtonElement>(null);
@@ -86,7 +89,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
       applyDetail(career, focus);
       try {
         const calendarView = await getCareerCalendar(careerId, controller.signal); if (generation !== generationRef.current || controller.signal.aborted) return;
-        const operation = reconcileCareerAdvanceOperation(window.sessionStorage, careerId, calendarView.activePendingAdvance); if (!calendarView.activePendingAdvance && operation) restoredAdvanceRef.current = null; setCalendar(calendarView); setCalendarError(null);
+        const operation = reconcileCareerAdvanceOperation(window.sessionStorage, careerId, calendarView.activePendingAdvance); if (!calendarView.activePendingAdvance && operation) restoredAdvanceRef.current = null; reconcileCareerCompetitionOperation(window.sessionStorage, careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); setCalendarError(null);
       } catch (cause) {
         if (controller.signal.aborted || generation !== generationRef.current) return;
         setCalendarError(loadFailure(cause));
@@ -117,7 +120,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
         requireCareerReference(career, teamResponse.teams, catalog);
         applyDetail(career);
         setCalendarLoading(true);
-        try { const calendarView = await getCareerCalendar(career.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, career.careerId, calendarView.activePendingAdvance); setCalendar(calendarView); setCalendarError(null); }
+        try { const calendarView = await getCareerCalendar(career.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, career.careerId, calendarView.activePendingAdvance); reconcileCareerCompetitionOperation(window.sessionStorage, career.careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); setCalendarError(null); }
         catch (calendarCause) { if (!controller.signal.aborted) setCalendarError(loadFailure(calendarCause)); }
         finally { if (!controller.signal.aborted) setCalendarLoading(false); }
       } catch (cause) {
@@ -130,7 +133,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
     finally { if (!controller.signal.aborted && generation === generationRef.current) setInitialLoading(false); if (requestRef.current === controller) requestRef.current = null; }
   }, [applyDetail]);
 
-  useEffect(() => { void loadWorkspace(); return () => { requestRef.current?.abort(); createRequestRef.current?.abort(); advanceRequestRef.current?.abort(); }; }, [loadWorkspace]);
+  useEffect(() => { void loadWorkspace(); return () => { requestRef.current?.abort(); createRequestRef.current?.abort(); advanceRequestRef.current?.abort(); competitionRequestRef.current?.abort(); }; }, [loadWorkspace]);
 
   const create = useCallback(async (selection: CareerCreateSelection) => {
     if (createPending) return;
@@ -141,7 +144,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
       requireCareerReference(response.career, teamsRef.current, catalogRef.current);
       clearCareerCreateOperation(window.sessionStorage); setError(null); setIntegrityError(false); applyDetail(response.career, true); setDialogOpen(false);
       setCalendarLoading(true); setCalendarError(null);
-      try { const calendarView = await getCareerCalendar(response.career.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, response.career.careerId, calendarView.activePendingAdvance); setCalendar(calendarView); }
+      try { const calendarView = await getCareerCalendar(response.career.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, response.career.careerId, calendarView.activePendingAdvance); reconcileCareerCompetitionOperation(window.sessionStorage, response.career.careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); }
       catch (calendarCause) { if (!controller.signal.aborted) setCalendarError(loadFailure(calendarCause)); }
       finally { if (!controller.signal.aborted) setCalendarLoading(false); }
       onNotify(response.replayed ? 'Career 생성 결과 복원' : 'Career 생성 완료', `${response.career.saveName} · ${response.career.managedTeamCode} Hybrid Season을 서버에서 확인했습니다.`);
@@ -161,12 +164,12 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
     setAdvancePending(true); setCalendarError(null);
     try {
       let response = await advanceCareerCalendar(detail.careerId, { schemaVersion: CAREER_SCHEMAS.advanceRequest, expectedCalendarRevision: operation.expectedCalendarRevision, mode: operation.mode, clientCommandId: operation.clientCommandId }, controller.signal);
-      setCalendar(response.calendar);
+      reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, response.calendar.competition.revision, response.calendar.competition.activePendingCommand); setCalendar(response.calendar);
       for (const delay of [400, 800, 1_200, 2_000, 3_000]) {
         if (!response.pending) break;
         await wait(delay, controller.signal);
         response = await advanceCareerCalendar(detail.careerId, { schemaVersion: CAREER_SCHEMAS.advanceRequest, expectedCalendarRevision: operation.expectedCalendarRevision, mode: operation.mode, clientCommandId: operation.clientCommandId }, controller.signal);
-        setCalendar(response.calendar);
+        reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, response.calendar.competition.revision, response.calendar.competition.activePendingCommand); setCalendar(response.calendar);
       }
       if (response.pending) {
         setCalendarError('Auto 경기 작업은 서버에서 계속 실행 중입니다. 같은 진행 작업 ID를 유지한 채 다시 확인할 수 있습니다.');
@@ -185,9 +188,67 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
       const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause));
       if (!isAmbiguousCareerCreateFailure(failure)) { clearCareerAdvanceOperation(window.sessionStorage, detail.careerId); restoredAdvanceRef.current = null; }
       setCalendarError(failure.userMessage);
-      try { const calendarView = await getCareerCalendar(detail.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, detail.careerId, calendarView.activePendingAdvance); setCalendar(calendarView); } catch { /* original failure remains visible */ }
+      try { const calendarView = await getCareerCalendar(detail.careerId, controller.signal); reconcileCareerAdvanceOperation(window.sessionStorage, detail.careerId, calendarView.activePendingAdvance); reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, calendarView.competition.revision, calendarView.competition.activePendingCommand); setCalendar(calendarView); } catch { /* original failure remains visible */ }
     } finally { if (!controller.signal.aborted) setAdvancePending(false); if (advanceRequestRef.current === controller) advanceRequestRef.current = null; }
   }, [advancePending, applyDetail, calendar, detail, onNotify]);
+
+  const executeCompetition = useCallback(async () => {
+    if (!detail || !calendar || competitionPending) return;
+    const fixture = calendar.competition.nextFixture;
+    const command = calendar.competition.allowedCommands[0];
+    if (!fixture || !command) return;
+    const operation = logicalCareerCompetition(window.sessionStorage,
+      detail.careerId, calendar.competition.revision);
+    const body = {
+      schemaVersion: CAREER_SCHEMAS.competitionCommandRequest,
+      expectedCompetitionRevision: operation.expectedCompetitionRevision,
+      clientCommandId: operation.clientCommandId,
+    } as const;
+    const controller = new AbortController(); competitionRequestRef.current?.abort(); competitionRequestRef.current = controller;
+    setCompetitionPending(true); setCalendarError(null);
+    try {
+      const response = command === 'RECONCILE_COMPETITION_FIXTURE'
+        ? await reconcileCareerCompetition(detail.careerId, body, controller.signal)
+        : await startOrResumeCareerCompetition(detail.careerId, body, controller.signal);
+      if (response.executionMode === 'PLAYER_CONTROLLED' && response.status !== 'COMPLETED') {
+        if (!response.seriesId || !onOpenCompetitionSeries) throw new CareerApiFailure('CONTRACT', '관리 대회 Series 진입 정보를 확인할 수 없습니다.');
+        onOpenCompetitionSeries(response.seriesId, detail,
+          `${fixture.firstTeamCode ?? 'TBD'} vs ${fixture.secondTeamCode ?? 'TBD'}`);
+        return;
+      }
+      if (response.status === 'BLOCKED') {
+        setCalendarError(response.failureCode ?? '대회 Auto 경기 실행이 차단되었습니다.');
+        return;
+      }
+      let latest = calendar;
+      if (response.executionMode === 'FULL_AUTO' && ['PENDING', 'RUNNING'].includes(response.status)) {
+        for (const delay of [400, 800, 1_200, 2_000, 3_000]) {
+          await wait(delay, controller.signal);
+          latest = await getCareerCalendar(detail.careerId, controller.signal); reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, latest.competition.revision, latest.competition.activePendingCommand); setCalendar(latest);
+          if (latest.competition.nextFixture?.fixtureId !== fixture.fixtureId
+            || latest.competition.nextFixture?.resultApplicationStatus === 'APPLIED') break;
+        }
+        if (latest.competition.nextFixture?.fixtureId === fixture.fixtureId
+          && latest.competition.nextFixture.resultApplicationStatus !== 'APPLIED') {
+          setCalendarError('Auto 대회 경기는 서버에서 계속 실행 중입니다. 같은 작업 ID로 상태를 다시 확인할 수 있습니다.');
+          return;
+        }
+      }
+      clearCareerCompetitionOperation(window.sessionStorage, detail.careerId);
+      await loadDetail(detail.careerId);
+      onNotify(response.replayed ? '대회 결과 복원' : '대회 경기 완료',
+        `${fixture.competitionId} ${fixture.matchId} 결과가 다음 대진에 반영됐습니다.`);
+    } catch (cause) {
+      if (controller.signal.aborted) return;
+      const failure = cause instanceof CareerApiFailure ? cause : new CareerApiFailure('NETWORK', loadFailure(cause));
+      if (!isAmbiguousCareerCreateFailure(failure)) clearCareerCompetitionOperation(window.sessionStorage, detail.careerId);
+      setCalendarError(failure.userMessage);
+      try { const latest = await getCareerCalendar(detail.careerId, controller.signal); reconcileCareerCompetitionOperation(window.sessionStorage, detail.careerId, latest.competition.revision, latest.competition.activePendingCommand); setCalendar(latest); } catch { /* original failure remains visible */ }
+    } finally {
+      if (!controller.signal.aborted) setCompetitionPending(false);
+      if (competitionRequestRef.current === controller) competitionRequestRef.current = null;
+    }
+  }, [calendar, competitionPending, detail, loadDetail, onNotify, onOpenCompetitionSeries]);
 
   useEffect(() => {
     if (!detail || !calendar || advancePending) return;
@@ -205,7 +266,7 @@ export function CareerDashboardPage({ searchValue, onResume, onNotify }: {
     <header className="ca-page-head"><div><span>CAREER / SAVE SLOTS</span><h1 id="ca-page-title">커리어 저장소</h1><p>Career identity와 연결된 LCK 시즌을 서버 상태 그대로 불러옵니다.</p></div><div className="ca-capacity" aria-label={`저장 슬롯 ${list.currentCount}개 중 ${list.maximumCount}개`}><span>사용 중</span><strong>{list.currentCount}<i>/</i>{list.maximumCount}</strong><small>{full ? '저장 슬롯이 가득 찼습니다' : `${list.remainingCount}개 남음`}</small></div><button ref={newCareerRef} className="lm-secondary-button" type="button" disabled={full || initialLoading} onClick={() => { setCreateError(null); setDialogOpen(true); }}>새 커리어</button></header>
     {initialLoading ? <section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 저장 목록 확인 중</strong><p>브라우저 캐시가 아닌 서버의 최신 저장 상태를 읽고 있습니다.</p></section> : error && list.careers.length === 0 ? <section className={`ca-error${integrityError ? ' is-integrity' : ''}`} role="alert"><strong>{integrityError ? '저장 무결성 확인 필요' : 'Career를 불러오지 못했습니다'}</strong><p>{error}</p><button type="button" className="lm-secondary-button" onClick={() => { void loadWorkspace(); }}>다시 시도</button></section> : <div className="ca-layout">
       <aside className="ca-saves" aria-label="Career 저장 목록"><header><div><span>SAVED CAREERS</span><strong>{query ? `검색 결과 ${careers.length}` : `${list.currentCount}개 저장`}</strong></div><small>최근 운영 저장 순</small></header>{careers.length === 0 ? <div className="ca-empty"><strong>{list.currentCount === 0 ? '저장된 커리어가 없습니다' : '검색 결과가 없습니다'}</strong><p>{list.currentCount === 0 ? 'LCK 관리 팀과 감독 이름을 정해 첫 Career를 만드세요.' : '저장 이름, 감독 또는 팀 코드로 다시 검색하세요.'}</p>{list.currentCount === 0 && !full ? <button type="button" className="lm-primary-button" onClick={() => setDialogOpen(true)}>첫 커리어 만들기</button> : null}</div> : <ol>{careers.map((career) => <li key={career.careerId}><button type="button" aria-current={selectedId === career.careerId ? 'true' : undefined} onClick={() => { void loadDetail(career.careerId); }}><span className={`ca-save-state is-${career.resumeKind.toLowerCase()}`}>{RESUME_KIND_COPY[career.resumeKind]}</span><strong>{career.saveName}</strong><span>{career.managedTeamCode} · {career.managerName}</span><small><time dateTime={career.currentDate}>{career.currentDate}</time><time dateTime={career.updatedAt}>{dateTime(career.updatedAt)}</time></small></button></li>)}</ol>}</aside>
-      <section className="ca-detail" aria-live="polite">{detailLoading ? <div className="ca-detail-loading" role="status"><span aria-hidden="true" /><strong>선택한 Career 확인 중</strong><p>연결된 Season의 navigation projection을 조회합니다.</p></div> : error ? <div className={`ca-error${integrityError ? ' is-integrity' : ''}`} role="alert"><strong>{integrityError ? '복구 불가 상태 확인 필요' : '상세를 불러오지 못했습니다'}</strong><p>{error}</p>{selectedId ? <button type="button" className="lm-secondary-button" onClick={() => { void loadDetail(selectedId); }}>다시 시도</button> : null}</div> : detail ? <><header><div><span>ACTIVE CAREER</span><h2 ref={detailTitleRef} tabIndex={-1}>{detail.saveName}</h2><p>{detail.managedTeamCode} 구단을 맡은 {detail.managerName} 감독의 저장입니다.</p></div><span className="ca-active-mark">ACTIVE</span></header><div className="ca-facts"><dl><div><dt>관리 팀</dt><dd>{detail.managedTeamCode}</dd></div><div><dt>감독</dt><dd>{detail.managerName}</dd></div><div><dt>게임 날짜</dt><dd>{detail.currentDate}</dd></div><div><dt>Career 상태</dt><dd>{detail.lifecycleStatus}</dd></div></dl><section><span>LINKED SEASON</span><h3>Round {detail.resume.currentRound} <i>/ 18</i></h3><p>{detail.resume.seasonLifecycleStatus}</p><dl><div><dt>시작 날짜</dt><dd>{detail.startDate}</dd></div><div><dt>Standings revision</dt><dd>{detail.resume.standingsRevision}</dd></div><div><dt>Lifecycle revision</dt><dd>{detail.resume.lifecycleRevision}</dd></div><div><dt>생성 시각</dt><dd>{dateTime(detail.createdAt)}</dd></div><div><dt>운영 저장 시각</dt><dd>{dateTime(detail.updatedAt)}</dd></div></dl></section></div><CareerCalendarPanel calendar={calendar} loading={calendarLoading} pending={advancePending} error={calendarError} onAdvance={(mode) => { void advance(mode); }} onRefresh={() => { void loadDetail(detail.careerId); }} /><section className="ca-identities"><span>SERVER-OWNED IDENTITY</span><dl><div><dt>Career</dt><dd><code>{detail.careerId}</code></dd></div><div><dt>League</dt><dd><code>{detail.leagueId}</code></dd></div><div><dt>Season</dt><dd><code>{detail.seasonId}</code></dd></div></dl></section></> : <div className="ca-empty ca-empty--detail"><strong>저장을 선택하세요</strong><p>선택한 Career만 GET으로 다시 검증해 상세를 표시합니다.</p></div>}</section>
+      <section className="ca-detail" aria-live="polite">{detailLoading ? <div className="ca-detail-loading" role="status"><span aria-hidden="true" /><strong>선택한 Career 확인 중</strong><p>연결된 Season의 navigation projection을 조회합니다.</p></div> : error ? <div className={`ca-error${integrityError ? ' is-integrity' : ''}`} role="alert"><strong>{integrityError ? '복구 불가 상태 확인 필요' : '상세를 불러오지 못했습니다'}</strong><p>{error}</p>{selectedId ? <button type="button" className="lm-secondary-button" onClick={() => { void loadDetail(selectedId); }}>다시 시도</button> : null}</div> : detail ? <><header><div><span>ACTIVE CAREER</span><h2 ref={detailTitleRef} tabIndex={-1}>{detail.saveName}</h2><p>{detail.managedTeamCode} 구단을 맡은 {detail.managerName} 감독의 저장입니다.</p></div><span className="ca-active-mark">ACTIVE</span></header><div className="ca-facts"><dl><div><dt>관리 팀</dt><dd>{detail.managedTeamCode}</dd></div><div><dt>감독</dt><dd>{detail.managerName}</dd></div><div><dt>게임 날짜</dt><dd>{detail.currentDate}</dd></div><div><dt>Career 상태</dt><dd>{detail.lifecycleStatus}</dd></div></dl><section><span>LINKED SEASON</span><h3>Round {detail.resume.currentRound} <i>/ 18</i></h3><p>{detail.resume.seasonLifecycleStatus}</p><dl><div><dt>시작 날짜</dt><dd>{detail.startDate}</dd></div><div><dt>Standings revision</dt><dd>{detail.resume.standingsRevision}</dd></div><div><dt>Lifecycle revision</dt><dd>{detail.resume.lifecycleRevision}</dd></div><div><dt>생성 시각</dt><dd>{dateTime(detail.createdAt)}</dd></div><div><dt>운영 저장 시각</dt><dd>{dateTime(detail.updatedAt)}</dd></div></dl></section></div><CareerCalendarPanel calendar={calendar} loading={calendarLoading} pending={advancePending} competitionPending={competitionPending} error={calendarError} onAdvance={(mode) => { void advance(mode); }} onCompetitionAction={() => { void executeCompetition(); }} onRefresh={() => { void loadDetail(detail.careerId); }} /><section className="ca-identities"><span>SERVER-OWNED IDENTITY</span><dl><div><dt>Career</dt><dd><code>{detail.careerId}</code></dd></div><div><dt>League</dt><dd><code>{detail.leagueId}</code></dd></div><div><dt>Season</dt><dd><code>{detail.seasonId}</code></dd></div></dl></section></> : <div className="ca-empty ca-empty--detail"><strong>저장을 선택하세요</strong><p>선택한 Career만 GET으로 다시 검증해 상세를 표시합니다.</p></div>}</section>
       <aside className="ca-resume" aria-label="이어하기 문맥">{detail ? <><span>NEXT ACTION</span><div className={`ca-resume__kind is-${detail.resume.kind.toLowerCase()}`}><small>{RESUME_KIND_COPY[detail.resume.kind]}</small><strong>{CAREER_RESUME_COPY[detail.resume.kind].label}</strong></div><p>{CAREER_RESUME_COPY[detail.resume.kind].description}</p>{detail.resume.kind === 'ATTENTION_REQUIRED' ? <div className="ca-resume__notice" role="note">로컬에서 복구 상태를 추측하지 않습니다. League 화면의 최신 허용 작업을 확인하세요.</div> : null}{detail.resume.kind === 'SEASON_COMPLETE' ? <div className="ca-resume__notice" role="note">캘린더는 시즌 전환 지점에서 멈추며 다음 시즌을 자동 생성하지 않습니다.</div> : null}<div className="ca-commands"><span>서버 허용 작업</span>{detail.resume.allowedCommands.length ? <ul>{detail.resume.allowedCommands.map((command) => <li key={command}>{COMMAND_COPY[command] ?? command}</li>)}</ul> : <p>Player command 없음</p>}</div><button type="button" className="lm-primary-button ca-resume__action" onClick={() => onResume(detail)}>{CAREER_RESUME_COPY[detail.resume.kind].label}</button><button type="button" className="lm-text-button" onClick={() => { void loadDetail(detail.careerId); }}>서버 상태 새로고침</button></> : <><span>NEXT ACTION</span><strong>저장 선택 대기</strong><p>목록에서 Career를 선택하면 서버의 resume projection을 확인합니다.</p></>}</aside>
     </div>}
     {full ? <div className="ca-capacity-note" role="status"><strong>저장 슬롯 100개가 모두 사용 중입니다.</strong><span>기존 Career는 계속 불러올 수 있지만 V1에서는 삭제·보관 기능이 없습니다.</span></div> : null}

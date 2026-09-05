@@ -55,9 +55,13 @@ function waitFor(milliseconds: number, signal: AbortSignal): Promise<void> {
 
 const SERIES_SIMULATION_POLL_DELAYS = [500, 800, 1200, ...Array.from({ length: 45 }, () => 2000)] as const;
 const LEAGUE_SERIES_CONTEXT_KEY = 'lolmanager.league.series-context.v1';
+const CAREER_COMPETITION_SERIES_CONTEXT_KEY = 'lolmanager.career.competition-series-context.v1';
 interface LeagueSeriesContext { schemaVersion: 'AI_LEAGUE_SERIES_CONTEXT_V1'; seriesId: string; leagueId: string; seasonId: string; fixtureId: string; roundNumber: number; matchup: string }
+interface CareerCompetitionSeriesContext { schemaVersion: 'CAREER_COMPETITION_SERIES_CONTEXT_V1'; seriesId: string; careerId: string; matchup: string }
 function readLeagueSeriesContext(): LeagueSeriesContext | null { try { const value = JSON.parse(window.sessionStorage.getItem(LEAGUE_SERIES_CONTEXT_KEY) ?? 'null') as Partial<LeagueSeriesContext> | null; return value?.schemaVersion === 'AI_LEAGUE_SERIES_CONTEXT_V1' && typeof value.seriesId === 'string' && typeof value.leagueId === 'string' && typeof value.seasonId === 'string' && typeof value.fixtureId === 'string' && Number.isInteger(value.roundNumber) && typeof value.matchup === 'string' ? value as LeagueSeriesContext : null; } catch { window.sessionStorage.removeItem(LEAGUE_SERIES_CONTEXT_KEY); return null; } }
 function clearLeagueSeriesContext(): void { window.sessionStorage.removeItem(LEAGUE_SERIES_CONTEXT_KEY); }
+function readCareerCompetitionSeriesContext(): CareerCompetitionSeriesContext | null { try { const value = JSON.parse(window.sessionStorage.getItem(CAREER_COMPETITION_SERIES_CONTEXT_KEY) ?? 'null') as Partial<CareerCompetitionSeriesContext> | null; return value?.schemaVersion === 'CAREER_COMPETITION_SERIES_CONTEXT_V1' && typeof value.seriesId === 'string' && typeof value.careerId === 'string' && typeof value.matchup === 'string' ? value as CareerCompetitionSeriesContext : null; } catch { window.sessionStorage.removeItem(CAREER_COMPETITION_SERIES_CONTEXT_KEY); return null; } }
+function clearCareerCompetitionSeriesContext(): void { window.sessionStorage.removeItem(CAREER_COMPETITION_SERIES_CONTEXT_KEY); }
 
 function RootApp() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>(() => readCareerReturnContext(window.sessionStorage) ? 'league' : readCareerPointer(window.sessionStorage) ? 'career' : 'inbox');
@@ -66,6 +70,7 @@ function RootApp() {
   const [seriesState, setSeriesState] = useState<SeriesScreenState | null>(null);
   const [leagueSeriesContext, setLeagueSeriesContext] = useState<LeagueSeriesContext | null>(() => readLeagueSeriesContext());
   const [leagueSeriesReturn, setLeagueSeriesReturn] = useState(() => { const context = readLeagueSeriesContext(); return context !== null && context.seriesId === readSeriesPointer(window.sessionStorage); });
+  const [careerCompetitionSeriesContext, setCareerCompetitionSeriesContext] = useState<CareerCompetitionSeriesContext | null>(() => readCareerCompetitionSeriesContext());
   const [careerReturnContext, setCareerReturnContext] = useState(() => readCareerReturnContext(window.sessionStorage));
   const [draftReturnScreen, setDraftReturnScreen] = useState<ActiveScreen>('setup');
   const [searchValue, setSearchValue] = useState('');
@@ -258,6 +263,7 @@ function RootApp() {
 
   const initializeSeries = useCallback(async (series: SeriesViewDto, options: MatchSetupOptionsViewModel) => {
     clearLeagueSeriesContext(); setLeagueSeriesContext(null); setLeagueSeriesReturn(false);
+    clearCareerCompetitionSeriesContext(); setCareerCompetitionSeriesContext(null);
     clearCareerReturnContext(window.sessionStorage); setCareerReturnContext(null);
     const controller = new AbortController(); seriesRequestRef.current?.abort(); seriesRequestRef.current = controller;
     try {
@@ -283,6 +289,7 @@ function RootApp() {
       ]);
       let catalog = createPlayerDraftChampionCatalog(resource);
       if (series.activeDraftSession) catalog = mergePlayerDraftChampionCatalog(series.activeDraftSession.session, catalog, resource.rolesByChampionId);
+      clearCareerCompetitionSeriesContext(); setCareerCompetitionSeriesContext(null);
       const context: LeagueSeriesContext = { schemaVersion: 'AI_LEAGUE_SERIES_CONTEXT_V1', seriesId: series.seriesId, leagueId: playerSeries.leagueId, seasonId: playerSeries.seasonId, fixtureId: fixture.fixtureId, roundNumber: fixture.roundNumber, matchup: `${fixture.firstTeamCode} vs ${fixture.secondTeamCode}` };
       window.sessionStorage.setItem(LEAGUE_SERIES_CONTEXT_KEY, JSON.stringify(context)); setLeagueSeriesContext(context); writeSeriesPointer(window.sessionStorage, series.seriesId); setSeriesState(createSeriesScreenState(series, options, catalog)); setLeagueSeriesReturn(true); setActiveScreen('series-hub');
       showToast('League Player Series 연결', `${playerSeries.fixtureId.slice(0, 18)}… 경기를 기존 BO3 Series 화면에서 계속합니다.`);
@@ -291,8 +298,36 @@ function RootApp() {
     finally { if (seriesRequestRef.current === controller) seriesRequestRef.current = null; }
   }, [showToast]);
 
+  const openCareerCompetitionSeries = useCallback(async (seriesId: string, career: CareerViewDto, matchup: string) => {
+    const controller = new AbortController(); seriesRequestRef.current?.abort(); seriesRequestRef.current = controller;
+    try {
+      const [series, options, resource] = await Promise.all([
+        getSeries(seriesId, controller.signal),
+        loadMatchSetupOptions('LIVE', controller.signal),
+        fetchPlayerDraftChampionCatalog(controller.signal),
+      ]);
+      if (series.seriesId !== seriesId) throw new Error('대회와 Series identity가 일치하지 않습니다.');
+      let catalog = createPlayerDraftChampionCatalog(resource);
+      if (series.activeDraftSession) catalog = mergePlayerDraftChampionCatalog(series.activeDraftSession.session, catalog, resource.rolesByChampionId);
+      clearLeagueSeriesContext(); setLeagueSeriesContext(null); setLeagueSeriesReturn(false);
+      writeCareerReturnContext(window.sessionStorage, career.careerId);
+      setCareerReturnContext({ schemaVersion: 'CAREER_RETURN_CONTEXT_V1', careerId: career.careerId });
+      const context: CareerCompetitionSeriesContext = { schemaVersion: 'CAREER_COMPETITION_SERIES_CONTEXT_V1', seriesId, careerId: career.careerId, matchup };
+      window.sessionStorage.setItem(CAREER_COMPETITION_SERIES_CONTEXT_KEY, JSON.stringify(context));
+      setCareerCompetitionSeriesContext(context);
+      writeSeriesPointer(window.sessionStorage, seriesId);
+      setSeriesState(createSeriesScreenState(series, options, catalog));
+      setActiveScreen('series-hub');
+      showToast('Career 대회 Series 연결', `${matchup} 경기를 기존 ${series.format} Series 화면에서 계속합니다.`);
+    } catch (cause) {
+      showToast('대회 Series를 열지 못했습니다', cause instanceof SeriesApiFailure ? cause.userMessage : cause instanceof Error ? cause.message : 'Series와 LIVE 리소스를 불러오지 못했습니다.');
+    } finally { if (seriesRequestRef.current === controller) seriesRequestRef.current = null; }
+  }, [showToast]);
+
   const returnToCareer = useCallback(() => {
-    clearCareerReturnContext(window.sessionStorage); setCareerReturnContext(null); setActiveScreen('career');
+    clearCareerReturnContext(window.sessionStorage); setCareerReturnContext(null);
+    clearCareerCompetitionSeriesContext(); setCareerCompetitionSeriesContext(null);
+    setActiveScreen('career');
   }, []);
 
   const resumeCareer = useCallback(async (career: CareerViewDto) => {
@@ -394,16 +429,29 @@ function RootApp() {
   }, [openSeriesGame, presentSeriesMatch, reconcileSeriesSimulation, showToast, updateSeriesState]);
 
   const seriesToast = <Toast toast={toast} />;
+  const careerCompetitionSeriesReturn = careerCompetitionSeriesContext !== null
+    && careerCompetitionSeriesContext.seriesId === (seriesState?.series.seriesId ?? readSeriesPointer(window.sessionStorage));
+  const seriesReturnScreen: ActiveScreen = leagueSeriesReturn ? 'league' : careerCompetitionSeriesReturn ? 'career' : 'setup';
+  const seriesBackLabel = leagueSeriesReturn ? 'AI 리그로 돌아가기' : careerCompetitionSeriesReturn ? 'Career 캘린더로 돌아가기' : undefined;
+  const seriesContextLabel = leagueSeriesReturn && leagueSeriesContext
+    ? `AI 리그 · Round ${leagueSeriesContext.roundNumber} · ${leagueSeriesContext.matchup}`
+    : careerCompetitionSeriesReturn ? `Career 대회 · ${careerCompetitionSeriesContext.matchup}` : undefined;
+  const leaveSeries = () => {
+    clearSeriesPointer(window.sessionStorage); setSeriesState(null);
+    if (leagueSeriesReturn) { clearLeagueSeriesContext(); setLeagueSeriesContext(null); setActiveScreen('league'); return; }
+    if (careerCompetitionSeriesReturn) { clearCareerCompetitionSeriesContext(); setCareerCompetitionSeriesContext(null); setActiveScreen('career'); return; }
+    setActiveScreen('series-setup');
+  };
 
   if (activeScreen === 'series-setup') {
     return <><SeriesSetupPage onBack={() => setActiveScreen('setup')} onCreated={(series, options) => { setLeagueSeriesReturn(false); void initializeSeries(series, options); }} />{seriesToast}</>;
   }
 
   if (activeScreen === 'series-hub' && seriesState) {
-    return <><SeriesHubPage state={seriesState} onBack={() => setActiveScreen(leagueSeriesReturn ? 'league' : 'setup')} backLabel={leagueSeriesReturn ? 'AI 리그로 돌아가기' : undefined} contextLabel={leagueSeriesReturn && leagueSeriesContext ? `AI 리그 · Round ${leagueSeriesContext.roundNumber} · ${leagueSeriesContext.matchup}` : undefined}
+    return <><SeriesHubPage state={seriesState} onBack={() => setActiveScreen(seriesReturnScreen)} backLabel={seriesBackLabel} contextLabel={seriesContextLabel}
       onStateChange={updateSeriesState} onStartDraft={() => setActiveScreen('series-draft')}
       onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }}
-      onNewSeries={() => { clearSeriesPointer(window.sessionStorage); clearLeagueSeriesContext(); setLeagueSeriesContext(null); setSeriesState(null); setActiveScreen(leagueSeriesReturn ? 'league' : 'series-setup'); }} />{seriesToast}</>;
+      onNewSeries={leaveSeries} />{seriesToast}</>;
   }
 
   if (activeScreen === 'series-draft' && seriesState?.draft) {
@@ -437,11 +485,11 @@ function RootApp() {
   }
 
   if (activeScreen.startsWith('series-')) {
-    if (!seriesState) return leagueSeriesReturn ? <LeaguePage onOpenSeries={(value, fixture) => { void openLeagueSeries(value, fixture); }} onNotify={showToast} onBackToCareer={careerReturnContext ? returnToCareer : undefined} /> : <><SeriesSetupPage onBack={() => setActiveScreen('setup')} onCreated={(series, options) => { setLeagueSeriesReturn(false); void initializeSeries(series, options); }} />{seriesToast}</>;
-    return <><SeriesHubPage state={seriesState} onBack={() => setActiveScreen(leagueSeriesReturn ? 'league' : 'setup')} backLabel={leagueSeriesReturn ? 'AI 리그로 돌아가기' : undefined} contextLabel={leagueSeriesReturn && leagueSeriesContext ? `AI 리그 · Round ${leagueSeriesContext.roundNumber} · ${leagueSeriesContext.matchup}` : undefined}
+    if (!seriesState) return leagueSeriesReturn ? <LeaguePage onOpenSeries={(value, fixture) => { void openLeagueSeries(value, fixture); }} onNotify={showToast} onBackToCareer={careerReturnContext ? returnToCareer : undefined} /> : careerCompetitionSeriesReturn ? <Suspense fallback={<main className="ca-workspace"><section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 화면 준비 중</strong></section></main>}><CareerDashboardPage searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} /></Suspense> : <><SeriesSetupPage onBack={() => setActiveScreen('setup')} onCreated={(series, options) => { setLeagueSeriesReturn(false); void initializeSeries(series, options); }} />{seriesToast}</>;
+    return <><SeriesHubPage state={seriesState} onBack={() => setActiveScreen(seriesReturnScreen)} backLabel={seriesBackLabel} contextLabel={seriesContextLabel}
       onStateChange={updateSeriesState} onStartDraft={() => setActiveScreen('series-draft')}
       onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }}
-      onNewSeries={() => { clearSeriesPointer(window.sessionStorage); clearLeagueSeriesContext(); setLeagueSeriesContext(null); setSeriesState(null); setActiveScreen(leagueSeriesReturn ? 'league' : 'series-setup'); }} />{seriesToast}</>;
+      onNewSeries={leaveSeries} />{seriesToast}</>;
   }
 
   if (activeScreen === 'setup') {
@@ -532,7 +580,7 @@ function RootApp() {
           />
         ) : activeSection === 'career' ? (
           <Suspense fallback={<main className="ca-workspace"><section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 화면 준비 중</strong></section></main>}>
-            <CareerDashboardPage searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onNotify={showToast} />
+            <CareerDashboardPage searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} />
           </Suspense>
         ) : activeSection === 'squad' ? (
           <Suspense fallback={<main className="tp-workspace tp-workspace--center" aria-busy="true"><div className="tp-loading" role="status" aria-live="polite"><span aria-hidden="true" /><p>선수단 화면을 준비하고 있습니다.</p></div></main>}>

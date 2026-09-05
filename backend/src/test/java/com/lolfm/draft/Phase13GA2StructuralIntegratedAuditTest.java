@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.TestInstance;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -521,6 +522,8 @@ class Phase13GA2StructuralIntegratedAuditTest {
 
     
     @Test
+    @Tag("diagnostic")
+    @Tag("historical-artifact")
     void v1ArtifactDirectoryIsNotOverwritten() {
         Path v1 = Path.of("build/reports/phase13g-a");
         assertThat(v1.resolve("phase13g-a-structural-integrated-audit-summary.json")).exists();

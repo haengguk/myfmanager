@@ -1,6 +1,8 @@
 package com.lolfm.composition;
 import static org.assertj.core.api.Assertions.*;
-import com.lolfm.champion.*;import com.lolfm.domain.Position;import com.lolfm.simulator.SimulationOptions;import com.lolfm.testsupport.FrontendTextSourceScanner;import java.nio.file.*;import java.security.MessageDigest;import java.util.*;import org.junit.jupiter.api.Test;
+import com.lolfm.champion.*;import com.lolfm.domain.Position;import com.lolfm.simulator.SimulationOptions;import com.lolfm.testsupport.FrontendTextSourceScanner;import java.nio.file.*;import java.security.MessageDigest;import java.util.*;import org.junit.jupiter.api.Tag;import org.junit.jupiter.api.Test;
+@Tag("diagnostic")
+@Tag("historical-artifact")
 class CompositionProfileWarningReviewerTest{
  static final Path SOURCE=Path.of("build/reports/thirty-champion-composition-profiles");static final CompositionProfileWarningReviewer.ReviewResult REVIEW=load();
  @Test void trueDamageReviewEnumeratesAllNonZeroProfiles(){assertThat(REVIEW.trueDamage()).hasSize(5).extracting(CompositionProfileWarningReviewer.TrueDamageReview::championId).containsExactlyInAnyOrder("gwen","ksante","ahri","jax","kaisa");}

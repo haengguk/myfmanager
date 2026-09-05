@@ -15,6 +15,10 @@ public final class CareerApiV1Dtos {
             "CAREER_CALENDAR_ADVANCE_REQUEST_V1";
     public static final String ADVANCE_RESPONSE_SCHEMA =
             "CAREER_CALENDAR_ADVANCE_RESPONSE_V1";
+    public static final String COMPETITION_COMMAND_REQUEST_SCHEMA =
+            "CAREER_COMPETITION_COMMAND_REQUEST_V1";
+    public static final String COMPETITION_COMMAND_RESPONSE_SCHEMA =
+            "CAREER_COMPETITION_COMMAND_RESPONSE_V1";
     public static final String ERROR_SCHEMA = "CAREER_API_ERROR_V1";
 
     private CareerApiV1Dtos() {}
@@ -48,6 +52,26 @@ public final class CareerApiV1Dtos {
             boolean backgroundAccepted,
             AdvanceCommandResult commandResult,
             CalendarView calendar
+    ) {}
+
+    public record CompetitionCommandRequest(
+            String schemaVersion,
+            long expectedCompetitionRevision,
+            String clientCommandId
+    ) {}
+
+    public record CompetitionCommandResponse(
+            String schemaVersion,
+            String executionMode,
+            String fixtureId,
+            String matchId,
+            String seriesId,
+            String bindingHash,
+            String jobId,
+            String status,
+            boolean replayed,
+            boolean backgroundAccepted,
+            String failureCode
     ) {}
 
     public record AdvanceCommandResult(
@@ -269,12 +293,16 @@ public final class CareerApiV1Dtos {
             CompetitionSummary nextCompetition,
             CompetitionFixture nextFixture,
             List<CompetitionQualificationOutput> qualificationOutputs,
+            List<CompetitionStanding> groupStandings,
+            List<CompetitionSeed> currentSeeds,
             boolean externalExecutionLimited,
             PendingCompetitionCommand activePendingCommand,
             List<String> allowedCommands
     ) {
         public CompetitionView {
             qualificationOutputs = List.copyOf(qualificationOutputs);
+            groupStandings = List.copyOf(groupStandings);
+            currentSeeds = List.copyOf(currentSeeds);
             allowedCommands = List.copyOf(allowedCommands);
         }
     }
@@ -306,11 +334,34 @@ public final class CareerApiV1Dtos {
             String lifecycleStatus,
             boolean managedTeamIncluded,
             String rootSeed,
-            String seedAlgorithm
+            String seedAlgorithm,
+            String firstSelectorType,
+            String firstSelectorValue,
+            String secondSelectorType,
+            String secondSelectorValue,
+            String stageId,
+            String blockingReason,
+            String bindingHash,
+            String jobId,
+            String jobStatus,
+            String resultApplicationStatus,
+            String failureCode
     ) {}
 
     public record CompetitionQualificationOutput(
             String competitionId, String outputId, String teamCode
+    ) {}
+
+    public record CompetitionStanding(
+            String groupId, int groupPoints, int groupRank, String teamCode,
+            int matchWins, int matchLosses, int gameWins, int gameLosses,
+            int strengthOfVictory, int winTimeSeconds, String tieBreakTrace,
+            String standingsHash
+    ) {}
+
+    public record CompetitionSeed(
+            String competitionId, String seedScope, int seedNumber,
+            String teamCode, String sourceInputHash
     ) {}
 
     public record PendingCompetitionCommand(

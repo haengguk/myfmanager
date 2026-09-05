@@ -1,6 +1,42 @@
 # Project Status
 
-이 문서는 2026-09-03 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-09-05 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+
+## Career Competition Series execution and result transition V1
+
+상태는
+`CAREER_COMPETITION_SERIES_EXECUTION_AND_RESULT_TRANSITION_V1_ACCEPTED`이다.
+기준/시작 HEAD `8ce3ddc789e0fee54fffbb081bc1f907611d2487` 위에서 source-complete 국내
+Competition fixture를 기존 Player/Auto Draft, BO3/BO5, Hard Fearless와 Production V9에 연결했다.
+
+V9 durable schema와 canonical binding은 Career/year/competition, rule/resource/policy, instance
+hash/revision, fixture/match/stage/order, selector/resolved team, side/format/root seed, bound Series와
+production snapshot을 결속한다. 관리 fixture는 `COMPETITION_BOUND` Series checkpoint로 기존 UI에
+진입하고, 나머지는 fixture 단위 Auto job/lease/fence로 실행한다. Completion은 compact game receipt의
+Draft/history/policy/resource/output/timeline/Random evidence를 검증한 opaque value만 받으며 result,
+application ledger, dependent graph와 output을 한 transaction에 exactly once 적용한다.
+
+LCK Cup은 일반 BO3 1점/Super Week BO5 2점을 적용해 25 Group Battle 뒤 standings를 봉인하고,
+6 Play-in seed, 5 Play-in, 10 Playoff와 세 deterministic opponent choice를 전이한다. Final은 First Stand
+LCK seed 1/2만 생성한다. 같은 adapter는 Road to MSI 5경기, sealed R1~2 record를 carry한 R3~4 40경기,
+LCK Play-in 3경기에 적용된다. R1~2 90경기는 기존 League authority를 유지한다.
+
+Calendar/API는 실제 stage, binding/job/application, standings/seed/output, source blocker와 command를
+구조화해 제공한다. 브라우저는 server-owned pending UUID를 복원하므로 탭/서버/브라우저 재시작 뒤에도
+같은 Series/job/command를 사용한다. 실제 Player fixture는 server-issued Series로 진입·reload·return했고,
+별도 T1 Career의 Auto fixture는 file-H2 재시작 뒤 동일 UUID로 재개돼 Cup `0/40`→`1/40`, next fixture
+`GB_B1_E2`→`GB_B3_E4`로 전환됐다.
+
+Frontend Career contract 21 scenarios와 네 marker, shared Series verifier, 153-module production
+build가 통과했다. Final focused backend는 5 suites / 29 tests / failures 0 / errors 0 / skipped 0,
+Gradle wall 3분 57초다. 첫 full의 historical artifact tag 누락 1건을 메서드 단위로 격리한 뒤
+두 번째이자 최종 full은 260 suites / 1,980 tests / failures 0 / errors 0 / skipped 2,
+aggregate XML 2,184.812초, Gradle wall 37분 12초, `BUILD SUCCESSFUL`로 통과했다. 이후 executable
+production tree는 변경하지 않았다. KeSPA
+2026 규칙/roster, LCK Playoffs source, 국제대회 실제 상대/fixture, Asian Games 효과, rollover와
+이적·훈련·피로·부상·재정은 계속 차단한다. 상세 내용은
+[architecture](architecture/career-competition-lifecycle-v1.md)와
+[development report](development/career-competition-series-execution-and-result-transition-v1.md)에 있다.
 
 ## Career competition lifecycle V1 targeted hardening
 

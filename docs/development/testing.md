@@ -1444,3 +1444,52 @@ Final executable production tree의 complete backend regression은 정확히 한
 Gradle과 shared fixture는 변경하지 않고 문서만 갱신했다. 90/130경기 전체 LIVE, Cup/LCK playoff
 실행, 대형 seed population, balance/calibration/holdout, fresh-JVM proof bundle과 JFR은 실행하지
 않았다. Source가 없는 edge를 임의 규칙으로 보충하는 검증도 수행하지 않았다.
+
+### Career Competition Series execution and result transition V1
+
+Phase A와 execution/result 위험은 기존 test class를 확장해 검증한다. 최종 focused lane은 다음과 같다.
+
+```text
+cd backend
+./gradlew test \
+  --tests com.lolfm.career.CareerCompetitionRulesTest \
+  --tests com.lolfm.controller.CareerApiV1ControllerTest \
+  --tests com.lolfm.league.CareerModePersistenceTest \
+  --tests com.lolfm.controller.LeagueApiV1BackgroundExecutionIntegrationTest \
+  --tests com.lolfm.league.LeagueRelationalPersistenceAndJobTest \
+  --console=plain --no-daemon
+```
+
+이 lane은 due WAITING/future start fail-close, first/future seed authority, dynamic Cup stage, immutable
+binding과 Player checkpoint, Auto durable job/lease/fence, verified receipt tamper/cross-scope/replay,
+Cup 25+5+10 pure transition, Road/R3~4/Play-in routing, migration/restart, background snapshot 격리를
+확인한다. 실제 Production V9은 대표 Auto fixture 1개만 실행하고 40개 Cup Series와 90/130경기 Season,
+balance/calibration/holdout/large-seed diagnostic은 실행하지 않는다.
+
+Frontend는 `npm run career:verify` 21 scenarios와 네 marker가 통과했고, `npm run build`는 TypeScript와
+153 modules transform을 완료했다. 기존 shared Series response 계약도 `npm run series:verify`로
+확인했다. Browser는 1280×720에서 관리 fixture의 기존 Series 진입/reload/return과 Auto fixture의
+file-H2 restart recovery를 실행했다. Auto는 동일 UUID/job로 202 재제출된 뒤 Cup `0/40`→`1/40`,
+next match `GB_B1_E2`→`GB_B3_E4`가 됐고 완료된 operation은 제거됐다.
+
+최종 focused backend는 5 suites / 29 tests / failures 0 / errors 0 / skipped 0,
+Gradle wall 3분 57초로 통과했다. 첫 complete backend run은 1,981 tests 중 과거
+`build/reports/champion-pair-interaction-shape/...csv` consumer 한 메서드가 diagnostic tag 누락으로
+실패했다. 해당 artifact-dependent 메서드만 격리하고 같은 class의 correctness 14 tests가 failures 0 /
+errors 0으로 유지되는 것을 확인했다.
+
+두 번째이자 최종 complete regression 결과는 다음과 같다.
+
+| 항목 | 결과 |
+| --- | ---: |
+| JUnit suites | 260 |
+| Tests | 1,980 |
+| Failures | 0 |
+| Errors | 0 |
+| Skipped | 2 |
+| Aggregate JUnit XML time | 2,184.812 seconds |
+| Gradle wall duration | 37m 12s |
+| Build | `BUILD SUCCESSFUL` |
+
+두 skip은 기존 explicit skip이다. Clean full 뒤 executable production Java/resource/Gradle/shared
+fixture는 변경하지 않고 문서만 갱신했다.

@@ -37,6 +37,24 @@ tasks.named('test') {
     maxHeapSize = '2g'
 }
 
+tasks.register("verifyHistoricalArtifactContracts", Test) {
+    group = "verification"
+    description = "Opt-in verification for historical build/report artifact consumers."
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags "historical-artifact"
+    }
+    maxHeapSize = "2g"
+    maxParallelForks = 1
+    failFast = true
+    outputs.upToDateWhen { false }
+    reports.html.outputLocation = layout.buildDirectory.dir(
+            "reports/tests/historicalArtifactContracts")
+    reports.junitXml.outputLocation = layout.buildDirectory.dir(
+            "test-results/historicalArtifactContracts")
+}
+
 tasks.named('bootRun') {
     // Real Match Draft/search is CPU intensive and must not be restricted to C1-only code.
     optimizedLaunch = false
