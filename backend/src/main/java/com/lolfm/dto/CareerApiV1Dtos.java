@@ -300,7 +300,8 @@ public final class CareerApiV1Dtos {
             List<String> allowedCommands,
             List<com.lolfm.career.CareerCompetitionRelationalStore.DomesticDecisionView> domesticRankingDecisions,
             com.lolfm.career.CareerCompetitionRelationalStore.FinalRankingView finalRanking,
-            String domesticRuleCompatibility
+            String domesticRuleCompatibility,
+            List<com.lolfm.career.CareerCompetitionRelationalStore.InternationalView> internationalCompetitions
     ) {
         public CompetitionView {
             qualificationOutputs = List.copyOf(qualificationOutputs);
@@ -308,6 +309,7 @@ public final class CareerApiV1Dtos {
             currentSeeds = List.copyOf(currentSeeds);
             allowedCommands = List.copyOf(allowedCommands);
             domesticRankingDecisions = List.copyOf(domesticRankingDecisions);
+            internationalCompetitions = List.copyOf(internationalCompetitions);
         }
     }
 

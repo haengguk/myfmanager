@@ -19,7 +19,7 @@ public final class LeagueIdentity {
     public static final String GAME_SEED_ALGORITHM =
             "AI_LEAGUE_BOUND_SERIES_GAME_SEED_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1";
 
-    private static final Pattern TEAM_CODE = Pattern.compile("[A-Z0-9]{2,8}");
+    private static final Pattern TEAM_CODE = Pattern.compile("(?:[A-Z0-9]{2,8}|(?:LCK|LPL|LEC|LCS|LCP|CBLOL):[A-Z0-9]{1,8})");
     private static final Pattern LEAGUE_ID = Pattern.compile("league_[0-9a-f]{64}");
     private static final Pattern SEASON_ID = Pattern.compile("season_[0-9a-f]{64}");
 

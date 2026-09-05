@@ -150,7 +150,7 @@ function RootApp() {
 
   useEffect(() => {
     document.title = activeScreen.startsWith('series-')
-      ? 'lolmanager — BO3 / BO5 Series'
+      ? 'lolmanager — Series'
       : activeScreen === 'setup'
       ? 'lolmanager — Match Setup'
       : activeScreen === 'draft'

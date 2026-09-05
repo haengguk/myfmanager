@@ -48,8 +48,16 @@ export function createSeriesMatchSession(
   options: MatchSetupOptionsViewModel,
   performance: Omit<MatchSessionPerformance, 'normalizationMs'>,
 ) {
+  // A durable competition replay owns its team presentation; setup options may contain only LCK.
+  const matchOptions: MatchSetupOptionsViewModel = {
+    ...options,
+    teams: match.teams.map(team => ({
+      teamId: team.teamCode, code: team.teamCode, name: team.displayName, sourceLabel: options.sourceLabel,
+      roster: team.lineup.map(player => ({ playerId: player.playerId, playerName: player.nickname, position: player.position })),
+    })),
+  };
   return createPlayerDraftMatchSessionFromPayload(
-    child.session, match, performance, options, seriesMatchSelection(series, game),
+    child.session, match, performance, matchOptions, seriesMatchSelection(series, game),
   );
 }
 

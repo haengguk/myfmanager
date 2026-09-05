@@ -6,7 +6,7 @@ const STATUS_LABELS: Readonly<Record<SeriesGameStatus, string>> = {
   BLOCKED: '차단', COMMITTED: '완료', DRAFT_CANCELLED: 'Draft 취소', DRAFT_EXPIRED: 'Draft 만료',
 };
 
-function maximumGames(format: SeriesFormat): number { return format === 'BO3' ? 3 : 5; }
+function maximumGames(format: SeriesFormat): number { return format === 'BO1' ? 1 : format === 'BO3' ? 3 : 5; }
 
 export function SeriesGameRail({ series, onOpenGame }: { series: SeriesViewDto; onOpenGame?: (gameNumber: number) => void }) {
   const byNumber = new Map(series.games.map((game) => [game.gameNumber, game]));

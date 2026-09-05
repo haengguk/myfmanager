@@ -66,15 +66,19 @@ class LeagueApiV1BackgroundExecutionIntegrationTest {
             // Exercise the public season rebuild while outbox delivery commits
             // standings revisions in the background. Every GET must observe one
             // repeatable database snapshot rather than straddling two revisions.
-            json(mvc.perform(get(base)).andExpect(status().isOk()).andReturn()
-                    .getResponse().getContentAsString());
+            JsonNode latestSeason = json(mvc.perform(get(base)).andExpect(status().isOk()).andReturn()
+                    .getResponse().getContentAsString()).path("season");
+            assertThat(latestSeason.path("standingsRevision").asInt())
+                    .isEqualTo(latestSeason.path("fixtureCounters").path("completed").asInt());
             for (String jobId : jobIds) {
                 latest.add(json(mvc.perform(get(base + "/jobs/" + jobId))
                         .andExpect(status().isOk()).andReturn().getResponse()
                         .getContentAsString()).path("job"));
             }
             if (latest.stream().allMatch(job -> "COMPLETED".equals(
-                    job.path("lifecycleStatus").asText()))) {
+                    job.path("lifecycleStatus").asText()))
+                    // Job completion stores the receipt; the outbox consumer applies standings afterwards.
+                    && latestSeason.path("standingsRevision").asInt() == 5) {
                 terminal = List.copyOf(latest);
                 break;
             }

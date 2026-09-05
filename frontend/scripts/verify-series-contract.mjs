@@ -7,7 +7,7 @@ import {
   validateSeriesSimulationEnvelopePayload,
   validateSeriesViewPayload,
 } from '../src/features/real-match/series/api/seriesApi.validation.ts';
-import { createSeriesRequest, shouldApplySeries } from '../src/features/real-match/series/series.adapter.ts';
+import { createSeriesMatchSession, createSeriesRequest, shouldApplySeries } from '../src/features/real-match/series/series.adapter.ts';
 import { clearSeriesPointer, readSeriesPointer, seriesPointerRecoveryAction, writeSeriesPointer } from '../src/features/real-match/series/series.pointer.ts';
 import {
   finishSeriesCommand, reconcileSeriesCancel, reconcileSeriesDraftCancel,
@@ -285,3 +285,27 @@ accepts('competition BO1 preserves parent Fearless exclusions and separate side 
   validateSeriesViewPayload(value);
 });
 rejects('standalone cannot invent inherited competition exclusions', () => view({ games: [game(1, { history: ['invented'] })] }));
+
+accepts('international Series and child draft retain region-qualified team identities', () => {
+  const value = clone(active.base);
+  const qualify = input => typeof input === 'string' ? input === 'DK' ? 'LCK:DK' : input === 'HLE' ? 'LEC:G2' : input
+    : Array.isArray(input) ? input.map(qualify) : input && typeof input === 'object'
+      ? Object.fromEntries(Object.entries(input).map(([key, item]) => [key === 'DK' ? 'LCK:DK' : key === 'HLE' ? 'LEC:G2' : key, qualify(item)])) : input;
+  const qualified = qualify(value);
+  for (const team of qualified.activeDraftSession.session.teams) team.lineup = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'].map(position => ({
+    playerId: `${team.teamCode}:${position}`, nickname: `${team.teamCode} ${position}`, position,
+  }));
+  validateSeriesViewPayload(qualified);
+  const missing = clone(qualified); delete missing.activeDraftSession.session.teams[0].lineup;
+  let rejected = false; try { validateSeriesViewPayload(missing); } catch { rejected = true; }
+  if (!rejected) throw new Error('International child requires frozen roster presentation');
+});
+
+accepts('saved Series match opens with its frozen roster even without setup teams', () => {
+  const result = createSeriesMatchSession(committedSeries, committedSeries.games[0],
+    committedChild, full,
+    { teams: [], source: 'LIVE', sourceLabel: '대회 저장 입력', seasonLabel: 'Career', seriesType: 'BO3', gameNumber: 1 },
+    { requestMs: 0, downloadMs: 0, parseMs: 0, validationMs: 0, responseBytes: 0 });
+  if (result.selectedTeams.BLUE.roster.length !== 5 || result.selectedTeams.RED.roster.length !== 5)
+    throw new Error('Saved match roster must drive result and replay');
+});

@@ -103,8 +103,8 @@ public final class PlayerControlledDraftMatchInputBoundary {
         if (blueTeamCode.equals(redTeamCode)) {
             throw new IllegalArgumentException("PLAYER_DRAFT_TEAM_IDENTITY_COLLISION");
         }
-        Team blueTeam = teams.assemble(blueTeamCode);
-        Team redTeam = teams.assemble(redTeamCode);
+        Team blueTeam = binding.frozenRosters() == null ? teams.assemble(blueTeamCode) : binding.frozenRosters().assemble(blueTeamCode);
+        Team redTeam = binding.frozenRosters() == null ? teams.assemble(redTeamCode) : binding.frozenRosters().assemble(redTeamCode);
         DraftTeamContext blueContext = DraftTeamContext.from(blueTeam);
         DraftTeamContext redContext = DraftTeamContext.from(redTeam);
         DraftSelectionContext selectionContext = RealDraftSelectionContextFactory.create(
@@ -176,8 +176,8 @@ public final class PlayerControlledDraftMatchInputBoundary {
         if (blueTeamCode.equals(redTeamCode)) {
             throw new IllegalArgumentException("PLAYER_DRAFT_TEAM_IDENTITY_COLLISION");
         }
-        Team blueTeam = teams.assemble(blueTeamCode);
-        Team redTeam = teams.assemble(redTeamCode);
+        Team blueTeam = binding.frozenRosters() == null ? teams.assemble(blueTeamCode) : binding.frozenRosters().assemble(blueTeamCode);
+        Team redTeam = binding.frozenRosters() == null ? teams.assemble(redTeamCode) : binding.frozenRosters().assemble(redTeamCode);
         requireStableRoster(blueTeam, redTeam);
         if (!SimulationProvenanceService.seriesHistoryHash(
                 binding.gameNumber() - 1, binding.hardFearlessExclusions())
@@ -368,8 +368,15 @@ public final class PlayerControlledDraftMatchInputBoundary {
             TeamSide controlledSide,
             long matchSeed,
             Set<com.lolfm.champion.ChampionId> hardFearlessExclusions,
-            String historyBeforeHash
+            String historyBeforeHash,
+            com.lolfm.career.CompetitionRosterSnapshot frozenRosters
     ) {
+        SeriesPlayerDraftBinding(String seriesId, String gameId, int gameNumber, String blueTeamCode,
+                String redTeamCode, TeamSide controlledSide, long matchSeed,
+                Set<com.lolfm.champion.ChampionId> exclusions, String historyBeforeHash) {
+            this(seriesId, gameId, gameNumber, blueTeamCode, redTeamCode, controlledSide,
+                    matchSeed, exclusions, historyBeforeHash, null);
+        }
         SeriesPlayerDraftBinding {
             seriesId = required(seriesId, "seriesId");
             gameId = required(gameId, "gameId");

@@ -31,6 +31,10 @@ final class LeagueApiV1ResponseMapper {
     }
 
     LeagueApiV1Dtos.SeasonView season(String leagueId, String seasonId) {
+        return store.readConsistently(() -> seasonSnapshot(leagueId, seasonId));
+    }
+
+    private LeagueApiV1Dtos.SeasonView seasonSnapshot(String leagueId, String seasonId) {
         LeagueSeasonAggregate aggregate = requireSeason(leagueId, seasonId);
         LeagueSeasonApplicationService.SeasonView lifecycle = seasons.view(seasonId);
         List<FixtureRow> fixtureRows = fixtureRows(seasonId);

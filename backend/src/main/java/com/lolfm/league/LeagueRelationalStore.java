@@ -127,7 +127,12 @@ public final class LeagueRelationalStore {
     }
 
     public Optional<LeagueSeasonAggregate> findSeason(String seasonId) {
-        return repeatableReads.execute(ignored -> findSeasonSnapshot(seasonId));
+        return readConsistently(() -> findSeasonSnapshot(seasonId));
+    }
+
+    /** Keep a public projection and its nested season rebuild on the same committed snapshot. */
+    <T> T readConsistently(java.util.function.Supplier<T> projection) {
+        return repeatableReads.execute(ignored -> projection.get());
     }
 
     /**

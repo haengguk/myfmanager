@@ -47,6 +47,7 @@ public final class CareerCompetitionRelationalStore {
     final Clock clock;
     final CareerCompetitionRules rules;
     final ObjectMapper json;
+    private final CareerInternationalParticipants internationalParticipants;
 
     public CareerCompetitionRelationalStore(
             JdbcTemplate jdbc,
@@ -54,6 +55,13 @@ public final class CareerCompetitionRelationalStore {
             Clock clock,
             CareerCompetitionRules rules
     ) {
+        this(jdbc, transactionManager, clock, rules, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public CareerCompetitionRelationalStore(JdbcTemplate jdbc, PlatformTransactionManager transactionManager,
+            Clock clock, CareerCompetitionRules rules, CareerInternationalParticipants internationalParticipants) {
+        this.internationalParticipants = internationalParticipants;
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
         this.transactions = new TransactionTemplate(Objects.requireNonNull(
                 transactionManager, "transactionManager"));
@@ -172,6 +180,7 @@ public final class CareerCompetitionRelationalStore {
             }
             materializeCupGraph(careerId, calendarSeasonYear, managedTeamCode,
                     careerRootSeed, cupInitialization);
+            new CareerInternationalCompetition(this, internationalParticipants).reconcile(careerId, calendarSeasonYear);
             refreshAllInstanceHashes(careerId, calendarSeasonYear);
             refreshCycleHash(careerId, calendarSeasonYear);
             return validateAndView(findCycle(careerId, calendarSeasonYear,
@@ -186,8 +195,30 @@ public final class CareerCompetitionRelationalStore {
         });
     }
 
+    public void reconcileInternational(String careerId, int year) {
+        transactions.executeWithoutResult(ignored -> {
+            lockCycle(careerId, year); load(careerId, year);
+            new CareerInternationalCompetition(this, internationalParticipants).reconcile(careerId, year);
+        });
+    }
+
+    public List<InternationalView> internationalViews(String career, int year) {
+        var result = new ArrayList<InternationalView>();
+        for (String competition : CareerInternationalRules.COMPETITIONS) {
+            var state = CareerInternationalCompetition.load(this, career, year, competition);
+            if (state == null) continue;
+            result.add(new InternationalView(competition, state.ruleVersion(), state.ruleResourceHash(), state.policyVersion(),
+                    state.selectionPolicy(), state.entries(), state.rosters().identity(), state.plan(),
+                    CareerInternationalCompetition.outcomes(this, career, year, competition)));
+        }
+        return List.copyOf(result);
+    }
+    public record InternationalView(String competitionId, String ruleVersion, String ruleResourceHash, String policyVersion,
+            String selectionPolicy, List<CareerInternationalState.Entry> entries, String rosterSnapshotIdentity,
+            CareerInternationalTournament.Plan bracket, Map<String,CareerInternationalTournament.Outcome> results) {}
+
     static List<FixtureRow> orderFixtures(List<FixtureRow> fixtures) {
-        List<String> order = List.of("LCK_CUP", "LCK_REGULAR_R1_R2", "LCK_ROAD_TO_MSI", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN", "LCK_PLAYOFFS");
+        List<String> order = List.of("LCK_CUP", "FIRST_STAND", "LCK_REGULAR_R1_R2", "LCK_ROAD_TO_MSI", "MSI", "EWC_LOL", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN", "LCK_PLAYOFFS", "WORLDS");
         return fixtures.stream().sorted(java.util.Comparator.comparingInt((FixtureRow f) -> order.indexOf(f.competitionId()))
                 .thenComparingInt(f -> !"COMPLETED".equals(f.lifecycleStatus()) && f.stageId().endsWith("TIEBREAKER") ? 0 : 1)
                 .thenComparing(FixtureRow::date).thenComparingInt(FixtureRow::matchOrder).thenComparing(FixtureRow::matchId)).toList();
@@ -202,7 +233,7 @@ public final class CareerCompetitionRelationalStore {
         if (!fixture.matchId().equals(state.nextMatchId())) throw new IllegalStateException("CUP_GROUP_CHILD_SCOPE_MISMATCH");
         if (state.completedMatches().isEmpty()) return Set.of();
         String previous = state.completedMatches().getLast();
-        var binding = loadBinding(careerId, year, previous);
+        var binding = loadBinding(careerId, year, "LCK_CUP", previous);
         if (!hasAppliedCompletion(binding)) throw new IllegalStateException("CUP_GROUP_PREVIOUS_GAME_NOT_APPLIED");
         var receipt = jdbc.queryForObject("SELECT receipt_json FROM career_competition_completion_receipt WHERE binding_hash = ?",
                 (r,n) -> CareerDomesticEvidence.read(json, r.getString(1), CareerCompetitionFixtureCompletionReceiptV1.class), binding.bindingHash());
@@ -245,6 +276,11 @@ public final class CareerCompetitionRelationalStore {
             }
         }
         recoverDormantRules();
+        if (internationalParticipants != null) {
+            var current = jdbc.query("SELECT career_id, calendar_season_year FROM career_competition_cycle WHERE rule_version = ?",
+                    (r,n) -> Map.entry(r.getString(1), r.getInt(2)), CareerCompetitionRules.VERSION);
+            for (var key : current) reconcileInternational(key.getKey(), key.getValue());
+        }
         List<String> missing = jdbc.query("""
                 SELECT s.career_id || '|' || s.active_calendar_season_year
                 FROM career_calendar_state s
@@ -812,8 +848,15 @@ public final class CareerCompetitionRelationalStore {
                     .findFirst().orElseThrow();
             if (!isCurrentRules(careerId, seasonYear)) throw new IllegalStateException("DOMESTIC_RULE_VERSION_REQUIRES_NEW_CYCLE");
             String managedTeam = careerBinding(careerId).managedTeamCode();
-            CareerCompetitionSeriesBindingV1 candidate =
-                    CareerCompetitionSeriesBindingV1.create(cycle, instance,
+            var international = CareerInternationalRules.COMPETITIONS.contains(competitionId)
+                    ? CareerInternationalCompetition.load(this, careerId, seasonYear, competitionId) : null;
+            if (CareerInternationalRules.COMPETITIONS.contains(competitionId) && international == null)
+                throw new IllegalStateException("INTERNATIONAL_REGISTRATION_REQUIRED");
+            CareerCompetitionSeriesBindingV1 candidate = international != null
+                    ? CareerCompetitionSeriesBindingV1.createInternational(cycle, instance, fixture,
+                    CompetitionRosterSnapshot.managedToken(managedTeam), CareerInternationalRules.RESOURCE_HASH,
+                    productionSnapshot, resourceProvenanceHash, international.rosters().pair(fixture.firstTeamCode(), fixture.secondTeamCode()))
+                    : CareerCompetitionSeriesBindingV1.create(cycle, instance,
                             fixture, managedTeam, rules.resourceHash(),
                             productionSnapshot, resourceProvenanceHash, inheritedPicks(careerId, seasonYear, fixture));
             List<String> prior = jdbc.query("""
@@ -862,8 +905,23 @@ public final class CareerCompetitionRelationalStore {
         return CareerCompetitionSeriesBindingV1.restoreCanonical(values.getFirst());
     }
 
+    public CareerCompetitionSeriesBindingV1 loadBinding(String career, int year, String competition, String match) {
+        var values = jdbc.query("SELECT binding_canonical FROM career_competition_series_binding WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ? AND match_id = ?",
+                (r,n) -> r.getString(1), career, year, competition, match);
+        if (values.size() != 1) throw new IllegalStateException("COMPETITION_FIXTURE_BINDING_NOT_FOUND");
+        return CareerCompetitionSeriesBindingV1.restoreCanonical(values.getFirst());
+    }
+
+    public ExecutionProjection executionProjection(String career, int year, String match) {
+        var scopes = jdbc.query("SELECT DISTINCT competition_id FROM career_competition_series_binding WHERE career_id = ? AND calendar_season_year = ? AND match_id = ?",
+                (r,n) -> r.getString(1), career, year, match);
+        if (scopes.isEmpty()) return null;
+        if (scopes.size() != 1) throw new IllegalArgumentException("COMPETITION_MATCH_SCOPE_REQUIRED");
+        return executionProjection(career, year, scopes.getFirst(), match);
+    }
+
     public ExecutionProjection executionProjection(
-            String careerId, int seasonYear, String matchId
+            String careerId, int seasonYear, String competitionId, String matchId
     ) {
         List<ExecutionProjection> values = jdbc.query("""
                 SELECT b.binding_hash, b.series_id, b.lifecycle_status,
@@ -881,14 +939,14 @@ public final class CareerCompetitionRelationalStore {
                 LEFT JOIN career_competition_result_detail r
                   ON r.binding_hash = b.binding_hash
                 WHERE b.career_id = ? AND b.calendar_season_year = ?
-                  AND b.match_id = ?
+                  AND b.competition_id = ? AND b.match_id = ?
                 ORDER BY j.created_at DESC NULLS LAST,
                          c.created_at ASC, c.client_command_id ASC
                 LIMIT 1
                 """, (result, row) -> new ExecutionProjection(result.getString(1),
                 result.getString(2), result.getString(3), result.getString(4),
                 result.getString(5), result.getString(6), result.getString(7),
-                result.getString(8)), careerId, seasonYear, matchId);
+                result.getString(8)), careerId, seasonYear, competitionId, matchId);
         return values.isEmpty() ? null : values.getFirst();
     }
 
@@ -1046,7 +1104,7 @@ public final class CareerCompetitionRelationalStore {
                     verification.receipt();
             lockCycle(receipt.careerId(), receipt.seasonYear());
             CareerCompetitionSeriesBindingV1 binding = loadBinding(
-                    receipt.careerId(), receipt.seasonYear(), receipt.matchId());
+                    receipt.careerId(), receipt.seasonYear(), receipt.competitionId(), receipt.matchId());
             requireReceiptScope(binding, receipt);
             if (hasAppliedCompletion(binding)) {
                 String appliedHash = jdbc.queryForObject("""
@@ -1124,6 +1182,7 @@ public final class CareerCompetitionRelationalStore {
         } else if ("LCK_REGULAR_R3_R4".equals(competitionId)) {
             materializeLckPlayInWhenReady(careerId, year);
         }
+        new CareerInternationalCompetition(this, internationalParticipants).reconcile(careerId, year);
         refreshInstanceHash(careerId, year, competitionId);
         refreshCycleHash(careerId, year);
     }
@@ -2017,7 +2076,8 @@ public final class CareerCompetitionRelationalStore {
             throw new IllegalStateException("COMPETITION_INSTANCE_INTEGRITY_FAILURE");
         }
         return new CareerCompetitionAggregate(careerId, seasonYear, competitionId,
-                managed, rootSeed, instance.sourceInputHash(), instance.revision(),
+                CareerInternationalRules.COMPETITIONS.contains(competitionId) ? CompetitionRosterSnapshot.managedToken(managed) : managed,
+                rootSeed, instance.sourceInputHash(), instance.revision(),
                 fixtures, outputs, certifiedHash);
     }
 
@@ -2044,7 +2104,12 @@ public final class CareerCompetitionRelationalStore {
             CareerCompetitionRules.CompetitionRule rule = rules.rule(
                     value.competitionId(), cycle.ruleVersion());
             CareerIdentity.requireSha256(value.stateHash(), "competitionStateHash");
-            if (!rule.ruleStatus().equals(value.ruleStatus())
+            boolean internationalPolicy = CareerCompetitionRules.VERSION.equals(cycle.ruleVersion())
+                    && (CareerInternationalRules.COMPETITIONS.contains(value.competitionId()) || "ASIAN_GAMES_LOL_RELEASE".equals(value.competitionId()))
+                    && "GAME_POLICY_DEFINED".equals(value.ruleStatus())
+                    && CareerInternationalRules.POLICY.equals(value.materializationPolicyId())
+                    && value.materializationReceiptHash() != null;
+            if ((!rule.ruleStatus().equals(value.ruleStatus()) && !internationalPolicy)
                     || !INSTANCE_HASH_ALGORITHM.equals(value.hashAlgorithm())
                     || !instanceHashV2(cycle.careerId(), cycle.seasonYear(), value)
                     .equals(value.stateHash())) {
@@ -2421,6 +2486,15 @@ public final class CareerCompetitionRelationalStore {
                 """, (r, n) -> row("domesticDecision", r.getString(1), r.getString(2), r.getString(3),
                 r.getString(4), r.getString(5), r.getString(6)), careerId, year, instance.competitionId());
         if (!domestic.isEmpty()) rows(canonical, "domesticDecision", domestic);
+        if (CareerInternationalRules.COMPETITIONS.contains(instance.competitionId())) {
+            var international = jdbc.query("SELECT state_json, state_hash FROM career_international_state WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",
+                    (r,n) -> {
+                        String digest = CareerInternationalRules.hash(r.getString(1));
+                        if (!digest.equals(r.getString(2))) throw new IllegalStateException("INTERNATIONAL_STATE_INTEGRITY");
+                        return digest;
+                    }, careerId, year, instance.competitionId());
+            if (!international.isEmpty()) rows(canonical, "internationalState", international);
+        }
         return CareerCompetitionRules.sha256(canonical.toString().getBytes(
                 StandardCharsets.UTF_8));
     }

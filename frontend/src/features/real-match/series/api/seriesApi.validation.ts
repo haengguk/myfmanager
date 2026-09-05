@@ -37,7 +37,7 @@ const SERIES_ID = /^series_[0-9a-f]{64}$/;
 const GAME_ID = /^game_[0-9a-f]{64}$/;
 const CHILD_ID = /^draft_[0-9a-f]{64}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
-const TEAM_CODE = /^[A-Z0-9]{2,8}$/;
+const TEAM_CODE = /^(?:[A-Z0-9]{2,8}|(?:LCK|LPL|LEC|LCS|LCP|CBLOL):[A-Z0-9]{1,8})$/;
 
 export class SeriesContractError extends Error {
   public readonly path: string;

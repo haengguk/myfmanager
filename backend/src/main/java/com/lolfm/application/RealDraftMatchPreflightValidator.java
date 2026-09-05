@@ -51,6 +51,34 @@ public final class RealDraftMatchPreflightValidator {
         }
     }
 
+    public void validateFrozen(String blueCode, Team blue, String redCode, Team red,
+            DraftTeamContext blueContext, DraftTeamContext redContext,
+            FinalDraftResult result, SeriesDraftHistory history,
+            com.lolfm.career.CompetitionRosterSnapshot frozen) {
+        MatchLineupIdentityValidator.validate(blue, red);
+        Map<Position, Player> blueRoster = validateFrozenTeam(blueCode, blue, frozen);
+        Map<Position, Player> redRoster = validateFrozenTeam(redCode, red, frozen);
+        validateDraftContext(TeamSide.BLUE, blueRoster, blueContext);
+        validateDraftContext(TeamSide.RED, redRoster, redContext);
+        validateSeriesHistory(result, history);
+        validateFinalDraft(result);
+    }
+
+    private Map<Position, Player> validateFrozenTeam(String code, Team team,
+            com.lolfm.career.CompetitionRosterSnapshot frozen) {
+        Map<Position, Player> result = new EnumMap<>(Position.class);
+        if (team.getPlayers().size() != 5) throw failure("INVALID_FROZEN_LINEUP", code);
+        var expected = frozen.roster(code).players();
+        for (Player player : team.getPlayers()) {
+            var starter = expected.stream().filter(p -> p.position() == player.getPosition()).findFirst().orElseThrow();
+            if (result.put(player.getPosition(), player) != null
+                    || !starter.playerId().equals(player.requirePlayerId().value())
+                    || !starter.ratings().equals(player.getRatings().asMap()))
+                throw failure("FROZEN_ROSTER_PLAYER_MISMATCH", code);
+        }
+        return Map.copyOf(result);
+    }
+
     private void validatePreflight(String blueTeamCode, Team blueTeam,
                                    String redTeamCode, Team redTeam,
                                    DraftTeamContext blueContext, DraftTeamContext redContext,

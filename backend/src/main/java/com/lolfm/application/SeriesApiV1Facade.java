@@ -63,7 +63,7 @@ public final class SeriesApiV1Facade {
         return new SimulationHttpResponse(new SeriesApiV1Dtos.SimulationResponse(
                 SeriesApiV1Dtos.SIMULATION_RESPONSE_SCHEMA, result.replayed(),
                 responses.series(result.aggregate()), responses.game(result.game()),
-                result.output() == null ? null : responses.match(result.output())),
+                result.output() == null ? null : responses.match(result.output(), result.aggregate().frozenCompetitionRosters())),
                 result.inProgress());
     }
 
@@ -78,7 +78,7 @@ public final class SeriesApiV1Facade {
         return new SeriesApiV1Dtos.ReplayResponse(
                 SeriesApiV1Dtos.REPLAY_RESPONSE_SCHEMA,
                 responses.series(result.aggregate()), responses.game(result.game()),
-                responses.match(result.output()));
+                responses.match(result.output(), result.aggregate().frozenCompetitionRosters()));
     }
 
     public void cancel(String seriesId, SeriesApiV1Dtos.CancelRequest request) {

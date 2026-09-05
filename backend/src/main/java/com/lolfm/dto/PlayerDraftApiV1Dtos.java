@@ -80,7 +80,13 @@ public final class PlayerDraftApiV1Dtos {
         }
     }
 
-    public record TeamIdentity(TeamSide teamSide, String teamCode, String displayName) {
+    public record TeamIdentity(TeamSide teamSide, String teamCode, String displayName,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+            List<RealMatchApiV1Dtos.OptionPlayer> lineup) {
+        public TeamIdentity(TeamSide teamSide, String teamCode, String displayName) {
+            this(teamSide, teamCode, displayName, null);
+        }
+        public TeamIdentity { if (lineup != null) lineup = List.copyOf(lineup); }
     }
 
     public record RuleIdentity(String identity, String hash) {

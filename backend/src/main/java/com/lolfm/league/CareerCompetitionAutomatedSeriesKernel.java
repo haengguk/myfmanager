@@ -70,7 +70,7 @@ public final class CareerCompetitionAutomatedSeriesKernel {
             LeagueAutomatedSeriesGameExecutor.Execution execution = games.execute(
                     new LeagueAutomatedSeriesGameExecutor.Request(fixture, gameNumber,
                             blue, red, gameSeed, matchIdentity, history,
-                            SimulationInstrumentation.enabled()));
+                            SimulationInstrumentation.enabled(), binding.frozenRosters()));
             LeagueFixtureGameReceiptV1 receipt = execution.gameReceipt();
             verifyGame(binding, snapshot, receipt, gameNumber, blue, red,
                     gameSeed, historyHash, matchIdentity);
@@ -123,8 +123,10 @@ public final class CareerCompetitionAutomatedSeriesKernel {
                 policy.activeGameplayRulesVersion())
                 && receipt.resourceProvenanceHash().equals(
                 binding.resourceProvenanceHash())
-                && snapshot.teamSnapshotIdentities().keySet().containsAll(
-                Set.of(binding.firstTeamCode(), binding.secondTeamCode()));
+                && (binding.frozenRosters() != null
+                ? receipt.rosterIdentityHash().equals(com.lolfm.application.SimulationProvenanceService.rosterIdentityHash(
+                        blue, binding.frozenRosters().assemble(blue), red, binding.frozenRosters().assemble(red)))
+                : snapshot.teamSnapshotIdentities().keySet().containsAll(Set.of(binding.firstTeamCode(), binding.secondTeamCode())));
         if (!valid) throw new IllegalStateException(
                 "COMPETITION_PRODUCTION_GAME_BINDING_MISMATCH");
     }

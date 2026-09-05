@@ -20,6 +20,7 @@ class CareerDomesticExecutionTest {
     @Autowired SeriesLifecycleService lifecycle;
     @Autowired SeriesApiV1Facade series;
     @Autowired JdbcLeagueBoundSeriesCheckpointAdapter checkpoints;
+    @Autowired CareerInternationalParticipants international;
 
     @Test
     void actualAutoLoserSelectionAndPlayerBo1ReuseParentFearlessAndCheckpoint() {
@@ -62,4 +63,53 @@ class CareerDomesticExecutionTest {
         assertThat(checkpoints.load(player.boundSeriesId()).orElseThrow().competitionSidePolicy()).isEqualTo(player.sideSelectionPolicy());
         assertThat(lifecycle.resumeCompetitionBound(player).status()).isEqualTo(SeriesStatus.COMPLETED);
     }
+    @Test
+    void foreignRostersRunThroughExistingAutoPlayerReceiptsAndDurableCheckpoint() {
+        var career = careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,
+                "국제 실행 검증", "감독", "HLE", UUID.randomUUID().toString())).career().career();
+        var fixtures = CareerCompetitionTestSupport.installEwcExecutionFixture(store, career.careerId(), international,
+                List.of("HLE", "GEN", "T1", "KT", "DK", "BFX", "NS", "KRX", "BRO", "DNS"));
+        var snapshot = snapshots.currentSnapshot(snapshots.currentTeamCodes());
+        var autoFixture = fixtures.stream().filter(f -> f.executionMode().equals("FULL_AUTO")).findFirst().orElseThrow();
+        var automatic = store.bindFixture(career.careerId(), 2027, "EWC_LOL", autoFixture.matchId(), snapshot, snapshots.currentResourceProvenanceHash());
+        var evidence = auto.run(automatic);
+        var verified = CareerCompetitionTestSupport.verifyAuto(automatic, evidence);
+        assertThat(verified.orderedGames()).hasSize(1);
+        assertThat(verified.orderedGames().getFirst().blueTeamCode()).contains(":");
+        // Application uses the same opaque verified result path as the durable Auto worker.
+        CareerCompetitionTestSupport.applyRealAutoCompletion(store, automatic, evidence);
+        assertThat(store.hasAppliedCompletion(automatic)).isTrue();
+        var playerFixture = fixtures.stream().filter(f -> f.executionMode().equals("PLAYER_CONTROLLED")).findFirst().orElseThrow();
+        var player = store.bindFixture(career.careerId(), 2027, "EWC_LOL", playerFixture.matchId(), snapshot, snapshots.currentResourceProvenanceHash());
+        assertThat(player.frozenRosters().teams()).hasSize(2);
+        assertThat(CareerCompetitionSeriesBindingV1.restoreCanonical(player.canonicalText()).frozenRosters()).isEqualTo(player.frozenRosters());
+        lifecycle.createCompetitionBound(player);
+        var view = series.get(player.boundSeriesId());
+        assertThat(view.managedTeamCode()).isEqualTo("LCK:HLE");
+        assertThat(view.opponentTeamCode()).doesNotStartWith("LCK:");
+        var draft = series.createDraft(view.seriesId(), new SeriesApiV1Dtos.DraftCreateRequest(
+                SeriesApiV1Dtos.DRAFT_CREATE_REQUEST_SCHEMA, view.revision(), "international-draft"));
+        view = draft.series(); var child = draft.draftSession().session(); int command = 0;
+        assertThat(child.teams()).allSatisfy(team -> {
+            assertThat(team.lineup()).hasSize(5);
+            assertThat(team.lineup().stream().map(com.lolfm.dto.RealMatchApiV1Dtos.OptionPlayer::playerId)).containsExactlyElementsOf(
+                    player.frozenRosters().assemble(team.teamCode()).getPlayers().stream()
+                            .sorted(java.util.Comparator.comparing(com.lolfm.domain.Player::getPosition))
+                            .map(p -> p.requirePlayerId().value()).toList());
+        });
+        while (child.status() == PlayerDraftSessionStatus.ACTIVE) {
+            var action = series.draftAction(view.seriesId(), 1, new SeriesApiV1Dtos.DraftActionRequest(
+                    SeriesApiV1Dtos.DRAFT_ACTION_REQUEST_SCHEMA, view.revision(), child.revision(),
+                    "international-action-" + command++, child.selectableChampions().getFirst().champion().championId()));
+            view = action.series(); child = action.draftSession().session();
+        }
+        var result = series.simulate(view.seriesId(), 1, new SeriesApiV1Dtos.SimulateRequest(
+                SeriesApiV1Dtos.SIMULATE_REQUEST_SCHEMA, view.revision(), child.revision(), "international-simulate"));
+        assertThat(result.response().series().status()).isEqualTo(SeriesStatus.COMPLETED);
+        var completed = lifecycle.completedCompetitionEvidence(player, com.lolfm.simulator.SimulationInstrumentation.enabled());
+        assertThat(CareerCompetitionTestSupport.verifyPlayer(player, completed).orderedGames()).hasSize(1);
+        assertThat(checkpoints.load(player.boundSeriesId()).orElseThrow().frozenCompetitionRosters()).isEqualTo(player.frozenRosters());
+        assertThat(lifecycle.resumeCompetitionBound(player).status()).isEqualTo(SeriesStatus.COMPLETED);
+    }
+
 }

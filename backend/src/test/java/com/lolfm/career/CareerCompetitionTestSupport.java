@@ -6,6 +6,13 @@ import java.util.List;
 public final class CareerCompetitionTestSupport {
     private CareerCompetitionTestSupport() {}
 
+    /** Models an existing fixture history authored before international registration was available. */
+    public static void retainLegacyInternationalHistory(CareerCompetitionRelationalStore store, String career, int year, String competition) {
+        store.jdbc.update("DELETE FROM career_international_state WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?", career, year, competition);
+        store.refreshInstanceHash(career, year, competition);
+        store.refreshCycleHash(career, year);
+    }
+
     public static CareerCompetitionRelationalStore.CompletionResult applyCompletion(
             CareerCompetitionRelationalStore store,
             String careerId,
@@ -82,6 +89,10 @@ public final class CareerCompetitionTestSupport {
         }
     }
 
+    public static void applyRealAutoCompletion(CareerCompetitionRelationalStore store, CareerCompetitionSeriesBindingV1 binding,
+            com.lolfm.league.CareerCompetitionAutomatedSeriesKernel.CompletedSeriesEvidence evidence) {
+        store.applyVerifiedCompletion(CareerCompetitionFixtureCompletionReceiptV1.verifyAutomated(binding, evidence));
+    }
     public static CareerCompetitionFixtureCompletionReceiptV1 verifyAuto(CareerCompetitionSeriesBindingV1 binding,
             com.lolfm.league.CareerCompetitionAutomatedSeriesKernel.CompletedSeriesEvidence evidence) {
         return CareerCompetitionFixtureCompletionReceiptV1.verifyAutomated(binding, evidence).receipt();
@@ -106,6 +117,25 @@ public final class CareerCompetitionTestSupport {
         store.jdbc.update("INSERT INTO career_competition_series_binding(binding_hash, career_id, calendar_season_year, competition_id, match_id, fixture_id, series_id, execution_mode, binding_schema, binding_canonical, lifecycle_status, created_at, updated_at) VALUES (?, ?, 2027, 'LCK_CUP', ?, ?, ?, ?, ?, ?, 'CREATED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
                 binding.bindingHash(), career, match, binding.fixtureId(), binding.boundSeriesId(), binding.executionMode(), CareerCompetitionSeriesBindingV1.SCHEMA, binding.canonicalText());
         return binding;
+    }
+
+    /** Test-only EWC registration fixture; tests distinguish this setup from qualification evidence. */
+    public static List<CareerCompetitionRelationalStore.FixtureRow> installEwcExecutionFixture(
+            CareerCompetitionRelationalStore store, String career, CareerInternationalParticipants provider,
+            List<String> domesticOrder) {
+        var selection = provider.overseas(career, 2027, "EWC_LOL");
+        var state = CareerInternationalRegistration.create(career, 2027, "EWC_LOL", store.careerBinding(career).rootSeed(),
+                selection, domesticOrder.stream().map(t -> provider.roster(new com.lolfm.player.GlobalTeamRosterCatalog.TeamKey("LCK", t))).toList(),
+                "TEST_ONLY_RANKING_FIXTURE_NOT_QUALIFICATION_EVIDENCE", CareerInternationalRules.REFERENCE_REGIONS, null);
+        try {
+            String serialized = store.json.writeValueAsString(state), hash = CareerInternationalRules.hash(serialized);
+            store.jdbc.update("INSERT INTO career_international_state(career_id, calendar_season_year, competition_id, state_json, state_hash) VALUES (?, 2027, 'EWC_LOL', ?, ?)", career, serialized, hash);
+            store.jdbc.update("UPDATE career_competition_instance SET rule_status = 'GAME_POLICY_DEFINED', source_input_hash = ?, materialization_policy_id = ?, materialization_receipt_hash = ? WHERE career_id = ? AND calendar_season_year = 2027 AND competition_id = 'EWC_LOL'",
+                    hash, CareerInternationalRules.POLICY, hash, career);
+            store.refreshInstanceHash(career, 2027, "EWC_LOL"); store.refreshCycleHash(career, 2027);
+            store.reconcileInternational(career, 2027);
+            return store.load(career, 2027).fixtures().stream().filter(f -> f.competitionId().equals("EWC_LOL")).toList();
+        } catch (java.io.IOException e) { throw new IllegalStateException(e); }
     }
 
     /** Recreates a V2 cycle identity without changing its already materialized Cup graph. */

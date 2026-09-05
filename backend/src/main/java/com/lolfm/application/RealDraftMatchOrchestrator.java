@@ -212,12 +212,24 @@ public final class RealDraftMatchOrchestrator {
             long matchSeed,
             SimulationInstrumentation instrumentation
     ) {
+        return prepareV1(matchIdentity, blueTeamCode, redTeamCode, seriesHistory, matchSeed, instrumentation, null);
+    }
+
+    public PreparedAutoDraftMatch prepareV1(
+            String matchIdentity,
+            String blueTeamCode,
+            String redTeamCode,
+            SeriesDraftHistory seriesHistory,
+            long matchSeed,
+            SimulationInstrumentation instrumentation,
+            com.lolfm.career.CompetitionRosterSnapshot frozenRosters
+    ) {
         Objects.requireNonNull(seriesHistory, "seriesHistory");
         Objects.requireNonNull(instrumentation, "instrumentation");
         String normalizedBlueTeamCode = normalizeTeamCode(blueTeamCode, "blueTeamCode");
         String normalizedRedTeamCode = normalizeTeamCode(redTeamCode, "redTeamCode");
-        Team blueTeam = teams.assemble(normalizedBlueTeamCode);
-        Team redTeam = teams.assemble(normalizedRedTeamCode);
+        Team blueTeam = frozenRosters == null ? teams.assemble(normalizedBlueTeamCode) : frozenRosters.assemble(normalizedBlueTeamCode);
+        Team redTeam = frozenRosters == null ? teams.assemble(normalizedRedTeamCode) : frozenRosters.assemble(normalizedRedTeamCode);
         DraftTeamContext blueContext = DraftTeamContext.from(blueTeam);
         DraftTeamContext redContext = DraftTeamContext.from(redTeam);
         Set<ChampionId> exclusionsBeforeDraft = seriesHistory.consumedPicks();
@@ -227,8 +239,10 @@ public final class RealDraftMatchOrchestrator {
                 gameNumber, exclusionsBeforeDraft);
         FinalDraftResult draftResult = drafts.draft(
                 blueContext, redContext, seriesHistory, selectionContext);
-        preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
+        if (frozenRosters == null) preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 blueContext, redContext, draftResult, seriesHistory);
+        else preflight.validateFrozen(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
+                blueContext, redContext, draftResult, seriesHistory, frozenRosters);
         MatchEngineV1Input input = matchIdentity == null
                 ? matchEngineV1Inputs.fromRealDraft(
                 normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,

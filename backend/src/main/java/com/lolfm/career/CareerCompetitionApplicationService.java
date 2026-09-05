@@ -35,6 +35,7 @@ public final class CareerCompetitionApplicationService {
         // loads the already-bound policy so future seasons cannot fall back to the
         // first-season 2026 bootstrap.
         store.load(career.careerId(), calendarSeasonYear);
+        store.reconcileInternational(career.careerId(), calendarSeasonYear);
         if ("COMPLETED".equals(season.seasonLifecycleStatus())
                 && season.allFixturesCompleted()) {
             store.reconcileDomesticR1R2(career.careerId(), calendarSeasonYear);
@@ -64,7 +65,7 @@ public final class CareerCompetitionApplicationService {
                 .findFirst().orElse(null);
         CareerCompetitionRelationalStore.ExecutionProjection execution = fixture == null
                 ? null : store.executionProjection(career.careerId(),
-                calendarSeasonYear, fixture.matchId());
+                calendarSeasonYear, fixture.competitionId(), fixture.matchId());
         CompetitionFixture projectedFixture = fixture == null ? null
                 : fixture(fixture, career.managedTeamCode(), execution);
         String pendingStatus = pendingStatus(execution);
@@ -94,7 +95,7 @@ public final class CareerCompetitionApplicationService {
                 externalLimited(current) || externalLimited(next), pending,
                 CareerCompetitionRules.VERSION.equals(cycle.ruleVersion()) || pending != null ? allowedCommands(projectedFixture, currentDate) : List.of(),
                 store.domesticDecisions(career.careerId(), calendarSeasonYear), store.finalRanking(career.careerId(), calendarSeasonYear),
-                CareerCompetitionRules.VERSION.equals(cycle.ruleVersion()) ? "CURRENT" : "PRESERVED_PREVIOUS_RULES");
+                CareerCompetitionRules.VERSION.equals(cycle.ruleVersion()) ? "CURRENT" : "PRESERVED_PREVIOUS_RULES", store.internationalViews(career.careerId(), calendarSeasonYear));
     }
 
     private static String pendingStatus(
@@ -124,7 +125,7 @@ public final class CareerCompetitionApplicationService {
                 CareerCompetitionRules.PROJECTION_POLICY,
                 CareerCompetitionRules.R3_R4_ALLOCATION_POLICY,
                 "BLOCKED", 0, null, current, next, null, List.of(), List.of(),
-                List.of(), false, null, List.of(), List.of(), null, "PRIOR_SEASON_REQUIRED");
+                List.of(), false, null, List.of(), List.of(), null, "PRIOR_SEASON_REQUIRED", List.of());
     }
 
     private static CompetitionSummary missingFutureSummary(String competitionId) {
@@ -179,7 +180,8 @@ public final class CareerCompetitionApplicationService {
         if ("BLOCKED".equals(value.lifecycleStatus())
                 || "SOURCE_GAP".equals(value.lifecycleStatus())
                 || "POLICY_REQUIRED".equals(value.lifecycleStatus())
-                || "EXECUTION_REQUIRED".equals(value.lifecycleStatus())) {
+                || "EXECUTION_REQUIRED".equals(value.lifecycleStatus())
+                || "WAITING_FOR_QUALIFICATION".equals(value.lifecycleStatus())) {
             return true;
         }
         return "RULE_SOURCE_INCOMPLETE".equals(value.ruleStatus())
@@ -223,6 +225,8 @@ public final class CareerCompetitionApplicationService {
             String managedTeamCode,
             CareerCompetitionRelationalStore.ExecutionProjection execution
     ) {
+        if (CareerInternationalRules.COMPETITIONS.contains(value.competitionId()))
+            managedTeamCode = CompetitionRosterSnapshot.managedToken(managedTeamCode);
         return new CompetitionFixture(value.competitionId(), value.matchId(),
                 value.fixtureId(), value.seriesId(), value.date(), value.scheduleStatus(),
                 value.seriesFormat(), value.hardFearless(), value.firstTeamCode(),
@@ -343,7 +347,8 @@ public final class CareerCompetitionApplicationService {
             List<String> allowedCommands,
             List<CareerCompetitionRelationalStore.DomesticDecisionView> domesticRankingDecisions,
             CareerCompetitionRelationalStore.FinalRankingView finalRanking,
-            String domesticRuleCompatibility
+            String domesticRuleCompatibility,
+            List<CareerCompetitionRelationalStore.InternationalView> internationalCompetitions
     ) {
         public CompetitionView {
             qualificationOutputs = List.copyOf(qualificationOutputs);
@@ -351,6 +356,7 @@ public final class CareerCompetitionApplicationService {
             currentSeeds = List.copyOf(currentSeeds);
             allowedCommands = List.copyOf(allowedCommands);
             domesticRankingDecisions = List.copyOf(domesticRankingDecisions);
+            internationalCompetitions = List.copyOf(internationalCompetitions);
         }
     }
 

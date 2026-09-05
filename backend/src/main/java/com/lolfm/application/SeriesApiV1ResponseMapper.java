@@ -43,9 +43,9 @@ public final class SeriesApiV1ResponseMapper {
                 aggregate.status(), aggregate.terminalReason(), aggregate.format(),
                 aggregate.format().winsRequired(), List.of(
                 new SeriesApiV1Dtos.TeamIdentity(aggregate.teamACode(),
-                        teams.assemble(aggregate.teamACode()).getName()),
+                        aggregate.frozenCompetitionRosters() == null ? teams.assemble(aggregate.teamACode()).getName() : aggregate.teamACode()),
                 new SeriesApiV1Dtos.TeamIdentity(aggregate.teamBCode(),
-                        teams.assemble(aggregate.teamBCode()).getName())),
+                        aggregate.frozenCompetitionRosters() == null ? teams.assemble(aggregate.teamBCode()).getName() : aggregate.teamBCode())),
                 aggregate.managedTeamCode(), aggregate.managedTeamCode().equals(
                 aggregate.teamACode()) ? aggregate.teamBCode() : aggregate.teamACode(),
                 aggregate.score(), current.gameNumber(), aggregate.canonicalRootSeed(),
@@ -68,9 +68,9 @@ public final class SeriesApiV1ResponseMapper {
                 new SeriesApiV1Dtos.CompetitionContext(aggregate.competitionSidePolicy(),
                         aggregate.games().getFirst().historyBefore().stream().map(v -> v.value()).sorted().toList(),
                         aggregate.games().getFirst().blueTeamCode(),
-                        aggregate.competitionSidePolicy() != null && aggregate.competitionSidePolicy().startsWith("LCK_FINAL_")
+                        aggregate.competitionSidePolicy() != null && (aggregate.competitionSidePolicy().startsWith("LCK_FINAL_") || aggregate.competitionSidePolicy().equals(com.lolfm.career.CareerInternationalRules.RODS))
                                 ? aggregate.games().getFirst().blueTeamCode() : aggregate.games().getFirst().redTeamCode(),
-                        aggregate.competitionSidePolicy() != null && aggregate.competitionSidePolicy().startsWith("LCK_FINAL_") ? "BLUE" : "RED",
+                        aggregate.competitionSidePolicy() != null && (aggregate.competitionSidePolicy().startsWith("LCK_FINAL_") || aggregate.competitionSidePolicy().equals(com.lolfm.career.CareerInternationalRules.RODS)) ? "BLUE" : "RED",
                         aggregate.competitionSidePolicy() != null));
     }
 
@@ -103,13 +103,17 @@ public final class SeriesApiV1ResponseMapper {
                         game.controlledSide(), Long.toString(game.matchSeed()),
                         game.historyBefore().stream().map(value -> value.value()).toList(),
                         game.historyBeforeHash()),
-                playerDrafts.session(child.view(game)));
+                playerDrafts.session(child.view(game), aggregate.frozenCompetitionRosters()));
+    }
+
+    public com.lolfm.dto.PlayerDraftApiV1Dtos.MatchPayload match(MatchEngineV1Output output) {
+        return match(output, null);
     }
 
     public com.lolfm.dto.PlayerDraftApiV1Dtos.MatchPayload match(
-            MatchEngineV1Output output
+            MatchEngineV1Output output, com.lolfm.career.CompetitionRosterSnapshot frozen
     ) {
-        return playerDrafts.matchPayload(output);
+        return playerDrafts.matchPayload(output, frozen);
     }
 
     private static SeriesApiV1Dtos.CompactResult compactResult(SeriesGame game) {

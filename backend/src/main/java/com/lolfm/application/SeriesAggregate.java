@@ -36,8 +36,22 @@ record SeriesAggregate(
         SeriesOrigin origin,
         String leagueBindingHash,
         String leagueSeedAnchorTeamCode,
-        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String competitionSidePolicy
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String competitionSidePolicy,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        com.lolfm.career.CompetitionRosterSnapshot frozenCompetitionRosters
 ) {
+    SeriesAggregate(String seriesId, long revision, SeriesStatus status, String terminalReason,
+            SeriesFormat format, String teamACode, String teamBCode, String managedTeamCode,
+            String game1BlueTeamCode, String canonicalRootSeed, long rootSeed, Map<String, Integer> score,
+            List<SeriesGame> games, Set<ChampionId> consumedPicks, String historyHash, String winnerTeamCode,
+            Instant createdAt, Instant lastActivityAt, Instant expiresAt, Map<String, SeriesCommandReceipt> commandReceipts,
+            SeriesOrigin origin, String leagueBindingHash, String leagueSeedAnchorTeamCode, String competitionSidePolicy) {
+        this(seriesId, revision, status, terminalReason, format, teamACode, teamBCode, managedTeamCode,
+                game1BlueTeamCode, canonicalRootSeed, rootSeed, score, games, consumedPicks, historyHash, winnerTeamCode,
+                createdAt, lastActivityAt, expiresAt, commandReceipts, origin, leagueBindingHash,
+                leagueSeedAnchorTeamCode, competitionSidePolicy, null);
+    }
+
     SeriesAggregate(String seriesId, long revision, SeriesStatus status, String terminalReason,
             SeriesFormat format, String teamACode, String teamBCode, String managedTeamCode,
             String game1BlueTeamCode, String canonicalRootSeed, long rootSeed, Map<String, Integer> score,
@@ -100,10 +114,12 @@ record SeriesAggregate(
         } else if (leagueBindingHash != null || leagueSeedAnchorTeamCode != null) {
             throw new IllegalArgumentException("Standalone Series cannot claim authority binding");
         }
-        if (origin != SeriesOrigin.COMPETITION_BOUND && (!games.getFirst().historyBefore().isEmpty() || competitionSidePolicy != null))
+        if (origin != SeriesOrigin.COMPETITION_BOUND && (!games.getFirst().historyBefore().isEmpty() || competitionSidePolicy != null || frozenCompetitionRosters != null))
             throw new IllegalArgumentException("Competition-only Series context");
         if (competitionSidePolicy != null && !com.lolfm.career.CareerCompetitionSeriesBindingV1.loserRoFs(competitionSidePolicy))
             throw new IllegalArgumentException("Unknown competition side policy");
+        if (frozenCompetitionRosters != null && !frozenCompetitionRosters.teams().keySet().equals(Set.of(teamACode, teamBCode)))
+            throw new IllegalArgumentException("FROZEN_SERIES_ROSTER_SCOPE");
         validate(format, teamACode, teamBCode, managedTeamCode, game1BlueTeamCode,
                 score, games, consumedPicks, historyHash, status, winnerTeamCode);
     }
@@ -144,7 +160,7 @@ record SeriesAggregate(
                 teamACode, teamBCode, managedTeamCode, game1BlueTeamCode,
                 canonicalRootSeed, rootSeed, nextScore, nextGames, nextConsumed,
                 nextHistoryHash, nextWinner, createdAt, activity, expiry, receipts,
-                origin, leagueBindingHash, leagueSeedAnchorTeamCode, competitionSidePolicy);
+                origin, leagueBindingHash, leagueSeedAnchorTeamCode, competitionSidePolicy, frozenCompetitionRosters);
     }
 
     private static void validate(

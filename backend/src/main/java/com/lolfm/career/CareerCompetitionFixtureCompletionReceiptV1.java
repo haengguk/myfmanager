@@ -144,7 +144,10 @@ public record CareerCompetitionFixtureCompletionReceiptV1(
                     && game.activeGameplayRulesVersion().equals(
                     policy.activeGameplayRulesVersion())
                     && game.resourceProvenanceHash().equals(
-                    binding.resourceProvenanceHash());
+                    binding.resourceProvenanceHash())
+                    && (binding.frozenRosters() == null || game.rosterIdentityHash().equals(
+                    com.lolfm.application.SimulationProvenanceService.rosterIdentityHash(
+                            blue, binding.frozenRosters().assemble(blue), red, binding.frozenRosters().assemble(red))));
             if (!valid) throw new IllegalArgumentException(
                     "COMPETITION_GAME_RECEIPT_BINDING_MISMATCH");
             score.compute(game.winnerTeamCode(),

@@ -2,14 +2,29 @@
 
 이 문서는 2026-09-05 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career 국제대회 FST·MSI·EWC·Worlds V1 (2026-09-05)
+
+기준 HEAD `c0a3fe1`에서 네 대회의 참가 등록·대진·실제 Player/Auto 경기·영속 결과와
+FST → MSI → Worlds 자격 연결을 구현했다. LCK는 실제 국내 결과를, 해외는 등록 주전 5명의
+능력치 60개 합산 순위를 사용하는 교체 가능한 임시 공급자를 소비한다. V12의 참가/로스터
+스냅샷은 시작 후 고정되며, 기존 V3 국내 완료 이력을 보존한다. EWC는 별도 자격·결과로 저장한다.
+
+기존 Calendar/Series에서 해외 경기와 복구를 연결했다. 아시안게임은 명시적 제외로 처리하며
+KeSPA와 다음 시즌 rollover는 계속 제한한다. 집중 7개 및 보강 2개 테스트, Career/Series
+프런트 계약·build, 해외 Player 결과·Calendar 복귀와 Auto 새로고침 브라우저 검증이 통과했다.
+첫 전체 회귀에서 발견한 migration 기대값·binding 내용 비교·비동기 순위 조회 문제를 교정하고
+해당 5개 집중 테스트를 통과했다. 마지막 전체 회귀는 **264 suites / 1,999 tests, 실패·오류 0,
+기존 skip 2, 22분 1초**로 통과했다(총 2회 실행). 정책·규칙 근거·검증 범위는
+[국제대회 구현 보고서](development/career-international-fst-msi-ewc-worlds-execution-v1.md)를 따른다.
+
 ## Career 국내 순위·시즌 말 PO·최종 순위 (2026-09-05)
 
 시작 HEAD `87df2df344d41029567dd164ad886c5398477280`에서 V3 규칙/V11 저장으로 Cup SoV·승리 세트 평균·
 통합 Play-in seed, R1/R2 및 R3/R4 H2H·다자간 실제 동률 경기, 시즌 말 PO10 BO5와 최종1–10위 봉인을 연결했다.
 Cup 그룹 동률은 5위/1위 팀이 BO1 자식 경기에 교대 출전하고 부모 Fearless 기록을 상속한다.
 최종 snapshot/row와 직전 SEALED 순위 소비 계약을 재사용하며, 정규시즌 기록과 최종 대회 순위를 구분한다.
-실행 전 V2만 전환하고 사용한 V2 결과/binding은 보존한다. Worlds 자격은 국제 증거 대기이며
-국제대회·아시안게임·KeSPA gate 및 rollover 제한은 유지한다.
+실행 전 V2만 전환하고 사용한 V2 결과/binding은 보존한다. 당시 Worlds 자격은 국제 증거 대기였으며 국제대회 gate를 유지했다.
+현재 국제대회·아시안게임 상태는 위 국제 V1 항목을 따르고 KeSPA·rollover 제한은 유지한다.
 
 집중7 suites/51 tests와 마지막 전이18 tests, Career/Series 프런트 계약, production build,
 기존 Calendar 컴포넌트 브라우저 흐름이 통과했다. 최종 전체 회귀는 한 번 실행하여

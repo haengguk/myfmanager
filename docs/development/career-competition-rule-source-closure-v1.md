@@ -7,7 +7,9 @@
 조사 범위는 완료했다. 아래에서 확정한 규칙과 남은 자료·제품 선택을 구분한다.
 **전체 SOURCE_CLOSED 또는 시즌 완주 가능 판정은 아니다.** 실행 안정화 결과는
 [별도 검증 보고서](career-competition-execution-stabilization-v1.md)에 기록한다.
-이번 조사로 production 규칙 JSON, resource hash, readiness, Calendar gate는 변경하지 않았다.
+조사 자체는 production 규칙 JSON, resource hash, readiness, Calendar gate를 변경하지 않았다.
+이후 국내 V3와 [국제대회 실행 V1](career-international-fst-msi-ewc-worlds-execution-v1.md)이
+아래 실행 공백을 해소했다. 공식 근거와 명시적 게임 정책은 계속 구분한다.
 
 ## 연도와 증거의 적용 경계
 
@@ -60,7 +62,9 @@ KeSPA 공지 검색에는 2025 규정 공시가 있고, 조사한 2026 게시글
 [CompetitionApplicationService](../../backend/src/main/java/com/lolfm/career/CareerCompetitionApplicationService.java),
 [CalendarApplicationService](../../backend/src/main/java/com/lolfm/career/CareerCalendarApplicationService.java).
 
-| 대회/단계 | 공식 근거와 현재 구현 | 부족한 근거 | 미구현 코드·실행 데이터 | 현재 blocker / 다음 의존 작업 |
+아래 표와 직후 gate 설명은 **최초 조사 시점의 상태**다. 최신 구현 상태는 문서 끝의 반영 항목을 따른다.
+
+| 대회/단계 | 조사 당시 구현 | 부족했던 근거 | 당시 미구현 코드·실행 데이터 | 당시 blocker / 의존 작업 |
 |---|---|---|---|---|
 | LCK Cup 동률·Play-in seed | C1 §2.7–2.8, §3.2.1. `sealCupGroupStandings`는 25 receipt 집계, 기존 Playoff 10경기 graph는 구현됨 | 규칙 순서 확인됨. 평균의 표본이 없는 경우 등 명시되지 않은 입력은 운영 해석 필요 | 공식 SoV/세트별 승리시간·통합 6 seed 정렬과 재경기 경로. 아래 코드 차이 참조 | `LCK_CUP_TIEBREAKER_REQUIRED` → 증거 보강/규칙 교정 → 필요 시 추가 fixture → 재봉인 |
 | LCK R3/R4 | C1 §2.7–2.8, §4.1. Store가 R1/R2 누적값과 40경기를 합산 | 기본 규칙 확인됨 | H2H 원장, 추가 경기/승리시간, 동률 경로와 durable 재개 | `LCK_R3_R4_TIEBREAKER_REQUIRED` → 증거 보강 → 동률 해결 → Play-in/PO seed 봉인 |
@@ -168,6 +172,9 @@ V3는 SoV/평균/H2H/실제 동률 fixture/10경기 PO/최종1–10위를 구현
 
 ## First Stand · MSI · Worlds
 
+V1 구현의 보충 정책·저장 계약은 [국제대회 실행 기록](career-international-fst-msi-ewc-worlds-execution-v1.md)을
+참조한다. 아래의 원문과 현실 2026 배정은 근거이며, 구현 상태는 해당 기록의 최종 검증 상태를 따른다.
+
 ### First Stand
 
 [C4 §2.2/§4](https://cdn.sanity.io/files/dsfx7636/news_live/2893a4fb548f9253d1c99965718c69312ce3bc6b.pdf):
@@ -205,10 +212,11 @@ Play-in 최종전·본선 결승 첫 세트는 상위조 팀 RoDS; 본선U1 상�
 | Tier1 / Tier2 | LPL1·LEC1 / LCK1·LCS1 |
 | Tier3 / Tier4 | LCP1·CBLOL1 / LPL2·Play-in승자 |
 
-[C6](https://lolesports.com/ko-KR/news/msi-and-worlds-updates)은 각 지역1시드와 FST 우승지역의
-2시드가 본선 직행하는 원리를 설명한다. 게임 내 FST가 다른 결과라면 **지역 성과 순위의 동률 처리,
-두 대표팀이 있는 지역의 평가 기준, pool 재배정**을 먼저 확정해야 한다. 이것은 외부 팀 roster 부족과
-다른 규칙/제품 정책 공백이다. MSI 우승·차상위 지역 성과는 Worlds 추가 슬롯의 입력이 된다.
+[C6](https://lolesports.com/en-US/news/msi-and-worlds-updates)은 각 지역1시드와 **두 슬롯을 가진 지역 중
+FST 성적이 가장 높은 지역의 2시드**가 본선 직행한다고 설명한다. FST 우승 지역이 CBLOL인 경우도
+추가 직행 지역은 두 슬롯을 가진 지역 중에서 정한다. 게임 내 FST가 다른 결과라면 **지역 성과 순위의 동률 처리,
+두 대표팀이 있는 지역의 평가 기준, pool 재배정**이 필요하다. 이 부분은 국제대회 실행 V1에서
+지역별 최종 순위 벡터와 scope에 결속한 동률 추첨 정책으로 정했다. MSI 우승·차상위 지역 성과는 Worlds 추가 슬롯의 입력이 된다.
 
 ### Worlds
 
@@ -237,9 +245,9 @@ RoFS는 Swiss 상위지역시드(동일시 coin), 8강 Swiss성적(동일시 추
 2026 날짜: Play-in10/15–18, Swiss10/23–26·28–31, 8강11/3–6, 4강11/7–8, 결승11/14.
 규정 원문에는 소개의 MSI 명칭, 우승 연도 `2025`, Play-in 최종 승자의 `Bracket Stage` 표현 같은
 편집 잔재가 있다. stage 정의·표지·날짜와 일치하는 조항을 연결했으며, 이 잔재를 새로운 대회 경로로
-해석하지 않는다. counterfactual 국제 성과의 지역 슬롯/pool, Swiss 운영진 재량의 deterministic
-게임 정책은 아직 채택하지 않았다. MSI/Worlds의 실제 Hard Fearless 범위 및 국제대회 side/pick 분리도
-현재 BO3/BO5 API의 사용 가능 여부와 별도로 대회별 실행 계약에 고정해야 한다.
+해석하지 않는다. counterfactual 국제 성과의 지역 슬롯/pool과 Swiss 불가능 추첨의 결정적 처리,
+시리즈 단위 Hard Fearless 및 side/pick 선택은 국제대회 실행 V1의 별도 게임 정책으로 채택했다.
+공식 확정 사실과 이 보충 정책은 해당 구현 기록에서 구분한다.
 
 ## EWC
 
@@ -264,10 +272,12 @@ RoFS는 첫 경기 상위seed, 이후 직전세트패자다. 그룹R2는 추첨,
 LCK2가 우승팀 슬롯을 승계한다. §2.5에는 대체 참가자 규정도 있다.
 §2.2는5인+선택1인 roster, qualifier 당시 선발 다수·코칭스태프 유지 조건을 둔다.
 
-**미결:** pool1의 `LCP#2`를 관행상 `LCP#1`로 고치지 않았다. 해당 슬롯을 확정할 공식 정정/초청
-발표가 필요하다. `한국예선`을 Road to MSI 순위로 임의 치환할 수도 없다. 지역별 qualifier의 참가·선발
-규정과 event snapshot을 확보해야 한다. 첫 playable cycle의 전년도 우승 슬롯을 어떤 증거로 초기화할지도
-새 제품 선택이다. EWC 결과는 Riot Worlds 진출 보너스로 연결하지 않는다.
+**원문 확인 및 V1 정책:** 현재 공식 PDF에도 pool1은 `LCP#2`다. 관행상 `LCP#1`로 고치지 않고
+V1에서 그대로 적용한다. §2.5.4의 타이틀 방어팀 부재 시 최상위 미진출 LCK Road 팀 대체 조항을
+초기 슬롯 정책의 근거로 사용한다. 예선은 등록 팀과 국내 성적 입력을 이용한 명시적 임시 선정이며
+공식 예선 결과라는 의미가 아니다. `LCP#2`를 바꿀 공식 정정이 확보되면 별도 규칙 버전으로
+다뤄야 한다. 실제 qualifier 전체 및 선수 교체 자격 규정은 후속 범위다.
+EWC 결과는 Riot Worlds 진출 보너스로 연결하지 않는다.
 
 ## KeSPA: 2025 템플릿과 2026 원문을 분리
 
@@ -305,33 +315,33 @@ LCK2가 우승팀 슬롯을 승계한다. §2.5에는 대체 참가자 규정도
 
 ## 외부 실행 데이터와 제품 선택
 
-외부 팀명·지역 슬롯·선수 catalog·실행 snapshot은 각각 다른 authority다. 다음 공백을 분리한다.
+외부 팀명·지역 슬롯·선수 catalog·실행 snapshot은 각각 다른 authority다.
+국제 실행 V1은 아래 경계로 구현했으며 실제 해외 리그 결과를 만들었다고 표시하지 않는다.
 
-| 층 | 필요한 증거/데이터 | 현재 공백 |
+| 층 | V1 반영 | 남은 범위 |
 |---|---|---|
-| 참가 자격 | 지역/시즌/stage/seed/선발 결과 hash | 국내 Cup/Road/Play-in output 이외 해외 지역 결과 authority 없음 |
-| 팀·선수 identity | stable team/player ID, region, 역할, alias, roster 유효기간 | LCK catalog를 해외 team code에 덮어쓸 수 없음 |
-| 대회 roster | 등록명단, 각 경기 선발5인·교체·자격·잠금 | 실제 대회 참가 명단과 기본 소속 명단의 차이를 표현해야 함 |
-| 게임 능력치 | rating/proficiency 출처·시점·버전, draft 입력 | 공식 roster가 있어도 능력치는 별도 게임 데이터 작업 |
-| frozen 실행 입력 | production/profile/config/engine/resource/roster hashes, seed, format/history | placeholder selector로 현재 kernel을 실행하면 안 됨 |
-| 진출 output | game-derived 국제성적·지역보너스·국내 PO 조건 | 현실 우승팀을 넣어 공백을 해소하지 않음 |
+| 참가 자격 | 실제 국내 결과 + 교체 가능한 해외 주전 능력치 순위·정책/입력 저장 | 실제 해외 리그/예선 결과 공급자 |
+| 팀·선수 identity | 보유 6지역 56팀/280명, 구조화된 TeamKey/stable player ID | 후보·교체 선수 등록 |
+| 대회 roster·능력치 | 대회별 주전5인·rating/proficiency 전체를 고정 | 공식 등록/교체 자격 전체 |
+| frozen 실행 입력 | 기존 Production V9 Player/Auto binding·checkpoint·receipt에 고정 두 팀 입력 | 엔진 버전 간 이력 마이그레이션 |
+| 진출 output | FST/MSI 게임 성과, Worlds 보너스와 실제 국내 PO 조건 | 다음 시즌 생성 |
 
-새 정책 후보는 사람 상대 선택 UI, 국제 pool의 최초 bootstrap/미래 성과 적용,
-운영진 재량의 seeded 추첨·불가능한 draw 처리, 추가 경기 날짜, KeSPA reference 전환이다.
-미구현 대회 건너뛰기/국내 전용 시즌/임의 동률 해소/대체연도 채택은 승인되지 않았으며 적용하지 않았다.
+최초 pool, counterfactual 지역 성과, 유한 추첨·불가능 제약 완화, 대회 창 내 경기 날짜,
+EWC 첫 cycle 슬롯은 버전 있는 게임 정책으로 채택했다. KeSPA의 reference 전환은 후속 범위이며,
+아시안게임은 사용자 요청에 따라 명시적으로 제외했다. 일반 미구현 대회 skip 스위치는 없다.
 
-## 국내 구현 반영과 다음 구현 순서
+## 구현 반영과 남은 작업
 
 1. **국내 순위 authority 교정 — 구현 반영**: V3에서 Cup SoV/승리시간/통합 seed, R1/R2·R3/R4 H2H,
    다자간 추가 경기·resume·저장 버전 처리를 연결했다.
 2. **시즌 말 LCK Playoffs — 구현 반영**: 10경기 graph·선택권·별도 픽/진영 정책·최종1–10위 봉인과
    국제 증거 대기 Worlds 입력을 연결했다. 검증 결과는 [구현 보고서](career-domestic-ranking-playoffs-finalization-v1.md)를 따른다.
-3. **외부 authority 기반 + First Stand**: 참가/roster/snapshot과 추첨 정책을 확보하고13경기 및 지역 성과 output 구현.
-   Calendar의 첫 외부 진행 차단점을 해소하는 작업이다. 국내 PO 개발과 독립 진행 가능하다.
-4. **MSI → Worlds**: FST 지역 성과/외부팀 → MSI → 국내 PO와 결합한 Worlds 슬롯 → Swiss/KO 순서.
-   현실2026 pool을 미래 Career에 적용하는 정책 미결을 먼저 해소한다.
-5. **EWC 별도 경로**: LCP 슬롯 확인·지역 qualifier·우승 슬롯 정책 → 혼합BO graph/roster → 일정 연결.
-6. **KeSPA 2026 별도 경로**: 미결 규정/등록 roster → 연도별 resource·일정/저장 정책 → 대회 실행.
+3. **First Stand — 국제 V1 반영**: 고정 참가/로스터·13 BO5·지역 성과와 Calendar 실행을 연결했다.
+4. **MSI → Worlds — 국제 V1 반영**: FST 성과를 MSI 직행/pool에, MSI 성과와 국내 PO를 Worlds
+   슬롯에 연결했다. MSI 20 BO5와 Worlds Play-in/Swiss/KO·최종 성적을 저장한다.
+5. **EWC — 국제 V1 반영**: 원문 LCP#2·일반 슬롯 우선의 첫 cycle 타이틀 대체 정책,
+   혼합 BO·3위전 포함 28시리즈와 독립 결과를 연결했다.
+6. **KeSPA 2026 — 후속**: 미결 규정/등록 roster → 연도별 resource·일정/저장 정책 → 실행.
 
-국내 PO만 구현해도 국제대회 blockers는 남는다. rollover는 이번 구현/조사 산출물의 완료 조건으로
-추가하지 않았으며, 전체 시즌 완주를 주장하려면 별도 작업과 검증이 필요하다.
+국제대회 구현과 검증의 정확한 범위는 [국제 V1 보고서](career-international-fst-msi-ewc-worlds-execution-v1.md)를
+따른다. 이번 구현은 같은 시즌 Worlds까지이며 rollover·다년 운영 완료를 의미하지 않는다.

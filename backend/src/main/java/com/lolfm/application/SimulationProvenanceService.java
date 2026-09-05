@@ -384,7 +384,7 @@ public final class SimulationProvenanceService {
         return value;
     }
 
-    static String rosterIdentityHash(
+    public static String rosterIdentityHash(
             String blueTeamCode, Team blueTeam, String redTeamCode, Team redTeam
     ) {
         StringBuilder canonical = new StringBuilder("rosterIdentitySchema=REAL_MATCH_ROSTER_V1\n");

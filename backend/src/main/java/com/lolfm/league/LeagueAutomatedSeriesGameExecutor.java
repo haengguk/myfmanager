@@ -29,8 +29,13 @@ interface LeagueAutomatedSeriesGameExecutor {
             long gameSeed,
             String matchIdentity,
             SeriesDraftHistory history,
-            SimulationInstrumentation instrumentation
+            SimulationInstrumentation instrumentation,
+            com.lolfm.career.CompetitionRosterSnapshot frozenRosters
     ) {
+        public Request(LeagueFixture fixture, int gameNumber, String blueTeamCode, String redTeamCode,
+                long gameSeed, String matchIdentity, SeriesDraftHistory history, SimulationInstrumentation instrumentation) {
+            this(fixture, gameNumber, blueTeamCode, redTeamCode, gameSeed, matchIdentity, history, instrumentation, null);
+        }
         public Request {
             Objects.requireNonNull(fixture, "fixture");
             if (gameNumber < 1) throw new IllegalArgumentException("gameNumber");
@@ -79,7 +84,7 @@ final class ProductionLeagueAutomatedSeriesGameExecutor
         String historyBeforeHash = request.history().identityHash();
         PreparedAutoDraftMatch prepared = matches.prepareV1(
                 request.matchIdentity(), request.blueTeamCode(), request.redTeamCode(),
-                request.history(), request.gameSeed(), request.instrumentation());
+                request.history(), request.gameSeed(), request.instrumentation(), request.frozenRosters());
         validate(request, historyBeforeHash, prepared);
         FinalDraftResult draft = prepared.completedDraft();
         HashSet<ChampionId> historyAfter = new HashSet<>(historyBefore);

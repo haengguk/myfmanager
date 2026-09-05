@@ -63,7 +63,7 @@ public final class CareerCalendarTemplate {
             "LINKED_EXISTING_LEAGUE_FIXTURES",
             "FORMAT_DEFINED_EXECUTION_NOT_IMPLEMENTED");
     private static final Set<String> COMPETITION_SERIES_EXECUTION_TEMPLATE_IDS = Set.of(
-            "LCK_CUP", "LCK_ROAD_TO_MSI", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN", "LCK_PLAYOFFS");
+            "LCK_CUP", "LCK_ROAD_TO_MSI", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN", "LCK_PLAYOFFS", "FIRST_STAND", "MSI", "EWC_LOL", "WORLDS");
     private static final Set<String> EXPECTED_TEMPLATE_IDS = Set.of(
             "LCK_CUP", "FIRST_STAND", "LCK_REGULAR_R1_R2", "LCK_ROAD_TO_MSI",
             "MSI", "EWC_LOL", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN",
@@ -318,6 +318,7 @@ public final class CareerCalendarTemplate {
     }
 
     private static String projectedExecutionStatus(Competition value) {
+        if ("ASIAN_GAMES_LOL_RELEASE".equals(value.templateId())) return "EXCLUDED_BY_GAME_POLICY";
         return COMPETITION_SERIES_EXECUTION_TEMPLATE_IDS.contains(value.templateId())
                 ? "LINKED_COMPETITION_SERIES_EXECUTION"
                 : value.executionStatus();

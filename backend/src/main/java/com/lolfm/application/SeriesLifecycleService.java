@@ -135,7 +135,7 @@ public final class SeriesLifecycleService {
                 score, List.of(first), binding.initialHistoryPicks(), binding.initialHistoryHash(), null,
                 now, now, repository.parentExpiresAt(now), Map.of(),
                 SeriesOrigin.COMPETITION_BOUND, binding.bindingHash(),
-                binding.seedAnchorTeamCode(), binding.loserChoosesNextSide() ? binding.sideSelectionPolicy() : null);
+                binding.seedAnchorTeamCode(), binding.loserChoosesNextSide() ? binding.sideSelectionPolicy() : null, binding.frozenRosters());
         SeriesRepository.CreateResult result = repository.create(
                 "COMPETITION_BINDING:" + binding.bindingHash(),
                 binding.bindingHash(), aggregate);
@@ -267,7 +267,8 @@ public final class SeriesLifecycleService {
                 && aggregate.rootSeed() == binding.fixtureRootSeed()
                 && Set.copyOf(aggregate.games().getFirst().historyBefore()).equals(binding.initialHistoryPicks())
                 && aggregate.games().getFirst().historyBeforeHash().equals(binding.initialHistoryHash())
-                && Objects.equals(aggregate.competitionSidePolicy(), binding.loserChoosesNextSide() ? binding.sideSelectionPolicy() : null);
+                && Objects.equals(aggregate.competitionSidePolicy(), binding.loserChoosesNextSide() ? binding.sideSelectionPolicy() : null)
+                && Objects.equals(aggregate.frozenCompetitionRosters(), binding.frozenRosters());
         if (!valid) throw new IllegalStateException(
                 "COMPETITION_PLAYER_SERIES_BINDING_MISMATCH");
     }
@@ -324,8 +325,8 @@ public final class SeriesLifecycleService {
                             new ChildMutation(updated, blocked, null, false,
                                     "SERIES_HARD_FEARLESS_POOL_EXHAUSTED"));
                 }
-                Team blue = teams.assemble(game.blueTeamCode());
-                Team red = teams.assemble(game.redTeamCode());
+                Team blue = assemble(aggregate, game.blueTeamCode());
+                Team red = assemble(aggregate, game.redTeamCode());
                 DraftSelectionContext context = selectionContext(game, blue, red);
                 DraftTeamContext blueContext = DraftTeamContext.from(blue);
                 DraftTeamContext redContext = DraftTeamContext.from(red);
@@ -417,8 +418,8 @@ public final class SeriesLifecycleService {
                 if (child.revision() != request.expectedDraftRevision()) {
                     throw conflict(aggregate, "SERIES_STALE_DRAFT_REVISION", false);
                 }
-                Team blue = teams.assemble(game.blueTeamCode());
-                Team red = teams.assemble(game.redTeamCode());
+                Team blue = assemble(aggregate, game.blueTeamCode());
+                Team red = assemble(aggregate, game.redTeamCode());
                 DraftTeamContext blueContext = DraftTeamContext.from(blue);
                 DraftTeamContext redContext = DraftTeamContext.from(red);
                 PlayerControlledDraftEngine.Progress progress;
@@ -985,13 +986,18 @@ public final class SeriesLifecycleService {
                 Set.copyOf(game.historyBefore()));
     }
 
+    private Team assemble(SeriesAggregate aggregate, String code) {
+        return aggregate.frozenCompetitionRosters() == null ? teams.assemble(code)
+                : aggregate.frozenCompetitionRosters().assemble(code);
+    }
+
     private static PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding binding(
             SeriesAggregate aggregate, SeriesGame game
     ) {
         return new PlayerControlledDraftMatchInputBoundary.SeriesPlayerDraftBinding(
                 aggregate.seriesId(), game.gameId(), game.gameNumber(), game.blueTeamCode(),
                 game.redTeamCode(), game.controlledSide(), game.matchSeed(),
-                Set.copyOf(game.historyBefore()), game.historyBeforeHash());
+                Set.copyOf(game.historyBefore()), game.historyBeforeHash(), aggregate.frozenCompetitionRosters());
     }
 
     private static String bindingHash(

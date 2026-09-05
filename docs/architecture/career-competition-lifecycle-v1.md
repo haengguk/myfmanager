@@ -213,3 +213,25 @@ V2 resource는 기존 바이트와 해시를 계속 검증한다. startup은 결
 V11은 판정 표, 최종 snapshot의 rule/policy/champion/runner/result authority, Cup exact metric 열을 추가한다.
 Series checkpoint의 optional competition side policy와 initial exclusions는 기존 빈 history 저장의 의미를 유지한다.
 첫 픽/진영 선택의 주체·결과는 `SeriesView.competitionContext`로 분리하여 제공한다.
+
+## 국제대회 실행 V1 확장
+
+V3 국내 cycle authority 위에 `career-international-rules-2026-v1`을 별도 적용한다.
+`CareerInternationalParticipants`는 해외 지역 순위 입력의 교체 경계이고,
+`CareerInternationalRegistration`은 실제 Cup/Road/최종 PO 결과 및 이전 국제대회 성과를 결합한다.
+참가 등록 후에는 공급자를 재호출하지 않는다. 전체 로스터 값과 선정 입력·버전은 V12
+`career_international_state`에 Career/연도/대회별로 저장한다.
+
+`CareerInternationalTournament`는 verified receipt ledger의 승패를 받아 네 대회의 다음 대진과
+성적을 순수하게 계산한다. 추첨 결과와 불가능 제약의 완화 사유도 저장한다. coordinator가 동일
+트랜잭션에서 기존 fixture 테이블에 다음 경기를 추가한다. 별도 실행 엔진이나 job queue는 없다.
+공통 binding/Series checkpoint의 optional frozen roster를 Auto/Player Draft와 결과 표시까지
+전달한다. 국제 TeamKey는 `지역:팀코드`, 기존 국내 팀 코드는 그대로 유지한다.
+
+대회 간 같은 match ID가 존재하므로 내부 completion/Calendar 조회는 대회 ID도 포함한다.
+원래 국내 instance hash에는 국제 상태를 넣지 않는다. 국제 instance에만 새 상태 해시를 추가해
+V3 국내 binding·완료 이력·순위 봉인을 보존한다. 미실행 국제대회의 활성화는 초기화/startup/advance
+reconcile에서 수행하며 GET은 쓰기 없이 상태를 검증한다. 아시안게임 제외는 해당 instance만의
+명시적 정책이고 KeSPA/rollover를 건너뛰는 일반 스위치가 아니다.
+
+정책·출처·검증 범위는 [국제대회 실행 V1](../development/career-international-fst-msi-ewc-worlds-execution-v1.md)을 따른다.

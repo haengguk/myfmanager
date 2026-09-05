@@ -1,5 +1,5 @@
 import type {
-  RealMatchDraftSelectionTraceDto, RealMatchFinalAssignmentDto, RealMatchProductionPolicyDto,
+  RealMatchOptionPlayerDto, RealMatchDraftSelectionTraceDto, RealMatchFinalAssignmentDto, RealMatchProductionPolicyDto,
   RealMatchResultDto, RealMatchTeamPresentationDto, RealMatchTimelineDto,
 } from '../../api/realMatchApi.types';
 import type { DraftActionType, Position, TeamSide } from '../../realMatch.contract';
@@ -30,7 +30,7 @@ export interface PlayerDraftActionRequestDto {
 }
 
 export interface PlayerDraftSimulateRequestDto { schemaVersion: 'PLAYER_DRAFT_SIMULATE_REQUEST_V1'; }
-export interface PlayerDraftTeamIdentityDto { teamSide: TeamSide; teamCode: string; displayName: string; }
+export interface PlayerDraftTeamIdentityDto { teamSide: TeamSide; teamCode: string; displayName: string; lineup?: readonly RealMatchOptionPlayerDto[]; }
 export interface PlayerDraftRuleIdentityDto { identity: string; hash: string; }
 export interface PlayerDraftPolicyIdentityDto { policyId: string; policyHash: string; }
 export interface PlayerDraftCurrentTurnDto { turn: number; teamSide: TeamSide; actionType: DraftActionType; }

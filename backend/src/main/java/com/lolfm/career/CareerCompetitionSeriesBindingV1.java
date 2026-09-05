@@ -56,6 +56,7 @@ public final class CareerCompetitionSeriesBindingV1 {
     private final String matchupCompositionResourceIdentity;
     private final String productionRuntimeIdentity;
     private final String resourceProvenanceHash;
+    private final CompetitionRosterSnapshot frozenRosters;
     private final String bindingHash;
 
     private CareerCompetitionSeriesBindingV1(
@@ -80,7 +81,7 @@ public final class CareerCompetitionSeriesBindingV1 {
             String matchupCompositionResourceIdentity,
             String productionRuntimeIdentity,
             String resourceProvenanceHash,
-            String expectedBindingHash
+            String expectedBindingHash, CompetitionRosterSnapshot frozenRosters
     ) {
         CareerIdentity.requireCareerId(careerId);
         if (seasonYear < 2026 || instanceRevision < 0 || matchOrder < 1) {
@@ -188,6 +189,13 @@ public final class CareerCompetitionSeriesBindingV1 {
         this.matchupCompositionResourceIdentity = matchupCompositionResourceIdentity;
         this.productionRuntimeIdentity = productionRuntimeIdentity;
         this.resourceProvenanceHash = resourceProvenanceHash;
+        this.frozenRosters = frozenRosters;
+        if (frozenRosters != null && (!frozenRosters.teams().keySet().equals(Set.of(firstTeamCode, secondTeamCode))
+                || !frozenRosters.identity().equals(productionSnapshotIdentity)
+                || !frozenRosters.roster(firstTeamCode).identity().equals(firstTeamSnapshotIdentity)
+                || !frozenRosters.roster(secondTeamCode).identity().equals(secondTeamSnapshotIdentity))) {
+            throw new IllegalArgumentException("COMPETITION_FROZEN_ROSTER_BINDING_MISMATCH");
+        }
         String actual = CareerCompetitionRules.sha256(payloadText().getBytes(
                 StandardCharsets.UTF_8));
         if (expectedBindingHash != null && !actual.equals(expectedBindingHash)) {
@@ -241,7 +249,43 @@ public final class CareerCompetitionSeriesBindingV1 {
                 productionSnapshot.championDraftResourceIdentity(),
                 productionSnapshot.matchupCompositionResourceIdentity(),
                 productionSnapshot.productionRuntimeIdentity(), resourceProvenanceHash,
-                null);
+                null, null);
+    }
+
+    static CareerCompetitionSeriesBindingV1 createInternational(
+            CareerCompetitionRelationalStore.CycleView cycle,
+            CareerCompetitionRelationalStore.InstanceRow instance,
+            CareerCompetitionRelationalStore.FixtureRow fixture, String managedTeamCode,
+            String ruleResourceHash, LeagueSeasonFrozenSnapshot productionSnapshot,
+            String resourceProvenanceHash, CompetitionRosterSnapshot rosters) {
+        if (!"READY".equals(fixture.lifecycleStatus())) throw new IllegalStateException("COMPETITION_FIXTURE_NOT_READY");
+        Set<com.lolfm.champion.ChampionId> initialPicks = Set.of();
+        String blue = firstGameBlue(fixture);
+        String red = blue.equals(fixture.firstTeamCode()) ? fixture.secondTeamCode() : fixture.firstTeamCode();
+        return new CareerCompetitionSeriesBindingV1(cycle.careerId(), cycle.seasonYear(),
+                fixture.competitionId(), ruleResourceHash, CareerInternationalRules.VERSION,
+                CareerInternationalRules.POLICY, cycle.hashAlgorithm(),
+                instance.stateHash(), instance.revision(), fixture.fixtureId(),
+                fixture.matchId(), fixture.matchOrder(), fixture.stageId(),
+                new CareerCompetitionRules.ParticipantSelector(
+                        fixture.firstSelectorType(), fixture.firstSelectorValue()),
+                new CareerCompetitionRules.ParticipantSelector(
+                        fixture.secondSelectorType(), fixture.secondSelectorValue()),
+                fixture.firstTeamCode(), fixture.secondTeamCode(), managedTeamCode,
+                SeriesFormat.valueOf(fixture.seriesFormat()), fixture.hardFearless(),
+                fixture.executionMode(), fixture.sideSelectionPolicy(), blue, red,
+                fixture.rootSeed(), CareerCompetitionAggregate.SEED_ALGORITHM,
+                fixture.seriesId(), SeriesDraftHistory.identityHash(0, initialPicks), initialPicks,
+                cycle.initializationPolicyId(), cycle.initializationInputHash(),
+                instance.materializationPolicyId(), instance.materializationReceiptHash(),
+                rosters.identity(),
+                rosters.roster(fixture.firstTeamCode()).identity(),
+                rosters.roster(fixture.secondTeamCode()).identity(),
+                rosters.identity(),
+                productionSnapshot.championDraftResourceIdentity(),
+                productionSnapshot.matchupCompositionResourceIdentity(),
+                productionSnapshot.productionRuntimeIdentity(), resourceProvenanceHash,
+                null, rosters);
     }
 
     public static CareerCompetitionSeriesBindingV1 restoreCanonical(String canonical) {
@@ -300,7 +344,8 @@ public final class CareerCompetitionSeriesBindingV1 {
                         required(fields, "matchupCompositionResourceIdentity"),
                         required(fields, "productionRuntimeIdentity"),
                         required(fields, "resourceProvenanceHash"),
-                        required(fields, "bindingHash"));
+                        required(fields, "bindingHash"), fields.containsKey("frozenRosters")
+                                ? CompetitionRosterSnapshot.decode(fields.get("frozenRosters")) : null);
         if (!canonical.equals(restored.canonicalText())) {
             throw new IllegalArgumentException("Competition binding canonical mismatch");
         }
@@ -381,10 +426,12 @@ public final class CareerCompetitionSeriesBindingV1 {
                 + "matchupCompositionResourceIdentity="
                 + matchupCompositionResourceIdentity + '\n'
                 + "productionRuntimeIdentity=" + productionRuntimeIdentity + '\n'
-                + "resourceProvenanceHash=" + resourceProvenanceHash + '\n';
+                + "resourceProvenanceHash=" + resourceProvenanceHash + '\n'
+                + (frozenRosters == null ? "" : "frozenRosters=" + frozenRosters.encoded() + '\n');
     }
 
     public String canonicalText() { return payloadText() + "bindingHash=" + bindingHash + '\n'; }
+    public CompetitionRosterSnapshot frozenRosters() { return frozenRosters; }
     public String bindingHash() { return bindingHash; }
     public String careerId() { return careerId; }
     public int seasonYear() { return seasonYear; }
@@ -409,7 +456,9 @@ public final class CareerCompetitionSeriesBindingV1 {
     public String sideSelectionPolicy() { return sideSelectionPolicy; }
     public boolean loserChoosesNextSide() { return loserRoFs(sideSelectionPolicy); }
     public static boolean loserRoFs(String policy) {
-        return "LCK_ROFS_FIRST_PICK_OTHER_TEAM_RED_LOSER_ROFS_V1".equals(policy)
+        return "INTERNATIONAL_ROFS_FIRST_PICK_OTHER_RED_LOSER_ROFS_V1".equals(policy)
+                || "INTERNATIONAL_RODS_BLUE_FIRST_PICK_LOSER_ROFS_V1".equals(policy)
+                || "LCK_ROFS_FIRST_PICK_OTHER_TEAM_RED_LOSER_ROFS_V1".equals(policy)
                 || "LCK_FINAL_UPPER_WINNER_BLUE_FIRST_PICK_LOSER_ROFS_V1".equals(policy);
     }
     public String ruleResourceHash() { return ruleResourceHash; }
@@ -430,6 +479,14 @@ public final class CareerCompetitionSeriesBindingV1 {
             String currentResourceProvenanceHash
     ) {
         Objects.requireNonNull(snapshot, "snapshot");
+        if (frozenRosters != null) {
+            if (!championDraftResourceIdentity.equals(snapshot.championDraftResourceIdentity())
+                    || !matchupCompositionResourceIdentity.equals(snapshot.matchupCompositionResourceIdentity())
+                    || !productionRuntimeIdentity.equals(snapshot.productionRuntimeIdentity())
+                    || !resourceProvenanceHash.equals(currentResourceProvenanceHash))
+                throw new IllegalStateException("COMPETITION_FROZEN_ENGINE_IDENTITY_MISMATCH");
+            return;
+        }
         boolean valid = productionSnapshotIdentity.equals(snapshot.snapshotIdentity())
                 && firstTeamSnapshotIdentity.equals(
                 snapshot.teamSnapshotIdentity(firstTeamCode))
@@ -447,7 +504,7 @@ public final class CareerCompetitionSeriesBindingV1 {
     }
 
     private static void team(String value) {
-        if (value == null || !value.matches("[A-Z0-9]{2,8}")) {
+        if (value == null || !value.matches("(?:[A-Z0-9]{2,8}|(?:LCK|LPL|LEC|LCS|LCP|CBLOL):[A-Z0-9]{1,8})")) {
             throw new IllegalArgumentException("teamCode");
         }
     }

@@ -43,7 +43,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SERIES_CHILD_ID = /^draft_[0-9a-f]{64}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const CLIENT_ACTION_ID = /^[A-Za-z0-9._:-]{1,100}$/;
-const TEAM_CODE = /^[A-Z0-9]{2,5}$/;
+const TEAM_CODE = /^(?:[A-Z0-9]{2,5}|(?:LCK|LPL|LEC|LCS|LCP|CBLOL):[A-Z0-9]{1,8})$/;
 const TURN_ORDER: readonly { side: TeamSide; action: DraftActionType }[] = [
   { side: 'BLUE', action: 'BAN' }, { side: 'RED', action: 'BAN' },
   { side: 'BLUE', action: 'BAN' }, { side: 'RED', action: 'BAN' },
@@ -244,6 +244,7 @@ export function validatePlayerDraftSessionPayload(value: unknown, expectation: P
   const teams = array(root.teams, '$.teams');
   if (teams.length !== 2) fail('$.teams', 'BLUE/RED 두 팀이 필요합니다.');
   const codes = new Map<TeamSide, string>();
+  const rosterIds = new Set<string>();
   teams.forEach((value, index) => {
     const path = `$.teams[${index}]`; const team = record(value, path); const teamSide = side(team.teamSide, `${path}.teamSide`);
     if (codes.has(teamSide)) fail(`${path}.teamSide`, '중복 team side입니다.');
@@ -251,6 +252,18 @@ export function validatePlayerDraftSessionPayload(value: unknown, expectation: P
     if (!TEAM_CODE.test(code)) fail(`${path}.teamCode`, 'stable team code 형식이 아닙니다.');
     if (code !== (teamSide === 'BLUE' ? expectation.blueTeamCode : expectation.redTeamCode)) fail(`${path}.teamCode`, '요청 팀과 일치하지 않습니다.');
     text(team.displayName, `${path}.displayName`); codes.set(teamSide, code);
+    if (code.includes(':') || team.lineup !== undefined) {
+      const lineup = array(team.lineup, `${path}.lineup`);
+      const roles = lineup.map((value, index) => {
+        const playerPath = `${path}.lineup[${index}]`; const player = record(value, playerPath);
+        const id = text(player.playerId, `${playerPath}.playerId`);
+        if (rosterIds.has(id)) fail(`${playerPath}.playerId`, '중복 선수 identity입니다.');
+        rosterIds.add(id); text(player.nickname, `${playerPath}.nickname`);
+        return oneOf(player.position, POSITIONS, `${playerPath}.position`);
+      });
+      exactSet(roles, POSITIONS, `${path}.lineup.position`);
+      if (lineup.length !== 5) fail(`${path}.lineup`, '포지션별 주전 5명이 필요합니다.');
+    }
   });
   exactSet([...codes.keys()], SIDES, '$.teams.teamSide');
   const controlledSide = side(root.controlledSide, '$.controlledSide');

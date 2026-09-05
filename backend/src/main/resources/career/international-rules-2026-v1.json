@@ -1,0 +1,14 @@
+{
+  "version": "career-international-rules-2026-v1",
+  "policy": "CAREER_INTERNATIONAL_GAME_POLICY_V1",
+  "roster": "Five registered starters; frozen IDs, ratings and champion proficiencies. No substitutes or official registration claim.",
+  "overseasSelection": "Sum all authored gameplay ratings of five starters, descending; equal sums use TeamKey lexical order. This is a temporary selection input, not a simulated league result.",
+  "regionalPerformance": "Compare sorted representative final-place vectors lexicographically; absent representatives rank last; exact ties use scoped deterministic draw.",
+  "firstCycleFstPools": "Reference pools LCK1/LPL1; LEC1/LCS1/LCP1/CBLOL1; LCK2/LPL2. Subsequent cycles require prior international results.",
+  "msi": "Six regional first seeds and five second seeds excluding CBLOL. Highest-ranked eligible two-seed region at in-game FST receives the extra direct slot. Four remaining second seeds play six-match double elimination. Eight main teams play fourteen-match double elimination without reset; lower round two crosses upper round two losers.",
+  "ewc": "Official pool one retains LCP2. Regional qualifier slots use best remaining eligible registered teams. LCK uses actual Road/R1-R2 performance. First cycle missing-title reference uses best nonqualified LCK Road team under official missing-defender regional replacement clause; it is not a claimed previous champion. No Worlds bonus.",
+  "worlds": "Base regional slots 3/3/3/3/3/2 plus MSI champion region and best different MSI region. Champion qualification requires home playoffs; overseas condition temporarily uses regional top six. If ineligible, retain the bonus regional slot and fill by regional rank. Bottom four MSI regions send their last seed to Play-in. Regional pool remapping consumes game MSI performance.",
+  "draw": "Scoped SHA256 deterministic candidate ordering, exhaustive finite backtracking. Swiss first-round regional restriction and later no-rematch restriction are relaxed only after exhaustive impossibility, recording the reason; same-record grouping is never relaxed.",
+  "sideSelection": "RoFS owner selects first pick; opponent selects red. RoDS owner selects blue and first pick. Following games use previous loser RoFS. Every series resets Hard Fearless, including BO1.",
+  "schedule": "Official tournament windows; V1 game policy allocates matches to dates within those windows. Asian Games excluded by game policy, no receipts. KeSPA and year rollover remain unsupported."
+}

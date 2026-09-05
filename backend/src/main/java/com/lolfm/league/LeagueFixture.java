@@ -25,7 +25,7 @@ public record LeagueFixture(
                 "(?:fixture|competition_fixture)_[0-9a-f]{64}")) {
             throw new IllegalArgumentException("Invalid fixture ID");
         }
-        if (pairId == null || !pairId.matches("pair_[A-Z0-9]{2,8}_[A-Z0-9]{2,8}")) {
+        if (pairId == null || !pairId.equals("pair_" + firstTeamCode + "_" + secondTeamCode)) {
             throw new IllegalArgumentException("Invalid pair ID");
         }
         if (roundNumber < 1 || legNumber < 1 || legNumber > 2) {

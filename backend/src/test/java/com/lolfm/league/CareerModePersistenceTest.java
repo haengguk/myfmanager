@@ -67,7 +67,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(11);
+                    .migrationsExecuted).isEqualTo(12);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -521,7 +521,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(7);
+                    .migrationsExecuted).isEqualTo(8);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);
@@ -1095,6 +1095,90 @@ class CareerModePersistenceTest {
             assertThat(restarted.competitionStore().load(dormant.careerId(), 2027).ruleVersion()).isEqualTo(CareerCompetitionRules.VERSION);
             assertThat(restarted.competitionStore().load(used.careerId(), 2027)).isEqualTo(before);
             assertThat(restarted.competitions().view(used, 2027, LocalDate.of(2027, 1, 14), "LCK_CUP", null).allowedCommands()).isEmpty();
+        }
+    }
+
+    @Test
+    void internationalUpgradePreservesUsedV3CupHistoryAndFrozenRegistrationAcrossRestart() throws Exception {
+        try (HikariDataSource ds = dataSource("jdbc:h2:mem:international-upgrade-" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1")) {
+            Flyway.configure().dataSource(ds).load().migrate();
+            Harness h = harness(ds);
+            var career = h.careers().create(request(UUID.randomUUID().toString())).career().career();
+            int matches = 0;
+            while (true) {
+                var pending = h.competitionStore().load(career.careerId(), 2027).fixtures().stream()
+                        .filter(f -> f.competitionId().equals("LCK_CUP") && !f.lifecycleStatus().equals("COMPLETED")).findFirst();
+                if (pending.isEmpty()) break;
+                var f = pending.orElseThrow(); assertThat(f.lifecycleStatus()).isEqualTo("READY");
+                var binding = h.competitionStore().bindFixture(career.careerId(), 2027, "LCK_CUP", f.matchId(), LeagueDomainTestFixtures.snapshot(), "c".repeat(64));
+                CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(h.competitionStore(), binding, f.firstTeamCode());
+                assertThat(++matches).isLessThan(80);
+            }
+            var before = h.competitionStore().load(career.careerId(), 2027);
+            var domesticBindings = rows(h.jdbc(), "career_competition_series_binding", "binding_hash");
+            var domesticReceipts = rows(h.jdbc(), "career_competition_completion_receipt", "receipt_hash");
+            var ratings = com.lolfm.player.PlayerRatingCatalog.loadDefault();
+            var champions = new com.lolfm.champion.ChampionCatalog(new ObjectMapper());
+            var provider = new com.lolfm.career.RatedCareerInternationalParticipants(new com.lolfm.player.GlobalTeamRosterCatalog(new ObjectMapper(), ratings,
+                    com.lolfm.player.ChampionProficiencyCatalog.loadDefault(ratings, champions), champions));
+            var upgraded = new CareerCompetitionRelationalStore(h.jdbc(), new DataSourceTransactionManager(ds), Clock.systemUTC(), new CareerCompetitionRules(new ObjectMapper()), provider);
+            upgraded.reconcileInternational(career.careerId(), 2027);
+            var after = upgraded.load(career.careerId(), 2027);
+            assertThat(after.competitions().stream().filter(c -> c.competitionId().equals("LCK_CUP")).findFirst()).isEqualTo(before.competitions().stream().filter(c -> c.competitionId().equals("LCK_CUP")).findFirst());
+            assertThat(rows(h.jdbc(), "career_competition_series_binding", "binding_hash")).isEqualTo(domesticBindings);
+            assertThat(rows(h.jdbc(), "career_competition_completion_receipt", "receipt_hash")).isEqualTo(domesticReceipts);
+            var registered = upgraded.internationalViews(career.careerId(), 2027).getFirst();
+            assertThat(registered.entries()).hasSize(8);
+            var lckOutputs = before.outputs().stream().filter(o -> o.outputId().startsWith("FIRST_STAND_LCK_SEED_")).map(o -> "LCK:" + o.teamCode()).toList();
+            assertThat(registered.entries().stream().filter(e -> e.region().equals("LCK")).map(com.lolfm.career.CareerInternationalState.Entry::team)).containsExactlyInAnyOrderElementsOf(lckOutputs);
+            var first = after.fixtures().stream().filter(f -> f.competitionId().equals("FIRST_STAND")).findFirst().orElseThrow();
+            var bound = upgraded.bindFixture(career.careerId(), 2027, "FIRST_STAND", first.matchId(), LeagueDomainTestFixtures.snapshot(), "c".repeat(64));
+            CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(upgraded, bound, first.firstTeamCode());
+            var frozen = upgraded.internationalViews(career.careerId(), 2027);
+            var noReselection = mock(com.lolfm.career.CareerInternationalParticipants.class);
+            var restarted = new CareerCompetitionRelationalStore(h.jdbc(), new DataSourceTransactionManager(ds), Clock.systemUTC(), new CareerCompetitionRules(new ObjectMapper()), noReselection);
+            restarted.reconcileInternational(career.careerId(), 2027);
+            verifyNoInteractions(noReselection);
+            assertThat(restarted.internationalViews(career.careerId(), 2027)).isEqualTo(frozen);
+            assertThat(CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(restarted, bound, first.firstTeamCode()).replayed()).isTrue();
+            assertThat(restarted.loadBinding(career.careerId(), 2027, first.matchId()).canonicalText()).isEqualTo(bound.canonicalText());
+            assertThat(restarted.load(career.careerId(), 2027).competitions()).anyMatch(c -> c.competitionId().equals("ASIAN_GAMES_LOL_RELEASE") && c.lifecycleStatus().equals("EXCLUDED_BY_GAME_POLICY"));
+            // Exercise DB qualification wiring with compact test receipts; these are not real-engine season results.
+            completeInternationalPhase(upgraded, career.careerId(), "FIRST_STAND");
+            prepareRegularLedger(h, career);
+            upgraded.reconcileDomesticR1R2(career.careerId(), 2027);
+            for (String competition : List.of("LCK_ROAD_TO_MSI", "MSI", "EWC_LOL", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN", "LCK_PLAYOFFS"))
+                completeInternationalPhase(upgraded, career.careerId(), competition);
+            var sealedDomestic = upgraded.finalRanking(career.careerId(), 2027);
+            assertThat(sealedDomestic).isNotNull();
+            var worlds = upgraded.internationalViews(career.careerId(), 2027).stream().filter(v -> v.competitionId().equals("WORLDS")).findFirst().orElseThrow();
+            assertThat(worlds.entries()).hasSize(19);
+            assertThat(worlds.entries().stream().filter(e -> e.region().equals("LCK")).map(com.lolfm.career.CareerInternationalState.Entry::team))
+                    .contains("LCK:" + sealedDomestic.championTeamCode());
+            var application = new CareerCompetitionApplicationService(upgraded, new CareerCompetitionRules(new ObjectMapper()));
+            assertThat(application.gate(career, 2027, LocalDate.of(2027, 9, 20), "ASIAN_GAMES_LOL_RELEASE", null).stopReason()).isNull();
+            completeInternationalPhase(upgraded, career.careerId(), "WORLDS");
+            assertThat(upgraded.internationalViews(career.careerId(), 2027)).hasSize(4).allMatch(v -> v.bracket().complete());
+            assertThat(upgraded.finalRanking(career.careerId(), 2027)).isEqualTo(sealedDomestic);
+            assertThat(application.gate(career, 2027, LocalDate.of(2027, 11, 15), "WORLDS", null).stopReason()).isNull();
+            assertThat(application.gate(career, 2027, LocalDate.of(2027, 12, 1), "KESPA_CUP", null).stopReason()).isNotNull();
+            var legacyFixtures = upgraded.load(career.careerId(), 2027).fixtures();
+            var savedBindings = rows(h.jdbc(), "career_competition_series_binding", "binding_hash");
+            var savedReceipts = rows(h.jdbc(), "career_competition_completion_receipt", "receipt_hash");
+            CareerCompetitionTestSupport.retainLegacyInternationalHistory(upgraded, career.careerId(), 2027, "EWC_LOL");
+            upgraded.reconcileInternational(career.careerId(), 2027);
+            var isolated = upgraded.load(career.careerId(), 2027);
+            assertThat(isolated.competitions()).anyMatch(c -> c.competitionId().equals("EWC_LOL") && "INTERNATIONAL_EXTENSION_HISTORY_CONFLICT".equals(c.blockingReason()));
+            assertThat(isolated.competitions()).anyMatch(c -> c.competitionId().equals("WORLDS") && c.lifecycleStatus().equals("COMPLETED"));
+            assertThat(isolated.fixtures()).isEqualTo(legacyFixtures);
+            assertThat(rows(h.jdbc(), "career_competition_series_binding", "binding_hash")).isEqualTo(savedBindings);
+            assertThat(rows(h.jdbc(), "career_competition_completion_receipt", "receipt_hash")).isEqualTo(savedReceipts);
+            assertThat(upgraded.loadBinding(career.careerId(), 2027, "FIRST_STAND", bound.matchId()).canonicalText()).isEqualTo(bound.canonicalText());
+            var legacyEwc = legacyFixtures.stream().filter(f -> f.competitionId().equals("EWC_LOL")).findFirst().orElseThrow();
+            assertThatThrownBy(() -> upgraded.bindFixture(career.careerId(), 2027, "EWC_LOL", legacyEwc.matchId(), LeagueDomainTestFixtures.snapshot(), "c".repeat(64)))
+                    .hasMessage("INTERNATIONAL_REGISTRATION_REQUIRED");
+            h.jdbc().update("UPDATE career_international_state SET state_json = '{}' WHERE career_id = ?", career.careerId());
+            assertThatThrownBy(() -> restarted.load(career.careerId(), 2027)).hasMessage("INTERNATIONAL_STATE_INTEGRITY");
         }
     }
 
@@ -1916,6 +2000,20 @@ class CareerModePersistenceTest {
                     .extracting(error -> ((CareerException) error).type())
                     .isEqualTo(CareerException.Type
                             .CALENDAR_LEGACY_PENDING_RECONCILIATION_REQUIRED);
+        }
+    }
+
+    private static void completeInternationalPhase(CareerCompetitionRelationalStore store, String career, String competition) {
+        int games = 0;
+        while (true) {
+            var cycle = store.load(career, 2027);
+            if (cycle.competitions().stream().anyMatch(c -> c.competitionId().equals(competition) && c.lifecycleStatus().equals("COMPLETED"))) return;
+            var fixture = cycle.fixtures().stream().filter(f -> f.competitionId().equals(competition) && !f.lifecycleStatus().equals("COMPLETED")).findFirst().orElseThrow();
+            assertThat(fixture.lifecycleStatus()).as(competition + ":" + fixture.matchId()).isEqualTo("READY");
+            var binding = store.bindFixture(career, 2027, competition, fixture.matchId(), LeagueDomainTestFixtures.snapshot(), "c".repeat(64));
+            String winner = fixture.firstTeamCode().compareTo(fixture.secondTeamCode()) < 0 ? fixture.firstTeamCode() : fixture.secondTeamCode();
+            CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(store, binding, winner);
+            assertThat(++games).isLessThan(85);
         }
     }
 

@@ -29,6 +29,12 @@ function expectation(state: PlayerDraftScreenState): PlayerDraftSessionExpectati
 
 function teamForSide(state: PlayerDraftScreenState, side: TeamSide) {
   const id = side === 'BLUE' ? state.selection.blueTeamId : state.selection.redTeamId;
+  const frozen = state.session.teams.find((candidate) => candidate.teamSide === side);
+  if (frozen?.lineup) return {
+    teamId: frozen.teamCode, code: frozen.teamCode, name: frozen.displayName,
+    sourceLabel: '대회 등록 로스터',
+    roster: frozen.lineup.map((player) => ({ playerId: player.playerId, playerName: player.nickname, position: player.position })),
+  };
   const team = state.options.teams.find((candidate) => candidate.code === id);
   if (!team) throw new Error(`${side} 팀을 options에서 찾을 수 없습니다.`);
   return team;

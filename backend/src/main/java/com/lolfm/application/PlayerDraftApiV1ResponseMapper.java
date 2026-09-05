@@ -48,9 +48,20 @@ public final class PlayerDraftApiV1ResponseMapper {
         this.commonMatches = Objects.requireNonNull(commonMatches, "commonMatches");
     }
 
+    private List<RealMatchApiV1Dtos.OptionPlayer> frozenLineup(Team team) {
+        return team.getPlayers().stream().sorted(java.util.Comparator.comparing(com.lolfm.domain.Player::getPosition))
+                .map(player -> new RealMatchApiV1Dtos.OptionPlayer(player.requirePlayerId().value(),
+                        player.getName(), player.getPosition())).toList();
+    }
+
     public PlayerDraftApiV1Dtos.SessionResponse session(PlayerDraftSessionView view) {
-        Team blue = teams.assemble(view.blueTeamCode());
-        Team red = teams.assemble(view.redTeamCode());
+        return session(view, null);
+    }
+
+    PlayerDraftApiV1Dtos.SessionResponse session(PlayerDraftSessionView view,
+            com.lolfm.career.CompetitionRosterSnapshot frozen) {
+        Team blue = frozen == null ? teams.assemble(view.blueTeamCode()) : frozen.assemble(view.blueTeamCode());
+        Team red = frozen == null ? teams.assemble(view.redTeamCode()) : frozen.assemble(view.redTeamCode());
         DraftTeamContext blueContext = DraftTeamContext.from(blue);
         DraftTeamContext redContext = DraftTeamContext.from(red);
         PlayerControlledDraftEngine.SelectionView selection = null;
@@ -68,9 +79,9 @@ public final class PlayerDraftApiV1ResponseMapper {
                 PlayerDraftApiV1Dtos.SESSION_SCHEMA, view.sessionId(), view.revision(),
                 view.status(), List.of(
                 new PlayerDraftApiV1Dtos.TeamIdentity(
-                        TeamSide.BLUE, view.blueTeamCode(), blue.getName()),
+                        TeamSide.BLUE, view.blueTeamCode(), blue.getName(), frozen == null ? null : frozenLineup(blue)),
                 new PlayerDraftApiV1Dtos.TeamIdentity(
-                        TeamSide.RED, view.redTeamCode(), red.getName())),
+                        TeamSide.RED, view.redTeamCode(), red.getName(), frozen == null ? null : frozenLineup(red))),
                 view.controlledSide(), Long.toString(view.matchSeed()),
                 view.seriesGameNumber(),
                 new PlayerDraftApiV1Dtos.RuleIdentity(
@@ -112,8 +123,11 @@ public final class PlayerDraftApiV1ResponseMapper {
 
     /** Shared mixed-authority match projection for the distinct Series envelope. */
     public PlayerDraftApiV1Dtos.MatchPayload matchPayload(MatchEngineV1Output output) {
+        return matchPayload(output, null);
+    }
+    PlayerDraftApiV1Dtos.MatchPayload matchPayload(MatchEngineV1Output output, com.lolfm.career.CompetitionRosterSnapshot frozen) {
         RealMatchApiV1ResponseMapper.SharedMatchComponents common =
-                commonMatches.sharedMatchComponents(output);
+                commonMatches.sharedMatchComponents(output, frozen);
         SimulationExecutionProvenance execution = output.executionProvenance();
         var control = Objects.requireNonNull(
                 output.finalDraft().controlEvidence(), "controlEvidence");

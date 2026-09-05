@@ -83,12 +83,15 @@ public final class RealMatchApiV1ResponseMapper {
 
     /** Shared immutable match projection for additive APIs with a different Draft contract. */
     SharedMatchComponents sharedMatchComponents(MatchEngineV1Output output) {
+        return sharedMatchComponents(output, null);
+    }
+    SharedMatchComponents sharedMatchComponents(MatchEngineV1Output output, com.lolfm.career.CompetitionRosterSnapshot frozen) {
         Objects.requireNonNull(output, "output");
         SimulationExecutionProvenance execution = Objects.requireNonNull(
                 output.executionProvenance(), "executionProvenance");
         return new SharedMatchComponents(
-                List.of(teamPresentation(output, TeamSide.BLUE, execution.blueTeamCode()),
-                        teamPresentation(output, TeamSide.RED, execution.redTeamCode())),
+                List.of(teamPresentation(output, TeamSide.BLUE, execution.blueTeamCode(), frozen),
+                        teamPresentation(output, TeamSide.RED, execution.redTeamCode(), frozen)),
                 result(output.resultSummary()), timeline(output.timeline()), productionPolicy());
     }
 
@@ -130,7 +133,11 @@ public final class RealMatchApiV1ResponseMapper {
     private RealMatchApiV1Dtos.TeamPresentation teamPresentation(
             MatchEngineV1Output output, TeamSide side, String teamCode
     ) {
-        Team source = teams.assemble(teamCode);
+        return teamPresentation(output, side, teamCode, null);
+    }
+    private RealMatchApiV1Dtos.TeamPresentation teamPresentation(MatchEngineV1Output output, TeamSide side,
+            String teamCode, com.lolfm.career.CompetitionRosterSnapshot frozen) {
+        Team source = frozen == null ? teams.assemble(teamCode) : frozen.assemble(teamCode);
         MatchEngineV1Output.TeamResultV1 result = output.resultSummary().teams().stream()
                 .filter(value -> value.teamSide() == side).findFirst().orElseThrow();
         if (!result.teamIdentity().equals(teamCode)) {

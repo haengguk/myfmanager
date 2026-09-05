@@ -244,3 +244,16 @@ accepts('domestic BO1 tiebreak action carries resumable structured decision', ()
 accepts('ten sealed domestic places remain separate from pending Worlds evidence', () => validateCareerCalendar(sealedDomesticCalendar()));
 rejects('duplicate final team cannot be presented as sealed', () => { const value = sealedDomesticCalendar(); value.competition.finalRanking.ranking[9].teamCode = 'GEN'; validateCareerCalendar(value); });
 rejects('new rules require domestic decision projection', () => { const value = domesticCalendar(); delete value.competition.domesticRankingDecisions; delete value.competition.finalRanking; delete value.competition.domesticRuleCompatibility; validateCareerCalendar(value); });
+
+function internationalCalendar() {
+  const value = domesticCalendar();
+  const codes = ['LCK:GEN', 'LCK:T1', 'LPL:BLG', 'LPL:JDG', 'LEC:G2', 'LCS:FLY', 'LCP:PSG', 'CBLOL:RED'];
+  const entries = codes.map((team, i) => ({ team, region: team.split(':')[0], regionalSeed: i === 1 || i === 3 ? 2 : 1, pool: i === 1 || i === 3 ? 3 : i < 4 ? 1 : 2, phase: 'MAIN', qualification: i < 2 ? 'ACTUAL_CUP_RESULT' : 'TEMPORARY_OVERSEAS_RANK' }));
+  value.competition.internationalCompetitions = [{ competitionId: 'FIRST_STAND', ruleVersion: 'career-international-rules-2026-v1', ruleResourceHash: hash, policyVersion: 'CAREER_INTERNATIONAL_GAME_POLICY_V1', selectionPolicy: 'TEMPORARY_OVERSEAS_FIVE_STARTER_RATING_SUM_LEXICAL_TEAM_V1', entries, rosterSnapshotIdentity: hash,
+    bracket: { bouts: [{ id: 'FIRST_STAND_G0_O1', stage: 'GROUP', date: '2027-03-16', order: 1, format: 'BO5', first: 'LCK:GEN', second: 'LPL:JDG', selectionOwner: 'LCK:GEN', sidePolicy: 'INTERNATIONAL_ROFS_FIRST_PICK_OTHER_RED_LOSER_ROFS_V1', group: 'G0' }], placements: {}, draws: [{ scope: 'GROUPS', teams: codes, relaxation: null }], regionalPerformance: [], champion: null, complete: false }, results: {} }];
+  Object.assign(value.competition.nextFixture, { competitionId: 'FIRST_STAND', firstTeamCode: 'LCK:GEN', secondTeamCode: 'LPL:JDG', firstSelectorType: 'REGISTERED_TEAM', firstSelectorValue: 'LCK:GEN', secondSelectorType: 'REGISTERED_TEAM', secondSelectorValue: 'LPL:JDG' });
+  return value;
+}
+accepts('international registration and qualified fixture codes retain the Career contract', () => validateCareerCalendar(internationalCalendar()));
+rejects('international duplicate regional seed fails closed', () => { const value = internationalCalendar(); value.competition.internationalCompetitions[0].entries[1].regionalSeed = 1; validateCareerCalendar(value); });
+rejects('international result must reference the actual bracket participants', () => { const value = internationalCalendar(); value.competition.internationalCompetitions[0].results.FIRST_STAND_G0_O1 = { winner: 'LEC:G2', loser: 'LCK:GEN' }; validateCareerCalendar(value); });
