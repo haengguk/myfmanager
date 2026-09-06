@@ -1,5 +1,6 @@
 import {
   CAREER_SCHEMAS,
+  type CareerSeasonsDto, type CareerSeasonDetailDto, type CareerTransitionDto, type CareerTransitionRequestDto,
   type CareerAllowedCommand,
   type CareerAdvanceMode,
   type CareerAdvanceResponseDto,
@@ -201,17 +202,19 @@ function internationalCompetition(value: unknown, path: string): void {
   const item = object(value, path);
   exactKeys(item, ['competitionId', 'ruleVersion', 'ruleResourceHash', 'policyVersion', 'selectionPolicy', 'entries', 'rosterSnapshotIdentity', 'bracket', 'results'], path);
   oneOf(item.competitionId, ['FIRST_STAND', 'MSI', 'EWC_LOL', 'WORLDS'] as const, path);
-  if (item.ruleVersion !== 'career-international-rules-2026-v1' || item.policyVersion !== 'CAREER_INTERNATIONAL_GAME_POLICY_V1') throw new CareerContractError(path, 'international authority required');
+  if (!(item.ruleVersion === 'career-international-rules-2026-v1' && item.policyVersion === 'CAREER_INTERNATIONAL_GAME_POLICY_V1' || item.ruleVersion === 'career-international-rules-v2' && item.policyVersion === 'CAREER_INTERNATIONAL_GAME_POLICY_V2')) throw new CareerContractError(path, 'international authority required');
   identity(item.ruleResourceHash, SHA256, path); identity(item.rosterSnapshotIdentity, SHA256, path); text(item.selectionPolicy, path);
   if (!Array.isArray(item.entries)) throw new CareerContractError(path);
   const seeds = new Set<string>();
   const teams = item.entries.map((entry, i) => {
     const p = `${path}.entries[${i}]`; const row = object(entry, p);
-    exactKeys(row, ['team', 'region', 'regionalSeed', 'pool', 'phase', 'qualification'], p);
+    exactKeys(row, ['team', 'region', 'regionalSeed', 'pool', 'phase', 'qualification', ...('playInSeed' in row ? ['playInSeed'] : [])], p);
     const team = text(row.team, p), region = text(row.region, p);
     if (!COMPETITION_TEAM.test(team) || !team.startsWith(`${region}:`)) throw new CareerContractError(p, 'qualified regional team required');
     const seed = integer(row.regionalSeed, p), pool = integer(row.pool, p);
     if (seed < 1 || pool < 1 || pool > 4 || seeds.has(`${region}:${seed}`)) throw new CareerContractError(p);
+    if (row.playInSeed !== undefined) integer(row.playInSeed, `${p}.playInSeed`, 1);
+    if (item.ruleVersion === 'career-international-rules-v2' && item.competitionId === 'MSI' && row.phase === 'PLAY_IN' && row.playInSeed === undefined) throw new CareerContractError(p, 'Play-in tournament seed required');
     seeds.add(`${region}:${seed}`); oneOf(row.phase, ['MAIN', 'PLAY_IN'] as const, p); text(row.qualification, p); return team;
   });
   const expected = item.competitionId === 'FIRST_STAND' ? 8 : item.competitionId === 'MSI' ? 11 : item.competitionId === 'EWC_LOL' ? 16 : 19;
@@ -324,4 +327,54 @@ export function validateCareerError(value: unknown): CareerErrorDto {
   if (root.schemaVersion !== CAREER_SCHEMAS.error) throw new CareerContractError('$.schemaVersion');
   text(root.code, '$.code'); if (root.field !== null && typeof root.field !== 'string') throw new CareerContractError('$.field'); text(root.message, '$.message');
   return root as unknown as CareerErrorDto;
+}
+
+function seasonSummary(value: unknown, path: string): void {
+  const item = object(value, path); exactKeys(item, ['year', 'ordinal', 'leagueId', 'seasonId', 'status', 'rosterHash'], path);
+  integer(item.year, path, 2026); integer(item.ordinal, path, 1); identity(item.leagueId, LEAGUE_ID, path); identity(item.seasonId, SEASON_ID, path);
+  oneOf(item.status, ['ACTIVE', 'CLOSED'] as const, path); if (item.rosterHash !== null) identity(item.rosterHash, SHA256, path);
+}
+export function validateCareerSeasons(value: unknown): CareerSeasonsDto {
+  const root = object(value, '$'); exactKeys(root, ['schemaVersion', 'careerId', 'activeYear', 'calendarRevision', 'seasons', 'blockers', 'allowedCommands'], '$');
+  if (root.schemaVersion !== 'CAREER_SEASONS_V1') throw new CareerContractError('$.schemaVersion');
+  identity(root.careerId, CAREER_ID, '$.careerId'); integer(root.activeYear, '$.activeYear', 2026); integer(root.calendarRevision, '$.calendarRevision');
+  if (!Array.isArray(root.seasons) || !root.seasons.length) throw new CareerContractError('$.seasons');
+  root.seasons.forEach((entry, i) => seasonSummary(entry, `$.seasons[${i}]`));
+  const seasons = root.seasons as CareerSeasonsDto['seasons'];
+  if (seasons[0].year !== root.activeYear || seasons[0].status !== 'ACTIVE' || seasons.some((s, i) => i > 0 && (s.status !== 'CLOSED' || seasons[i - 1].year !== s.year + 1 || seasons[i - 1].ordinal !== s.ordinal + 1)) || new Set(seasons.map(s => s.seasonId)).size !== seasons.length) throw new CareerContractError('$.seasons', 'season identity continuity required');
+  const blockers = texts(root.blockers, '$.blockers'), commands = texts(root.allowedCommands, '$.allowedCommands');
+  if (blockers.length ? commands.length !== 0 : commands.length !== 1 || commands[0] !== 'START_NEXT_SEASON') throw new CareerContractError('$.allowedCommands');
+  return root as unknown as CareerSeasonsDto;
+}
+export function validateCareerSeasonDetail(value: unknown): CareerSeasonDetailDto {
+  const root = object(value, '$'); exactKeys(root, ['schemaVersion', 'careerId', 'season', 'readOnly', 'domestic', 'international', 'fixtures'], '$');
+  if (root.schemaVersion !== 'CAREER_SEASON_DETAIL_V1') throw new CareerContractError('$.schemaVersion');
+  identity(root.careerId, CAREER_ID, '$.careerId'); seasonSummary(root.season, '$.season');
+  const season = object(root.season, '$.season'); if (bool(root.readOnly, '$.readOnly') !== (season.status === 'CLOSED')) throw new CareerContractError('$.readOnly');
+  if (!Array.isArray(root.international) || root.international.length > 4) throw new CareerContractError('$.international');
+  root.international.forEach((entry, i) => internationalCompetition(entry, `$.international[${i}]`));
+  if (root.domestic !== null) {
+    const d = object(root.domestic, '$.domestic'); exactKeys(d, ['status', 'sourceSeasonYear', 'sourceSeasonId', 'championTeamCode', 'runnerUpTeamCode', 'ranking', 'stateHash', 'ruleVersion', 'policyVersion', 'resultEvidenceHash', 'worldsStatus', 'requiredInternationalEvidence'], '$.domestic');
+    if (d.status !== 'SEALED' || d.sourceSeasonYear !== season.year || d.sourceSeasonId !== season.seasonId || !Array.isArray(d.ranking) || d.ranking.length !== 10) throw new CareerContractError('$.domestic');
+    identity(d.stateHash, SHA256, '$.domestic'); text(d.championTeamCode, '$.domestic'); text(d.runnerUpTeamCode, '$.domestic');
+    d.ranking.forEach((entry, i) => { const row = object(entry, '$.domestic.ranking'); exactKeys(row, ['seed', 'teamCode', 'seriesWins', 'seriesLosses', 'gameWins', 'gameLosses'], '$.domestic.ranking'); if (row.seed !== i + 1) throw new CareerContractError('$.domestic.ranking'); text(row.teamCode, '$.domestic.ranking'); ['seriesWins','seriesLosses','gameWins','gameLosses'].forEach(k => integer(row[k], '$.domestic.ranking')); });
+    nullableText(d.ruleVersion, '$.domestic'); nullableText(d.policyVersion, '$.domestic'); nullableText(d.resultEvidenceHash, '$.domestic'); text(d.worldsStatus, '$.domestic'); texts(d.requiredInternationalEvidence, '$.domestic');
+  }
+  if (!Array.isArray(root.fixtures)) throw new CareerContractError('$.fixtures');
+  root.fixtures.forEach(entry => { const f = object(entry, '$.fixtures'); exactKeys(f, ['competitionId', 'matchId', 'firstTeam', 'secondTeam', 'winner', 'seriesId', 'status', 'replayAvailable'], '$.fixtures'); text(f.competitionId, '$.fixtures'); text(f.matchId, '$.fixtures'); ['firstTeam','secondTeam','winner'].forEach(k => nullableText(f[k], '$.fixtures')); identity(f.seriesId, SERIES_ID, '$.fixtures'); text(f.status, '$.fixtures'); if (bool(f.replayAvailable, '$.fixtures') && f.status !== 'COMPLETED') throw new CareerContractError('$.fixtures.replayAvailable'); });
+  return root as unknown as CareerSeasonDetailDto;
+}
+export function validateCareerTransitionRequest(value: unknown): CareerTransitionRequestDto {
+  const root = object(value, '$'); exactKeys(root, ['schemaVersion', 'sourceYear', 'expectedCalendarRevision', 'clientCommandId'], '$');
+  if (root.schemaVersion !== 'CAREER_SEASON_TRANSITION_REQUEST_V1') throw new CareerContractError('$.schemaVersion');
+  integer(root.sourceYear, '$.sourceYear', 2026); integer(root.expectedCalendarRevision, '$.expectedCalendarRevision'); identity(root.clientCommandId, UUID, '$.clientCommandId');
+  return root as unknown as CareerTransitionRequestDto;
+}
+export function validateCareerTransition(value: unknown): CareerTransitionDto {
+  const root = object(value, '$'); exactKeys(root, ['replayed', 'receipt', 'seasons'], '$'); bool(root.replayed, '$.replayed');
+  const r = object(root.receipt, '$.receipt'); exactKeys(r, ['clientCommandId', 'careerId', 'sourceYear', 'destinationYear', 'destinationSeasonId', 'resultingRevision', 'resultHash', 'completedAt'], '$.receipt');
+  identity(r.clientCommandId, UUID, '$.receipt'); identity(r.careerId, CAREER_ID, '$.receipt'); integer(r.sourceYear, '$.receipt', 2026); integer(r.destinationYear, '$.receipt', 2027); identity(r.destinationSeasonId, SEASON_ID, '$.receipt'); integer(r.resultingRevision, '$.receipt'); identity(r.resultHash, SHA256, '$.receipt'); timestamp(r.completedAt, '$.receipt');
+  const list = validateCareerSeasons(root.seasons);
+  if (r.destinationYear !== (r.sourceYear as number) + 1 || list.careerId !== r.careerId || list.activeYear < (r.destinationYear as number) || list.calendarRevision < (r.resultingRevision as number) || !list.seasons.some(s => s.year === r.destinationYear && s.seasonId === r.destinationSeasonId)) throw new CareerContractError('$.receipt', 'original transition and current season mismatch');
+  return root as unknown as CareerTransitionDto;
 }

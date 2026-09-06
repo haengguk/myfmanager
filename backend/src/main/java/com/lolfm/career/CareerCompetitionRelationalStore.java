@@ -852,13 +852,22 @@ public final class CareerCompetitionRelationalStore {
                     ? CareerInternationalCompetition.load(this, careerId, seasonYear, competitionId) : null;
             if (CareerInternationalRules.COMPETITIONS.contains(competitionId) && international == null)
                 throw new IllegalStateException("INTERNATIONAL_REGISTRATION_REQUIRED");
+            if (international != null && international.selectionUpgrade() != null
+                    && international.selectionUpgrade().lockedBouts().stream().anyMatch(b -> b.id().equals(matchId))) {
+                var original = loadBinding(careerId, seasonYear, competitionId, matchId);
+                original.requireProductionAuthority(productionSnapshot, resourceProvenanceHash);
+                return original;
+            }
+            var carried = cycle.seasonOrdinal() > 1 ? CareerSeasonRosters.load(this,careerId,seasonYear) : null;
+            if (cycle.seasonOrdinal() > 1 && carried == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
             CareerCompetitionSeriesBindingV1 candidate = international != null
                     ? CareerCompetitionSeriesBindingV1.createInternational(cycle, instance, fixture,
-                    CompetitionRosterSnapshot.managedToken(managedTeam), CareerInternationalRules.RESOURCE_HASH,
+                    CompetitionRosterSnapshot.managedToken(managedTeam), international.ruleResourceHash(),
                     productionSnapshot, resourceProvenanceHash, international.rosters().pair(fixture.firstTeamCode(), fixture.secondTeamCode()))
                     : CareerCompetitionSeriesBindingV1.create(cycle, instance,
                             fixture, managedTeam, rules.resourceHash(),
-                            productionSnapshot, resourceProvenanceHash, inheritedPicks(careerId, seasonYear, fixture));
+                            productionSnapshot, resourceProvenanceHash, inheritedPicks(careerId, seasonYear, fixture),
+                            carried == null ? null : carried.domesticPair(fixture.firstTeamCode(),fixture.secondTeamCode()));
             List<String> prior = jdbc.query("""
                     SELECT binding_canonical FROM career_competition_series_binding
                     WHERE career_id = ? AND calendar_season_year = ?
@@ -2107,7 +2116,7 @@ public final class CareerCompetitionRelationalStore {
             boolean internationalPolicy = CareerCompetitionRules.VERSION.equals(cycle.ruleVersion())
                     && (CareerInternationalRules.COMPETITIONS.contains(value.competitionId()) || "ASIAN_GAMES_LOL_RELEASE".equals(value.competitionId()))
                     && "GAME_POLICY_DEFINED".equals(value.ruleStatus())
-                    && CareerInternationalRules.POLICY.equals(value.materializationPolicyId())
+                    && CareerInternationalRules.supportedPolicy(value.materializationPolicyId())
                     && value.materializationReceiptHash() != null;
             if ((!rule.ruleStatus().equals(value.ruleStatus()) && !internationalPolicy)
                     || !INSTANCE_HASH_ALGORITHM.equals(value.hashAlgorithm())

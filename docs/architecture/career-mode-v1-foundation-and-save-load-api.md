@@ -15,7 +15,9 @@ authority가 아니다.
 | frozen/product/reference identity와 binding hash | receipts, outbox/application ledger, Match output와 timeline |
 | Career schema/lifecycle/revision, 운영 timestamp | 실제 command eligibility와 경기 실행 |
 
-Career V1은 정확히 하나의 LCK `HYBRID_MANAGER` Season과 연결한다. 수동 snapshot 파일이나
+Career 최초 생성은 하나의 LCK `HYBRID_MANAGER` Season과 연결한다. V14 이후 명시적 시즌 전환은
+같은 Career 아래 연도별 Season을 추가하며 최초 생성 binding/receipt는 보존한다. 현재 목록·상세의
+League/Season과 resume은 `career_season`의 활성 참조를 사용한다. 수동 snapshot 파일이나
 Career JSON blob, `POST /save`, 다음 시즌 자동 생성, 이적·훈련·재정, 인증·삭제·복제·archive는
 포함하지 않는다. 후속 `CAREER_TIME_AND_CALENDAR_PROGRESSION_V1`은 이 foundation을 변경하지 않고
 Career-owned Calendar aggregate와 날짜 진행 API를 additive하게 연결한다. 상세 계약은

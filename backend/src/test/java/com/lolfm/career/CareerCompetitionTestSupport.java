@@ -150,6 +150,27 @@ public final class CareerCompetitionTestSupport {
         store.refreshCycleHash(career, year);
     }
 
+    /** Reconstruct a pre-selection-fix registration for migration coverage, before any MSI binding exists. */
+    public static String restoreLegacyMsiRegistration(CareerCompetitionRelationalStore store,String career,int year) throws Exception {
+        var current=CareerInternationalCompetition.load(store,career,year,"MSI");
+        var legacy=new CareerInternationalState(career,year,"MSI",CareerInternationalRules.VERSION,CareerInternationalRules.RESOURCE_HASH,
+                CareerInternationalRules.POLICY,current.selectionPolicy(),current.inputEvidence(),current.drawSeed(),
+                current.entries().stream().map(e->new CareerInternationalState.Entry(e.team(),e.region(),e.regionalSeed(),e.pool(),e.phase(),e.qualification())).toList(),
+                current.rosters(),current.regionOrder(),null);
+        legacy=legacy.withPlan(CareerInternationalTournament.project(legacy,java.util.Map.of()));
+        String serialized=store.json.copy().enable(com.fasterxml.jackson.databind.SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).writeValueAsString(legacy);
+        store.jdbc.update("UPDATE career_international_state SET state_json=?,state_hash=? WHERE career_id=? AND calendar_season_year=? AND competition_id='MSI'",
+                serialized,CareerInternationalRules.hash(serialized),career,year);
+        String managed=CompetitionRosterSnapshot.managedToken(store.careerBinding(career).managedTeamCode());
+        for(var bout:legacy.plan().bouts())store.jdbc.update("""
+            UPDATE career_competition_fixture SET first_team_code=?,second_team_code=?,first_selector_value=?,second_selector_value=?,
+                selection_right_owner=?,execution_mode=? WHERE career_id=? AND calendar_season_year=? AND competition_id='MSI' AND match_id=?
+            """,bout.first(),bout.second(),bout.first(),bout.second(),bout.selectionOwner(),
+                java.util.List.of(bout.first(),bout.second()).contains(managed)?"PLAYER_CONTROLLED":"FULL_AUTO",career,year,bout.id());
+        store.jdbc.update("UPDATE career_competition_instance SET materialization_policy_id=? WHERE career_id=? AND calendar_season_year=? AND competition_id='MSI'",CareerInternationalRules.POLICY,career,year);
+        store.refreshInstanceHash(career,year,"MSI");store.refreshCycleHash(career,year);return serialized;
+    }
+
     public static ControlledLease controlledLease() { return new ControlledLease(); }
 
     public static final class ControlledLease implements AutoCloseable {

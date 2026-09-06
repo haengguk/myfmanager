@@ -57,8 +57,13 @@ public final class CareerApiV1Dtos {
     public record CompetitionCommandRequest(
             String schemaVersion,
             long expectedCompetitionRevision,
-            String clientCommandId
-    ) {}
+            String clientCommandId,
+            Integer sourceYear
+    ) {
+        public CompetitionCommandRequest(String schemaVersion,long expectedCompetitionRevision,String clientCommandId) {
+            this(schemaVersion,expectedCompetitionRevision,clientCommandId,null);
+        }
+    }
 
     public record CompetitionCommandResponse(
             String schemaVersion,

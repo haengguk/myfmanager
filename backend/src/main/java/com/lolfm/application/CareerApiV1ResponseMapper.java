@@ -186,8 +186,8 @@ public final class CareerApiV1ResponseMapper {
         return new CareerApiV1Dtos.CareerView(CareerApiV1Dtos.VIEW_SCHEMA,
                 career.careerId(), career.saveName(), career.managerName(),
                 career.managedTeamCode(), career.startDate(), state.currentGameDate(),
-                career.lifecycleStatus(), career.revision(), career.leagueId(),
-                career.seasonId(), career.seedAlgorithmId(),
+                career.lifecycleStatus(), career.revision(), state.linkedSeason().leagueId(),
+                state.linkedSeason().seasonId(), career.seedAlgorithmId(),
                 Long.toString(career.rootSeed()), career.frozenSnapshotHash(),
                 career.productDecisionHash(), career.referenceCatalogVersion(),
                 career.referenceCatalogHash(), career.bindingSchema(),
@@ -201,7 +201,7 @@ public final class CareerApiV1ResponseMapper {
         var career = state.career();
         return new CareerApiV1Dtos.CareerSummary(career.careerId(),
                 career.saveName(), career.managerName(), career.managedTeamCode(),
-                state.currentGameDate(), career.leagueId(), career.seasonId(),
+                state.currentGameDate(), state.linkedSeason().leagueId(), state.linkedSeason().seasonId(),
                 career.lifecycleStatus(), state.linkedSeason().resume().kind(),
                 career.updatedAt());
     }

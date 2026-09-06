@@ -104,7 +104,8 @@ R1~2 경기일에는 기존 18라운드/90 fixture만 gate에 참여한다. 같�
 기존 durable League job 경로로 dispatch하고 202 `AUTO_FIXTURES_PENDING`에서 멈춘다. 관리 경기는
 `MANAGED_FIXTURE_REQUIRED`, blocked/cancelled/restart-required 상태는 `ATTENTION_REQUIRED`로 멈춘다.
 pending job/outbox나 미완료 관리 경기를 지나 currentDate를 commit하지 않는다. 마지막 정의 이후에는
-`SEASON_ROLLOVER_REQUIRED`가 되며 다음 시즌을 추측해 만들지 않는다.
+`SEASON_ROLLOVER_REQUIRED`가 된다. Calendar advance는 다음 시즌을 자동 생성하지 않으며,
+아래 명시적 시즌 전환 명령이 마감 검증과 생성을 담당한다.
 
 Season lifecycle은 gate 전에 검사한다. PAUSED/BLOCKED/CANCELLED/DRAFT/FROZEN은 각각 structured
 reason으로 dispatch와 날짜 이동을 0으로 만든다. COMPLETED는 90개 fixture 완료가 확인된 경우에만
@@ -124,3 +125,47 @@ graph와 LCK Cup 40경기는 Competition Series adapter와 verified result trans
 현재 날짜 이전의 첫 non-terminal fixture는 READY/WAITING과 무관하게 overdue gate로 다시 잡고,
 predecessor/seed/choice가 해결되지 않으면 구조화 blocker에서 멈춘다. LCK Playoffs source closure,
 외부 리그/KeSPA roster authority는 계속 추측하지 않는다.
+
+
+## 시즌 전환·과거 시즌 조회 V1 (2026-09-05)
+
+V14 `career_season`의 활성 연도가 Calendar와 연결된다. 최초 `career_save`의 생성 binding은
+보존하며, Calendar R1/R2 overlay와 현재 Career DTO의 League/Season은 활성 시즌을 참조한다.
+
+| 경로 | 계약 |
+| --- | --- |
+| `GET /api/v1/careers/{careerId}/seasons` | `CAREER_SEASONS_V1`: activeYear, calendarRevision, seasons, blockers, allowedCommands |
+| `GET /api/v1/careers/{careerId}/seasons/{year}` | `CAREER_SEASON_DETAIL_V1`: season, readOnly, domestic, international, fixtures |
+| `POST /api/v1/careers/{careerId}/seasons/transition` | `replayed`, 원본 `receipt`, 현재 `seasons` projection |
+
+전환 요청은 다음 네 필드만 허용한다.
+
+```json
+{
+  "schemaVersion": "CAREER_SEASON_TRANSITION_REQUEST_V1",
+  "sourceYear": 2027,
+  "expectedCalendarRevision": 30,
+  "clientCommandId": "00000000-0000-0000-0000-000000000001"
+}
+```
+
+서버의 `START_NEXT_SEASON`이 있을 때 새 요청을 만든다. 같은 UUID의 같은 payload는 원본
+sourceYear/destinationYear/destinationSeasonId/resultingRevision/resultHash/completedAt receipt를
+재생한다. 현재 시즌 projection은 그보다 여러 해 뒤일 수 있다. UUID에 다른 payload를 넣으면
+충돌, 새 UUID에 이전 연도/revision을 넣으면 stale이다. 프런트는 원본 요청 전체를 저장하며
+응답 소실 뒤 UUID나 revision을 바꾸지 않고 확인한다.
+
+마감은 국내 6개와 FST/MSI/EWC/Worlds 완료, 봉인 결과, fixture/application, Player/Auto,
+lease/outbox/pending command를 확인한다. KeSPA만 비활성 참고 대회 정책으로 필수 집합에서 제외한다.
+Calendar 명령 잠금→Calendar 행→cycle 순서로 잠그고 마감·새 League/90경기·Cup·로스터·활성
+참조·receipt를 함께 commit한다. 실패하면 rollback한다. 날짜는 다음 1월 1일로 이동하며
+Calendar revision은 초기화하지 않고 증가한다.
+
+Competition start 요청의 additive `sourceYear`는 후속 시즌부터 필수다. 서비스도 잠금 아래
+활성 연도와 기존 UUID의 연도 범위를 확인한다. 과거 명령이 새 fixture에 적용되지 않는다.
+과거 기록 fixture는 competitionId/matchId/teams/winner/seriesId/status/replayAvailable을 제공한다.
+실제 완료 Player checkpoint만 replayAvailable이며 Auto 결과는 조회 가능하되 Player 재생을
+광고하지 않는다. 과거 선택 중 Calendar 실행 UI와 이어하기·전환은 비활성화한다.
+
+후속 정책, 기존 저장 이월 경계와 검증은
+[선택권 수정·시즌 전환 보고서](../development/career-selection-fixes-and-season-rollover-v1.md)를 따른다.

@@ -100,7 +100,7 @@ public final class CareerApplicationService {
         }
         rows.forEach(this::validateCareerIdentity);
         List<SeasonReference> references = rows.stream()
-                .map(row -> new SeasonReference(row.leagueId(), row.seasonId())).toList();
+                .map(row -> { var active = careers.activeSeason(row); return new SeasonReference(active.leagueId(), active.seasonId()); }).toList();
         Map<SeasonReference, LinkedSeason> linked;
         try {
             linked = seasons.loadAll(references);
@@ -108,8 +108,8 @@ public final class CareerApplicationService {
             throw CareerException.linkedSeasonIntegrity(failure);
         }
         List<CareerViewState> views = rows.stream().map(row -> {
-            LinkedSeason season = linked.get(new SeasonReference(
-                    row.leagueId(), row.seasonId()));
+            var active = careers.activeSeason(row);
+            LinkedSeason season = linked.get(new SeasonReference(active.leagueId(), active.seasonId()));
             if (season == null) throw CareerException.linkedSeasonIntegrity();
             return linkedView(row, season);
         }).toList();
@@ -132,7 +132,8 @@ public final class CareerApplicationService {
         validateCareerIdentity(row);
         LinkedSeason linked;
         try {
-            linked = seasons.load(row.leagueId(), row.seasonId());
+            var active = careers.activeSeason(row);
+            linked = seasons.load(active.leagueId(), active.seasonId());
         } catch (RuntimeException failure) {
             throw CareerException.linkedSeasonIntegrity(failure);
         }
@@ -143,13 +144,14 @@ public final class CareerApplicationService {
             CareerRelationalStore.CareerRow row,
             LinkedSeason linked
     ) {
-        if (!linked.leagueId().equals(row.leagueId())
-                || !linked.seasonId().equals(row.seasonId())
+        var active = careers.activeSeason(row);
+        if (!linked.leagueId().equals(active.leagueId())
+                || !linked.seasonId().equals(active.seasonId())
                 || !"HYBRID_MANAGER".equals(linked.seasonMode())
                 || !linked.managedTeamCode().equals(row.managedTeamCode())
-                || linked.rootSeed() != row.rootSeed()
-                || !linked.frozenSnapshotIdentity().equals(row.frozenSnapshotHash())
-                || !linked.productDecisionIdentity().equals(row.productDecisionHash())) {
+                || linked.rootSeed() != active.rootSeed()
+                || !linked.frozenSnapshotIdentity().equals(active.frozenSnapshotHash())
+                || !linked.productDecisionIdentity().equals(active.productDecisionHash())) {
             throw CareerException.linkedSeasonIntegrity();
         }
         return new CareerViewState(row, linked, calendar.currentDate(row));
@@ -230,6 +232,10 @@ public final class CareerApplicationService {
     }
 
     public interface SeasonProvisioningPort {
+        default ProvisionedSeason provisionNext(String previousSeasonId, String leagueId, String seasonId,
+                                                String managedTeamCode, long rootSeed) {
+            throw new IllegalStateException("SEASON_ROLLOVER_PROVISIONING_UNAVAILABLE");
+        }
         ProvisionedSeason provision(
                 String leagueId,
                 String seasonId,

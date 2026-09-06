@@ -26,8 +26,12 @@ public final class CareerRelationalStore {
     private final TransactionTemplate transactions;
     private final Clock clock;
     private final int maximumCareers;
+    private CareerInternationalParticipants initialParticipants;
 
     @Autowired
+    public CareerRelationalStore(JdbcTemplate jdbc, PlatformTransactionManager transactionManager, CareerInternationalParticipants participants) {
+        this(jdbc,transactionManager);this.initialParticipants=participants;
+    }
     public CareerRelationalStore(
             JdbcTemplate jdbc,
             PlatformTransactionManager transactionManager
@@ -65,7 +69,7 @@ public final class CareerRelationalStore {
             String payloadHash,
             Supplier<NewCareer> creator
     ) {
-        return createOrReplay(commandId, payloadHash, creator, ignored -> {});
+        return createOrReplay(commandId, payloadHash, creator, ignored -> {}, false);
     }
 
     /** Creator, Career insert, initializer, and command receipt share one transaction. */
@@ -75,6 +79,10 @@ public final class CareerRelationalStore {
             Supplier<NewCareer> creator,
             Consumer<NewCareer> initializer
     ) {
+        return createOrReplay(commandId,payloadHash,creator,initializer,true);
+    }
+    private CreateResult createOrReplay(String commandId,String payloadHash,Supplier<NewCareer> creator,
+                                       Consumer<NewCareer> initializer,boolean initializeSeason) {
         Objects.requireNonNull(creator, "creator");
         Objects.requireNonNull(initializer, "initializer");
         CareerIdentity.canonicalCommandId(commandId);
@@ -126,6 +134,25 @@ public final class CareerRelationalStore {
                     requested.careerSchema(), requested.lifecycleStatus(),
                     requested.revision(), now, now);
             initializer.accept(requested);
+            if (initializeSeason) {
+            jdbc.update("""
+                INSERT INTO career_season(career_id, season_year, season_ordinal, league_id, season_id,
+                    season_root_seed, frozen_snapshot_hash, product_decision_hash, lifecycle_status)
+                SELECT s.career_id, c.active_calendar_season_year, 1, s.league_id, s.season_id,
+                    s.career_root_seed, s.league_frozen_snapshot_hash, s.league_product_decision_hash, 'ACTIVE'
+                FROM career_save s JOIN career_calendar_state c ON c.career_id = s.career_id WHERE s.career_id = ?
+                """, requested.careerId());
+            if (initialParticipants != null) {
+                int year = jdbc.queryForObject("SELECT season_year FROM career_season WHERE career_id = ?",Integer.class,requested.careerId());
+                var rosters = new java.util.LinkedHashMap<String,CompetitionRosterSnapshot.Roster>();
+                initialParticipants.overseas(requested.careerId(),year,"FIRST_STAND").rankings().values().stream().flatMap(List::stream)
+                        .forEach(r -> rosters.put(CompetitionRosterSnapshot.token(r.team()),r));
+                jdbc.query("SELECT team_code FROM league_standing WHERE season_id = ? ORDER BY team_code",(r,n) -> r.getString(1),requested.seasonId())
+                        .forEach(t -> {var r=initialParticipants.roster(new com.lolfm.player.GlobalTeamRosterCatalog.TeamKey("LCK",t));rosters.put(CompetitionRosterSnapshot.token(r.team()),r);});
+                var snapshot = new CompetitionRosterSnapshot(rosters);
+                jdbc.update("UPDATE career_season SET roster_json = ?, roster_hash = ? WHERE career_id = ? AND season_year = ?",snapshot.encoded(),snapshot.identity(),requested.careerId(),year);
+            }
+            }
             jdbc.update("""
                     INSERT INTO career_create_command(
                       client_command_id, command_schema, payload_hash,
@@ -136,6 +163,28 @@ public final class CareerRelationalStore {
             return new CreateResult(false, find(requested.careerId()).orElseThrow());
         });
     }
+
+    public SeasonRow activeSeason(CareerRow career) {
+        var rows = jdbc.query("""
+            SELECT s.* FROM career_season s JOIN career_calendar_state c ON c.career_id = s.career_id
+              AND c.active_calendar_season_year = s.season_year WHERE s.career_id = ?
+            """, (r,n) -> new SeasonRow(r.getInt("season_year"),r.getInt("season_ordinal"),r.getString("league_id"),
+                r.getString("season_id"),r.getLong("season_root_seed"),r.getString("frozen_snapshot_hash"),r.getString("product_decision_hash")),career.careerId());
+        if (rows.size() != 1) throw new IllegalStateException("CAREER_ACTIVE_SEASON_INTEGRITY");
+        var active=rows.getFirst();
+        String expectedLeague=career.leagueId(),expectedSeason=career.seasonId();long expectedSeed=career.rootSeed();
+        if(active.ordinal()>1) {
+            String identity=CareerInternationalRules.hash(career.careerId()+"|SEASON_ROLLOVER_V1|"+active.year()+"|"+active.ordinal());
+            expectedLeague="league_"+identity;expectedSeason="season_"+identity;
+            expectedSeed=CareerCompetitionAggregate.deriveSeed(career.rootSeed(),active.year(),"CAREER_SEASON","ORDINAL:"+active.ordinal());
+        }
+        if(!active.leagueId().equals(expectedLeague)||!active.seasonId().equals(expectedSeason)||active.rootSeed()!=expectedSeed
+                ||!active.frozenSnapshotHash().equals(career.frozenSnapshotHash())||!active.productDecisionHash().equals(career.productDecisionHash()))
+            throw new IllegalStateException("CAREER_ACTIVE_SEASON_BINDING_INTEGRITY");
+        return active;
+    }
+    public record SeasonRow(int year, int ordinal, String leagueId, String seasonId, long rootSeed,
+                            String frozenSnapshotHash, String productDecisionHash) {}
 
     public Optional<CareerRow> find(String careerId) {
         return jdbc.query("""

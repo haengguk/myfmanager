@@ -61,6 +61,16 @@ public final class CareerCompetitionExecutionService {
             long expectedRevision,
             String clientCommandId
     ) {
+        return transactions.execute(ignored -> {
+            int active = jdbc.queryForObject("SELECT active_calendar_season_year FROM career_calendar_state WHERE career_id = ? FOR UPDATE",Integer.class,career.careerId());
+            if (active != seasonYear) throw new IllegalStateException("CAREER_COMPETITION_SOURCE_SEASON_CONFLICT");
+            if (jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_command WHERE career_id = ? AND client_command_id = ? AND calendar_season_year <> ?",Integer.class,career.careerId(),clientCommandId,seasonYear)>0)
+                throw new IllegalStateException("COMPETITION_COMMAND_ID_CONFLICT");
+            return startInTransaction(career,seasonYear,currentDate,expectedRevision,clientCommandId);
+        });
+    }
+    private ExecutionResult startInTransaction(CareerRelationalStore.CareerRow career, int seasonYear,
+            java.time.LocalDate currentDate, long expectedRevision, String clientCommandId) {
         requireCommand(clientCommandId);
         String commandPayload = commandPayload(career.careerId(), seasonYear,
                 expectedRevision, clientCommandId);

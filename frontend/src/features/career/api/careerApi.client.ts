@@ -4,6 +4,9 @@ export { CareerApiFailure } from './careerApi.failure';
 import type { CareerAdvanceRequestDto, CareerAdvanceResponseDto, CareerCalendarViewDto, CareerCompetitionCommandRequestDto, CareerCompetitionCommandResponseDto, CareerCreateRequestDto, CareerCreateResponseDto, CareerListResponseDto, CareerViewDto } from './careerApi.types';
 import { CareerContractError, validateCareerAdvanceResponse, validateCareerCalendar, validateCareerCompetitionCommandResponse, validateCareerCreateResponse, validateCareerError, validateCareerListResponse, validateCareerView } from './careerApi.validation';
 
+import type { CareerSeasonsDto, CareerSeasonDetailDto, CareerTransitionDto, CareerTransitionRequestDto } from './careerApi.types';
+import { validateCareerSeasons, validateCareerSeasonDetail, validateCareerTransition } from './careerApi.validation';
+
 const ROOT = `${realMatchConfig.apiBaseUrl}/api/v1/careers`;
 const REQUEST_TIMEOUT_MS = 30_000;
 const SAFE_COPY: Readonly<Record<string, string>> = {
@@ -92,4 +95,14 @@ export function startOrResumeCareerCompetition(careerId: string, body: CareerCom
 }
 export function reconcileCareerCompetition(careerId: string, body: CareerCompetitionCommandRequestDto, signal: AbortSignal): Promise<CareerCompetitionCommandResponseDto> {
   return request(`${ROOT}/${encodeURIComponent(careerId)}/competition/reconcile`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateCareerCompetitionCommandResponse, [200, 202]);
+}
+
+export function getCareerSeasons(careerId: string, signal: AbortSignal): Promise<CareerSeasonsDto> {
+  return request(`${ROOT}/${encodeURIComponent(careerId)}/seasons`, { method: 'GET' }, signal, validateCareerSeasons, [200]);
+}
+export function getCareerSeason(careerId: string, year: number, signal: AbortSignal): Promise<CareerSeasonDetailDto> {
+  return request(`${ROOT}/${encodeURIComponent(careerId)}/seasons/${year}`, { method: 'GET' }, signal, validateCareerSeasonDetail, [200]);
+}
+export function transitionCareerSeason(careerId: string, body: CareerTransitionRequestDto, signal: AbortSignal): Promise<CareerTransitionDto> {
+  return request(`${ROOT}/${encodeURIComponent(careerId)}/seasons/transition`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateCareerTransition, [200]);
 }

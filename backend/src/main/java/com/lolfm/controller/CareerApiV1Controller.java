@@ -92,6 +92,7 @@ public final class CareerApiV1Controller {
         var career = careers.get(careerId);
         var calendarState = calendar.view(career.career()).state();
         int competitionSeasonYear = calendarState.seasonYear();
+        requireSourceSeason(request, competitionSeasonYear, calendarState, career);
         CareerCompetitionExecutionService.ExecutionResult result;
         try {
             result = competitions.startOrResume(career.career(),
@@ -134,6 +135,13 @@ public final class CareerApiV1Controller {
                 ? 202 : 200;
         return ResponseEntity.status(status).body(mapper.competitionCommand(
                 result, accepted));
+    }
+
+    private static void requireSourceSeason(CareerApiV1Dtos.CompetitionCommandRequest request,int activeYear,
+            com.lolfm.career.CareerCalendarRelationalStore.CalendarRow state, CareerApplicationService.CareerViewState career) {
+        if (request.sourceYear()!=null && request.sourceYear()!=activeYear
+                || request.sourceYear()==null && !career.career().seasonId().equals(career.linkedSeason().seasonId()))
+            throw CareerException.invalid("sourceYear","현재 시즌을 다시 불러온 뒤 실행해 주세요.");
     }
 
     private boolean submitCompetitionWork(

@@ -60,6 +60,88 @@ class CareerInternationalTournamentTest {
         assertThat(CareerInternationalTournament.project(worlds.state,worlds.results)).isEqualTo(worlds.state.plan());
         assertSwiss(worlds);assertEwcGroupsAndKnockout(ewc);
     }
+    @Test void correctedSelectionSeparatesPlayInSeedsAndUsesActualKnockoutDraw() {
+        var fst = finish(registration("FIRST_STAND",CareerInternationalRules.REFERENCE_REGIONS,null),"LCK").state;
+        var msi = finish(registration("MSI",fst.plan().regionalPerformance(),null),"LCK");
+        var seeds = new HashMap<String,Integer>();
+        msi.state.entries().stream().filter(e -> e.phase().equals("PLAY_IN")).forEach(e -> {
+            assertThat(e.regionalSeed()).isEqualTo(2); seeds.put(e.team(), e.playInSeed());
+        });
+        var ordered = seeds.keySet().stream().sorted(Comparator.comparingInt(seeds::get)).toList();
+        assertThat(msi.state.plan().draws().getFirst().teams()).containsExactly(ordered.get(0),ordered.get(3),ordered.get(1),ordered.get(2));
+        for (var b : msi.state.plan().bouts().stream().filter(b -> b.id().startsWith("MSI_PI_O")).toList())
+            assertThat(b.selectionOwner()).isEqualTo(seeds.get(b.first()) < seeds.get(b.second()) ? b.first() : b.second());
+        var worlds = finish(registration("WORLDS",msi.state.plan().regionalPerformance(),msi.state),"LCK");
+        for (var finished : List.of(msi, worlds)) {
+            var state = finished.state;
+            var byTeam = new HashMap<String,CareerInternationalState.Entry>();state.entries().forEach(e -> byTeam.put(e.team(),e));
+            var losses = new HashMap<String,Integer>();
+            state.plan().bouts().stream().filter(b -> b.stage().startsWith("SWISS")).forEach(b -> losses.merge(finished.results.get(b.id()).loser(),1,Integer::sum));
+            var draw = state.plan().draws().stream().filter(d -> d.scope().equals("KNOCKOUT")).findFirst();
+            int equalRecord = 0;
+            for (var b : state.plan().bouts()) {
+                String local = b.id().substring(state.competitionId().length()+1);
+                if (local.equals("PI_F")) {
+                    assertThat(b.selectionOwner()).isEqualTo(finished.results.get(state.competitionId()+"_PI_U").winner());
+                    assertThat(b.sidePolicy()).isEqualTo(CareerInternationalRules.RODS);
+                } else if (List.of("PI_U","PI_D","PI_L").contains(local) || state.competitionId().equals("WORLDS") && local.startsWith("PI_O")) {
+                    String scope = local.startsWith("PI_O") ? local : local+":ROFS";
+                    assertThat(b.selectionOwner()).isEqualTo(List.of(b.first(), b.second()).stream().min(Comparator.comparing(t -> CareerInternationalRules.hash(
+                            state.drawSeed()+"|"+state.careerId()+"|"+state.year()+"|"+state.competitionId()+"|"+CareerInternationalRules.POLICY+"|"+scope+"|"+t))).orElseThrow());
+                } else if (b.stage().startsWith("SWISS") && byTeam.get(b.first()).regionalSeed() != byTeam.get(b.second()).regionalSeed()) {
+                    assertThat(b.selectionOwner()).isEqualTo(byTeam.get(b.first()).regionalSeed() < byTeam.get(b.second()).regionalSeed() ? b.first() : b.second());
+                } else if (b.stage().equals("QUARTERFINAL") && state.competitionId().equals("WORLDS")) {
+                    int a = losses.getOrDefault(b.first(),0), c = losses.getOrDefault(b.second(),0);
+                    if (a == c) equalRecord++;
+                    assertThat(b.selectionOwner()).isEqualTo(a == c
+                            ? draw.orElseThrow().teams().indexOf(b.first()) < draw.orElseThrow().teams().indexOf(b.second()) ? b.first() : b.second()
+                            : a < c ? b.first() : b.second());
+                }
+            }
+            if (state.competitionId().equals("WORLDS")) assertThat(equalRecord).isPositive();
+        }
+    }
+    @Test void legacyProjectionAndBoundSelectionRemainStableDuringUpgrade() throws Exception {
+        var current = registration("MSI",CareerInternationalRules.REFERENCE_REGIONS,null);
+        var legacy = new CareerInternationalState(current.careerId(),current.year(),current.competitionId(),CareerInternationalRules.VERSION,
+                CareerInternationalRules.RESOURCE_HASH,CareerInternationalRules.POLICY,current.selectionPolicy(),current.inputEvidence(),
+                current.drawSeed(),current.entries().stream().map(e -> new CareerInternationalState.Entry(e.team(),e.region(),e.regionalSeed(),e.pool(),e.phase(),e.qualification())).toList(),
+                current.rosters(),current.regionOrder(),null);
+        legacy = legacy.withPlan(CareerInternationalTournament.project(legacy,Map.of()));
+        var mapper = new ObjectMapper().findAndRegisterModules();
+        assertThat(mapper.writeValueAsString(legacy)).doesNotContain("playInSeed", "selectionUpgrade");
+        var restored = mapper.readValue(mapper.writeValueAsString(legacy),CareerInternationalState.class);
+        assertThat(CareerInternationalTournament.project(restored,Map.of())).isEqualTo(legacy.plan());
+        var first = legacy.plan().bouts().getFirst();
+        var upgraded = new CareerInternationalState(current.careerId(),current.year(),current.competitionId(),current.ruleVersion(),
+                current.ruleResourceHash(),current.policyVersion(),current.selectionPolicy(),current.inputEvidence(),current.drawSeed(),
+                current.entries(),current.rosters(),current.regionOrder(),legacy.plan(),new CareerInternationalState.SelectionUpgrade(
+                    "a".repeat(64),List.of(first),legacy.plan().draws().getFirst().teams()));
+        var plan = CareerInternationalTournament.project(upgraded,Map.of());
+        assertThat(plan.bouts().getFirst()).isEqualTo(first);
+        assertThat(plan.draws()).isEqualTo(legacy.plan().draws());
+        assertThat(finish(upgraded,"LCK").state.plan().complete()).isTrue();
+    }
+    @Test void futureEwcUsesActualForeignChampionAndExplicitDuplicateOrUnavailableSuccession() {
+        var prior=finish(registration("EWC_LOL",CareerInternationalRules.REFERENCE_REGIONS,null),"LEC").state;
+        String champion=prior.plan().champion();assertThat(champion).startsWith("LEC:");
+        var duplicate=CareerInternationalRegistration.create(CAREER,2028,"EWC_LOL",1926,selection,lck,"PREVIOUS_EWC",CareerInternationalRules.REFERENCE_REGIONS,null,prior);
+        assertThat(duplicate.entries()).anyMatch(e->e.qualification().equals("PREVIOUS_EWC_CHAMPION_DUPLICATE_REGIONAL_SUCCESSION")&&e.region().equals("LEC"));
+        var rankings=new LinkedHashMap<>(selection.rankings());var lec=new ArrayList<>(rankings.get("LEC"));
+        var title=lec.stream().filter(r->CompetitionRosterSnapshot.token(r.team()).equals(champion)).findFirst().orElseThrow();
+        lec.remove(title);lec.add(4,title);rankings.put("LEC",lec);
+        var newSelection=new CareerInternationalParticipants.Selection(selection.policy(),"NEW_YEAR_PROVIDER_ORDER",rankings);
+        var direct=CareerInternationalRegistration.create(CAREER,2028,"EWC_LOL",1926,newSelection,lck,"PREVIOUS_EWC",CareerInternationalRules.REFERENCE_REGIONS,null,prior);
+        assertThat(direct.entries()).anyMatch(e->e.team().equals(champion)&&e.qualification().equals("PREVIOUS_EWC_CHAMPION_CURRENT_ROSTER"));
+        assertThat(direct.rosters().roster(champion)).isEqualTo(title);
+        lec.remove(title);rankings.put("LEC",lec);
+        var unavailable=CareerInternationalRegistration.create(CAREER,2028,"EWC_LOL",1926,new CareerInternationalParticipants.Selection(selection.policy(),"UNAVAILABLE_CHAMPION",rankings),lck,"PREVIOUS_EWC",CareerInternationalRules.REFERENCE_REGIONS,null,prior);
+        assertThat(unavailable.entries()).noneMatch(e->e.team().equals(champion));
+        assertThat(unavailable.entries()).anyMatch(e->e.qualification().equals("PREVIOUS_EWC_CHAMPION_UNAVAILABLE_SUCCESSION")&&e.region().equals("LEC"));
+        assertThat(finish(duplicate,"LCK").state.plan().complete()).isTrue();
+        assertThat(finish(direct,"LCK").state.plan().complete()).isTrue();
+        assertThat(finish(unavailable,"LCK").state.plan().complete()).isTrue();
+    }
     @Test void frozenInputsRoundTripAndAssembleFreshMutablePlayers(){
         var state=registration("FIRST_STAND",CareerInternationalRules.REFERENCE_REGIONS,null);
         var frozen=state.rosters();var restored=CompetitionRosterSnapshot.decode(frozen.encoded());

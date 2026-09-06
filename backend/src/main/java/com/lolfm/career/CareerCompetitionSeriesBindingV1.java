@@ -219,6 +219,12 @@ public final class CareerCompetitionSeriesBindingV1 {
             LeagueSeasonFrozenSnapshot productionSnapshot,
             String resourceProvenanceHash, Set<com.lolfm.champion.ChampionId> initialPicks
     ) {
+        return create(cycle,instance,fixture,managedTeamCode,ruleResourceHash,productionSnapshot,resourceProvenanceHash,initialPicks,null);
+    }
+    static CareerCompetitionSeriesBindingV1 create(CareerCompetitionRelationalStore.CycleView cycle,
+            CareerCompetitionRelationalStore.InstanceRow instance, CareerCompetitionRelationalStore.FixtureRow fixture,
+            String managedTeamCode,String ruleResourceHash,LeagueSeasonFrozenSnapshot productionSnapshot,
+            String resourceProvenanceHash,Set<com.lolfm.champion.ChampionId> initialPicks,CompetitionRosterSnapshot rosters) {
         if (!"READY".equals(fixture.lifecycleStatus())
                 || fixture.firstTeamCode() == null || fixture.secondTeamCode() == null) {
             throw new IllegalStateException("COMPETITION_FIXTURE_NOT_READY");
@@ -242,14 +248,14 @@ public final class CareerCompetitionSeriesBindingV1 {
                 fixture.seriesId(), SeriesDraftHistory.identityHash(0, initialPicks), initialPicks,
                 cycle.initializationPolicyId(), cycle.initializationInputHash(),
                 instance.materializationPolicyId(), instance.materializationReceiptHash(),
-                productionSnapshot.snapshotIdentity(),
-                productionSnapshot.teamSnapshotIdentity(fixture.firstTeamCode()),
-                productionSnapshot.teamSnapshotIdentity(fixture.secondTeamCode()),
-                productionSnapshot.playerResourceIdentity(),
+                rosters == null ? productionSnapshot.snapshotIdentity() : rosters.identity(),
+                rosters == null ? productionSnapshot.teamSnapshotIdentity(fixture.firstTeamCode()) : rosters.roster(fixture.firstTeamCode()).identity(),
+                rosters == null ? productionSnapshot.teamSnapshotIdentity(fixture.secondTeamCode()) : rosters.roster(fixture.secondTeamCode()).identity(),
+                rosters == null ? productionSnapshot.playerResourceIdentity() : rosters.identity(),
                 productionSnapshot.championDraftResourceIdentity(),
                 productionSnapshot.matchupCompositionResourceIdentity(),
                 productionSnapshot.productionRuntimeIdentity(), resourceProvenanceHash,
-                null, null);
+                null, rosters);
     }
 
     static CareerCompetitionSeriesBindingV1 createInternational(
@@ -263,8 +269,9 @@ public final class CareerCompetitionSeriesBindingV1 {
         String blue = firstGameBlue(fixture);
         String red = blue.equals(fixture.firstTeamCode()) ? fixture.secondTeamCode() : fixture.firstTeamCode();
         return new CareerCompetitionSeriesBindingV1(cycle.careerId(), cycle.seasonYear(),
-                fixture.competitionId(), ruleResourceHash, CareerInternationalRules.VERSION,
-                CareerInternationalRules.POLICY, cycle.hashAlgorithm(),
+                fixture.competitionId(), ruleResourceHash,
+                CareerInternationalRules.RESOURCE_HASH_V2.equals(ruleResourceHash) ? CareerInternationalRules.VERSION_V2 : CareerInternationalRules.VERSION,
+                CareerInternationalRules.RESOURCE_HASH_V2.equals(ruleResourceHash) ? CareerInternationalRules.POLICY_V2 : CareerInternationalRules.POLICY, cycle.hashAlgorithm(),
                 instance.stateHash(), instance.revision(), fixture.fixtureId(),
                 fixture.matchId(), fixture.matchOrder(), fixture.stageId(),
                 new CareerCompetitionRules.ParticipantSelector(

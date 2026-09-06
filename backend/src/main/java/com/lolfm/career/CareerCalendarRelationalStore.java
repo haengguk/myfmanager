@@ -71,6 +71,30 @@ public final class CareerCalendarRelationalStore {
         if (inserted != 1) throw new CalendarIntegrityFailure();
     }
 
+    public CareerApplicationService.SeasonReference seasonReference(String career, int year) {
+        var rows = jdbc.query("SELECT league_id, season_id FROM career_season WHERE career_id = ? AND season_year = ?",
+                (r,n) -> new CareerApplicationService.SeasonReference(r.getString(1),r.getString(2)),career,year);
+        if (rows.size() != 1) throw new CalendarIntegrityFailure();
+        return rows.getFirst();
+    }
+
+    /** Called under the Calendar command lock and the encompassing rollover transaction. Revision never resets. */
+    public CalendarRow rollover(CareerRelationalStore.CareerRow career, int sourceYear, long expectedRevision) {
+        var row = loadReady(career);
+        if (row.seasonYear() != sourceYear || row.calendarRevision() != expectedRevision) throw new StaleRevision();
+        int year = sourceYear + 1;
+        LocalDate date = LocalDate.of(year,1,1);
+        if (!date.isAfter(row.currentDate())) throw new CalendarIntegrityFailure();
+        long revision = expectedRevision + 1;
+        String hash = template.stateHash(career.careerId(),year,date,0,revision,null,null,"ACTIVE",null);
+        jdbc.update("""
+            UPDATE career_calendar_state SET active_calendar_season_year = ?, current_game_date = ?, event_cursor = 0,
+              calendar_revision = ?, calendar_state_hash = ?, last_processed_event_id = NULL, last_processed_date = NULL,
+              lifecycle_status = 'ACTIVE', blocking_reason = NULL, updated_at = ? WHERE career_id = ?
+            """,year,date,revision,hash,now(),career.careerId());
+        return loadReady(career);
+    }
+
     /** Read-only load. Legacy activation is owned by explicit startup recovery. */
     public CalendarRow loadReady(CareerRelationalStore.CareerRow career) {
         CalendarRow result = find(career.careerId()).orElseThrow(CalendarNotFound::new);
@@ -118,6 +142,7 @@ public final class CareerCalendarRelationalStore {
                 WHERE career_id = ? AND lifecycle_status = 'MIGRATION_PENDING'
                 """, year, hash, now(), row.careerId());
         if (updated != 1) throw new CalendarIntegrityFailure();
+        jdbc.update("UPDATE career_season SET season_year = ? WHERE career_id = ? AND season_ordinal = 1",year,row.careerId());
     }
 
     public Optional<CalendarRow> find(String careerId) {

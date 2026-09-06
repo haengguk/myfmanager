@@ -8,6 +8,13 @@ import java.util.Map;
 public interface CareerInternationalParticipants {
     Selection overseas(String careerId, int year, String competitionId);
     CompetitionRosterSnapshot.Roster roster(TeamKey team);
+    default Selection overseas(String careerId, int year, String competitionId, CompetitionRosterSnapshot seasonRosters) {
+        var selected = overseas(careerId,year,competitionId);
+        var rankings = new java.util.LinkedHashMap<String,List<CompetitionRosterSnapshot.Roster>>();
+        selected.rankings().forEach((region,teams) -> rankings.put(region,teams.stream()
+                .map(r -> seasonRosters.roster(CompetitionRosterSnapshot.token(r.team()))).toList()));
+        return new Selection(selected.policy(),selected.evidence()+";SEASON_ROSTER="+seasonRosters.identity(),rankings);
+    }
     record Selection(String policy, String evidence, Map<String, List<CompetitionRosterSnapshot.Roster>> rankings) {
         public Selection { rankings = rankings.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, e->List.copyOf(e.getValue()))); }
     }

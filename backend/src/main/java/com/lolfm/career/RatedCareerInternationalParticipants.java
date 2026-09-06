@@ -14,6 +14,16 @@ public final class RatedCareerInternationalParticipants implements CareerInterna
     public CompetitionRosterSnapshot.Roster roster(GlobalTeamRosterCatalog.TeamKey team) {
         return CompetitionRosterSnapshot.capture(catalog.snapshot(team));
     }
+    @Override public Selection overseas(String careerId, int year, String competitionId, CompetitionRosterSnapshot seasonRosters) {
+        var rankings = new LinkedHashMap<String,List<CompetitionRosterSnapshot.Roster>>();
+        for (String region : CareerInternationalRules.REFERENCE_REGIONS) {
+            if (region.equals("LCK")) continue;
+            rankings.put(region,seasonRosters.teams().values().stream().filter(r -> r.team().leagueCode().equals(region))
+                    .sorted(Comparator.comparingInt(CompetitionRosterSnapshot.Roster::strength).reversed()
+                            .thenComparing(r -> CompetitionRosterSnapshot.token(r.team()))).toList());
+        }
+        return new Selection(POLICY,"SEASON_CARRYOVER:"+careerId+":"+year+":"+competitionId+":"+seasonRosters.identity(),rankings);
+    }
     public Selection overseas(String careerId, int year, String competitionId) {
         var rankings = new LinkedHashMap<String, List<CompetitionRosterSnapshot.Roster>>();
         for(String region : catalog.leagueCodes().stream().sorted().toList()) {

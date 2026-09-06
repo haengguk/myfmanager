@@ -1,5 +1,5 @@
 import { CareerApiFailure } from '../src/features/career/api/careerApi.failure.ts';
-import { validateCareerAdvanceResponse, validateCareerCalendar, validateCareerCompetitionCommandResponse, validateCareerCreateResponse, validateCareerListResponse, validateCareerView } from '../src/features/career/api/careerApi.validation.ts';
+import { validateCareerSeasons, validateCareerSeasonDetail, validateCareerTransition, validateCareerTransitionRequest, validateCareerAdvanceResponse, validateCareerCalendar, validateCareerCompetitionCommandResponse, validateCareerCreateResponse, validateCareerListResponse, validateCareerView } from '../src/features/career/api/careerApi.validation.ts';
 import { careerResumeRoute } from '../src/features/career/career.adapter.ts';
 import {
   careerPointerRecoveryAction, clearCareerCreateOperation, logicalCareerCreate,
@@ -257,3 +257,27 @@ function internationalCalendar() {
 accepts('international registration and qualified fixture codes retain the Career contract', () => validateCareerCalendar(internationalCalendar()));
 rejects('international duplicate regional seed fails closed', () => { const value = internationalCalendar(); value.competition.internationalCompetitions[0].entries[1].regionalSeed = 1; validateCareerCalendar(value); });
 rejects('international result must reference the actual bracket participants', () => { const value = internationalCalendar(); value.competition.internationalCompetitions[0].results.FIRST_STAND_G0_O1 = { winner: 'LEC:G2', loser: 'LCK:GEN' }; validateCareerCalendar(value); });
+
+function seasonsResponse() {
+  return { schemaVersion: 'CAREER_SEASONS_V1', careerId, activeYear: 2029, calendarRevision: 5,
+    seasons: [2029,2028,2027].map((year,i) => ({ year, ordinal: 3-i, leagueId: `league_${String(i+3).repeat(64)}`, seasonId: `season_${String(i+4).repeat(64)}`, status: i ? 'CLOSED' : 'ACTIVE', rosterHash: hash })),
+    blockers: ['INCOMPLETE:LCK_CUP'], allowedCommands: [] };
+}
+function transitionResponse() {
+  const seasons = seasonsResponse();
+  return { replayed: true, receipt: { clientCommandId: '11111111-1111-4111-8111-111111111111', careerId, sourceYear: 2027, destinationYear: 2028, destinationSeasonId: seasons.seasons[1].seasonId, resultingRevision: 1, resultHash: hash, completedAt: later }, seasons };
+}
+accepts('original transition receipt can replay against a later active season', () => validateCareerTransition(transitionResponse()));
+rejects('transition receipt cannot substitute the currently active destination', () => { const value = transitionResponse(); value.receipt.destinationSeasonId = value.seasons.seasons[0].seasonId; validateCareerTransition(value); });
+rejects('blocked season cannot advertise a rollover command', () => { const value = seasonsResponse(); value.allowedCommands = ['START_NEXT_SEASON']; validateCareerSeasons(value); });
+rejects('season continuity cannot skip a year or ordinal', () => { const value = seasonsResponse(); value.seasons[1].year = 2026; validateCareerSeasons(value); });
+accepts('stored transition payload keeps its original source revision and UUID', () => validateCareerTransitionRequest({ schemaVersion: 'CAREER_SEASON_TRANSITION_REQUEST_V1', sourceYear: 2027, expectedCalendarRevision: 0, clientCommandId: '11111111-1111-4111-8111-111111111111' }));
+rejects('historical detail cannot advertise mutable current-season state', () => validateCareerSeasonDetail({ schemaVersion: 'CAREER_SEASON_DETAIL_V1', careerId, season: seasonsResponse().seasons[1], readOnly: false, domestic: null, international: [], fixtures: [] }));
+accepts('V2 selection authority is additive to preserved V1', () => { const value = internationalCalendar(); Object.assign(value.competition.internationalCompetitions[0], { ruleVersion: 'career-international-rules-v2', policyVersion: 'CAREER_INTERNATIONAL_GAME_POLICY_V2' }); validateCareerCalendar(value); });
+
+accepts('a prior-season competition operation never reuses its UUID for a new season', () => {
+  const storage = { value: null, getItem() { return this.value; }, setItem(_key, value) { this.value = value; }, removeItem() { this.value = null; } };
+  const old = logicalCareerCompetition(storage, careerId, 0, () => '11111111-1111-4111-8111-111111111111', 2027);
+  const next = logicalCareerCompetition(storage, careerId, 0, () => '22222222-2222-4222-8222-222222222222', 2028);
+  if (old.clientCommandId === next.clientCommandId || next.sourceYear !== 2028) throw new Error('source year was overwritten');
+});

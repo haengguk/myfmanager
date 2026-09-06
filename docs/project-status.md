@@ -1,6 +1,22 @@
 # Project Status
 
-이 문서는 2026-09-05 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-09-06 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+
+## Career 선택권 교정·시즌 전환·후속 대회 V1 (2026-09-06)
+
+시작 HEAD `c485fab59b8ca15d223a22cfc946bd41bbf784c6`에서 MSI Play-in 대회 시드와 Worlds
+Play-in/동일 전적 8강 선택권을 교정했다. V13은 V1 원본과 실행한 binding을 보존하며,
+V14는 최초 Career binding을 유지한 채 연도별 League/Season·로스터·전환 receipt를 추가한다.
+필수 국내 6개와 국제 4개 완료 후 명시적 전환으로 다음 해 Cup/90경기 R1/R2/후속 국내·국제대회를
+다시 진행한다. 2년 차 결과 전이 완료와 3년 차 초기화, 동시 요청·rollback·재시작·원본 UUID replay를
+file-H2 통합 테스트로 확인했다. 해외는 기존 임시 공급자, KeSPA는 비활성 참고 대회다.
+
+브라우저에서 전환 응답 소실→새로고침→원본 UUID 확인으로 한 번만 전환되는 흐름과 과거 성적 조회,
+다음 해 Cup의 새 Player Series/Draft 진입을 확인했다. 시즌 준비용 합성 결과 전이는 실제 엔진
+다년 완주와 구분한다. 최종 전체 회귀는 한 번 실행하여 **264 suites / 2,004 tests / 실패·오류 0 /
+기존 skip 2, 22분 52초**로 통과했다. Career 36개·Series 50개와 기존 Player Draft 33개 계약,
+157-module build도 통과했다. 임시 서버·브라우저를 정리했고 자동 commit/push는 하지 않았다. 정책·호환·검증은
+[선택권 수정·시즌 전환 보고서](development/career-selection-fixes-and-season-rollover-v1.md)를 따른다.
 
 ## Career 국제대회 FST·MSI·EWC·Worlds V1 (2026-09-05)
 
@@ -10,7 +26,7 @@ FST → MSI → Worlds 자격 연결을 구현했다. LCK는 실제 국내 결�
 스냅샷은 시작 후 고정되며, 기존 V3 국내 완료 이력을 보존한다. EWC는 별도 자격·결과로 저장한다.
 
 기존 Calendar/Series에서 해외 경기와 복구를 연결했다. 아시안게임은 명시적 제외로 처리하며
-KeSPA와 다음 시즌 rollover는 계속 제한한다. 집중 7개 및 보강 2개 테스트, Career/Series
+당시에는 KeSPA와 다음 시즌 rollover를 제한했다. 현재 rollover는 위 후속 V1로 구현했다. 집중 7개 및 보강 2개 테스트, Career/Series
 프런트 계약·build, 해외 Player 결과·Calendar 복귀와 Auto 새로고침 브라우저 검증이 통과했다.
 첫 전체 회귀에서 발견한 migration 기대값·binding 내용 비교·비동기 순위 조회 문제를 교정하고
 해당 5개 집중 테스트를 통과했다. 마지막 전체 회귀는 **264 suites / 1,999 tests, 실패·오류 0,
@@ -24,7 +40,7 @@ KeSPA와 다음 시즌 rollover는 계속 제한한다. 집중 7개 및 보강 2
 Cup 그룹 동률은 5위/1위 팀이 BO1 자식 경기에 교대 출전하고 부모 Fearless 기록을 상속한다.
 최종 snapshot/row와 직전 SEALED 순위 소비 계약을 재사용하며, 정규시즌 기록과 최종 대회 순위를 구분한다.
 실행 전 V2만 전환하고 사용한 V2 결과/binding은 보존한다. 당시 Worlds 자격은 국제 증거 대기였으며 국제대회 gate를 유지했다.
-현재 국제대회·아시안게임 상태는 위 국제 V1 항목을 따르고 KeSPA·rollover 제한은 유지한다.
+현재 국제대회·아시안게임 상태는 국제 V1, 반복 시즌은 후속 rollover V1을 따른다. KeSPA 비활성 정책은 유지한다.
 
 집중7 suites/51 tests와 마지막 전이18 tests, Career/Series 프런트 계약, production build,
 기존 Calendar 컴포넌트 브라우저 흐름이 통과했다. 최종 전체 회귀는 한 번 실행하여
@@ -1138,4 +1154,4 @@ V1은 current LCK starters-only snapshot이며 다른 league, substitute, histor
 
 ## Last Updated
 
-2026-09-02 (Asia/Seoul)
+2026-09-06 (Asia/Seoul)

@@ -21,7 +21,7 @@ public final class CareerApiV1RequestParser {
     private static final Set<String> ADVANCE_FIELDS = Set.of(
             "schemaVersion", "expectedCalendarRevision", "mode", "clientCommandId");
     private static final Set<String> COMPETITION_COMMAND_FIELDS = Set.of(
-            "schemaVersion", "expectedCompetitionRevision", "clientCommandId");
+            "schemaVersion", "expectedCompetitionRevision", "clientCommandId", "sourceYear");
     private final ObjectMapper strictMapper;
 
     public CareerApiV1RequestParser(ObjectMapper mapper) {
@@ -117,9 +117,23 @@ public final class CareerApiV1RequestParser {
             throw invalid("clientCommandId", "clientCommandId는 UUID 형식이어야 합니다.");
         }
         return new CareerApiV1Dtos.CompetitionCommandRequest(schema,
-                revision.longValue(), commandId);
+                revision.longValue(), commandId, json.has("sourceYear") ? positiveYear(json,"sourceYear") : null);
     }
 
+    public com.lolfm.career.CareerSeasonApplicationService.Request seasonTransition(byte[] body) {
+        var value=read(body); var fields=new HashSet<String>(); value.fieldNames().forEachRemaining(fields::add);
+        if (!value.isObject() || !fields.equals(Set.of("schemaVersion","sourceYear","expectedCalendarRevision","clientCommandId")))
+            throw invalid(null,"시즌 전환 필드를 확인해 주세요.");
+        var revision=value.get("expectedCalendarRevision");
+        if (!revision.isIntegralNumber() || !revision.canConvertToLong() || revision.longValue()<0) throw invalid("expectedCalendarRevision","정수가 필요합니다.");
+        return new com.lolfm.career.CareerSeasonApplicationService.Request(text(value,"schemaVersion"),positiveYear(value,"sourceYear"),
+                revision.longValue(),text(value,"clientCommandId"));
+    }
+    private static int positiveYear(JsonNode value,String name) {
+        var year=value.get(name);
+        if (year==null || !year.isIntegralNumber() || !year.canConvertToInt() || year.intValue()<2026) throw invalid(name,"시즌 연도를 확인해 주세요.");
+        return year.intValue();
+    }
     private JsonNode read(byte[] body) {
         if (body == null || body.length == 0) {
             throw invalid(null, "요청 본문은 유효한 JSON 객체여야 합니다.");

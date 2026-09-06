@@ -347,7 +347,8 @@ public final class CareerCalendarApplicationService {
             CareerCalendarTemplate.ProjectedCalendar projected
     ) {
         CareerCalendarLeaguePort.SeasonProjection season = leagues.load(
-                career.leagueId(), career.seasonId());
+                calendars.seasonReference(career.careerId(), state.seasonYear()).leagueId(),
+                calendars.seasonReference(career.careerId(), state.seasonYear()).seasonId());
         List<CareerCalendarTemplate.FixtureInput> inputs = season.fixtures().stream()
                 .map(value -> new CareerCalendarTemplate.FixtureInput(value.fixtureId(),
                         value.roundNumber(), value.executionMode(), value.firstTeamCode(),

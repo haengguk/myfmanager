@@ -78,6 +78,12 @@ public final class CareerInternationalTournament {
         var outcome = result(local);
         if (outcome != null && !Set.of(a, b).equals(Set.of(outcome.winner(), outcome.loser())))
             throw new IllegalArgumentException("BRACKET_OUTCOME_PARTICIPANT_MISMATCH");
+        var locked = state.selectionUpgrade() == null ? null : state.selectionUpgrade().lockedBouts().stream()
+                .filter(saved -> saved.id().equals(id(local))).findFirst().orElse(null);
+        if (locked != null) {
+            if (!locked.first().equals(a) || !locked.second().equals(b)) throw new IllegalStateException("LOCKED_BRACKET_CHANGED");
+            bouts.add(locked); return;
+        }
         bouts.add(new Bout(id(local), stage, date(md), sequence, format, a, b,
                 owner == null ? coin(local + ":ROFS", a, b) : owner,
                 rods ? CareerInternationalRules.RODS : CareerInternationalRules.ROFS, group));
@@ -113,17 +119,29 @@ public final class CareerInternationalTournament {
     private String playIn(String month, int lastPlace) {
         List<String> teams = shuffled("PLAY_IN", state.entries().stream().filter(e -> e.phase().equals("PLAY_IN")).map(Entry::team).toList());
         if (teams.size() != 4) throw new IllegalStateException("PLAY_IN_CARDINALITY");
+        if (state.correctedSelection() && month.equals("MSI")) {
+            var seeded = teams.stream().sorted(Comparator.comparingInt(t -> entries.get(t).playInSeed())).toList();
+            teams = List.of(seeded.get(0), seeded.get(3), seeded.get(1), seeded.get(2));
+            if (state.selectionUpgrade() != null && !state.selectionUpgrade().startedPlayInDraw().isEmpty())
+                teams = state.selectionUpgrade().startedPlayInDraw();
+        }
         draws.add(new Draw("PLAY_IN", teams, null));
         String[] days = month.equals("MSI") ? new String[]{"06-28","06-28","06-29","06-30","06-30","07-01"}
                 : new String[]{"10-15","10-15","10-16","10-17","10-17","10-18"};
-        bout("PI_O1", "PLAY_IN", days[0], "BO5", teams.get(0), teams.get(1), seedOwner("PI_O1", teams.get(0),teams.get(1)), false, null);
-        bout("PI_O2", "PLAY_IN", days[1], "BO5", teams.get(2), teams.get(3), seedOwner("PI_O2", teams.get(2),teams.get(3)), false, null);
+        bout("PI_O1", "PLAY_IN", days[0], "BO5", teams.get(0), teams.get(1), playInOwner("PI_O1", teams.get(0),teams.get(1)), false, null);
+        bout("PI_O2", "PLAY_IN", days[1], "BO5", teams.get(2), teams.get(3), playInOwner("PI_O2", teams.get(2),teams.get(3)), false, null);
         bout("PI_U", "PLAY_IN", days[2], "BO5", w("PI_O1"), w("PI_O2"), null, false, null);
         bout("PI_D", "PLAY_IN", days[3], "BO5", l("PI_O1"), l("PI_O2"), null, false, null);
         bout("PI_L", "PLAY_IN", days[4], "BO5", l("PI_U"), w("PI_D"), null, false, null);
         bout("PI_F", "PLAY_IN", days[5], "BO5", w("PI_U"), w("PI_L"), w("PI_U"), true, null);
         placeLoser("PI_D", lastPlace); placeLoser("PI_L", lastPlace-1); placeLoser("PI_F", lastPlace-2);
         return w("PI_F");
+    }
+    private String playInOwner(String scope, String a, String b) {
+        if (!state.correctedSelection()) return seedOwner(scope, a, b);
+        return state.competitionId().equals("MSI")
+                ? entries.get(a).playInSeed() < entries.get(b).playInSeed() ? a : b
+                : coin(scope, a, b);
     }
     private String seedOwner(String scope, String a, String b) {
         int first = entries.get(a).regionalSeed(), second = entries.get(b).regionalSeed();
@@ -225,7 +243,7 @@ public final class CareerInternationalTournament {
         for(int i=0,k=0;i<8;i++)if(knockout.get(i)==null)knockout.set(i,remaining.get(k++));
         draws.add(new Draw("KNOCKOUT",knockout,null));
         for(int i=0;i<4;i++) {String a=knockout.get(i*2),b=knockout.get(i*2+1);
-            String owner=qualifyingLosses.get(a).equals(qualifyingLosses.get(b))?coin("QF"+i,a,b):qualifyingLosses.get(a)<qualifyingLosses.get(b)?a:b;
+            String owner=qualifyingLosses.get(a).equals(qualifyingLosses.get(b))?(state.correctedSelection()?knockout.get(Math.min(knockout.indexOf(a),knockout.indexOf(b))):coin("QF"+i,a,b)):qualifyingLosses.get(a)<qualifyingLosses.get(b)?a:b;
             bout("QF"+i,"QUARTERFINAL","11-0"+(3+i),"BO5",a,b,owner,false,null);placeLoser("QF"+i,5);}
         for(int i=0;i<2;i++){bout("SF"+i,"SEMIFINAL","11-0"+(7+i),"BO5",w("QF"+(i*2)),w("QF"+(i*2+1)),null,false,null);placeLoser("SF"+i,3);}
         bout("F","FINAL","11-14","BO5",w("SF0"),w("SF1"),null,false,null);finalBout("F");

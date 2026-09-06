@@ -1,0 +1,30 @@
+{
+  "version": "career-international-rules-v2",
+  "policy": "CAREER_INTERNATIONAL_GAME_POLICY_V2",
+  "base": "career-international-rules-2026-v1",
+  "selection": {
+    "msiPlayIn": "Separate persisted tournament seeds ordered by current FST regional performance; 1 vs 4, 2 vs 3; higher tournament seed RoFS",
+    "worldsPlayIn": "Deterministic coin, independent of regional seed",
+    "worldsQuarterfinal": "Better Swiss record; equal record uses persisted knockout draw order",
+    "laterRounds": "Unchanged V1; Swiss regional seed, Play-in upper winner final RoDS, subsequent game loser RoFS"
+  },
+  "compatibility": "Archive original V1 state; preserve bound bouts and started Play-in pairing; upgrade eligible unbound fixtures atomically. Completed V1 stays immutable.",
+  "drawAlgorithm": "Retain V1 hash domain for reproducible historical draws",
+  "sources": {
+    "MSI": "https://cdn.sanity.io/files/dsfx7636/news_live/7487705ee4449ee59d163b4f92577127d6dbc365.pdf sections 4.1.3.2 and 4.2",
+    "Worlds": "https://cdn.sanity.io/files/dsfx7636/news_live/faa5ce974e58615911fbee931c6123e2785a8b46.pdf sections 4.1.4.2-4.1.4.4"
+  },
+  "futureSeasonPolicy": {
+    "id": "FUTURE_SEASON_POLICY_V1",
+    "calendar": "Repeat 2026 month/day as game policy, never as future official schedule",
+    "rosters": "Carry all current Career starters unchanged; fresh mutable game state",
+    "fst": "Fixed slots LCK/LPL two, other regions one; previous same-Career Worlds regional performance orders first-seed pools; second seeds pool 3",
+    "msi": "Same-season FST regional performance and Road to MSI results",
+    "worlds": "Same-season MSI bonuses and sealed same-season domestic ranking; preserve V1 pool priorities and fill main 4/4/4/3 before adding Play-in winner",
+    "ewc": "Previous same-Career EWC champion on current season roster; duplicate qualification goes to highest unselected team of champion region; unavailable champion regional succession then previous EWC regional performance",
+    "closureExclusions": [
+      "KESPA_CUP_INACTIVE_REFERENCE",
+      "ASIAN_GAMES_LOL_RELEASE_EXCLUDED"
+    ]
+  }
+}

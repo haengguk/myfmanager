@@ -39,9 +39,9 @@ final class CareerDomesticCompetition {
         refresh(career, year, "LCK_REGULAR_R1_R2");
         if (order.isEmpty()) return;
         var source = db.queryForMap("""
-                SELECT l.schedule_identity, l.revision FROM career_save c JOIN league_season l ON l.season_id = c.season_id
-                WHERE c.career_id = ?
-                """, career);
+                SELECT l.schedule_identity, l.revision FROM career_season c JOIN league_season l ON l.season_id = c.season_id
+                WHERE c.career_id = ? AND c.season_year = ?
+                """, career, year);
         var binding = store.careerBinding(career);
         store.sealR1R2(career, year, binding.managedTeamCode(), binding.rootSeed(),
                 (String) source.get("schedule_identity"), ((Number) source.get("revision")).longValue(), seeded(order, decision.records()));
@@ -331,7 +331,7 @@ final class CareerDomesticCompetition {
         if (matches.size() != 130 || !Set.copyOf(teams(matches)).equals(Set.copyOf(order))) throw new IllegalStateException("LCK_FINAL_REGULAR_RECORD_EVIDENCE_REQUIRED");
         var ranking = seeded(order, CareerDomesticRanking.records(order, matches));
         var cycle = store.findCycle(career, year, false).getFirst();
-        String season = db.queryForObject("SELECT season_id FROM career_save WHERE career_id = ?", String.class, career);
+        String season = db.queryForObject("SELECT season_id FROM career_season WHERE career_id = ? AND season_year = ?", String.class, career, year);
         String state = CareerCompetitionRelationalStore.finalRankingStateHash(career, year, cycle.seasonOrdinal(), season, ranking);
         List<String> receipts = db.query("""
                 SELECT competition_id || ':' || match_id || ':' || receipt_hash FROM career_competition_application

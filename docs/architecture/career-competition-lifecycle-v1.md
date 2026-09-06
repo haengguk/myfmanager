@@ -7,7 +7,8 @@ R1/R2와 R3/R4의 H2H·다자간 동률, 실제 추가 경기, 시즌 말 LCK_PL
 우승팀·최종1–10위 봉인을 기존 Competition/Series/League 경계에 연결했다.
 2026-09-05 안정화의 V10 scoped choice key, heartbeat, 원자적 완료 fence 및 durable replay를 유지한다.
 BO1 동률전은 기존 BO3/BO5 실행 계층의 additive 확장이며 Cup 그룹 동률은 부모 아래 고정 두 팀 BO1 자식들로 표현한다.
-KeSPA Cup, 국제대회와 아시안게임 gate, 실제 rollover는 여전히 미구현 범위다.
+국제대회 실행은 V12, 선택권 교정과 반복 시즌은 V13/V14 확장으로 연결한다.
+KeSPA는 비활성 참고 대회이며 아시안게임은 명시적 제외다.
 [국내 순위·PO·최종 순위 보고서](../development/career-domestic-ranking-playoffs-finalization-v1.md)에
 공식 근거, 게임 정책, 기존 저장 처리 및 실제 검증 결과를 기록한다.
 
@@ -197,12 +198,11 @@ durable command UUID를 보존하고, 복귀 시 서버 pending command로 같�
 
 ## 남은 제한
 
-KeSPA 2026 세부 규칙/등록 roster, 시즌 말 LCK Playoffs 실행, First Stand/MSI/EWC/Worlds 실제 상대·roster·fixture,
-Asian Games 차출 효과, Career season rollover, 이적·훈련·피로·부상·재정은 아직 없다. Auto job은
+KeSPA 2026 세부 규칙/등록 roster, 해외 실제 리그, 이적·훈련·피로·부상·재정은 아직 없다.
+시즌 말 LCK Playoffs와 네 국제대회 및 반복 시즌 전환은 아래 후속 확장으로 구현했다. Auto job은
 durable result/application exactly-once를 제공하지만 single-node local worker이며 crash 시 미완료
 게임의 CPU 계산 자체는 같은 frozen input으로 다시 수행할 수 있다.
-2026-09-05 source 조사에서 LCK Playoffs routing과 국제 형식을 확인했지만 production readiness는
-바꾸지 않았다. 규칙 근거 문서의 미결 질문·제품 선택·의존 순서를 다음 작업 기준으로 사용한다.
+2026-09-05 source 조사 당시의 미구현 설명은 이후 국내·국제·시즌 전환 구현으로 대체한다.
 
 ## V3 규칙과 V11 저장 호환
 
@@ -235,3 +235,26 @@ reconcile에서 수행하며 GET은 쓰기 없이 상태를 검증한다. 아시
 명시적 정책이고 KeSPA/rollover를 건너뛰는 일반 스위치가 아니다.
 
 정책·출처·검증 범위는 [국제대회 실행 V1](../development/career-international-fst-msi-ewc-worlds-execution-v1.md)을 따른다.
+
+
+## 국제 선택권 V2와 반복 시즌 V14
+
+국제 V1 리소스/해시는 보존하고 `career-international-rules-v2`를 추가한다. MSI는 금년 FST
+지역 성과로 저장한 별도 Play-in seed(1–4, 2–3)를 선택권에 사용한다. Worlds Play-in은
+지역 시드와 독립적인 추첨, 동일 Swiss 전적 8강은 저장된 KNOCKOUT 추첨 순서를 사용한다.
+V13은 진행 중 V1 원본을 archive하고 이미 시작/bound된 bout를 보존한다. 미실행 unbound
+fixture만 새 계산과 일치하게 전환하며, 완료 V1은 그대로 읽는다.
+
+V14 시즌 전환은 같은 Career의 정확한 직전 SEALED 국내 순위로 `initializeFuture`를 호출한다.
+연도별 League/Season을 분리하여 새 R1/R2와 후속 국내 순위가 최초 시즌으로 잘못 연결되지 않는다.
+56팀 roster snapshot을 고정 이월하고 새 국내 Competition binding에도 해당 두 팀의 frozen
+roster를 담는다. 새 Player/Auto 경기의 mutable state는 새로 만든다.
+
+`FUTURE_SEASON_POLICY_V1`은 직전 Worlds 지역 성과로 금년 FST pool 우선순위를 정한다.
+MSI는 금년 FST/Road, Worlds는 금년 MSI/봉인 국내 순위, EWC는 직전 EWC 실제 우승 자격과
+금년 로스터/직접 진출 입력을 소비한다. 최초 cycle 대체 정책을 매년 반복하지 않는다.
+해외 선정은 기존 교체 가능한 임시 공급자를 유지한다. KeSPA는 필수 마감 집합에서만 명시적으로
+제외하며 fake completion이나 다른 대회 skip을 만들지 않는다.
+
+상세 호환·승계 정책과 실제 검증 범위는
+[선택권 수정·시즌 전환 보고서](../development/career-selection-fixes-and-season-rollover-v1.md)에 기록한다.

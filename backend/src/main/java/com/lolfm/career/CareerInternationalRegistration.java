@@ -18,6 +18,11 @@ final class CareerInternationalRegistration {
     static CareerInternationalState create(String career,int year,String competition,long root,
             CareerInternationalParticipants.Selection selection,List<CompetitionRosterSnapshot.Roster> domestic,
             String domesticEvidence,List<String> regionOrder,CareerInternationalState msi) {
+        return create(career,year,competition,root,selection,domestic,domesticEvidence,regionOrder,msi,null);
+    }
+    static CareerInternationalState create(String career,int year,String competition,long root,
+            CareerInternationalParticipants.Selection selection,List<CompetitionRosterSnapshot.Roster> domestic,
+            String domesticEvidence,List<String> regionOrder,CareerInternationalState msi,CareerInternationalState priorEwc) {
         var rankings=new LinkedHashMap<>(selection.rankings());rankings.put("LCK",List.copyOf(domestic));
         if(!rankings.keySet().equals(java.util.Set.copyOf(CareerInternationalRules.REFERENCE_REGIONS)))throw new IllegalArgumentException("SIX_REGIONAL_INPUTS_REQUIRED");
         var builder=new CareerInternationalRegistration(competition,rankings);
@@ -25,7 +30,7 @@ final class CareerInternationalRegistration {
             case "FIRST_STAND" -> {
                 for(String region:CareerInternationalRules.REFERENCE_REGIONS) {
                     boolean two=region.equals("LCK")||region.equals("LPL");
-                    builder.add(region,1,two?1:2,"MAIN",region.equals("LCK")?"ACTUAL_CUP_RESULT":"TEMPORARY_OVERSEAS_RANK");
+                    builder.add(region,1,regionOrder.indexOf(region)<2?1:2,"MAIN",region.equals("LCK")?"ACTUAL_CUP_RESULT":"TEMPORARY_OVERSEAS_RANK");
                     if(two)builder.add(region,2,3,"MAIN",region.equals("LCK")?"ACTUAL_CUP_RESULT":"TEMPORARY_OVERSEAS_RANK");
                 }
             }
@@ -45,9 +50,11 @@ final class CareerInternationalRegistration {
                 builder.remaining("LCP",3,"APAC_QUALIFIER_REPLACEMENT_1");builder.remaining("LPL",3,"CHINA_QUALIFIER_REPLACEMENT_2");
                 builder.remaining("LEC",3,"EUROPE_QUALIFIER_REPLACEMENT_1");builder.remaining("LCK",3,"KOREA_QUALIFIER_REPLACEMENT_2");
                 // Missing defender is selected after all ordinary LCK slots have been allocated.
-                builder.remaining("LCK",2,"FIRST_CYCLE_MISSING_TITLE_SLOT_LCK_REFERENCE");
+
                 builder.add("CBLOL",1,4,"MAIN","REGIONAL_FIRST_DIRECT");builder.remaining("LEC",4,"EUROPE_QUALIFIER_REPLACEMENT_2");
                 builder.remaining("LCS",4,"NORTH_AMERICA_QUALIFIER_REPLACEMENT");builder.remaining("CBLOL",4,"SOUTH_AMERICA_QUALIFIER_REPLACEMENT");
+                if (priorEwc == null) builder.remaining("LCK",2,"FIRST_CYCLE_MISSING_TITLE_SLOT_LCK_REFERENCE");
+                else builder.title(priorEwc);
             }
             case "WORLDS" -> {
                 if(msi==null||!msi.plan().complete())throw new IllegalArgumentException("MSI_COMPLETION_REQUIRED");
@@ -71,12 +78,40 @@ final class CareerInternationalRegistration {
             }
             default -> throw new IllegalArgumentException("INTERNATIONAL_COMPETITION");
         }
+        if (competition.equals("WORLDS")) {
+            // Preserve official pool priority, then fill 4/4/4/3 main places; the Play-in winner fills pool 4.
+            // A two-slot region may earn an early performance rank without possessing a third seed.
+            var main = builder.entries.stream().filter(e -> e.phase().equals("MAIN"))
+                    .sorted(java.util.Comparator.comparingInt(Entry::pool).thenComparingInt(Entry::regionalSeed)
+                            .thenComparingInt(e -> regionOrder.indexOf(e.region()))).toList();
+            for (int i = 0; i < main.size(); i++) {
+                var entry = main.get(i); builder.entries.set(builder.entries.indexOf(entry), entry.withPool(i / 4 + 1));
+            }
+        }
         int expected=switch(competition){case "FIRST_STAND"->8;case "MSI"->11;case "EWC_LOL"->16;default->19;};
         if(builder.entries.size()!=expected)throw new IllegalStateException("INTERNATIONAL_QUALIFICATION_CARDINALITY");
-        var state=new CareerInternationalState(career,year,competition,CareerInternationalRules.VERSION,CareerInternationalRules.RESOURCE_HASH,
-                CareerInternationalRules.POLICY,selection.policy(),domesticEvidence, CareerCompetitionAggregate.deriveSeed(root,year,competition,"REGISTRATION_DRAW:"+career+":"+CareerInternationalRules.POLICY),
-                builder.entries,new CompetitionRosterSnapshot(builder.frozen),regionOrder,null);
+        var state=new CareerInternationalState(career,year,competition,CareerInternationalRules.VERSION_V2,CareerInternationalRules.RESOURCE_HASH_V2,
+                CareerInternationalRules.POLICY_V2,selection.policy(),domesticEvidence, CareerCompetitionAggregate.deriveSeed(root,year,competition,"REGISTRATION_DRAW:"+career+":"+CareerInternationalRules.POLICY),
+                CareerInternationalState.playInSeeds(builder.entries,regionOrder,competition),new CompetitionRosterSnapshot(builder.frozen),regionOrder,null);
         return state.withPlan(CareerInternationalTournament.project(state,Map.of()));
+    }
+    private void title(CareerInternationalState prior) {
+        if (!prior.plan().complete()) throw new IllegalArgumentException("PREVIOUS_EWC_CHAMPION_REQUIRED");
+        String champion = prior.plan().champion();
+        String region = prior.rosters().roster(champion).team().leagueCode();
+        var candidates = rankings.getOrDefault(region,List.of());
+        for (int i=0;i<candidates.size();i++) if (token(candidates.get(i)).equals(champion)) {
+            if (!frozen.containsKey(champion)) add(region,i+1,2,"MAIN","PREVIOUS_EWC_CHAMPION_CURRENT_ROSTER");
+            else remaining(region,2,"PREVIOUS_EWC_CHAMPION_DUPLICATE_REGIONAL_SUCCESSION");
+            return;
+        }
+        // Unavailable champion: retain regional qualification if possible, otherwise follow prior EWC regional performance.
+        var priority = new ArrayList<String>(); priority.add(region);
+        prior.plan().regionalPerformance().stream().filter(r -> !r.equals(region)).forEach(priority::add);
+        for (String fallback : priority) if (rankings.getOrDefault(fallback,List.of()).stream().anyMatch(r -> !frozen.containsKey(token(r)))) {
+            remaining(fallback,2,"PREVIOUS_EWC_CHAMPION_UNAVAILABLE_SUCCESSION"); return;
+        }
+        throw new IllegalStateException("EWC_TITLE_SUCCESSOR_UNAVAILABLE");
     }
     private void add(String region,int seed,int pool,String phase,String path){addRoster(rankings.get(region).get(seed-1),seed,pool,phase,path);}
     private void remaining(String region,int pool,String path){

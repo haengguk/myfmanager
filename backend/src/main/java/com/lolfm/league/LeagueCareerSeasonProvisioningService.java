@@ -23,6 +23,21 @@ public final class LeagueCareerSeasonProvisioningService
     }
 
     @Override
+    public CareerApplicationService.ProvisionedSeason provisionNext(String previousSeasonId, String leagueId,
+            String seasonId, String managedTeamCode, long rootSeed) {
+        var previous = store.loadSeason(previousSeasonId);
+        if (store.findSeason(seasonId).isPresent()) throw new IllegalStateException("CAREER_DERIVED_SEASON_ALREADY_EXISTS");
+        var snapshot = previous.frozenSnapshot();
+        var season = LeagueSeasonAggregate.create(leagueId, seasonId, LeagueSeasonMode.HYBRID_MANAGER,
+                managedTeamCode, snapshot.teamSnapshotIdentity(managedTeamCode), snapshot, rootSeed,
+                LeagueSchedulePolicy.productionDefault());
+        seasons.createFrozen(season);
+        var ready = seasons.ready(seasonId, 0);
+        return new CareerApplicationService.ProvisionedSeason(leagueId,seasonId,managedTeamCode,rootSeed,
+                ready.status().name(),snapshot.snapshotIdentity(),season.productDecisionHash());
+    }
+
+    @Override
     public CareerApplicationService.ProvisionedSeason provision(
             String leagueId,
             String seasonId,

@@ -30,7 +30,7 @@ public record CompetitionRosterSnapshot(Map<String, Roster> teams) {
         if (teams.isEmpty()) throw new IllegalArgumentException("EMPTY_COMPETITION_ROSTER");
         var players = new java.util.HashSet<String>();
         teams.forEach((token, roster) -> {
-            if (!token.equals(token(roster.team()))) throw new IllegalArgumentException("ROSTER_TEAM_SCOPE");
+            if (!token.equals(token(roster.team())) && !(roster.team().leagueCode().equals("LCK") && token.equals(roster.team().teamCode()))) throw new IllegalArgumentException("ROSTER_TEAM_SCOPE");
             for (Starter player : roster.players()) {
                 if (!players.add(player.playerId())) throw new IllegalArgumentException("DUPLICATE_COMPETITION_PLAYER");
             }
@@ -56,6 +56,10 @@ public record CompetitionRosterSnapshot(Map<String, Roster> teams) {
         return new CompetitionRosterSnapshot(Map.of(first, roster(first), second, roster(second)));
     }
 
+    public CompetitionRosterSnapshot domesticPair(String first, String second) {
+        return new CompetitionRosterSnapshot(Map.of(first, roster(managedToken(first)), second, roster(managedToken(second))));
+    }
+
     public Roster roster(String token) {
         Roster result = teams.get(token);
         if (result == null) throw new IllegalArgumentException("FROZEN_COMPETITION_TEAM_MISSING:" + token);
@@ -63,7 +67,7 @@ public record CompetitionRosterSnapshot(Map<String, Roster> teams) {
     }
 
     /** New mutable domain objects for every draft/game/reprojection. */
-    public Team assemble(String token) { return roster(token).assemble(); }
+    public Team assemble(String token) { return new Team(token, roster(token).players().stream().map(Starter::assemble).toList()); }
     public String canonical() {
         try { return JSON.writeValueAsString(this); }
         catch (java.io.IOException e) { throw new IllegalStateException(e); }

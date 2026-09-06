@@ -47,9 +47,12 @@ final class CareerInternationalCompetition {
                 String registrationHash=CareerInternationalRules.hash(write(state));
                 store.jdbc.update("INSERT INTO career_international_state(career_id, calendar_season_year, competition_id, state_json, state_hash) VALUES (?, ?, ?, ?, ?)",career,year,competition,write(state),registrationHash);
                 store.jdbc.update("UPDATE career_competition_instance SET rule_status = 'GAME_POLICY_DEFINED', source_input_hash = ?, materialization_policy_id = ?, materialization_receipt_hash = ?, revision = revision + 1 WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",
-                        registrationHash,CareerInternationalRules.POLICY,registrationHash,career,year,competition);
+                        registrationHash,state.policyVersion(),registrationHash,career,year,competition);
                 changed=true;
             }
+            var beforeUpgrade = state;
+            state = upgradeSelection(state);
+            changed |= beforeUpgrade != state;
             var outcomes=outcomes(store,career,year,competition);
             var next=state.withPlan(CareerInternationalTournament.project(state,outcomes));
             if(!write(next).equals(write(state))){
@@ -68,6 +71,25 @@ final class CareerInternationalCompetition {
                         CareerCompetitionAggregate.deriveSeed(binding.rootSeed(),year,competition,bout.id()),"series_"+identity,List.of(),List.of(),null,null,null);
                 store.insertFixture(career,year,competition,fixture,bout.stage(),bout.order(),bout.group(),null,bout.selectionOwner(),null,bout.sidePolicy(),"GAME_DERIVED_SCHEDULE_POLICY");changed=true;
             }
+            if (next.selectionUpgrade() != null) {
+                for (var bout : next.plan().bouts()) {
+                    if (next.selectionUpgrade().lockedBouts().stream().anyMatch(b -> b.id().equals(bout.id()))) continue;
+                    int updated = store.jdbc.update("""
+                        UPDATE career_competition_fixture SET first_team_code = ?, second_team_code = ?,
+                          first_selector_value = ?, second_selector_value = ?, execution_mode = ?,
+                          selection_right_owner = ?, side_selection_policy = ?
+                        WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ? AND match_id = ?
+                          AND lifecycle_status = 'READY'
+                          AND NOT EXISTS (SELECT 1 FROM career_competition_series_binding b WHERE b.career_id = ?
+                            AND b.calendar_season_year = ? AND b.competition_id = ? AND b.match_id = ?)
+                          AND (first_team_code <> ? OR second_team_code <> ? OR selection_right_owner <> ?)
+                        """, bout.first(), bout.second(), bout.first(), bout.second(),
+                        List.of(bout.first(), bout.second()).contains(managed) ? "PLAYER_CONTROLLED" : "FULL_AUTO",
+                        bout.selectionOwner(), bout.sidePolicy(), career, year, competition, bout.id(),
+                        career, year, competition, bout.id(), bout.first(), bout.second(), bout.selectionOwner());
+                    changed |= updated > 0;
+                }
+            }
             var instance=store.instance(career,year,competition);
             String status=next.plan().complete()?"COMPLETED":"MATERIALIZED";
             if(!status.equals(instance.lifecycleStatus())||instance.blockingReason()!=null){
@@ -77,9 +99,36 @@ final class CareerInternationalCompetition {
         }
         if(changed)store.refreshCycleHash(career,year);
     }
+    private CareerInternationalState upgradeSelection(CareerInternationalState state) {
+        if (state.correctedSelection() || state.plan().complete()) return state;
+        String career = state.careerId(), competition = state.competitionId(); int year = state.year();
+        var lockedIds = store.jdbc.query("""
+            SELECT match_id FROM career_competition_series_binding WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?
+            UNION SELECT match_id FROM career_competition_fixture WHERE career_id = ? AND calendar_season_year = ?
+              AND competition_id = ? AND lifecycle_status <> 'READY'
+            """, (r,n)->r.getString(1), career,year,competition,career,year,competition);
+        var locked = state.plan().bouts().stream().filter(b -> lockedIds.contains(b.id())).toList();
+        var startedDraw = locked.isEmpty() ? List.<String>of() : state.plan().draws().stream()
+                .filter(d -> d.scope().equals("PLAY_IN")).map(CareerInternationalTournament.Draw::teams).findFirst().orElse(List.of());
+        String original = write(state), hash = CareerInternationalRules.hash(original);
+        store.jdbc.update("INSERT INTO career_international_selection_archive VALUES (?, ?, ?, ?, ?)",career,year,competition,original,hash);
+        var upgraded = new CareerInternationalState(career,year,competition,CareerInternationalRules.VERSION_V2,
+                CareerInternationalRules.RESOURCE_HASH_V2,CareerInternationalRules.POLICY_V2,state.selectionPolicy(),
+                state.inputEvidence(),state.drawSeed(),CareerInternationalState.playInSeeds(state.entries(),state.regionOrder(),competition),
+                state.rosters(),state.regionOrder(),state.plan(),new CareerInternationalState.SelectionUpgrade(hash,locked,startedDraw));
+        String serialized = write(upgraded);
+        store.jdbc.update("UPDATE career_international_state SET state_json = ?, state_hash = ? WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",
+                serialized,CareerInternationalRules.hash(serialized),career,year,competition);
+        store.jdbc.update("UPDATE career_competition_instance SET materialization_policy_id = ?, revision = revision + 1 WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",
+                upgraded.policyVersion(),career,year,competition);
+        return upgraded;
+    }
     private CareerInternationalState register(String career,int year,String competition){
-        // Year rollover is outside V1; never reuse the 2026 initial reference as a future played result.
-        if(store.findCycle(career,year,false).getFirst().seasonOrdinal()!=1)return null;
+        boolean future = store.findCycle(career,year,false).getFirst().seasonOrdinal() > 1;
+        var previousWorlds = future ? load(store,career,year-1,"WORLDS") : null;
+        var previousEwc = future ? load(store,career,year-1,"EWC_LOL") : null;
+        if (future && (previousWorlds == null || !previousWorlds.plan().complete()
+                || previousEwc == null || !previousEwc.plan().complete())) throw new IllegalStateException("PREVIOUS_SEASON_INTERNATIONAL_RESULTS_REQUIRED");
         String dependency=switch(competition){case "FIRST_STAND"->"LCK_CUP";case "MSI"->"LCK_ROAD_TO_MSI";case "EWC_LOL"->"MSI";default->"LCK_PLAYOFFS";};
         if(!"COMPLETED".equals(store.instance(career,year,dependency).lifecycleStatus()))return null;
         var fst=load(store,career,year,"FIRST_STAND");var msi=load(store,career,year,"MSI");
@@ -103,14 +152,18 @@ final class CareerInternationalCompetition {
                 for(String team:ranking.getFirst().ranking())if(!domestic.contains(team))domestic.add(team);
             }
         }
-        var selection=participants.overseas(career,year,competition);
-        List<String> regions=competition.equals("FIRST_STAND")?CareerInternationalRules.REFERENCE_REGIONS:
+        var seasonRosters = CareerSeasonRosters.load(store,career,year);
+        if (future && seasonRosters == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
+        var selection=seasonRosters == null ? participants.overseas(career,year,competition)
+                : participants.overseas(career,year,competition,seasonRosters);
+        List<String> regions=competition.equals("FIRST_STAND")?(future?previousWorlds.plan().regionalPerformance():CareerInternationalRules.REFERENCE_REGIONS):
                 competition.equals("MSI")?fst.plan().regionalPerformance():msi.plan().regionalPerformance();
         // Capture all ranking inputs (including nonselected foreign candidates), source domestic hash and prior game performance.
         String evidence=write(List.of(selection,store.instance(career,year,dependency).stateHash(),outputs,domestic,regions,
-                msi==null?"NO_MSI_INPUT":msi.plan()));
+                msi==null?"NO_MSI_INPUT":msi.plan(),future?List.of("FUTURE_SEASON_POLICY_V1",previousWorlds.plan(),previousEwc.plan(),seasonRosters.identity()):"INITIAL_CYCLE"));
         return CareerInternationalRegistration.create(career,year,competition,store.careerBinding(career).rootSeed(),selection,
-                domestic.stream().map(t->participants.roster(new TeamKey("LCK",t))).toList(),evidence,regions,msi);
+                domestic.stream().map(t->seasonRosters == null ? participants.roster(new TeamKey("LCK",t)) : seasonRosters.roster("LCK:"+t)).toList(),evidence,regions,msi,
+                competition.equals("EWC_LOL") ? previousEwc : null);
     }
     static CareerInternationalState load(CareerCompetitionRelationalStore store,String career,int year,String competition){
         var values=store.jdbc.query("SELECT state_json, state_hash FROM career_international_state WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",(r,n)->{

@@ -14,14 +14,13 @@ final class CareerDomesticEvidence {
                 SELECT r.receipt_json, r.receipt_hash, r.receipt_canonical,
                        s.season_id, f.fixture_id, f.first_team_code, f.second_team_code,
                        f.bound_series_id, l.schedule_identity, s.league_id
-                FROM career_save s
-                JOIN career_calendar_state c ON c.career_id = s.career_id
+                FROM career_season s
                 JOIN league_season l ON l.season_id = s.season_id AND l.league_id = s.league_id
                 JOIN league_fixture f ON f.season_id = s.season_id
                 JOIN league_standings_application a ON a.season_id = f.season_id AND a.fixture_id = f.fixture_id
                 JOIN league_completion_receipt r ON r.receipt_hash = a.receipt_hash
                   AND r.season_id = f.season_id AND r.fixture_id = f.fixture_id
-                WHERE s.career_id = ? AND c.active_calendar_season_year = ?
+                WHERE s.career_id = ? AND s.season_year = ?
                   AND f.lifecycle_status = 'COMPLETED'
                 ORDER BY f.round_number, f.fixture_id
                 """, (r, row) -> {

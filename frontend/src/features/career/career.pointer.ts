@@ -15,7 +15,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 export interface CareerCreateSelection { saveName: string; managerName: string; managedTeamCode: string }
 export interface CareerCreateOperation { schemaVersion: 'CAREER_CREATE_OPERATION_V2'; canonicalSelectionKey: string; selection: CareerCreateSelection; clientCommandId: string }
 export interface CareerAdvanceOperation { schemaVersion: 'CAREER_ADVANCE_OPERATION_V1'; careerId: string; expectedCalendarRevision: number; mode: 'ADVANCE_ONE_DAY' | 'ADVANCE_TO_NEXT_EVENT'; clientCommandId: string }
-export interface CareerCompetitionOperation { schemaVersion: 'CAREER_COMPETITION_OPERATION_V1'; careerId: string; expectedCompetitionRevision: number; clientCommandId: string }
+export interface CareerCompetitionOperation { schemaVersion: 'CAREER_COMPETITION_OPERATION_V1'; careerId: string; expectedCompetitionRevision: number; clientCommandId: string; sourceYear?: number }
 interface CareerAdvanceOperations { schemaVersion: 'CAREER_ADVANCE_OPERATIONS_V2'; operations: Record<string, CareerAdvanceOperation> }
 export interface CareerReturnContext { schemaVersion: 'CAREER_RETURN_CONTEXT_V1'; careerId: string }
 export interface PointerStorage { getItem(key: string): string | null; setItem(key: string, value: string): void; removeItem(key: string): void }
@@ -143,12 +143,14 @@ export function logicalCareerCompetition(
   careerId: string,
   expectedCompetitionRevision: number,
   uuid: () => string = () => crypto.randomUUID(),
+  sourceYear?: number,
 ): CareerCompetitionOperation {
   const current = readCareerCompetitionOperation(storage, careerId);
-  if (current) return current;
+  if (current && (sourceYear === undefined || current.sourceYear === sourceYear)) return current;
+  if (current) clearCareerCompetitionOperation(storage, careerId);
   const next: CareerCompetitionOperation = {
     schemaVersion: 'CAREER_COMPETITION_OPERATION_V1', careerId,
-    expectedCompetitionRevision, clientCommandId: uuid(),
+    expectedCompetitionRevision, clientCommandId: uuid(), ...(sourceYear === undefined ? {} : { sourceYear }),
   };
   if (!CAREER_ID.test(careerId) || !Number.isSafeInteger(expectedCompetitionRevision)
     || expectedCompetitionRevision < 0 || !UUID.test(next.clientCommandId)) throw new Error('invalid Competition operation');
@@ -161,17 +163,18 @@ export function reconcileCareerCompetitionOperation(
   careerId: string,
   expectedCompetitionRevision: number,
   pending: CareerCompetitionViewDto['activePendingCommand'],
+  sourceYear?: number,
 ): CareerCompetitionOperation | null {
   const current = readCareerCompetitionOperation(storage, careerId);
   if (!pending) {
-    if (current && current.expectedCompetitionRevision !== expectedCompetitionRevision) {
+    if (current && (current.expectedCompetitionRevision !== expectedCompetitionRevision || sourceYear !== undefined && current.sourceYear !== sourceYear)) {
       clearCareerCompetitionOperation(storage, careerId); return null;
     }
     return current;
   }
   const server: CareerCompetitionOperation = {
     schemaVersion: 'CAREER_COMPETITION_OPERATION_V1', careerId,
-    expectedCompetitionRevision, clientCommandId: pending.clientCommandId,
+    expectedCompetitionRevision, clientCommandId: pending.clientCommandId, ...(sourceYear === undefined ? {} : { sourceYear }),
   };
   if (!CAREER_ID.test(careerId) || !Number.isSafeInteger(expectedCompetitionRevision)
     || expectedCompetitionRevision < 0 || !UUID.test(server.clientCommandId)) throw new Error('invalid Competition recovery operation');
