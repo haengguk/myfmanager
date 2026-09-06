@@ -18,6 +18,14 @@ public final class CareerMarketStore {
     public CareerMarketStore(JdbcTemplate jdbc,PlatformTransactionManager manager,CareerSeasonApplicationService seasons) {
         this.jdbc=jdbc;transactions=new TransactionTemplate(manager);this.seasons=seasons;
     }
+    public record TradeRequest(String schemaVersion,int sourceYear,long expectedRevision,String action,String tradeId,
+            CareerManagementState.TradeTerms terms,String replacementPlayerId,String clientCommandId) {}
+    public record TradeQuote(String playerId,long referenceSalary,long estimatedValue,long suggestedTransferFee,LocalDate earliestStart,String unavailableReason) {}
+    public record Negotiation(String tradeId,String contractId,String proposer,CareerManagementState.TradeTerms terms,
+            LocalDate submittedDate,LocalDate responseDate,LocalDate decisionDate,LocalDate expiresDate,int round,String previousTradeId,
+            CareerManagementState.TradeStatus status,boolean sellerAgreed,boolean buyerAgreed,long referenceValue,long sellerDemand,String reason,String policyVersion) {}
+    public record ManagementView(String policyVersion,LocalDate observationStarted,List<CareerManagementState.Promise> promises,
+            List<Negotiation> trades,List<CareerManagementState.Loan> loans,List<CareerManagementState.Appearance> appearances,List<TradeQuote> quotes) {}
     public record Saved(long revision,CareerMarketState state) {}
     public record Request(String schemaVersion,int sourceYear,long expectedRevision,String action,String playerId,
             String offerId,Terms terms,String replacementPlayerId,String competitionId,String clientCommandId) {}
@@ -32,7 +40,7 @@ public final class CareerMarketStore {
             LocalDate currentDate,long revision,boolean readOnly,String managedTeam,boolean offseason,
             LocalDate nextMarketEvent,List<PlayerMarket> players,List<Contract> contracts,List<Offer> offers,
             List<Finance> finances,List<Decision> decisions,List<Event> events,List<Ledger> ledger,
-            Map<String,List<String>> missingPositions,List<Supplement> supplements,List<String> allowedCommands,String registrationPolicy) {}
+            Map<String,List<String>> missingPositions,List<Supplement> supplements,List<String> allowedCommands,String registrationPolicy,ManagementView management) {}
     public static Saved load(JdbcTemplate jdbc,String career) {
         var rows=jdbc.query("SELECT revision,state_json,state_hash FROM career_market_state WHERE career_id=?",(r,n)->{
             if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("MARKET_STATE_INTEGRITY");
@@ -44,17 +52,22 @@ public final class CareerMarketStore {
     }
     private static String managed(JdbcTemplate jdbc,String career) {return "LCK:"+jdbc.queryForObject("SELECT managed_team_code FROM career_save WHERE career_id=?",String.class,career);}
     public static void initialize(JdbcTemplate jdbc,String career) {
-        lockCareer(jdbc,career);if(load(jdbc,career)!=null)return;
+        lockCareer(jdbc,career);var existing=load(jdbc,career);
+        if(existing!=null) {
+            if(existing.state().management()==null)persist(jdbc,career,activeYear(jdbc,career),existing,engine(jdbc,career,activeYear(jdbc,career),existing));
+            return;
+        }
         int year=activeYear(jdbc,career);var roster=CareerRosterStore.saved(jdbc,career,year);if(roster==null)return;
         long seed=jdbc.queryForObject("SELECT career_root_seed FROM career_save WHERE career_id=?",Long.class,career);
         int first=jdbc.queryForObject("SELECT MIN(season_year) FROM career_season WHERE career_id=?",Integer.class,career);
         var state=CareerMarketEngine.initialize(career,seed,date(jdbc,career),first,directory(jdbc,career),roster.state());
+        state=new CareerMarketEngine(career,managed(jdbc,career),directory(jdbc,career),roster.state(),state).state();
         String json=write(state);jdbc.update("INSERT INTO career_market_state VALUES (?,0,?,?)",career,json,hash(json));
         var operating=new CareerRosterStore.State(OPERATING_POLICY,roster.state().members(),roster.state().lineups());
         String r=write(operating);jdbc.update("UPDATE career_roster_state SET state_json=?,state_hash=? WHERE career_id=? AND season_year=?",r,hash(r),career,year);
     }
     public void recover() {
-        var ids=jdbc.query("SELECT s.career_id FROM career_save s LEFT JOIN career_market_state m ON m.career_id=s.career_id WHERE m.career_id IS NULL ORDER BY s.career_id",(r,n)->r.getString(1));
+        var ids=jdbc.query("SELECT s.career_id FROM career_save s LEFT JOIN career_market_state m ON m.career_id=s.career_id WHERE m.career_id IS NULL OR m.state_json NOT LIKE '%\"management\"%' OR m.state_json LIKE '%\"management\":null%' ORDER BY s.career_id",(r,n)->r.getString(1));
         for(String id:ids)transactions.executeWithoutResult(ignored->initialize(jdbc,id));
     }
     static CareerMarketEngine engine(JdbcTemplate jdbc,String career,int year,Saved market) {
@@ -70,6 +83,7 @@ public final class CareerMarketStore {
         // During Calendar mutation the processed market date is the target; both commit atomically.
         LocalDate date=market.state().processedThrough();Map<String,String> employers=new TreeMap<>();
         for(var c:market.state().contracts().values())if(c.team()!=null&&c.status()==ContractStatus.ACTIVE&&!date.isBefore(c.terms().startDate())&&!date.isAfter(c.terms().endDate()))employers.put(c.playerId(),c.team());
+        if(market.state().management()!=null)for(var loan:market.state().management().loans().values())if("ACTIVE".equals(loan.status())&&!date.isBefore(loan.startDate())&&!date.isAfter(loan.endDate())&&employers.containsKey(loan.playerId()))employers.put(loan.playerId(),loan.borrowingTeam());
         return new Eligibility(true,employers);
     }
     public static boolean eligible(JdbcTemplate jdbc,String career,String team,String player) {return eligibility(jdbc,career).allows(team,player);}
@@ -119,7 +133,7 @@ public final class CareerMarketStore {
         if(historical) {
             var snapshot=jdbc.query("SELECT market_json,closed_date,roster_json FROM career_market_season_close WHERE career_id=? AND season_year=?",(r,n)->List.of(r.getString(1),r.getObject(2,LocalDate.class).toString(),r.getString(3)),career,year);
             if(!snapshot.isEmpty()){state=read(snapshot.getFirst().get(0),CareerMarketState.class);date=LocalDate.parse(snapshot.getFirst().get(1));roster=new CareerRosterStore.Saved(roster.revision(),read(snapshot.getFirst().get(2),CareerRosterStore.State.class));}
-            else return new View("CAREER_MARKET_VIEW_V1",CareerMarketPolicy.VERSION,CareerMarketPolicy.CURRENCY,career,year,date,saved.revision(),true,managed(jdbc,career),false,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),Map.of(),List.of(),List.of(),"이주 전 시즌에는 게임 계약 이력이 없습니다. 공개 조사 계약은 선수 상세에서 확인하세요.");
+            else return new View("CAREER_MARKET_VIEW_V1",CareerMarketPolicy.VERSION,CareerMarketPolicy.CURRENCY,career,year,date,saved.revision(),true,managed(jdbc,career),false,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),Map.of(),List.of(),List.of(),"이주 전 시즌에는 게임 계약 이력이 없습니다. 공개 조사 계약은 선수 상세에서 확인하세요.",null);
         }
         String managed=managed(jdbc,career);var engine=new CareerMarketEngine(career,managed,directory(jdbc,career),roster.state(),state);
         var directory=directory(jdbc,career);
@@ -145,7 +159,49 @@ public final class CareerMarketStore {
                 state.ledger().stream().filter(l->managed.equals(l.team())).sorted(Comparator.comparing(Ledger::date).reversed()).limit(100).toList(),gaps,
                 jdbc.query("SELECT competition_id,team,player_id,position,added_date,revision,reason FROM career_registration_supplement WHERE career_id=? AND season_year=? ORDER BY competition_id,revision",(r,n)->new Supplement(r.getString(1),r.getString(2),r.getString(3),r.getString(4),r.getObject(5,LocalDate.class),r.getLong(6),r.getString(7)),career,year),
                 historical?List.of():List.of("SUBMIT","REVISE","WITHDRAW","RELEASE","SUPPLEMENT","OPEN_STOVE"),
-                "영입 후 선발은 별도 선택합니다. 등록 밖 선수는 다음 등록부터 적용하며, 유효한 등록 대체자가 전혀 없는 포지션만 명시적 보충등록할 수 있습니다. 시작된 Series는 유지됩니다.");
+                "영입 후 선발은 별도 선택합니다. 등록 밖 선수는 다음 등록부터 적용하며, 유효한 등록 대체자가 전혀 없는 포지션만 명시적 보충등록할 수 있습니다. 시작된 Series는 유지됩니다.",managementView(engine,year,historical,managed,date));
+    }
+    private ManagementView managementView(CareerMarketEngine engine,int year,boolean historical,String managed,LocalDate date) {
+        var state=engine.management();var quotes=new ArrayList<TradeQuote>();
+        if(!historical)for(var p:engine.directory.players().values().stream().sorted(Comparator.comparing(com.lolfm.player.ExpandedPlayerCatalog.Definition::playerId)).toList()) {
+            var c=engine.active(p.playerId(),date);long fee=0;
+            if(c!=null&&c.team()!=null) {
+                String buyer=engine.accounts.keySet().stream().filter(t->!t.equals(c.team())).findFirst().orElseThrow();
+                fee=engine.tradeEngine.demandFee(new CareerManagementState.TradeTerms(CareerManagementState.Kind.TRANSFER,p.playerId(),c.team(),buyer,date,date,0,0,null,null),date);
+            }
+            quotes.add(new TradeQuote(p.playerId(),CareerManagementPolicy.referenceSalary(p),engine.tradeEngine.estimate(p.playerId(),date),fee,engine.tradeEngine.decision(p.playerId(),date).plusDays(1),engine.tradeEngine.unavailable(p.playerId(),date)));
+        }
+        return new ManagementView(state.policyVersion(),state.observationStarted(),state.promises().values().stream().sorted(Comparator.comparing(CareerManagementState.Promise::playerId).thenComparing(CareerManagementState.Promise::startDate)).toList(),
+                state.trades().values().stream().filter(t->managed.equals(t.terms().seller())||managed.equals(t.terms().buyer())).sorted(Comparator.comparing(CareerManagementState.Trade::submittedDate).reversed().thenComparing(CareerManagementState.Trade::tradeId))
+                    .map(t->new Negotiation(t.tradeId(),t.contractId(),t.proposer(),t.terms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),t.round(),t.previousTradeId(),t.status(),t.sellerAgreed(),t.buyerAgreed(),t.referenceValue(),t.sellerDemand(),t.reason(),t.policyVersion())).toList(),
+                state.loans().values().stream().sorted(Comparator.comparing(CareerManagementState.Loan::startDate).thenComparing(CareerManagementState.Loan::loanId)).toList(),
+                state.appearances().values().stream().filter(a->a.seasonYear()==year).sorted(Comparator.comparing(CareerManagementState.Appearance::date).thenComparing(CareerManagementState.Appearance::completionId)).toList(),quotes);
+    }
+    public Change tradeCommand(String career,TradeRequest request) {
+        if(request==null||!"CAREER_TRADE_COMMAND_V1".equals(request.schemaVersion())||request.sourceYear()<2026||request.expectedRevision()<0||request.action()==null)throw CareerException.invalid(null,"이적/임대 요청 형식을 확인해 주세요.");
+        String command;try{command=CareerIdentity.canonicalCommandId(request.clientCommandId());}catch(RuntimeException e){throw CareerException.invalid("clientCommandId","원본 UUID가 필요합니다.");}
+        String payload=hash(career+'|'+write(request));
+        return transactions.execute(ignored->{
+            lockCareer(jdbc,career);
+            var prior=jdbc.query("SELECT payload_hash,receipt_json,receipt_hash FROM career_market_command WHERE career_id=? AND client_command_id=?",(r,n)->{
+                if(!payload.equals(r.getString(1)))throw CareerException.calendarCommandConflict();
+                if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("MARKET_RECEIPT_INTEGRITY");return read(r.getString(2),Receipt.class);
+            },career,command);
+            if(!prior.isEmpty())return new Change(true,prior.getFirst(),readView(career,activeYear(jdbc,career)));
+            var old=load(jdbc,career);if(old==null||activeYear(jdbc,career)!=request.sourceYear()||old.revision()!=request.expectedRevision())throw CareerException.calendarStaleRevision();
+            var engine=engine(jdbc,career,request.sourceYear(),old);String actor=managed(jdbc,career);LocalDate date=date(jdbc,career);CareerManagementState.Trade trade;
+            if(Set.of("SUBMIT","COUNTER").contains(request.action())) {
+                if(request.terms()==null||request.replacementPlayerId()!=null||("COUNTER".equals(request.action())!=(request.tradeId()!=null)))throw CareerException.invalid(null,"거래 조건과 원본 거래를 확인해 주세요.");
+                trade=engine.tradeEngine.submit(actor,request.terms(),request.tradeId(),date);
+            } else {
+                if(request.terms()!=null||request.tradeId()==null||!Set.of("ACCEPT","REJECT","WITHDRAW").contains(request.action()))throw CareerException.invalid(null,"거래 응답을 확인해 주세요.");
+                trade=engine.tradeEngine.respond(actor,request.tradeId(),request.action(),request.replacementPlayerId(),date);
+            }
+            persist(jdbc,career,request.sourceYear(),old,engine);touch(jdbc,career);
+            var receipt=new Receipt(command,career,request.sourceYear(),old.revision()+1,"TRADE_"+request.action(),trade.tradeId(),date,trade.reason());
+            String json=write(receipt);jdbc.update("INSERT INTO career_market_command VALUES (?,?,?,?,?)",career,command,payload,json,hash(json));
+            return new Change(false,receipt,readView(career,request.sourceYear()));
+        });
     }
     public Change command(String career,Request request) {
         if(request==null||!"CAREER_MARKET_COMMAND_V1".equals(request.schemaVersion())||request.sourceYear()<2026||request.expectedRevision()<0)throw CareerException.invalid(null,"시장 요청 형식을 확인해 주세요.");

@@ -1534,3 +1534,26 @@ production build를 확인했다. 브라우저는 KT 계약 제안→공통 결�
 변경 전체 회귀는 **1회, 29분 6초**, **265 suites / 총 2,028 tests / 통과 2,026 / 실패 0 /
 오류 0 / 기존 skip 2**, aggregate XML **2,953.651초**로 통과했다. clean full 이후 문서만
 갱신했다. 상세 결과는 [통합 보고서](career-market-fixes-and-expanded-player-v4-integration-v1.md)에 기록한다.
+
+
+## Career 출전 약속·유료 이적·임대 V1 (2026-09-07)
+
+기존 CareerMarketEngineTest 30건에서 가치/기간 경계·실제 연봉 독립성, 역할 차이·관찰 유예와
+무경기 기간 반복 불만 방지, 거래 거절/경쟁/단일 지급, 임대 원계약·분담·체불·반환·연도 경계,
+재계약 소속 연속성과 제한 예산 AI 임대 후보를 확인한다. 새 1:1 테스트 클래스는 만들지 않는다.
+CareerModePersistenceTest의 새 통합 메서드는 파일 이주·실제 Calendar 적용·동시 UUID·다른
+payload 충돌·원자 롤백·frozen 입력·활성 임대 재시작을 확인한다. 실제 경기 증거는 기존
+LeagueAutomatedSeriesRunnerProductionV9Test의 Auto BO3 한 흐름에 유료 영입 Life와
+검증 완료의 공통 출전 반영/재시도 무변경을 연결했다. 다년/해외 리그 실제 완주는 아니다.
+
+최종 프런트 Career verifier 63건과 production build, 브라우저 KT→T1 유료 이적 및 T1→HLE
+임대 흐름, 이적 제안 응답 소실의 원본 UUID 복구를 확인했다. 임대 반환/원계약 만료/연도 경계는
+작은 엔진/파일 저장 증거를 사용하며 같은 브라우저 게임 완주를 반복하지 않는다.
+
+production/API/resource/저장 연결 변경이므로 전체 backend test가 필요하다. 집중·브라우저
+수정을 마친 최종 트리에서 `./gradlew test --console=plain --no-daemon`을 총 2회 실행했다.
+첫 실행은 V17 추가 전 개수를 기대한 기존 단언 1건 실패(31분 45초), 해당 집중 1건은
+교정 후 59초로 통과했다. 최종 전체는 **265 suites / 총 2,042 / 통과 2,040 / 실패 0 /
+오류 0 / 기존 skip 2**, **33분 24초**(외부 wall 2,004.56초, XML 누적 3,212.621초)로 통과했다.
+clean full 이후 문서만 갱신했다. 명령·시간·중간 실패 분류는 [통합 보고서](career-playing-time-promises-paid-transfers-and-loans-v1.md)에 기록한다.
+장기 시장 분포, 큰 seed, 선수/구단 전수 경기, 새 감사 도구는 실행하지 않는다.

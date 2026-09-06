@@ -51,9 +51,9 @@ For ordinary work:
 - keep test helpers small and shared only when they remove real repetition;
 - do not build a generic framework in test code for one feature.
 
-The budget does not waive a required final full regression. It limits new test
-implementation and duplicate evidence; `AGENTS.md` still decides when the existing
-complete suite must run.
+The test-code budget does not waive the planned full pass when required.
+`AGENTS.md` decides when the complete suite runs and when scoped follow-up checks
+are sufficient to finish; a production fix is not an automatic full-suite rerun.
 
 ## Evidence deduplication
 
@@ -84,12 +84,16 @@ an explicitly requested release gate.
 
 ## Verification router
 
+The full-regression column describes the planned initial pass. After any full
+pass, use the impact-based rerun rule in `AGENTS.md`, including after a failed pass;
+do not apply this table again to require a full run for every fix.
+
 | Changed surface | Default evidence | Full backend regression |
 | --- | --- | --- |
 | Documentation or report wording only | None; inspect the diff | Never |
 | Isolated test, test-side parser, or artifact consumer | Narrow focused test; reproduce canonical output when that is the claim | No, unless it also changes shared fixtures, Gradle, global state, or suite order |
-| Backend production Java, API contract, runtime wiring, or production resource | Focused behavioral tests for the changed path and directly affected invariants | One final run after the production tree is complete |
-| Random order, determinism, global/static state, shared fixture, or Gradle/test configuration | Focused determinism and affected contract tests | Required on the final tree |
+| Backend production Java, API contract, runtime wiring, or production resource | Focused behavioral tests for the changed path and directly affected invariants | One planned pass after implementation and focused checks |
+| Random order, determinism, global/static state, shared fixture, or Gradle/test configuration | Focused determinism and affected contract tests | One planned pass; assess the actual coverage gap before any repeat |
 | Frontend source | `npm run build`; add browser verification only when the requested user flow needs it | No backend full run unless backend/runtime also changed |
 | Diagnostic harness or generated artifact | Focused contract/smoke; add input binding and manifest checks only when the requested acceptance contract requires them | No by default; apply the executable surface rules above |
 | Calibration, holdout, distribution, or full-population audit | Do not run unless explicitly requested or correctness cannot establish the claim | Not a substitute for the default backend regression |
@@ -133,6 +137,12 @@ instead of listing every repository verifier "for safety."
   acceptance claim.
 - Keep final reporting proportional. A short feature does not need a regulatory-style
   proof report or hundreds of lines of verification documentation.
+- Prescribe one planned backend full pass when required, then failed and directly
+  affected tests for localized fixes. Do not mandate another full pass merely
+  because production/API/resource code changed or the first pass failed. Require
+  the `AGENTS.md` coverage-gap reason before every repeat, including the second.
+- Allow completion after scoped fixes pass and no wider gap remains. Report the
+  original full result separately; do not claim an unexecuted clean final full run.
 
 If compilation or an existing focused test already proves a claim, do not add a new
 test whose only purpose is to restate it. If an agent wants to exceed the prescribed
@@ -167,39 +177,48 @@ does not trigger it. Preserve the integrity requirements of official baselines.
    do not discover one artifact defect per full-regression cycle.
 4. Fix the production tree, run the affected focused checks, and freeze production,
    resource, runtime, shared-fixture, and build inputs before the final full run.
-5. After a clean full regression, only bind, promote, or deterministically regenerate
+5. After the required verification, bind, promote, or deterministically regenerate
    the official artifact and verify its focused acceptance checks and manifest. Do
    not reopen exploratory production analysis that could have run on the candidate.
-   Apply the `AGENTS.md` post-pass change rules to promotion and regeneration too:
-   if they change production resources or runtime inputs, run the required full
-   regression again. Do not classify a runtime artifact as a mere report to reuse
-   a result from before those inputs changed.
-6. Keep full-regression reuse identity distinct from focused artifact-acceptance
-   evidence. An assertion-only or isolated acceptance-test change that `AGENTS.md`
-   permits after a clean full run must not force another full run merely to refresh a
-   combined source hash. If current tooling couples those identities, report or fix
-   that workflow rather than rerunning the unchanged full suite for reassurance.
+   Apply the `AGENTS.md` coverage-gap rule to any repeat. Production-resource or
+   runtime-input changes need affected behavioral checks, not an automatic full run.
+   Preserve an explicit artifact-acceptance requirement for a clean full result on
+   particular inputs when it is actually in scope; do not infer it from a report or
+   hash alone, or silently weaken the authenticity of an official baseline.
+6. Keep full-run evidence distinct from focused artifact-acceptance evidence.
+   Refreshing a combined source hash must not force another full run. If current
+   tooling couples those identities, report or fix that workflow rather than
+   rerunning the suite for reassurance; never mislabel the inputs a run verified.
 7. If post-full artifact inspection reveals a production defect, inspect the rest of
-   the artifact first, apply the smallest batched causal fix, rerun focused evidence,
-   and then apply the `AGENTS.md` rule for any required final full regression.
+   the artifact first, batch causal fixes, and run the affected checks. Finish when
+   no coverage gap remains; repeat the full suite only under `AGENTS.md` or an
+   applicable explicit acceptance requirement.
 
 ## Full-regression decision
 
 Apply the `AGENTS.md` full-regression budget exactly. In particular:
 
-- finish production/resource/runtime/build changes before the final full run;
-- reuse a clean full result after documentation, report wording, assertion-only, or
-  isolated test-local changes when `AGENTS.md` permits it;
-- require a new full run after post-pass production, resource, runtime, shared-fixture,
-  Gradle, global-state, Random-order, or suite-order changes;
-- do not describe a focused `--tests` invocation as a full regression.
+- finish the planned implementation and focused checks before the planned full pass;
+- after a passing or failing full pass, verify fixes with failed and directly
+  affected tests, including a bounded set of consumer suites where needed;
+- finish without another full run when those checks pass and no wider gap remains,
+  including after localized production/API/resource fixes;
+- before every repeat, identify the concrete shared behavior or interaction that
+  bounded affected suites cannot establish; neither failure count nor a changed
+  final tree is sufficient;
+- preserve explicit user requests and applicable official artifact-acceptance
+  requirements, but do not invent new approval or hardening gates;
+- report the initial full result and follow-up checks separately, retain existing
+  full-run summaries before focused outputs replace them, and never describe a
+  focused `--tests` invocation as a clean final full regression.
 
 ## Failures and artifacts
 
 - Classify a failure before editing expectations: intended behavior, product
   regression, Random-order or eligibility change, duplicate mutation, event
   classification, stale expectation, or environment/tooling failure.
-- Diagnose an environment failure before repeating the unchanged command.
+- Diagnose an environment failure before retrying. Identify unverified coverage
+  and resume the smallest sufficient remaining scope under `AGENTS.md`.
 - Treat generated reports as evidence from one run, not production source or a
   correctness-test oracle. Prefer manifest verification or artifact-only
   regeneration over repeating expensive simulations.

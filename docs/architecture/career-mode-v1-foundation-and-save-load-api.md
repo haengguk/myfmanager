@@ -213,3 +213,23 @@ create/startup은 V16 시장과 운영 roster V2를 초기화한다. 구형 rost
 V4 전역 정의는 새 Career directory에만 적용한다. 기존 directory/hash, 계약·선발·등록·경기
 고정 입력과 시즌 이월은 저장 자료를 유지한다. 운영상 육성 배치를 정규화하되 조사 원문과
 역할 검토 사유를 보존한다. [정책·검증](../development/career-market-fixes-and-expanded-player-v4-integration-v1.md)을 따른다.
+
+
+## 거래 명령 및 기존 저장 호환 V1 (2026-09-07)
+
+`POST /api/v1/careers/{careerId}/market/trades`는 `CAREER_TRADE_COMMAND_V1`의
+sourceYear, expectedRevision, action, tradeId, terms, replacementPlayerId,
+clientCommandId를 받는다. action은 SUBMIT/COUNTER/ACCEPT/REJECT/WITHDRAW다.
+기존 market Request 구조는 바꾸지 않아 과거 UUID payload hash를 보존한다.
+새 TradeRequest도 기존 durable market command/receipt 저장소와 Calendar 잠금으로 처리한다.
+
+시장 조회에 nullable management(약속·현재 시즌 출전·거래·임대·가치)를 추가한다.
+원계약 Contract.team은 법적 원소속, Membership.ownerTeam은 명부/선발의 현재 운영 팀이다.
+임대의 parentTeam/borrowingTeam이 둘을 명시한다. 신규 거래 조회는 상대 내부 buyerLimit과
+전체 playerScore를 노출하지 않고 고정 제안과 결정 이유를 제공한다.
+
+V17 SQL은 기존 시장 JSON/receipt를 다시 쓰지 않는다. recover에서 management가 없는
+기존 Career에 현재 날짜의 중립 관찰 상태를 추가하며 기존 directory·계약·역할·명부를
+재import하지 않는다. 이미 시작된 Series에 캡처가 없으면 과거 분모를 추측하지 않는다.
+시즌 이월은 동일 Career의 계약/약속/임대/장부를 유지하고 출전 조회만 연도별로 나눈다.
+상세 구현/검증은 [통합 구현 보고서](../development/career-playing-time-promises-paid-transfers-and-loans-v1.md)를 따른다.

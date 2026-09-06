@@ -276,6 +276,7 @@ public final class CareerRosterStore {
         for(String team:teams)registered.put(team,state.state().members().values().stream()
                 .filter(m->team.equals(m.ownerTeam()) && "FIRST_TEAM".equals(m.squad()) && m.eligibilityReason()==null)
                 .map(Membership::playerId).sorted().toList());
+        jdbc.update("INSERT INTO career_opportunity_registration VALUES (?,?,?,?)",career,year,competition,CareerMarketStore.date(jdbc,career));
         String json=write(registered);jdbc.update("INSERT INTO career_registered_player_pool VALUES (?,?,?,?,?,?)",
                 career,year,competition,REGISTRATION_POLICY,json,hash(json));
     }
@@ -332,6 +333,8 @@ public final class CareerRosterStore {
         var teams=jdbc.queryForObject("SELECT first_team_code,second_team_code FROM league_fixture WHERE season_id=? AND fixture_id=?",(r,n)->List.of(r.getString(1),r.getString(2)),seasonId,fixtureId);
         var frozen=eligiblePair(jdbc,key.getKey(),key.getValue(),"LCK:"+teams.get(0),"LCK:"+teams.get(1)).domesticPair(teams.get(0),teams.get(1));
         jdbc.update("INSERT INTO career_league_fixture_roster VALUES (?,?,?,?,?,?,?)",seasonId,fixtureId,key.getKey(),key.getValue(),state.revision(),frozen.encoded(),frozen.identity());
+        String series=jdbc.queryForObject("SELECT bound_series_id FROM league_fixture WHERE season_id=? AND fixture_id=?",String.class,seasonId,fixtureId);
+        CareerAppearanceStore.capture(jdbc,key.getKey(),key.getValue(),"LEAGUE|"+seasonId+'|'+fixtureId,series,null,frozen);
         return frozen;
     }
 

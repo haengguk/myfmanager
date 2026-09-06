@@ -475,8 +475,8 @@ New gameplay systems must include:
 - participant and reward integrity tests
 - same-seed reproducibility tests
 - structured diagnostic output
-- final full-regression verification for production/runtime-sensitive changes,
-  subject to the Full regression budget
+- one planned full-regression pass for production/runtime-sensitive changes,
+  with subsequent fixes verified under the Full regression budget below
 
 Diagnostics must distinguish:
 
@@ -553,58 +553,78 @@ unless it represents a true deterministic invariant.
 
 ### Full regression budget
 
-The complete backend Gradle `test` task is an expensive final verification
-step. A focused `--tests` invocation is not a full regression.
+The complete backend Gradle `test` task is expensive. A focused `--tests`
+invocation is not a full regression. The default for work requiring backend
+regression coverage is one planned full-suite pass, followed by scoped
+verification of any fixes. A second full run is an exception, not the next
+automatic step after a failure or a production-code edit.
 
 During implementation:
 
 - use focused tests for changed behavior and directly affected invariants
 - do not run the full backend regression after every intermediate change
-- finish production source, resource, and runtime-wiring changes first
-- run the full backend regression once on the final production tree when the
-  change requires it
+- finish the planned implementation, runtime wiring, and focused checks before
+  the planned full pass when the change requires one
+- retain results from that full pass when investigating failures; resuming the
+  same task does not reset the execution budget
 
-If the first full regression finds a real product regression:
+After a full pass, whether it passed or failed:
 
-1. identify the root cause
-2. fix it
-3. run the affected focused tests
-4. run one final full regression to confirm the fix
+1. classify all observed failures and group fixes by their actual cause
+2. fix authorized regressions without weakening assertions to hide defects
+3. run the failed tests and the directly affected tests for each fix, including
+   affected callers or shared contracts where needed
+4. when those checks pass and no wider verification gap remains, finish the
+   task without another full run, even if the fix changed production code
 
-A task should normally require at most two full backend regression runs.
+Choose the scope from the affected behavior and dependencies, not the number
+of failed tests or the file extension. A local production/API/resource fix
+does not by itself require another full run. Assertion-only changes and
+isolated test-local fixture corrections need only their affected tests;
+documentation, comments, formatting, and report wording need no full run.
 
-Do not weaken or skip a required final regression merely to stay within this
-budget.
+Repeat the full suite only when focused tests and a bounded set of affected
+suites cannot establish correctness, or the user explicitly requires a new
+full run. Possible reasons include a demonstrated suite-order interaction,
+shared global-state or Random behavior affecting independent subsystems, or
+a build/runtime/shared-fixture change whose consumers cannot be covered by a
+bounded selection. These are reasons to assess scope, not automatic rerun
+triggers. A change touching transactions, persistence, a migration, or an API
+alone is not enough.
 
-After a clean full regression has passed, do not run it again solely because
-of:
+Before every repeat, including the second run, briefly record:
 
-- assertion-only test strengthening
-- isolated test-local fixture corrections
-- documentation-only changes
-- comments or formatting that do not change executable behavior
-- generated report or report-wording changes
+- the changed shared behavior or observed interaction
+- why the selected focused/affected suites cannot cover it
+- what the additional full run will establish
 
-For those changes, run only the affected focused tests when applicable.
+"One test failed", "production code changed", "the final tree differs", and
+"for reassurance" are not sufficient reasons. Recording a concrete reason
+is not an approval request; continue necessary authorized verification.
 
-A new full regression is required when a post-pass change affects:
+Report the evidence accurately:
 
-- executable production Java behavior
-- production resources or authored gameplay data
-- runtime wiring
-- shared test fixtures
-- Gradle or test configuration
-- global or static state
-- Random consumption, determinism, or suite-order behavior
-- API or runtime contracts
+- distinguish the original full result from subsequent focused results
+- if the full pass failed and fixes passed focused verification, state both
+  results and the reason another full run was unnecessary
+- do not claim a clean full-suite pass on the final tree when none occurred
+- preserve the original full-run summary before focused runs overwrite test
+  outputs; use existing logs/reporting rather than a new audit framework
 
-If a third full regression appears necessary, first establish why focused
-tests are insufficient and record that reason in the verification report.
-Recording that reason is not an approval request. Unless a separate explicit
-approval is required, record the reason and continue the necessary verification.
+Do not skip unresolved failures, required behavioral checks, or an explicitly
+requested full run to save time. Do not change Gradle exclusions, disable
+tests, or reduce assertions merely to avoid a rerun. Existing explicit
+artifact-acceptance requirements for a clean full result on a particular
+input remain applicable only when that acceptance work is actually in scope.
 
 If a full regression is aborted by an environment or tooling failure, do not
 immediately repeat the unchanged command. Diagnose or fix the external failure
-first, then resume verification.
+first, preserve completed evidence, and identify the unverified coverage.
+Resume the smallest sufficient remaining scope; repeat the full run only when
+that remaining coverage cannot be established otherwise. Never report an
+aborted run as complete.
 
 Documentation-only changes must never trigger a full backend regression.
+This section replaces blanket rerun requirements in older repository prompts
+or verification guidance. Preserve separate explicit user requirements and
+action-time approvals.

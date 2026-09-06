@@ -197,4 +197,125 @@ class CareerMarketEngineTest {
         assertThat(jump.roster().lineups().get("LCK:T1")).isEqualTo(roster.lineups().get("LCK:T1"));
         System.out.println("AI_MARKET_ONLY "+CareerRosterStore.write(jump.state().decisions()));
     }
+    @ParameterizedTest @CsvSource({"0,0","6,90000","12,180000","24,288000","36,378000"})
+    void transferValueUsesPermanentRatingsAndInclusiveContractBoundary(int months,long expected) {
+        var p=directory.players().get("player-jiwoo");assertThat(CareerManagementPolicy.value(p,DATE,DATE.plusMonths(months).minusDays(1))).isEqualTo(expected);
+        var e=engine("LCK:T1");long value=e.tradeEngine.estimate(p.playerId(),DATE);var c=e.active(p.playerId(),DATE);
+        e.contracts.put(c.contractId(),new Contract(c.contractId(),c.careerId(),c.playerId(),c.team(),c.organizationId(),c.signedDate(),new Terms(c.terms().startDate(),c.terms().endDate(),c.terms().annualSalary()*3,0,c.terms().role()),c.status(),c.revision(),c.policyVersion(),c.origin(),c.terminationPolicy(),c.endedDate(),c.paidThrough()));
+        assertThat(e.tradeEngine.estimate(p.playerId(),DATE)).isEqualTo(value);
+        assertThat(CareerManagementPolicy.value(p,DATE,DATE.plusMonths(12))).isGreaterThan(180000);
+    }
+    @Test void promiseObservationDistinguishesStarterReserveAndRecoversWithoutReplayingCompletion() {
+        var e=engine("LCK:KT");String starter=roster.lineups().get("LCK:KT").stream().filter(p->directory.players().get(p).position()==com.lolfm.domain.Position.ADC).findFirst().orElseThrow();
+        var a=e.promise(starter,"LCK:KT",DATE);var b=e.promise("player-jiwoo","LCK:KT",DATE);
+        for(int i=1;i<=6;i++) {
+            var fact=new CareerManagementState.Appearance("receipt-"+i,"fixture-"+i,"series-"+i,2027,DATE.plusDays(i),2,List.of(
+                new CareerManagementState.Opportunity(starter,"LCK:KT",com.lolfm.domain.Position.ADC,a.promiseId(),true,false,"CONTRACT_AT_SERIES_START"),
+                new CareerManagementState.Opportunity("player-jiwoo","LCK:KT",com.lolfm.domain.Position.ADC,b.promiseId(),true,false,"CONTRACT_AT_SERIES_START")));
+            e.applyAppearance(fact);e.applyAppearance(fact);
+        }
+        e.promiseEngine.evaluate(DATE.plusDays(14));assertThat(e.promise(starter,"LCK:KT",DATE).satisfaction()).isEqualTo(60);
+        var offer=new Offer("offer",starter,"LCK:KT",new Terms(DATE.plusDays(60),DATE.plusYears(2),300000,0,Role.STARTER),DATE,DATE,DATE,DATE,0,OfferStatus.SUBMITTED,null,1,null,"");
+        long before=e.evaluate(offer,DATE).score();e.promiseEngine.evaluate(DATE.plusDays(28));
+        assertThat(e.promise(starter,"LCK:KT",DATE).satisfaction()).isEqualTo(56);assertThat(e.promise("player-jiwoo","LCK:KT",DATE).satisfaction()).isEqualTo(62);
+        assertThat(e.evaluate(offer,DATE).score()).isLessThan(before);var once=e.management();e.promiseEngine.evaluate(DATE.plusDays(28));assertThat(e.management()).isEqualTo(once);
+        e.promiseEngine.evaluate(DATE.plusDays(42));assertThat(e.promise(starter,"LCK:KT",DATE).satisfaction()).isEqualTo(56);
+        for(int i=7;i<=26;i++)e.applyAppearance(new CareerManagementState.Appearance("receipt-"+i,"fixture-"+i,"series-"+i,2027,DATE.plusDays(i+20),3,List.of(new CareerManagementState.Opportunity(starter,"LCK:KT",com.lolfm.domain.Position.ADC,a.promiseId(),true,true,"CONTRACT_AT_SERIES_START"))));
+        e.promiseEngine.evaluate(DATE.plusDays(56));var recovered=e.promise(starter,"LCK:KT",DATE);
+        assertThat(recovered.satisfaction()).isEqualTo(58);assertThat(recovered.opportunities()).isEqualTo(26);assertThat(recovered.sets()).isEqualTo(60);assertThat(recovered.starts()).isEqualTo(20);
+        assertThat(e.promiseEngine.promises.values().stream().filter(p->p.team().startsWith("LPL:")&&p.role()==Role.STARTER)).allSatisfy(p->{assertThat(p.satisfaction()).isEqualTo(60);assertThat(p.status()).isEqualTo("INSUFFICIENT_SERIES");});
+    }
+    @Test void renewalKeepsRegistrationAffiliationAndAiUsesBoundedAffordableLoanCandidates() {
+        var e=engine("LCK:KT");var c=e.active("player-jiwoo",DATE);var renewal=DATE.plusDays(30);
+        e.promiseEngine.close(c.playerId(),c.team(),renewal.minusDays(1));
+        e.promiseEngine.ensure(c,c.team(),null,Role.RESERVE,renewal,c.terms().endDate());
+        assertThat(e.promiseEngine.continuousSince(c.playerId(),c.team(),renewal)).isEqualTo(DATE);
+        e.promiseEngine.close(c.playerId(),c.team(),renewal.plusDays(5));
+        e.promiseEngine.ensure(c,c.team(),null,Role.RESERVE,renewal.plusDays(10),c.terms().endDate());
+        assertThat(e.promiseEngine.continuousSince(c.playerId(),c.team(),renewal.plusDays(10))).isEqualTo(renewal.plusDays(10));
+        var ai=engine("LCK:T1");var account=ai.accounts.get("LCK:HLE");
+        ai.lineups.get("LCK:HLE").removeIf(p->ai.player(p).position()==com.lolfm.domain.Position.TOP);
+        long retain=account.cash()-ai.paymentHeadroom(account.team(),DATE)+200_000;
+        ai.accounts.put(account.team(),new Account(account.team(),account.annualBudget(),retain,account.rosterLimit()));
+        ai.tradeEngine.ai(DATE);
+        var proposals=ai.management().trades().values();
+        assertThat(proposals).anySatisfy(t->{assertThat(t.terms().buyer()).isEqualTo("LCK:HLE");assertThat(t.terms().kind()).isEqualTo(CareerManagementState.Kind.LOAN);assertThat(t.terms().fee()).isLessThanOrEqualTo(t.buyerLimit());});
+        assertThat(proposals.stream().collect(java.util.stream.Collectors.groupingBy(t->t.terms().buyer(),java.util.stream.Collectors.counting())).values()).allSatisfy(n->assertThat(n).isLessThanOrEqualTo(2));
+        assertThat(ai.management().loans()).isEmpty();assertThat(ai.roster().members()).isEqualTo(roster.members());
+        System.out.println("AI_TRADE_PROPOSALS "+CareerRosterStore.write(proposals.stream().filter(t->t.terms().buyer().equals("LCK:HLE")).toList()));
+    }
+    static CareerManagementState.TradeTerms transfer(CareerMarketEngine e,String player,String buyer,CareerManagementState.Kind kind,int salaryPercent,long fee) {
+        var c=e.active(player,DATE);LocalDate start=e.tradeEngine.decision(player,DATE).plusDays(1),end=kind==CareerManagementState.Kind.LOAN?start.plusDays(27):start.plusYears(2).minusDays(1);
+        return new CareerManagementState.TradeTerms(kind,player,c.team(),buyer,start,end,fee,kind==CareerManagementState.Kind.LOAN?50:0,
+                new Terms(start,end,kind==CareerManagementState.Kind.LOAN?c.terms().annualSalary():demand(directory.players().get(player))*salaryPercent/100,0,Role.RESERVE),e.tradeEngine.replacement(c.team(),player,DATE));
+    }
+    @Test void paidTransferNeedsBothClubAndPlayerAgreementAndMovesMoneyOnce() {
+        var e=engine("LCK:T1");var t=transfer(e,"player-jiwoo","LCK:T1",CareerManagementState.Kind.TRANSFER,135,220000);
+        String original=e.active(t.playerId(),DATE).contractId();var proposal=e.tradeEngine.submit("LCK:T1",t,null,DATE);
+        e.tradeEngine.respond("LCK:KT",proposal.tradeId(),"ACCEPT",null,DATE);
+        assertThat(e.members.get(t.playerId()).ownerTeam()).isEqualTo("LCK:KT");
+        e.advance(proposal.decisionDate());assertThat(e.tradeEngine.trades.get(proposal.tradeId()).status()).isEqualTo(CareerManagementState.TradeStatus.AGREED);
+        assertThat(e.members.get(t.playerId()).ownerTeam()).isEqualTo("LCK:KT");
+        e.advance(t.startDate());assertThat(e.active(t.playerId(),t.startDate()).team()).isEqualTo("LCK:T1");
+        assertThat(e.contracts.get(original).status()).isEqualTo(ContractStatus.TRANSFERRED);
+        assertThat(e.ledger.stream().filter(l->proposal.tradeId().equals(l.contractId())).mapToLong(Ledger::amount).sum()).isZero();
+        assertThat(e.ledger.stream().filter(l->proposal.tradeId().equals(l.contractId()))).hasSize(2);
+        assertThat(e.ledger.stream().filter(l->original.equals(l.contractId())&&l.kind().equals("RELEASE_COST"))).isEmpty();
+        assertThat(e.lineups.get("LCK:T1")).doesNotContain(t.playerId());var state=e.state();e.advance(t.startDate());assertThat(e.state()).isEqualTo(state);
+        System.out.println("PAID_TRANSFER "+CareerRosterStore.write(e.tradeEngine.trades.get(proposal.tradeId())));
+    }
+    @Test void sellerAndPlayerRejectionsLeaveContractAndMoneyUnchangedAndReleaseReservations() {
+        var seller=engine("LCK:KT");var t=transfer(seller,"player-jiwoo","LCK:T1",CareerManagementState.Kind.TRANSFER,135,220000);
+        var p=seller.tradeEngine.submit("LCK:T1",t,null,DATE);seller.tradeEngine.respond("LCK:KT",p.tradeId(),"REJECT",null,DATE);
+        assertThat(seller.reservedCash("LCK:T1")).isZero();assertThat(seller.active(t.playerId(),DATE).team()).isEqualTo("LCK:KT");
+        var e=engine("LCK:T1");var low=transfer(e,"player-jiwoo","LCK:T1",CareerManagementState.Kind.TRANSFER,50,220000);
+        var proposal=e.tradeEngine.submit("LCK:T1",low,null,DATE);e.tradeEngine.respond("LCK:KT",proposal.tradeId(),"ACCEPT",null,DATE);e.advance(proposal.decisionDate());
+        assertThat(e.tradeEngine.trades.get(proposal.tradeId()).status()).isEqualTo(CareerManagementState.TradeStatus.REJECTED);
+        assertThat(e.tradeEngine.trades.get(proposal.tradeId()).reason()).contains("선수");assertThat(e.reservedCash("LCK:T1")).isZero();assertThat(e.active(low.playerId(),proposal.decisionDate()).team()).isEqualTo("LCK:KT");
+        assertThat(e.ledger.stream().filter(l->proposal.tradeId().equals(l.contractId()))).isEmpty();
+        var selected=engine("LCK:T1");String player=roster.lineups().get("LCK:KT").getFirst();var noReplacement=transfer(selected,player,"LCK:T1",CareerManagementState.Kind.TRANSFER,135,500000);
+        noReplacement=new CareerManagementState.TradeTerms(noReplacement.kind(),noReplacement.playerId(),noReplacement.seller(),noReplacement.buyer(),noReplacement.startDate(),noReplacement.endDate(),noReplacement.fee(),0,noReplacement.playerTerms(),null);
+        var invalid=noReplacement;assertThatThrownBy(()->selected.tradeEngine.submit("LCK:KT",invalid,null,DATE)).isInstanceOf(CareerException.class);
+    }
+    @Test void loanPreservesOwnershipSplitsOneSalaryAndReturnsWithoutReplacingParentStarter() {
+        var e=engine("LCK:KT");var t=transfer(e,"player-jiwoo","LCK:T1",CareerManagementState.Kind.LOAN,100,25000);var original=e.active(t.playerId(),DATE);var parentLineup=List.copyOf(e.lineups.get("LCK:KT"));
+        var p=e.tradeEngine.submit("LCK:T1",t,null,DATE);e.tradeEngine.respond("LCK:KT",p.tradeId(),"ACCEPT",null,DATE);e.advance(t.startDate());
+        assertThat(e.active(t.playerId(),t.startDate()).contractId()).isEqualTo(original.contractId());assertThat(e.active(t.playerId(),t.startDate()).team()).isEqualTo("LCK:KT");
+        assertThat(e.eligible(t.playerId(),"LCK:T1",t.startDate())).isTrue();assertThat(e.eligible(t.playerId(),"LCK:KT",t.startDate())).isFalse();
+        assertThat(e.availableStart(t.playerId(),t.startDate())).isNull();assertThatThrownBy(()->e.release("LCK:KT",t.playerId(),null,t.startDate())).isInstanceOf(CareerException.class);
+        e.advance(DATE.withDayOfMonth(31));
+        long paid=-e.ledger.stream().filter(l->original.contractId().equals(l.contractId())&&Set.of("SALARY","LOAN_SALARY_PARENT","LOAN_SALARY_BORROWER").contains(l.kind())).mapToLong(Ledger::amount).sum();
+        assertThat(paid).isEqualTo(wages(original.terms().annualSalary(),DATE,DATE.withDayOfMonth(31)));
+        assertThat(e.ledger.stream().filter(l->original.contractId().equals(l.contractId())&&l.kind().equals("LOAN_SALARY_BORROWER")).mapToLong(Ledger::amount).sum()).isEqualTo(-4685);
+        e.advance(t.endDate().plusDays(1));assertThat(e.members.get(t.playerId()).ownerTeam()).isEqualTo("LCK:KT");assertThat(e.lineups.get("LCK:KT")).isEqualTo(parentLineup);
+        assertThat(e.lineups.get("LCK:T1")).doesNotContain(t.playerId());var state=e.state();e.advance(t.endDate().plusDays(1));assertThat(e.state()).isEqualTo(state);
+        System.out.println("LOAN_RETURN "+CareerRosterStore.write(e.management().loans()));
+    }
+    @ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void loanArrearsYearAllocationAndSameDayOriginalExpiryRemainSingleObligations(boolean expireWithLoan) {
+        String career="career_"+"a".repeat(64);LocalDate date=LocalDate.of(2027,12,20),start=date.plusDays(8),end=start.plusDays(27);
+        var e=new CareerMarketEngine(career,"LCK:KT",directory,roster,CareerMarketEngine.initialize(career,41,date,2027,directory,roster));
+        var c=e.active("player-jiwoo",date);
+        if(expireWithLoan){c=new Contract(c.contractId(),c.careerId(),c.playerId(),c.team(),c.organizationId(),c.signedDate(),new Terms(c.terms().startDate(),end,c.terms().annualSalary(),0,c.terms().role()),c.status(),c.revision(),c.policyVersion(),c.origin(),c.terminationPolicy(),null,c.paidThrough());e.contracts.put(c.contractId(),c);}
+        var t=new CareerManagementState.TradeTerms(CareerManagementState.Kind.LOAN,c.playerId(),"LCK:KT","LCK:T1",start,end,25000,50,new Terms(start,end,c.terms().annualSalary(),0,Role.RESERVE),null);
+        var trade=e.tradeEngine.submit("LCK:T1",t,null,date);e.tradeEngine.respond("LCK:KT",trade.tradeId(),"ACCEPT",null,date);e.advance(start);
+        assertThat(e.loan(c.playerId(),start)).isNotNull();var account=e.accounts.get("LCK:T1");e.accounts.put("LCK:T1",new Account(account.team(),account.annualBudget(),0,account.rosterLimit()));
+        e.advance(LocalDate.of(2027,12,31));assertThat(e.contractArrears(c.contractId())).isPositive();assertThat(e.salaryArrears("LCK:KT")).isZero();
+        e=new CareerMarketEngine(career,"LCK:KT",directory,e.roster(),CareerRosterStore.read(CareerRosterStore.write(e.state()),CareerMarketState.class));
+        e.advance(LocalDate.of(2028,1,1));assertThat(e.contractArrears(c.contractId())).isZero();var once=e.state();e.advance(LocalDate.of(2028,1,1));assertThat(e.state()).isEqualTo(once);
+        assertThat(e.ledger.stream().filter(l->l.team().equals("LCK:T1")&&l.kind().equals("ANNUAL_ALLOCATION")&&l.date().equals(LocalDate.of(2028,1,1)))).hasSize(1);
+        e.advance(end.plusDays(1));assertThat(e.loan(c.playerId(),end.plusDays(1))).isNull();
+        if(expireWithLoan){assertThat(e.active(c.playerId(),end.plusDays(1))).isNull();assertThat(e.members.get(c.playerId()).ownerTeam()).isNull();assertThat(e.freeAgents).contains(c.playerId());}
+        else {assertThat(e.members.get(c.playerId()).ownerTeam()).isEqualTo("LCK:KT");assertThat(e.salaryAt("LCK:KT",end.plusDays(1),false)).isGreaterThanOrEqualTo(c.terms().annualSalary());}
+    }
+    @Test void competingBuyersKeepCommonDecisionAndOnlyOneTransferCanSpend() {
+        var a=engine("LCK:KT");var b=engine("LCK:KT");
+        for(var e:List.of(a,b))for(String buyer:e==a?List.of("LCK:T1","LCK:HLE"):List.of("LCK:HLE","LCK:T1")) {
+            var t=transfer(e,"player-jiwoo",buyer,CareerManagementState.Kind.TRANSFER,135,220000);var p=e.tradeEngine.submit(buyer,t,null,DATE);e.tradeEngine.respond("LCK:KT",p.tradeId(),"ACCEPT",null,DATE);
+        }
+        a.advance(DATE.plusDays(8));b.advance(DATE.plusDays(8));
+        assertThat(a.management().trades()).isEqualTo(b.management().trades());
+        var completed=a.management().trades().values().stream().filter(t->t.terms().playerId().equals("player-jiwoo")&&t.status()==CareerManagementState.TradeStatus.COMPLETED).toList();assertThat(completed).hasSize(1);
+        assertThat(a.reservedCash("LCK:T1")).isZero();assertThat(a.reservedCash("LCK:HLE")).isZero();
+    }
 }

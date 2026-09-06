@@ -39,15 +39,34 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
         market.command(id,new com.lolfm.career.CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,view.revision(),"SUBMIT","player-bo",null,terms,null,null,java.util.UUID.randomUUID().toString()));
         while(calendar.view(career).state().currentDate().isBefore(bo.availableStart()))calendar.advance(career,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,calendar.view(career).state().calendarRevision(),"ADVANCE_ONE_DAY",java.util.UUID.randomUUID().toString());
         var current=rosters.view(id,2027);rosters.change(id,new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-bo","SELECT_STARTER",null,null,current.revision(),java.util.UUID.randomUUID().toString()));
+        view=market.view(id,2027);var price=view.management().quotes().stream().filter(q->q.playerId().equals("player-life")).findFirst().orElseThrow();
+        var selling=view.contracts().stream().filter(c->c.playerId().equals("player-life")&&c.status()==com.lolfm.career.CareerMarketState.ContractStatus.ACTIVE).findFirst().orElseThrow();
+        var moveStart=price.earliestStart();var moveEnd=moveStart.plusYears(2).minusDays(1);
+        var transfer=new com.lolfm.career.CareerManagementState.TradeTerms(com.lolfm.career.CareerManagementState.Kind.TRANSFER,"player-life",selling.team(),"LCK:KT",moveStart,moveEnd,price.suggestedTransferFee(),0,
+                new com.lolfm.career.CareerMarketState.Terms(moveStart,moveEnd,price.referenceSalary()*150/100,0,com.lolfm.career.CareerMarketState.Role.RESERVE),null);
+        market.tradeCommand(id,new com.lolfm.career.CareerMarketStore.TradeRequest("CAREER_TRADE_COMMAND_V1",2027,view.revision(),"SUBMIT",null,transfer,null,java.util.UUID.randomUUID().toString()));
+        while(calendar.view(career).state().currentDate().isBefore(moveStart))calendar.advance(career,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,calendar.view(career).state().calendarRevision(),"ADVANCE_ONE_DAY",java.util.UUID.randomUUID().toString());
+        current=rosters.view(id,2027);rosters.change(id,new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-life","SELECT_STARTER",null,null,current.revision(),java.util.UUID.randomUUID().toString()));
         var frozen=com.lolfm.career.CareerRosterStore.eligiblePair(jdbc,id,2027,"LCK:KT","LCK:T1").domesticPair("KT","T1");
         var season=productionSeason(snapshots);var fixture=LeagueDomainTestFixtures.fixture(season.schedule(),"KT","T1");
+        var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
+        String observation="PRODUCTION_FIXTURE|"+season.seasonId()+'|'+fixture.fixtureId();
+        tx.executeWithoutResult(ignored->{com.lolfm.career.CareerRosterStore.lockCareer(jdbc,id);com.lolfm.career.CareerAppearanceStore.capture(jdbc,id,2027,observation,fixture.boundSeriesId(),null,frozen);});
+        assertThat(market.view(id,2027).management().appearances()).isEmpty();
         var input=new LeagueAutomatedSeriesRunnerInput(season,fixture,season.productDecisionHash(),frozen);
         var result=runner.run(input,SimulationInstrumentation.disabled());
         assertThat(result.status()).isEqualTo(LeagueAutomatedSeriesRunResult.Status.COMPLETED);
         assertThat(result.unifiedReceipt().frozenRosterIdentity()).isEqualTo(frozen.identity());
         result.receipt().orderedGameReceipts().forEach(game->assertThat(game.orderedFinalAssignments())
-                .extracting(LeagueFixtureGameReceiptV1.FinalAssignmentEvidence::playerId).contains(new com.lolfm.player.PlayerId("player-jiwoo"),new com.lolfm.player.PlayerId("player-bo")).doesNotContain(new com.lolfm.player.PlayerId("player-fenrir"),new com.lolfm.player.PlayerId("player-cuzz")));
+                .extracting(LeagueFixtureGameReceiptV1.FinalAssignmentEvidence::playerId).contains(new com.lolfm.player.PlayerId("player-jiwoo"),new com.lolfm.player.PlayerId("player-bo"),new com.lolfm.player.PlayerId("player-life")).doesNotContain(new com.lolfm.player.PlayerId("player-fenrir"),new com.lolfm.player.PlayerId("player-cuzz")));
         VerifiedLeagueFixtureCompletion.verifyPersisted(season,result.unifiedReceipt(),null,frozen);
+        // This existing production fixture is independent of the Career schedule. Only its verified actual result is consumed.
+        tx.executeWithoutResult(ignored->com.lolfm.career.CareerAppearanceStore.complete(jdbc,id,observation,result.unifiedReceipt().canonicalFixtureReceiptHash(),result.gameExecutionCount()));
+        var appeared=market.view(id,2027);assertThat(appeared.management().appearances()).hasSize(1);
+        var lifePromise=appeared.management().promises().stream().filter(p->p.playerId().equals("player-life")&&p.team().equals("LCK:KT")).findFirst().orElseThrow();
+        assertThat(lifePromise.opportunities()).isEqualTo(1);assertThat(lifePromise.starts()).isEqualTo(1);assertThat(lifePromise.sets()).isEqualTo(result.gameExecutionCount());
+        tx.executeWithoutResult(ignored->com.lolfm.career.CareerAppearanceStore.complete(jdbc,id,observation,result.unifiedReceipt().canonicalFixtureReceiptHash(),result.gameExecutionCount()));
+        assertThat(market.view(id,2027)).isEqualTo(appeared);
         org.assertj.core.api.Assertions.assertThatThrownBy(()->VerifiedLeagueFixtureCompletion.verifyPersisted(season,result.unifiedReceipt(),null,null))
                 .hasMessage("FIXTURE_LINEUP_IDENTITY_MISMATCH");
     }

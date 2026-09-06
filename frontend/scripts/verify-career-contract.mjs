@@ -365,3 +365,15 @@ accepts('stove and roster repair retain server-authorized market date progressio
     value.activePendingAdvance={clientCommandId:'11111111-1111-4111-8111-111111111111',mode:'ADVANCE_ONE_DAY',expectedCalendarRevision:0,commandStatus:'PENDING',createdAt:'2026-08-24T00:00:00Z',updatedAt:'2026-08-24T00:00:00Z'};let rejected=false;try{validateCareerCalendar(value)}catch{rejected=true}if(!rejected)throw Error('pending command bypassed');
   }
 });
+
+function managementView() { return { policyVersion:'CAREER_PROMISE_TRANSFER_LOAN_V1',observationStarted:'2027-01-01',promises:[{promiseId:'promise',playerId:'player-bo',team:'LCK:KT',contractId:'contract',loanId:null,role:'STARTER',startDate:'2027-01-01',endDate:'2028-12-31',observationStart:'2027-01-01',lastEvaluation:'2027-01-01',opportunities:0,starts:0,sets:0,satisfaction:60,trust:50,status:'OBSERVATION_PENDING',reason:'관찰 유예',policyVersion:'CAREER_PROMISE_TRANSFER_LOAN_V1'}],trades:[],loans:[],appearances:[],quotes:[]}; }
+accepts('old saves can show neutral promises without invented appearances',()=>validateCareerMarket({...marketView(),management:managementView()}));
+rejects('satisfaction cannot exceed its explicit range',()=>{const m=managementView();m.promises[0].satisfaction=101;validateCareerMarket({...marketView(),management:m});});
+rejects('selected Series cannot exceed evaluation opportunities',()=>{const m=managementView();m.promises[0].starts=1;validateCareerMarket({...marketView(),management:m});});
+import {validateTradeCommand,readTradeOperation,tradeOperationKey} from '../src/features/career/api/careerManagement.contract.ts';
+function tradeBody() { const playerTerms={startDate:'2027-01-09',endDate:'2027-02-05',annualSalary:180000,signingBonus:0,role:'RESERVE'};return {schemaVersion:'CAREER_TRADE_COMMAND_V1',sourceYear:2027,expectedRevision:3,action:'SUBMIT',tradeId:null,terms:{kind:'LOAN',playerId:'player-jiwoo',seller:'LCK:KT',buyer:'LCK:T1',startDate:playerTerms.startDate,endDate:playerTerms.endDate,fee:25000,borrowerSalaryPercent:50,playerTerms,replacementPlayerId:null},replacementPlayerId:null,clientCommandId:marketBody().clientCommandId}; }
+accepts('loan proposal preserves original pay and separates its two clubs',()=>validateTradeCommand(tradeBody()));
+rejects('loan share cannot create more than one full salary obligation',()=>{const t=tradeBody();t.terms.borrowerSalaryPercent=101;validateTradeCommand(t);});
+rejects('a club cannot loan a player to itself',()=>{const t=tradeBody();t.terms.buyer=t.terms.seller;validateTradeCommand(t);});
+accepts('ambiguous trade response keeps the original UUID and source year',()=>{const body=tradeBody();const restored=readTradeOperation({getItem:key=>key===tradeOperationKey(careerId)?JSON.stringify(body):null},careerId);if(JSON.stringify(restored)!==JSON.stringify(body))throw new Error("original trade request changed");});
+rejects('club approval alone cannot advertise a completed transfer',()=>{const m=managementView();m.trades=[{tradeId:'trade',terms:tradeBody().terms,status:'COMPLETED',sellerAgreed:true,buyerAgreed:false}];validateCareerMarket({...marketView(),management:m});});

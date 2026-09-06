@@ -907,6 +907,7 @@ public final class CareerCompetitionRelationalStore {
                     fixture.seriesId(), fixture.executionMode(),
                     CareerCompetitionSeriesBindingV1.SCHEMA,
                     candidate.canonicalText(), now, now);
+            CareerAppearanceStore.capture(jdbc,careerId,seasonYear,"COMP|"+seasonYear+'|'+competitionId+'|'+matchId,candidate.boundSeriesId(),competitionId,candidate.frozenRosters());
             return candidate;
         });
     }
@@ -1165,6 +1166,7 @@ public final class CareerCompetitionRelationalStore {
                     receipt.secondTeamCode(), receipt.winnerTeamCode(),
                     receipt.receiptHash());
             if (!result.replayed()) {
+                CareerAppearanceStore.complete(jdbc,receipt.careerId(),"COMP|"+receipt.seasonYear()+'|'+receipt.competitionId()+'|'+receipt.matchId(),receipt.receiptHash(),receipt.orderedGames().size());
                 jdbc.update("""
                         INSERT INTO career_competition_result_detail(
                           career_id, calendar_season_year, competition_id, match_id,

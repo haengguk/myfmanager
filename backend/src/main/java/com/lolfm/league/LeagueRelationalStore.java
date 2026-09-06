@@ -263,11 +263,15 @@ public final class LeagueRelationalStore {
                     SELECT event_id, season_id, fixture_id, receipt_hash
                     FROM league_outbox
                     WHERE lifecycle_status = 'PENDING'
-                    ORDER BY created_at, event_id LIMIT 1 FOR UPDATE
+                    ORDER BY created_at, event_id LIMIT 1
                     """, (result, row) -> new OutboxRow(result.getString(1),
                     result.getString(2), result.getString(3), result.getString(4)));
             if (rows.isEmpty()) return false;
             OutboxRow outbox = rows.getFirst();
+            // Match starts, roster changes and market completion take Calendar before League locks.
+            lockCareerRoster(outbox.seasonId());
+            var pending=jdbc.query("SELECT lifecycle_status FROM league_outbox WHERE event_id=? FOR UPDATE",(r,n)->r.getString(1),outbox.eventId());
+            if(pending.isEmpty()||!"PENDING".equals(pending.getFirst()))return true;
             int already = jdbc.queryForObject("""
                     SELECT COUNT(*) FROM league_standings_application
                     WHERE receipt_hash = ?
@@ -285,6 +289,7 @@ public final class LeagueRelationalStore {
                     VerifiedLeagueFixtureCompletion.verifyPersisted(
                             current, receipt, binding, fixtureRoster(current.seasonId(),receipt.fixtureId()));
             LeagueSeasonAggregate next = current.applyVerifiedCompletion(verified);
+            com.lolfm.career.CareerAppearanceStore.leagueCompleted(jdbc,outbox.seasonId(),outbox.fixtureId(),outbox.receiptHash(),receipt.actualGameCount());
             OffsetDateTime now = now();
             jdbc.update("""
                     INSERT INTO league_standings_application(

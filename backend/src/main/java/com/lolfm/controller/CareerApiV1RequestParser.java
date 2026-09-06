@@ -30,6 +30,19 @@ public final class CareerApiV1RequestParser {
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     }
 
+    public com.lolfm.career.CareerMarketStore.TradeRequest tradeCommand(byte[] body) {
+        JsonNode json=read(body);var fields=new HashSet<String>();json.fieldNames().forEachRemaining(fields::add);
+        if(!json.isObject()||!fields.equals(Set.of("schemaVersion","sourceYear","expectedRevision","action","tradeId","terms","replacementPlayerId","clientCommandId")))throw invalid(null,"이적/임대 명령 필드를 확인해 주세요.");
+        if(!json.path("sourceYear").isIntegralNumber()||!json.path("sourceYear").canConvertToInt()||!json.path("expectedRevision").isIntegralNumber()||!json.path("expectedRevision").canConvertToLong())throw invalid(null,"연도와 revision은 정수여야 합니다.");
+        var terms=json.path("terms");
+        if(!terms.isNull()) {
+            for(String field:java.util.List.of("fee","borrowerSalaryPercent"))if(!terms.path(field).isIntegralNumber()||!terms.path(field).canConvertToLong())throw invalid(field,"금액/분담은 정수여야 합니다.");
+            if(!terms.path("borrowerSalaryPercent").canConvertToInt())throw invalid("borrowerSalaryPercent","급여 분담 범위를 확인해 주세요.");
+            for(String field:java.util.List.of("annualSalary","signingBonus"))if(!terms.path("playerTerms").path(field).isIntegralNumber()||!terms.path("playerTerms").path(field).canConvertToLong())throw invalid(field,"개인 조건 금액은 정수여야 합니다.");
+        }
+        try{return strictMapper.readerFor(com.lolfm.career.CareerMarketStore.TradeRequest.class).with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).readValue(json);}
+        catch(IOException | IllegalArgumentException e){throw invalid(null,"거래 날짜·역할·조건 형식을 확인해 주세요.");}
+    }
     public com.lolfm.career.CareerMarketStore.Request marketCommand(byte[] body) {
         JsonNode json=read(body);
         Set<String> fields=Set.of("schemaVersion","sourceYear","expectedRevision","action","playerId","offerId","terms","replacementPlayerId","competitionId","clientCommandId");
