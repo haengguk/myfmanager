@@ -183,3 +183,21 @@ population/diagnostic은 수행하지 않았다.
 
 Calendar progression까지 연결된 현재 다음 단계는 구조화된 대회 정의를 실제 Series authority와
 qualification/bracket lifecycle에 연결하는 `CAREER_COMPETITION_LIFECYCLE_V1`이다.
+
+## 계약 시장 API 확장 (2026-09-06)
+
+`GET /api/v1/careers/{careerId}/market/{year}`는 `CAREER_MARKET_VIEW_V1`으로 게임 계약/예약 계약,
+제안/선수 응답, 56팀 예산과 부담, 지급/결정/등록 보충 및 선발 공백을 반환한다. 과거 시즌은
+마감 snapshot의 읽기 전용 뷰다. 공개 조사 계약과 현재 게임 계약은 별도 자료다.
+
+`POST /api/v1/careers/{careerId}/market`는 `CAREER_MARKET_COMMAND_V1`의 엄격한 JSON 요청을
+받는다. `sourceYear`, `expectedRevision`, `action`, `playerId`, `offerId`, `terms`,
+`replacementPlayerId`, `competitionId`, `clientCommandId`를 명시하며 불필요한 선택 필드는
+null이다. `terms`는 `startDate`, `endDate`, `annualSalary`, `signingBonus`, `role`이다.
+액션은 SUBMIT/REVISE/WITHDRAW/RELEASE/SUPPLEMENT/OPEN_STOVE다. 관리 팀은 서버가 결정한다.
+
+잘못된 날짜/역할/금액/조건은 400, stale revision과 원본 UUID payload 충돌은 기존 Career
+409 계약을 사용한다. 같은 UUID/원본 payload는 원래 receipt를 반환한다. 시장 상태/소속/
+금액/영수증은 하나의 transaction이며 GET/원본 replay는 저장 시각을 갱신하지 않는다.
+create/startup은 V16 시장과 운영 roster V2를 초기화한다. 구형 roster V1 및 이미 시작한
+경기의 고정 입력 의미는 보존한다. [게임 정책과 실행 검증](../development/career-contracts-stove-fa-market-ai-competition-v1.md)을 참고한다.

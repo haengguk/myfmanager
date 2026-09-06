@@ -1,3 +1,4 @@
+import { validateCareerMarket, validateMarketCommand, validateMarketChange, marketOperationKey, readMarketOperation } from '../src/features/career/api/careerMarket.contract.ts';
 import { validateCareerRoster, readRosterOperation, rosterOperationKey } from '../src/features/career/api/careerRoster.contract.ts';
 import { CareerMutationGate } from '../src/features/career/career.mutation.ts';
 import { CareerApiFailure } from '../src/features/career/api/careerApi.failure.ts';
@@ -342,3 +343,23 @@ const tick=()=>new Promise(r=>setImmediate(r));
 
 }
 try { await verifySeasonComponentRequestOwnership(); console.log('PASS season transition completes and releases pending after query revision changes'); } catch(error) { console.error('FAIL season transition component ownership',error);process.exitCode=1; }
+
+// Market DTOs and original-command recovery; gameplay choices are verified in the backend.
+function marketView() {
+  return { schemaVersion:'CAREER_MARKET_VIEW_V1',policyVersion:'CAREER_CONTRACT_MARKET_GAME_POLICY_V1',currency:'GAME_CREDITS',careerId,seasonYear:2027,currentDate:'2027-01-01',revision:3,readOnly:false,managedTeam:'LCK:KT',offseason:false,nextMarketEvent:'2027-01-04',players:[{playerId:'player-bo',status:'FREE_AGENT',currentContractId:null,scheduledContractId:null,availableStart:'2027-01-06',askingSalary:180000,releaseCost:0,eligibilityReason:null,preference:{compensation:30,opportunity:35,strength:20,stability:10,familiarity:5,relocationPenalty:5,inclination:'COMPARE_OFFERS',homeRegion:null}}],contracts:[],offers:[],finances:[{team:'LCK:KT',annualBudget:1500000,cash:3000000,reservedCash:20000,currentAnnualSalary:1000000,committedPeakSalary:1200000,rosterLimit:10}],decisions:[],events:[],ledger:[],missingPositions:{'LCK:KT':['JUNGLE']},supplements:[],allowedCommands:['SUBMIT'],registrationPolicy:'등록 집합과 현재 계약을 별도로 확인합니다.' };
+}
+function marketBody() { return {schemaVersion:'CAREER_MARKET_COMMAND_V1',sourceYear:2027,expectedRevision:3,action:'SUBMIT',playerId:'player-bo',offerId:null,terms:{startDate:'2027-01-06',endDate:'2029-01-05',annualSalary:180000,signingBonus:20000,role:'STARTER'},replacementPlayerId:null,competitionId:null,clientCommandId:'11111111-1111-4111-8111-111111111111'}; }
+accepts('market shows game FA eligibility, budget reservation and a repairable lineup gap',()=>validateCareerMarket(marketView()));
+accepts('ambiguous market transport restores the original year revision UUID and terms',()=>{const local=storage(),body=marketBody();local.setItem(marketOperationKey(careerId),JSON.stringify(body));if(JSON.stringify(readMarketOperation(local,careerId))!==JSON.stringify(body)||readMarketOperation(local,secondCareerId)!==null)throw Error('market request scope lost');});
+rejects('market cannot display reserved money beyond available cash',()=>{const value=marketView();value.finances[0].reservedCash=value.finances[0].cash+1;validateCareerMarket(value);});
+rejects('market command rejects an implicit revision or a second unrelated payload field',()=>validateMarketCommand({...marketBody(),expectedRevision:1.5,forceAccept:true}));
+rejects('a market receipt from another Career cannot complete the displayed operation',()=>validateMarketChange({replayed:true,receipt:{clientCommandId:marketBody().clientCommandId,careerId:secondCareerId,sourceYear:2027,resultingRevision:3,action:'SUBMIT',referenceId:'offer',appliedDate:'2027-01-01',reason:'확인'},market:marketView()}));
+rejects('historical contract view cannot advertise operations',()=>validateCareerMarket({...marketView(),readOnly:true}));
+accepts('only the explicitly versioned operating roster permits a missing starter',()=>{const old=rosterView();old.state.lineups['LCK:KT'].pop();let rejected=false;try{validateCareerRoster(old)}catch{rejected=true}if(!rejected)throw Error('V1 meaning changed');old.schemaVersion='CAREER_ROSTER_VIEW_V2';old.state.policyVersion='CAREER_OPERATING_ROSTER_V2';validateCareerRoster(old);});
+accepts('a competing decision references actual offers and keeps its recorded explanation',()=>{const value=marketView(),terms=marketBody().terms;value.offers=['LCK:KT','LPL:BLG'].map((team,i)=>({offerId:`offer-${i}`,playerId:'player-bo',team,terms,submittedDate:'2027-01-01',responseDate:'2027-01-03',decisionDate:'2027-01-06',expiresDate:'2027-01-07',revision:1,status:i?'REJECTED':'ACCEPTED',previousOfferId:null,round:1,requestedSalary:null,reason:i?'다른 실제 제안 선택':'선택'}));value.decisions=[{eventId:'decision',playerId:'player-bo',date:'2027-01-06',winningOfferId:'offer-0',evaluations:value.offers.map(o=>({offerId:o.offerId,team:o.team,compensation:80,opportunity:60,strength:85,stability:66,familiarity:0,relocation:5,score:7000,tieBreak:1,reason:'보수와 출전 기회를 비교'})),reason:'실제 두 제안을 비교해 선택',policyVersion:value.policyVersion}];validateCareerMarket(value);});
+accepts('stove and roster repair retain server-authorized market date progression before year end',()=>{
+  for(const [lifecycleStatus,blockingReason] of [['SEASON_ROLLOVER_REQUIRED','SEASON_ROLLOVER_REQUIRED'],['ACTIVE','ROSTER_REPAIR_REQUIRED']]) {
+    const value=hardenedCalendarView();value.lifecycleStatus=lifecycleStatus;value.blockingReason=blockingReason;validateCareerCalendar(value);
+    value.activePendingAdvance={clientCommandId:'11111111-1111-4111-8111-111111111111',mode:'ADVANCE_ONE_DAY',expectedCalendarRevision:0,commandStatus:'PENDING',createdAt:'2026-08-24T00:00:00Z',updatedAt:'2026-08-24T00:00:00Z'};let rejected=false;try{validateCareerCalendar(value)}catch{rejected=true}if(!rejected)throw Error('pending command bypassed');
+  }
+});

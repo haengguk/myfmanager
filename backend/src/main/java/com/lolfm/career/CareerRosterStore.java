@@ -15,6 +15,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public final class CareerRosterStore {
     public static final String POLICY = "CAREER_ROSTER_LINEUP_V1";
+    public static final String OPERATING_POLICY = "CAREER_OPERATING_ROSTER_V2";
     public static final String REGISTRATION_POLICY = "CAREER_REGISTERED_FIRST_TEAM_POOL_V1";
     private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
     private final JdbcTemplate jdbc;
@@ -31,7 +32,7 @@ public final class CareerRosterStore {
     public record Membership(String playerId, String ownerTeam, String organizationId, String squad, String eligibilityReason) {}
     public record State(String policyVersion, Map<String, Membership> members, Map<String, List<String>> lineups) {
         public State {
-            if (!POLICY.equals(policyVersion)) throw new IllegalArgumentException("ROSTER_POLICY");
+            if (!POLICY.equals(policyVersion) && !OPERATING_POLICY.equals(policyVersion)) throw new IllegalArgumentException("ROSTER_POLICY");
             members = Map.copyOf(members);
             var copy = new TreeMap<String, List<String>>(); lineups.forEach((team, ids) -> copy.put(team, List.copyOf(ids)));
             lineups = Collections.unmodifiableMap(copy);
@@ -105,6 +106,8 @@ public final class CareerRosterStore {
                         if(state.rosters().teams().containsKey(managed))registrations.put(r.getString(1),state.rosters().roster(managed).players().stream().map(CompetitionRosterSnapshot.Starter::playerId).toList());
                     }
                 },careerId,year);
+        jdbc.query("SELECT competition_id,player_id FROM career_registration_supplement WHERE career_id=? AND season_year=? AND team=? ORDER BY competition_id,revision",
+                (org.springframework.jdbc.core.RowCallbackHandler) r->{var ids=new TreeSet<>(registrations.getOrDefault(r.getString(1),List.of()));ids.add(r.getString(2));registrations.put(r.getString(1),List.copyOf(ids));},careerId,year,managed);
         var activeSeries=new TreeMap<String,List<String>>();
         jdbc.query("SELECT series_id,binding_canonical FROM career_competition_series_binding WHERE career_id=? AND calendar_season_year=? AND lifecycle_status<>'COMPLETED'",
                 (org.springframework.jdbc.core.RowCallbackHandler) r -> {
@@ -126,7 +129,7 @@ public final class CareerRosterStore {
                 var frozen=r.getString(2)==null?null:CompetitionRosterSnapshot.decode(r.getString(2));
                 activeSeries.put(r.getString(1),frozen==null?initialPlayers(directory,managed):frozen.roster(managed.substring(4)).players().stream().map(CompetitionRosterSnapshot.Starter::playerId).toList());
             },careerId,year,managed.substring(4),managed.substring(4));
-        return new View("CAREER_ROSTER_VIEW_V1",careerId,year,saved.revision(),active!=year,managed,directory,saved.state(),registrations,activeSeries,
+        return new View(OPERATING_POLICY.equals(saved.state().policyVersion())?"CAREER_ROSTER_VIEW_V2":"CAREER_ROSTER_VIEW_V1",careerId,year,saved.revision(),active!=year,managed,directory,saved.state(),registrations,activeSeries,
                 active==year?List.of("SELECT_STARTER","MOVE_SQUAD"):List.of(),"UNSTARTED_SERIES_WITHIN_REGISTERED_POOL_ELSE_NEXT_REGISTRATION");
     }
     private static List<String> initialPlayers(Directory directory,String team) {
@@ -155,6 +158,7 @@ public final class CareerRosterStore {
             String managed="LCK:"+jdbc.queryForObject("SELECT managed_team_code FROM career_save WHERE career_id=?",String.class,careerId);
             if(!managed.equals(request.team()))throw CareerException.invalid("team","관리 구단의 명단만 변경할 수 있습니다.");
             var directory=directory(jdbc,careerId);
+            CareerMarketStore.requireEligible(jdbc,careerId,managed,request.playerId());
             var member=saved.state().members().get(request.playerId());
             if(member==null || !managed.equals(member.ownerTeam()) || member.eligibilityReason()!=null)
                 throw CareerException.invalid("playerId","보유 선수의 소속과 출전 가능 상태를 확인해 주세요.");
@@ -164,7 +168,8 @@ public final class CareerRosterStore {
                 if(!"FIRST_TEAM".equals(member.squad()) || request.targetOrganizationId()!=null || request.replacementPlayerId()!=null)
                     throw CareerException.invalid("playerId","1군 명부의 같은 포지션 선수만 선발할 수 있습니다.");
                 Position role=directory.players().get(member.playerId()).position();
-                int slot=slot(lineup,directory,role);lineup.set(slot,member.playerId());
+                int slot=slot(lineup,directory,role);if(slot<0)lineup.add(member.playerId());else lineup.set(slot,member.playerId());
+                lineup.sort(Comparator.comparing(id->directory.players().get(id).position()));
             } else if("MOVE_SQUAD".equals(request.action())) {
                 var target=directory.organizations().get(request.targetOrganizationId());
                 if(target==null || !managed.equals(target.competitiveTeam()))
@@ -180,18 +185,19 @@ public final class CareerRosterStore {
                 } else if(request.replacementPlayerId()!=null)throw CareerException.invalid("replacementPlayerId","이 이동에는 대체 선수 지정이 필요하지 않습니다.");
                 members.put(member.playerId(),new Membership(member.playerId(),managed,target.organizationId(),squad,null));
             } else throw CareerException.invalid("action","지원하지 않는 명단 변경입니다.");
-            lineups.put(managed,lineup);State next=new State(POLICY,members,lineups);validate(next,directory);
+            lineups.put(managed,lineup);State next=new State(saved.state().policyVersion(),members,lineups);validate(next,directory);
             String json=write(next);long revision=saved.revision()+1;
             if(jdbc.update("UPDATE career_roster_state SET revision=?,state_json=?,state_hash=? WHERE career_id=? AND season_year=? AND revision=?",
                     revision,json,hash(json),careerId,request.sourceYear(),saved.revision())!=1)throw CareerException.calendarStaleRevision();
             var receipt=new Receipt(command,careerId,request.sourceYear(),revision,hash(json),"EXISTING_SERIES_UNCHANGED; NEXT_ELIGIBLE_SERIES_OR_NEXT_REGISTRATION");
+            jdbc.update("UPDATE career_save SET updated_at=CURRENT_TIMESTAMP WHERE career_id=?",careerId);
             String encoded=write(receipt);jdbc.update("INSERT INTO career_roster_command VALUES (?,?,?,?,?,?)",command,careerId,request.sourceYear(),payload,encoded,hash(encoded));
             return new Change(false,receipt,view(careerId,request.sourceYear()));
         });
     }
     private static int slot(List<String> lineup,Directory directory,Position role) {
         for(int i=0;i<lineup.size();i++)if(directory.players().get(lineup.get(i)).position()==role)return i;
-        throw new IllegalStateException("LINEUP_ROLE_MISSING");
+        return -1;
     }
     static void validate(State state,Directory directory) {
         if(!state.members().keySet().equals(directory.players().keySet()))throw new IllegalStateException("DIRECTORY_MEMBERSHIP_MISMATCH");
@@ -204,7 +210,7 @@ public final class CareerRosterStore {
         }
         var selected=new HashSet<String>();
         state.lineups().forEach((team,ids)->{
-            if(ids.size()!=5 || new HashSet<>(ids).size()!=5)throw new IllegalStateException("FIVE_DISTINCT_STARTERS_REQUIRED");
+            if((POLICY.equals(state.policyVersion())?ids.size()!=5:ids.size()>5) || new HashSet<>(ids).size()!=ids.size())throw new IllegalStateException("FIVE_DISTINCT_STARTERS_REQUIRED");
             var positions=EnumSet.noneOf(Position.class);
             for(String id:ids) {
                 var member=state.members().get(id);var player=directory.players().get(id);
@@ -230,9 +236,23 @@ public final class CareerRosterStore {
         var directory=directory(jdbc,career);validate(saved.state(),directory);
         var teams=new LinkedHashMap<String,CompetitionRosterSnapshot.Roster>();
         saved.state().lineups().forEach((team,ids)->{
+            if(ids.size()!=5)return;
             var players=ids.stream().map(id->directory.players().get(id).gameplay()).toList();
             String[] key=team.split(":");teams.put(team,new CompetitionRosterSnapshot.Roster(new TeamKey(key[0],key[1]),hash(write(players)),players));
         });return new CompetitionRosterSnapshot(teams);
+    }
+    public static CompetitionRosterSnapshot eligiblePair(JdbcTemplate jdbc,String career,int year,String first,String second) {
+        var saved=saved(jdbc,career,year);var directory=directory(jdbc,career);
+        var authority=CareerMarketStore.eligibility(jdbc,career);
+        var rosters=new TreeMap<String,CompetitionRosterSnapshot.Roster>();
+        for(String team:List.of(first,second)) {
+            var ids=saved.state().lineups().getOrDefault(team,List.of());
+            if(ids.size()!=5)throw CareerException.invalid("lineup",team+"의 선발 포지션이 비었습니다. 계약·승격·선발 설정으로 5명을 구성해 주세요.");
+            for(String id:ids)if(!authority.allows(team,id))throw CareerException.invalid("lineup",team+"의 현재 계약 자격을 확인해 주세요.");
+            var players=ids.stream().map(id->directory.players().get(id).gameplay()).toList();
+            String[] parts=team.split(":");rosters.put(team,new CompetitionRosterSnapshot.Roster(new TeamKey(parts[0],parts[1]),hash(write(players)),players));
+        }
+        return new CompetitionRosterSnapshot(rosters);
     }
     public static void carry(JdbcTemplate jdbc,String career,int source,int destination) {
         var old=saved(jdbc,career,source);if(old==null)return;
@@ -261,15 +281,30 @@ public final class CareerRosterStore {
     }
     static CompetitionRosterSnapshot registeredPair(JdbcTemplate jdbc,String career,int year,String competition,
                                                     CompetitionRosterSnapshot registered,String first,String second) {
-        var pools=jdbc.query("SELECT pool_json,pool_hash FROM career_registered_player_pool WHERE career_id=? AND season_year=? AND competition_id=?",
-                (r,n)->pool(r.getString(1),r.getString(2)),career,year,competition);
-        if(pools.isEmpty())return registered.pair(first,second);
-        var current=currentRosters(jdbc,career,year);if(current==null)throw new IllegalStateException("REGISTERED_DIRECTORY_MISSING");
+        if(saved(jdbc,career,year)==null)return registered.pair(first,second);
+        var directory=directory(jdbc,career);var state=saved(jdbc,career,year).state();
+        var authority=CareerMarketStore.eligibility(jdbc,career);
         var teams=new TreeMap<String,CompetitionRosterSnapshot.Roster>();
+        String managed="LCK:"+jdbc.queryForObject("SELECT managed_team_code FROM career_save WHERE career_id=?",String.class,career);
         for(String team:List.of(first,second)) {
-            var base=registered.roster(team);var selected=current.roster(team);var allowed=pools.getFirst().getOrDefault(team,List.of());
-            var players=base.players().stream().map(original->selected.players().stream()
-                    .filter(p->p.position()==original.position() && allowed.contains(p.playerId())).findFirst().orElse(original)).toList();
+            var base=registered.roster(team);
+            var allowed=new ArrayList<>(CareerMarketStore.registeredIds(jdbc,career,year,competition,team,registered));
+            var players=new ArrayList<CompetitionRosterSnapshot.Starter>();
+            for(var original:base.players()) {
+                Position role=original.position();
+                java.util.function.Predicate<String> eligible=id->directory.players().get(id).position()==role
+                        && team.equals(state.members().get(id).ownerTeam()) && "FIRST_TEAM".equals(state.members().get(id).squad())
+                        && state.members().get(id).eligibilityReason()==null && authority.allows(team,id);
+                var valid=allowed.stream().filter(eligible).toList();
+                if(valid.isEmpty()&&!team.equals(managed)&&authority.enabled()) {
+                    var replacement=state.lineups().getOrDefault(team,List.of()).stream().filter(eligible).findFirst();
+                    if(replacement.isPresent()){CareerMarketStore.supplement(jdbc,career,year,competition,team,replacement.get(),CareerMarketStore.date(jdbc,career));allowed.add(replacement.get());valid=List.of(replacement.get());}
+                }
+                if(valid.isEmpty())throw CareerException.invalid("registration",team+"의 "+role+" 등록 선수가 현재 출전할 수 없습니다. 계약·선발을 복구하고 보충등록해 주세요.");
+                var selected=state.lineups().getOrDefault(team,List.of()).stream().filter(eligible).filter(allowed::contains).findFirst();
+                String id=selected.orElse(valid.contains(original.playerId())?original.playerId():valid.getFirst());
+                players.add(directory.players().get(id).gameplay());
+            }
             teams.put(team,new CompetitionRosterSnapshot.Roster(base.team(),hash(write(players)),players));
         }
         return new CompetitionRosterSnapshot(teams);
@@ -295,7 +330,7 @@ public final class CareerRosterStore {
                 ||jdbc.queryForObject("SELECT COUNT(*) FROM league_job WHERE season_id=? AND fixture_id=?",Integer.class,seasonId,fixtureId)>0)return null;
         if(activeYear(jdbc,key.getKey())!=key.getValue())throw new IllegalStateException("HISTORICAL_LEAGUE_ROSTER_READ_ONLY");
         var teams=jdbc.queryForObject("SELECT first_team_code,second_team_code FROM league_fixture WHERE season_id=? AND fixture_id=?",(r,n)->List.of(r.getString(1),r.getString(2)),seasonId,fixtureId);
-        var frozen=currentRosters(jdbc,key.getKey(),key.getValue()).domesticPair(teams.get(0),teams.get(1));
+        var frozen=eligiblePair(jdbc,key.getKey(),key.getValue(),"LCK:"+teams.get(0),"LCK:"+teams.get(1)).domesticPair(teams.get(0),teams.get(1));
         jdbc.update("INSERT INTO career_league_fixture_roster VALUES (?,?,?,?,?,?,?)",seasonId,fixtureId,key.getKey(),key.getValue(),state.revision(),frozen.encoded(),frozen.identity());
         return frozen;
     }

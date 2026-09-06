@@ -30,6 +30,23 @@ public final class CareerApiV1RequestParser {
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     }
 
+    public com.lolfm.career.CareerMarketStore.Request marketCommand(byte[] body) {
+        JsonNode json=read(body);
+        Set<String> fields=Set.of("schemaVersion","sourceYear","expectedRevision","action","playerId","offerId","terms","replacementPlayerId","competitionId","clientCommandId");
+        var actual=new HashSet<String>();json.fieldNames().forEachRemaining(actual::add);
+        if(!json.isObject()||!actual.equals(fields))throw invalid(null,"시장 명령 필드를 확인해 주세요.");
+        if(!json.path("sourceYear").isIntegralNumber()||!json.path("sourceYear").canConvertToInt()||!json.path("expectedRevision").isIntegralNumber()||!json.path("expectedRevision").canConvertToLong())throw invalid(null,"연도와 revision은 정수여야 합니다.");
+        com.lolfm.career.CareerMarketState.Terms terms=null;var t=json.path("terms");
+        if(!t.isNull()) {
+            var names=new HashSet<String>();t.fieldNames().forEachRemaining(names::add);
+            if(!t.isObject()||!names.equals(Set.of("startDate","endDate","annualSalary","signingBonus","role"))||!t.path("annualSalary").isIntegralNumber()||!t.path("annualSalary").canConvertToLong()||!t.path("signingBonus").isIntegralNumber()||!t.path("signingBonus").canConvertToLong())throw invalid("terms","계약 날짜·금액·역할을 확인해 주세요.");
+            try { terms=new com.lolfm.career.CareerMarketState.Terms(java.time.LocalDate.parse(text(t,"startDate")),java.time.LocalDate.parse(text(t,"endDate")),t.path("annualSalary").longValue(),t.path("signingBonus").longValue(),com.lolfm.career.CareerMarketState.Role.valueOf(text(t,"role"))); }
+            catch(IllegalArgumentException | java.time.DateTimeException invalid){throw invalid("terms","계약 날짜 또는 역할이 올바르지 않습니다.");}
+        }
+        return new com.lolfm.career.CareerMarketStore.Request(text(json,"schemaVersion"),json.path("sourceYear").intValue(),json.path("expectedRevision").longValue(),text(json,"action"),optionalText(json,"playerId"),optionalText(json,"offerId"),terms,optionalText(json,"replacementPlayerId"),optionalText(json,"competitionId"),text(json,"clientCommandId"));
+    }
+    private String optionalText(JsonNode json,String field) {return json.path(field).isNull()?null:text(json,field);}
+
     public com.lolfm.career.CareerRosterStore.Request rosterCommand(byte[] body) {
         JsonNode json=read(body);
         Set<String> fields=Set.of("schemaVersion","sourceYear","team","playerId","action","targetOrganizationId","replacementPlayerId","expectedRevision","clientCommandId");

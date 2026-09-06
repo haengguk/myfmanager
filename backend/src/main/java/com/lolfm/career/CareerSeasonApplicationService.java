@@ -48,7 +48,9 @@ public final class CareerSeasonApplicationService {
                 (r,n)->new SeasonSummary(r.getInt("season_year"),r.getInt("season_ordinal"),r.getString("league_id"),
                         r.getString("season_id"),r.getString("lifecycle_status"),r.getString("roster_hash")),careerId);
         List<String> reasons;
-        try { reasons = blockers(career,state.seasonYear()); }
+        try { reasons = new ArrayList<>(blockers(career,state.seasonYear()));
+            if(CareerMarketStore.exists(jdbc,careerId) && state.currentDate().isBefore(java.time.LocalDate.of(state.seasonYear(),12,31))) reasons.add("OFFSEASON_OPERATIONS_UNTIL_DECEMBER_31");
+        }
         catch (RuntimeException integrity) { reasons = List.of("SEASON_INTEGRITY:" + integrity.getMessage()); }
         return new SeasonList("CAREER_SEASONS_V1",careerId,state.seasonYear(),state.calendarRevision(),summaries,reasons,
                 reasons.isEmpty()?List.of("START_NEXT_SEASON"):List.of());
@@ -106,8 +108,15 @@ public final class CareerSeasonApplicationService {
             competitions.lockCycle(careerId,request.sourceYear());
             var blocked = blockers(career,request.sourceYear());
             if (!blocked.isEmpty()) throw CareerException.invalid("sourceYear","시즌 마감 불가: "+String.join(", ",blocked));
+            if(CareerMarketStore.exists(jdbc,careerId)) {
+                if(calendar.currentDate().isBefore(java.time.LocalDate.of(calendar.seasonYear(),12,31)))throw CareerException.invalid("sourceYear","스토브에서 계약 사건을 진행한 뒤 12월 31일부터 다음 시즌을 시작할 수 있습니다.");
+                openStove(careerId);
+                CareerMarketStore.processThrough(jdbc,careerId,java.time.LocalDate.of(calendar.seasonYear()+1,1,1));
+            }
             var current = careers.activeSeason(career);
-            var rosters = CareerRosterStore.currentRosters(jdbc,careerId,current.year());
+            // Legacy provisioning snapshot remains immutable. Execution consumes the operating roster by required team.
+            var rosters = CareerSeasonRosters.load(competitions,careerId,current.year());
+            if(!CareerMarketStore.exists(jdbc,careerId))rosters=CareerRosterStore.currentRosters(jdbc,careerId,current.year());
             if (rosters == null) rosters = CareerSeasonRosters.load(competitions,careerId,current.year());
             if (rosters == null) rosters = CareerSeasonRosters.freezeInitial(competitions,participants,careerId,current.year());
             jdbc.update("UPDATE career_season SET roster_json=?,roster_hash=? WHERE career_id=? AND season_year=? AND roster_json IS NULL",
@@ -130,6 +139,8 @@ public final class CareerSeasonApplicationService {
                 VALUES (?,?,?,?,?,?,?,?,'ACTIVE',?,?)
                 """,careerId,nextYear,ordinal,league,season,seed,created.frozenSnapshotIdentity(),created.productDecisionIdentity(),rosters.encoded(),rosters.identity());
             CareerRosterStore.carry(jdbc,careerId,current.year(),nextYear);
+            var closedRoster=jdbc.query("SELECT roster_json FROM career_market_season_close WHERE career_id=? AND season_year=?",(r,n)->r.getString(1),careerId,current.year());
+            if(!closedRoster.isEmpty())jdbc.update("UPDATE career_roster_state SET state_json=?,state_hash=? WHERE career_id=? AND season_year=?",closedRoster.getFirst(),CareerRosterStore.hash(closedRoster.getFirst()),careerId,current.year());
             competitions.initializeFuture(careerId,nextYear);
             var next=calendars.rollover(career,current.year(),request.expectedCalendarRevision());
             jdbc.update("""
@@ -139,6 +150,16 @@ public final class CareerSeasonApplicationService {
             var receipt=jdbc.queryForObject("SELECT completed_at FROM career_season_transition WHERE client_command_id = ?",OffsetDateTime.class,command);
             return new Transition(false,new Receipt(command,careerId,current.year(),nextYear,season,next.calendarRevision(),result,receipt),list(careerId));
         });
+    }
+    public void openStove(String careerId) {
+        // Caller uses Calendar row, no separate global lock acquired after it.
+        var career=requireCareer(careerId);var calendar=calendars.loadReady(career);
+        if(count("SELECT COUNT(*) FROM career_market_season_close WHERE career_id=? AND season_year=?",careerId,calendar.seasonYear())>0)return;
+        var blocked=blockers(career,calendar.seasonYear());
+        if(!blocked.isEmpty())throw CareerException.invalid("season","대회 결과를 모두 반영한 뒤 스토브에 진입할 수 있습니다: "+String.join(", ",blocked));
+        var roster=CareerRosterStore.saved(jdbc,careerId,calendar.seasonYear());var market=CareerMarketStore.load(jdbc,careerId);
+        if(roster==null||market==null)throw CareerException.invalid("market","계약 초기화가 필요합니다.");
+        jdbc.update("INSERT INTO career_market_season_close VALUES (?,?,?,?,?,?)",careerId,calendar.seasonYear(),calendar.currentDate(),CareerRosterStore.write(roster.state()),CareerRosterStore.write(market.state()),resultHash(competitions.finalRanking(careerId,calendar.seasonYear()),competitions.internationalViews(careerId,calendar.seasonYear())));
     }
     private List<String> blockers(CareerRelationalStore.CareerRow career,int year) {
         String id=career.careerId();var active=careers.activeSeason(career);

@@ -277,3 +277,11 @@ hash, seed, Draft/Fearless 및 checkpoint를 새 명단으로 다시 작성하�
 시즌 전환은 마감 시점의 Career 소속·squad·lineup을 다음 연도로 이월한다. 새 시즌의
 Cup/League 및 이후 국제 등록은 이 값을 사용한다. 상세는
 [확장 명부 구현·검증 보고서](../development/career-expanded-rosters-lineups-and-data-integration-v1.md)를 참조한다.
+
+## 계약 자격과 등록 보충 (2026-09-06)
+
+운영 roster V2는 포지션 공백을 저장할 수 있다. League/Career 새 Series는 해당 두 팀의 현재 유효 고용 계약·소속·선발 5명을 확인한 뒤 고정한다. 국제 등록의 기존 5명 fallback과 후보 pool에도 현재 자격을 요구한다. 이미 시작된 binding/checkpoint/receipt는 기존 입력을 유지한다.
+
+유효한 같은 포지션 등록 선수가 모두 없어진 경우에만 현재 적법한 1군 선수를 `SUPPLEMENT` 명령으로 추가한다. `career_registration_supplement`가 원본 등록과 별도로 사유/시점/revision을 보존하며 AI도 같은 조건을 사용한다. 이는 실제 대회 규정이 아닌 진행 복구 게임 정책이다. 참가자 등록 전부터 완전한 선발이 부족하면 `ROSTER_REPAIR_REQUIRED`로 시장 진행과 복구를 허용한다. 해외 참가자 전력 대체 지표는 변경된 현재 선발을 소비한다.
+
+상세 저장/API/정책은 [계약 시장 V1](../development/career-contracts-stove-fa-market-ai-competition-v1.md)을 따른다.

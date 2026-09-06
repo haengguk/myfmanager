@@ -24,20 +24,29 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
 
     @Autowired com.lolfm.career.CareerApplicationService careers;
     @Autowired com.lolfm.career.CareerRosterStore rosters;
+    @Autowired com.lolfm.career.CareerMarketStore market;
+    @Autowired com.lolfm.career.CareerCalendarApplicationService calendar;
 
     @Test
     void selectedReserveRunsThroughActualLeagueAutoAndFrozenReceiptValidation() {
         var career=careers.create(new com.lolfm.dto.CareerApiV1Dtos.CreateRequest(com.lolfm.dto.CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,
                 "KT 후보 실제 Auto","감독","KT",java.util.UUID.randomUUID().toString())).career().career();
         rosters.change(career.careerId(),new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-jiwoo","SELECT_STARTER",null,null,0,java.util.UUID.randomUUID().toString()));
-        var frozen=com.lolfm.career.CareerRosterStore.currentRosters(jdbc,career.careerId(),2027).domesticPair("KT","T1");
+        String id=career.careerId();var view=market.view(id,2027);
+        market.command(id,new com.lolfm.career.CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,view.revision(),"RELEASE","player-cuzz",null,null,null,null,java.util.UUID.randomUUID().toString()));
+        view=market.view(id,2027);var bo=view.players().stream().filter(p->p.playerId().equals("player-bo")).findFirst().orElseThrow();
+        var terms=new com.lolfm.career.CareerMarketState.Terms(bo.availableStart(),bo.availableStart().plusYears(2).minusDays(1),bo.askingSalary()*150/100,10_000,com.lolfm.career.CareerMarketState.Role.STARTER);
+        market.command(id,new com.lolfm.career.CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,view.revision(),"SUBMIT","player-bo",null,terms,null,null,java.util.UUID.randomUUID().toString()));
+        while(calendar.view(career).state().currentDate().isBefore(bo.availableStart()))calendar.advance(career,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,calendar.view(career).state().calendarRevision(),"ADVANCE_ONE_DAY",java.util.UUID.randomUUID().toString());
+        var current=rosters.view(id,2027);rosters.change(id,new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-bo","SELECT_STARTER",null,null,current.revision(),java.util.UUID.randomUUID().toString()));
+        var frozen=com.lolfm.career.CareerRosterStore.eligiblePair(jdbc,id,2027,"LCK:KT","LCK:T1").domesticPair("KT","T1");
         var season=productionSeason(snapshots);var fixture=LeagueDomainTestFixtures.fixture(season.schedule(),"KT","T1");
         var input=new LeagueAutomatedSeriesRunnerInput(season,fixture,season.productDecisionHash(),frozen);
         var result=runner.run(input,SimulationInstrumentation.disabled());
         assertThat(result.status()).isEqualTo(LeagueAutomatedSeriesRunResult.Status.COMPLETED);
         assertThat(result.unifiedReceipt().frozenRosterIdentity()).isEqualTo(frozen.identity());
         result.receipt().orderedGameReceipts().forEach(game->assertThat(game.orderedFinalAssignments())
-                .extracting(LeagueFixtureGameReceiptV1.FinalAssignmentEvidence::playerId).contains(new com.lolfm.player.PlayerId("player-jiwoo")).doesNotContain(new com.lolfm.player.PlayerId("player-fenrir")));
+                .extracting(LeagueFixtureGameReceiptV1.FinalAssignmentEvidence::playerId).contains(new com.lolfm.player.PlayerId("player-jiwoo"),new com.lolfm.player.PlayerId("player-bo")).doesNotContain(new com.lolfm.player.PlayerId("player-fenrir"),new com.lolfm.player.PlayerId("player-cuzz")));
         VerifiedLeagueFixtureCompletion.verifyPersisted(season,result.unifiedReceipt(),null,frozen);
         org.assertj.core.api.Assertions.assertThatThrownBy(()->VerifiedLeagueFixtureCompletion.verifyPersisted(season,result.unifiedReceipt(),null,null))
                 .hasMessage("FIXTURE_LINEUP_IDENTITY_MISMATCH");

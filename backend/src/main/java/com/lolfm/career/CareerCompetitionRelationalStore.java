@@ -866,9 +866,10 @@ public final class CareerCompetitionRelationalStore {
                 var preserved=CareerCompetitionSeriesBindingV1.restoreCanonical(existingBinding.getFirst());
                 preserved.requireProductionAuthority(productionSnapshot,resourceProvenanceHash);return preserved;
             }
-            var carried = CareerRosterStore.currentRosters(jdbc,careerId,seasonYear);
-            if(carried==null && cycle.seasonOrdinal()>1)carried=CareerSeasonRosters.load(this,careerId,seasonYear);
-            if (cycle.seasonOrdinal() > 1 && carried == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
+            var carried = international==null && CareerRosterStore.saved(jdbc,careerId,seasonYear)!=null
+                    ? CareerRosterStore.eligiblePair(jdbc,careerId,seasonYear,"LCK:"+fixture.firstTeamCode(),"LCK:"+fixture.secondTeamCode()) : null;
+            if(international==null && carried==null && cycle.seasonOrdinal()>1)carried=CareerSeasonRosters.load(this,careerId,seasonYear);
+            if (international==null && cycle.seasonOrdinal() > 1 && carried == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
             CareerCompetitionSeriesBindingV1 candidate = international != null
                     ? CareerCompetitionSeriesBindingV1.createInternational(cycle, instance, fixture,
                     CompetitionRosterSnapshot.managedToken(managedTeam), international.ruleResourceHash(),

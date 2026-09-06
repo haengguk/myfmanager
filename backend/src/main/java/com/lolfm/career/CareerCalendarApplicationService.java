@@ -47,7 +47,7 @@ public final class CareerCalendarApplicationService {
         try {
             return buildView(career, ready(career));
         } catch (CareerCalendarRelationalStore.CommandReceiptIntegrityFailure corrupt) {
-            throw CareerException.calendarCommandIntegrity();
+            throw CareerException.calendarCommandIntegrity(corrupt);
         } catch (DataIntegrityViolationException | IllegalArgumentException
                 | IllegalStateException failure) {
             throw CareerException.calendarIntegrity(failure);
@@ -107,7 +107,7 @@ public final class CareerCalendarApplicationService {
         } catch (CareerCalendarRelationalStore.LegacyPendingReconciliationRequired legacy) {
             throw CareerException.calendarLegacyPendingReconciliationRequired();
         } catch (CareerCalendarRelationalStore.CommandReceiptIntegrityFailure corrupt) {
-            throw CareerException.calendarCommandIntegrity();
+            throw CareerException.calendarCommandIntegrity(corrupt);
         } catch (CareerCalendarRelationalStore.CalendarMigrationRequired migration) {
             throw CareerException.calendarMigrationRequired();
         } catch (CareerCalendarRelationalStore.CalendarNotFound missing) {
@@ -125,7 +125,7 @@ public final class CareerCalendarApplicationService {
             CareerCalendarRelationalStore.CalendarRow state,
             String mode
     ) {
-        if ("SEASON_ROLLOVER_REQUIRED".equals(state.lifecycleStatus())) {
+        if ("SEASON_ROLLOVER_REQUIRED".equals(state.lifecycleStatus()) && (!calendars.hasMarket(career.careerId()) || !state.currentDate().isBefore(LocalDate.of(state.seasonYear(),12,31)))) {
             return mutation(state, state.currentDate(), state.eventCursor(),
                     state.lastProcessedEventId(), state.lastProcessedDate(),
                     "SEASON_ROLLOVER_REQUIRED", "SEASON_ROLLOVER_REQUIRED",
@@ -134,8 +134,24 @@ public final class CareerCalendarApplicationService {
         CareerCalendarTemplate.ProjectedCalendar projected = template.project(
                 state.seasonYear());
         OverlayProjection overlay = overlay(career, state, projected);
+        if(calendars.offseason(career.careerId(),state.seasonYear())) {
+            LocalDate end=LocalDate.of(state.seasonYear(),12,31);
+            if(!state.currentDate().isBefore(end))return mutation(state,state.currentDate(),state.eventCursor(),state.lastProcessedEventId(),state.lastProcessedDate(),"SEASON_ROLLOVER_REQUIRED","SEASON_ROLLOVER_REQUIRED",!"SEASON_ROLLOVER_REQUIRED".equals(state.lifecycleStatus()),false,200,"SEASON_ROLLOVER_REQUIRED",false);
+            LocalDate target=ADVANCE_ONE_DAY.equals(mode)?state.currentDate().plusDays(1):calendars.nextMarketEvent(career.careerId(),state.currentDate());
+            if(target==null||target.isAfter(end))target=end;
+            calendars.processMarket(career.careerId(),target);
+            return mutation(state,target,template.eventCursor(projected,target),state.lastProcessedEventId(),state.lastProcessedDate(),"ACTIVE",null,true,false,200,null,false);
+        }
         competitions.reconcileForAdvance(career, state.seasonYear(), overlay.season());
 
+        if(marketRepairNeeded(career,state.seasonYear(),state.currentDate(),overlay)) {
+            LocalDate target=ADVANCE_ONE_DAY.equals(mode)?state.currentDate().plusDays(1):calendars.nextMarketEvent(career.careerId(),state.currentDate());
+            // An unfinished match must remain repairable even when negotiation crosses December 31.
+            if(target==null)target=state.currentDate().plusDays(1);
+            calendars.processMarket(career.careerId(),target);
+            boolean remains=marketRepairNeeded(career,state.seasonYear(),target,overlay);
+            return mutation(state,target,template.eventCursor(projected,target),state.lastProcessedEventId(),state.lastProcessedDate(),"ACTIVE",remains?"ROSTER_REPAIR_REQUIRED":null,true,false,200,remains?"ROSTER_REPAIR_REQUIRED":null,false);
+        }
         CareerCalendarLeaguePort.GateResult currentGate = gate(career, state.seasonYear(),
                 state.currentDate(), projected, overlay);
         if (currentGate.stopReason() != null) {
@@ -150,12 +166,13 @@ public final class CareerCalendarApplicationService {
 
         LocalDate target = targetDate(career, state.seasonYear(), mode,
                 state.currentDate(), projected, overlay);
-        if (target == null || target.isAfter(projected.events().getLast().endDate())) {
+        if (target == null || target.isAfter(calendars.hasMarket(career.careerId())?LocalDate.of(state.seasonYear(),12,31):projected.events().getLast().endDate())) {
             return mutation(state, state.currentDate(), state.eventCursor(),
                     state.lastProcessedEventId(), state.lastProcessedDate(),
                     "SEASON_ROLLOVER_REQUIRED", "SEASON_ROLLOVER_REQUIRED",
                     true, false, 200, "SEASON_ROLLOVER_REQUIRED", false);
         }
+        calendars.processMarket(career.careerId(),target);
         CareerCalendarLeaguePort.GateResult targetGate = gate(career, state.seasonYear(),
                 target, projected, overlay);
         if (targetGate.stopReason() != null) {
@@ -208,8 +225,9 @@ public final class CareerCalendarApplicationService {
             CareerCalendarTemplate.ProjectedCalendar projected,
             OverlayProjection overlay
     ) {
+        if(marketRepairNeeded(career,calendarSeasonYear,date,overlay))return new CareerCalendarLeaguePort.GateResult("ROSTER_REPAIR_REQUIRED",false,false,null,null);
         List<String> ids = overlay.fixtures().stream()
-                .filter(value -> value.date().equals(date))
+                .filter(value -> !value.date().isAfter(date) && !"COMPLETED".equals(value.lifecycleStatus()))
                 .map(FixtureView::fixtureId).toList();
         CareerCalendarLeaguePort.GateResult league = leagues.gateAndDispatch(
                 overlay.season().seasonId(), ids);
@@ -225,6 +243,16 @@ public final class CareerCalendarApplicationService {
         return competition.stopReason() == null ? league
                 : new CareerCalendarLeaguePort.GateResult(competition.stopReason(),
                 false, false, competition.fixtureId(), competition.seriesId());
+    }
+
+    private boolean marketRepairNeeded(CareerRelationalStore.CareerRow career,int year,LocalDate date,OverlayProjection overlay) {
+        if(!calendars.hasMarket(career.careerId()))return false;
+        for(var fixture:overlay.fixtures())if(!fixture.date().isAfter(date)&&!"COMPLETED".equals(fixture.lifecycleStatus())
+                && calendars.marketRepair(career.careerId(),year,fixture.firstTeamCode(),fixture.secondTeamCode(),null,overlay.season().seasonId(),fixture.fixtureId()))return true;
+        var competitionView=competitions.view(career,year,date,null,null);
+        if(competitionView.currentCompetition()!=null&&"ROSTER_REPAIR_REQUIRED".equals(competitionView.currentCompetition().blockingReason()))return true;
+        var current=competitionView.nextFixture();
+        return current!=null&&!current.date().isAfter(date)&&current.bindingHash()==null&&calendars.marketRepair(career.careerId(),year,current.firstTeamCode(),current.secondTeamCode(),current.competitionId(),null,null);
     }
 
     private static String competitionIdAt(
@@ -246,6 +274,7 @@ public final class CareerCalendarApplicationService {
     ) {
         if (ADVANCE_ONE_DAY.equals(mode)) return current.plusDays(1);
         ArrayList<LocalDate> candidates = new ArrayList<>();
+        LocalDate marketEvent=calendars.nextMarketEvent(career.careerId(),current);if(marketEvent!=null)candidates.add(marketEvent);
         projected.events().stream().map(CareerCalendarTemplate.ProjectedEvent::startDate)
                 .filter(value -> value.isAfter(current)).forEach(candidates::add);
         overlay.fixtures().stream().map(FixtureView::date)
@@ -303,12 +332,13 @@ public final class CareerCalendarApplicationService {
         CareerCompetitionApplicationService.CompetitionGate competitionGate =
                 competitions.gate(career, state.seasonYear(), state.currentDate(),
                         current == null ? null : current.templateId(), overlay.season());
+        boolean marketRepair=marketRepairNeeded(career,state.seasonYear(),state.currentDate(),overlay);
         boolean seasonCanAdvance = normalSeasonLifecycle(
                 overlay.season().seasonLifecycleStatus())
                 || "COMPLETED".equals(overlay.season().seasonLifecycleStatus())
                 && overlay.season().allFixturesCompleted();
-        List<String> commands = "ACTIVE".equals(state.lifecycleStatus())
-                && seasonCanAdvance && competitionGate.stopReason() == null
+        List<String> commands = ("ACTIVE".equals(state.lifecycleStatus()) || calendars.hasMarket(career.careerId()) && state.currentDate().isBefore(LocalDate.of(state.seasonYear(),12,31)))
+                && seasonCanAdvance && (competitionGate.stopReason() == null || marketRepair)
                 && activePending == null && pendingStatus.recoveryBlocker() == null
                 ? ADVANCE_MODES : List.of();
         String blockingReason = lifecycleBlockingReason(
@@ -324,6 +354,7 @@ public final class CareerCalendarApplicationService {
                 state.blockingReason())) {
             blockingReason = state.blockingReason();
         }
+        if(marketRepair)blockingReason="ROSTER_REPAIR_REQUIRED";
         return new CalendarView(state, template.body().referenceYear(),
                 template.body().sourceAsOf(),
                 template.body().referenceCatalogSnapshotAt(),

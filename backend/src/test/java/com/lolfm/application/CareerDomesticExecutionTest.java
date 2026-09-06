@@ -23,6 +23,7 @@ class CareerDomesticExecutionTest {
     @Autowired CareerInternationalParticipants international;
 
     @Autowired CareerRosterStore rosters;
+    @Autowired CareerMarketStore market;
     @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     @Test
@@ -36,6 +37,19 @@ class CareerDomesticExecutionTest {
         rosters.change(career.careerId(),new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-hwichan","SELECT_STARTER",null,null,2,UUID.randomUUID().toString()));
         assertThat(CareerCompetitionTestSupport.applicableEwcRoster(store,career.careerId(),false).roster("LCK:KT").players()).extracting(CompetitionRosterSnapshot.Starter::playerId).contains("player-bdd","player-jiwoo").doesNotContain("player-hwichan");
         assertThat(rosters.view(career.careerId(),2027).registeredPlayers().get("EWC_LOL")).contains("player-jiwoo").doesNotContain("player-hwichan");
+        String id=career.careerId();
+        var f=store.load(id,2027).fixtures().stream().filter(x->x.competitionId().equals("EWC_LOL")&&x.lifecycleStatus().equals("READY")&&(x.firstTeamCode().equals("LCK:KT")||x.secondTeamCode().equals("LCK:KT"))).findFirst().orElseThrow();
+        var frozen=store.bindFixture(id,2027,f.competitionId(),f.matchId(),snapshots.currentSnapshot(snapshots.currentTeamCodes()),snapshots.currentResourceProvenanceHash());
+        String registered=jdbc.queryForObject("SELECT state_json FROM career_international_state WHERE career_id=? AND competition_id='EWC_LOL'",String.class,id);
+        var view=market.view(id,2027);
+        market.command(id,new CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,view.revision(),"RELEASE","player-bdd",null,null,null,null,UUID.randomUUID().toString()));
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->CareerCompetitionTestSupport.applicableEwcRoster(store,id,false)).isInstanceOf(CareerException.class);
+        assertThat(store.bindFixture(id,2027,f.competitionId(),f.matchId(),snapshots.currentSnapshot(snapshots.currentTeamCodes()),snapshots.currentResourceProvenanceHash()).canonicalText()).isEqualTo(frozen.canonicalText());
+        market.command(id,new CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,market.view(id,2027).revision(),"SUPPLEMENT","player-hwichan",null,null,null,"EWC_LOL",UUID.randomUUID().toString()));
+        assertThat(CareerCompetitionTestSupport.applicableEwcRoster(store,id,false).roster("LCK:KT").players()).extracting(CompetitionRosterSnapshot.Starter::playerId).contains("player-hwichan").doesNotContain("player-bdd");
+        assertThat(jdbc.queryForObject("SELECT state_json FROM career_international_state WHERE career_id=? AND competition_id='EWC_LOL'",String.class,id)).isEqualTo(registered);
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->market.command(id,new CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,market.view(id,2027).revision(),"SUPPLEMENT","player-jiwoo",null,null,null,"EWC_LOL",UUID.randomUUID().toString()))).isInstanceOf(CareerException.class);
+
     }
 
     @Test

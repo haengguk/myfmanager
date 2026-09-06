@@ -36,10 +36,12 @@ final class CareerInternationalCompetition {
                     }
                     continue;
                 }
-                state=register(career,year,competition);
+                String waitingReason="INTERNATIONAL_QUALIFICATION_REQUIRED";
+                try {state=register(career,year,competition);}
+                catch (RegistrationRosterRepair needed) {waitingReason="ROSTER_REPAIR_REQUIRED";}
                 if(state==null){
-                    if(!"WAITING_FOR_QUALIFICATION".equals(instance.lifecycleStatus())){
-                        store.jdbc.update("UPDATE career_competition_instance SET rule_status = 'GAME_POLICY_DEFINED', lifecycle_status = 'WAITING_FOR_QUALIFICATION', blocking_reason = 'INTERNATIONAL_QUALIFICATION_REQUIRED', materialization_policy_id = ?, materialization_receipt_hash = ?, revision = revision + 1 WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",CareerInternationalRules.POLICY,CareerInternationalRules.RESOURCE_HASH,career,year,competition);
+                    if(!"WAITING_FOR_QUALIFICATION".equals(instance.lifecycleStatus())||!waitingReason.equals(instance.blockingReason())){
+                        store.jdbc.update("UPDATE career_competition_instance SET rule_status = 'GAME_POLICY_DEFINED', lifecycle_status = 'WAITING_FOR_QUALIFICATION', blocking_reason = ?, materialization_policy_id = ?, materialization_receipt_hash = ?, revision = revision + 1 WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",waitingReason,CareerInternationalRules.POLICY,CareerInternationalRules.RESOURCE_HASH,career,year,competition);
                         store.refreshInstanceHash(career,year,competition);changed=true;
                     }
                     continue;
@@ -124,6 +126,7 @@ final class CareerInternationalCompetition {
                 upgraded.policyVersion(),career,year,competition);
         return upgraded;
     }
+    private static final class RegistrationRosterRepair extends RuntimeException {}
     private CareerInternationalState register(String career,int year,String competition){
         boolean future = store.findCycle(career,year,false).getFirst().seasonOrdinal() > 1;
         var previousWorlds = future ? load(store,career,year-1,"WORLDS") : null;
@@ -153,6 +156,8 @@ final class CareerInternationalCompetition {
                 for(String team:ranking.getFirst().ranking())if(!domestic.contains(team))domestic.add(team);
             }
         }
+        var operating=CareerRosterStore.saved(store.jdbc,career,year);
+        if(operating!=null && operating.state().lineups().values().stream().noneMatch(ids->ids.size()==5))throw new RegistrationRosterRepair();
         var currentRoster = CareerRosterStore.currentRosters(store.jdbc,career,year);
         final var seasonRosters = currentRoster == null ? CareerSeasonRosters.load(store,career,year) : currentRoster;
         if (future && seasonRosters == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
@@ -160,6 +165,26 @@ final class CareerInternationalCompetition {
                 : participants.overseas(career,year,competition,seasonRosters);
         List<String> regions=competition.equals("FIRST_STAND")?(future?previousWorlds.plan().regionalPerformance():CareerInternationalRules.REFERENCE_REGIONS):
                 competition.equals("MSI")?fst.plan().regionalPerformance():msi.plan().regionalPerformance();
+        if(operating!=null) {
+            int required=competition.equals("EWC_LOL")?(previousEwc==null?4:3):2;
+            String msiChampion=null;
+            if(competition.equals("WORLDS")) {
+                msiChampion=msi.plan().champion();String championRegion=msi.entries().stream().filter(e->e.team().equals(msi.plan().champion())).findFirst().orElseThrow().region();
+                String otherBonus=regions.stream().filter(r->!r.equals(championRegion)).findFirst().orElseThrow();
+                required=3+(championRegion.equals("LCK")||otherBonus.equals("LCK")?1:0);
+                for(String region:regions)if(!region.equals("LCK")) {
+                    int count=(region.equals("CBLOL")?2:3)+(region.equals(championRegion)?1:0)+(region.equals(otherBonus)?1:0);
+                    if(selection.rankings().get(region).size()<count)throw new RegistrationRosterRepair();
+                }
+            } else for(String region:regions)if(!region.equals("LCK")) {
+                int count=competition.equals("EWC_LOL")?(region.equals("LPL")||region.equals("LEC")?3:2):competition.equals("FIRST_STAND")?(region.equals("LPL")?2:1):region.equals("CBLOL")?1:2;
+                if(selection.rankings().get(region).size()<count)throw new RegistrationRosterRepair();
+            }
+            for(String team:domestic.subList(0,Math.min(required,domestic.size())))if(!seasonRosters.teams().containsKey("LCK:"+team))throw new RegistrationRosterRepair();
+            if(msiChampion!=null && domestic.subList(0,Math.min(6,domestic.size())).contains(msiChampion.replace("LCK:",""))&&!seasonRosters.teams().containsKey(msiChampion))throw new RegistrationRosterRepair();
+            if(competition.equals("WORLDS"))domestic=new ArrayList<>(domestic.subList(0,Math.min(6,domestic.size())));
+            domestic.removeIf(team->!seasonRosters.teams().containsKey("LCK:"+team));
+        }
         // Capture all ranking inputs (including nonselected foreign candidates), source domestic hash and prior game performance.
         String evidence=write(List.of(selection,store.instance(career,year,dependency).stateHash(),outputs,domestic,regions,
                 msi==null?"NO_MSI_INPUT":msi.plan(),future?List.of("FUTURE_SEASON_POLICY_V1",previousWorlds.plan(),previousEwc.plan(),seasonRosters.identity()):"INITIAL_CYCLE"));

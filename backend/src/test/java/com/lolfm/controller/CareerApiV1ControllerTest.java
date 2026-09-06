@@ -32,6 +32,22 @@ class CareerApiV1ControllerTest {
     @Autowired CareerCompetitionExecutionService competitionExecution;
 
     @Test
+    void marketTermsRejectInvalidDatesBeforeMutatingStorage() throws Exception {
+        int commands=count("career_market_command");
+        String body="""
+            {"schemaVersion":"CAREER_MARKET_COMMAND_V1","sourceYear":2027,"expectedRevision":0,
+            "action":"SUBMIT","playerId":"player-bo","offerId":null,
+            "terms":{"startDate":"2027-02-01","endDate":"2028-01-31","annualSalary":200000,"signingBonus":0,"role":"STARTER"},
+            "replacementPlayerId":null,"competitionId":null,"clientCommandId":"11111111-1111-4111-8111-111111111111"}
+            """;
+        for(String invalid:java.util.List.of(body.replace("2027-02-01","2027-02-30"),body.replace("STARTER","UNKNOWN"),body.replace("200000","200000.5"))) {
+            var response=mvc.perform(post("/api/v1/careers/career_"+"a".repeat(64)+"/market").contentType(MediaType.APPLICATION_JSON).content(invalid)).andExpect(status().isBadRequest()).andReturn().getResponse();
+            assertThat(json(response.getContentAsString()).path("code").asText()).isEqualTo("CAREER_REQUEST_INVALID");
+        }
+        assertThat(count("career_market_command")).isEqualTo(commands);
+    }
+
+    @Test
     void createListGetReplayConflictAndStrictErrorsPreserveLeagueState() throws Exception {
         String commandId = UUID.randomUUID().toString();
         int careersBefore = count("career_save");
@@ -237,7 +253,7 @@ class CareerApiV1ControllerTest {
                 .isEqualTo(CareerApiV1Dtos.ADVANCE_RESPONSE_SCHEMA);
         assertThat(advanced.path("pending").asBoolean()).isFalse();
         assertThat(advanced.path("calendar").path("currentDate").asText())
-                .isEqualTo("2027-01-14");
+                .isEqualTo("2026-08-31");
         assertThat(advanced.path("calendar").path("calendarRevision").asLong())
                 .isEqualTo(1);
         int advanceReceipts = count("career_calendar_advance_command");
@@ -261,8 +277,9 @@ class CareerApiV1ControllerTest {
         assertThat(json(mvc.perform(get("/api/v1/careers/" + careerId))
                 .andExpect(status().isOk()).andReturn().getResponse()
                 .getContentAsString()).path("currentDate").asText())
-                .isEqualTo("2027-01-14");
+                .isEqualTo("2026-08-31");
 
+        advanced=advanceToFirstCup(careerId,advanced);
         JsonNode competition = advanced.path("calendar").path("competition");
         JsonNode competitionFixture = competition.path("nextFixture");
         assertThat(competitionFixture.path("blockingReason").isNull()).isTrue();
@@ -378,6 +395,7 @@ class CareerApiV1ControllerTest {
                                 UUID.randomUUID().toString())))
                 .andExpect(status().isOk()).andReturn().getResponse()
                 .getContentAsString());
+        secondAdvanced=advanceToFirstCup(secondCareerId,secondAdvanced);
         assertThat(secondAdvanced.path("stopReason").asText())
                 .isEqualTo("AUTO_COMPETITION_FIXTURE_REQUIRED");
         String autoCommandId = UUID.randomUUID().toString();
@@ -490,6 +508,20 @@ class CareerApiV1ControllerTest {
                 UPDATE career_save SET league_frozen_snapshot_hash = ?
                 WHERE career_id = ?
                 """, frozen, careerId);
+    }
+
+    private JsonNode advanceToFirstCup(String careerId,JsonNode previous) throws Exception {
+        var target=java.time.LocalDate.of(2027,1,14);int count=0;
+        while(java.time.LocalDate.parse(previous.path("calendar").path("currentDate").asText()).isBefore(target)) {
+            var before=java.time.LocalDate.parse(previous.path("calendar").path("currentDate").asText());
+            previous=json(mvc.perform(post("/api/v1/careers/"+careerId+"/advance").contentType(MediaType.APPLICATION_JSON)
+                    .content(advanceBody(previous.path("calendar").path("calendarRevision").asLong(),"ADVANCE_TO_NEXT_EVENT",UUID.randomUUID().toString())))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+            assertThat(java.time.LocalDate.parse(previous.path("calendar").path("currentDate").asText())).isAfter(before);
+            assertThat(++count).isLessThan(150);
+        }
+        assertThat(previous.path("calendar").path("currentDate").asText()).isEqualTo(target.toString());
+        return previous;
     }
 
     private static JsonNode findEvent(JsonNode events, String templateId) {

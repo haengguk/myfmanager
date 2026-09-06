@@ -115,3 +115,12 @@ export function getCareerRoster(career: string, year: number, signal: AbortSigna
 export function changeCareerRoster(career: string, body: RosterCommand, signal: AbortSignal): Promise<RosterChange> {
   return request(`${ROOT}/${encodeURIComponent(career)}/roster`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateRosterChange, [200]);
 }
+
+import type { CareerMarket, MarketCommand, MarketChange } from './careerMarket.contract';
+import { validateCareerMarket, validateMarketChange } from './careerMarket.contract';
+export function getCareerMarket(career: string, year: number, signal: AbortSignal): Promise<CareerMarket> {
+  return request(`${ROOT}/${encodeURIComponent(career)}/market/${year}`, { method: 'GET' }, signal, validateCareerMarket, [200]);
+}
+export function changeCareerMarket(career: string, body: MarketCommand, signal: AbortSignal): Promise<MarketChange> {
+  return request(`${ROOT}/${encodeURIComponent(career)}/market`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateMarketChange, [200]);
+}

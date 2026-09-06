@@ -203,3 +203,13 @@ Calendar 행 잠금을 경기 시작·등록·명부 변경·시즌 전환의 �
 화면에서도 동기적 공유 변경 gate를 사용하며 원본 전환/로스터 UUID는 응답 소실 후 보존한다.
 조회 generation과 변경 요청 소유권/종료를 분리한다. 과거 시즌 화면은 변경할 수 없다.
 자세한 정책·이주·검증은 [확장 명부 V1](../development/career-expanded-rosters-lineups-and-data-integration-v1.md)을 따른다.
+
+## 계약 시장과 스토브 확장 (2026-09-06)
+
+V16의 Career 계약 시장은 다음 계약 시작·만료·월말 급여·연간 배정·제안 응답·선수 결정·기한과 월요일 AI 사건을 기존 다음 일정 후보에 추가한다. 날짜 점프는 중간 날짜를 게임 정책 순서대로 소비한다. GET은 시장을 진행하지 않는다.
+
+`ROSTER_REPAIR_REQUIRED`는 필요한 선발 또는 국제 등록 자격이 부족한 상태다. 경기 시작은 막고 계약 사건 날짜 진행은 허용하여 영입/승격/선발/적법한 보충등록으로 복구한다. `SEASON_ROLLOVER_REQUIRED`인 이주 저장도 연말 전에는 서버의 `allowedAdvanceModes`가 시장 진행을 허용할 수 있다. 프런트는 이 두 경우와 기존 pending 원본 복구 경계를 구분한다.
+
+대회 마감은 시장의 `OPEN_STOVE`, 새 시즌은 기존 전환 API다. 마감 snapshot 이후 현재 명단은 운영 가능하다. 12월 31일 전에는 `OFFSEASON_OPERATIONS_UNTIL_DECEMBER_31`로 다음 시즌 진입을 막는다. 새해 사건은 시즌 이월 transaction에 포함한다. 캘린더 명령 영수증 시각은 실제 시계의 역방향 보정에도 생성/이전 시각보다 작아지지 않으며 게임 날짜와 seed 계산에는 사용하지 않는다.
+
+시장 API, 초기화/재정/협상 정책과 검증은 [계약 시장 V1](../development/career-contracts-stove-fa-market-ai-competition-v1.md)을 따른다.

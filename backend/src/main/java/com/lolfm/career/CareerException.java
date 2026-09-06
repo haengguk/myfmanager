@@ -115,9 +115,9 @@ public final class CareerException extends RuntimeException {
                 null);
     }
 
-    public static CareerException calendarCommandIntegrity() {
+    public static CareerException calendarCommandIntegrity(Throwable cause) {
         return new CareerException(Type.CALENDAR_COMMAND_INTEGRITY_FAILURE, null,
-                "캘린더 진행 명령의 저장 무결성을 확인할 수 없습니다.", null);
+                "캘린더 진행 명령의 저장 무결성을 확인할 수 없습니다.", cause);
     }
 
     public static CareerException calendarMigrationRequired() {

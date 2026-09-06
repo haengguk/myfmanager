@@ -1497,3 +1497,25 @@ errors 0으로 유지되는 것을 확인했다.
 
 두 skip은 기존 explicit skip이다. Clean full 뒤 executable production Java/resource/Gradle/shared
 fixture는 변경하지 않고 문서만 갱신했다.
+
+## Career 계약 시장 V1 (2026-09-06)
+
+새 `CareerMarketEngineTest`에서 경쟁 제안 순서/게임 선호, 기간별 예산, 급여 날짜 경계,
+예약 재계약/만료, 카운터/철회와 제한된 56구단 시장 주기를 확인한다. 새 테스트 클래스를
+계층마다 만들지 않고 기존 `CareerModePersistenceTest`, `CareerDomesticExecutionTest`,
+`LeagueAutomatedSeriesRunnerProductionV9Test`에 저장 원자성/재시작/반복 스토브/등록 자격과
+실제 영입 선수 Auto BO3 검증을 확장했다. 반복 시즌 경기 완료 준비는 기존 합성 helper다.
+실제 모든 해외 리그나 수년 치 경기, 대규모 분포/밸런스 진단을 실행하지 않는다.
+
+프런트는 `npm run career:verify`, `npm run build`와 하나의 실제 브라우저 스토브→FA 협상→
+영입→선발→Player Draft 흐름 및 원본 요청 응답 소실 복구를 사용한다. 변경하지 않은
+Series/League/Draft 공용 계약 verifier를 중복 실행하지 않는다. 최종 전체 backend `test`는
+생산 코드와 필요한 브라우저 수정을 완료한 뒤 실행하며 실제 집계/시간은
+[계약 시장 검증 기록](career-contracts-stove-fa-market-ai-competition-v1.md)에 기록한다.
+
+최종 전체 실행: `./gradlew test --console=plain --no-daemon`, **265 suites / 2,021 tests /
+실패 0 / 오류 0 / 기존 skip 2**, **27분 25초**. 전체 명령은 총 세 번 시작했으며 두 번째는
+환경 재시작으로 중단됐다. 집중 검증으로 미완료 전체 실행을 대체할 수 없어 JDK/실행 환경을
+복구한 뒤 최종 실행을 마쳤다. 첫 실행의 유일한 실패는 새 시장 사건이 먼저 도래하는 Calendar
+기대 날짜였고, 원래 Player/Auto 검증을 유지하면서 해당 테스트만 교정했다. 프런트 Career
+verifier는 53건 통과, TypeScript/Vite production build도 통과했다.

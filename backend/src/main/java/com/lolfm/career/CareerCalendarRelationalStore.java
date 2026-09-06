@@ -46,6 +46,15 @@ public final class CareerCalendarRelationalStore {
         this.template = Objects.requireNonNull(template, "template");
     }
 
+    boolean marketRepair(String career,int year,String first,String second,String competition,String leagueSeason,String fixture) {
+        if(leagueSeason!=null && (jdbc.queryForObject("SELECT COUNT(*) FROM league_player_binding WHERE season_id=? AND fixture_id=?",Integer.class,leagueSeason,fixture)>0||jdbc.queryForObject("SELECT COUNT(*) FROM league_job WHERE season_id=? AND fixture_id=?",Integer.class,leagueSeason,fixture)>0))return false;
+        return CareerMarketStore.repairNeeded(jdbc,career,year,first,second,competition);
+    }
+    boolean hasMarket(String career) { return CareerMarketStore.exists(jdbc,career); }
+    boolean offseason(String career,int year) { return jdbc.queryForObject("SELECT COUNT(*) FROM career_market_season_close WHERE career_id=? AND season_year=?",Integer.class,career,year)>0; }
+    LocalDate nextMarketEvent(String career,LocalDate date) { return CareerMarketStore.nextEvent(jdbc,career,date); }
+    void processMarket(String career,LocalDate date) { CareerMarketStore.processThrough(jdbc,career,date); }
+
     /** Called after career_save is inserted, inside that same outer transaction. */
     public void initializeNew(CareerRelationalStore.NewCareer career) {
         int year = template.anchorYear(career.currentDate());
@@ -84,14 +93,16 @@ public final class CareerCalendarRelationalStore {
         if (row.seasonYear() != sourceYear || row.calendarRevision() != expectedRevision) throw new StaleRevision();
         int year = sourceYear + 1;
         LocalDate date = LocalDate.of(year,1,1);
-        if (!date.isAfter(row.currentDate())) throw new CalendarIntegrityFailure();
+        if(!date.isAfter(row.currentDate())&&!hasMarket(career.careerId()))throw new CalendarIntegrityFailure();
+        if(row.currentDate().isAfter(date))date=row.currentDate();
+        int cursor=template.eventCursor(template.project(year),date);
         long revision = expectedRevision + 1;
-        String hash = template.stateHash(career.careerId(),year,date,0,revision,null,null,"ACTIVE",null);
+        String hash = template.stateHash(career.careerId(),year,date,cursor,revision,null,null,"ACTIVE",null);
         jdbc.update("""
-            UPDATE career_calendar_state SET active_calendar_season_year = ?, current_game_date = ?, event_cursor = 0,
+            UPDATE career_calendar_state SET active_calendar_season_year = ?, current_game_date = ?, event_cursor = ?,
               calendar_revision = ?, calendar_state_hash = ?, last_processed_event_id = NULL, last_processed_date = NULL,
               lifecycle_status = 'ACTIVE', blocking_reason = NULL, updated_at = ? WHERE career_id = ?
-            """,year,date,revision,hash,now(),career.careerId());
+            """,year,date,cursor,revision,hash,now(),career.careerId());
         return loadReady(career);
     }
 
@@ -235,6 +246,7 @@ public final class CareerCalendarRelationalStore {
                     }
                     throw new AdvanceAlreadyPending();
                 }
+                OffsetDateTime startedAt=now();
                 jdbc.update("""
                         INSERT INTO career_calendar_advance_command(
                           client_command_id, career_id, command_schema, payload_hash,
@@ -243,7 +255,7 @@ public final class CareerCalendarRelationalStore {
                         VALUES (?, ?, ?, ?, 'PENDING', ?, ?, FALSE, ?, ?)
                         """, commandId, careerId,
                         CareerCalendarTemplate.ADVANCE_COMMAND_SCHEMA, payloadHash,
-                        mode, expectedRevision, now(), now());
+                        mode, expectedRevision, startedAt, startedAt);
             }
 
             CalendarRow row = findForUpdate(careerId).orElseThrow(CalendarNotFound::new);
@@ -281,7 +293,12 @@ public final class CareerCalendarRelationalStore {
                     mutation.currentDate(), cursor, revision,
                     mutation.lastProcessedEventId(), mutation.lastProcessedDate(),
                     mutation.lifecycleStatus(), mutation.blockingReason());
-            OffsetDateTime completedAt = mutation.pending() ? null : now();
+            // Wall clock correction must not make a durable receipt older than its request.
+            CommandRow pendingCommand=findCommand(commandId).orElseThrow(CommandReceiptIntegrityFailure::new);
+            OffsetDateTime appliedAt=now();
+            if(appliedAt.isBefore(pendingCommand.updatedAt()))appliedAt=pendingCommand.updatedAt();
+            if(appliedAt.isBefore(pendingCommand.createdAt()))appliedAt=pendingCommand.createdAt();
+            OffsetDateTime completedAt = mutation.pending() ? null : appliedAt;
             if (mutation.stateChanged()) {
                 int updated = jdbc.update("""
                         UPDATE career_calendar_state
@@ -313,7 +330,7 @@ public final class CareerCalendarRelationalStore {
                     mutation.lastProcessedEventId(), mutation.lastProcessedDate(),
                     mutation.lifecycleStatus(), mutation.blockingReason(),
                     mutation.httpStatus(), mutation.stopReason(),
-                    mutation.backgroundRequired(), completedAt, now(), commandId);
+                    mutation.backgroundRequired(), completedAt, appliedAt, commandId);
             if (receipt != 1) throw new CommandReceiptIntegrityFailure();
             CalendarRow updated = find(careerId).orElseThrow(CalendarNotFound::new);
             CommandRow storedCommand = findCommand(commandId).orElseThrow(
@@ -365,7 +382,7 @@ public final class CareerCalendarRelationalStore {
         if (!expectedPayload.equals(command.payloadHash())
                 || command.createdAt() == null || command.updatedAt() == null
                 || command.updatedAt().isBefore(command.createdAt())) {
-            throw new CommandReceiptIntegrityFailure();
+            throw new CommandReceiptIntegrityFailure("payload="+expectedPayload.equals(command.payloadHash())+", created="+command.createdAt()+", updated="+command.updatedAt());
         }
         return new CommandResult(command.commandId(), mode, expectedRevision,
                 command.commandStatus(), command.resultSeasonYear(), command.resultDate(),
@@ -553,7 +570,10 @@ public final class CareerCalendarRelationalStore {
     public static final class CalendarIntegrityFailure extends RuntimeException {}
     public static final class CalendarMigrationRequired extends RuntimeException {}
     public static final class CommandConflict extends RuntimeException {}
-    public static final class CommandReceiptIntegrityFailure extends RuntimeException {}
+    public static final class CommandReceiptIntegrityFailure extends RuntimeException {
+        public CommandReceiptIntegrityFailure() {}
+        public CommandReceiptIntegrityFailure(String message) {super(message);}
+    }
     public static final class AdvanceAlreadyPending extends RuntimeException {}
     public static final class LegacyPendingReconciliationRequired extends RuntimeException {}
     public static final class StaleRevision extends RuntimeException {}

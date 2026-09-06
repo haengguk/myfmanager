@@ -77,8 +77,8 @@ export function CareerSeasonsPanel({ careerId, revision, busy, onBegin, onChange
         {pending ? '시즌 전환 확인 중…' : operation ? `${operation.sourceYear} 시즌 전환 다시 확인` : '시즌 마감 · 다음 시즌 시작'}
       </button></header>
     {error ? <p role="alert">{error}</p> : null}
-    {seasons ? <><p>{seasons.blockers.length ? '필수 대회와 결과 반영을 마치면 다음 시즌을 시작할 수 있습니다.' : '플레이 가능한 대회가 모두 끝났습니다. 현재 로스터로 다음 시즌을 시작합니다.'} KeSPA Cup은 비활성 참고 대회입니다.</p>
-      {seasons.blockers.length ? <details><summary>마감 대기 사유 {seasons.blockers.length}개</summary><ul>{seasons.blockers.map(reason => <li key={reason}>{reason}</li>)}</ul></details> : null}
+    {seasons ? <><p>{seasons.blockers.includes('OFFSEASON_OPERATIONS_UNTIL_DECEMBER_31') ? '대회 종료 후 계약 시장에서 스토브에 진입해 선수단을 운영하세요. 12월 31일부터 다음 시즌을 시작할 수 있습니다.' : seasons.blockers.length ? '필수 대회와 결과 반영을 마치면 다음 시즌을 시작할 수 있습니다.' : '플레이 가능한 대회가 모두 끝났습니다. 현재 로스터로 다음 시즌을 시작합니다.'} KeSPA Cup은 비활성 참고 대회입니다.</p>
+      {seasons.blockers.length ? <details><summary>마감 대기 사유 {seasons.blockers.length}개</summary><ul>{seasons.blockers.map(reason => <li key={reason}>{reason === 'OFFSEASON_OPERATIONS_UNTIL_DECEMBER_31' ? '스토브 운영: 12월 31일까지 계약 사건 진행 필요' : reason}</li>)}</ul></details> : null}
       <nav aria-label="시즌 기록 선택">{seasons.seasons.map(season => <button key={season.year} type="button" className="lm-text-button" disabled={pending || busy} onClick={() => { void history(season.year); }}>{season.year === seasons.activeYear ? `${season.year} 현재 시즌으로` : `${season.year} 시즌 기록`}</button>)}</nav></> : null}
     {detail ? <div><h3>{detail.season.year} 시즌 기록 · 읽기 전용</h3><p>국내 우승 {detail.domestic?.championTeamCode ?? '미확정'} · 준우승 {detail.domestic?.runnerUpTeamCode ?? '미확정'}</p>
       {detail.domestic ? <p>최종 순위: {detail.domestic.ranking.map(r => `${r.seed}. ${r.teamCode}`).join(' · ')}</p> : null}
