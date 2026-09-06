@@ -27,7 +27,10 @@ class CareerMarketEngineTest {
         return new CareerMarketEngine("career_"+"a".repeat(64),managed,directory,roster,CareerMarketEngine.initialize("career_"+"a".repeat(64),41,DATE,2027,directory,roster));
     }
     static Terms terms(CareerMarketEngine e,String player,int salaryPercent,Role role) {
-        var start=e.availableStart(player,DATE);long salary=demand(directory.players().get(player))*salaryPercent/100;
+        return terms(e,player,salaryPercent,role,DATE);
+    }
+    static Terms terms(CareerMarketEngine e,String player,int salaryPercent,Role role,LocalDate date) {
+        var start=e.availableStart(player,date);long salary=demand(directory.players().get(player))*salaryPercent/100;
         return new Terms(start,start.plusYears(2).minusDays(1),salary,salary/10,role);
     }
     @Test void playerAndTwoAiClubsCompareRealOffersIndependentlyOfSubmissionOrder() {
@@ -64,6 +67,75 @@ class CareerMarketEngineTest {
         var begin=fresh.availableStart("player-bo",DATE);
         assertThatThrownBy(()->fresh.submit("LCK:T1","player-bo",new Terms(begin,begin.plusYears(1).minusDays(1),MAX_MONEY,MAX_MONEY,Role.STARTER),null,DATE)).isInstanceOf(CareerException.class);
         assertThat(fresh.state().offers().values().stream().filter(Offer::open)).isEmpty();
+    }
+    @ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"LCK:T1","LCK:GEN"})
+    void bonusCannotSpendPayrollCashAndReservationsAreReleased(String team) {
+        var e=engine(team);var begin=e.availableStart("player-bo",DATE);var before=e.state();
+        long cash=e.accounts.get(team).cash();
+        assertThatThrownBy(()->e.submit(team,"player-bo",new Terms(begin,begin.plusYears(2).minusDays(1),252_000,cash,Role.STARTER),null,DATE))
+                .isInstanceOf(CareerException.class).satisfies(x->assertThat(((CareerException)x).clientMessage()).contains("급여"));
+        assertThat(e.state()).isEqualTo(before);
+        var offer=e.submit(team,"player-bo",new Terms(begin,begin.plusYears(2).minusDays(1),252_000,0,Role.STARTER),null,DATE);
+        long maximum=e.paymentHeadroom(team,DATE);
+        assertThatThrownBy(()->e.submit(team,"player-bo",new Terms(begin,begin.plusYears(2).minusDays(1),252_000,maximum+1,Role.STARTER),offer.offerId(),DATE)).isInstanceOf(CareerException.class);
+        assertThat(e.state().offers().get(offer.offerId())).isEqualTo(offer);
+        var revised=e.submit(team,"player-bo",new Terms(begin,begin.plusYears(2).minusDays(1),252_000,maximum,Role.STARTER),offer.offerId(),DATE);
+        assertThat(e.paymentHeadroom(team,DATE)).isZero();
+        assertThatThrownBy(()->e.submit(team,"player-beryl",terms(e,"player-beryl",150,Role.RESERVE),null,DATE)).isInstanceOf(CareerException.class);
+        var funded=new CareerMarketEngine("career_"+"a".repeat(64),team,directory,e.roster(),e.state());
+        funded.advance(DATE.withDayOfMonth(31));
+        assertThat(funded.offers.get(revised.offerId()).status()).isEqualTo(OfferStatus.ACCEPTED);
+        assertThat(funded.salaryArrears(team)).isZero();assertThat(funded.accounts.get(team).cash()).isNotNegative();
+        e.withdraw(team,revised.offerId(),DATE);assertThat(e.reservedCash(team)).isZero();
+        assertThat(e.paymentHeadroom(team,DATE)).isEqualTo(new CareerMarketEngine("career_"+"a".repeat(64),team,directory,roster,before).paymentHeadroom(team,DATE));
+        var current=e.active(roster.lineups().get(team).getFirst(),DATE);var account=e.accounts.get(team);
+        long onlyRelease=releaseCost(current,DATE)+wages(current.terms().annualSalary(),current.paidThrough().plusDays(1),DATE);
+        e.accounts.put(team,new Account(team,account.annualBudget(),onlyRelease,account.rosterLimit()));var beforeRelease=e.state();
+        assertThatThrownBy(()->e.release(team,current.playerId(),null,DATE)).isInstanceOf(CareerException.class);
+        assertThat(e.state()).isEqualTo(beforeRelease);
+    }
+    @Test void priorVersionCashExhaustionAccruesDebtAndNextAllocationSettlesOnce() {
+        String career="career_"+"a".repeat(64),team="LCK:T1";LocalDate date=LocalDate.of(2027,12,20);
+        var e=new CareerMarketEngine(career,team,directory,roster,CareerMarketEngine.initialize(career,41,date,2027,directory,roster));
+        var begin=e.availableStart("player-bo",date);
+        var o=e.submit(team,"player-bo",new Terms(begin,begin.plusYears(2).minusDays(1),252_000,10_000,Role.STARTER),null,date);
+        e.advance(begin);assertThat(e.state().offers().get(o.offerId()).status()).isEqualTo(OfferStatus.ACCEPTED);
+        // Reconstruct the already-committed V1 excessive bonus; preserve the signed contract.
+        var account=e.accounts.get(team);e.accounts.put(team,new Account(team,account.annualBudget(),0,account.rosterLimit()));
+        e.ledger.add(new Ledger("prior-version-excessive-bonus",begin,team,e.active("player-bo",begin).contractId(),"SIGNING_BONUS",-account.cash()));
+        e.advance(LocalDate.of(2027,12,31));long arrears=e.salaryArrears(team);assertThat(arrears).isPositive();
+        assertThat(e.state().accounts().get(team).cash()).isZero();
+        var blocked=e;assertThatThrownBy(()->blocked.submit(team,"player-fofo",terms(blocked,"player-fofo",150,Role.RESERVE,LocalDate.of(2027,12,31)),null,LocalDate.of(2027,12,31))).isInstanceOf(CareerException.class);
+        var saved=CareerRosterStore.read(CareerRosterStore.write(e.state()),CareerMarketState.class);
+        e=new CareerMarketEngine(career,team,directory,e.roster(),saved);
+        e.advance(LocalDate.of(2028,1,1));assertThat(e.salaryArrears(team)).isZero();
+        assertThat(e.accounts.get(team).cash()).isEqualTo(account.annualBudget()-arrears);
+        var result=e.state();e.advance(LocalDate.of(2028,1,1));assertThat(e.state()).isEqualTo(result);
+        assertThat(e.ledger.stream().filter(l->team.equals(l.team())&&l.kind().equals("ANNUAL_ALLOCATION"))).hasSize(1);
+    }
+    @ParameterizedTest @CsvSource({"0,2027-01-10","1,2027-01-11","2,2027-01-12","3,2027-01-13"})
+    void nearExpiryNegotiationUsesSharedDecisionAndDoesNotBackdate(int delay,String expectedDate) {
+        var e=engine("LCK:HLE");var old=e.active("player-zeus",DATE);LocalDate end=DATE.plusDays(2);
+        var t=new Terms(DATE.minusYears(1),end,old.terms().annualSalary(),0,Role.STARTER);
+        e.contracts.put(old.contractId(),new Contract(old.contractId(),old.careerId(),old.playerId(),old.team(),old.organizationId(),old.signedDate(),t,ContractStatus.ACTIVE,0,VERSION,"EXPIRY_BOUNDARY_FIXTURE",old.terminationPolicy(),null,DATE.minusDays(1)));
+        LocalDate submitted=DATE.plusDays(delay);e.advance(submitted);LocalDate decision=LocalDate.parse(expectedDate);
+        assertThat(e.availableStart("player-zeus",submitted)).isEqualTo(decision);
+        var offer=e.submit("LCK:HLE","player-zeus",terms(e,"player-zeus",150,Role.STARTER,submitted),null,submitted);
+        if(delay==0) {
+            // A persisted V1 open offer with the known invalid Jan 8 start remains intact until explicit revision.
+            var bad=new Terms(end.plusDays(1),offer.terms().endDate(),offer.terms().annualSalary(),offer.terms().signingBonus(),offer.terms().role());
+            e.offers.put(offer.offerId(),new Offer(offer.offerId(),offer.playerId(),offer.team(),bad,offer.submittedDate(),offer.responseDate(),offer.decisionDate(),offer.expiresDate(),offer.revision(),offer.status(),offer.previousOfferId(),offer.round(),offer.requestedSalary(),offer.reason()));
+        }
+        e.advance(submitted.plusDays(1));
+        var revised=e.submit("LCK:HLE","player-zeus",terms(e,"player-zeus",150,Role.STARTER,submitted.plusDays(1)),offer.offerId(),submitted.plusDays(1));
+        var rival=e.submit("LCK:GEN","player-zeus",terms(e,"player-zeus",125,Role.STARTER,submitted.plusDays(1)),null,submitted.plusDays(1));
+        assertThat(revised.decisionDate()).isEqualTo(decision);assertThat(rival.decisionDate()).isEqualTo(decision);
+        assertThat(rival.terms().startDate()).isEqualTo(decision);
+        e.advance(decision.minusDays(1));assertThat(e.active("player-zeus",decision.minusDays(1))).isNull();assertThat(e.freeAgents).contains("player-zeus");
+        e.advance(decision);var accepted=e.active("player-zeus",decision);assertThat(accepted).isNotNull();
+        assertThat(accepted.terms().startDate()).isEqualTo(decision);assertThat(accepted.paidThrough()).isEqualTo(decision.minusDays(1));
+        assertThat(e.contracts.get(old.contractId()).paidThrough()).isEqualTo(end);
+        assertThat(e.ledger.stream().filter(l->old.contractId().equals(l.contractId())&&l.kind().equals("SALARY")).mapToLong(l->-l.amount()).sum()).isEqualTo(wages(old.terms().annualSalary(),DATE,end));
     }
     @ParameterizedTest @CsvSource({"2027-01-01,2027-12-31,365", "2028-01-01,2028-12-31,366", "2028-02-01,2028-02-29,29", "2027-12-30,2028-01-02,4"})
     void salaryRoundingIsIdenticalAcrossAdjacentRanges(String fromText,String endText,int days) {

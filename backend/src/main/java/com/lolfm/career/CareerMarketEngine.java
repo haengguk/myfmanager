@@ -40,14 +40,14 @@ public final class CareerMarketEngine {
         for(var player:directory.players().values().stream().sorted(Comparator.comparing(Definition::playerId)).toList()) {
             preferences.put(player.playerId(),preference(seed,player));
             var member=roster.members().get(player.playerId());
-            if("UNAFFILIATED".equals(member.squad())) {free.add(player.playerId());continue;}
+            if("UNAFFILIATED".equals(member.squad())) {if(INITIAL_GAME_FREE_AGENTS.contains(player.playerId()))free.add(player.playerId());continue;}
             if(member.organizationId()==null || "UNCONFIRMED".equals(member.squad()))continue;
             LocalDate end=LocalDate.of(date.getYear(),11,30);String origin="GAME_INITIAL_CONTRACT_UNKNOWN_PUBLIC_TERMS";
             try {
                 JsonNode details=CareerRosterStore.read(player.detailsJson(),JsonNode.class);
                 String reported=details.path("contract").path("endDate").asText("");
                 String status=details.path("contract").path("status").asText("");
-                if(!reported.isBlank() && !status.contains("CONFLICT") && !status.contains("UNVERIFIED")
+                if(!reported.isBlank() && !status.contains("CONFLICT") && !status.contains("UNVERIFIED") && !status.contains("UNCONFIRMED")
                         && Objects.equals(member.organizationId(),player.initialOrganizationId())) {
                     end=LocalDate.parse(reported).plusYears(firstYear-REFERENCE_YEAR);
                     origin="PUBLIC_END_DATE_SHIFTED_FROM_2026_GAME_POLICY";
@@ -91,8 +91,12 @@ public final class CareerMarketEngine {
                 .map(Offer::decisionDate).min(LocalDate::compareTo).orElse(date.plusDays(DECISION_DAYS));
     }
     public LocalDate availableStart(String player,LocalDate date) {
-        var c=active(player,date);if(scheduled(player)!=null)return null;
-        if(c!=null)return c.team()!=null&&!c.terms().endDate().isAfter(date.plusDays(NEGOTIATION_DAYS))?c.terms().endDate().plusDays(1):null;
+        var c=active(player,date);if(scheduled(player)!=null||"V4_REGISTERED_ROLE_REVIEW_REQUIRED".equals(player(player).eligibilityReason()))return null;
+        if(c!=null) {
+            if(c.team()==null||c.terms().endDate().isAfter(date.plusDays(NEGOTIATION_DAYS)))return null;
+            LocalDate end=c.terms().endDate().plusDays(1),decision=decisionDate(player,date);
+            return end.isAfter(decision)?end:decision;
+        }
         return freeAgents.contains(player)?decisionDate(player,date):null;
     }
     public long reservedCash(String team) {return offers.values().stream().filter(o->o.team().equals(team)&&o.open()).mapToLong(o->o.terms().signingBonus()).sum();}
@@ -108,16 +112,60 @@ public final class CareerMarketEngine {
         offers.values().stream().filter(o->team.equals(o.team())&&o.open()).forEach(o->dates.add(o.terms().startDate()));
         return dates.stream().mapToLong(d->salaryAt(team,d,true)).max().orElse(0);
     }
-    private void requireBudget(String team) {
+    private void requireBudget(String team,LocalDate date) {
         var a=accounts.get(team);if(a==null)throw invalid("시장에 참여할 수 없는 조직입니다.");
-        if(a.cash()<reservedCash(team)||a.annualBudget()<peakSalary(team))throw invalid("계약금 잔액 또는 계약 기간의 연봉 예산이 부족합니다.");
+        if(salaryArrears(team)>0)throw invalid("미지급 급여를 먼저 정산해야 추가 계약 지출을 할 수 있습니다. 다음 확정 연간 예산에서 우선 정산합니다.");
+        if(a.cash()<reservedCash(team))throw invalid("계약금 예약에 필요한 현금이 부족합니다.");
+        if(a.annualBudget()<peakSalary(team))throw invalid("계약 기간의 연봉 예산이 부족합니다.");
+        if(paymentHeadroom(team,date)<0)throw invalid("계약금 지급 후 확정 급여를 지급할 재원이 부족합니다. 계약금을 줄이거나 진행 중 제안을 정리해 주세요.");
+    }
+    /** Bonus reservations reduce spendable cash once. Salary is forecast at actual payment boundaries,
+     * including accrued unpaid periods, scheduled employment and confirmed annual allocations. */
+    public long paymentHeadroom(String team,LocalDate date) {return paymentHeadroom(team,date,null,null);}
+    private long paymentHeadroom(String team,LocalDate date,String omittedContract,String omittedPlayerOffers) {
+        var flow=new TreeMap<LocalDate,Long>();long cash=accounts.get(team).cash()-salaryArrears(team);
+        for(var c:contracts.values())if(team.equals(c.team())&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)&&!c.contractId().equals(omittedContract))
+            forecastWages(flow,c.terms(),recognizedThrough(c).plusDays(1),date);
+        for(var o:offers.values())if(team.equals(o.team())&&o.open()&&!o.playerId().equals(omittedPlayerOffers)) {
+            cash-=o.terms().signingBonus();forecastWages(flow,o.terms(),o.terms().startDate(),date);
+        }
+        LocalDate last=flow.isEmpty()?date:flow.lastKey();
+        for(LocalDate allocation=LocalDate.of(date.getYear()+1,1,1);!allocation.isAfter(last);allocation=allocation.plusYears(1))
+            flow.merge(allocation,accounts.get(team).annualBudget(),Long::sum);
+        long minimum=cash;
+        for(long change:flow.values()){cash=Math.addExact(cash,change);minimum=Math.min(minimum,cash);}
+        return minimum;
+    }
+    private static void forecastWages(Map<LocalDate,Long> flow,Terms terms,LocalDate from,LocalDate current) {
+        if(from.isBefore(terms.startDate()))from=terms.startDate();
+        while(!from.isAfter(terms.endDate())) {
+            LocalDate monthEnd=from.withDayOfMonth(from.lengthOfMonth());
+            LocalDate end=monthEnd.isBefore(terms.endDate())?monthEnd:terms.endDate();
+            LocalDate due=end.equals(monthEnd)?end:end.plusDays(1);
+            if(due.isBefore(current))due=current;
+            flow.merge(due,-wages(terms.annualSalary(),from,end),Long::sum);from=end.plusDays(1);
+        }
+    }
+    public long salaryArrears(String team) {return ledger.stream().filter(l->team.equals(l.team())&&(l.kind().equals("SALARY_ACCRUED")||l.kind().equals("SALARY_ARREARS_PAYMENT"))).mapToLong(Ledger::amount).sum();}
+    private long contractArrears(String contract) {return ledger.stream().filter(l->contract.equals(l.contractId())&&(l.kind().equals("SALARY_ACCRUED")||l.kind().equals("SALARY_ARREARS_PAYMENT"))).mapToLong(Ledger::amount).sum();}
+    private LocalDate recognizedThrough(Contract c) {return ledger.stream().filter(l->c.contractId().equals(l.contractId())&&l.kind().equals("SALARY_ACCRUED")).map(Ledger::date).max(LocalDate::compareTo).filter(d->d.isAfter(c.paidThrough())).orElse(c.paidThrough());}
+    private void settleArrears(String team,LocalDate date) {
+        // Oldest recorded salary first, with contract identity as a deterministic tie-break.
+        var unpaid=contracts.values().stream().filter(c->team.equals(c.team())&&contractArrears(c.contractId())>0)
+                .sorted(Comparator.comparing(Contract::paidThrough).thenComparing(Contract::contractId)).toList();
+        for(var c:unpaid) {
+            long due=contractArrears(c.contractId()),amount=Math.min(due,accounts.get(team).cash());
+            if(amount==0)break;
+            charge(team,c.contractId(),"SALARY_ARREARS_PAYMENT",date,amount);
+            if(contractArrears(c.contractId())==0)contracts.put(c.contractId(),contractStatus(c,c.status(),c.endedDate(),recognizedThrough(c)));
+        }
     }
     public Offer submit(String team,String playerId,Terms terms,String previousId,LocalDate date) {
         validate(terms);player(playerId);LocalDate available=availableStart(playerId,date);
         if(available==null)throw invalid("현재 계약 보호 기간이거나 이미 확정된 미래 계약이 있어 제안할 수 없습니다.");
         var current=active(playerId,date);
         if(current!=null && !terms.startDate().equals(available) || current==null && (terms.startDate().isBefore(available)||terms.startDate().isAfter(available.plusDays(FA_START_DELAY_DAYS))))
-            throw invalid("현재 계약 종료 다음 날 또는 표시된 FA 결정일 이후부터 계약을 시작해야 합니다.");
+            throw invalid("현재 계약 종료 다음 날과 공통 결정일 중 늦은 시작 가능일을 사용해야 합니다.");
         if(!accounts.containsKey(team))throw invalid("경쟁 구단만 제안할 수 있습니다.");
         if(terms.role()==Role.DEVELOPMENT && developmentOrganization(team)==null)throw invalid("연결된 육성팀이 없는 구단입니다.");
         Offer previous=previousId==null?null:offers.get(previousId);int round=1;
@@ -136,7 +184,7 @@ public final class CareerMarketEngine {
         var offer=new Offer(offerId,playerId,team,terms,date,date.plusDays(RESPONSE_DAYS).isBefore(decision)?date.plusDays(RESPONSE_DAYS):decision,
                 decision,decision.plusDays(1),0,OfferStatus.SUBMITTED,previousId,round,null,"선수가 제안을 검토하고 있습니다.");
         offers.put(offerId,offer);
-        try {requireBudget(team);requireRosterCapacity(team,playerId,terms);}
+        try {requireBudget(team,date);requireRosterCapacity(team,playerId,terms);}
         catch(RuntimeException rejected){offers.remove(offerId);if(previous!=null)offers.put(previousId,previous);throw rejected;}
         event(date,"OFFER_SUBMITTED",playerId,team,offerId,"실제 지출 예약을 포함한 계약 제안");return offer;
     }
@@ -181,8 +229,8 @@ public final class CareerMarketEngine {
     public void release(String team,String playerId,String replacement,LocalDate date) {
         var c=active(playerId,date);if(c==null||!team.equals(c.team()))throw invalid("현재 구단의 유효 계약만 방출할 수 있습니다.");
         if(scheduled(playerId)!=null)throw invalid("확정된 미래 계약이 있는 선수의 중도 해지는 지원하지 않습니다.");
-        long cost=releaseCost(c,date);long wages=wages(c.terms().annualSalary(),c.paidThrough().plusDays(1),date);
-        if(accounts.get(team).cash()-reservedCash(team)<cost+wages)throw invalid("미지급 급여와 해지 비용을 지급할 잔액이 부족합니다.");
+        long cost=releaseCost(c,date);long wages=wages(c.terms().annualSalary(),recognizedThrough(c).plusDays(1),date);
+        if(salaryArrears(team)>0||paymentHeadroom(team,date,c.contractId(),playerId)<cost+wages)throw invalid("미지급 급여·해지 비용과 남은 선수의 급여 지급 재원을 확보해야 방출할 수 있습니다.");
         if(replacement!=null)requireReplacement(team,playerId,replacement,date);
         pay(c,date);c=contracts.get(c.contractId());
         charge(team,c.contractId(),"RELEASE_COST",date,cost);
@@ -232,7 +280,7 @@ public final class CareerMarketEngine {
             for(var c:new ArrayList<>(contracts.values()))if(c.status()==ContractStatus.ACTIVE&&date.isAfter(c.terms().endDate())) {
                 var successor=scheduled(c.playerId());
                 if(c.team()!=null&&successor!=null&&c.team().equals(successor.team())&&lineups.get(c.team()).contains(c.playerId())&&successor.terms().role()!=Role.DEVELOPMENT)renewedSelections.put(c.playerId(),c.team());
-                pay(c,c.terms().endDate());c=contracts.get(c.contractId());
+                pay(c,date);c=contracts.get(c.contractId());
                 contracts.put(c.contractId(),contractStatus(c,ContractStatus.EXPIRED,c.terms().endDate(),c.paidThrough()));depart(c,date,"CONTRACT_EXPIRED");
             }
             for(var c:new ArrayList<>(contracts.values()))if(c.status()==ContractStatus.SCHEDULED&&!date.isBefore(c.terms().startDate()))activate(c,date);
@@ -309,8 +357,8 @@ public final class CareerMarketEngine {
         for(var c:contracts.values())if(c.playerId().equals(o.playerId())&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)&&overlaps(c.terms(),o.terms()))throw invalid("기존 고용 계약과 효력 기간이 겹칩니다.");
         var active=active(o.playerId(),date);
         if(active==null&&!freeAgents.contains(o.playerId()))throw invalid("현재 영입 가능한 FA가 아닙니다.");
-        if(o.terms().startDate().isBefore(date))throw invalid("효력 시작일이 지난 제안입니다.");
-        requireBudget(o.team());requireRosterCapacity(o.team(),o.playerId(),o.terms());
+        if(o.terms().startDate().isBefore(date))throw invalid("이전 제안의 시작일이 결정일보다 빠릅니다. 새 시작일로 재협상해 주세요. 과거 계약이나 급여는 소급하지 않습니다.");
+        requireBudget(o.team(),date);requireRosterCapacity(o.team(),o.playerId(),o.terms());
         String contractId=id(career,"CONTRACT|"+o.offerId());
         var c=new Contract(contractId,career,o.playerId(),o.team(),o.team(),date,o.terms(),ContractStatus.SCHEDULED,0,VERSION,
                 active!=null&&o.team().equals(active.team())?"NEGOTIATED_RENEWAL":"NEGOTIATED_FREE_AGENT","REMAINING_SALARY_25_PERCENT_V1",null,o.terms().startDate().minusDays(1));
@@ -356,6 +404,7 @@ public final class CareerMarketEngine {
         String id=id(career,"ALLOCATION|"+team+'|'+date.getYear());if(ledger.stream().anyMatch(l->l.entryId().equals(id)))return;
         var a=accounts.get(team);accounts.put(team,new Account(team,a.annualBudget(),Math.addExact(a.cash(),a.annualBudget()),a.rosterLimit()));
         ledger.add(new Ledger(id,date,team,null,"ANNUAL_ALLOCATION",a.annualBudget()));
+        settleArrears(team,date);
     }
     private void charge(String team,String contract,String kind,LocalDate date,long amount) {
         if(team==null)return;
@@ -365,9 +414,17 @@ public final class CareerMarketEngine {
     }
     private void pay(Contract c,LocalDate date) {
         LocalDate end=date.isBefore(c.terms().endDate())?date:c.terms().endDate();
-        if(!end.isAfter(c.paidThrough()))return;
-        charge(c.team(),c.contractId(),"SALARY",end,wages(c.terms().annualSalary(),c.paidThrough().plusDays(1),end));
-        contracts.put(c.contractId(),contractStatus(c,c.status(),c.endedDate(),end));
+        LocalDate recognized=recognizedThrough(c);if(!end.isAfter(recognized))return;
+        long amount=wages(c.terms().annualSalary(),recognized.plusDays(1),end);
+        if(c.team()==null || (contractArrears(c.contractId())==0&&accounts.get(c.team()).cash()>=amount)) {
+            charge(c.team(),c.contractId(),"SALARY",date,amount);
+            contracts.put(c.contractId(),contractStatus(c,c.status(),c.endedDate(),end));
+        } else {
+            // Explicit debt journal extends V1 storage without rewriting any original payment/receipt.
+            ledger.add(new Ledger(id(career,"SALARY_ACCRUED|"+c.contractId()+'|'+end),end,c.team(),c.contractId(),"SALARY_ACCRUED",amount));
+            event(end,"SALARY_ARREARS_RECORDED",c.playerId(),c.team(),c.contractId(),"급여 미지급금 기록 · 추가 계약 지출 제한 · 확정 연간 예산에서 우선 정산");
+            settleArrears(c.team(),date);
+        }
     }
     private void event(LocalDate date,String kind,String player,String team,String reference,String reason) {
         String id=id(career,kind+'|'+reference+'|'+date);
@@ -375,7 +432,8 @@ public final class CareerMarketEngine {
     }
     public void validateIntegrity() {
         CareerRosterStore.validate(roster(),directory);
-        for(var a:accounts.values())requireBudget(a.team());
+        // Insufficient funding is recoverable business state, not structural corruption.
+        for(var a:accounts.values())if(a.cash()<0||salaryArrears(a.team())<0)throw new IllegalStateException("INVALID_MARKET_CASH_OR_ARREARS");
         var live=contracts.values().stream().filter(c->c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED).toList();
         for(int i=0;i<live.size();i++)for(int j=i+1;j<live.size();j++)if(live.get(i).playerId().equals(live.get(j).playerId())&&overlaps(live.get(i).terms(),live.get(j).terms()))throw new IllegalStateException("OVERLAPPING_EMPLOYMENT_CONTRACTS");
         for(var c:live)if(c.status()==ContractStatus.ACTIVE&&!Objects.equals(c.team(),members.get(c.playerId()).ownerTeam()))throw new IllegalStateException("CONTRACT_MEMBERSHIP_MISMATCH");

@@ -72,7 +72,7 @@ class CareerModePersistenceTest {
     @Test
     void marketCommandsPersistMembershipMoneyAndOriginalReceiptsWithoutChangingFrozenSeries() throws Exception {
         String url="jdbc:h2:file:"+temporary.resolve("market")+";DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=30000";
-        String careerId,originalReceipt;com.lolfm.career.CareerMarketStore.Request release;
+        String careerId,originalReceipt,debtStateJson;com.lolfm.career.CareerMarketStore.Request release;
         try(var ds=dataSource(url)) {
             Flyway.configure().dataSource(ds).load().migrate();var h=harnessWithCarriedRosters(ds);
             var career=h.careers().create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"KT 계약","감독","KT",UUID.randomUUID().toString())).career().career();careerId=career.careerId();
@@ -85,7 +85,8 @@ class CareerModePersistenceTest {
             var frozen=tx.execute(ignored->{rosters.lockLeagueSeason(career.seasonId());return rosters.freezeLeagueFixture(career.seasonId(),fixtures.getFirst());});
             assertThat(frozen.roster("KT").players()).extracting(com.lolfm.career.CompetitionRosterSnapshot.Starter::playerId).contains("player-cuzz");
             h.jdbc().update("UPDATE career_save SET updated_at=TIMESTAMP WITH TIME ZONE '2000-01-01 00:00:00+00' WHERE career_id=?",careerId);
-            release=marketCommand(initial,"RELEASE","player-cuzz",null);var result=market.command(careerId,release);originalReceipt=com.lolfm.career.CareerRosterStore.write(result.receipt());
+            release=marketCommand(initial,"RELEASE","player-cuzz",null);
+            var result=market.command(careerId,release);originalReceipt=com.lolfm.career.CareerRosterStore.write(result.receipt());
             assertThat(result.market().missingPositions().get("LCK:KT")).contains("JUNGLE");
             assertThat(rosters.view(careerId,2027).state().lineups().get("LCK:KT")).hasSize(4);
             var savedAt=h.jdbc().queryForObject("SELECT updated_at FROM career_save WHERE career_id=?",java.time.OffsetDateTime.class,careerId);
@@ -123,9 +124,26 @@ class CareerModePersistenceTest {
                 var outcomes=executor.invokeAll(List.<java.util.concurrent.Callable<Boolean>>of(()->{try{market.command(careerId,one);return true;}catch(CareerException stale){return false;}},()->{try{market.command(careerId,two);return true;}catch(CareerException stale){return false;}}));
                 assertThat(outcomes.stream().map(f->{try{return f.get();}catch(Exception e){throw new RuntimeException(e);}}).filter(Boolean::booleanValue)).hasSize(1);
             }
+            // Persist the V1 excessive-bonus state, then exercise the actual Calendar transaction.
+            var depleted=(com.fasterxml.jackson.databind.node.ObjectNode)new ObjectMapper().readTree(h.jdbc().queryForObject("SELECT state_json FROM career_market_state WHERE career_id=?",String.class,careerId));
+            var account=(com.fasterxml.jackson.databind.node.ObjectNode)depleted.at("/accounts/LCK:KT");long spent=account.path("cash").asLong();account.put("cash",0);
+            var oldTerms=(com.fasterxml.jackson.databind.node.ObjectNode)depleted.path("contracts").path(contract.contractId()).path("terms");oldTerms.put("signingBonus",oldTerms.path("signingBonus").asLong()+spent);
+            var entry=depleted.withArray("ledger").addObject();entry.put("entryId","prior-version-bonus-fixture");entry.put("date",market.view(careerId,2027).currentDate().toString());entry.put("team","LCK:KT");entry.put("contractId",contract.contractId());entry.put("kind","SIGNING_BONUS");entry.put("amount",-spent);
+            String depletedJson=depleted.toString();h.jdbc().update("UPDATE career_market_state SET state_json=?,state_hash=? WHERE career_id=?",depletedJson,com.lolfm.career.CareerRosterStore.hash(depletedJson),careerId);
+            var currentDate=h.calendar().view(career).state().currentDate();var monthEnd=currentDate.withDayOfMonth(currentDate.lengthOfMonth());
+            long lastRevision=-1;String lastCommand=null;
+            while(h.calendar().view(career).state().currentDate().isBefore(monthEnd)) {
+                var c=h.calendar().view(career);lastRevision=c.state().calendarRevision();lastCommand=UUID.randomUUID().toString();
+                h.calendar().advance(career,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,lastRevision,"ADVANCE_ONE_DAY",lastCommand);
+            }
+            assertThat(market.view(careerId,2027).finances().stream().filter(f->f.team().equals("LCK:KT")).findFirst().orElseThrow().salaryArrears()).isPositive();
+            debtStateJson=h.jdbc().queryForObject("SELECT state_json FROM career_market_state WHERE career_id=?",String.class,careerId);
+            if(lastCommand!=null)h.calendar().advance(career,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,lastRevision,"ADVANCE_ONE_DAY",lastCommand);
+            assertThat(h.jdbc().queryForObject("SELECT state_json FROM career_market_state WHERE career_id=?",String.class,careerId)).isEqualTo(debtStateJson);
         }
         try(var ds=dataSource(url)) {
             Flyway.configure().dataSource(ds).load().migrate();var h=harnessWithCarriedRosters(ds);var market=marketStore(h,ds);market.recover();
+            assertThat(h.jdbc().queryForObject("SELECT state_json FROM career_market_state WHERE career_id=?",String.class,careerId)).isEqualTo(debtStateJson);
             var result=market.command(careerId,release);assertThat(result.replayed()).isTrue();assertThat(com.lolfm.career.CareerRosterStore.write(result.receipt())).isEqualTo(originalReceipt);
             assertThat(rosterStore(ds).view(careerId,2027).state().lineups().get("LCK:KT")).contains("player-bo");
         }
@@ -211,7 +229,7 @@ class CareerModePersistenceTest {
     @Test
     void expandedRosterMigrationCommandsFreezeAndCareerIsolation() throws Exception {
         String url="jdbc:h2:file:"+temporary.resolve("expanded")+";DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=30000";
-        String careerId; com.lolfm.career.CareerRosterStore.Request command=select("player-jiwoo",0);
+        String careerId,priorCareerId,priorDirectoryJson; com.lolfm.career.CareerRosterStore.Request command=select("player-jiwoo",0);
         com.lolfm.career.CareerRosterStore.Receipt receipt;
         try(var ds=dataSource(url)) {
             Flyway.configure().dataSource(ds).load().migrate();var h=harnessWithCarriedRosters(ds);
@@ -223,6 +241,16 @@ class CareerModePersistenceTest {
                             && !"KT".equals(f.firstTeamCode()) && !"KT".equals(f.secondTeamCode())).findFirst().orElseThrow();
             h.competitionStore().bindFixture(careerId,2027,oldAuto.competitionId(),oldAuto.matchId(),h.leagueStore().loadSeason(career.seasonId()).frozenSnapshot(),"a".repeat(64));
             var rosters=rosterStore(ds);rosters.recover();rosters.recover();
+            priorCareerId=other.careerId();
+            // Representative pre-V4 saved player input: Jiwoo mechanics 16 (V4 is 15).
+            var prior=(com.fasterxml.jackson.databind.node.ObjectNode)new ObjectMapper().readTree(h.jdbc().queryForObject("SELECT directory_json FROM career_player_directory WHERE career_id=?",String.class,priorCareerId));
+            ((com.fasterxml.jackson.databind.node.ObjectNode)prior.at("/players/player-jiwoo/gameplay/ratings")).put("MECHANICS",16);
+            priorDirectoryJson=prior.toString();h.jdbc().update("UPDATE career_player_directory SET directory_json=?,directory_hash=? WHERE career_id=?",priorDirectoryJson,com.lolfm.career.CareerRosterStore.hash(priorDirectoryJson),priorCareerId);
+            var market=marketStore(h,ds);market.recover();
+            assertThat(rosters.view(careerId,2027).directory().players().get("player-jiwoo").gameplay().ratings().get(com.lolfm.domain.PlayerSkill.MECHANICS)).isEqualTo(15);
+            assertThat(rosters.view(priorCareerId,2027).directory().players().get("player-jiwoo").gameplay().ratings().get(com.lolfm.domain.PlayerSkill.MECHANICS)).isEqualTo(16);
+            rosters.recover();market.recover();
+            assertThat(h.jdbc().queryForObject("SELECT directory_json FROM career_player_directory WHERE career_id=?",String.class,priorCareerId)).isEqualTo(priorDirectoryJson);
             // Read-model fixture for a registered competition that does not include the managed club.
             String otherPool=com.lolfm.career.CareerRosterStore.write(Map.of("LCK:GEN",rosters.view(careerId,2027).state().lineups().get("LCK:GEN")));
             h.jdbc().update("INSERT INTO career_registered_player_pool VALUES (?,?,?,?,?,?)",careerId,2027,"FIRST_STAND",com.lolfm.career.CareerRosterStore.REGISTRATION_POLICY,otherPool,com.lolfm.career.CareerRosterStore.hash(otherPool));
@@ -256,6 +284,10 @@ class CareerModePersistenceTest {
             var candidate=LeagueFixtureSeriesBindingV1.create(initialSeason,fixtures.get(1),"a".repeat(64));
             var frozen=adapter.createOrLoad(UUID.randomUUID().toString(),"c".repeat(64),candidate).state().binding();
             assertThat(frozen.frozenRosters().roster("KT").players()).extracting(com.lolfm.career.CompetitionRosterSnapshot.Starter::playerId).contains("player-jiwoo").doesNotContain("player-fenrir");
+            var jiwoo=frozen.frozenRosters().roster("KT").players().stream().filter(p->p.playerId().equals("player-jiwoo")).findFirst().orElseThrow();
+            assertThat(jiwoo).isEqualTo(rosters.view(careerId,2027).directory().players().get("player-jiwoo").gameplay());
+            assertThat(jiwoo.ratings().values()).containsOnly(15);
+            assertThat(jiwoo.proficiencies().stream().filter(p->p.championId().equals("ezreal")).findFirst().orElseThrow().value()).isEqualTo(16);
             assertThat(LeagueFixtureSeriesBindingV1.restoreCanonical(frozen.canonicalText())).isEqualTo(frozen);
             rosters.change(careerId,select("player-fenrir",5));
             assertThat(adapter.createOrLoad(UUID.randomUUID().toString(),"d".repeat(64),candidate).state().binding()).isEqualTo(frozen);
@@ -273,6 +305,7 @@ class CareerModePersistenceTest {
         }
         try(var ds=dataSource(url)) {
             Flyway.configure().dataSource(ds).load().migrate();var rosters=rosterStore(ds);rosters.recover();
+            assertThat(new JdbcTemplate(ds).queryForObject("SELECT directory_json FROM career_player_directory WHERE career_id=?",String.class,priorCareerId)).isEqualTo(priorDirectoryJson);
             assertThat(rosters.view(careerId,2027).revision()).isEqualTo(7);
             assertThat(rosters.view(careerId,2027).state().lineups().get("LCK:KT")).contains("player-jiwoo");
             assertThat(rosters.change(careerId,command).receipt()).isEqualTo(receipt);

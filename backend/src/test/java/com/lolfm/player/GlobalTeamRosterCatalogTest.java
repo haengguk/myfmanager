@@ -26,11 +26,21 @@ class GlobalTeamRosterCatalogTest {
         assertThat(directory.players()).hasSize(460);
         assertThat(directory.players().values().stream().filter(ExpandedPlayerCatalog.Definition::provisional)).hasSize(180);
         assertThat(directory.initialLineups()).hasSize(56);
-        assertThat(directory.organizations()).hasSize(79);
+        assertThat(directory.organizations()).hasSize(82);
+        assertThat(directory.players().get("player-jiwoo").eligibilityReason()).isNull();
+        assertThat(directory.players().get("player-wenbo").initialOrganizationId()).isEqualTo("LPL:BLGJ");
+        assertThat(directory.players().get("player-wenbo").initialSquad()).isEqualTo("DEVELOPMENT");
+        assertThat(directory.players().get("player-renye").initialSquad()).isEqualTo("DEVELOPMENT");
+        assertThat(directory.players().get("player-missing").initialOwnerTeam()).isEqualTo("LPL:LNG");
+        assertThat(directory.players().get("player-jwei").initialOwnerTeam()).isEqualTo("LPL:WBG");
+        for(String id:java.util.List.of("player-valiant","player-vincenzo"))assertThat(directory.players().get(id).eligibilityReason()).isEqualTo("V4_REGISTERED_ROLE_REVIEW_REQUIRED");
+        assertThat(directory.players().values().stream().filter(p->p.provisional()&&p.initialOrganizationId()==null)).hasSize(14);
+        assertThat(directory.players().values().stream().filter(p->p.provisional()&&p.initialSquad().equals("DEVELOPMENT"))).hasSize(124);
+        assertThat(directory.initialLineups().values().stream().flatMap(java.util.Collection::stream)).allSatisfy(id->assertThat(directory.players().get(id).provisional()).isFalse());
         assertThat(directory.initialLineups().get("LCK:KT")).contains("player-fenrir").doesNotContain("player-jiwoo");
         assertThat(directory.players().get("player-jiwoo").initialOwnerTeam()).isEqualTo("LCK:KT");
-        assertThat(directory.players().get("player-hang").initialOwnerTeam()).isEqualTo("LPL:WBG");
-        assertThat(directory.normalizationChanges()).hasSize(12);
+        assertThat(directory.players().get("player-hang").initialOwnerTeam()).isNull();
+        assertThat(directory.normalizationChanges()).hasSize(1028);
         directory.players().forEach((id,p)-> {
             assertThat(p.playerId()).isEqualTo(id);
             assertThat(p.gameplay().ratings()).hasSize(12).allSatisfy((skill,value)->assertThat(value).isBetween(1,20));

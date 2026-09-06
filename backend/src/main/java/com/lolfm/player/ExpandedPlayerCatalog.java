@@ -92,7 +92,7 @@ public final class ExpandedPlayerCatalog {
                     throw new IllegalStateException("UNKNOWN_PLAYER_ORGANIZATION");
                 var gameplay = new CompetitionRosterSnapshot.Starter(id, node.path("nickname").asText(), role, ratings, proficiencies);
                 put(loaded, new Definition(id, gameplay.nickname(), role, gameplay, true, organization, owner,
-                        node.path("initialSquad").asText(), nullable(node, "eligibilityReason"), node.path("details").toString()));
+                        operatingSquad(node.path("initialSquad").asText()), eligibility(node,role,orgs), node.path("details").toString()));
             }
             normalizationChanges = mapper.convertValue(root.path("normalizationChanges"), new com.fasterxml.jackson.core.type.TypeReference<List<JsonNode>>() {});
         } catch (java.io.IOException e) { throw new IllegalStateException("EXPANDED_DIRECTORY_LOAD", e); }
@@ -100,6 +100,27 @@ public final class ExpandedPlayerCatalog {
         players = Collections.unmodifiableMap(loaded); organizations = Collections.unmodifiableMap(orgs); initialLineups = Collections.unmodifiableMap(lineups);
     }
     private static String nullable(JsonNode node, String key) { return node.path(key).isNull() ? null : node.path(key).asText(); }
+    private static String operatingSquad(String raw) {
+        return Set.of("CHALLENGERS","ACADEMY","DEVELOPMENT").contains(raw)?"DEVELOPMENT":raw;
+    }
+    private static String eligibility(JsonNode node,Position role,Map<String,Organization> organizations) {
+        String warning=nullable(node,"eligibilityReason");
+        if(!"V4_AUTOMATIC_SELECTION_DISABLED_REQUIRES_EXPLICIT_RUNTIME_ELIGIBILITY_CHECK".equals(warning))return warning;
+        var details=node.path("details");var roster=details.path("roster");
+        if(!role.name().equals(details.path("authoredGameplayPosition").asText())
+                ||!role.name().equals(details.path("currentRegisteredRole").asText()))return "V4_REGISTERED_ROLE_REVIEW_REQUIRED";
+        String organization=nullable(node,"initialOrganizationId"),owner=nullable(node,"initialOwnerTeam");
+        if(organization==null||!"2026-09-06".equals(roster.path("verifiedAt").asText())
+                ||roster.path("currentOrganization").isNull())return "AFFILIATION_UNCONFIRMED";
+        var org=organizations.get(organization);
+        if(owner==null)return "NO_COMPETITIVE_TEAM";
+        if(org==null||!owner.equals(org.competitiveTeam())
+                ||!owner.substring(owner.indexOf(':')+1).equals(roster.path("associatedFirstTeamCode").asText()))return "AFFILIATION_UNCONFIRMED";
+        String squad=operatingSquad(node.path("initialSquad").asText());
+        if(!("FIRST_TEAM".equals(squad)&&"CLUB".equals(org.kind())||"DEVELOPMENT".equals(squad)&&"DEVELOPMENT".equals(org.kind())))return "AFFILIATION_UNCONFIRMED";
+        // Loading defines eligibility only. Initial lineups still come exclusively from the 280 starters.
+        return null;
+    }
     private static void put(Map<String, Definition> target, Definition player) {
         if (target.putIfAbsent(player.playerId(), player) != null) throw new IllegalStateException("DUPLICATE_DIRECTORY_PLAYER:" + player.playerId());
     }

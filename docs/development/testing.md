@@ -1519,3 +1519,18 @@ Series/League/Draft 공용 계약 verifier를 중복 실행하지 않는다. 최
 복구한 뒤 최종 실행을 마쳤다. 첫 실행의 유일한 실패는 새 시장 사건이 먼저 도래하는 Calendar
 기대 날짜였고, 원래 Player/Auto 검증을 유지하면서 해당 테스트만 교정했다. 프런트 Career
 verifier는 53건 통과, TypeScript/Vite production build도 통과했다.
+
+## Career 시장 결함·추가 선수 V4 통합 (2026-09-06)
+
+기존 `CareerMarketEngineTest`, `GlobalTeamRosterCatalogTest`, `CareerModePersistenceTest` 관련
+범위를 확장한다. 금융 부족/정확한 한도/방출/연간 배정, 만료 직전 날짜 parameterized 경계와
+실제 Calendar 저장·UUID·재시작, 신규 V4 Series 입력/기존 directory 보존을 확인한다. 원본
+180명 master와 runtime의 선형 대조는 `python3 backend/scripts/verify-expanded-player-v4.py`다.
+원본 패키지 체크섬 PASS를 runtime 통합 증거로 대체하지 않는다.
+
+집중 25건 통과 후 추가 금융 경계 2건·최종 저장 1건을 통과했고 프런트 Career verifier 55건과
+production build를 확인했다. 브라우저는 KT 계약 제안→공통 결정→월말 급여의 한 흐름이다.
+180명별 경기나 큰 seed/다년 시장 분포 진단은 실행하지 않는다. 최종 production Java/resource
+변경 전체 회귀는 **1회, 29분 6초**, **265 suites / 총 2,028 tests / 통과 2,026 / 실패 0 /
+오류 0 / 기존 skip 2**, aggregate XML **2,953.651초**로 통과했다. clean full 이후 문서만
+갱신했다. 상세 결과는 [통합 보고서](career-market-fixes-and-expanded-player-v4-integration-v1.md)에 기록한다.

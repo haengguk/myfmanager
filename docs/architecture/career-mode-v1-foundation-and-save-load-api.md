@@ -201,3 +201,15 @@ null이다. `terms`는 `startDate`, `endDate`, `annualSalary`, `signingBonus`, `
 금액/영수증은 하나의 transaction이며 GET/원본 replay는 저장 시각을 갱신하지 않는다.
 create/startup은 V16 시장과 운영 roster V2를 초기화한다. 구형 roster V1 및 이미 시작한
 경기의 고정 입력 의미는 보존한다. [게임 정책과 실행 검증](../development/career-contracts-stove-fa-market-ai-competition-v1.md)을 참고한다.
+
+## V4 자료·지급 재원 호환 확장 (2026-09-06)
+
+시장 Finance에 `fundingPolicy`, `salaryArrears`, `paymentHeadroom`을 추가한다. 후자는 현재 약정의
+급여를 확보한 뒤 남는 지급 여유이며 새 제안의 연봉까지 보장하는 확정 계약금 한도가 아니다.
+`PAYROLL_CASH_FLOW_AND_ARREARS_RECOVERY_V2`는 기존 현금/예약/연봉 필드 의미를 유지하며 구형
+지급 불능 상태도 조회할 수 있다. V16 ledger의 `SALARY_ACCRUED`는 현금 수입이 아닌 미지급
+발생액, `SALARY_ARREARS_PAYMENT`는 실제 상환 지출이다. 별도 SQL 이주나 과거 receipt 재작성은 없다.
+
+V4 전역 정의는 새 Career directory에만 적용한다. 기존 directory/hash, 계약·선발·등록·경기
+고정 입력과 시즌 이월은 저장 자료를 유지한다. 운영상 육성 배치를 정규화하되 조사 원문과
+역할 검토 사유를 보존한다. [정책·검증](../development/career-market-fixes-and-expanded-player-v4-integration-v1.md)을 따른다.

@@ -26,7 +26,7 @@ public final class CareerMarketStore {
     public record Change(boolean replayed,Receipt receipt,View market) {}
     public record PlayerMarket(String playerId,String status,String currentContractId,String scheduledContractId,
             LocalDate availableStart,long askingSalary,long releaseCost,String eligibilityReason,Preference preference) {}
-    public record Finance(String team,long annualBudget,long cash,long reservedCash,long currentAnnualSalary,long committedPeakSalary,int rosterLimit) {}
+    public record Finance(String team,long annualBudget,long cash,long reservedCash,long currentAnnualSalary,long committedPeakSalary,int rosterLimit,String fundingPolicy,long salaryArrears,long paymentHeadroom) {}
     public record Supplement(String competitionId,String team,String playerId,String position,LocalDate date,long revision,String reason) {}
     public record View(String schemaVersion,String policyVersion,String currency,String careerId,int seasonYear,
             LocalDate currentDate,long revision,boolean readOnly,String managedTeam,boolean offseason,
@@ -127,10 +127,10 @@ public final class CareerMarketStore {
         for(String id:state.preferences().keySet().stream().sorted().toList()) {
             var c=engine.active(id,date);var future=engine.scheduled(id);LocalDate start=engine.availableStart(id,date);
             String status=c!=null?"CONTRACTED":state.freeAgents().contains(id)?"FREE_AGENT":"UNAVAILABLE";
-            String reason=future!=null?"이미 미래 계약이 확정되어 있습니다.":start==null?(c==null?"소속 또는 영입 자격 미확인":"계약 만료 60일 전부터 협상할 수 있습니다."):null;
+            String reason="V4_REGISTERED_ROLE_REVIEW_REQUIRED".equals(directory.players().get(id).eligibilityReason())?"작성 포지션과 현재 등록 역할이 달라 검토가 필요합니다.":future!=null?"이미 미래 계약이 확정되어 있습니다.":c!=null&&c.team()==null?"현재 소속은 경쟁 팀이 없는 조직이므로 이 시장에서 이적을 제안할 수 없습니다.":start==null?(c==null?"소속 또는 영입 자격 미확인":"계약 만료 60일 전부터 협상할 수 있습니다."):null;
             players.add(new PlayerMarket(id,status,c==null?null:c.contractId(),future==null?null:future.contractId(),start,CareerMarketPolicy.demand(directory.players().get(id)),c==null?0:CareerMarketPolicy.releaseCost(c,date),reason,state.preferences().get(id)));
         }
-        var finances=new ArrayList<Finance>();for(var a:state.accounts().values().stream().sorted(Comparator.comparing(Account::team)).toList())finances.add(new Finance(a.team(),a.annualBudget(),a.cash(),engine.reservedCash(a.team()),engine.salaryAt(a.team(),date,false),engine.peakSalary(a.team()),a.rosterLimit()));
+        var finances=new ArrayList<Finance>();for(var a:state.accounts().values().stream().sorted(Comparator.comparing(Account::team)).toList())finances.add(new Finance(a.team(),a.annualBudget(),a.cash(),engine.reservedCash(a.team()),engine.salaryAt(a.team(),date,false),engine.peakSalary(a.team()),a.rosterLimit(),CareerMarketPolicy.FUNDING_POLICY,engine.salaryArrears(a.team()),Math.max(0,engine.paymentHeadroom(a.team(),date))));
         Map<String,List<String>> gaps=new TreeMap<>();
         for(var entry:roster.state().lineups().entrySet()) {
             Set<com.lolfm.domain.Position> roles=new HashSet<>();entry.getValue().forEach(id->roles.add(directory.players().get(id).position()));

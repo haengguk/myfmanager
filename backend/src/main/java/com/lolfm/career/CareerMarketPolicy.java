@@ -9,6 +9,8 @@ import static com.lolfm.career.CareerMarketState.*;
 /** Explicit game assumptions, not real wages, personalities, employment law or residency rules. */
 public final class CareerMarketPolicy {
     public static final String VERSION="CAREER_CONTRACT_MARKET_GAME_POLICY_V1";
+    public static final String FUNDING_POLICY="PAYROLL_CASH_FLOW_AND_ARREARS_RECOVERY_V2";
+    public static final Set<String> INITIAL_GAME_FREE_AGENTS=Set.of("player-bo","player-beryl","player-fofo","player-fate");
     public static final String CURRENCY="GAME_CREDITS";
     public static final int REFERENCE_YEAR=2026, NEGOTIATION_DAYS=60, PROTECTION_DAYS=60;
     public static final int RESPONSE_DAYS=2, DECISION_DAYS=5, MAX_ROUNDS=3, MAX_YEARS=3;
