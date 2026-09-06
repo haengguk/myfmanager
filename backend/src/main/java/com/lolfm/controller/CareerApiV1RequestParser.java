@@ -30,6 +30,21 @@ public final class CareerApiV1RequestParser {
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     }
 
+    public com.lolfm.career.CareerRosterStore.Request rosterCommand(byte[] body) {
+        JsonNode json=read(body);
+        Set<String> fields=Set.of("schemaVersion","sourceYear","team","playerId","action","targetOrganizationId","replacementPlayerId","expectedRevision","clientCommandId");
+        var actual=new HashSet<String>();json.fieldNames().forEachRemaining(actual::add);
+        if(!json.isObject() || !actual.equals(fields))throw invalid(null,"명단 변경 필드를 확인해 주세요.");
+        if(!json.path("sourceYear").isIntegralNumber() || !json.path("sourceYear").canConvertToInt()
+                || !json.path("expectedRevision").isIntegralNumber() || !json.path("expectedRevision").canConvertToLong())
+            throw invalid(null,"연도와 revision은 정수여야 합니다.");
+        return new com.lolfm.career.CareerRosterStore.Request(text(json,"schemaVersion"),json.path("sourceYear").intValue(),
+                text(json,"team"),text(json,"playerId"),text(json,"action"),
+                json.path("targetOrganizationId").isNull()?null:text(json,"targetOrganizationId"),
+                json.path("replacementPlayerId").isNull()?null:text(json,"replacementPlayerId"),
+                json.path("expectedRevision").longValue(),text(json,"clientCommandId"));
+    }
+
     public CareerApiV1Dtos.CreateRequest create(byte[] body) {
         JsonNode json = read(body);
         if (!json.isObject()) {

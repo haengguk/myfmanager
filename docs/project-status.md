@@ -2,6 +2,24 @@
 
 이 문서는 2026-09-06 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career 확장 선수 명부·선발·시즌 이월 V1 (2026-09-06)
+
+기준 HEAD `5e418e5`에서 시즌 전환 화면 경합과 확장 선수 명부 연결을 구현했다. 기존
+280명과 추가 180명을 합쳐 460명을 조회하며, 경쟁 팀 56개와 조직 79개를 구분한다.
+Career별 소속/1군·육성 배치/선발 5명/국제 등록 후보/개별 Series 고정 명단을 분리했고,
+KT FenRir→Jiwoo 변경이 다음 R1/R2·국내·허용 국제 Series와 다음 시즌에 반영된다.
+V15 이주와 원본 UUID receipt는 기존 선발·binding·등록·이력을 보존한다.
+
+공유 변경 gate와 요청 소유권으로 전환·Calendar·경기 시작·명부 변경의 화면 경합을 막는다.
+실제 브라우저에서 선발 변경·새로고침·전환 지연/응답 소실 복구·새 시즌 Player Draft의
+Jiwoo ID·서버 재시작·Career 복귀를 확인했다. Series Draft는 취소 없이 허브로 복귀할 수
+있으며 명시적 취소 동작을 별도로 유지한다. 1차 전체 회귀는 264 suites / 2,008 tests,
+실패·오류 0, 기존 skip 2, 23분 20초로 통과했다. 관리 팀과 무관한 구형 Auto/국제 등록의
+명부 표시 경계를 추가 교정하고 집중 검증을 통과한 뒤, 2차 최종 회귀도 23분에 통과했다.
+최종 집계는 동일한 264 suites / 2,008 tests / 실패·오류 0 / 기존 skip 2이며 전체 실행은 총 두 번이다.
+정책·자료 정규화·이주·검증 범위는
+[확장 명부 구현 보고서](development/career-expanded-rosters-lineups-and-data-integration-v1.md)를 따른다.
+
 ## Career 선택권 교정·시즌 전환·후속 대회 V1 (2026-09-06)
 
 시작 HEAD `c485fab59b8ca15d223a22cfc946bd41bbf784c6`에서 MSI Play-in 대회 시드와 Worlds

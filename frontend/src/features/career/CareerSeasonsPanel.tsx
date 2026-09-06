@@ -13,8 +13,8 @@ export function readSeasonTransition(storage: Pick<Storage, 'getItem'>, career: 
 function failure(cause: unknown): string { return cause instanceof CareerApiFailure ? cause.userMessage : '시즌 기록을 확인하지 못했습니다. 저장된 전환 요청으로 다시 확인해 주세요.'; }
 
 export function CareerSeasonsPanel({ careerId, revision, busy, onBegin, onChanged, onHistory, onReplay }: {
-  careerId: string; revision: number; busy: boolean; onBegin: () => void; onChanged: () => void;
-  onHistory: (historical: boolean) => void; onReplay: (series: string, matchup: string) => void;
+  careerId: string; revision: number; busy: boolean; onBegin: () => (() => void) | null; onChanged: () => void;
+  onHistory: (historical: boolean, year?: number) => void; onReplay: (series: string, matchup: string) => void;
 }) {
   const [seasons, setSeasons] = useState<CareerSeasonsDto | null>(null);
   const [detail, setDetail] = useState<CareerSeasonDetailDto | null>(null);
@@ -25,6 +25,7 @@ export function CareerSeasonsPanel({ careerId, revision, busy, onBegin, onChange
   const [error, setError] = useState<string | null>(null);
   const generation = useRef(0);
   const request = useRef<AbortController | null>(null);
+  const transitionRequest = useRef<{ controller: AbortController; release: () => void } | null>(null);
   useEffect(() => {
     const token = ++generation.current; const controller = new AbortController(); request.current = controller;
     try { setOperation(readSeasonTransition(window.sessionStorage, careerId)); } catch { setCorruptOperation(true); setError('저장된 시즌 전환 요청이 손상되었습니다. 원본 요청을 확인해야 합니다.'); }
@@ -32,10 +33,10 @@ export function CareerSeasonsPanel({ careerId, revision, busy, onBegin, onChange
       .catch(cause => { if (!controller.signal.aborted && generation.current === token) setError(failure(cause)); });
     return () => { ++generation.current; controller.abort(); };
   }, [careerId, revision]);
-  useEffect(() => () => { request.current?.abort(); }, []);
+  useEffect(() => () => { request.current?.abort(); transitionRequest.current?.controller.abort(); transitionRequest.current?.release(); transitionRequest.current = null; }, []);
   const history = async (year: number) => {
     request.current?.abort(); const controller = new AbortController(); request.current = controller; const token = ++generation.current;
-    setError(null); setHistoryYear(year); setDetail(null); onHistory(year !== seasons?.activeYear);
+    setError(null); setHistoryYear(year); setDetail(null); onHistory(year !== seasons?.activeYear, year);
     if (year === seasons?.activeYear) { setDetail(null); return; }
     try {
       const value = await getCareerSeason(careerId, year, controller.signal);
@@ -43,31 +44,32 @@ export function CareerSeasonsPanel({ careerId, revision, busy, onBegin, onChange
     } catch (cause) { if (!controller.signal.aborted && generation.current === token) setError(failure(cause)); }
   };
   const transition = async () => {
-    if (!seasons || pending || busy || corruptOperation || historyYear !== null && historyYear !== seasons.activeYear) return;
+    if (!seasons || transitionRequest.current || pending || busy || corruptOperation || historyYear !== null && historyYear !== seasons.activeYear) return;
+    if (!operation && !seasons.allowedCommands.includes('START_NEXT_SEASON')) return;
+    const release = onBegin(); if (!release) return;
+    request.current?.abort(); const controller = new AbortController(); const owned = { controller, release }; transitionRequest.current = owned; ++generation.current;
+    setPending(true); setError(null);
+    try {
     let body = operation;
     if (!body) {
-      if (!seasons.allowedCommands.includes('START_NEXT_SEASON')) return;
       body = { schemaVersion: 'CAREER_SEASON_TRANSITION_REQUEST_V1', sourceYear: seasons.activeYear, expectedCalendarRevision: seasons.calendarRevision, clientCommandId: crypto.randomUUID() };
       window.sessionStorage.setItem(storageKey(careerId), JSON.stringify(body)); setOperation(body);
     }
-    onBegin(); request.current?.abort(); const controller = new AbortController(); request.current = controller; const token = ++generation.current;
-    setPending(true); setError(null);
-    try {
       const result = await transitionCareerSeason(careerId, body, controller.signal);
-      if (controller.signal.aborted || generation.current !== token) return;
+      if (controller.signal.aborted || transitionRequest.current !== owned) return;
       if (result.receipt.clientCommandId !== body.clientCommandId || result.receipt.sourceYear !== body.sourceYear) throw new Error('transition receipt mismatch');
       window.sessionStorage.removeItem(storageKey(careerId)); clearCareerAdvanceOperation(window.sessionStorage, careerId); clearCareerCompetitionOperation(window.sessionStorage, careerId);
       setOperation(null); setSeasons(result.seasons); setDetail(null); setHistoryYear(null); onHistory(false); onChanged();
     } catch (cause) {
-      if (!controller.signal.aborted && generation.current === token) {
+      if (!controller.signal.aborted && transitionRequest.current === owned) {
         setError(failure(cause));
         // A definitive stale/invalid response proves this command did not commit. Never rewrite its UUID with a new revision.
         if (cause instanceof CareerApiFailure && ['CAREER_CALENDAR_STALE_REVISION', 'CAREER_REQUEST_INVALID'].includes(cause.code ?? '')) {
           window.sessionStorage.removeItem(storageKey(careerId)); setOperation(null);
-          try { const latest = await getCareerSeasons(careerId, controller.signal); if (!controller.signal.aborted && generation.current === token) setSeasons(latest); } catch { /* keep original error */ }
+          try { const latest = await getCareerSeasons(careerId, controller.signal); if (!controller.signal.aborted && transitionRequest.current === owned) setSeasons(latest); } catch { /* keep original error */ }
         }
       }
-    } finally { if (generation.current === token) setPending(false); }
+    } finally { release(); if (transitionRequest.current === owned) { transitionRequest.current = null; setPending(false); } }
   };
   return <section className="ca-calendar" aria-label="시즌 전환과 기록" aria-busy={pending}>
     <header><div><span>SEASONS</span><strong>{seasons ? `${seasons.activeYear} 시즌` : '시즌 기록 확인 중'}</strong></div>

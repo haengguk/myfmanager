@@ -29,8 +29,12 @@ public final class CareerRelationalStore {
     private CareerInternationalParticipants initialParticipants;
 
     @Autowired
-    public CareerRelationalStore(JdbcTemplate jdbc, PlatformTransactionManager transactionManager, CareerInternationalParticipants participants) {
-        this(jdbc,transactionManager);this.initialParticipants=participants;
+    public CareerRelationalStore(JdbcTemplate jdbc, PlatformTransactionManager transactionManager, CareerInternationalParticipants participants, CareerRosterStore rosters) {
+        this(jdbc,transactionManager,participants);this.rosters=rosters;
+    }
+    private CareerRosterStore rosters;
+    public CareerRelationalStore(JdbcTemplate jdbc, PlatformTransactionManager manager, CareerInternationalParticipants participants) {
+        this(jdbc,manager);this.initialParticipants=participants;
     }
     public CareerRelationalStore(
             JdbcTemplate jdbc,
@@ -152,6 +156,10 @@ public final class CareerRelationalStore {
                 var snapshot = new CompetitionRosterSnapshot(rosters);
                 jdbc.update("UPDATE career_season SET roster_json = ?, roster_hash = ? WHERE career_id = ? AND season_year = ?",snapshot.encoded(),snapshot.identity(),requested.careerId(),year);
             }
+            }
+            if (rosters != null && initializeSeason) {
+                int year=jdbc.queryForObject("SELECT active_calendar_season_year FROM career_calendar_state WHERE career_id=?",Integer.class,requested.careerId());
+                rosters.initialize(requested.careerId(),year);
             }
             jdbc.update("""
                     INSERT INTO career_create_command(

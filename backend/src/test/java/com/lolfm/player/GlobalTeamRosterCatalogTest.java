@@ -21,6 +21,26 @@ class GlobalTeamRosterCatalogTest {
     private static final GlobalTeamRosterCatalog CATALOG = new GlobalTeamRosterCatalog(MAPPER, LCK, LCK_PROFICIENCIES, CHAMPIONS);
 
     @Test
+    void expandedDirectoryPreservesIdsDraftProfilesAndStructuredOrganizations() {
+        var directory = new ExpandedPlayerCatalog(MAPPER, CATALOG, CHAMPIONS);
+        assertThat(directory.players()).hasSize(460);
+        assertThat(directory.players().values().stream().filter(ExpandedPlayerCatalog.Definition::provisional)).hasSize(180);
+        assertThat(directory.initialLineups()).hasSize(56);
+        assertThat(directory.organizations()).hasSize(79);
+        assertThat(directory.initialLineups().get("LCK:KT")).contains("player-fenrir").doesNotContain("player-jiwoo");
+        assertThat(directory.players().get("player-jiwoo").initialOwnerTeam()).isEqualTo("LCK:KT");
+        assertThat(directory.players().get("player-hang").initialOwnerTeam()).isEqualTo("LPL:WBG");
+        assertThat(directory.normalizationChanges()).hasSize(12);
+        directory.players().forEach((id,p)-> {
+            assertThat(p.playerId()).isEqualTo(id);
+            assertThat(p.gameplay().ratings()).hasSize(12).allSatisfy((skill,value)->assertThat(value).isBetween(1,20));
+            if(p.provisional())assertThat(p.gameplay().proficiencies()).hasSize(CHAMPIONS.forPosition(p.position()).size());
+            p.gameplay().proficiencies().forEach(prof->assertThat(CHAMPIONS.get(new com.lolfm.champion.ChampionId(prof.championId())).supportedPositions()).contains(p.position()));
+            if(p.initialOrganizationId()!=null)assertThat(directory.organizations()).containsKey(p.initialOrganizationId());
+        });
+    }
+
+    @Test
     void loadsSixLeaguePopulationsWithDistinctPeopleAndPreservesDomesticCatalogs() {
         Map<String, Integer> expected = Map.of("LCK", 10, "LPL", 12, "LEC", 10, "LCS", 8, "LCP", 8, "CBLOL", 8);
         assertThat(CATALOG.leagueCodes()).containsExactly("LCK", "LPL", "LEC", "LCS", "LCP", "CBLOL");

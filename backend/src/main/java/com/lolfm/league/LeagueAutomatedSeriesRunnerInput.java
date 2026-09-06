@@ -6,8 +6,10 @@ import java.util.Objects;
 public record LeagueAutomatedSeriesRunnerInput(
         LeagueSeasonAggregate season,
         LeagueFixture fixture,
-        String frozenProductDecisionHash
+        String frozenProductDecisionHash,
+        com.lolfm.career.CompetitionRosterSnapshot frozenRosters
 ) {
+    public LeagueAutomatedSeriesRunnerInput(LeagueSeasonAggregate season,LeagueFixture fixture,String product) { this(season,fixture,product,null); }
     public LeagueAutomatedSeriesRunnerInput {
         Objects.requireNonNull(season, "season");
         Objects.requireNonNull(fixture, "fixture");

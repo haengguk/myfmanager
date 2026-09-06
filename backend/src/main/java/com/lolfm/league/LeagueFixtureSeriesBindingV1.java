@@ -17,7 +17,7 @@ public final class LeagueFixtureSeriesBindingV1 {
     public static final String SCHEMA = "AI_LEAGUE_FIXTURE_SERIES_BINDING_V1";
     public static final String HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_LEAGUE_SERIES_BINDING_LINES_TRAILING_NEWLINE_V1";
-    public static final int MAX_CANONICAL_BYTES = 32 * 1024;
+    public static final int MAX_CANONICAL_BYTES = 256 * 1024;
 
     private final String leagueId;
     private final String seasonId;
@@ -52,6 +52,7 @@ public final class LeagueFixtureSeriesBindingV1 {
     private final String engineImplementationVersion;
     private final long bindingRevision;
     private final String bindingHash;
+    private final com.lolfm.career.CompetitionRosterSnapshot frozenRosters;
 
     private LeagueFixtureSeriesBindingV1(
             String leagueId,
@@ -86,7 +87,8 @@ public final class LeagueFixtureSeriesBindingV1 {
             String activeGameplayRulesVersion,
             String engineImplementationVersion,
             long bindingRevision,
-            String bindingHash
+            String bindingHash,
+            com.lolfm.career.CompetitionRosterSnapshot frozenRosters
     ) {
         LeagueIdentity.requireLeagueId(leagueId);
         LeagueIdentity.requireSeasonId(seasonId);
@@ -156,11 +158,13 @@ public final class LeagueFixtureSeriesBindingV1 {
                 championDraftResourceIdentity, matchupCompositionResourceIdentity,
                 productionRuntimeIdentity, resourceProvenanceHash, policyId, policyHash,
                 runtimeProfileId, configurationHash, activeGameplayRulesVersion,
-                engineImplementationVersion, bindingRevision);
+                engineImplementationVersion, bindingRevision, frozenRosters);
         String expectedHash = LeagueIdentity.sha256(payload);
         if (bindingHash != null && !expectedHash.equals(bindingHash)) {
             throw new IllegalArgumentException("Canonical League Series binding hash mismatch");
         }
+        this.frozenRosters = frozenRosters;
+        if (frozenRosters != null && !frozenRosters.teams().keySet().equals(Set.of(firstTeamCode, secondTeamCode))) throw new IllegalArgumentException("LEAGUE_FROZEN_ROSTER_SCOPE");
         this.leagueId = leagueId;
         this.seasonId = seasonId;
         this.fixtureId = fixtureId;
@@ -237,8 +241,21 @@ public final class LeagueFixtureSeriesBindingV1 {
                 policy.policyId(), policy.policyHash(),
                 policy.retainedRuntimeProfileId().name(), policy.configurationHash(),
                 policy.activeGameplayRulesVersion(), policy.engineImplementationVersion(),
-                0, null);
+                0, null, null);
     }
+
+    LeagueFixtureSeriesBindingV1 withFrozenRosters(com.lolfm.career.CompetitionRosterSnapshot rosters) {
+        if (rosters == null) return this;
+        return new LeagueFixtureSeriesBindingV1(leagueId, seasonId, fixtureId, expectedSeasonRevision,
+                reservationIdentity, boundSeriesId, firstTeamCode, secondTeamCode, managedTeamCode, seriesFormat,
+                game1BlueTeamCode, game1RedTeamCode, fixtureRootSeed, seedAnchorTeamCode, initialHistoryHash,
+                scheduleIdentity, productDecisionHash, frozenSnapshotIdentity, firstTeamSnapshotIdentity,
+                secondTeamSnapshotIdentity, playerResourceIdentity, championDraftResourceIdentity,
+                matchupCompositionResourceIdentity, productionRuntimeIdentity, resourceProvenanceHash,
+                policyId, policyHash, runtimeProfileId, configurationHash, activeGameplayRulesVersion,
+                engineImplementationVersion, bindingRevision, null, rosters);
+    }
+    public com.lolfm.career.CompetitionRosterSnapshot frozenRosters() { return frozenRosters; }
 
     /** Rebuilds and revalidates a durable canonical binding without live authored inputs. */
     static LeagueFixtureSeriesBindingV1 restoreCanonical(String canonicalText) {
@@ -286,7 +303,8 @@ public final class LeagueFixtureSeriesBindingV1 {
                 required(fields, "configurationHash"),
                 required(fields, "activeGameplayRulesVersion"),
                 required(fields, "engineImplementationVersion"),
-                longValue(fields, "bindingRevision"), required(fields, "bindingHash"));
+                longValue(fields, "bindingRevision"), required(fields, "bindingHash"),
+                fields.containsKey("frozenRosters") ? com.lolfm.career.CompetitionRosterSnapshot.decode(fields.get("frozenRosters")) : null);
         if (!restored.canonicalText().equals(canonicalText)) {
             throw new IllegalArgumentException("Durable binding canonical mismatch");
         }
@@ -317,7 +335,7 @@ public final class LeagueFixtureSeriesBindingV1 {
                 championDraftResourceIdentity, matchupCompositionResourceIdentity,
                 productionRuntimeIdentity, resourceProvenanceHash, policyId, policyHash,
                 runtimeProfileId, configurationHash, activeGameplayRulesVersion,
-                engineImplementationVersion, bindingRevision)
+                engineImplementationVersion, bindingRevision, frozenRosters)
                 + "bindingHash=" + bindingHash + '\n';
     }
 
@@ -334,7 +352,7 @@ public final class LeagueFixtureSeriesBindingV1 {
             String resourceProvenanceHash, String policyId, String policyHash,
             String runtimeProfileId, String configurationHash,
             String activeGameplayRulesVersion, String engineImplementationVersion,
-            long bindingRevision
+            long bindingRevision, com.lolfm.career.CompetitionRosterSnapshot frozenRosters
     ) {
         StringBuilder value = new StringBuilder();
         append(value, "schemaVersion", SCHEMA);
@@ -377,6 +395,7 @@ public final class LeagueFixtureSeriesBindingV1 {
         append(value, "engineImplementationVersion", engineImplementationVersion);
         append(value, "bindingRevision", bindingRevision);
         append(value, "bindingLifecycleStatus", "CREATED");
+        if (frozenRosters != null) { append(value, "rosterPolicy", "LEAGUE_SERIES_FROZEN_LINEUP_V1"); append(value, "frozenRosters", frozenRosters.encoded()); }
         return value.toString();
     }
 

@@ -115,6 +115,7 @@ export function SeriesDraftRoomPage({ state, onStateChange, onSimulation, onHub,
   return <PlayerDraftRoomPage state={viewState} transport={transport}
     contextBar={<SeriesContextBar series={state.series} catalog={state.championsById} onOpenGame={onOpenGame} />}
     utilityMeta={`${state.series.format} · Game ${gameNumber} · Series-owned Draft`}
+    preserveDraftOnBack
     backLabel="시리즈 허브로 돌아가기" simulateLabel={`Game ${gameNumber} Production V9 실행`}
     canSubmit={commands.has('SUBMIT_DRAFT_ACTION')} canSimulate={commands.has('SIMULATE')}
     canCancelDraft={commands.has('CANCEL_DRAFT_SESSION')} disabledReason={disabledReason}

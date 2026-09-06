@@ -169,3 +169,37 @@ Competition start 요청의 additive `sourceYear`는 후속 시즌부터 필수�
 
 후속 정책, 기존 저장 이월 경계와 검증은
 [선택권 수정·시즌 전환 보고서](../development/career-selection-fixes-and-season-rollover-v1.md)를 따른다.
+
+## Career 선수단 V1 확장 (2026-09-06)
+
+`GET /api/v1/careers/{careerId}/roster/{year}`는 `CAREER_ROSTER_VIEW_V1`을 반환한다.
+전체 directory(460명·79조직), Career/연도별 membership과 lineups, roster revision,
+관리 구단의 국제 등록 후보 `registeredPlayers`, 실제 시작한 경기의 `activeSeriesPlayers`,
+읽기 전용 여부 및 허용 명령을 포함한다. GET은 명부 이주나 재import를 하지 않는다.
+
+`POST /api/v1/careers/{careerId}/roster`의 strict body:
+
+```json
+{
+  "schemaVersion": "CAREER_ROSTER_COMMAND_V1",
+  "sourceYear": 2027,
+  "team": "LCK:KT",
+  "playerId": "player-jiwoo",
+  "action": "SELECT_STARTER",
+  "targetOrganizationId": null,
+  "replacementPlayerId": null,
+  "expectedRevision": 0,
+  "clientCommandId": "11111111-1111-4111-8111-111111111111"
+}
+```
+
+`MOVE_SQUAD`는 연계 조직 ID를 `targetOrganizationId`로 지정한다. 선발 선수를 육성팀으로
+내릴 때에는 같은 포지션의 1군 대체 선수 ID도 필요하다. 서버는 관리 구단/연도/소유권과
+revision을 검증하고, UUID 재시도는 원래 receipt를 반환한다. 다른 payload의 UUID 재사용과
+stale revision은 409, 허용되지 않은 선수/조직/명령은 400이다. 응답은 `replayed`, 원래
+`receipt`(sourceYear/resultingRevision/stateHash/applicationPolicy), 최신 `roster`를 포함한다.
+
+Calendar 행 잠금을 경기 시작·등록·명부 변경·시즌 전환의 공통 원자적 경계로 사용한다.
+화면에서도 동기적 공유 변경 gate를 사용하며 원본 전환/로스터 UUID는 응답 소실 후 보존한다.
+조회 generation과 변경 요청 소유권/종료를 분리한다. 과거 시즌 화면은 변경할 수 없다.
+자세한 정책·이주·검증은 [확장 명부 V1](../development/career-expanded-rosters-lineups-and-data-integration-v1.md)을 따른다.

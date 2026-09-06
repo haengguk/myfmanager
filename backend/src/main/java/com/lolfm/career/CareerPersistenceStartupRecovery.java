@@ -11,6 +11,11 @@ public final class CareerPersistenceStartupRecovery {
     private final CareerCalendarRelationalStore calendars;
     private final CareerCompetitionRelationalStore competitions;
 
+    private CareerRosterStore rosters;
+    @org.springframework.beans.factory.annotation.Autowired
+    public CareerPersistenceStartupRecovery(CareerCalendarRelationalStore calendars, CareerCompetitionRelationalStore competitions, CareerRosterStore rosters) {
+        this(calendars,competitions);this.rosters=rosters;
+    }
     public CareerPersistenceStartupRecovery(
             CareerCalendarRelationalStore calendars,
             CareerCompetitionRelationalStore competitions
@@ -23,5 +28,6 @@ public final class CareerPersistenceStartupRecovery {
     public void recover() {
         calendars.recoverLegacyStates();
         competitions.recoverLegacyCompetitions();
+        if(rosters!=null)rosters.recover();
     }
 }

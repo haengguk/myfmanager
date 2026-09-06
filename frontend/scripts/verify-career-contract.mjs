@@ -1,3 +1,5 @@
+import { validateCareerRoster, readRosterOperation, rosterOperationKey } from '../src/features/career/api/careerRoster.contract.ts';
+import { CareerMutationGate } from '../src/features/career/career.mutation.ts';
 import { CareerApiFailure } from '../src/features/career/api/careerApi.failure.ts';
 import { validateCareerSeasons, validateCareerSeasonDetail, validateCareerTransition, validateCareerTransitionRequest, validateCareerAdvanceResponse, validateCareerCalendar, validateCareerCompetitionCommandResponse, validateCareerCreateResponse, validateCareerListResponse, validateCareerView } from '../src/features/career/api/careerApi.validation.ts';
 import { careerResumeRoute } from '../src/features/career/career.adapter.ts';
@@ -281,3 +283,62 @@ accepts('a prior-season competition operation never reuses its UUID for a new se
   const next = logicalCareerCompetition(storage, careerId, 0, () => '22222222-2222-4222-8222-222222222222', 2028);
   if (old.clientCommandId === next.clientCommandId || next.sourceYear !== 2028) throw new Error('source year was overwritten');
 });
+
+accepts('a delayed season transition excludes calendar, fixture and roster mutations synchronously', () => {
+  const states=[]; const gate=new CareerMutationGate(value=>states.push(value));
+  const finish=gate.acquire();
+  for(const command of ['advance','competition','roster']) if(gate.acquire()!==null) throw new Error(command+' entered during transition');
+  finish(); if(gate.busy || String(states)!=='true,false') throw new Error('pending leaked');
+});
+accepts('ending an old request cannot release a newer mutation owner', () => {
+  const gate=new CareerMutationGate(()=>{}); const old=gate.acquire(); old();
+  const next=gate.acquire(); old(); if(!gate.busy)throw new Error('new owner released'); next();
+});
+
+// One representative five-role fixture validates directory/membership boundaries without mirroring 460 people.
+function rosterView() {
+  const ids = ['top','jungle','mid','adc','support'].map(x => `player-${x}`), roles = ['TOP','JUNGLE','MID','ADC','SUPPORT'];
+  const players = Object.fromEntries(ids.map((id,i) => [id, { playerId:id, nickname:id, position:roles[i], provisional:true, initialOrganizationId:'LCK:KT', initialOwnerTeam:'LCK:KT', initialSquad:'FIRST_TEAM', eligibilityReason:null, detailsJson:'{"personal":{"birthDate":null}}', gameplay:{playerId:id,nickname:id,position:roles[i],ratings:Object.fromEntries(Array.from({length:12},(_,i)=>[`SKILL_${i}`,14])),proficiencies:[{championId:'fixture-champion',position:roles[i],value:14}]} }]));
+  return { schemaVersion:'CAREER_ROSTER_VIEW_V1',careerId,seasonYear:2027,revision:0,readOnly:false,managedTeam:'LCK:KT',directory:{players,organizations:{'LCK:KT':{organizationId:'LCK:KT',displayName:'KT',competitiveTeam:'LCK:KT',kind:'CLUB'}}},state:{policyVersion:'CAREER_ROSTER_LINEUP_V1',members:Object.fromEntries(ids.map(id=>[id,{playerId:id,ownerTeam:'LCK:KT',organizationId:'LCK:KT',squad:'FIRST_TEAM',eligibilityReason:null}])),lineups:{'LCK:KT':ids}},registeredPlayers:{},activeSeriesPlayers:{},allowedCommands:['SELECT_STARTER','MOVE_SQUAD'],applicationPolicy:'UNSTARTED_SERIES_WITHIN_REGISTERED_POOL_ELSE_NEXT_REGISTRATION'};
+}
+accepts('roster directory retains provisional values and unknown personal data', () => validateCareerRoster(rosterView()));
+rejects('a lineup cannot duplicate a player in two roles', () => { const value=rosterView();value.state.lineups['LCK:KT'][1]=value.state.lineups['LCK:KT'][0];validateCareerRoster(value); });
+rejects('a historical roster cannot advertise mutation commands', () => { const value=rosterView();value.readOnly=true;validateCareerRoster(value); });
+rejects('a registered pool cannot refer to an absent player', () => { const value=rosterView();value.registeredPlayers.MSI=['player-missing'];validateCareerRoster(value); });
+accepts('a lost roster response restores its original year, revision, UUID and target', () => { const local=storage();const body={schemaVersion:'CAREER_ROSTER_COMMAND_V1',sourceYear:2027,team:'LCK:KT',playerId:'player-jiwoo',action:'SELECT_STARTER',targetOrganizationId:null,replacementPlayerId:null,expectedRevision:4,clientCommandId:'11111111-1111-4111-8111-111111111111'};local.setItem(rosterOperationKey(careerId),JSON.stringify(body));if(JSON.stringify(readRosterOperation(local,careerId))!==JSON.stringify(body))throw new Error('original roster command was replaced'); });
+
+// Regression of the reported response-order race, exercising the production component with bounded hooks.
+async function verifySeasonComponentRequestOwnership() {
+  const fs=await import('node:fs'),vm=await import('node:vm'),ts=(await import('typescript')).default;
+  const file=new URL('../src/features/career/CareerSeasonsPanel.tsx',import.meta.url);
+const state=[],refs=[],effects=[];let si=0,ri=0,ei=0,todo=[];
+const react={
+ useState(initial){const i=si++;if(!(i in state))state[i]=initial;return[state[i],v=>{state[i]=typeof v==='function'?v(state[i]):v}]},
+ useRef(initial){const i=ri++;return refs[i]??=( {current:initial})},
+ useEffect(fn,deps){const i=ei++,old=effects[i];if(!old||deps.some((v,j)=>v!==old.deps[j]))todo.push(()=>{old?.cleanup?.();effects[i]={deps,cleanup:fn()}})}
+};
+const jsx=(type,props)=>({type,props});
+const storage=new Map();let finishTransition;let starts=0,changed=0,released=0;
+const list={schemaVersion:'CAREER_SEASONS_V1',careerId:'career',activeYear:2027,calendarRevision:10,seasons:[{year:2027,status:'ACTIVE'}],blockers:[],allowedCommands:['START_NEXT_SEASON']};
+const api={CareerApiFailure:class extends Error{},getCareerSeasons:async()=>({...list,calendarRevision:props.revision}),getCareerSeason:async()=>({}),transitionCareerSeason:async(_c,body)=>new Promise(resolve=>{starts++;finishTransition=()=>resolve({receipt:{clientCommandId:body.clientCommandId,sourceYear:body.sourceYear},seasons:list})})};
+const source=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
+const exportsObject={};
+const sandbox={exports:exportsObject,require(name){if(name==='react')return react;if(name==='react/jsx-runtime')return{jsx,jsxs:jsx};if(name.endsWith('careerApi.client'))return api;if(name.endsWith('careerApi.validation'))return{validateCareerTransitionRequest:x=>x};if(name.endsWith('career.pointer'))return{clearCareerAdvanceOperation(){},clearCareerCompetitionOperation(){}};throw Error(name)},AbortController,crypto:{randomUUID:()=> '11111111-1111-4111-8111-111111111111'},window:{sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)}}};
+vm.runInNewContext(source,sandbox,{filename:file.pathname});
+let props={careerId:'career',revision:10,busy:false,onBegin(){return ()=>{released++}},onChanged(){changed++},onHistory(){},onReplay(){}};
+function render(){si=ri=ei=0;todo=[];const tree=exportsObject.CareerSeasonsPanel(props);for(const f of todo)f();return tree}
+function button(tree){return tree.props.children[0].props.children[1]}
+const tick=()=>new Promise(r=>setImmediate(r));
+
+ render();await tick();let tree=render();button(tree).props.onClick();tree=render();
+ const pendingAfterStart=tree.props['aria-busy'];
+ // An independently enabled Calendar advance updates the revision while the transition response is delayed.
+ props={...props,revision:11,busy:true};render();await tick();finishTransition();await tick();
+ props={...props,busy:false};tree=render();
+ const result={transitionRequests:starts,pendingAfterStart,pendingAfterResponse:tree.props['aria-busy'],transitionButtonDisabled:button(tree).props.disabled,onChangedCalls:changed,persistedRequestCount:storage.size};
+
+ if(!pendingAfterStart||result.pendingAfterResponse||result.onChangedCalls!==1||storage.size!==0||released!==1)throw Error('Transition ownership leaked after read revision changed');
+
+
+}
+try { await verifySeasonComponentRequestOwnership(); console.log('PASS season transition completes and releases pending after query revision changes'); } catch(error) { console.error('FAIL season transition component ownership',error);process.exitCode=1; }

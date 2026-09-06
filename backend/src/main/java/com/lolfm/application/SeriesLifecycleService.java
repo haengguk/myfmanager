@@ -97,7 +97,7 @@ public final class SeriesLifecycleService {
                 Long.toString(binding.fixtureRootSeed()), binding.fixtureRootSeed(), score,
                 List.of(first), Set.of(), binding.initialHistoryHash(), null, now, now,
                 repository.parentExpiresAt(now), Map.of(), SeriesOrigin.LEAGUE_BOUND,
-                binding.bindingHash(), binding.seedAnchorTeamCode());
+                binding.bindingHash(), binding.seedAnchorTeamCode(), null, binding.frozenRosters());
         SeriesRepository.CreateResult result = repository.create(
                 "LEAGUE_BINDING:" + binding.bindingHash(), binding.bindingHash(), aggregate);
         requireLeagueBinding(result.aggregate(), binding);
@@ -247,7 +247,8 @@ public final class SeriesLifecycleService {
                 && aggregate.teamBCode().equals(binding.secondTeamCode())
                 && aggregate.managedTeamCode().equals(binding.managedTeamCode())
                 && aggregate.game1BlueTeamCode().equals(binding.game1BlueTeamCode())
-                && aggregate.rootSeed() == binding.fixtureRootSeed();
+                && aggregate.rootSeed() == binding.fixtureRootSeed()
+                && Objects.equals(aggregate.frozenCompetitionRosters(),binding.frozenRosters());
         if (!valid) throw new IllegalStateException("PLAYER_SERIES_BINDING_MISMATCH");
     }
 

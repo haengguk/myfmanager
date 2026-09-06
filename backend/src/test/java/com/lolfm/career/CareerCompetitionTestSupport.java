@@ -119,6 +119,12 @@ public final class CareerCompetitionTestSupport {
         return binding;
     }
 
+    public static CompetitionRosterSnapshot applicableEwcRoster(CareerCompetitionRelationalStore store,String career,boolean createNewPool) {
+        var state=CareerInternationalCompetition.load(store,career,2027,"EWC_LOL");
+        if(createNewPool)CareerRosterStore.registerPool(store.jdbc,career,2027,"EWC_LOL",state.rosters().teams().keySet());
+        return CareerRosterStore.registeredPair(store.jdbc,career,2027,"EWC_LOL",state.rosters(),"LCK:KT","LCK:GEN");
+    }
+
     /** Test-only EWC registration fixture; tests distinguish this setup from qualification evidence. */
     public static List<CareerCompetitionRelationalStore.FixtureRow> installEwcExecutionFixture(
             CareerCompetitionRelationalStore store, String career, CareerInternationalParticipants provider,

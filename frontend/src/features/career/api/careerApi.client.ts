@@ -49,7 +49,7 @@ function parse(raw: string): unknown {
 function backendFailure(raw: string, status: number): CareerApiFailure {
   try {
     const error = validateCareerError(parse(raw));
-    return new CareerApiFailure('BACKEND', SAFE_COPY[error.code] ?? `Career 요청을 처리하지 못했습니다. (HTTP ${status})`, status, error.code, error.field, status === 503);
+    return new CareerApiFailure('BACKEND', (error.code === 'CAREER_REQUEST_INVALID' ? error.message : SAFE_COPY[error.code]) ?? `Career 요청을 처리하지 못했습니다. (HTTP ${status})`, status, error.code, error.field, status === 503);
   } catch (cause) {
     if (cause instanceof CareerApiFailure && cause.kind === 'INVALID_JSON') return new CareerApiFailure('BACKEND', `서버가 예상하지 못한 오류 응답을 보냈습니다. (HTTP ${status})`, status);
     return new CareerApiFailure('BACKEND', `Career 요청을 처리하지 못했습니다. (HTTP ${status})`, status);
@@ -105,4 +105,13 @@ export function getCareerSeason(careerId: string, year: number, signal: AbortSig
 }
 export function transitionCareerSeason(careerId: string, body: CareerTransitionRequestDto, signal: AbortSignal): Promise<CareerTransitionDto> {
   return request(`${ROOT}/${encodeURIComponent(careerId)}/seasons/transition`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateCareerTransition, [200]);
+}
+
+import type { CareerRoster, RosterChange, RosterCommand } from './careerRoster.contract';
+import { validateCareerRoster, validateRosterChange } from './careerRoster.contract';
+export function getCareerRoster(career: string, year: number, signal: AbortSignal): Promise<CareerRoster> {
+  return request(`${ROOT}/${encodeURIComponent(career)}/roster/${year}`, { method: 'GET' }, signal, validateCareerRoster, [200]);
+}
+export function changeCareerRoster(career: string, body: RosterCommand, signal: AbortSignal): Promise<RosterChange> {
+  return request(`${ROOT}/${encodeURIComponent(career)}/roster`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateRosterChange, [200]);
 }

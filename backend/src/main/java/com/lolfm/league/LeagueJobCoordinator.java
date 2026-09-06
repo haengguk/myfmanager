@@ -61,15 +61,17 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
         if (fixture.executionMode() != LeagueFixtureExecutionMode.FULL_AUTO) {
             throw new IllegalArgumentException("PLAYER_FIXTURE_EXCLUDED_FROM_AUTO_DISPATCH");
         }
-        String frozenHash = frozenInputHash(season, fixture);
         String jobId = "job_" + LeagueIdentity.sha256(
                 "jobSchema=AI_LEAGUE_FULL_AUTO_JOB_V1\n"
                         + "seasonId=" + seasonId + '\n'
                         + "fixtureId=" + fixtureId + '\n');
         return store.transactions().execute(ignored -> {
+            store.lockCareerRoster(seasonId);
             seasons.lockSeason(seasonId);
             seasons.requireDispatchable(seasonId);
             lockFixture(seasonId, fixtureId);
+            store.freezeFixtureRoster(seasonId,fixtureId);
+            String frozenHash = frozenInputHash(season, fixture);
             Optional<JobView> existing = findJob(seasonId, fixtureId);
             if (existing.isPresent()) {
                 if (!existing.get().jobId().equals(jobId)
@@ -221,7 +223,7 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                         "FROZEN_JOB_INPUT_MISMATCH");
             }
             result = runner.run(new LeagueAutomatedSeriesRunnerInput(
-                    season, fixture, season.productDecisionHash()), instrumentation);
+                    season, fixture, season.productDecisionHash(), store.fixtureRoster(season.seasonId(),fixture.fixtureId())), instrumentation);
         } catch (RuntimeException error) {
             LeagueJobFailureClassifier.Failure failure =
                     LeagueJobFailureClassifier.classify(error);
@@ -498,7 +500,7 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
         if (rows.isEmpty()) throw new IllegalStateException("LEAGUE_FIXTURE_NOT_PERSISTED");
     }
 
-    private static String frozenInputHash(
+    private String frozenInputHash(
             LeagueSeasonAggregate season,
             LeagueFixture fixture
     ) {
@@ -510,7 +512,12 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                         + "fixtureRootSeed=" + fixture.fixtureRootSeed() + '\n'
                         + "scheduleIdentity=" + season.schedule().scheduleIdentity() + '\n'
                         + "snapshotIdentity=" + season.frozenSnapshot().snapshotIdentity() + '\n'
-                        + "productDecisionHash=" + season.productDecisionHash() + '\n');
+                        + "productDecisionHash=" + season.productDecisionHash() + '\n'
+                        + rosterInput(season.seasonId(),fixture.fixtureId()));
+    }
+
+    private String rosterInput(String season,String fixture) {
+        var roster=store.fixtureRoster(season,fixture);return roster==null?"":"rosterPolicy=LEAGUE_SERIES_FROZEN_LINEUP_V1\nfrozenRosterIdentity="+roster.identity()+'\n';
     }
 
     private static JobView jobView(ResultSet result) throws SQLException {

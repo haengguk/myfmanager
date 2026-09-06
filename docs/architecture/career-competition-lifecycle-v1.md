@@ -258,3 +258,22 @@ MSI는 금년 FST/Road, Worlds는 금년 MSI/봉인 국내 순위, EWC는 직전
 
 상세 호환·승계 정책과 실제 검증 범위는
 [선택권 수정·시즌 전환 보고서](../development/career-selection-fixes-and-season-rollover-v1.md)에 기록한다.
+
+## Career 명부와 Series 출전 명단 분리 V1
+
+2026-09-06 확장에서는 경쟁 팀 56개와 구단 선발 5명을 유지하면서 전체 선수 directory를
+460명으로 확장했다. 조직/소속/squad와 선발 선택은 Career 소유 상태이며 전역 reference
+및 개별 Series의 고정 입력과 구분한다. 새 국제 등록은 해당 시점의 1군 후보 집합을
+`CAREER_REGISTERED_FIRST_TEAM_POOL_V1`로 저장한다. 시작 전 Series는 그 집합 안에서 현재
+선발을 선택하고, 등록 밖 선수는 해당 역할의 최초 등록 선발을 유지한다. 구 등록의 확정
+5명에는 후보를 소급 추가하지 않는다. 이 허용 범위는 이번 게임 정책이다.
+
+국내/국제 Series binding의 기존 frozen roster를 재사용한다. R1/R2에는 개별 fixture roster와
+`LEAGUE_SERIES_FROZEN_LINEUP_V1`의 선택적 binding/receipt identity를 추가한다. 원래 season,
+schedule, production resource identity는 그대로 유지한다. 이미 시작된 경기의 old canonical,
+hash, seed, Draft/Fearless 및 checkpoint를 새 명단으로 다시 작성하지 않는다. Player/Auto는
+같은 고정 프로필과 선수 ID를 소비한다. 각 Match의 mutable 상태는 새로 조립한다.
+
+시즌 전환은 마감 시점의 Career 소속·squad·lineup을 다음 연도로 이월한다. 새 시즌의
+Cup/League 및 이후 국제 등록은 이 값을 사용한다. 상세는
+[확장 명부 구현·검증 보고서](../development/career-expanded-rosters-lineups-and-data-integration-v1.md)를 참조한다.

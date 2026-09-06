@@ -107,8 +107,11 @@ public final class CareerSeasonApplicationService {
             var blocked = blockers(career,request.sourceYear());
             if (!blocked.isEmpty()) throw CareerException.invalid("sourceYear","시즌 마감 불가: "+String.join(", ",blocked));
             var current = careers.activeSeason(career);
-            var rosters = CareerSeasonRosters.load(competitions,careerId,current.year());
+            var rosters = CareerRosterStore.currentRosters(jdbc,careerId,current.year());
+            if (rosters == null) rosters = CareerSeasonRosters.load(competitions,careerId,current.year());
             if (rosters == null) rosters = CareerSeasonRosters.freezeInitial(competitions,participants,careerId,current.year());
+            jdbc.update("UPDATE career_season SET roster_json=?,roster_hash=? WHERE career_id=? AND season_year=? AND roster_json IS NULL",
+                    rosters.encoded(),rosters.identity(),careerId,current.year());
             int nextYear=current.year()+1, ordinal=current.ordinal()+1;
             String identity=CareerInternationalRules.hash(careerId+"|SEASON_ROLLOVER_V1|"+nextYear+"|"+ordinal);
             String league="league_"+identity, season="season_"+identity;
@@ -126,6 +129,7 @@ public final class CareerSeasonApplicationService {
                     frozen_snapshot_hash,product_decision_hash,lifecycle_status,roster_json,roster_hash)
                 VALUES (?,?,?,?,?,?,?,?,'ACTIVE',?,?)
                 """,careerId,nextYear,ordinal,league,season,seed,created.frozenSnapshotIdentity(),created.productDecisionIdentity(),rosters.encoded(),rosters.identity());
+            CareerRosterStore.carry(jdbc,careerId,current.year(),nextYear);
             competitions.initializeFuture(careerId,nextYear);
             var next=calendars.rollover(career,current.year(),request.expectedCalendarRevision());
             jdbc.update("""

@@ -121,6 +121,7 @@ public final class CareerCompetitionRelationalStore {
             boolean initialBootstrapRequest
     ) {
         return transactions.execute(ignored -> {
+            CareerRosterStore.lockCareer(jdbc,careerId);
             List<CycleRow> prior = findCycle(careerId, calendarSeasonYear, true);
             if (!prior.isEmpty()) {
                 requireV2(prior.getFirst());
@@ -837,6 +838,7 @@ public final class CareerCompetitionRelationalStore {
             String careerId, int seasonYear, String competitionId, String matchId,
             LeagueSeasonFrozenSnapshot productionSnapshot, String resourceProvenanceHash) {
         return transactions.execute(ignored -> {
+            CareerRosterStore.lockCareer(jdbc,careerId);
             lockCycle(careerId, seasonYear);
             CycleView cycle = load(careerId, seasonYear);
             FixtureRow fixture = cycle.fixtures().stream()
@@ -858,12 +860,19 @@ public final class CareerCompetitionRelationalStore {
                 original.requireProductionAuthority(productionSnapshot, resourceProvenanceHash);
                 return original;
             }
-            var carried = cycle.seasonOrdinal() > 1 ? CareerSeasonRosters.load(this,careerId,seasonYear) : null;
+            var existingBinding=jdbc.query("SELECT binding_canonical FROM career_competition_series_binding WHERE career_id=? AND calendar_season_year=? AND competition_id=? AND match_id=?",
+                    (r,n)->r.getString(1),careerId,seasonYear,competitionId,matchId);
+            if(!existingBinding.isEmpty()) {
+                var preserved=CareerCompetitionSeriesBindingV1.restoreCanonical(existingBinding.getFirst());
+                preserved.requireProductionAuthority(productionSnapshot,resourceProvenanceHash);return preserved;
+            }
+            var carried = CareerRosterStore.currentRosters(jdbc,careerId,seasonYear);
+            if(carried==null && cycle.seasonOrdinal()>1)carried=CareerSeasonRosters.load(this,careerId,seasonYear);
             if (cycle.seasonOrdinal() > 1 && carried == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
             CareerCompetitionSeriesBindingV1 candidate = international != null
                     ? CareerCompetitionSeriesBindingV1.createInternational(cycle, instance, fixture,
                     CompetitionRosterSnapshot.managedToken(managedTeam), international.ruleResourceHash(),
-                    productionSnapshot, resourceProvenanceHash, international.rosters().pair(fixture.firstTeamCode(), fixture.secondTeamCode()))
+                    productionSnapshot, resourceProvenanceHash, CareerRosterStore.registeredPair(jdbc,careerId,seasonYear,competitionId,international.rosters(),fixture.firstTeamCode(), fixture.secondTeamCode()))
                     : CareerCompetitionSeriesBindingV1.create(cycle, instance,
                             fixture, managedTeam, rules.resourceHash(),
                             productionSnapshot, resourceProvenanceHash, inheritedPicks(careerId, seasonYear, fixture),
@@ -2171,6 +2180,7 @@ public final class CareerCompetitionRelationalStore {
     }
 
     CycleRow lockCycle(String careerId, int year) {
+        CareerRosterStore.lockCareer(jdbc,careerId);
         List<CycleRow> rows = findCycle(careerId, year, true);
         if (rows.size() != 1) throw new IllegalStateException(
                 "CAREER_COMPETITION_CYCLE_NOT_FOUND");

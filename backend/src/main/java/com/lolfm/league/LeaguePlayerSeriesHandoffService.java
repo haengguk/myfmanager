@@ -42,7 +42,8 @@ public final class LeaguePlayerSeriesHandoffService {
                     production.currentResourceProvenanceHash());
             LeaguePlayerSeriesBindingPort.Registration registration = bindings.createOrLoad(
                     command.commandId(), payloadHash, binding);
-            requireCurrentBinding(context, registration.state().binding());
+            binding=registration.state().binding();
+            requireCurrentBinding(context, binding);
             if (!registration.startOwner()) {
                 if (registration.state().status()
                         == LeaguePlayerSeriesBindingPort.Status.CREATED) {
@@ -303,7 +304,7 @@ public final class LeaguePlayerSeriesHandoffService {
                 new LeagueFixtureCompletionReceiptV2(
                         LeagueFixtureCompletionReceiptV2.SCHEMA,
                         LeagueFixtureCompletionReceiptV2.HASH_ALGORITHM,
-                        binding.leagueId(), binding.bindingHash(), core, authorities, null);
+                        binding.leagueId(), binding.bindingHash(), core, authorities, null, binding.frozenRosters()==null?null:binding.frozenRosters().identity());
         return new BuiltReceipt(games, authorities, unified);
     }
 

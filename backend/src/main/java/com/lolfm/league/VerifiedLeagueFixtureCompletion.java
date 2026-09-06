@@ -30,6 +30,22 @@ public final class VerifiedLeagueFixtureCompletion {
         this.loserGameWins = loserGameWins;
     }
 
+    private static void requireRoster(LeagueFixtureCompletionReceiptV2 receipt, com.lolfm.career.CompetitionRosterSnapshot rosters) {
+        if(!Objects.equals(receipt.frozenRosterIdentity(),rosters==null?null:rosters.identity()))throw new IllegalStateException("FIXTURE_LINEUP_IDENTITY_MISMATCH");
+        if(rosters==null)return;
+        if(!rosters.teams().keySet().equals(java.util.Set.of(receipt.firstTeamCode(),receipt.secondTeamCode())))throw new IllegalStateException("FIXTURE_LINEUP_TEAM_MISMATCH");
+        for(var game:receipt.orderedGameReceipts()) {
+            if(!game.rosterIdentityHash().equals(com.lolfm.application.SimulationProvenanceService.rosterIdentityHash(
+                    game.blueTeamCode(),rosters.assemble(game.blueTeamCode()),game.redTeamCode(),rosters.assemble(game.redTeamCode()))))
+                throw new IllegalStateException("FIXTURE_LINEUP_PROFILE_MISMATCH");
+            for(var assignment:game.orderedFinalAssignments()) {
+            String team=assignment.teamSide()==com.lolfm.simulator.TeamSide.BLUE?game.blueTeamCode():game.redTeamCode();
+            if(rosters.roster(team).players().stream().noneMatch(p->p.position()==assignment.position() && p.playerId().equals(assignment.playerId().value())))
+                throw new IllegalStateException("FIXTURE_LINEUP_PLAYER_MISMATCH");
+            }
+        }
+    }
+
     static VerifiedLeagueFixtureCompletion verifyAutomated(
             LeagueAutomatedSeriesRunnerInput input,
             LeagueSeasonFrozenSnapshot currentSnapshot,
@@ -40,6 +56,7 @@ public final class VerifiedLeagueFixtureCompletion {
         Objects.requireNonNull(input, "input");
         Objects.requireNonNull(currentSnapshot, "currentSnapshot");
         Objects.requireNonNull(unifiedReceipt, "unifiedReceipt");
+        requireRoster(unifiedReceipt, input.frozenRosters());
         LeagueFixtureCompletionReceiptV1 receipt = unifiedReceipt.fixtureReceipt();
         actualOrderedGames = List.copyOf(actualOrderedGames);
         LeagueSeasonAggregate season = input.season();
@@ -141,6 +158,7 @@ public final class VerifiedLeagueFixtureCompletion {
             List<LeagueFixtureDraftAuthorityReceiptV1> actualAuthorities,
             LeagueFixtureCompletionReceiptV2 unifiedReceipt
     ) {
+        requireRoster(unifiedReceipt, binding.frozenRosters());
         Objects.requireNonNull(season, "season");
         Objects.requireNonNull(fixture, "fixture");
         Objects.requireNonNull(binding, "binding");
@@ -351,6 +369,16 @@ public final class VerifiedLeagueFixtureCompletion {
             LeagueFixtureCompletionReceiptV2 receipt,
             LeagueFixtureSeriesBindingV1 playerBinding
     ) {
+        return verifyPersisted(season, receipt, playerBinding, null);
+    }
+
+    static VerifiedLeagueFixtureCompletion verifyPersisted(
+            LeagueSeasonAggregate season,
+            LeagueFixtureCompletionReceiptV2 receipt,
+            LeagueFixtureSeriesBindingV1 playerBinding, com.lolfm.career.CompetitionRosterSnapshot frozenRosters
+    ) {
+        requireRoster(receipt,frozenRosters);
+        if(playerBinding!=null && !Objects.equals(playerBinding.frozenRosters(),frozenRosters))throw new IllegalStateException("PERSISTED_PLAYER_ROSTER_BINDING_MISMATCH");
         Objects.requireNonNull(season, "season");
         Objects.requireNonNull(receipt, "receipt");
         LeagueFixture fixture = season.schedule().fixture(receipt.fixtureId());

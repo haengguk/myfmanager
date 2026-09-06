@@ -15,14 +15,20 @@ public record LeagueFixtureCompletionReceiptV2(
         String playerSeriesBindingHash,
         LeagueFixtureCompletionReceiptV1 fixtureReceipt,
         List<LeagueFixtureDraftAuthorityReceiptV1> orderedDraftAuthorityReceipts,
-        String canonicalFixtureReceiptHash
+        String canonicalFixtureReceiptHash,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String frozenRosterIdentity
 ) {
     public static final String SCHEMA = "AI_LEAGUE_FIXTURE_COMPLETION_RECEIPT_V2";
     public static final String HASH_ALGORITHM =
             "SHA256_UTF8_EXPLICIT_ORDERED_FIXTURE_RECEIPT_LINES_TRAILING_NEWLINE_V2";
     public static final int MAX_CANONICAL_BYTES = 128 * 1024;
 
+    public LeagueFixtureCompletionReceiptV2(String schema,String algorithm,String league,String binding,
+            LeagueFixtureCompletionReceiptV1 fixture,List<LeagueFixtureDraftAuthorityReceiptV1> authorities,String hash) {
+        this(schema,algorithm,league,binding,fixture,authorities,hash,null);
+    }
     public LeagueFixtureCompletionReceiptV2 {
+        if(frozenRosterIdentity!=null)LeagueSeasonFrozenSnapshot.requireSha256(frozenRosterIdentity,"frozenRosterIdentity");
         if (!SCHEMA.equals(schemaVersion) || !HASH_ALGORITHM.equals(canonicalHashAlgorithm)) {
             throw new IllegalArgumentException("Unsupported unified League receipt schema");
         }
@@ -48,14 +54,14 @@ public record LeagueFixtureCompletionReceiptV2(
         }
         String expectedHash = LeagueIdentity.sha256(payloadText(
                 schemaVersion, canonicalHashAlgorithm, leagueId, playerSeriesBindingHash,
-                fixtureReceipt, orderedDraftAuthorityReceipts));
+                fixtureReceipt, orderedDraftAuthorityReceipts, frozenRosterIdentity));
         if (canonicalFixtureReceiptHash == null) {
             canonicalFixtureReceiptHash = expectedHash;
         } else if (!expectedHash.equals(canonicalFixtureReceiptHash)) {
             throw new IllegalArgumentException("Canonical unified fixture receipt hash mismatch");
         }
         if ((payloadText(schemaVersion, canonicalHashAlgorithm, leagueId,
-                playerSeriesBindingHash, fixtureReceipt, orderedDraftAuthorityReceipts)
+                playerSeriesBindingHash, fixtureReceipt, orderedDraftAuthorityReceipts, frozenRosterIdentity)
                 + "canonicalFixtureReceiptHash=" + canonicalFixtureReceiptHash + '\n')
                 .getBytes(StandardCharsets.UTF_8).length > MAX_CANONICAL_BYTES) {
             throw new IllegalArgumentException("Unified fixture receipt exceeds compact limit");
@@ -68,7 +74,7 @@ public record LeagueFixtureCompletionReceiptV2(
 
     public String canonicalText() {
         return payloadText(schemaVersion, canonicalHashAlgorithm, leagueId,
-                playerSeriesBindingHash, fixtureReceipt, orderedDraftAuthorityReceipts)
+                playerSeriesBindingHash, fixtureReceipt, orderedDraftAuthorityReceipts, frozenRosterIdentity)
                 + "canonicalFixtureReceiptHash=" + canonicalFixtureReceiptHash + '\n';
     }
 
@@ -78,7 +84,7 @@ public record LeagueFixtureCompletionReceiptV2(
             String leagueId,
             String bindingHash,
             LeagueFixtureCompletionReceiptV1 fixture,
-            List<LeagueFixtureDraftAuthorityReceiptV1> authorities
+            List<LeagueFixtureDraftAuthorityReceiptV1> authorities, String frozenRosterIdentity
     ) {
         StringBuilder value = new StringBuilder();
         value.append("schemaVersion=").append(schema).append('\n')
@@ -90,6 +96,7 @@ public record LeagueFixtureCompletionReceiptV2(
                 .append(fixture.canonicalText())
                 .append("fixtureReceiptEnd\n");
         authorities.forEach(authority -> value.append(authority.canonicalText()));
+        if(frozenRosterIdentity!=null)value.append("rosterPolicy=LEAGUE_SERIES_FROZEN_LINEUP_V1\n").append("frozenRosterIdentity=").append(frozenRosterIdentity).append('\n');
         return value.toString();
     }
 

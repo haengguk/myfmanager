@@ -22,6 +22,27 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
     @Autowired JdbcTemplate jdbc;
     @Autowired LeagueSeasonApplicationService seasonLifecycle;
 
+    @Autowired com.lolfm.career.CareerApplicationService careers;
+    @Autowired com.lolfm.career.CareerRosterStore rosters;
+
+    @Test
+    void selectedReserveRunsThroughActualLeagueAutoAndFrozenReceiptValidation() {
+        var career=careers.create(new com.lolfm.dto.CareerApiV1Dtos.CreateRequest(com.lolfm.dto.CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,
+                "KT 후보 실제 Auto","감독","KT",java.util.UUID.randomUUID().toString())).career().career();
+        rosters.change(career.careerId(),new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-jiwoo","SELECT_STARTER",null,null,0,java.util.UUID.randomUUID().toString()));
+        var frozen=com.lolfm.career.CareerRosterStore.currentRosters(jdbc,career.careerId(),2027).domesticPair("KT","T1");
+        var season=productionSeason(snapshots);var fixture=LeagueDomainTestFixtures.fixture(season.schedule(),"KT","T1");
+        var input=new LeagueAutomatedSeriesRunnerInput(season,fixture,season.productDecisionHash(),frozen);
+        var result=runner.run(input,SimulationInstrumentation.disabled());
+        assertThat(result.status()).isEqualTo(LeagueAutomatedSeriesRunResult.Status.COMPLETED);
+        assertThat(result.unifiedReceipt().frozenRosterIdentity()).isEqualTo(frozen.identity());
+        result.receipt().orderedGameReceipts().forEach(game->assertThat(game.orderedFinalAssignments())
+                .extracting(LeagueFixtureGameReceiptV1.FinalAssignmentEvidence::playerId).contains(new com.lolfm.player.PlayerId("player-jiwoo")).doesNotContain(new com.lolfm.player.PlayerId("player-fenrir")));
+        VerifiedLeagueFixtureCompletion.verifyPersisted(season,result.unifiedReceipt(),null,frozen);
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->VerifiedLeagueFixtureCompletion.verifyPersisted(season,result.unifiedReceipt(),null,null))
+                .hasMessage("FIXTURE_LINEUP_IDENTITY_MISMATCH");
+    }
+
     @Test
     void frozenFullAutoFixtureUsesActualProductionAutoDraftAndV9WithDiagnosticsParity()
             throws Exception {

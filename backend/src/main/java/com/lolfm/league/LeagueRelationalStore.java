@@ -26,7 +26,18 @@ public final class LeagueRelationalStore {
     private final LeagueJsonCodec json;
     private final Clock clock;
 
+    private com.lolfm.career.CareerRosterStore rosters;
     @org.springframework.beans.factory.annotation.Autowired
+    public LeagueRelationalStore(JdbcTemplate jdbc, PlatformTransactionManager manager, LeagueJsonCodec json, com.lolfm.career.CareerRosterStore rosters) {
+        this(jdbc,manager,json);this.rosters=rosters;
+    }
+    void lockCareerRoster(String seasonId) { if(rosters!=null)rosters.lockLeagueSeason(seasonId); }
+    com.lolfm.career.CompetitionRosterSnapshot freezeFixtureRoster(String seasonId,String fixtureId) {
+        return rosters==null?null:rosters.freezeLeagueFixture(seasonId,fixtureId);
+    }
+    com.lolfm.career.CompetitionRosterSnapshot fixtureRoster(String seasonId,String fixtureId) {
+        return rosters==null?null:rosters.leagueFixtureRoster(seasonId,fixtureId);
+    }
     public LeagueRelationalStore(
             JdbcTemplate jdbc,
             PlatformTransactionManager transactionManager,
@@ -174,7 +185,7 @@ public final class LeagueRelationalStore {
                     ? null : loadBindingCanonical(receipt.playerSeriesBindingHash());
             season = season.applyVerifiedCompletion(
                     VerifiedLeagueFixtureCompletion.verifyPersisted(
-                            season, receipt, binding));
+                            season, receipt, binding, fixtureRoster(season.seasonId(),receipt.fixtureId())));
         }
         if (season.revision() != row.revision()) {
             throw new IllegalStateException("DURABLE_SEASON_REVISION_MISMATCH");
@@ -272,7 +283,7 @@ public final class LeagueRelationalStore {
             verifyDurableProducer(receipt);
             VerifiedLeagueFixtureCompletion verified =
                     VerifiedLeagueFixtureCompletion.verifyPersisted(
-                            current, receipt, binding);
+                            current, receipt, binding, fixtureRoster(current.seasonId(),receipt.fixtureId()));
             LeagueSeasonAggregate next = current.applyVerifiedCompletion(verified);
             OffsetDateTime now = now();
             jdbc.update("""

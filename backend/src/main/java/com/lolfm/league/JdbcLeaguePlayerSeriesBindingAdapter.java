@@ -20,11 +20,13 @@ final class JdbcLeaguePlayerSeriesBindingAdapter
     public Registration createOrLoad(
             String commandId,
             String commandPayloadHash,
-            LeagueFixtureSeriesBindingV1 binding
+            LeagueFixtureSeriesBindingV1 requestedBinding
     ) {
         requireCommand(commandId, commandPayloadHash);
         return store.transactions().execute(ignored -> {
-            lockFixture(binding.seasonId(), binding.fixtureId());
+            store.lockCareerRoster(requestedBinding.seasonId());
+            lockFixture(requestedBinding.seasonId(), requestedBinding.fixtureId());
+            LeagueFixtureSeriesBindingV1 binding=requestedBinding.withFrozenRosters(store.freezeFixtureRoster(requestedBinding.seasonId(),requestedBinding.fixtureId()));
             Optional<CommandRow> prior = findCommand(commandId);
             if (prior.isPresent()) {
                 requireSameCommand(prior.get(), commandPayloadHash, binding.bindingHash());

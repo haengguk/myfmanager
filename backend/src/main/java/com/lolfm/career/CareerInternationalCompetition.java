@@ -44,6 +44,7 @@ final class CareerInternationalCompetition {
                     }
                     continue;
                 }
+                CareerRosterStore.registerPool(store.jdbc,career,year,competition,state.rosters().teams().keySet());
                 String registrationHash=CareerInternationalRules.hash(write(state));
                 store.jdbc.update("INSERT INTO career_international_state(career_id, calendar_season_year, competition_id, state_json, state_hash) VALUES (?, ?, ?, ?, ?)",career,year,competition,write(state),registrationHash);
                 store.jdbc.update("UPDATE career_competition_instance SET rule_status = 'GAME_POLICY_DEFINED', source_input_hash = ?, materialization_policy_id = ?, materialization_receipt_hash = ?, revision = revision + 1 WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",
@@ -152,7 +153,8 @@ final class CareerInternationalCompetition {
                 for(String team:ranking.getFirst().ranking())if(!domestic.contains(team))domestic.add(team);
             }
         }
-        var seasonRosters = CareerSeasonRosters.load(store,career,year);
+        var currentRoster = CareerRosterStore.currentRosters(store.jdbc,career,year);
+        final var seasonRosters = currentRoster == null ? CareerSeasonRosters.load(store,career,year) : currentRoster;
         if (future && seasonRosters == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
         var selection=seasonRosters == null ? participants.overseas(career,year,competition)
                 : participants.overseas(career,year,competition,seasonRosters);

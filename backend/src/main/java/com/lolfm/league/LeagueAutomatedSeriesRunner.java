@@ -73,7 +73,7 @@ public final class LeagueAutomatedSeriesRunner {
                 LeagueAutomatedSeriesGameExecutor.Execution execution = games.execute(
                         new LeagueAutomatedSeriesGameExecutor.Request(
                                 fixture, gameNumber, blue, red, gameSeed, matchIdentity,
-                                history, instrumentation));
+                                history, instrumentation, input.frozenRosters()));
                 LeagueFixtureGameReceiptV1 game = execution.gameReceipt();
                 validateGameEvidence(fixture, current, game, gameNumber,
                         historyBeforeHash, blue, red, gameSeed, matchIdentity);
@@ -123,7 +123,7 @@ public final class LeagueAutomatedSeriesRunner {
                             season.leagueId(), null, receipt,
                             receipts.stream().map(game ->
                                     LeagueFixtureDraftAuthorityReceiptV1.fullAuto(
-                                            game.gameNumber())).toList(), null);
+                                            game.gameNumber())).toList(), null, input.frozenRosters()==null?null:input.frozenRosters().identity());
             VerifiedLeagueFixtureCompletion completion =
                     VerifiedLeagueFixtureCompletion.verifyAutomated(
                             input, current, production.currentResourceProvenanceHash(),

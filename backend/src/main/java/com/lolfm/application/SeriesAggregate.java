@@ -114,10 +114,11 @@ record SeriesAggregate(
         } else if (leagueBindingHash != null || leagueSeedAnchorTeamCode != null) {
             throw new IllegalArgumentException("Standalone Series cannot claim authority binding");
         }
-        if (origin != SeriesOrigin.COMPETITION_BOUND && (!games.getFirst().historyBefore().isEmpty() || competitionSidePolicy != null || frozenCompetitionRosters != null))
+        if (origin != SeriesOrigin.COMPETITION_BOUND && (!games.getFirst().historyBefore().isEmpty() || competitionSidePolicy != null))
             throw new IllegalArgumentException("Competition-only Series context");
         if (competitionSidePolicy != null && !com.lolfm.career.CareerCompetitionSeriesBindingV1.loserRoFs(competitionSidePolicy))
             throw new IllegalArgumentException("Unknown competition side policy");
+        if (frozenCompetitionRosters != null && origin == SeriesOrigin.STANDALONE) throw new IllegalArgumentException("STANDALONE_FROZEN_ROSTER_NOT_SUPPORTED");
         if (frozenCompetitionRosters != null && !frozenCompetitionRosters.teams().keySet().equals(Set.of(teamACode, teamBCode)))
             throw new IllegalArgumentException("FROZEN_SERIES_ROSTER_SCOPE");
         validate(format, teamACode, teamBCode, managedTeamCode, game1BlueTeamCode,

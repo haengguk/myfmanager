@@ -89,6 +89,7 @@ export function PlayerDraftRoomPage<TSimulation = PlayerDraftSimulationResult>({
   canSubmit = true,
   canSimulate = true,
   canCancelDraft = true,
+  preserveDraftOnBack = false,
   disabledReason = null,
 }: {
   state: PlayerDraftScreenState;
@@ -104,6 +105,7 @@ export function PlayerDraftRoomPage<TSimulation = PlayerDraftSimulationResult>({
   canSubmit?: boolean;
   canSimulate?: boolean;
   canCancelDraft?: boolean;
+  preserveDraftOnBack?: boolean;
   disabledReason?: string | null;
 }) {
   const { session } = state;
@@ -245,6 +247,7 @@ export function PlayerDraftRoomPage<TSimulation = PlayerDraftSimulationResult>({
   const requestBack = () => {
     if (session.status === 'SIMULATED' || !canCancelDraft) { onReviewBack(); return; }
     if (actionPendingRef.current || simulationPendingRef.current || refreshPendingRef.current || cancelPendingRef.current) { setStatusMessage('진행 중인 응답을 먼저 확인하세요. 요청 중단이 서버의 작업 취소를 뜻하지 않습니다.'); return; }
+    if (preserveDraftOnBack) { onReviewBack(); return; }
     setCancelReturnFocus(document.activeElement as HTMLElement); setCancelError(null); setCancelOpen(true);
   };
   const cancel = async () => {
@@ -276,6 +279,7 @@ export function PlayerDraftRoomPage<TSimulation = PlayerDraftSimulationResult>({
       <MatchUtilityBar meta={utilityMeta ?? `02_DRAFT_ROOM · 직접 Draft · seed ${session.seed}`} backLabel={backLabel ?? (session.status === 'SIMULATED' ? '재생/결과로 돌아가기' : '경기 설정으로 돌아가기')} onBack={requestBack}
         secondaryLabel={developerView ? 'Draft 화면' : '개발자 확인'} onSecondary={() => setDeveloperView((current) => !current)} />
       {contextBar}
+      {preserveDraftOnBack && canCancelDraft && session.status !== 'SIMULATED' ? <button type="button" className="rm-secondary-action" disabled={actionPending || simulationPending || refreshPending || cancelPending} onClick={(event) => { setCancelReturnFocus(event.currentTarget); setCancelError(null); setCancelOpen(true); }}>현재 Draft 취소</button> : null}
       <PlayerDraftHeader session={session} options={state.options} blueTeam={blueTeam} redTeam={redTeam} catalog={state.championsById} />
       <div className="lm-sr-only" role="status" aria-live="polite" aria-atomic="true">{actionPending || refreshPending ? '상대 AI와 최신 Draft 상태를 확인하고 있습니다.' : statusMessage}</div>
       {error ? <div className="lm-sr-only" role="alert" aria-live="assertive">{error}</div> : null}
