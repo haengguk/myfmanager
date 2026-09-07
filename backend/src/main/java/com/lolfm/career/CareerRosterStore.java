@@ -94,7 +94,7 @@ public final class CareerRosterStore {
             }
             if (jdbc.queryForObject("SELECT COUNT(*) FROM career_player_directory WHERE career_id=?",Integer.class,careerId)==0) {
                 String payload=write(new Directory(definitions,catalog.organizations()));
-                jdbc.update("INSERT INTO career_player_directory VALUES (?,?,?,?)",careerId,ExpandedPlayerCatalog.VERSION,payload,hash(payload));
+                jdbc.update("INSERT INTO career_player_directory (career_id,directory_version,directory_json,directory_hash) VALUES (?,?,?,?)",careerId,ExpandedPlayerCatalog.VERSION,payload,hash(payload));
             }
             var directory=directory(jdbc,careerId);
             var members=new LinkedHashMap<String,Membership>();
@@ -112,7 +112,7 @@ public final class CareerRosterStore {
     }
     private View readView(String careerId,int year) {
         int active=activeYear(jdbc,careerId); var saved=saved(jdbc,careerId,year);
-        if(saved==null)throw CareerException.notFound();var directory=directory(jdbc,careerId);validate(saved.state(),directory);
+        if(saved==null)throw CareerException.notFound();var directory=year==active?directory(jdbc,careerId):CareerDevelopmentStore.historicalDirectory(jdbc,careerId,year);validate(saved.state(),directory);
         String managed="LCK:"+jdbc.queryForObject("SELECT managed_team_code FROM career_save WHERE career_id=?",String.class,careerId);
         var registrations=new TreeMap<String,List<String>>();
         jdbc.query("SELECT competition_id,pool_json,pool_hash FROM career_registered_player_pool WHERE career_id=? AND season_year=? ORDER BY competition_id",
@@ -249,6 +249,9 @@ public final class CareerRosterStore {
         },career,year);return rows.isEmpty()?null:rows.getFirst();
     }
     public static Directory directory(JdbcTemplate jdbc,String career) {
+        return CareerDevelopmentStore.current(jdbc,career,baseDirectory(jdbc,career));
+    }
+    public static Directory baseDirectory(JdbcTemplate jdbc,String career) {
         return jdbc.queryForObject("SELECT directory_json,directory_hash FROM career_player_directory WHERE career_id=?",(r,n)->{
             if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("DIRECTORY_INTEGRITY");
             return read(r.getString(1),Directory.class);

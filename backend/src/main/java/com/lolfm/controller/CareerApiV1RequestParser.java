@@ -30,6 +30,21 @@ public final class CareerApiV1RequestParser {
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     }
 
+    public com.lolfm.career.CareerDevelopmentStore.Request trainingCommand(byte[] body) {
+        var json=read(body);var fields=new HashSet<String>();json.fieldNames().forEachRemaining(fields::add);
+        if(!json.isObject()||!fields.equals(Set.of("schemaVersion","sourceYear","expectedRevision","playerId","plan","clearOverride","clientCommandId")))throw invalid(null,"훈련 명령 필드를 확인해 주세요.");
+        if(!json.path("sourceYear").isIntegralNumber()||!json.path("sourceYear").canConvertToInt()||!json.path("expectedRevision").isIntegralNumber()||!json.path("expectedRevision").canConvertToLong()||!json.path("clearOverride").isBoolean())throw invalid(null,"훈련 연도·revision·해제 여부의 형식을 확인해 주세요.");
+        optionalText(json,"playerId");text(json,"schemaVersion");text(json,"clientCommandId");
+        var plan=json.path("plan");
+        if(!plan.isNull()) {
+            var names=new HashSet<String>();plan.fieldNames().forEachRemaining(names::add);
+            if(!plan.isObject()||!names.equals(Set.of("intensity","focus","skill","champions"))||!plan.path("champions").isArray())throw invalid("plan","훈련 강도·초점·대상을 확인해 주세요.");
+            text(plan,"intensity");text(plan,"focus");optionalText(plan,"skill");for(var c:plan.path("champions"))if(!c.isTextual()||c.asText().isBlank())throw invalid("champions","챔피언 ID를 확인해 주세요.");
+        }
+        try{return strictMapper.readerFor(com.lolfm.career.CareerDevelopmentStore.Request.class).with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).readValue(json);}
+        catch(IOException|IllegalArgumentException e){throw invalid("plan","훈련 계획 형식을 확인해 주세요.");}
+    }
+
     public com.lolfm.career.CareerMarketStore.TradeRequest tradeCommand(byte[] body) {
         JsonNode json=read(body);var fields=new HashSet<String>();json.fieldNames().forEachRemaining(fields::add);
         if(!json.isObject()||!fields.equals(Set.of("schemaVersion","sourceYear","expectedRevision","action","tradeId","terms","replacementPlayerId","clientCommandId")))throw invalid(null,"이적/임대 명령 필드를 확인해 주세요.");

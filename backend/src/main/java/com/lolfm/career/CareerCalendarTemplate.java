@@ -129,6 +129,17 @@ public final class CareerCalendarTemplate {
                         : "GAME_PROJECTED_FROM_2026_TEMPLATE", events);
     }
 
+    /** Shared R1/R2 date policy for Calendar projection and training load planning. */
+    public Map<Integer,LocalDate> leagueRoundDates(int seasonYear) {
+        var window=project(seasonYear).events().stream().filter(e->"LCK_REGULAR_R1_R2".equals(e.templateId())).findFirst().orElseThrow();
+        var dates=new java.util.TreeMap<Integer,LocalDate>();
+        for(int round=1;round<=18;round++)dates.put(round,leagueRoundDate(window,round));
+        return Map.copyOf(dates);
+    }
+    private static LocalDate leagueRoundDate(ProjectedEvent window,int round) {
+        return window.startDate().plusDays((long)(round-1)*java.time.temporal.ChronoUnit.DAYS.between(window.startDate(),window.endDate())/17L);
+    }
+
     public FixtureOverlay overlay(
             int seasonYear,
             String leagueId,
@@ -148,8 +159,6 @@ public final class CareerCalendarTemplate {
         Set<String> ids = new HashSet<>();
         Map<Integer, Set<String>> teamsByRound = new HashMap<>();
         ArrayList<FixtureDate> dates = new ArrayList<>();
-        long inclusiveSpan = java.time.temporal.ChronoUnit.DAYS.between(
-                window.startDate(), window.endDate());
         for (FixtureInput fixture : ordered) {
             if (fixture.roundNumber() < 1 || fixture.roundNumber() > 18
                     || !ids.add(required(fixture.fixtureId(), "fixtureId"))
@@ -169,8 +178,7 @@ public final class CareerCalendarTemplate {
                     "secondTeamCode"))) {
                 throw new IllegalStateException("R1_R2_TEAM_SLOT_CONFLICT");
             }
-            long offset = (long) (fixture.roundNumber() - 1) * inclusiveSpan / 17L;
-            LocalDate date = window.startDate().plusDays(offset);
+            LocalDate date = leagueRoundDate(window,fixture.roundNumber());
             dates.add(new FixtureDate(fixture.fixtureId(), fixture.roundNumber(), date,
                     fixture.executionMode(), fixture.firstTeamCode(),
                     fixture.secondTeamCode()));

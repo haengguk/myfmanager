@@ -34,6 +34,7 @@ public final class CareerAppearanceStore {
         }
         var snapshot=new Appearance("PENDING",identity,series,year,date,0,facts);String json=write(snapshot);
         jdbc.update("INSERT INTO career_appearance_binding VALUES (?,?,?,?,NULL)",career,identity,json,hash(json));
+        CareerDevelopmentStore.capture(jdbc,career,identity);
     }
     public static void complete(JdbcTemplate jdbc,String career,String identity,String receipt,int sets) {
         if(sets<1)throw new IllegalArgumentException("COMPLETED_GAME_COUNT_REQUIRED");
@@ -52,6 +53,15 @@ public final class CareerAppearanceStore {
     public static void leagueCompleted(JdbcTemplate jdbc,String season,String fixture,String receipt,int sets) {
         var ids=jdbc.query("SELECT career_id FROM career_season WHERE season_id=?",(r,n)->r.getString(1),season);
         if(!ids.isEmpty())complete(jdbc,ids.getFirst(),"LEAGUE|"+season+'|'+fixture,receipt,sets);
+    }
+    public static void complete(JdbcTemplate jdbc,String career,String identity,String receipt,java.util.List<com.lolfm.league.LeagueFixtureGameReceiptV1> games) {
+        lockCareer(jdbc,career);
+        CareerDevelopmentStore.complete(jdbc,career,identity,receipt,games);
+        complete(jdbc,career,identity,receipt,games.size());
+    }
+    public static void leagueCompleted(JdbcTemplate jdbc,String season,String fixture,String receipt,java.util.List<com.lolfm.league.LeagueFixtureGameReceiptV1> games) {
+        var ids=jdbc.query("SELECT career_id FROM career_season WHERE season_id=?",(r,n)->r.getString(1),season);
+        if(!ids.isEmpty())complete(jdbc,ids.getFirst(),"LEAGUE|"+season+'|'+fixture,receipt,games);
     }
     private record Captured(Appearance snapshot,String receipt) {}
 }

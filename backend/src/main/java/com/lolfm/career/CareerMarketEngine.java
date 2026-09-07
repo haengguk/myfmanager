@@ -12,7 +12,10 @@ import static com.lolfm.career.CareerMarketPolicy.*;
 public final class CareerMarketEngine {
     final String career, managed;
     final long seed;
-    final CareerRosterStore.Directory directory;
+    CareerRosterStore.Directory directory;
+    CareerDevelopmentEngine development;
+    Map<String,List<LocalDate>> developmentFixtures=Map.of();
+    int developmentYear;
     private LocalDate processed;
     final Map<String,Contract> contracts=new TreeMap<>();
     final Map<String,Offer> offers=new TreeMap<>();
@@ -335,6 +338,10 @@ public final class CareerMarketEngine {
     public void advance(LocalDate target) {
         if(target.isBefore(processed))throw invalid("시장 날짜를 과거로 이동할 수 없습니다.");
         while(processed.isBefore(target)) {
+            if(development!=null) {
+                development.closeDay(processed,managed,members,developmentFixtures,developmentYear);
+                directory=development.directory();
+            }
             LocalDate date=processed.plusDays(1);
             // Same-date order: allocation/debt, loan return, expiry/settlement, activation, trade application, salary, promise evaluation, FA responses/proposals/decisions, AI lineup.
             if(date.getDayOfYear()==1)for(var a:new ArrayList<>(accounts.values()))credit(a.team(),date);

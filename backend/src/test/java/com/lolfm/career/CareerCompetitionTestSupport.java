@@ -55,7 +55,7 @@ public final class CareerCompetitionTestSupport {
         String blue = binding.game1BlueTeamCode(), red = binding.game1RedTeamCode();
         for (int number = 1; number <= wins + loserWins; number++) {
             games.add(com.lolfm.league.LeagueAutomatedSeriesRunnerTest.syntheticGame(
-                    binding.boundSeriesId() + ":" + number, number, blue, red, 100 + number, history, number <= loserWins ? loser : winnerTeamCode));
+                    binding.boundSeriesId() + ":" + number, number, blue, red, 100 + number, history, number <= loserWins ? loser : winnerTeamCode,binding.frozenRosters()));
             blue = binding.loserChoosesNextSide() ? loser : red;
             red = blue.equals(binding.firstTeamCode()) ? binding.secondTeamCode() : binding.firstTeamCode();
         }

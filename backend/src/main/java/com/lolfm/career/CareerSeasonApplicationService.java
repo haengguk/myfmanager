@@ -113,6 +113,7 @@ public final class CareerSeasonApplicationService {
                 openStove(careerId);
                 CareerMarketStore.processThrough(jdbc,careerId,java.time.LocalDate.of(calendar.seasonYear()+1,1,1));
             }
+            CareerDevelopmentStore.finishSeason(jdbc,careerId,calendar.seasonYear());
             var current = careers.activeSeason(career);
             // Legacy provisioning snapshot remains immutable. Execution consumes the operating roster by required team.
             var rosters = CareerSeasonRosters.load(competitions,careerId,current.year());
@@ -159,6 +160,7 @@ public final class CareerSeasonApplicationService {
         if(!blocked.isEmpty())throw CareerException.invalid("season","대회 결과를 모두 반영한 뒤 스토브에 진입할 수 있습니다: "+String.join(", ",blocked));
         var roster=CareerRosterStore.saved(jdbc,careerId,calendar.seasonYear());var market=CareerMarketStore.load(jdbc,careerId);
         if(roster==null||market==null)throw CareerException.invalid("market","계약 초기화가 필요합니다.");
+        CareerDevelopmentStore.closeSeason(jdbc,careerId,calendar.seasonYear(),calendar.currentDate());
         jdbc.update("INSERT INTO career_market_season_close VALUES (?,?,?,?,?,?)",careerId,calendar.seasonYear(),calendar.currentDate(),CareerRosterStore.write(roster.state()),CareerRosterStore.write(market.state()),resultHash(competitions.finalRanking(careerId,calendar.seasonYear()),competitions.internationalViews(careerId,calendar.seasonYear())));
     }
     private List<String> blockers(CareerRelationalStore.CareerRow career,int year) {

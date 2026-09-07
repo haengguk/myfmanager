@@ -451,6 +451,29 @@ public class LeagueAutomatedSeriesRunnerTest {
         return receipt;
     }
 
+    /** Calendar/rollover fixture only: legal structured participants, still no engine simulation. */
+    public static LeagueFixtureGameReceiptV1 syntheticGame(String identity,int number,String blue,String red,
+            long seed,SeriesDraftHistory history,String winner,com.lolfm.career.CompetitionRosterSnapshot rosters) {
+        if(rosters==null)return syntheticGame(identity,number,blue,red,seed,history,winner);
+        var catalog=new com.lolfm.champion.ChampionCatalog(new com.fasterxml.jackson.databind.ObjectMapper());
+        var used=new HashSet<>(history.consumedPicks());var bluePicks=new ArrayList<ChampionId>();var redPicks=new ArrayList<ChampionId>();
+        for(var picks:List.of(bluePicks,redPicks))for(var role:Position.values()) {
+            var champion=catalog.forPosition(role).stream().map(com.lolfm.champion.ChampionDefinition::id).filter(c->!used.contains(c)).sorted(java.util.Comparator.comparing(ChampionId::value)).findFirst().orElseThrow();picks.add(champion);used.add(champion);
+        }
+        var bans=catalog.all().stream().map(com.lolfm.champion.ChampionDefinition::id).filter(c->!used.contains(c)).sorted(java.util.Comparator.comparing(ChampionId::value)).limit(10).toList();
+        var old=draft(number+history.consumedPicks().size()/10,history.consumedPicks());var names=new java.util.HashMap<ChampionId,ChampionId>();
+        for(int i=0;i<5;i++){names.put(old.bluePicks().get(i),bluePicks.get(i));names.put(old.redPicks().get(i),redPicks.get(i));names.put(old.blueBans().get(i),bans.get(i));names.put(old.redBans().get(i),bans.get(i+5));}
+        var decisions=old.decisions().stream().map(d->new DraftDecision(d.turn(),d.side(),d.actionType(),names.get(d.selectedChampionId()),0,0,0,Map.of(),DraftPlanArchetype.FRONT_TO_BACK,0,List.of())).toList();
+        var draft=new FinalDraftResult(DraftRuleSet.professional(),bans.subList(0,5),bans.subList(5,10),bluePicks,redPicks,decisions,Map.of(),Map.of(),null,null,null,null,null,history.consumedPicks(),AutoDraftSelectionPolicy.POLICY_ID,AutoDraftSelectionPolicy.APPROVED_POLICY_SHA256,List.of(),"test-meta-v1",hash("legal-role"),hash("legal-role"));
+        LeagueFixture fixture=org.mockito.Mockito.mock(LeagueFixture.class);org.mockito.Mockito.when(fixture.fixtureId()).thenReturn(identity);
+        var request=new LeagueAutomatedSeriesGameExecutor.Request(fixture,number,blue,red,seed,identity,history,SimulationInstrumentation.disabled());
+        var after=new HashSet<>(history.consumedPicks());after.addAll(bluePicks);after.addAll(redPicks);
+        var receipt=gameReceipt(request,draft,after.stream().sorted(java.util.Comparator.comparing(ChampionId::value)).toList(),winner);
+        var assignments=receipt.orderedFinalAssignments().stream().map(a->{String team=a.teamSide()==TeamSide.BLUE?blue:red;var roster=rosters.teams().containsKey(team)?rosters.roster(team):rosters.roster("LCK:"+team);String id=roster.players().stream().filter(p->p.position()==a.position()).findFirst().orElseThrow().playerId();return new LeagueFixtureGameReceiptV1.FinalAssignmentEvidence(a.teamSide(),a.position(),new PlayerId(id),a.championId());}).toList();
+        history.commitCompleted(draft);
+        return mutateGame(receipt,Map.of("orderedFinalAssignments",assignments,"finalAssignmentHash",hash(com.lolfm.career.CareerRosterStore.write(assignments)),"rosterIdentityHash",rosters.identity()));
+    }
+
     private static FinalDraftResult draft(int game, Set<ChampionId> historyBefore) {
         DraftRuleSet rules = DraftRuleSet.professional();
         List<ChampionId> bluePicks = champions("g" + game + "-blue-pick", 5);

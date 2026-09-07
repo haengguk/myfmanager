@@ -129,3 +129,12 @@ import type { TradeCommand } from './careerManagement.contract';
 export function changeCareerTrade(career: string, body: TradeCommand, signal: AbortSignal): Promise<MarketChange> {
   return request(`${ROOT}/${encodeURIComponent(career)}/market/trades`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateMarketChange, [200]);
 }
+
+import type { CareerDevelopment, TrainingCommand, TrainingChange } from './careerDevelopment.contract';
+import { validateCareerDevelopment, validateTrainingChange } from './careerDevelopment.contract';
+export function getCareerDevelopment(career: string, year: number, signal: AbortSignal): Promise<CareerDevelopment> {
+  return request(`${ROOT}/${encodeURIComponent(career)}/development/${year}`, { method: 'GET' }, signal, validateCareerDevelopment, [200]);
+}
+export function changeCareerTraining(career: string, body: TrainingCommand, signal: AbortSignal): Promise<TrainingChange> {
+  return request(`${ROOT}/${encodeURIComponent(career)}/development`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateTrainingChange, [200]);
+}

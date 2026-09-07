@@ -233,3 +233,13 @@ V17 SQL은 기존 시장 JSON/receipt를 다시 쓰지 않는다. recover에서 
 재import하지 않는다. 이미 시작된 Series에 캡처가 없으면 과거 분모를 추측하지 않는다.
 시즌 이월은 동일 Career의 계약/약속/임대/장부를 유지하고 출전 조회만 연도별로 나눈다.
 상세 구현/검증은 [통합 구현 보고서](../development/career-playing-time-promises-paid-transfers-and-loans-v1.md)를 따른다.
+
+## Career 성장 상태 V1
+
+V19의 `career_development_state`는 기존 directory JSON/hash와 분리된 Career+playerId 상태다.
+`CareerRosterStore.directory`가 현재 내부 능력치·숙련도를 내림해 공통 프로필을 합성하며,
+`baseDirectory`는 생성 당시 데이터와 PA를 보존한다. 글로벌 편집은 계속 새 Career에만 적용된다.
+성장 이주는 명시적인 생성/시작 복구에서만 수행하고 초기화 표시가 있는데 상태가 없으면 손상으로 처리한다.
+등록된 선수 집합과 과거 등록 본문은 유지하고, 새 Series에서만 등록 자격 안의 현재 프로필을 고정한다.
+이미 고정한 Series는 과거 입력을 유지한다. API·정책·검증은
+[성장·훈련 V1](../development/career-player-development-training-proficiency-fatigue-v1.md)을 참고한다.

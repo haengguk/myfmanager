@@ -54,11 +54,13 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 class CareerModePersistenceTest {
     @TempDir Path temporary;
 
-    private static com.lolfm.career.CareerRosterStore rosterStore(HikariDataSource ds) {
+    private static com.lolfm.career.CareerRosterStore rosterStore(HikariDataSource ds) { return rosterStore(ds,false); }
+    private static com.lolfm.career.CareerRosterStore rosterStore(HikariDataSource ds,boolean includePlayerData) {
         var mapper=new ObjectMapper();var ratings=com.lolfm.player.PlayerRatingCatalog.loadDefault();
         var champions=new com.lolfm.champion.ChampionCatalog(mapper);
         var catalog=new com.lolfm.player.GlobalTeamRosterCatalog(mapper,ratings,com.lolfm.player.ChampionProficiencyCatalog.loadDefault(ratings,champions),champions);
-        return new com.lolfm.career.CareerRosterStore(new JdbcTemplate(ds),new DataSourceTransactionManager(ds),new com.lolfm.player.ExpandedPlayerCatalog(mapper,catalog,champions));
+        var expanded=new com.lolfm.player.ExpandedPlayerCatalog(mapper,catalog,champions);var jdbc=new JdbcTemplate(ds);var manager=new DataSourceTransactionManager(ds);
+        return new com.lolfm.career.CareerRosterStore(jdbc,manager,expanded,includePlayerData?new com.lolfm.player.PlayerDataStore(jdbc,manager,mapper,expanded):null);
     }
     private static com.lolfm.career.CareerRosterStore.Request select(String id,long revision) {
         return new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT",id,"SELECT_STARTER",null,null,revision,UUID.randomUUID().toString());
@@ -69,6 +71,72 @@ class CareerModePersistenceTest {
     private static com.lolfm.career.CareerMarketStore.Request marketCommand(com.lolfm.career.CareerMarketStore.View view,String action,String player,com.lolfm.career.CareerMarketState.Terms terms) {
         return new com.lolfm.career.CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",view.seasonYear(),view.revision(),action,player,null,terms,null,null,UUID.randomUUID().toString());
     }
+    @Test
+    void developmentMigrationPlansDailyMarketOrderAndFileRecovery() throws Exception {
+        String url="jdbc:h2:file:"+temporary.resolve("development")+";DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=30000";
+        String id,originalDirectory,receiptJson,developmentJson;com.lolfm.career.CareerDevelopmentStore.Request command;
+        try(var ds=dataSource(url)) {
+            Flyway.configure().dataSource(ds).load().migrate();var h=harnessWithCarriedRosters(ds);
+            var c=h.careers().create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"성장 저장 확인","감독","T1",UUID.randomUUID().toString())).career().career();id=c.careerId();
+            var other=h.careers().create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"다른 Career","감독","KT",UUID.randomUUID().toString())).career().career();
+            var rosters=rosterStore(ds,true);rosters.initializeNew(id,2027);rosters.initializeNew(other.careerId(),2027);rosters.recover();var market=marketStore(h,ds);market.recover();
+            var development=new com.lolfm.career.CareerDevelopmentStore(h.jdbc(),new DataSourceTransactionManager(ds),new com.lolfm.champion.ChampionCatalog(new ObjectMapper()));
+            var parser=new com.lolfm.controller.CareerApiV1RequestParser(new ObjectMapper().findAndRegisterModules());
+            assertThatThrownBy(()->parser.trainingCommand("{\"schemaVersion\":\"x\",\"schemaVersion\":\"y\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8))).isInstanceOf(CareerException.class);
+            var tx=new org.springframework.transaction.support.TransactionTemplate(new DataSourceTransactionManager(ds));
+            var frozen=tx.execute(status->{com.lolfm.career.CareerRosterStore.lockCareer(h.jdbc(),c.careerId());return rosters.freezeLeagueFixture(c.seasonId(),h.jdbc().queryForObject("SELECT fixture_id FROM league_fixture WHERE season_id=? AND execution_mode='PLAYER_CONTROLLED' ORDER BY round_number,fixture_id LIMIT 1",String.class,c.seasonId()));});
+            originalDirectory=h.jdbc().queryForObject("SELECT directory_json FROM career_player_directory WHERE career_id=?",String.class,id);
+            development.recover();
+            assertThat(h.jdbc().queryForObject("SELECT COUNT(*) FROM career_development_binding WHERE career_id=?",Integer.class,id)).isZero();
+            var initial=development.view(id,2027);var otherBefore=development.view(other.careerId(),2027);
+            development.recover();assertThat(development.view(id,2027)).isEqualTo(initial);
+            assertThat(initial.players()).hasSize(rosters.view(id,2027).directory().players().size());
+            assertThat(com.lolfm.career.CareerRosterStore.directory(h.jdbc(),id)).isEqualTo(com.lolfm.career.CareerRosterStore.baseDirectory(h.jdbc(),id));
+            assertThat(initial.players()).allSatisfy(p->{assertThat(p.development().fatigue()).isZero();assertThat(p.development().internalRatings().values()).allMatch(v->v%1000==0);});
+            var plan=new com.lolfm.career.CareerDevelopmentState.Plan(com.lolfm.career.CareerDevelopmentState.Intensity.INTENSIVE,com.lolfm.career.CareerDevelopmentState.Focus.SPECIFIC_SKILL,com.lolfm.domain.PlayerSkill.MECHANICS,List.of());
+            String player=rosters.view(id,2027).state().lineups().get("LCK:T1").stream().filter(p->rosters.view(id,2027).directory().players().get(p).position()==com.lolfm.domain.Position.ADC).findFirst().orElseThrow();
+            command=new com.lolfm.career.CareerDevelopmentStore.Request("CAREER_TRAINING_COMMAND_V1",2027,initial.revision(),player,plan,false,UUID.randomUUID().toString());
+            var changed=development.change(id,command);receiptJson=com.lolfm.career.CareerRosterStore.write(changed.receipt());
+            assertThat(changed.development().players().stream().filter(p->p.playerId().equals(player)).findFirst().orElseThrow().effectivePlan()).isEqualTo(com.lolfm.career.CareerDevelopmentPolicy.DEFAULT);
+            assertThat(changed.receipt().effectiveOn()).isEqualTo(initial.currentDate().plusDays(1));assertThat(development.change(id,command).replayed()).isTrue();
+            var conflict=new com.lolfm.career.CareerDevelopmentStore.Request(command.schemaVersion(),2027,command.expectedRevision(),null,null,true,command.clientCommandId());assertThatThrownBy(()->development.change(c.careerId(),conflict)).isInstanceOf(CareerException.class);
+            String before=com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id));LocalDate target=initial.currentDate().plusDays(8);
+            // A bulk in-memory settlement, including a Monday AI market boundary, is rolled back deliberately.
+            var expected=tx.execute(status->{com.lolfm.career.CareerRosterStore.lockCareer(h.jdbc(),c.careerId());com.lolfm.career.CareerMarketStore.processThrough(h.jdbc(),c.careerId(),target);var values=List.of(com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),c.careerId()).state()),com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerMarketStore.load(h.jdbc(),c.careerId()).state()));status.setRollbackOnly();return values;});
+            assertThat(com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id))).isEqualTo(before);
+            for(int i=0;i<8;i++){var cal=h.calendar().view(c).state();String uuid=UUID.randomUUID().toString();h.calendar().advance(c,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,cal.calendarRevision(),"ADVANCE_ONE_DAY",uuid);var after=com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id);h.calendar().advance(c,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,cal.calendarRevision(),"ADVANCE_ONE_DAY",uuid);assertThat(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id)).isEqualTo(after);}
+            assertThat(com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id).state())).isEqualTo(expected.get(0));assertThat(com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerMarketStore.load(h.jdbc(),id).state())).isEqualTo(expected.get(1));
+            assertThat(development.view(id,2027).players().stream().filter(p->p.playerId().equals(player)).findFirst().orElseThrow().development().fatigue()).isPositive();
+            assertThat(development.view(other.careerId(),2027)).isEqualTo(otherBefore);
+            assertThat(h.jdbc().queryForObject("SELECT directory_json FROM career_player_directory WHERE career_id=?",String.class,id)).isEqualTo(originalDirectory);
+            assertThat(rosters.leagueFixtureRoster(c.seasonId(),h.jdbc().queryForObject("SELECT fixture_id FROM league_fixture WHERE season_id=? AND execution_mode='PLAYER_CONTROLLED' ORDER BY round_number,fixture_id LIMIT 1",String.class,c.seasonId()))).isEqualTo(frozen);
+            // Player-start boundary: a synthetic pre-earned profile is fixed for a new controlled fixture.
+            // Roll back the preparation; no Player match or reward is fabricated here.
+            var beforePreparation=com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id);
+            assertThat(com.lolfm.career.CareerDevelopmentPolicy.metadata(com.lolfm.career.CareerRosterStore.baseDirectory(h.jdbc(),id).players().get(player)).potential()).isEqualTo(198);
+            tx.executeWithoutResult(status->{
+                com.lolfm.career.CareerRosterStore.lockCareer(h.jdbc(),c.careerId());var state=beforePreparation.state();var base=com.lolfm.career.CareerRosterStore.baseDirectory(h.jdbc(),c.careerId());var definition=base.players().get(player);
+                var players=new java.util.TreeMap<>(state.players());players.put(player,com.lolfm.career.CareerDevelopmentPolicy.grow(players.get(player),definition,com.lolfm.career.CareerDevelopmentPolicy.metadata(definition),state.nextSettlement(),4000,1000,1000,com.lolfm.career.CareerDevelopmentPolicy.DEFAULT));
+                var prepared=new com.lolfm.career.CareerDevelopmentState(state.policyVersion(),state.initializationVersion(),state.initializedOn(),state.nextSettlement(),players,state.teamPlans(),state.gains(),state.monthly());String json=com.lolfm.career.CareerRosterStore.write(prepared);
+                h.jdbc().update("UPDATE career_development_state SET state_json=?,state_hash=? WHERE career_id=?",json,com.lolfm.career.CareerRosterStore.hash(json),c.careerId());
+                String second=h.jdbc().queryForObject("SELECT fixture_id FROM league_fixture WHERE season_id=? AND execution_mode='PLAYER_CONTROLLED' ORDER BY round_number,fixture_id LIMIT 1 OFFSET 1",String.class,c.seasonId());
+                var nextPlayerFixture=rosters.freezeLeagueFixture(c.seasonId(),second);var nextPlayer=nextPlayerFixture.roster("T1").players().stream().filter(p->p.playerId().equals(player)).findFirst().orElseThrow();
+                assertThat(nextPlayer.ratings()).isEqualTo(com.lolfm.career.CareerRosterStore.directory(h.jdbc(),c.careerId()).players().get(player).gameplay().ratings()).isNotEqualTo(frozen.roster("T1").players().stream().filter(p->p.playerId().equals(player)).findFirst().orElseThrow().ratings());
+                status.setRollbackOnly();
+            });
+            assertThat(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id)).isEqualTo(beforePreparation);
+            developmentJson=com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id));
+        }
+        try(var ds=dataSource(url)) {
+            var jdbc=new JdbcTemplate(ds);var development=new com.lolfm.career.CareerDevelopmentStore(jdbc,new DataSourceTransactionManager(ds),new com.lolfm.champion.ChampionCatalog(new ObjectMapper()));development.recover();
+            assertThat(com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerDevelopmentStore.load(jdbc,id))).isEqualTo(developmentJson);
+            assertThat(com.lolfm.career.CareerRosterStore.write(development.change(id,command).receipt())).isEqualTo(receiptJson);
+            jdbc.update("UPDATE career_player_directory SET development_version=NULL WHERE career_id=?",id);assertThatThrownBy(()->development.view(id,2027)).hasMessage("DEVELOPMENT_INITIALIZATION_CONFLICT");
+            jdbc.update("UPDATE career_player_directory SET development_version=? WHERE career_id=?",com.lolfm.career.CareerDevelopmentPolicy.VERSION,id);
+            jdbc.update("DELETE FROM career_development_state WHERE career_id=?",id);assertThatThrownBy(()->development.view(id,2027)).hasMessage("DEVELOPMENT_REQUIRED_STATE_MISSING");
+        }
+    }
+
     @Test
     void marketCommandsPersistMembershipMoneyAndOriginalReceiptsWithoutChangingFrozenSeries() throws Exception {
         String url="jdbc:h2:file:"+temporary.resolve("market")+";DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=30000";
@@ -157,6 +225,8 @@ class CareerModePersistenceTest {
             Flyway.configure().dataSource(ds).load().migrate();var h=harnessWithCarriedRosters(ds);
             var career=h.careers().create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"T1 유료 거래","감독","T1",UUID.randomUUID().toString())).career().career();id=career.careerId();
             var rosters=rosterStore(ds);rosters.recover();var market=marketStore(h,ds);market.recover();
+            var development=new com.lolfm.career.CareerDevelopmentStore(h.jdbc(),new DataSourceTransactionManager(ds),new com.lolfm.champion.ChampionCatalog(new ObjectMapper()));development.recover();
+            var originalGrowth=com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id).state().players().get("player-jiwoo");
             var tx=new org.springframework.transaction.support.TransactionTemplate(new DataSourceTransactionManager(ds));
             String raw=h.jdbc().queryForObject("SELECT state_json FROM career_market_state WHERE career_id=?",String.class,id);var legacy=(com.fasterxml.jackson.databind.node.ObjectNode)new ObjectMapper().readTree(raw);legacy.remove("management");String legacyJson=legacy.toString();
             h.jdbc().update("UPDATE career_market_state SET state_json=?,state_hash=? WHERE career_id=?",legacyJson,com.lolfm.career.CareerRosterStore.hash(legacyJson),id);
@@ -200,6 +270,9 @@ class CareerModePersistenceTest {
             var activeLoan=market.view(id,2027).management().loans().stream().filter(l->l.playerId().equals("player-jiwoo")&&l.status().equals("ACTIVE")).findFirst().orElseThrow();loanId=activeLoan.loanId();
             assertThat(com.lolfm.career.CareerMarketStore.eligible(h.jdbc(),id,"LCK:T1","player-jiwoo")).isFalse();assertThat(com.lolfm.career.CareerMarketStore.eligible(h.jdbc(),id,"LCK:HLE","player-jiwoo")).isTrue();
             assertThat(rosters.leagueFixtureRoster(career.seasonId(),fixtures.get(1)).identity()).isEqualTo(next.identity());
+            var growth=development.view(id,2027);var loanPlayer=growth.players().stream().filter(p->p.playerId().equals("player-jiwoo")).findFirst().orElseThrow();
+            assertThat(com.lolfm.career.CareerDevelopmentPolicy.sum(loanPlayer.development())).isGreaterThanOrEqualTo(com.lolfm.career.CareerDevelopmentPolicy.sum(originalGrowth));
+            assertThatThrownBy(()->development.change(career.careerId(),new com.lolfm.career.CareerDevelopmentStore.Request("CAREER_TRAINING_COMMAND_V1",2027,growth.revision(),"player-jiwoo",com.lolfm.career.CareerDevelopmentPolicy.DEFAULT,false,UUID.randomUUID().toString()))).isInstanceOf(CareerException.class);
             stored=h.jdbc().queryForObject("SELECT state_json FROM career_market_state WHERE career_id=?",String.class,id);
         }
         try(var ds=dataSource(url)) {
@@ -232,6 +305,7 @@ class CareerModePersistenceTest {
                 h.calendar().advance(career,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,c.state().calendarRevision(),"ADVANCE_TO_NEXT_EVENT",UUID.randomUUID().toString());
             }
             var rosters=rosterStore(ds);rosters.recover();var market=new com.lolfm.career.CareerMarketStore(h.jdbc(),new DataSourceTransactionManager(ds),seasons);market.recover();
+            var development=new com.lolfm.career.CareerDevelopmentStore(h.jdbc(),new DataSourceTransactionManager(ds),new com.lolfm.champion.ChampionCatalog(new ObjectMapper()));development.recover();
             var before=market.view(id,2027);assertThat(before.currentDate()).isBefore(LocalDate.of(2027,12,31));
             assertThatThrownBy(()->seasons.transition(id,new com.lolfm.career.CareerSeasonApplicationService.Request("CAREER_SEASON_TRANSITION_REQUEST_V1",2027,seasons.list(id).calendarRevision(),UUID.randomUUID().toString()))).isInstanceOf(CareerException.class);
             market.command(id,marketCommand(before,"OPEN_STOVE",null,null));
@@ -243,7 +317,13 @@ class CareerModePersistenceTest {
             var activeBo=market.view(id,2027).contracts().stream().filter(c->c.playerId().equals("player-bo")&&c.status()==com.lolfm.career.CareerMarketState.ContractStatus.ACTIVE).findFirst().orElseThrow();assertThat(activeBo.team()).isEqualTo("LCK:KT");
             var r=rosters.view(id,2027);if(!r.state().lineups().get("LCK:KT").contains("player-bo"))rosters.change(id,new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-bo","SELECT_STARTER",null,null,r.revision(),UUID.randomUUID().toString()));
             var transition=new com.lolfm.career.CareerSeasonApplicationService.Request("CAREER_SEASON_TRANSITION_REQUEST_V1",2027,seasons.list(id).calendarRevision(),UUID.randomUUID().toString());
+            var growthBefore=com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id).state();
             seasons.transition(id,transition);assertThat(seasons.transition(id,transition).replayed()).isTrue();
+            var carried=com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id).state();
+            assertThat(carried.initializedOn()).isEqualTo(growthBefore.initializedOn());assertThat(carried.nextSettlement()).isEqualTo(LocalDate.of(2028,1,1));
+            for(String player:carried.players().keySet())assertThat(com.lolfm.career.CareerDevelopmentPolicy.sum(carried.players().get(player))).isGreaterThanOrEqualTo(com.lolfm.career.CareerDevelopmentPolicy.sum(growthBefore.players().get(player)));
+            var closedGrowth=development.view(id,2027);
+
             assertThat(rosters.view(id,2028).state().lineups().get("LCK:KT")).contains("player-bo");assertThat(rosters.view(id,2027).state()).isEqualTo(sealed);
             assertThat(seasons.detail(id,2027).domestic()).isEqualTo(closedResults);
             assertThat(market.view(id,2027).readOnly()).isTrue();assertThat(market.view(id,2027).contracts()).noneMatch(c->c.contractId().equals(activeBo.contractId()));
@@ -265,6 +345,7 @@ class CareerModePersistenceTest {
             var state=com.lolfm.career.CareerMarketStore.load(h.jdbc(),id).state();
             for(int year:List.of(2028,2029))assertThat(state.ledger().stream().filter(l->l.kind().equals("ANNUAL_ALLOCATION")&&l.date().getYear()==year)).hasSize(56);
             assertThat(state.offers().values()).anyMatch(o->o.submittedDate().getYear()==2028&&!o.team().equals("LCK:KT"));
+            assertThat(development.view(id,2027)).isEqualTo(closedGrowth);
             assertThat(state.accounts()).hasSize(56);assertThat(seasons.detail(id,2027).domestic()).isEqualTo(closedResults);
         }
     }
@@ -385,7 +466,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(18);
+                    .migrationsExecuted).isEqualTo(19);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -839,7 +920,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(13);
+                    .migrationsExecuted).isEqualTo(15);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);

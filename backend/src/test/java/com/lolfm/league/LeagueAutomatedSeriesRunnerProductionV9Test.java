@@ -47,7 +47,19 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
         market.tradeCommand(id,new com.lolfm.career.CareerMarketStore.TradeRequest("CAREER_TRADE_COMMAND_V1",2027,view.revision(),"SUBMIT",null,transfer,null,java.util.UUID.randomUUID().toString()));
         while(calendar.view(career).state().currentDate().isBefore(moveStart))calendar.advance(career,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,calendar.view(career).state().calendarRevision(),"ADVANCE_ONE_DAY",java.util.UUID.randomUUID().toString());
         current=rosters.view(id,2027);rosters.change(id,new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-life","SELECT_STARTER",null,null,current.revision(),java.util.UUID.randomUUID().toString()));
+        // Synthetic pre-earned progress prepares a grown input; the following Series is real Production V9.
+        var developmentBefore=com.lolfm.career.CareerDevelopmentStore.load(jdbc,id);var state=developmentBefore.state();
+        var base=com.lolfm.career.CareerRosterStore.baseDirectory(jdbc,id);var life=base.players().get("player-life");
+        var players=new java.util.TreeMap<>(state.players());var starting=players.get("player-life");
+        var grown=com.lolfm.career.CareerDevelopmentPolicy.grow(starting,life,com.lolfm.career.CareerDevelopmentPolicy.metadata(life),state.nextSettlement(),12000,1000,1000,com.lolfm.career.CareerDevelopmentPolicy.DEFAULT);
+        assertThat(com.lolfm.career.CareerDevelopmentPolicy.sum(grown)).isGreaterThan(com.lolfm.career.CareerDevelopmentPolicy.sum(starting));players.put("player-life",grown);
+        var prepared=new com.lolfm.career.CareerDevelopmentState(state.policyVersion(),state.initializationVersion(),state.initializedOn(),state.nextSettlement(),players,state.teamPlans(),state.gains(),state.monthly());
+        String developmentPayload=com.lolfm.career.CareerRosterStore.write(prepared);jdbc.update("UPDATE career_development_state SET state_json=?,state_hash=? WHERE career_id=?",developmentPayload,com.lolfm.career.CareerRosterStore.hash(developmentPayload),id);
         var frozen=com.lolfm.career.CareerRosterStore.eligiblePair(jdbc,id,2027,"LCK:KT","LCK:T1").domesticPair("KT","T1");
+        assertThat(frozen.roster("KT").players().stream().filter(p->p.playerId().equals("player-life")).findFirst().orElseThrow().ratings()).isNotEqualTo(life.gameplay().ratings());
+        var currentPrice=market.view(id,2027).management().quotes().stream().filter(q->q.playerId().equals("player-life")).findFirst().orElseThrow();
+        assertThat(currentPrice.referenceSalary()).isEqualTo(frozen.roster("KT").players().stream().filter(p->p.playerId().equals("player-life")).findFirst().orElseThrow().ratings().values().stream().mapToLong(Integer::longValue).sum()*1000);
+        assertThat(market.view(id,2027).management().trades().stream().filter(t->t.terms().playerId().equals("player-life")).findFirst().orElseThrow().terms().fee()).isEqualTo(transfer.fee());
         var season=productionSeason(snapshots);var fixture=LeagueDomainTestFixtures.fixture(season.schedule(),"KT","T1");
         var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
         String observation="PRODUCTION_FIXTURE|"+season.seasonId()+'|'+fixture.fixtureId();
@@ -61,12 +73,27 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
                 .extracting(LeagueFixtureGameReceiptV1.FinalAssignmentEvidence::playerId).contains(new com.lolfm.player.PlayerId("player-jiwoo"),new com.lolfm.player.PlayerId("player-bo"),new com.lolfm.player.PlayerId("player-life")).doesNotContain(new com.lolfm.player.PlayerId("player-fenrir"),new com.lolfm.player.PlayerId("player-cuzz")));
         VerifiedLeagueFixtureCompletion.verifyPersisted(season,result.unifiedReceipt(),null,frozen);
         // This existing production fixture is independent of the Career schedule. Only its verified actual result is consumed.
-        tx.executeWithoutResult(ignored->com.lolfm.career.CareerAppearanceStore.complete(jdbc,id,observation,result.unifiedReceipt().canonicalFixtureReceiptHash(),result.gameExecutionCount()));
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->tx.executeWithoutResult(ignored->{com.lolfm.career.CareerAppearanceStore.complete(jdbc,id,observation,result.unifiedReceipt().canonicalFixtureReceiptHash(),result.receipt().orderedGameReceipts());throw new IllegalStateException("ROLLBACK_COMPLETION");})).hasMessage("ROLLBACK_COMPLETION");
+        assertThat(com.lolfm.career.CareerDevelopmentStore.load(jdbc,id).state()).isEqualTo(prepared);
+        tx.executeWithoutResult(ignored->com.lolfm.career.CareerAppearanceStore.complete(jdbc,id,observation,result.unifiedReceipt().canonicalFixtureReceiptHash(),result.receipt().orderedGameReceipts()));
+        var rewarded=com.lolfm.career.CareerDevelopmentStore.load(jdbc,id);
+        System.out.println("DEVELOPMENT_PRODUCTION games="+result.gameExecutionCount()+" lifeFrozen="+frozen.roster("KT").players().stream().filter(p->p.playerId().equals("player-life")).findFirst().orElseThrow().ratings()+" lifeBefore="+prepared.players().get("player-life").internalRatings()+" lifeAfter="+rewarded.state().players().get("player-life").internalRatings()+" currentReferenceSalary="+currentPrice.referenceSalary());
+        for(var game:result.receipt().orderedGameReceipts())for(var assignment:game.orderedFinalAssignments()) {
+            String playerId=assignment.playerId().value();String key=com.lolfm.career.CareerDevelopmentPolicy.key(assignment.championId().value(),assignment.position());
+            int before=prepared.players().get(playerId).internalProficiencies().getOrDefault(key,14000);
+            if(before==20000)assertThat(rewarded.state().players().get(playerId).internalProficiencies().get(key)).isEqualTo(20000);
+            else assertThat(rewarded.state().players().get(playerId).internalProficiencies().get(key)).isGreaterThan(before);
+            assertThat(rewarded.state().players().get(playerId).fatigue()).isEqualTo(Math.min(1000,prepared.players().get(playerId).fatigue()+90*result.gameExecutionCount()));
+        }
+        assertThat(rewarded.state().players().get("player-fenrir")).isEqualTo(prepared.players().get("player-fenrir"));
+        // Same receipt identity with changed structured games is rejected before any mutation.
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->tx.executeWithoutResult(ignored->com.lolfm.career.CareerAppearanceStore.complete(jdbc,id,observation,result.unifiedReceipt().canonicalFixtureReceiptHash(),result.receipt().orderedGameReceipts().subList(0,1)))).hasMessage("DEVELOPMENT_COMPLETION_CONFLICT");
         var appeared=market.view(id,2027);assertThat(appeared.management().appearances()).hasSize(1);
         var lifePromise=appeared.management().promises().stream().filter(p->p.playerId().equals("player-life")&&p.team().equals("LCK:KT")).findFirst().orElseThrow();
         assertThat(lifePromise.opportunities()).isEqualTo(1);assertThat(lifePromise.starts()).isEqualTo(1);assertThat(lifePromise.sets()).isEqualTo(result.gameExecutionCount());
-        tx.executeWithoutResult(ignored->com.lolfm.career.CareerAppearanceStore.complete(jdbc,id,observation,result.unifiedReceipt().canonicalFixtureReceiptHash(),result.gameExecutionCount()));
+        tx.executeWithoutResult(ignored->com.lolfm.career.CareerAppearanceStore.complete(jdbc,id,observation,result.unifiedReceipt().canonicalFixtureReceiptHash(),result.receipt().orderedGameReceipts()));
         assertThat(market.view(id,2027)).isEqualTo(appeared);
+        assertThat(com.lolfm.career.CareerDevelopmentStore.load(jdbc,id)).isEqualTo(rewarded);
         org.assertj.core.api.Assertions.assertThatThrownBy(()->VerifiedLeagueFixtureCompletion.verifyPersisted(season,result.unifiedReceipt(),null,null))
                 .hasMessage("FIXTURE_LINEUP_IDENTITY_MISMATCH");
     }

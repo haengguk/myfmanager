@@ -112,7 +112,11 @@ public final class CareerMarketStore {
     /** Caller already holds Calendar row. No GET calls this method. */
     public static void processThrough(JdbcTemplate jdbc,String career,LocalDate target) {
         var old=load(jdbc,career);if(old==null||!target.isAfter(old.state().processedThrough()))return;
-        int year=activeYear(jdbc,career);var engine=engine(jdbc,career,year,old);engine.advance(target);
+        int year=activeYear(jdbc,career);var engine=engine(jdbc,career,year,old);
+        var development=CareerDevelopmentStore.load(jdbc,career);
+        if(development!=null){engine.development=new CareerDevelopmentEngine(baseDirectory(jdbc,career),development.state());engine.developmentFixtures=CareerDevelopmentStore.fixtures(jdbc,career);engine.developmentYear=year;}
+        engine.advance(target);
+        if(development!=null)CareerDevelopmentStore.persist(jdbc,career,development,engine.development);
         persist(jdbc,career,year,old,engine);touch(jdbc,career);
     }
     static void persist(JdbcTemplate jdbc,String career,int year,Saved old,CareerMarketEngine engine) {
@@ -135,8 +139,8 @@ public final class CareerMarketStore {
             if(!snapshot.isEmpty()){state=read(snapshot.getFirst().get(0),CareerMarketState.class);date=LocalDate.parse(snapshot.getFirst().get(1));roster=new CareerRosterStore.Saved(roster.revision(),read(snapshot.getFirst().get(2),CareerRosterStore.State.class));}
             else return new View("CAREER_MARKET_VIEW_V1",CareerMarketPolicy.VERSION,CareerMarketPolicy.CURRENCY,career,year,date,saved.revision(),true,managed(jdbc,career),false,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),Map.of(),List.of(),List.of(),"이주 전 시즌에는 게임 계약 이력이 없습니다. 공개 조사 계약은 선수 상세에서 확인하세요.",null);
         }
-        String managed=managed(jdbc,career);var engine=new CareerMarketEngine(career,managed,directory(jdbc,career),roster.state(),state);
-        var directory=directory(jdbc,career);
+        String managed=managed(jdbc,career);var directory=historical?CareerDevelopmentStore.historicalDirectory(jdbc,career,year):directory(jdbc,career);
+        var engine=new CareerMarketEngine(career,managed,directory,roster.state(),state);
         var players=new ArrayList<PlayerMarket>();
         for(String id:state.preferences().keySet().stream().sorted().toList()) {
             var c=engine.active(id,date);var future=engine.scheduled(id);LocalDate start=engine.availableStart(id,date);

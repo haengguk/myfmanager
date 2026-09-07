@@ -1166,7 +1166,7 @@ public final class CareerCompetitionRelationalStore {
                     receipt.secondTeamCode(), receipt.winnerTeamCode(),
                     receipt.receiptHash());
             if (!result.replayed()) {
-                CareerAppearanceStore.complete(jdbc,receipt.careerId(),"COMP|"+receipt.seasonYear()+'|'+receipt.competitionId()+'|'+receipt.matchId(),receipt.receiptHash(),receipt.orderedGames().size());
+                CareerAppearanceStore.complete(jdbc,receipt.careerId(),"COMP|"+receipt.seasonYear()+'|'+receipt.competitionId()+'|'+receipt.matchId(),receipt.receiptHash(),receipt.orderedGames());
                 jdbc.update("""
                         INSERT INTO career_competition_result_detail(
                           career_id, calendar_season_year, competition_id, match_id,

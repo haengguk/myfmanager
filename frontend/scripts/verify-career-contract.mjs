@@ -389,3 +389,15 @@ rejects('CA cannot conceal a missing or fractional rating', () => currentAbility
 accepts('PA preserves authored values below CA and old saves remain unassigned', () => {
   if (potentialAbility({ detailsJson: '{}' }) !== null || potentialAbility({ detailsJson: JSON.stringify({ abilityMetadata: { potentialAbility: 1 } }) }) !== 1) throw Error('PA was inferred or raised');
 });
+
+import {validateTrainingCommand,validateCareerDevelopment,validateTrainingChange,readTrainingOperation,trainingOperationKey} from '../src/features/career/api/careerDevelopment.contract.ts';
+const trainingBody=()=>({schemaVersion:'CAREER_TRAINING_COMMAND_V1',sourceYear:2027,expectedRevision:2,playerId:'player-test',plan:{intensity:'NORMAL',focus:'CHAMPION_FOCUS',skill:null,champions:['aatrox','garen']},clearOverride:false,clientCommandId:marketBody().clientCommandId});
+const developmentView=()=>({schemaVersion:'CAREER_DEVELOPMENT_VIEW_V1',careerId,seasonYear:2027,revision:3,currentDate:'2027-01-01',managedTeam:'LCK:T1',readOnly:false,teamPlan:null,players:[{playerId:'player-test',currentAbility:148,potentialAbility:null,growthStatus:'PA_MISSING',trainingEfficiency:1000,effectivePlan:trainingBody().plan,development:{internalRatings:Object.fromEntries(Array.from({length:12},(_,i)=>['skill'+i,15000+i])),internalProficiencies:{'aatrox|TOP':14040},fatigue:90,override:null}}],recentChanges:[],monthlySummaries:[],legalChampions:{TOP:['aatrox','garen']},policyVersion:'CAREER_DEVELOPMENT_FIXED_POINT_V1'});
+accepts('training persists two targets as one original command',()=>validateTrainingCommand(trainingBody()));
+rejects('duplicate champion targets cannot multiply the training budget',()=>{const b=trainingBody();b.plan.champions=['aatrox','aatrox'];validateTrainingCommand(b);});
+rejects('team training cannot apply one position-specific champion plan to all roles',()=>validateTrainingCommand({...trainingBody(),playerId:null}));
+accepts('override removal retains explicit player scope and no replacement plan',()=>validateTrainingCommand({...trainingBody(),plan:null,clearOverride:true}));
+accepts('fractional progress and missing PA remain visible without a fabricated integer rise',()=>{const v=validateCareerDevelopment(developmentView());if(Math.floor(v.players[0].development.internalRatings.skill11/1000)!==15||v.players[0].potentialAbility!==null)throw Error('projection');});
+rejects('out-of-range fatigue cannot become a hidden condition modifier',()=>{const v=developmentView();v.players[0].development.fatigue=1001;validateCareerDevelopment(v);});
+accepts('training response loss restores the original UUID payload after refresh',()=>{const b=trainingBody();if(JSON.stringify(readTrainingOperation({getItem:k=>k===trainingOperationKey(careerId)?JSON.stringify(b):null},careerId))!==JSON.stringify(b))throw Error('recovery');});
+rejects('old Career training receipt cannot overwrite the newly selected Career',()=>validateTrainingChange({replayed:true,receipt:{careerId:secondCareerId,sourceYear:2027,resultingRevision:3,effectiveOn:'2027-01-02',stateHash:'a'.repeat(64),clientCommandId:trainingBody().clientCommandId},development:developmentView()}));

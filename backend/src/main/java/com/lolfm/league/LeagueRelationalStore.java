@@ -289,7 +289,7 @@ public final class LeagueRelationalStore {
                     VerifiedLeagueFixtureCompletion.verifyPersisted(
                             current, receipt, binding, fixtureRoster(current.seasonId(),receipt.fixtureId()));
             LeagueSeasonAggregate next = current.applyVerifiedCompletion(verified);
-            com.lolfm.career.CareerAppearanceStore.leagueCompleted(jdbc,outbox.seasonId(),outbox.fixtureId(),outbox.receiptHash(),receipt.actualGameCount());
+            com.lolfm.career.CareerAppearanceStore.leagueCompleted(jdbc,outbox.seasonId(),outbox.fixtureId(),outbox.receiptHash(),receipt.orderedGameReceipts());
             OffsetDateTime now = now();
             jdbc.update("""
                     INSERT INTO league_standings_application(

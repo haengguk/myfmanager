@@ -161,6 +161,7 @@ public final class CareerRelationalStore {
                 int year=jdbc.queryForObject("SELECT active_calendar_season_year FROM career_calendar_state WHERE career_id=?",Integer.class,requested.careerId());
                 rosters.initializeNew(requested.careerId(),year);
                 CareerMarketStore.initialize(jdbc,requested.careerId());
+                CareerDevelopmentStore.initialize(jdbc,requested.careerId());
             }
             jdbc.update("""
                     INSERT INTO career_create_command(

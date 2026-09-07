@@ -243,3 +243,14 @@ V17은 Series 시작 시점의 기회 스냅샷과 국제 등록 날짜를 추�
 유지한다. 반환은 기존 사용자 주전을 자동 교체하지 않는다.
 
 정책 수치·원자성·출전/금융 검증은 [통합 구현 보고서](../development/career-playing-time-promises-paid-transfers-and-loans-v1.md)를 따른다.
+
+## 훈련·성장 일자 경계 V1
+
+`CareerMarketEngine.advance`는 하루마다 D 성장/회복 마감 → 현재 프로필 갱신 → 기존 D+1 시장
+(예산, 임대 반환, 만료, 입단/거래, 급여, 약속, AI 협상·선발) 순서로 진행한다. 일자별 소속과
+평가를 유지하며 메모리에서 정산한 뒤 같은 Calendar 트랜잭션으로 저장한다. 기존 blocker는 유지된다.
+훈련은 `/api/v1/careers/{careerId}/development`의 revision+원본 UUID 명령으로 D+1 예약한다.
+GET `/development/{year}`는 정산을 수행하지 않는다. 실제 출전일은 Series 완료 시 부하/보상을
+먼저 적용하고 일일 훈련을 생략한다. 출전하지 않은 후보는 정상적으로 훈련한다.
+기존 완료 검증 경계가 게임별 최종 playerId/championId/position을 전달하며, 출전 기록과 성장 쓰기가
+동시에 커밋/롤백된다. 이주 전 시작 경기에는 성장 바인딩을 소급 만들지 않는다.
