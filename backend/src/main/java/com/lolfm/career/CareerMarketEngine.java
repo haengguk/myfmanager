@@ -248,6 +248,7 @@ public final class CareerMarketEngine {
         offers.values().stream().filter(o->team.equals(o.team())&&o.open()&&overlaps(o.terms(),incomingTerms)).forEach(o->dates.add(o.terms().startDate().isBefore(incomingTerms.startDate())?incomingTerms.startDate():o.terms().startDate()));
         for(var l:tradeEngine.loans.values()){dates.add(l.startDate());dates.add(l.endDate().plusDays(1));}
         for(var t:tradeEngine.obligations(team))dates.add(t.terms().startDate());
+        dates.removeIf(date->date.isBefore(incomingTerms.startDate())||date.isAfter(incomingTerms.endDate()));
         for(LocalDate date:dates) {
             Set<String> ids=new HashSet<>();contracts.values().stream().filter(c->team.equals(c.team())&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)
                     &&!date.isBefore(c.terms().startDate())&&!date.isAfter(c.terms().endDate())).forEach(c->ids.add(c.playerId()));

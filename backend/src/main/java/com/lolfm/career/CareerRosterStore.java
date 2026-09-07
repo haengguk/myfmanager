@@ -21,9 +21,14 @@ public final class CareerRosterStore {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
     private final ExpandedPlayerCatalog catalog;
+    private final com.lolfm.player.PlayerDataStore playerData;
 
     public CareerRosterStore(JdbcTemplate jdbc, PlatformTransactionManager manager, ExpandedPlayerCatalog catalog) {
-        this.jdbc = jdbc; this.transactions = new TransactionTemplate(manager); this.catalog = catalog;
+        this(jdbc,manager,catalog,null);
+    }
+    @org.springframework.beans.factory.annotation.Autowired
+    public CareerRosterStore(JdbcTemplate jdbc, PlatformTransactionManager manager, ExpandedPlayerCatalog catalog, com.lolfm.player.PlayerDataStore playerData) {
+        this.jdbc = jdbc; this.transactions = new TransactionTemplate(manager); this.catalog = catalog; this.playerData=playerData;
     }
     public record Directory(Map<String, ExpandedPlayerCatalog.Definition> players,
                             Map<String, ExpandedPlayerCatalog.Organization> organizations) {
@@ -50,6 +55,12 @@ public final class CareerRosterStore {
 
     /** Called only by create/startup migration, never by GET. Idempotent and preserves user selections. */
     public void initialize(String careerId, int year) {
+        initialize(careerId,year,false);
+    }
+    public void initializeNew(String careerId, int year) {
+        initialize(careerId,year,true);
+    }
+    private void initialize(String careerId, int year, boolean newCareer) {
         transactions.executeWithoutResult(ignored -> {
             lockCareer(jdbc, careerId);
             if (saved(jdbc, careerId, year) != null) return;
@@ -68,6 +79,18 @@ public final class CareerRosterStore {
                                 reference.provisional(), reference.initialOrganizationId(), team, "FIRST_TEAM", null, reference.detailsJson()));
                     }
                 });
+            }
+            if (newCareer && playerData!=null) {
+                definitions.clear(); definitions.putAll(playerData.snapshot());
+                var teams=new TreeMap<String,CompetitionRosterSnapshot.Roster>();
+                lineups.forEach((team,ids)-> {
+                    var players=ids.stream().map(id->definitions.get(id).gameplay()).toList();
+                    String[] parts=team.split(":");
+                    teams.put(team,new CompetitionRosterSnapshot.Roster(new TeamKey(parts[0],parts[1]),hash(write(players)),players));
+                });
+                var snapshot=new CompetitionRosterSnapshot(teams);
+                jdbc.update("UPDATE career_season SET roster_json=?,roster_hash=? WHERE career_id=? AND season_year=?",
+                        snapshot.encoded(),snapshot.identity(),careerId,year);
             }
             if (jdbc.queryForObject("SELECT COUNT(*) FROM career_player_directory WHERE career_id=?",Integer.class,careerId)==0) {
                 String payload=write(new Directory(definitions,catalog.organizations()));

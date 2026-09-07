@@ -76,7 +76,9 @@ final class CareerTrades {
         validate(terms,date,decision);
         long wanted=demandFee(terms,date),limit=buyerLimit(terms,date);
         String id=CareerMarketEngine.id(m.career,"TRADE|"+actor+'|'+terms.playerId()+'|'+terms.buyer()+'|'+decision+'|'+round);
-        var t=new Trade(id,m.active(terms.playerId(),date).contractId(),actor,terms,date,date.plusDays(TRADE_RESPONSE_DAYS),decision,decision.plusDays(1),round,previousId,
+        LocalDate response=date.plusDays(TRADE_RESPONSE_DAYS);
+        if(response.isAfter(decision))response=decision;
+        var t=new Trade(id,m.active(terms.playerId(),date).contractId(),actor,terms,date,response,decision,decision.plusDays(1),round,previousId,
                 previous==null?TradeStatus.CLUB_PENDING:TradeStatus.CLUB_COUNTER,actor.equals(terms.seller()),actor.equals(terms.buyer()),estimate(terms.playerId(),date),wanted,limit,null,"상대 구단 조건 검토 대기",CareerManagementPolicy.VERSION,null);
         if(previous!=null)trades.put(previousId,status(previous,TradeStatus.SUPERSEDED,"새 조건으로 대체",null));trades.put(id,t);
         try {if(t.sellerAgreed())requireSeller(t,date);if(t.buyerAgreed())requireBuyer(t,date);}
@@ -86,7 +88,7 @@ final class CareerTrades {
     Trade respond(String actor,String id,String action,String replacement,LocalDate date) {
         Trade t=trades.get(id);if(t==null||!t.open()||t.status()==TradeStatus.AGREED||!List.of(t.terms().seller(),t.terms().buyer()).contains(actor))throw invalid("응답 가능한 당사자 거래가 아닙니다.");
         if(action.equals("WITHDRAW")||action.equals("REJECT")){t=status(t,action.equals("WITHDRAW")?TradeStatus.WITHDRAWN:TradeStatus.REJECTED,"구단이 "+(action.equals("WITHDRAW")?"철회":"거절")+"했습니다. 예약 해제",null);trades.put(id,t);return t;}
-        if(!action.equals("ACCEPT")||!date.isBefore(t.decisionDate()))throw invalid("공통 결정일 전 구단 응답이 필요합니다.");
+        if(!action.equals("ACCEPT")||date.isAfter(t.decisionDate()))throw invalid("공통 결정일까지 구단 응답이 필요합니다.");
         validate(t.terms(),date,t.decisionDate());
         Trade prior=t;TradeTerms terms=t.terms();
         if(actor.equals(terms.seller())&&replacement!=null)terms=new TradeTerms(terms.kind(),terms.playerId(),terms.seller(),terms.buyer(),terms.startDate(),terms.endDate(),terms.fee(),terms.borrowerSalaryPercent(),terms.playerTerms(),replacement);
@@ -110,7 +112,8 @@ final class CareerTrades {
         return m.evaluate(offer,date);
     }
     void process(LocalDate date) {
-        for(var t:new ArrayList<>(trades.values()))if(t.open()&&t.status()!=TradeStatus.AGREED&&!date.isBefore(t.responseDate())&&date.isBefore(t.decisionDate())) {
+        // Due club responses run before the same day's common player decision.
+        for(var t:new ArrayList<>(trades.values()))if(t.open()&&t.status()!=TradeStatus.AGREED&&!date.isBefore(t.responseDate())&&!date.isAfter(t.decisionDate())) {
             try {
                 if(!t.sellerAgreed()&&!t.terms().seller().equals(m.managed)) {
                     if(t.terms().fee()<t.sellerDemand())respond(t.terms().seller(),t.tradeId(),"REJECT",null,date);

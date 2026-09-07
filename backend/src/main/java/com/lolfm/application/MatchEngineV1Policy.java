@@ -47,7 +47,7 @@ public final class MatchEngineV1Policy {
     public static final String FINAL_13G_B_APPROVED_SOURCE_TREE_SHA256 =
             "68edbcb7393c9a54c0888a4f27a4e286774306675dce48991554fd22dcb2ddac";
     public static final String APPROVED_RESOURCE_PROVENANCE_SHA256 =
-            "64ab1be3fdfe8d6660648ac634b52a86a5693d264bfbe707153dac9c17d39b4f";
+            "5987e33ee8ec362276680cf4b63d970bfc839d9d1d2c9ebf862f9519e2c18b17";
     public static final String DRAFT_RULE_SET_IDENTITY =
             "PROFESSIONAL_5_BAN_5_PICK_HARD_FEARLESS_V1";
     public static final String DRAFT_RULE_SET_SHA256 =

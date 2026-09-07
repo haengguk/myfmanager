@@ -249,6 +249,48 @@ class CareerMarketEngineTest {
         return new CareerManagementState.TradeTerms(kind,player,c.team(),buyer,start,end,fee,kind==CareerManagementState.Kind.LOAN?50:0,
                 new Terms(start,end,kind==CareerManagementState.Kind.LOAN?c.terms().annualSalary():demand(directory.players().get(player))*salaryPercent/100,0,Role.RESERVE),e.tradeEngine.replacement(c.team(),player,DATE));
     }
+    @ParameterizedTest @CsvSource({"1,LCK:T1", "2,LCK:T1", "1,LCK:KT", "2,LCK:KT"})
+    void lateCounterGetsClubResponseBeforeCommonPlayerDecision(int daysBefore,String managed) {
+        var e=engine(managed);var terms=transfer(e,"player-jiwoo","LCK:T1",CareerManagementState.Kind.TRANSFER,135,220000);
+        // Test the user buyer and user seller directions; the other club must respond automatically.
+        if(managed.equals("LCK:KT"))terms=new CareerManagementState.TradeTerms(terms.kind(),terms.playerId(),terms.seller(),terms.buyer(),terms.startDate(),terms.endDate(),1,0,terms.playerTerms(),terms.replacementPlayerId());
+        var original=e.tradeEngine.submit(managed,terms,null,DATE);
+        LocalDate counterDate=original.decisionDate().minusDays(daysBefore);
+        e.advance(counterDate);
+        var counter=e.tradeEngine.submit(managed,terms,original.tradeId(),counterDate);
+        assertThat(counter.responseDate()).isBeforeOrEqualTo(counter.decisionDate());
+        e.advance(counter.decisionDate());
+        assertThat(e.tradeEngine.trades.get(original.tradeId()).status()).isEqualTo(CareerManagementState.TradeStatus.SUPERSEDED);
+        assertThat(e.tradeEngine.trades.get(counter.tradeId()).status()).isEqualTo(CareerManagementState.TradeStatus.AGREED);
+        e.advance(terms.startDate());
+        assertThat(e.active(terms.playerId(),terms.startDate()).team()).isEqualTo("LCK:T1");
+    }
+    @Test void rosterCapacityChecksOnlyTheIncomingIntervalButStillCountsOverlappingLoans() {
+        var e=engine("LCK:T1");var account=e.accounts.get("LCK:T1");
+        e.accounts.put(account.team(),new Account(account.team(),account.annualBudget(),account.cash(),1));
+        LocalDate start=LocalDate.of(2031,1,1);var incoming=new Terms(start,start.plusYears(1).minusDays(1),200000,0,Role.RESERVE);
+        var c=e.active("player-jiwoo",DATE);
+        var unrelated=new CareerManagementState.Loan("outside","trade",c.contractId(),c.playerId(),"LCK:KT","LCK:GEN",DATE,DATE.plusDays(30),0,50,Role.RESERVE,"LCK:KT","FIRST_TEAM","ACTIVE",CareerManagementPolicy.VERSION);
+        e.tradeEngine.loans.put(unrelated.loanId(),unrelated);
+        assertThatCode(()->e.requireRosterCapacity("LCK:T1","player-bo",incoming)).doesNotThrowAnyException();
+        var overlapping=new CareerManagementState.Loan("inside","trade2",c.contractId(),c.playerId(),"LCK:KT","LCK:T1",start.plusDays(5),start.plusDays(32),0,50,Role.RESERVE,"LCK:KT","FIRST_TEAM","ACTIVE",CareerManagementPolicy.VERSION);
+        e.tradeEngine.loans.put(overlapping.loanId(),overlapping);
+        assertThatThrownBy(()->e.requireRosterCapacity("LCK:T1","player-bo",incoming)).isInstanceOf(CareerException.class);
+    }
+    @Test void displayAbilityAndPotentialDoNotRoundMarketStrengthOrChangePrice() {
+        var base=directory.players().get("player-zeus");
+        var min=new java.util.EnumMap<com.lolfm.domain.PlayerSkill,Integer>(com.lolfm.domain.PlayerSkill.class);
+        base.gameplay().ratings().keySet().forEach(k->min.put(k,1));
+        assertThat(PlayerAbilityPolicy.currentAbility(min)).isEqualTo(1);
+        min.replaceAll((k,v)->20);assertThat(PlayerAbilityPolicy.currentAbility(min)).isEqualTo(200);
+        var low=PlayerAbilityPolicy.apply(new ObjectMapper(),base,base.gameplay().ratings(),1,3,"TEST");
+        var high=PlayerAbilityPolicy.apply(new ObjectMapper(),base,base.gameplay().ratings(),200,4,"TEST");
+        assertThat(PlayerAbilityPolicy.currentAbility(base.gameplay().ratings())).isEqualTo(187);
+        assertThat(strength(low)).isEqualTo(225);assertThat(strength(high)).isEqualTo(strength(low));
+        assertThat(demand(high)).isEqualTo(225000).isEqualTo(demand(low));
+        assertThat(CareerManagementPolicy.value(high,DATE,DATE.plusYears(1).minusDays(1))).isEqualTo(CareerManagementPolicy.value(low,DATE,DATE.plusYears(1).minusDays(1)));
+        assertThat(high.gameplay()).isEqualTo(low.gameplay());
+    }
     @Test void paidTransferNeedsBothClubAndPlayerAgreementAndMovesMoneyOnce() {
         var e=engine("LCK:T1");var t=transfer(e,"player-jiwoo","LCK:T1",CareerManagementState.Kind.TRANSFER,135,220000);
         String original=e.active(t.playerId(),DATE).contractId();var proposal=e.tradeEngine.submit("LCK:T1",t,null,DATE);

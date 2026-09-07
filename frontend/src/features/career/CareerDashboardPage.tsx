@@ -1,4 +1,5 @@
 import { CareerMarketPanel } from './CareerMarketPanel';
+import { PlayerDataEditor } from '../player-data/PlayerDataEditor';
 import { CareerRosterPanel } from './CareerRosterPanel';
 import { CareerMutationGate } from './career.mutation';
 import { CareerSeasonsPanel } from './CareerSeasonsPanel';
@@ -59,6 +60,7 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
   onOpenCompetitionSeries?: (seriesId: string, career: CareerViewDto, matchup: string) => void;
   onNotify: (title: string, message: string) => void;
 }) {
+  const [editorOpen, setEditorOpen] = useState(false);
   const [list, setList] = useState<CareerListResponseDto>(EMPTY_CAPACITY);
   const [teams, setTeams] = useState<readonly TeamSummaryDto[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -314,6 +316,7 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
   const pendingOperation = readCareerCreateOperation(window.sessionStorage);
 
   return <main className="ca-workspace" aria-labelledby="ca-page-title">
+    <details onToggle={e => setEditorOpen(e.currentTarget.open)}><summary>선수 CA·PA 비교 및 새 Career 데이터 편집</summary>{editorOpen && <PlayerDataEditor />}</details>
     <header className="ca-page-head"><div><span>CAREER / SAVE SLOTS</span><h1 id="ca-page-title">커리어 저장소</h1><p>Career identity와 연결된 LCK 시즌을 서버 상태 그대로 불러옵니다.</p></div><div className="ca-capacity" aria-label={`저장 슬롯 ${list.currentCount}개 중 ${list.maximumCount}개`}><span>사용 중</span><strong>{list.currentCount}<i>/</i>{list.maximumCount}</strong><small>{full ? '저장 슬롯이 가득 찼습니다' : `${list.remainingCount}개 남음`}</small></div><button ref={newCareerRef} className="lm-secondary-button" type="button" disabled={full || initialLoading} onClick={() => { setCreateError(null); setDialogOpen(true); }}>새 커리어</button></header>
     {initialLoading ? <section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 저장 목록 확인 중</strong><p>브라우저 캐시가 아닌 서버의 최신 저장 상태를 읽고 있습니다.</p></section> : error && list.careers.length === 0 ? <section className={`ca-error${integrityError ? ' is-integrity' : ''}`} role="alert"><strong>{integrityError ? '저장 무결성 확인 필요' : 'Career를 불러오지 못했습니다'}</strong><p>{error}</p><button type="button" className="lm-secondary-button" onClick={() => { void loadWorkspace(); }}>다시 시도</button></section> : <div className="ca-layout">
       <aside className="ca-saves" aria-label="Career 저장 목록"><header><div><span>SAVED CAREERS</span><strong>{query ? `검색 결과 ${careers.length}` : `${list.currentCount}개 저장`}</strong></div><small>최근 운영 저장 순</small></header>{careers.length === 0 ? <div className="ca-empty"><strong>{list.currentCount === 0 ? '저장된 커리어가 없습니다' : '검색 결과가 없습니다'}</strong><p>{list.currentCount === 0 ? 'LCK 관리 팀과 감독 이름을 정해 첫 Career를 만드세요.' : '저장 이름, 감독 또는 팀 코드로 다시 검색하세요.'}</p>{list.currentCount === 0 && !full ? <button type="button" className="lm-primary-button" onClick={() => setDialogOpen(true)}>첫 커리어 만들기</button> : null}</div> : <ol>{careers.map((career) => <li key={career.careerId}><button type="button" aria-current={selectedId === career.careerId ? 'true' : undefined} onClick={() => { void loadDetail(career.careerId); }}><span className={`ca-save-state is-${career.resumeKind.toLowerCase()}`}>{RESUME_KIND_COPY[career.resumeKind]}</span><strong>{career.saveName}</strong><span>{career.managedTeamCode} · {career.managerName}</span><small><time dateTime={career.currentDate}>{career.currentDate}</time><time dateTime={career.updatedAt}>{dateTime(career.updatedAt)}</time></small></button></li>)}</ol>}</aside>

@@ -41,7 +41,7 @@ class PlayerRatingCatalogTest {
     void playerRatingInputHashIsExact() {
         assertThat(CATALOG.resourceSha256()).isEqualTo(PlayerRatingResourceLoader.EXPECTED_SHA256);
         assertThat(CATALOG.resourceSha256())
-                .isEqualTo("2312a8bc7d222fd63b57d1255210fb25104432a90a954d854b2090cc2acb28e0");
+                .isEqualTo("5c9fc7c86bf9b210cff5d1afb5e980fc9b64276751f0b88fb425db829deb9eb3");
     }
 
     @Test

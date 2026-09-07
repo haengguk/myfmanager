@@ -1,5 +1,14 @@
 # Testing
 
+## CA/PA 편집 및 계약 경계 수정 V1 (2026-09-07)
+
+계약 시장과 편집 API는 집중 39건(5분 53초), 경기 입력·provenance·동일 seed·파일 DB 이주는
+대표 7건(3분 14초)으로 확인했다. 두 실행 모두 실패·오류·skip 0이다. 프런트 Career verifier는
+66건, production build는 167 modules 통과이며 실제 브라우저에서 저장·새로고침·응답 소실
+복구를 확인했다. 사용자 요청으로 선행 전체 회귀를 중단했고 재실행하지 않았다.
+완료한 전체 회귀로 집계하지 않는다. 명령 선택과 검증 범위는
+[통합 구현 보고서](career-market-fixes-and-player-ability-editor-v1.md)에 기록했다.
+
 ## Focused Test
 
 기능을 변경할 때는 관련된 작은 deterministic test를 먼저 실행한다.

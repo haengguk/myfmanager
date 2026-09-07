@@ -377,3 +377,15 @@ rejects('loan share cannot create more than one full salary obligation',()=>{con
 rejects('a club cannot loan a player to itself',()=>{const t=tradeBody();t.terms.buyer=t.terms.seller;validateTradeCommand(t);});
 accepts('ambiguous trade response keeps the original UUID and source year',()=>{const body=tradeBody();const restored=readTradeOperation({getItem:key=>key===tradeOperationKey(careerId)?JSON.stringify(body):null},careerId);if(JSON.stringify(restored)!==JSON.stringify(body))throw new Error("original trade request changed");});
 rejects('club approval alone cannot advertise a completed transfer',()=>{const m=managementView();m.trades=[{tradeId:'trade',terms:tradeBody().terms,status:'COMPLETED',sellerAgreed:true,buyerAgreed:false}];validateCareerMarket({...marketView(),management:m});});
+
+import { currentAbility, potentialAbility } from '../src/features/player-data/playerAbility.ts';
+accepts('CA maps twelve equal weights to 1..200 and rounds only once', () => {
+  const ratings = Object.fromEntries(Array.from({ length: 12 }, (_, i) => [`skill${i}`, 1]));
+  if (currentAbility(ratings) !== 1 || currentAbility(Object.fromEntries(Object.keys(ratings).map(k => [k, 20]))) !== 200) throw Error('CA endpoints');
+  const zeus = [20,18,18,18,20,18,18,20,19,19,18,19], showmaker = [19,19,19,19,19,18,18,18,19,18,19,17];
+  for (const [values, expected] of [[zeus,187],[showmaker,184]]) if (currentAbility(Object.fromEntries(values.map((v,i)=>[`skill${i}`,v]))) !== expected) throw Error('rounding');
+});
+rejects('CA cannot conceal a missing or fractional rating', () => currentAbility({ mechanics: 19.5 }));
+accepts('PA preserves authored values below CA and old saves remain unassigned', () => {
+  if (potentialAbility({ detailsJson: '{}' }) !== null || potentialAbility({ detailsJson: JSON.stringify({ abilityMetadata: { potentialAbility: 1 } }) }) !== 1) throw Error('PA was inferred or raised');
+});

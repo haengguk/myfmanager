@@ -1,6 +1,22 @@
 # Project Status
 
-이 문서는 2026-09-06 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-09-07 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+
+## Career 계약 경계 수정 · CA/PA 표시와 편집 V1 (2026-09-07)
+
+결정 직전 역제안의 AI 구단 응답을 공통 선수 결정 전에 처리하고, 명부 상한 검사를 신규
+계약 기간 안으로 한정했다. 460명의 사용자 작성 PA를 연결하고, 역할별 12개 동일 비중 CA와
+상세 능력치·숙련도 비교, `playerId`별 새 Career용 편집 화면을 추가했다. V18은 편집 override와
+revision/UUID receipt를 저장한다. 새 Career 생성 시 전체 선수 데이터를 복사하며 이미 생성한
+Career는 이후 편집에 영향받지 않는다. AI·가격은 기존 원래 능력치 합계를 사용하고 PA는 표시만 한다.
+
+Zeus CA 187 / PA 197, ShowMaker CA 184 / PA 196이다. 기본 능력치 리소스 교체 이전 Career는
+카탈로그 해시 검사로 로드가 차단되며, 사용자 선택에 따라 기존 저장 호환은 후속 범위로 남겼다.
+
+집중 39건(5분 53초)과 경기 입력·이주 대표 7건(3분 14초), 프런트 66건 및 build가 통과했다.
+실제 브라우저에서 편집 저장과 응답 소실 후 새로고침·원본 UUID 복구를 확인했다. 선행 전체 회귀는
+사용자 요청으로 중단했고 다시 실행하지 않았다. 이번 결과를 최종 전체 회귀 통과로 주장하지 않는다.
+[구현·정책·검증 보고서](development/career-market-fixes-and-player-ability-editor-v1.md)에 적용 범위와 제한을 기록했다.
 
 ## Career 출전 약속·유료 이적·임대 V1 (2026-09-07)
 

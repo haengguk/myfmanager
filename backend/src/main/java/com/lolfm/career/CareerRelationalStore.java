@@ -159,7 +159,7 @@ public final class CareerRelationalStore {
             }
             if (rosters != null && initializeSeason) {
                 int year=jdbc.queryForObject("SELECT active_calendar_season_year FROM career_calendar_state WHERE career_id=?",Integer.class,requested.careerId());
-                rosters.initialize(requested.careerId(),year);
+                rosters.initializeNew(requested.careerId(),year);
                 CareerMarketStore.initialize(jdbc,requested.careerId());
             }
             jdbc.update("""

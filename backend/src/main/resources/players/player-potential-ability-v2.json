@@ -1,0 +1,1852 @@
+{
+  "version": "player-potential-ability-v2",
+  "sourceVersion": "lol-player-potential-ability-2026-09-06-v2-pa-only",
+  "snapshotAt": "2026-09-06",
+  "scale": {
+    "min": 1,
+    "max": 200
+  },
+  "identity": "PlayerId",
+  "players": [
+    {
+      "playerId": "player-13",
+      "potentialAbility": 143
+    },
+    {
+      "playerId": "player-131",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-1jiang",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-1xn",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-2274",
+      "potentialAbility": 155
+    },
+    {
+      "playerId": "player-369",
+      "potentialAbility": 192
+    },
+    {
+      "playerId": "player-about",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-ackerman",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-adizai",
+      "potentialAbility": 142
+    },
+    {
+      "playerId": "player-ahn",
+      "potentialAbility": 167
+    },
+    {
+      "playerId": "player-aiming",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-akaje",
+      "potentialAbility": 181
+    },
+    {
+      "playerId": "player-alvaro",
+      "potentialAbility": 167
+    },
+    {
+      "playerId": "player-andil",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-angel",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-apa",
+      "potentialAbility": 184
+    },
+    {
+      "playerId": "player-aria",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-armao",
+      "potentialAbility": 153
+    },
+    {
+      "playerId": "player-artemis",
+      "potentialAbility": 180
+    },
+    {
+      "playerId": "player-assum",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-attila",
+      "potentialAbility": 144
+    },
+    {
+      "playerId": "player-ayu",
+      "potentialAbility": 174
+    },
+    {
+      "playerId": "player-bao",
+      "potentialAbility": 155
+    },
+    {
+      "playerId": "player-batuuu",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-bdd",
+      "potentialAbility": 194
+    },
+    {
+      "playerId": "player-berserker",
+      "potentialAbility": 191
+    },
+    {
+      "playerId": "player-beryl",
+      "potentialAbility": 196
+    },
+    {
+      "playerId": "player-betty",
+      "potentialAbility": 180
+    },
+    {
+      "playerId": "player-bie",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-bin",
+      "potentialAbility": 198
+    },
+    {
+      "playerId": "player-blaber",
+      "potentialAbility": 189
+    },
+    {
+      "playerId": "player-bluffing",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-bo",
+      "potentialAbility": 189
+    },
+    {
+      "playerId": "player-boal",
+      "potentialAbility": 155
+    },
+    {
+      "playerId": "player-booki",
+      "potentialAbility": 159
+    },
+    {
+      "playerId": "player-boukada",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-breathe",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-brokenblade",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-buero",
+      "potentialAbility": 138
+    },
+    {
+      "playerId": "player-bulldog",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-burdol",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-busio",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-bvoy",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-caliste",
+      "potentialAbility": 195
+    },
+    {
+      "playerId": "player-calix",
+      "potentialAbility": 176
+    },
+    {
+      "playerId": "player-callian",
+      "potentialAbility": 135
+    },
+    {
+      "playerId": "player-callme",
+      "potentialAbility": 161
+    },
+    {
+      "playerId": "player-canna",
+      "potentialAbility": 187
+    },
+    {
+      "playerId": "player-canyon",
+      "potentialAbility": 198
+    },
+    {
+      "playerId": "player-caps",
+      "potentialAbility": 197
+    },
+    {
+      "playerId": "player-care",
+      "potentialAbility": 169
+    },
+    {
+      "playerId": "player-career",
+      "potentialAbility": 189
+    },
+    {
+      "playerId": "player-cariok",
+      "potentialAbility": 155
+    },
+    {
+      "playerId": "player-carzzy",
+      "potentialAbility": 186
+    },
+    {
+      "playerId": "player-casting",
+      "potentialAbility": 175
+    },
+    {
+      "playerId": "player-ceo",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-ceos",
+      "potentialAbility": 157
+    },
+    {
+      "playerId": "player-chain",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-chika",
+      "potentialAbility": 161
+    },
+    {
+      "playerId": "player-chovy",
+      "potentialAbility": 199
+    },
+    {
+      "playerId": "player-citrus",
+      "potentialAbility": 153
+    },
+    {
+      "playerId": "player-clear",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-climber",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-cloud",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-clozer",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-cody",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-contractz",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-corejj",
+      "potentialAbility": 192
+    },
+    {
+      "playerId": "player-courage",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-cracker",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-creme",
+      "potentialAbility": 191
+    },
+    {
+      "playerId": "player-crisp",
+      "potentialAbility": 192
+    },
+    {
+      "playerId": "player-croco",
+      "potentialAbility": 184
+    },
+    {
+      "playerId": "player-cryogen",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-cube",
+      "potentialAbility": 169
+    },
+    {
+      "playerId": "player-curse",
+      "potentialAbility": 174
+    },
+    {
+      "playerId": "player-curty",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-cuzz",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-cypher",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-czajek",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-daglas",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-damocles",
+      "potentialAbility": 138
+    },
+    {
+      "playerId": "player-dardoch",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-darkwings",
+      "potentialAbility": 163
+    },
+    {
+      "playerId": "player-dawciu",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-daystar",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-ddahyuk",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-ddoiv",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-dekap",
+      "potentialAbility": 144
+    },
+    {
+      "playerId": "player-delight",
+      "potentialAbility": 194
+    },
+    {
+      "playerId": "player-denathor",
+      "potentialAbility": 159
+    },
+    {
+      "playerId": "player-deokdam",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-devost",
+      "potentialAbility": 161
+    },
+    {
+      "playerId": "player-dhokla",
+      "potentialAbility": 165
+    },
+    {
+      "playerId": "player-diable",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-dinai",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-dire",
+      "potentialAbility": 181
+    },
+    {
+      "playerId": "player-disamis",
+      "potentialAbility": 157
+    },
+    {
+      "playerId": "player-doggo",
+      "potentialAbility": 183
+    },
+    {
+      "playerId": "player-doran",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-dorian",
+      "potentialAbility": 161
+    },
+    {
+      "playerId": "player-draktharr",
+      "potentialAbility": 157
+    },
+    {
+      "playerId": "player-dudu",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-duduhh",
+      "potentialAbility": 176
+    },
+    {
+      "playerId": "player-duro",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-dyenn",
+      "potentialAbility": 144
+    },
+    {
+      "playerId": "player-eclipse",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-eddie",
+      "potentialAbility": 159
+    },
+    {
+      "playerId": "player-effort",
+      "potentialAbility": 173
+    },
+    {
+      "playerId": "player-elk",
+      "potentialAbility": 193
+    },
+    {
+      "playerId": "player-elyoya",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-emoking",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-empyros",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-enga",
+      "potentialAbility": 151
+    },
+    {
+      "playerId": "player-enosh",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-erha",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-evi",
+      "potentialAbility": 181
+    },
+    {
+      "playerId": "player-exyu",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-faker",
+      "potentialAbility": 200
+    },
+    {
+      "playerId": "player-fate",
+      "potentialAbility": 181
+    },
+    {
+      "playerId": "player-fbi",
+      "potentialAbility": 163
+    },
+    {
+      "playerId": "player-feather",
+      "potentialAbility": 169
+    },
+    {
+      "playerId": "player-feisty",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-feng",
+      "potentialAbility": 159
+    },
+    {
+      "playerId": "player-fengyue",
+      "potentialAbility": 175
+    },
+    {
+      "playerId": "player-fenrir",
+      "potentialAbility": 176
+    },
+    {
+      "playerId": "player-fiesta",
+      "potentialAbility": 169
+    },
+    {
+      "playerId": "player-fisher",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-flakked",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-flandre",
+      "potentialAbility": 192
+    },
+    {
+      "playerId": "player-flauren",
+      "potentialAbility": 166
+    },
+    {
+      "playerId": "player-fleshy",
+      "potentialAbility": 166
+    },
+    {
+      "playerId": "player-flip",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-fofo",
+      "potentialAbility": 185
+    },
+    {
+      "playerId": "player-fresskowy",
+      "potentialAbility": 143
+    },
+    {
+      "playerId": "player-frog",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-frosty",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-fudge",
+      "potentialAbility": 185
+    },
+    {
+      "playerId": "player-fuuu",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-gakgos",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-gala",
+      "potentialAbility": 193
+    },
+    {
+      "playerId": "player-garden",
+      "potentialAbility": 180
+    },
+    {
+      "playerId": "player-gatovisck",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-ghost",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-gideon",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-gloryy",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-grit",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-grizzly",
+      "potentialAbility": 159
+    },
+    {
+      "playerId": "player-gryffinn",
+      "potentialAbility": 187
+    },
+    {
+      "playerId": "player-guardian",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-guigo",
+      "potentialAbility": 174
+    },
+    {
+      "playerId": "player-gumayusi",
+      "potentialAbility": 196
+    },
+    {
+      "playerId": "player-gury",
+      "potentialAbility": 157
+    },
+    {
+      "playerId": "player-guti",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-guwon",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-haetae",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-haichao",
+      "potentialAbility": 184
+    },
+    {
+      "playerId": "player-hambak",
+      "potentialAbility": 182
+    },
+    {
+      "playerId": "player-hang",
+      "potentialAbility": 180
+    },
+    {
+      "playerId": "player-hans-sama",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-harky",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-hauz",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-hazel",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-hena",
+      "potentialAbility": 153
+    },
+    {
+      "playerId": "player-heng",
+      "potentialAbility": 167
+    },
+    {
+      "playerId": "player-heru",
+      "potentialAbility": 174
+    },
+    {
+      "playerId": "player-hery",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-hizto",
+      "potentialAbility": 183
+    },
+    {
+      "playerId": "player-hongq",
+      "potentialAbility": 178
+    },
+    {
+      "playerId": "player-hongsuo",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-hope",
+      "potentialAbility": 187
+    },
+    {
+      "playerId": "player-hoya",
+      "potentialAbility": 169
+    },
+    {
+      "playerId": "player-huhi",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-husha",
+      "potentialAbility": 155
+    },
+    {
+      "playerId": "player-hwichan",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-hy",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-hype",
+      "potentialAbility": 165
+    },
+    {
+      "playerId": "player-ignar",
+      "potentialAbility": 161
+    },
+    {
+      "playerId": "player-impact",
+      "potentialAbility": 192
+    },
+    {
+      "playerId": "player-inspired",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-isles",
+      "potentialAbility": 180
+    },
+    {
+      "playerId": "player-isma",
+      "potentialAbility": 163
+    },
+    {
+      "playerId": "player-jackal",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-jackeylove",
+      "potentialAbility": 196
+    },
+    {
+      "playerId": "player-jackies",
+      "potentialAbility": 169
+    },
+    {
+      "playerId": "player-jaehyuk",
+      "potentialAbility": 167
+    },
+    {
+      "playerId": "player-janus",
+      "potentialAbility": 166
+    },
+    {
+      "playerId": "player-jeskla",
+      "potentialAbility": 175
+    },
+    {
+      "playerId": "player-jiejie",
+      "potentialAbility": 193
+    },
+    {
+      "playerId": "player-jinbeom",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-jiwoo",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-jmz",
+      "potentialAbility": 146
+    },
+    {
+      "playerId": "player-jojo",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-jojopyun",
+      "potentialAbility": 189
+    },
+    {
+      "playerId": "player-jopa",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-josedeodo",
+      "potentialAbility": 182
+    },
+    {
+      "playerId": "player-juhan",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-jun",
+      "potentialAbility": 163
+    },
+    {
+      "playerId": "player-junhao",
+      "potentialAbility": 167
+    },
+    {
+      "playerId": "player-junjia",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-jwei",
+      "potentialAbility": 184
+    },
+    {
+      "playerId": "player-kael",
+      "potentialAbility": 187
+    },
+    {
+      "playerId": "player-kaiwing",
+      "potentialAbility": 181
+    },
+    {
+      "playerId": "player-kakkun",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-kamiloo",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-kanavi",
+      "potentialAbility": 196
+    },
+    {
+      "playerId": "player-kangin",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-karis",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-kaze",
+      "potentialAbility": 159
+    },
+    {
+      "playerId": "player-keine",
+      "potentialAbility": 155
+    },
+    {
+      "playerId": "player-kellin",
+      "potentialAbility": 169
+    },
+    {
+      "playerId": "player-kemish",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-keria",
+      "potentialAbility": 198
+    },
+    {
+      "playerId": "player-keshi",
+      "potentialAbility": 174
+    },
+    {
+      "playerId": "player-kiaya",
+      "potentialAbility": 181
+    },
+    {
+      "playerId": "player-kiin",
+      "potentialAbility": 195
+    },
+    {
+      "playerId": "player-kingen",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-kino",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-knight",
+      "potentialAbility": 199
+    },
+    {
+      "playerId": "player-kratos",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-kryra",
+      "potentialAbility": 163
+    },
+    {
+      "playerId": "player-kurahuto",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-kuri",
+      "potentialAbility": 146
+    },
+    {
+      "playerId": "player-kyeahoo",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-labrov",
+      "potentialAbility": 185
+    },
+    {
+      "playerId": "player-lancer",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-larssen",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-lazyfeel",
+      "potentialAbility": 184
+    },
+    {
+      "playerId": "player-leave",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-lehends",
+      "potentialAbility": 192
+    },
+    {
+      "playerId": "player-liangchen",
+      "potentialAbility": 147
+    },
+    {
+      "playerId": "player-lider",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-life",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-loki",
+      "potentialAbility": 166
+    },
+    {
+      "playerId": "player-loopy",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-lospa",
+      "potentialAbility": 166
+    },
+    {
+      "playerId": "player-lot",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-lucid",
+      "potentialAbility": 192
+    },
+    {
+      "playerId": "player-lucy",
+      "potentialAbility": 151
+    },
+    {
+      "playerId": "player-lumos",
+      "potentialAbility": 166
+    },
+    {
+      "playerId": "player-luon",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-lure",
+      "potentialAbility": 142
+    },
+    {
+      "playerId": "player-lurox",
+      "potentialAbility": 142
+    },
+    {
+      "playerId": "player-lyncas",
+      "potentialAbility": 186
+    },
+    {
+      "playerId": "player-lyonz",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-mago",
+      "potentialAbility": 148
+    },
+    {
+      "playerId": "player-manel",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-marble",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-markoon",
+      "potentialAbility": 181
+    },
+    {
+      "playerId": "player-marvin",
+      "potentialAbility": 148
+    },
+    {
+      "playerId": "player-massu",
+      "potentialAbility": 191
+    },
+    {
+      "playerId": "player-maynter",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-meiko",
+      "potentialAbility": 196
+    },
+    {
+      "playerId": "player-mercy9",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-mg",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-mihawk",
+      "potentialAbility": 186
+    },
+    {
+      "playerId": "player-mikyx",
+      "potentialAbility": 192
+    },
+    {
+      "playerId": "player-minous",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-mireu",
+      "potentialAbility": 175
+    },
+    {
+      "playerId": "player-missing",
+      "potentialAbility": 185
+    },
+    {
+      "playerId": "player-moham",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-momo",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-momochi",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-monki",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-morgan",
+      "potentialAbility": 180
+    },
+    {
+      "playerId": "player-morttheus",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-mudai",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-myrtus",
+      "potentialAbility": 143
+    },
+    {
+      "playerId": "player-myrwn",
+      "potentialAbility": 185
+    },
+    {
+      "playerId": "player-naak-nako",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-namgung",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-namiru",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-nanashi",
+      "potentialAbility": 136
+    },
+    {
+      "playerId": "player-nevid",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-nia",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-nightslayer",
+      "potentialAbility": 173
+    },
+    {
+      "playerId": "player-noah",
+      "potentialAbility": 185
+    },
+    {
+      "playerId": "player-npc",
+      "potentialAbility": 135
+    },
+    {
+      "playerId": "player-nuc",
+      "potentialAbility": 163
+    },
+    {
+      "playerId": "player-nukenin",
+      "potentialAbility": 148
+    },
+    {
+      "playerId": "player-nuna",
+      "potentialAbility": 135
+    },
+    {
+      "playerId": "player-oddeye",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-on",
+      "potentialAbility": 193
+    },
+    {
+      "playerId": "player-oner",
+      "potentialAbility": 196
+    },
+    {
+      "playerId": "player-oscarinin",
+      "potentialAbility": 165
+    },
+    {
+      "playerId": "player-paduck",
+      "potentialAbility": 165
+    },
+    {
+      "playerId": "player-painter",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-palafox",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-panther",
+      "potentialAbility": 180
+    },
+    {
+      "playerId": "player-papiteero",
+      "potentialAbility": 148
+    },
+    {
+      "playerId": "player-parukia",
+      "potentialAbility": 176
+    },
+    {
+      "playerId": "player-parus",
+      "potentialAbility": 166
+    },
+    {
+      "playerId": "player-peach",
+      "potentialAbility": 152
+    },
+    {
+      "playerId": "player-peanutcoco",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-perfect",
+      "potentialAbility": 186
+    },
+    {
+      "playerId": "player-peter",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-peyz",
+      "potentialAbility": 198
+    },
+    {
+      "playerId": "player-photic",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-planb",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-pleata",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-poby",
+      "potentialAbility": 182
+    },
+    {
+      "playerId": "player-pollu",
+      "potentialAbility": 176
+    },
+    {
+      "playerId": "player-pop9",
+      "potentialAbility": 159
+    },
+    {
+      "playerId": "player-potent",
+      "potentialAbility": 144
+    },
+    {
+      "playerId": "player-potential",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-pout",
+      "potentialAbility": 180
+    },
+    {
+      "playerId": "player-prime",
+      "potentialAbility": 146
+    },
+    {
+      "playerId": "player-prodelta",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-pun",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-pungyeon",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-pyeonsik",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-pyosik",
+      "potentialAbility": 191
+    },
+    {
+      "playerId": "player-qats",
+      "potentialAbility": 142
+    },
+    {
+      "playerId": "player-quad",
+      "potentialAbility": 186
+    },
+    {
+      "playerId": "player-quantum",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-quid",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-rabelo",
+      "potentialAbility": 156
+    },
+    {
+      "playerId": "player-rahel",
+      "potentialAbility": 165
+    },
+    {
+      "playerId": "player-raptor",
+      "potentialAbility": 173
+    },
+    {
+      "playerId": "player-ravvy",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-rayito",
+      "potentialAbility": 144
+    },
+    {
+      "playerId": "player-razork",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-re0",
+      "potentialAbility": 181
+    },
+    {
+      "playerId": "player-renard",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-renye",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-rest",
+      "potentialAbility": 159
+    },
+    {
+      "playerId": "player-rhilech",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-rich",
+      "potentialAbility": 185
+    },
+    {
+      "playerId": "player-rin",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-ripple",
+      "potentialAbility": 166
+    },
+    {
+      "playerId": "player-roamer",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-rookie",
+      "potentialAbility": 198
+    },
+    {
+      "playerId": "player-rooster",
+      "potentialAbility": 166
+    },
+    {
+      "playerId": "player-ruler",
+      "potentialAbility": 198
+    },
+    {
+      "playerId": "player-ryan3",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-saber",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-sabisu",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-saint",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-sajed",
+      "potentialAbility": 163
+    },
+    {
+      "playerId": "player-samd",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-samkz",
+      "potentialAbility": 142
+    },
+    {
+      "playerId": "player-sansan",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-sarolu",
+      "potentialAbility": 146
+    },
+    {
+      "playerId": "player-sasi",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-scamber",
+      "potentialAbility": 153
+    },
+    {
+      "playerId": "player-scout",
+      "potentialAbility": 195
+    },
+    {
+      "playerId": "player-seany",
+      "potentialAbility": 147
+    },
+    {
+      "playerId": "player-serin",
+      "potentialAbility": 163
+    },
+    {
+      "playerId": "player-sero",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-setab",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-shad0w",
+      "potentialAbility": 181
+    },
+    {
+      "playerId": "player-shanks",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-shaoye",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-sharvel",
+      "potentialAbility": 178
+    },
+    {
+      "playerId": "player-sheer",
+      "potentialAbility": 174
+    },
+    {
+      "playerId": "player-shelfmade",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-sheo",
+      "potentialAbility": 161
+    },
+    {
+      "playerId": "player-shiauc",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-shiku",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-showmaker",
+      "potentialAbility": 196
+    },
+    {
+      "playerId": "player-sinatra",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-siriuss",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-siuloong",
+      "potentialAbility": 161
+    },
+    {
+      "playerId": "player-siwoo",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-skeanz",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-skewmond",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-slayer",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-slowq",
+      "potentialAbility": 165
+    },
+    {
+      "playerId": "player-smash",
+      "potentialAbility": 195
+    },
+    {
+      "playerId": "player-smooth",
+      "potentialAbility": 136
+    },
+    {
+      "playerId": "player-soboro",
+      "potentialAbility": 167
+    },
+    {
+      "playerId": "player-solid",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-sponge",
+      "potentialAbility": 173
+    },
+    {
+      "playerId": "player-srantonio",
+      "potentialAbility": 155
+    },
+    {
+      "playerId": "player-srtty",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-starry",
+      "potentialAbility": 185
+    },
+    {
+      "playerId": "player-steller",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-stend",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-stepz",
+      "potentialAbility": 159
+    },
+    {
+      "playerId": "player-strensh",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-supa",
+      "potentialAbility": 165
+    },
+    {
+      "playerId": "player-supercleber",
+      "potentialAbility": 144
+    },
+    {
+      "playerId": "player-sylvie",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-tactical",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-taeyoon",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-taki",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-tangyuan",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-tao",
+      "potentialAbility": 146
+    },
+    {
+      "playerId": "player-tarzan",
+      "potentialAbility": 195
+    },
+    {
+      "playerId": "player-tatu",
+      "potentialAbility": 176
+    },
+    {
+      "playerId": "player-teddy",
+      "potentialAbility": 189
+    },
+    {
+      "playerId": "player-tempester",
+      "potentialAbility": 160
+    },
+    {
+      "playerId": "player-th3antonio",
+      "potentialAbility": 144
+    },
+    {
+      "playerId": "player-thanatos",
+      "potentialAbility": 189
+    },
+    {
+      "playerId": "player-theshy",
+      "potentialAbility": 197
+    },
+    {
+      "playerId": "player-tian",
+      "potentialAbility": 195
+    },
+    {
+      "playerId": "player-time",
+      "potentialAbility": 146
+    },
+    {
+      "playerId": "player-toasty",
+      "potentialAbility": 146
+    },
+    {
+      "playerId": "player-tockimo",
+      "potentialAbility": 148
+    },
+    {
+      "playerId": "player-tracy",
+      "potentialAbility": 151
+    },
+    {
+      "playerId": "player-tracyn",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-trigger",
+      "potentialAbility": 146
+    },
+    {
+      "playerId": "player-trymbi",
+      "potentialAbility": 186
+    },
+    {
+      "playerId": "player-tutsz",
+      "potentialAbility": 157
+    },
+    {
+      "playerId": "player-ucal",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-umi",
+      "potentialAbility": 134
+    },
+    {
+      "playerId": "player-uniboy",
+      "potentialAbility": 155
+    },
+    {
+      "playerId": "player-upset",
+      "potentialAbility": 188
+    },
+    {
+      "playerId": "player-uzent",
+      "potentialAbility": 157
+    },
+    {
+      "playerId": "player-valiant",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-vampire",
+      "potentialAbility": 173
+    },
+    {
+      "playerId": "player-van1",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-vicla",
+      "potentialAbility": 174
+    },
+    {
+      "playerId": "player-vincenzo",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-viper",
+      "potentialAbility": 198
+    },
+    {
+      "playerId": "player-vizzpers",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-vladi",
+      "potentialAbility": 186
+    },
+    {
+      "playerId": "player-vsta",
+      "potentialAbility": 157
+    },
+    {
+      "playerId": "player-vulcan",
+      "potentialAbility": 189
+    },
+    {
+      "playerId": "player-way",
+      "potentialAbility": 163
+    },
+    {
+      "playerId": "player-wayne",
+      "potentialAbility": 155
+    },
+    {
+      "playerId": "player-wei",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-weiwei",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-wenbo",
+      "potentialAbility": 178
+    },
+    {
+      "playerId": "player-willer",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-winner",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-woody",
+      "potentialAbility": 158
+    },
+    {
+      "playerId": "player-wunder",
+      "potentialAbility": 191
+    },
+    {
+      "playerId": "player-xiaohao",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-xiaohu",
+      "potentialAbility": 195
+    },
+    {
+      "playerId": "player-xiaoxia",
+      "potentialAbility": 170
+    },
+    {
+      "playerId": "player-xiaoxiang",
+      "potentialAbility": 162
+    },
+    {
+      "playerId": "player-xiaoxu",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-xin",
+      "potentialAbility": 144
+    },
+    {
+      "playerId": "player-xns",
+      "potentialAbility": 149
+    },
+    {
+      "playerId": "player-xun",
+      "potentialAbility": 193
+    },
+    {
+      "playerId": "player-xyno",
+      "potentialAbility": 174
+    },
+    {
+      "playerId": "player-yakkey",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-ycx",
+      "potentialAbility": 168
+    },
+    {
+      "playerId": "player-yeon",
+      "potentialAbility": 186
+    },
+    {
+      "playerId": "player-yike",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-yuhe",
+      "potentialAbility": 136
+    },
+    {
+      "playerId": "player-yukino",
+      "potentialAbility": 146
+    },
+    {
+      "playerId": "player-zay",
+      "potentialAbility": 144
+    },
+    {
+      "playerId": "player-zdz",
+      "potentialAbility": 169
+    },
+    {
+      "playerId": "player-zeka",
+      "potentialAbility": 195
+    },
+    {
+      "playerId": "player-zekas",
+      "potentialAbility": 153
+    },
+    {
+      "playerId": "player-zephyr",
+      "potentialAbility": 165
+    },
+    {
+      "playerId": "player-zest",
+      "potentialAbility": 178
+    },
+    {
+      "playerId": "player-zeus",
+      "potentialAbility": 197
+    },
+    {
+      "playerId": "player-zeyzal",
+      "potentialAbility": 164
+    },
+    {
+      "playerId": "player-zhuo",
+      "potentialAbility": 169
+    },
+    {
+      "playerId": "player-zika",
+      "potentialAbility": 171
+    },
+    {
+      "playerId": "player-zinie",
+      "potentialAbility": 172
+    },
+    {
+      "playerId": "player-zkai",
+      "potentialAbility": 142
+    },
+    {
+      "playerId": "player-zoen",
+      "potentialAbility": 150
+    },
+    {
+      "playerId": "player-zothve",
+      "potentialAbility": 154
+    },
+    {
+      "playerId": "player-zuian",
+      "potentialAbility": 173
+    },
+    {
+      "playerId": "player-zven",
+      "potentialAbility": 190
+    },
+    {
+      "playerId": "player-zynts",
+      "potentialAbility": 160
+    }
+  ]
+}

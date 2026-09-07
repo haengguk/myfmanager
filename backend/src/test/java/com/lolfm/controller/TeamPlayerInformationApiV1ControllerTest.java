@@ -78,7 +78,7 @@ class TeamPlayerInformationApiV1ControllerTest {
                 .andExpect(jsonPath("$.catalog.sourceResources[0].rawSha256").value(
                         "badbbaa3ae7fbe5eaaf83ee8e97a93134476493a45167ec3d1637c7243909018"))
                 .andExpect(jsonPath("$.catalog.sourceResources[1].rawSha256").value(
-                        "2312a8bc7d222fd63b57d1255210fb25104432a90a954d854b2090cc2acb28e0"))
+                        "5c9fc7c86bf9b210cff5d1afb5e980fc9b64276751f0b88fb425db829deb9eb3"))
                 .andExpect(jsonPath("$.catalog.sourceResources[2].rawSha256").value(
                         "2c36b8a109aba9dfe84c1da319fe02708a72a1341d334dc6d5e3f605b0023aad"))
                 .andExpect(jsonPath("$.catalog.sourceResources[3].rawSha256").value(

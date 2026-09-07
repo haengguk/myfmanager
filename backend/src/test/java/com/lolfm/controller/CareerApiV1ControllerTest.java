@@ -32,6 +32,57 @@ class CareerApiV1ControllerTest {
     @Autowired CareerCompetitionExecutionService competitionExecution;
 
     @Test
+    @org.springframework.transaction.annotation.Transactional
+    void playerEditorValidatesReplaysAndCopiesOnlyIntoNewCareer() throws Exception {
+        String root="/api/v1/player-data";
+        var view=json(mvc.perform(get(root)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(view.path("players")).hasSize(460);
+        JsonNode player=null;
+        for(var p:view.path("players"))if(p.path("definition").path("playerId").asText().equals("player-zeus"))player=p;
+        assertThat(player).isNotNull();assertThat(player.path("currentAbility").asInt()).isEqualTo(187);
+        assertThat(player.path("potentialAbility").asInt()).isBetween(1,200);
+        String before=json(mvc.perform(post("/api/v1/careers").contentType(MediaType.APPLICATION_JSON)
+                .content(createBody("편집 전","감독","HLE",UUID.randomUUID().toString()))).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).path("career").path("careerId").asText();
+        var oldDirectory=com.lolfm.career.CareerRosterStore.directory(jdbc,before);
+        var edit=mapper.createObjectNode().put("playerId","player-zeus").put("potentialAbility",1)
+                .put("expectedRevision",view.path("revision").asLong()).put("clientCommandId",UUID.randomUUID().toString());
+        edit.set("ratings",player.path("definition").path("gameplay").path("ratings").deepCopy());
+        ((com.fasterxml.jackson.databind.node.ObjectNode)edit.path("ratings")).put("MECHANICS",19);
+        var bad=edit.deepCopy();((com.fasterxml.jackson.databind.node.ObjectNode)bad.path("ratings")).put("MECHANICS",19.5);
+        mvc.perform(post(root).contentType(MediaType.APPLICATION_JSON).content(bad.toString())).andExpect(status().isBadRequest());
+        bad=edit.deepCopy();((com.fasterxml.jackson.databind.node.ObjectNode)bad.path("ratings")).remove("MECHANICS");
+        mvc.perform(post(root).contentType(MediaType.APPLICATION_JSON).content(bad.toString())).andExpect(status().isBadRequest());
+        bad=edit.deepCopy().put("potentialAbility",201);
+        mvc.perform(post(root).contentType(MediaType.APPLICATION_JSON).content(bad.toString())).andExpect(status().isBadRequest());
+        var saved=json(mvc.perform(post(root).contentType(MediaType.APPLICATION_JSON).content(edit.toString())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(saved.path("receipt").path("player").path("potentialAbility").asInt()).isEqualTo(1);
+        assertThat(saved.path("receipt").path("player").path("currentAbility").asInt()).isEqualTo(186);
+        var replay=json(mvc.perform(post(root).contentType(MediaType.APPLICATION_JSON).content(edit.toString())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(replay.path("replayed").asBoolean()).isTrue();assertThat(replay.path("receipt")).isEqualTo(saved.path("receipt"));
+        mvc.perform(post(root).contentType(MediaType.APPLICATION_JSON).content(edit.deepCopy().put("potentialAbility",200).toString())).andExpect(status().isConflict());
+        mvc.perform(post(root).contentType(MediaType.APPLICATION_JSON).content(edit.deepCopy().put("clientCommandId",UUID.randomUUID().toString()).toString())).andExpect(status().isConflict());
+        assertThat(com.lolfm.career.CareerRosterStore.directory(jdbc,before)).isEqualTo(oldDirectory);
+        var freshView=json(mvc.perform(post("/api/v1/careers").contentType(MediaType.APPLICATION_JSON)
+                .content(createBody("편집 후","감독","HLE",UUID.randomUUID().toString()))).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).path("career");
+        String fresh=freshView.path("careerId").asText();
+        var directory=com.lolfm.career.CareerRosterStore.directory(jdbc,fresh);
+        var zeus=directory.players().get("player-zeus");
+        assertThat(zeus.gameplay().ratings().get(com.lolfm.domain.PlayerSkill.MECHANICS)).isEqualTo(19);
+        assertThat(mapper.readTree(zeus.detailsJson()).path("abilityMetadata").path("potentialAbility").asInt()).isEqualTo(1);
+        assertThat(zeus.gameplay().proficiencies()).isEqualTo(oldDirectory.players().get("player-zeus").gameplay().proficiencies());
+        int year=com.lolfm.career.CareerRosterStore.activeYear(jdbc,fresh);
+        var matchInput=com.lolfm.career.CareerRosterStore.eligiblePair(jdbc,fresh,year,"LCK:HLE","LCK:KT");
+        assertThat(matchInput.roster("LCK:HLE").players().stream().filter(p->p.playerId().equals("player-zeus")).findFirst().orElseThrow()).isEqualTo(zeus.gameplay());
+        String snapshot=jdbc.queryForObject("SELECT roster_json FROM career_season WHERE career_id=?",String.class,fresh);
+        assertThat(com.lolfm.career.CompetitionRosterSnapshot.decode(snapshot).roster("LCK:HLE").players().stream()
+                .filter(p->p.playerId().equals("player-zeus")).findFirst().orElseThrow()).isEqualTo(zeus.gameplay());
+        var afterReload=json(mvc.perform(get(root)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(afterReload.path("revision").asLong()).isEqualTo(view.path("revision").asLong()+1);
+        mvc.perform(get("/api/v1/careers/"+before)).andExpect(status().isOk());
+        mvc.perform(get("/api/v1/careers/"+fresh)).andExpect(status().isOk());
+    }
+
+    @Test
     void marketTermsRejectInvalidDatesBeforeMutatingStorage() throws Exception {
         int commands=count("career_market_command");
         String body="""
@@ -78,7 +129,7 @@ class CareerApiV1ControllerTest {
         assertThat(created.path("referenceCatalogVersion").asText())
                 .isEqualTo("lck-team-and-player-information-2026-08-24-v1");
         assertThat(created.path("referenceCatalogHash").asText())
-                .isEqualTo("4b5af4a49b5299b850015ea162be7e28543b1c4cb87e672120f84b26af815504");
+                .isEqualTo("91516fe84f5ebaedf9e68b765ce27cb603c56a494dd0de50505974100fd63ff7");
         assertThat(created.path("resume").path("kind").asText())
                 .isEqualTo("LEAGUE_DASHBOARD");
         assertThat(created.path("resume").path("seasonLifecycleStatus").asText())

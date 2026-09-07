@@ -25,9 +25,9 @@ public final class CareerMarketPolicy {
     public static final int RESERVE_OPPORTUNITY=50, DEVELOPMENT_OPPORTUNITY=35, MAX_PLAYER_STRENGTH=240;
     private CareerMarketPolicy() {}
     public static long demand(Definition player) {
-        return player.gameplay().ratings().values().stream().mapToLong(Integer::longValue).sum()*SALARY_PER_RATING_POINT;
+        return (long)strength(player)*SALARY_PER_RATING_POINT;
     }
-    public static int strength(Definition player) { return (int)(demand(player)/SALARY_PER_RATING_POINT); }
+    public static int strength(Definition player) { return com.lolfm.player.PlayerAbilityPolicy.strength(player.gameplay().ratings()); }
     public static int variation(long seed,String identity,int bound) {
         String hash=CareerRosterStore.hash(VERSION+'|'+seed+'|'+identity);
         return (int)(Long.parseUnsignedLong(hash.substring(0,15),16)%bound);
