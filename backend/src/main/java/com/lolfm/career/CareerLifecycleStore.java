@@ -88,7 +88,7 @@ public final class CareerLifecycleStore {
             var before=development.players.get(id);int beforeCA=CareerLifecyclePolicy.ca(before),age=CareerLifecyclePolicy.age(p.age(),date);
             var observation=observation(m,id,year,date,domesticSeries);var decline=CareerLifecyclePolicy.decline(before,m.player(id).position(),age,p.declineRemainder(),p.declineCursor(),observation);
             development.players.put(id,decline.player());int ca=CareerLifecyclePolicy.ca(decline.player());
-            int empty=observation.full()&&observation.sets()==0?(p.lastReviewYear()!=null&&p.lastReviewYear()==year-1&&"FULL_DOMESTIC_SEASON".equals(p.lastCoverage())?p.noAppearanceSeasons()+1:1):0;
+            int empty=observation.consecutiveEmpty(p,year);
             boolean youngFA=CareerLifecyclePolicy.longYoungFA(p,m.lifecycle.appliedOn,year);
             var scheduled=m.scheduled(id);var active=m.active(id,date);boolean next=scheduled!=null&&!scheduled.terms().endDate().isBefore(effective)||active!=null&&!active.terms().endDate().isBefore(effective);
             int probability=CareerLifecyclePolicy.retirementProbability(age,observation,empty,youngFA,m.freeAgents.contains(id),beforeCA-ca,ca,m.promiseEngine.mood(id,date),next);

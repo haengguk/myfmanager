@@ -187,9 +187,9 @@ class CareerMarketEngineTest {
         assertThat(jump.state()).isEqualTo(daily.state());assertThat(jump.roster()).isEqualTo(daily.roster());
         assertThat(jump.state().accounts()).hasSize(56);
         assertThat(jump.state().offers().values()).noneMatch(o->o.team().equals("LCK:T1"));
-        assertThat(jump.state().offers().values().stream().filter(o->o.playerId().equals("player-zeus"))).hasSizeGreaterThanOrEqualTo(2);
         assertThat(jump.active("player-zeus",end)).isNotNull();
         var first=jump.state().decisions().values().stream().filter(d->d.winningOfferId()!=null&&d.evaluations().stream().anyMatch(e->e.team().equals("LCK:HLE"))&&d.evaluations().stream().anyMatch(e->e.team().equals("LCK:GEN"))).min(java.util.Comparator.comparing(Decision::date)).orElseThrow();
+        assertThat(jump.state().offers().values().stream().filter(o->o.playerId().equals(first.playerId()))).hasSizeGreaterThanOrEqualTo(2);
         String winner=jump.state().offers().get(first.winningOfferId()).team();String loser=winner.equals("LCK:HLE")?"LCK:GEN":"LCK:HLE";
         assertThat(jump.state().offers().values()).anyMatch(o->o.team().equals(loser)&&o.submittedDate().isAfter(first.date())&&o.status()==OfferStatus.ACCEPTED&&!o.playerId().equals(first.playerId()));
         assertThat(jump.roster().lineups().get(loser)).hasSize(5);
@@ -205,6 +205,22 @@ class CareerMarketEngineTest {
         assertThat(e.tradeEngine.estimate(p.playerId(),DATE)).isEqualTo(value);
         assertThat(CareerManagementPolicy.value(p,DATE,DATE.plusMonths(12))).isGreaterThan(180000);
     }
+    @Test void demotionPreservesFirstTeamPromiseScopeWithoutGrantingClStarts() {
+        var e=engine("LCK:T1");String team="LCK:KT";
+        String starter=e.lineups.get(team).getFirst();var promise=e.promise(starter,team,DATE);
+        var development=e.promiseEngine.promises.values().stream().filter(p->p.role()==Role.DEVELOPMENT).findFirst().orElseThrow();
+        assertThat(CareerAppearanceStore.collects("FIRST_TEAM","DEVELOPMENT",promise,false)).isTrue();
+        assertThat(CareerAppearanceStore.collects("FIRST_TEAM","DEVELOPMENT",development,false)).isFalse();
+        assertThat(CareerAppearanceStore.collects("FIRST_TEAM","DEVELOPMENT",null,false)).isFalse();
+        for(int i=0;i<6;i++)e.applyAppearance(new CareerManagementState.Appearance("demoted-"+i,"f"+i,"s"+i,2027,DATE.plusDays(i),2,List.of(
+            new CareerManagementState.Opportunity(starter,team,e.player(starter).position(),promise.promiseId(),true,false,"CONTRACT_AT_SERIES_START"))));
+        e.applyAppearance(new CareerManagementState.Appearance("cl","cl","cl",2027,DATE.plusDays(7),3,List.of(
+            new CareerManagementState.Opportunity(starter,team,e.player(starter).position(),promise.promiseId(),true,true,"CONTRACT_AT_SERIES_START")),"DEVELOPMENT","LCK_CL"));
+        e.promiseEngine.evaluate(DATE.plusDays(28));var result=e.promise(starter,team,DATE);
+        assertThat(result.opportunities()).isEqualTo(6);assertThat(result.starts()).isZero();assertThat(result.sets()).isZero();
+        assertThat(result.status()).isEqualTo("STARTER_PROMISE_BREACH");assertThat(result.satisfaction()).isEqualTo(56);
+    }
+
     @Test void promiseObservationDistinguishesStarterReserveAndRecoversWithoutReplayingCompletion() {
         var e=engine("LCK:KT");String starter=roster.lineups().get("LCK:KT").stream().filter(p->directory.players().get(p).position()==com.lolfm.domain.Position.ADC).findFirst().orElseThrow();
         var a=e.promise(starter,"LCK:KT",DATE);var b=e.promise("player-jiwoo","LCK:KT",DATE);
@@ -237,7 +253,9 @@ class CareerMarketEngineTest {
         ai.lineups.get("LCK:HLE").removeIf(p->ai.player(p).position()==com.lolfm.domain.Position.TOP);
         long retain=account.cash()-ai.paymentHeadroom(account.team(),DATE)+200_000;
         ai.accounts.put(account.team(),new Account(account.team(),account.annualBudget(),retain,account.rosterLimit()));
-        ai.tradeEngine.ai(DATE);
+        // The unified planner reuses this cost/consent route; do not retain a second AI proposal pipeline.
+        var terms=ai.tradeEngine.plannedTerms("LCK:HLE","player-bin",Role.STARTER,DATE);
+        assertThat(terms).isNotNull();ai.tradeEngine.submit("LCK:HLE",terms,null,DATE);
         var proposals=ai.management().trades().values();
         assertThat(proposals).anySatisfy(t->{assertThat(t.terms().buyer()).isEqualTo("LCK:HLE");assertThat(t.terms().kind()).isEqualTo(CareerManagementState.Kind.LOAN);assertThat(t.terms().fee()).isLessThanOrEqualTo(t.buyerLimit());});
         assertThat(proposals.stream().collect(java.util.stream.Collectors.groupingBy(t->t.terms().buyer(),java.util.stream.Collectors.counting())).values()).allSatisfy(n->assertThat(n).isLessThanOrEqualTo(2));

@@ -101,6 +101,7 @@ final class CareerTrades {
         var terms=t.terms();var c=m.active(terms.playerId(),date);
         if(c==null||!c.contractId().equals(t.contractId())||m.scheduled(c.playerId())!=null||loan(c.playerId(),date)!=null)throw invalid("원계약 또는 임대 상태가 바뀌었습니다. 재협상해 주세요.");
         if(m.lineups.get(terms.seller()).contains(terms.playerId())||terms.replacementPlayerId()!=null)m.requireReplacement(terms.seller(),terms.playerId(),terms.replacementPlayerId(),date);
+        if(m.clEnabled&&terms.seller().startsWith("LCK:")&&!m.planner.canDepart(terms.seller(),terms.playerId(),date))throw invalid("현재/다음 경기의 1군·CL 대체자 또는 등록 자격이 부족합니다.");
         if(m.lineups.get(terms.seller()).size()!=5)throw invalid("판매 구단의 적법한 5인 선발을 먼저 확보해야 합니다.");
     }
     private void requireBuyer(Trade t,LocalDate date) {
@@ -124,7 +125,7 @@ final class CareerTrades {
             try {
                 if(!t.sellerAgreed()&&!t.terms().seller().equals(m.managed)) {
                     if(t.terms().fee()<t.sellerDemand())respond(t.terms().seller(),t.tradeId(),"REJECT",null,date);
-                    else respond(t.terms().seller(),t.tradeId(),"ACCEPT",replacement(t.terms().seller(),t.terms().playerId(),date),date);
+                    else respond(t.terms().seller(),t.tradeId(),"ACCEPT",m.lineups.get(t.terms().seller()).contains(t.terms().playerId())?replacement(t.terms().seller(),t.terms().playerId(),date):null,date);
                 }
                 t=trades.get(t.tradeId());
                 if(t.open()&&!t.buyerAgreed()&&!t.terms().buyer().equals(m.managed))respond(t.terms().buyer(),t.tradeId(),t.terms().fee()<=t.buyerLimit()?"ACCEPT":"REJECT",null,date);
@@ -192,37 +193,29 @@ final class CareerTrades {
         for(var l:loans.values())if("ACTIVE".equals(l.status()))dates.add(l.endDate().plusDays(1));
         for(var p:m.promiseEngine.promises.values())if(!p.endDate().isBefore(current))dates.add(p.lastEvaluation().plusDays(EVALUATION_DAYS));return dates;
     }
-    void ai(LocalDate date) {
-        // Snapshot candidates before any club agreement/application; no speculative sale proceeds are spendable.
-        var proposals=new ArrayList<Map.Entry<String,TradeTerms>>();
-        for(String buyer:m.accounts.keySet())if(!buyer.equals(m.managed)) {
-            int selected=0;
-            for(var role:com.lolfm.domain.Position.values()) {
-                if(selected>=AI_MAX_NEW_TRADES)break;
-                var held=m.lineups.get(buyer).stream().filter(p->m.player(p).position()==role).findFirst();int best=held.map(p->strength(m.player(p))).orElse(0);
-                if(m.offers.values().stream().anyMatch(o->o.open()&&o.team().equals(buyer)&&m.player(o.playerId()).position()==role)
-                        ||trades.values().stream().anyMatch(t->t.open()&&t.terms().buyer().equals(buyer)&&m.player(t.terms().playerId()).position()==role))continue;
-                var candidates=m.contracts.values().stream().filter(c->c.status()==ContractStatus.ACTIVE&&c.team()!=null&&!c.team().equals(buyer)&&m.player(c.playerId()).position()==role&&unavailable(c.playerId(),date)==null)
-                        .filter(c->strength(m.player(c.playerId()))>best+AI_IMPROVEMENT_POINTS)
-                        .filter(c->!m.lineups.get(c.team()).contains(c.playerId())||replacement(c.team(),c.playerId(),date)!=null)
-                        .sorted(Comparator.comparingInt((Contract c)->strength(m.player(c.playerId()))).reversed().thenComparing(Contract::playerId)).limit(AI_TRADE_CANDIDATES).toList();
-                for(var c:candidates) {
-                    LocalDate start=decision(c.playerId(),date).plusDays(1),end=start.plusYears(AI_CONTRACT_YEARS).minusDays(1);
-                    String replacement=replacement(c.team(),c.playerId(),date);if(m.lineups.get(c.team()).contains(c.playerId())&&replacement==null)continue;
-                    var personal=new Terms(start,end,demand(m.player(c.playerId()))*AI_MAX_BID_PERCENT/100,demand(m.player(c.playerId()))/AI_BONUS_DIVISOR,held.isEmpty()?Role.STARTER:Role.RESERVE);
-                    var t=new TradeTerms(Kind.TRANSFER,c.playerId(),c.team(),buyer,start,end,0,0,personal,replacement);
-                    long fee=demandFee(t,date);
-                    if(fee>buyerLimit(t,date)||m.paymentHeadroom(buyer,date)<fee+personal.signingBonus()) {
-                        end=start.plusDays(LOAN_MAX_DAYS-1);if(end.isAfter(c.terms().endDate()))end=c.terms().endDate();
-                        personal=new Terms(start,end,c.terms().annualSalary(),0,held.isEmpty()?Role.STARTER:Role.RESERVE);
-                        t=new TradeTerms(Kind.LOAN,c.playerId(),c.team(),buyer,start,end,0,LOAN_SHARE_PERCENT,personal,replacement);fee=demandFee(t,date);
-                    }
-                    t=new TradeTerms(t.kind(),t.playerId(),t.seller(),t.buyer(),t.startDate(),t.endDate(),fee,t.borrowerSalaryPercent(),t.playerTerms(),replacement);
-                    if(fee<=buyerLimit(t,date)){proposals.add(Map.entry(buyer,t));selected++;break;}
-                }
-            }
+    TradeTerms plannedTerms(String buyer,String player,Role role,LocalDate date) {
+        var c=m.active(player,date);if(c==null||unavailable(player,date)!=null)return null;
+        LocalDate start=decision(player,date).plusDays(1),end=start.plusYears(AI_CONTRACT_YEARS).minusDays(1);
+        String replacement=m.lineups.get(c.team()).contains(player)?replacement(c.team(),player,date):null;
+        var personal=new Terms(start,end,demand(m.player(player))*AI_MAX_BID_PERCENT/100,demand(m.player(player))/AI_BONUS_DIVISOR,role);
+        var terms=new TradeTerms(Kind.TRANSFER,player,c.team(),buyer,start,end,0,0,personal,replacement);
+        long fee=demandFee(terms,date);
+        if(fee>buyerLimit(terms,date)||m.paymentHeadroom(buyer,date)<fee+personal.signingBonus()) {
+            end=start.plusDays(LOAN_MAX_DAYS-1);if(end.isAfter(c.terms().endDate()))end=c.terms().endDate();
+            if(java.time.temporal.ChronoUnit.DAYS.between(start,end)+1<LOAN_MIN_DAYS)return null;
+            personal=new Terms(start,end,c.terms().annualSalary(),0,role);
+            terms=new TradeTerms(Kind.LOAN,player,c.team(),buyer,start,end,0,LOAN_SHARE_PERCENT,personal,replacement);fee=demandFee(terms,date);
         }
-        for(var p:proposals)try{submit(p.getKey(),p.getValue(),null,date);}catch(CareerException unavailable){/* bounded retry at the next market week */}
+        return fee<=buyerLimit(terms,date)?new TradeTerms(terms.kind(),player,c.team(),buyer,start,end,fee,terms.borrowerSalaryPercent(),personal,replacement):null;
+    }
+    TradeTerms plannedLoanTerms(String buyer,String player,Role role,LocalDate date) {
+        var c=m.active(player,date);if(c==null||unavailable(player,date)!=null)return null;
+        LocalDate start=decision(player,date).plusDays(1),end=start.plusDays(LOAN_MAX_DAYS-1);if(end.isAfter(c.terms().endDate()))end=c.terms().endDate();
+        if(java.time.temporal.ChronoUnit.DAYS.between(start,end)+1<LOAN_MIN_DAYS)return null;
+        String replacement=m.lineups.get(c.team()).contains(player)?replacement(c.team(),player,date):null;
+        var personal=new Terms(start,end,c.terms().annualSalary(),0,role);
+        var t=new TradeTerms(Kind.LOAN,player,c.team(),buyer,start,end,0,LOAN_SHARE_PERCENT,personal,replacement);long fee=demandFee(t,date);
+        return fee<=buyerLimit(t,date)?new TradeTerms(Kind.LOAN,player,c.team(),buyer,start,end,fee,LOAN_SHARE_PERCENT,personal,replacement):null;
     }
     private static CareerException invalid(String reason) {return CareerException.invalid("trade",reason);}
 }

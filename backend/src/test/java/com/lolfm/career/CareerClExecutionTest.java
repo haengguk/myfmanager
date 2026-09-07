@@ -14,10 +14,48 @@ import static org.assertj.core.api.Assertions.*;
 
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.NONE,properties={"spring.main.banner-mode=off","logging.level.root=ERROR","spring.main.lazy-initialization=true"})
 class CareerClExecutionTest {
-    @Autowired CareerApplicationService careers;@Autowired CareerClStore cl;@Autowired CareerRosterStore rosters;
+    @Autowired CareerCalendarApplicationService calendar;@Autowired CareerApplicationService careers;@Autowired CareerClStore cl;@Autowired CareerRosterStore rosters;
     @Autowired CareerMarketStore market;@Autowired CareerDevelopmentStore development;@Autowired CareerLifecycleStore lifecycle;
     @Autowired CareerCompetitionRelationalStore competitions;@Autowired CareerCompetitionExecutionService execution;
     @Autowired LeagueProductionSnapshotProvider snapshots;@Autowired CareerCompetitionPlayerSeriesKernel playerKernel;@Autowired SeriesApiV1Facade facade;@Autowired JdbcTemplate jdbc;
+    @Test void demotedStarterRemainsInActualCaptureWithoutClPromiseOrGrowthCredit(){
+        var c=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"약속 강등 경계","감독","T1",UUID.randomUUID().toString())).career().career();String id=c.careerId();int year=2027;
+        var r=rosters.view(id,year);String former=r.state().lineups().get("LCK:T1").stream().filter(p->r.directory().players().get(p).position()==Position.TOP).findFirst().orElseThrow();
+        String replacement=r.state().members().values().stream().filter(m->"LCK:T1".equals(m.ownerTeam())&&"DEVELOPMENT".equals(m.squad())&&r.directory().players().get(m.playerId()).position()==Position.TOP).map(CareerRosterStore.Membership::playerId).findFirst().orElseThrow();
+        rosters.change(id,new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",year,"LCK:T1",replacement,"MOVE_SQUAD","LCK:T1",null,r.revision(),UUID.randomUUID().toString()));
+        rosters.change(id,new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",year,"LCK:T1",replacement,"SELECT_STARTER",null,null,rosters.view(id,year).revision(),UUID.randomUUID().toString()));
+        String organization=r.directory().organizations().values().stream().filter(o->"LCK:T1".equals(o.competitiveTeam())&&"DEVELOPMENT".equals(o.kind())).findFirst().orElseThrow().organizationId();
+        rosters.change(id,new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",year,"LCK:T1",former,"MOVE_SQUAD",organization,null,rosters.view(id,year).revision(),UUID.randomUUID().toString()));
+        var growth=CareerDevelopmentStore.load(jdbc,id);var tx=new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()));
+        var fixtures=jdbc.query("SELECT fixture_id FROM league_fixture WHERE season_id=? AND (first_team_code='T1' OR second_team_code='T1') ORDER BY round_number,fixture_id LIMIT 6",(v,n)->v.getString(1),c.seasonId());
+        for(String fixture:fixtures)tx.executeWithoutResult(t->{rosters.freezeLeagueFixture(c.seasonId(),fixture);CareerAppearanceStore.leagueCompleted(jdbc,c.seasonId(),fixture,"controlled-"+fixture,2);});
+        var m=CareerMarketStore.engine(jdbc,id,year,CareerMarketStore.load(jdbc,id));var date=m.state().processedThrough();m.promiseEngine.evaluate(date.plusDays(28));
+        var promise=m.promise(former,"LCK:T1",date);assertThat(promise.role()).isEqualTo(CareerMarketState.Role.STARTER);assertThat(promise.opportunities()).isEqualTo(6);assertThat(promise.starts()).isZero();assertThat(promise.sets()).isZero();assertThat(promise.status()).isEqualTo("STARTER_PROMISE_BREACH");
+        assertThat(m.promise(replacement,"LCK:T1",date).opportunities()).isZero();assertThat(CareerDevelopmentStore.load(jdbc,id)).isEqualTo(growth);
+        assertThat(m.management().appearances().values()).allSatisfy(a->assertThat(a.opportunities().stream().filter(CareerManagementState.Opportunity::selected)).hasSize(10));
+    }
+    @Test void weeklyAiPromotionUsesSavedGrowthAndNextFrozenInputAtomically() throws Exception {
+        var c=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"AI 선수단 계획","감독","GEN",UUID.randomUUID().toString())).career().career();String id=c.careerId();int year=2027;
+        var tx=new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()));var r=rosters.view(id,year);String team="LCK:T1";
+        String previous=r.state().lineups().get(team).stream().filter(p->r.directory().players().get(p).position()==Position.TOP).findFirst().orElseThrow();
+        var candidates=r.state().members().values().stream().filter(v->team.equals(v.ownerTeam())&&"DEVELOPMENT".equals(v.squad())&&r.directory().players().get(v.playerId()).position()==Position.TOP).map(CareerRosterStore.Membership::playerId).sorted().toList();assertThat(candidates).hasSizeGreaterThanOrEqualTo(2);String promote=candidates.getFirst();
+        // Prepared current growth and incumbent ratings, not years of simulated development or altered authoring data.
+        tx.executeWithoutResult(t->{var old=CareerDevelopmentStore.load(jdbc,id);var growth=new CareerDevelopmentEngine(CareerRosterStore.baseDirectory(jdbc,id),old.state());
+            for(String p:List.of(previous,promote)){var v=growth.players.get(p);var ratings=new EnumMap<>(v.internalRatings());ratings.replaceAll((k,x)->p.equals(promote)?16000:12000);growth.players.put(p,new CareerDevelopmentState.Player(ratings,v.internalProficiencies(),v.remainder(),v.proficiencyRemainders(),v.cursors(),v.fatigue(),v.playedOn(),v.override(),v.growthSubRemainder()));}CareerDevelopmentStore.persist(jdbc,id,old,growth);});
+        var fixtures=jdbc.query("SELECT fixture_id FROM league_fixture WHERE season_id=? AND (first_team_code='T1' OR second_team_code='T1') ORDER BY round_number,fixture_id LIMIT 2",(v,n)->v.getString(1),c.seasonId());
+        var original=tx.execute(t->rosters.freezeLeagueFixture(c.seasonId(),fixtures.getFirst()));var source=CareerMarketStore.load(jdbc,id);var date=source.state().processedThrough().plusDays(1).with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.MONDAY));
+        assertThatThrownBy(()->tx.executeWithoutResult(t->{CareerRosterStore.lockCareer(jdbc,id);CareerMarketStore.processThrough(jdbc,id,date);throw new IllegalStateException("PLAN_ROLLBACK");})).hasMessage("PLAN_ROLLBACK");assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(source);
+        while(calendar.currentDate(c).isBefore(date)){var today=calendar.view(c).state();calendar.advance(c,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,today.calendarRevision(),"ADVANCE_ONE_DAY",UUID.randomUUID().toString());}
+        assertThat(calendar.currentDate(c)).isEqualTo(date);
+        var after=rosters.view(id,year);assertThat(after.state().lineups().get(team)).contains(promote).doesNotContain(previous);assertThat(after.state().lineups().get("LCK:GEN")).isEqualTo(r.state().lineups().get("LCK:GEN"));
+        assertThat(cl.view(id,year).clubs().stream().filter(v->v.team().equals(team)).findFirst().orElseThrow().blockers()).isEmpty();
+        var next=tx.execute(t->rosters.freezeLeagueFixture(c.seasonId(),fixtures.get(1)));assertThat(next.roster("T1").players()).anyMatch(p->p.playerId().equals(promote)&&p.ratings().equals(after.directory().players().get(promote).gameplay().ratings()));
+        assertThat(rosters.leagueFixtureRoster(c.seasonId(),fixtures.getFirst())).isEqualTo(original);
+        var saved=CareerMarketStore.load(jdbc,id);tx.executeWithoutResult(t->CareerMarketStore.processThrough(jdbc,id,date));assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(saved);
+        var view=market.view(id,year);assertThat(view.squadOperations()).anyMatch(d->promote.equals(d.playerId())&&d.action().equals("PROMOTE")&&d.status().equals("APPLIED"));assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(saved);
+        System.out.println("AI_PLANNING_ACTUAL career="+id+" date="+date+" before="+previous+" after="+promote+" lineup="+after.state().lineups().get(team)+" cl="+cl.view(id,year).clubs().stream().filter(v->v.team().equals(team)).toList()+" operations="+CareerRosterStore.write(saved.state().squadPlanning()));
+        java.nio.file.Files.createDirectories(java.nio.file.Path.of("build/reports/career-ai"));jdbc.execute("SCRIPT TO 'build/reports/career-ai/browser-fixture.sql'");java.nio.file.Files.writeString(java.nio.file.Path.of("build/reports/career-ai/browser-fixture-info.txt"),"career="+id+"\nteam="+team+"\nplayer="+promote);
+    }
     @Test void realClAutoGrowthPromotionAndNewPlayerInputPreserveOldSeries() throws Exception {
         var career=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"CL 실행 경로","감독","T1",UUID.randomUUID().toString())).career().career();String id=career.careerId();int year=2027;
         var tx=new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()));var original=rosters.view(id,year);var view=cl.view(id,year);assertThat(view.active()).isTrue();assertThat(view.fixtures()).hasSize(90);

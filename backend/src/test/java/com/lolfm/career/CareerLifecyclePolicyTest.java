@@ -15,6 +15,22 @@ import static com.lolfm.career.CareerLifecycleState.*;
 class CareerLifecyclePolicyTest {
     static final LocalDate DATE=LocalDate.of(2027,10,31);
     static final Observation UNKNOWN=new Observation("OVERSEAS_OR_CL_UNOBSERVED",0,0,0,null,null);
+    @Test void fullClEmptySeasonsAccumulateAndInterruptedEvidenceResets() {
+        var d=CareerDevelopmentPolicyTest.definition(15,190,19);var start=LocalDate.of(2027,1,1);
+        var p=new Person(ageProfile(d,1,start),"AUTHORED",null,start,150,start,Status.ACTIVE,null,null,"test",0,0,0,null,"NOT_YET_REVIEWED",null,start,"DEVELOPMENT");
+        for(int year=2027;year<=2029;year++) {
+            var observation=new Observation("FULL_DEVELOPMENT_SEASON",18,0,0,start,start.plusDays(120));
+            int empty=observation.consecutiveEmpty(p,year);assertThat(empty).isEqualTo(year-2026);
+            p=new Person(p.age(),p.source(),null,start,150,start,Status.ACTIVE,null,null,"test",0,0,empty,year,observation.coverage(),null,start,"DEVELOPMENT");
+        }
+        var full=new Observation("FULL_DEVELOPMENT_SEASON",18,0,0,start,start.plusDays(120));
+        assertThat(full.consecutiveEmpty(p,2031)).isEqualTo(1);
+        assertThat(full.consecutiveEmpty(p.appeared(),2030)).isEqualTo(1);
+        assertThat(full.consecutiveEmpty(p.domesticSince(start.plusYears(3),"FIRST_TEAM"),2030)).isEqualTo(1);
+        for(String coverage:List.of("PARTIAL_EMPLOYMENT","INSUFFICIENT_OPPORTUNITIES","OVERSEAS_OR_CL_UNOBSERVED"))
+            assertThat(new Observation(coverage,3,0,0,start,start.plusDays(10)).consecutiveEmpty(p,2030)).isZero();
+        assertThat(new Observation("FULL_DEVELOPMENT_SEASON",18,1,2,start,start.plusDays(120)).consecutiveEmpty(p,2030)).isZero();
+    }
     @Test void declineBanksSixHundredRatherThanRoundingTwelveSkillsDown() {
         var d=CareerDevelopmentPolicyTest.definition(15,190,25);var p=CareerDevelopmentPolicy.initial(d);
         var first=decline(p,Position.TOP,25,200,0,UNKNOWN);

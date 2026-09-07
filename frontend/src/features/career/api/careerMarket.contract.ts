@@ -13,7 +13,8 @@ export interface MarketEvaluation { offerId: string; team: string; compensation:
 export interface MarketDecision { eventId: string; playerId: string; date: string; winningOfferId: string | null; evaluations: MarketEvaluation[]; reason: string; policyVersion: string }
 export interface MarketLedger { entryId: string; date: string; team: string; contractId: string | null; kind: string; amount: number }
 export interface MarketSupplement { competitionId: string; team: string; playerId: string; position: string; date: string; revision: number; reason: string }
-export interface CareerMarket { schemaVersion: 'CAREER_MARKET_VIEW_V1'; policyVersion: string; currency: string; careerId: string; seasonYear: number; currentDate: string; revision: number; readOnly: boolean; managedTeam: string; offseason: boolean; nextMarketEvent: string | null; players: MarketPlayer[]; contracts: GameContract[]; offers: MarketOffer[]; finances: MarketFinance[]; decisions: MarketDecision[]; events: MarketEvent[]; ledger: MarketLedger[]; missingPositions: Record<string, string[]>; supplements: MarketSupplement[]; allowedCommands: string[]; registrationPolicy: string; management?: CareerManagement | null }
+export interface SquadOperation { id: string; seasonYear: number; date: string; team: string; position: string; squad: string; action: string; status: string; playerId: string | null; previousPlayerId: string | null; effectiveDate: string | null; referenceId: null; reason: string }
+export interface CareerMarket { schemaVersion: 'CAREER_MARKET_VIEW_V1'; policyVersion: string; currency: string; careerId: string; seasonYear: number; currentDate: string; revision: number; readOnly: boolean; managedTeam: string; offseason: boolean; nextMarketEvent: string | null; players: MarketPlayer[]; contracts: GameContract[]; offers: MarketOffer[]; finances: MarketFinance[]; decisions: MarketDecision[]; events: MarketEvent[]; ledger: MarketLedger[]; missingPositions: Record<string, string[]>; supplements: MarketSupplement[]; allowedCommands: string[]; registrationPolicy: string; management?: CareerManagement | null; squadOperations?: SquadOperation[] }
 export interface MarketCommand { schemaVersion: 'CAREER_MARKET_COMMAND_V1'; sourceYear: number; expectedRevision: number; action: 'SUBMIT' | 'REVISE' | 'WITHDRAW' | 'RELEASE' | 'SUPPLEMENT' | 'OPEN_STOVE'; playerId: string | null; offerId: string | null; terms: MarketTerms | null; replacementPlayerId: string | null; competitionId: string | null; clientCommandId: string }
 export interface MarketChange { replayed: boolean; receipt: { clientCommandId: string; careerId: string; sourceYear: number; resultingRevision: number; action: string; referenceId: string | null; appliedDate: string; reason: string }; market: CareerMarket }
 type Obj = Record<string, unknown>;
@@ -36,7 +37,16 @@ export function validateMarketCommand(value: unknown): MarketCommand {
   return v as unknown as MarketCommand;
 }
 export function validateCareerMarket(value: unknown): CareerMarket {
-  const v = exact(value, 'schemaVersion policyVersion currency careerId seasonYear currentDate revision readOnly managedTeam offseason nextMarketEvent players contracts offers finances decisions events ledger missingPositions supplements allowedCommands registrationPolicy' + (value && typeof value === 'object' && 'management' in value ? ' management' : ''), 'view');
+  const v = exact(value, 'schemaVersion policyVersion currency careerId seasonYear currentDate revision readOnly managedTeam offseason nextMarketEvent players contracts offers finances decisions events ledger missingPositions supplements allowedCommands registrationPolicy' + (value && typeof value === 'object' && 'management' in value ? ' management' : '') + (value && typeof value === 'object' && 'squadOperations' in value ? ' squadOperations' : ''), 'view');
+  if (v.squadOperations !== undefined) {
+    check(Array.isArray(v.squadOperations), 'squadOperations');
+    const seen = new Set<string>();
+    for (const raw of v.squadOperations as unknown[]) {
+      const o = exact(raw, 'id seasonYear date team position squad action status playerId previousPlayerId effectiveDate referenceId reason', 'squadOperation');
+      check(str(o.id) && !seen.has(o.id) && integer(o.seasonYear) && date(o.date) && str(o.team) && ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'].includes(o.position as string) && ['FIRST_TEAM', 'DEVELOPMENT'].includes(o.squad as string) && str(o.action) && ['APPLIED', 'RETAINED', 'DEFERRED', 'PLANNED', 'PROPOSED', 'AWAITING_CONSENT', 'AGREED', 'CLOSED'].includes(o.status as string) && nullable(o.playerId) && nullable(o.previousPlayerId) && (o.effectiveDate === null || date(o.effectiveDate)) && o.referenceId === null && str(o.reason), 'squadOperation.values');
+      seen.add(o.id as string);
+    }
+  }
   if (v.management !== undefined && v.management !== null) validateManagement(v.management);
   check(v.schemaVersion === 'CAREER_MARKET_VIEW_V1' && v.policyVersion === 'CAREER_CONTRACT_MARKET_GAME_POLICY_V1' && v.currency === 'GAME_CREDITS' && str(v.careerId) && /^career_[0-9a-f]{64}$/.test(v.careerId) && integer(v.seasonYear) && date(v.currentDate) && integer(v.revision) && typeof v.readOnly === 'boolean' && typeof v.offseason === 'boolean' && str(v.managedTeam) && (v.nextMarketEvent === null || date(v.nextMarketEvent)) && str(v.registrationPolicy), 'view.scope');
   for (const name of ['players', 'contracts', 'offers', 'finances', 'decisions', 'events', 'ledger', 'supplements', 'allowedCommands']) check(Array.isArray(v[name]), name);

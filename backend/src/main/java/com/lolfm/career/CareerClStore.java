@@ -44,13 +44,10 @@ public final class CareerClStore {
     static void prepare(JdbcTemplate db,String career,int year){if(!active(db,career,year))return;var old=CareerMarketStore.load(db,career);var m=CareerMarketStore.engine(db,career,year,old);prepare(db,career,year,m);CareerMarketStore.persist(db,career,year,old,m);}
     static void prepare(JdbcTemplate db,String career,int year,CareerMarketEngine m){
         if(!active(db,career,year))return;var state=load(db,career,year);var lineups=new TreeMap<>(state.lineups());var registered=new TreeMap<>(state.registered());
+        m.planner.repair(m.state().processedThrough());
         for(String code:CareerClPolicy.TEAMS){String team="LCK:"+code;if(team.equals(m.managed))continue;
-            for(Position role:Position.values())if(candidates(m,team).stream().noneMatch(id->m.player(id).position()==role)){
-                var bench=m.members.values().stream().filter(v->team.equals(v.ownerTeam())&&"FIRST_TEAM".equals(v.squad())&&!m.lineups.get(team).contains(v.playerId())&&m.player(v.playerId()).position()==role&&m.eligible(v.playerId(),team,m.state().processedThrough())).map(Membership::playerId).sorted(Comparator.comparingInt((String id)->CareerMarketPolicy.strength(m.player(id))).reversed().thenComparing(id->id)).findFirst();
-                bench.ifPresent(id->m.members.put(id,new Membership(id,team,m.developmentOrganization(team),"DEVELOPMENT",null)));
-            }
-            var eligible=candidates(m,team);var selected=new ArrayList<String>();for(Position role:Position.values())eligible.stream().filter(id->m.player(id).position()==role).findFirst().ifPresent(selected::add);
-            lineups.put(team,List.copyOf(selected));registered.put(team,eligible.stream().limit(CareerClPolicy.MAXIMUM_REGISTERED).toList());
+            var eligible=candidates(m,team);var selected=m.clLineups.getOrDefault(team,List.of()).stream().filter(eligible::contains).toList();
+            lineups.put(team,selected);var pool=new ArrayList<>(selected);eligible.stream().filter(id->!pool.contains(id)).limit(CareerClPolicy.MAXIMUM_REGISTERED-pool.size()).forEach(pool::add);registered.put(team,List.copyOf(pool));
         }
         if(!state.lineups().equals(lineups)||!state.registered().equals(registered))save(db,career,year,new State(state.revision()+1,lineups,registered,state.ranking(),state.supplyIssued()));
     }
@@ -65,15 +62,6 @@ public final class CareerClStore {
             var players=state.lineups().get(team).stream().map(id->m.player(id).gameplay()).toList();rosters.put(team,new CompetitionRosterSnapshot.Roster(new TeamKey("LCK",team.substring(4)),hash(write(players)),players));}
         CareerAppearanceStore.requireNoCrossSquad(db,career,"CL_PRECHECK",m.state().processedThrough(),"DEVELOPMENT",rosters.values().stream().flatMap(r->r.players().stream()).map(CompetitionRosterSnapshot.Starter::playerId).collect(java.util.stream.Collectors.toSet()));
         return new CompetitionRosterSnapshot(rosters);
-    }
-    static void proposals(CareerMarketEngine m,LocalDate date){
-        for(String code:CareerClPolicy.TEAMS){String team="LCK:"+code;if(team.equals(m.managed))continue;
-            for(Position role:Position.values()){
-                if(candidates(m,team,date).stream().anyMatch(id->m.player(id).position()==role)||m.contracts.values().stream().anyMatch(c->team.equals(c.team())&&c.status()==CareerMarketState.ContractStatus.SCHEDULED&&c.terms().role()==CareerMarketState.Role.DEVELOPMENT&&m.player(c.playerId()).position()==role)||m.offers.values().stream().anyMatch(o->team.equals(o.team())&&o.open()&&o.terms().role()==CareerMarketState.Role.DEVELOPMENT&&m.player(o.playerId()).position()==role))continue;
-                var candidates=m.freeAgents.stream().filter(id->m.player(id).position()==role&&m.availableStart(id,date)!=null&&(m.lifecycle==null||!m.lifecycle.announced(id))).sorted(Comparator.comparingInt((String id)->CareerMarketPolicy.strength(m.player(id))).reversed().thenComparing(id->id)).limit(CareerLifecyclePolicy.YOUNG_CANDIDATES).toList();
-                for(String id:candidates)try{var start=m.availableStart(id,date);m.submit(team,id,new CareerMarketState.Terms(start,start.plusYears(2).minusDays(1),CareerMarketPolicy.demand(m.player(id)),0,CareerMarketState.Role.DEVELOPMENT),null,date);break;}catch(CareerException rejected){/* Existing financial, capacity and consent constraints remain authoritative. */}
-            }
-        }
     }
     public View view(String career,int year){return tx.execute(s->{lockCareer(db,career);return readView(career,year);});}
     private View readView(String career,int year){var roster=saved(db,career,year);if(roster==null)throw CareerException.notFound();boolean enabled=active(db,career,year);String managed="LCK:"+competitions.careerBinding(career).managedTeamCode();

@@ -133,7 +133,7 @@ class CareerModePersistenceTest {
     @Test
     void developmentMigrationPlansDailyMarketOrderAndFileRecovery() throws Exception {
         String url="jdbc:h2:file:"+temporary.resolve("development")+";DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=30000";
-        String id,originalDirectory,receiptJson,developmentJson;com.lolfm.career.CareerDevelopmentStore.Request command;
+        String id,originalDirectory,receiptJson,developmentJson,planningJson;com.lolfm.career.CareerDevelopmentStore.Request command;
         try(var ds=dataSource(url)) {
             Flyway.configure().dataSource(ds).load().migrate();var h=harnessWithCarriedRosters(ds);
             var c=h.careers().create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"성장 저장 확인","감독","T1",UUID.randomUUID().toString())).career().career();id=c.careerId();
@@ -191,10 +191,13 @@ class CareerModePersistenceTest {
             });
             assertThat(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id)).isEqualTo(beforePreparation);
             developmentJson=com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id));
+            var planning=com.lolfm.career.CareerMarketStore.load(h.jdbc(),id).state().squadPlanning();assertThat(planning.lastReview()).isNotNull();
+            planningJson=com.lolfm.career.CareerRosterStore.write(planning);
         }
         try(var ds=dataSource(url)) {
             var jdbc=new JdbcTemplate(ds);var development=new com.lolfm.career.CareerDevelopmentStore(jdbc,new DataSourceTransactionManager(ds),new com.lolfm.champion.ChampionCatalog(new ObjectMapper()));development.recover();
             assertThat(com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerDevelopmentStore.load(jdbc,id))).isEqualTo(developmentJson);
+            assertThat(com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerMarketStore.load(jdbc,id).state().squadPlanning())).isEqualTo(planningJson);
             assertThat(com.lolfm.career.CareerRosterStore.write(development.change(id,command).receipt())).isEqualTo(receiptJson);
             jdbc.update("UPDATE career_player_directory SET development_version=NULL WHERE career_id=?",id);assertThatThrownBy(()->development.view(id,2027)).hasMessage("DEVELOPMENT_INITIALIZATION_CONFLICT");
             jdbc.update("UPDATE career_player_directory SET development_version=? WHERE career_id=?",com.lolfm.career.CareerDevelopmentPolicy.VERSION,id);

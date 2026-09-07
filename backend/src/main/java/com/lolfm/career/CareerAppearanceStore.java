@@ -23,8 +23,9 @@ public final class CareerAppearanceStore {
         var facts=new ArrayList<Opportunity>();
         for(var roster:frozen.teams().values()) {
             String team=CompetitionRosterSnapshot.token(roster.team());var selected=new HashSet<>(roster.players().stream().map(CompetitionRosterSnapshot.Starter::playerId).toList());
-            for(var member:engine.members.values())if(team.equals(member.ownerTeam())&&squad.equals(member.squad())) {
-                var promise=engine.promise(member.playerId(),team,date);if(promise==null&&!selected.contains(member.playerId()))continue;
+            for(var member:engine.members.values())if(team.equals(member.ownerTeam())) {
+                var promise=engine.promise(member.playerId(),team,date);
+                if(!collects(squad,member.squad(),promise,selected.contains(member.playerId())))continue;
                 boolean eligible=engine.eligible(member.playerId(),team,date);String reason=eligible?"CONTRACT_AT_SERIES_START":"OBJECTIVE_CONTRACT_OR_ROLE_INELIGIBILITY";
                 if(competition!=null&&CareerInternationalRules.COMPETITIONS.contains(competition)) {
                     // Bench/non-registration by club choice cannot erase a promise. Joining after registration can.
@@ -38,6 +39,11 @@ public final class CareerAppearanceStore {
         var snapshot=new Appearance("PENDING",identity,series,year,date,0,facts,squad,competition);String json=write(snapshot);
         jdbc.update("INSERT INTO career_appearance_binding VALUES (?,?,?,?,NULL)",career,identity,json,hash(json));
         CareerDevelopmentStore.capture(jdbc,career,identity);
+    }
+    // Contract scope survives a club placement decision; actual selection remains the frozen five.
+    static boolean collects(String matchSquad,String placedSquad,Promise promise,boolean selected) {
+        return selected || promise!=null && (matchSquad.equals(placedSquad)
+                || "FIRST_TEAM".equals(matchSquad) && promise.role()!=CareerMarketState.Role.DEVELOPMENT);
     }
     public static void complete(JdbcTemplate jdbc,String career,String identity,String receipt,int sets) {
         if(sets<1)throw new IllegalArgumentException("COMPLETED_GAME_COUNT_REQUIRED");

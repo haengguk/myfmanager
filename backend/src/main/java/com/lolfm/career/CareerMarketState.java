@@ -7,7 +7,7 @@ import java.util.*;
 public record CareerMarketState(String policyVersion, long seed, LocalDate processedThrough,
         Map<String, Contract> contracts, Map<String, Offer> offers, Map<String, Account> accounts,
         Map<String, Preference> preferences, Set<String> freeAgents, List<Ledger> ledger,
-        Map<String, Decision> decisions, List<Event> events, CareerManagementState management) {
+        Map<String, Decision> decisions, List<Event> events, CareerManagementState management, CareerSquadPlanningPolicy.State squadPlanning) {
     public CareerMarketState {
         if (!CareerMarketPolicy.VERSION.equals(policyVersion)) throw new IllegalArgumentException("MARKET_POLICY");
         contracts=Map.copyOf(contracts); offers=Map.copyOf(offers); accounts=Map.copyOf(accounts);
@@ -18,6 +18,11 @@ public record CareerMarketState(String policyVersion, long seed, LocalDate proce
             Map<String,Offer> offers,Map<String,Account> accounts,Map<String,Preference> preferences,Set<String> freeAgents,
             List<Ledger> ledger,Map<String,Decision> decisions,List<Event> events) {
         this(policyVersion,seed,processedThrough,contracts,offers,accounts,preferences,freeAgents,ledger,decisions,events,null);
+    }
+    public CareerMarketState(String policyVersion,long seed,LocalDate processedThrough,Map<String,Contract> contracts,
+            Map<String,Offer> offers,Map<String,Account> accounts,Map<String,Preference> preferences,Set<String> freeAgents,
+            List<Ledger> ledger,Map<String,Decision> decisions,List<Event> events,CareerManagementState management) {
+        this(policyVersion,seed,processedThrough,contracts,offers,accounts,preferences,freeAgents,ledger,decisions,events,management,null);
     }
     public enum Role { STARTER, RESERVE, DEVELOPMENT }
     public enum ContractStatus { ACTIVE, SCHEDULED, EXPIRED, RELEASED, TRANSFERRED, RETIRED, CANCELLED_RETIREMENT }

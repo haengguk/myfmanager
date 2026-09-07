@@ -15,6 +15,7 @@ function contractEnd(start: string, years: number) { const d = new Date(`${start
 export function CareerMarketPanel({ careerId, year, revision, historical, busy, focusPlayer, onBegin, onChanged }: {
   careerId: string; year: number; revision: number; historical: boolean; busy: boolean; focusPlayer: string | null; onBegin: () => (() => void) | null; onChanged: () => void;
 }) {
+  const [operationTeam, setOperationTeam] = useState('LCK:BRO');
   const [view, setView] = useState<CareerMarket | null>(null), [roster, setRoster] = useState<CareerRoster | null>(null);
   const [selected, setSelected] = useState<string | null>(null), [filter, setFilter] = useState('free'), [search, setSearch] = useState('');
   const [error, setError] = useState<string | null>(null), [pending, setPending] = useState(false), [corrupt, setCorrupt] = useState(false);
@@ -65,6 +66,7 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
     } finally { release(); if (mutation.current === owned) { mutation.current = null; setPending(false); } }
   };
   if (!view || !roster) return <section className="ca-calendar" aria-label="계약과 FA 시장"><p>{error ?? '계약과 FA 시장 확인 중…'}</p></section>;
+  const operationClub = view.finances.some(f => f.team === operationTeam && f.team !== view.managedTeam) ? operationTeam : view.finances.find(f => f.team !== view.managedTeam)?.team ?? '';
   const names = roster.directory.players, member = selected ? roster.state.members[selected] : null;
   const name = (id: string | null) => id ? names[id]?.nickname ?? id : '—';
   const player = view.players.find(p => p.playerId === selected), own = player?.currentContractId ? view.contracts.find(c => c.contractId === player.currentContractId) : null;
@@ -91,6 +93,15 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
       <details><summary>이 선수의 계약 이력 · 경쟁 제안</summary>{view.contracts.filter(c => c.playerId === selected).map(c => <p key={c.contractId}>{statusName(c.status)} · {c.team ?? c.organizationId} · {c.terms.startDate}~{c.terms.endDate} · 연봉 {money(c.terms.annualSalary)} · 계약금 {money(c.terms.signingBonus)}</p>)}{selectedOffers.map(o => <p key={o.offerId}>{o.team} · {statusName(o.status)} · 연봉 {money(o.terms.annualSalary)} · {roleName(o.terms.role)} · 결정일 {o.decisionDate} · {o.reason}</p>)}</details>
     </div> : <p>선수를 선택해 현재 계약과 실제 협상 조건을 확인하세요.</p>}
     <details><summary>보충등록 기록</summary>{view.supplements.filter(s => s.team === view.managedTeam).map(s => <p key={`${s.competitionId}:${s.revision}`}>{s.date} · {s.competitionId} · {name(s.playerId)} ({s.position}) · 등록 변경 {s.revision}회 · 해당 포지션의 유효한 등록 대체 선수 없음</p>)}</details><h3>우리 구단의 제안과 선수 응답</h3>{ownOffers.length ? ownOffers.slice(0, 20).map(o => <div key={o.offerId}><p>{name(o.playerId)} · {statusName(o.status)} · 응답 {o.responseDate} / 결정 {o.decisionDate} · {o.reason}{o.requestedSalary ? ` 요구 연봉 ${money(o.requestedSalary)}` : ''}</p>{['SUBMITTED', 'COUNTER'].includes(o.status) ? <><button className="lm-secondary-button" disabled={disabled} onClick={() => pick(o.playerId, o)}>조건 수정</button> <button className="lm-text-button" disabled={disabled} onClick={() => { void execute('WITHDRAW', o.offerId); }}>제안 철회</button></> : null}</div>) : <p>제출한 제안이 없습니다.</p>}
+    <details><summary>AI 구단 선수단 운영</summary>
+      <label>운영 구단 <select value={operationClub} onChange={e => setOperationTeam(e.target.value)}>{view.finances.filter(f => f.team !== view.managedTeam).map(f => <option key={f.team} value={f.team}>{f.team}</option>)}</select></label>
+      <p>현재 1군 선발: {(roster.state.lineups[operationClub] ?? []).map(name).join(' · ') || '미확정'}</p>
+      <p>현재 육성 배치: {Object.values(roster.state.members).filter(m => m.ownerTeam === operationClub && m.squad === 'DEVELOPMENT').map(m => name(m.playerId)).join(' · ') || '없음'}</p>
+      <p>60일 이내 만료: {view.contracts.filter(c => c.team === operationClub && c.status === 'ACTIVE' && Date.parse(c.terms.endDate) - Date.parse(view.currentDate) <= 60 * 86400000).map(c => `${name(c.playerId)} (${c.terms.endDate})`).join(' · ') || '없음'}</p>
+      <p>기존 선발 유지와 필요한 보완을 주간 검토합니다. 협상 중인 상대 구단의 후보와 조건은 공개하지 않습니다.</p>
+      {(view.squadOperations ?? []).filter(o => o.team === operationClub).slice(0, 30).map(o => <p key={o.id}>{o.date} · {o.squad === 'DEVELOPMENT' ? '육성팀' : '1군'} {o.position} · {({ APPLIED: '적용 완료', RETAINED: '유지', DEFERRED: '보류', PLANNED: '계획 중', PROPOSED: '제안 중', AWAITING_CONSENT: '동의 대기', AGREED: '합의 완료', CLOSED: '협상 종료' }[o.status] ?? o.status)}{o.playerId ? ` · ${o.previousPlayerId ? `${name(o.previousPlayerId)} → ` : ''}${name(o.playerId)}` : ''}{o.effectiveDate ? ` · 효력 ${o.effectiveDate}` : ''} · {o.reason}</p>)}
+      {!(view.squadOperations ?? []).some(o => o.team === operationClub) ? <p>아직 기록된 운영 판단이 없습니다.</p> : null}
+    </details>
     <details><summary>시장 결과 · AI 구단 이동과 선택 이유</summary>{view.events.slice(0, 60).map(e => <p key={e.eventId}>{e.date} · {eventName(e.kind)} · {name(e.playerId)} · {e.team ?? ''} · {e.reason}</p>)}{view.decisions.slice(0, 15).map(d => <p key={d.eventId}>{d.date} {name(d.playerId)}: {d.reason}</p>)}</details>
     <details><summary>구단 지급·미지급 내역</summary><p>미지급 급여 발생액은 현금 수입이 아닌 지급 의무입니다. 실제 정산 지출과 구분합니다.</p>{view.ledger.slice(0, 30).map(l => <p key={l.entryId}>{l.date} · {({ SALARY: '급여', SALARY_ACCRUED: '미지급 급여 발생 (현금 수입 아님)', SALARY_ARREARS_PAYMENT: '미지급 급여 정산', SIGNING_BONUS: '계약금', RELEASE_COST: '해지 비용', TRANSFER_FEE_PAID: '이적료 지급', TRANSFER_FEE_RECEIVED: '이적료 수입', LOAN_FEE_PAID: '임대료 지급', LOAN_FEE_RECEIVED: '임대료 수입', LOAN_SALARY_PARENT: '임대 원소속 급여 분담', LOAN_SALARY_BORROWER: '임대 구단 급여 분담', INITIAL_ALLOCATION: '초기 예산', ANNUAL_ALLOCATION: '연간 예산' }[l.kind] ?? '계약 지급')} · {money(l.amount)}</p>)}</details>
     <CareerTransferPanel view={view} roster={roster} selected={selected} disabled={disabled} onBegin={onBegin} onResult={next => { setView(next); onChanged(); }} />

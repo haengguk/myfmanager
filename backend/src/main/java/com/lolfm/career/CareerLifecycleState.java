@@ -17,12 +17,18 @@ public record CareerLifecycleState(String policyVersion,LocalDate appliedOn,Inte
         public Person peak(int ca) {return new Person(age,source,intakeYear,introducedOn,Math.max(peakCA,ca),peakObservedSince,status,announcedOn,effectiveOn,reason,declineRemainder,declineCursor,noAppearanceSeasons,lastReviewYear,lastCoverage,freeAgentSince,domesticObservedSince,observedSquad);}
         public Person freeAgent(LocalDate since) {return new Person(age,source,intakeYear,introducedOn,peakCA,peakObservedSince,status,announcedOn,effectiveOn,reason,declineRemainder,declineCursor,noAppearanceSeasons,lastReviewYear,lastCoverage,since,domesticObservedSince,observedSquad);}
         public Person domesticSince(LocalDate since) {return domesticSince(since,since==null?null:"FIRST_TEAM");}
-        public Person domesticSince(LocalDate since,String squad) {return new Person(age,source,intakeYear,introducedOn,peakCA,peakObservedSince,status,announcedOn,effectiveOn,reason,declineRemainder,declineCursor,since==null?0:noAppearanceSeasons,lastReviewYear,lastCoverage,freeAgentSince,since,squad);}
+        public Person domesticSince(LocalDate since,String squad) {return new Person(age,source,intakeYear,introducedOn,peakCA,peakObservedSince,status,announcedOn,effectiveOn,reason,declineRemainder,declineCursor,since==null||!Objects.equals(squad,observedSquad)?0:noAppearanceSeasons,lastReviewYear,lastCoverage,freeAgentSince,since,squad);}
         public Person appeared() {return new Person(age,source,intakeYear,introducedOn,peakCA,peakObservedSince,status,announcedOn,effectiveOn,reason,declineRemainder,declineCursor,0,lastReviewYear,lastCoverage,freeAgentSince,domesticObservedSince,observedSquad);}
         public Person retired() {return new Person(age,source,intakeYear,introducedOn,peakCA,peakObservedSince,Status.RETIRED,announcedOn,effectiveOn,reason,declineRemainder,declineCursor,noAppearanceSeasons,lastReviewYear,lastCoverage,null,null);}
     }
     public record Observation(String coverage,int opportunities,int starts,int sets,LocalDate from,LocalDate through) {
-        public boolean full(){return "FULL_DOMESTIC_SEASON".equals(coverage)||"FULL_DEVELOPMENT_SEASON".equals(coverage);}
+        public boolean full(){return full(coverage);}
+        public static boolean full(String coverage){return "FULL_DOMESTIC_SEASON".equals(coverage)||"FULL_DEVELOPMENT_SEASON".equals(coverage);}
+        public int consecutiveEmpty(Person previous,int year) {
+            if(!full()||sets>0)return 0;
+            return previous.lastReviewYear()!=null&&previous.lastReviewYear()==year-1&&full(previous.lastCoverage())
+                    ?previous.noAppearanceSeasons()+1:1;
+        }
     }
     public record Change(String playerId,int age,int beforeCA,int afterCA,int declineBudget,int appliedDecline,int carriedDecline,int limitedDecline,
             Map<String,Integer> signedSkillDeltas,Observation observation,int retirementProbability,int retirementRoll,String outcome,

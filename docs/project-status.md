@@ -2,6 +2,23 @@
 
 이 문서는 2026-09-07 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career AI 1군·CL 선수단 계획 V1 (2026-09-07)
+
+1군 STARTER 약속을 유지한 CL 강등의 미선발 기회 누락과 CL 연속 무출전 시즌 누적을
+수정했다. 사용자 구단을 제외한 55개 구단이 현재 성장 능력치·제한된 숙련도·계약 효력과
+적격 대체자를 공통 주간 계획으로 판단한다. 기존 FA·재계약·유료 이적·임대·선수 동의와
+재정 검사에 연결하며 활성 LCK는 두 선수단을 보전한다. PA/피로 선발 평가는 추가하지 않는다.
+
+현재 명부를 보존하고 월요일에 필요한 변경을 실행한다. 정상 선발의 작은 기량 차이는 유지하며,
+실제 자격 공백만 날짜 처리에서 긴급 보완한다. 계획 이력·28일 대기·중복 방지는 기존 시장
+JSON/transaction에 저장하고, 기존 Career 계약 화면에서 공개 가능한 실제 운영 이력을 제공한다.
+
+시장 40건과 실제 Calendar/capture 2건, 최종 정책·파일 재시작 7건, 프런트 92건/build가 통과했다.
+격리 Career 브라우저에서 T1의 Guardian 승격과 새로고침 후 저장 이력을 확인했다.
+전체 백엔드 회귀 1회는 **270 suites / 총 2,104건 / 2,102 통과 / 실패·오류 0 / 기존 skip 2**,
+**34분 50초**로 통과했다. 상세 정책·실제 사례·검증 구분은
+[AI 선수단 계획 보고서](development/career-ai-first-team-cl-squad-planning-v1.md)에 기록했다.
+
 ## Career 선행 수정·LCK CL V1 (2026-09-07)
 
 신인 상위 PA 배정의 순회 순서 편향과 생성 이름을 개선하고, 7개 순수 성장 모델의

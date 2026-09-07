@@ -1617,3 +1617,35 @@ CL 작업 최종 집계: 전체 1회 **269 suites / 2,094 tests / 2,087 통과 /
 뒤이어 사용자 수정 이름 판별과 구형 훈련 요청 payload hash 복구를 보완했고, 기존 이름 정책/
 file DB 메서드 3개가 **3/3, 2분 36초**로 통과했다. 영향 범위가 제한된 조건·저장 경계로
 확인돼 두 번째 전체는 실행하지 않았다. 최종 트리의 clean full 결과로 표기하지 않는다.
+
+
+## Career 선행 A/B·AI 1군·CL 계획 V1 (2026-09-07)
+
+새 테스트는 `CareerSquadPlanningPolicyTest` 1개다. 기존 시장/생애주기/CL 실행/파일 DB
+테스트를 확장해 약속 기회와 실제 출전 보상 분리, 연속 CL 관찰, 승격/유지/대체자 부재,
+현재 기량의 PA·피로 독립, 공통 제안 상한, 동의 후 재계약, 임대 반환 전망을 확인한다.
+대표 통합은 저장 능력치를 준비한 뒤 실제 Calendar → AI 승격/CL 보완 → 다음 League
+고정 입력까지이며, 성장 수년이나 Player/Auto 경기 전체를 추가 실행하지 않는다.
+
+```bash
+# backend/; 사용할 JDK를 JAVA_HOME에 지정한다.
+./gradlew test --tests 'com.lolfm.career.CareerSquadPlanningPolicyTest' \
+  --tests 'com.lolfm.career.CareerMarketEngineTest' \
+  --tests 'com.lolfm.career.CareerLifecyclePolicyTest.fullClEmptySeasonsAccumulateAndInterruptedEvidenceResets' \
+  --tests 'com.lolfm.career.CareerClExecutionTest.demotedStarterRemainsInActualCaptureWithoutClPromiseOrGrowthCredit' \
+  --tests 'com.lolfm.career.CareerClExecutionTest.weeklyAiPromotionUsesSavedGrowthAndNextFrozenInputAtomically' \
+  --tests 'com.lolfm.league.CareerModePersistenceTest.developmentMigrationPlansDailyMarketOrderAndFileRecovery' \
+  --console=plain --no-daemon
+```
+
+위는 직접 영향 범위의 재현용 선택이다. 실제 단계별 실행은 선행 2건, 시장 40건/Calendar·capture
+2건 통과 및 최종 정책·파일 재시작 7건 통과로 구분하며 중복 건수를 하나로 합치지 않는다.
+`frontend/`의 `npm run career:verify` 92건과 `npm run build`, 격리 Career의
+운영 이력 조회·새로고침 대표 브라우저 흐름을 확인했다. 계획된 전체 1회의 원본 결과와
+실패 교정/시간은 [AI 계획 보고서](career-ai-first-team-cl-squad-planning-v1.md)에 별도로 기록한다.
+
+
+AI 계획 작업의 전체 결과는 **1회 / 270 suites / 2,104 tests / 통과 2,102 / 실패·오류 0 /
+기존 skip 2 / 34분 50초**다. 최종 제품 코드에서 통과했으며 이후 문서만 갱신했다.
+원본 로그와 XML/집계는 `/tmp/career-ai-full-evidence/`에 보존했다. 전체 후 수정이나
+두 번째 전체 실행은 없었다. 기존 진단 제외와 Gradle 설정은 변경하지 않았다.

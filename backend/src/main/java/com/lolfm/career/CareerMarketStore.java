@@ -40,7 +40,7 @@ public final class CareerMarketStore {
             LocalDate currentDate,long revision,boolean readOnly,String managedTeam,boolean offseason,
             LocalDate nextMarketEvent,List<PlayerMarket> players,List<Contract> contracts,List<Offer> offers,
             List<Finance> finances,List<Decision> decisions,List<Event> events,List<Ledger> ledger,
-            Map<String,List<String>> missingPositions,List<Supplement> supplements,List<String> allowedCommands,String registrationPolicy,ManagementView management) {}
+            Map<String,List<String>> missingPositions,List<Supplement> supplements,List<String> allowedCommands,String registrationPolicy,ManagementView management,List<CareerSquadPlanningPolicy.Decision> squadOperations) {}
     public static Saved load(JdbcTemplate jdbc,String career) {
         var rows=jdbc.query("SELECT revision,state_json,state_hash FROM career_market_state WHERE career_id=?",(r,n)->{
             if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("MARKET_STATE_INTEGRITY");
@@ -76,7 +76,19 @@ public final class CareerMarketStore {
     }
     static CareerMarketEngine engine(JdbcTemplate jdbc,String career,int year,Saved market) {
         var engine=new CareerMarketEngine(career,managed(jdbc,career),directory(jdbc,career),CareerRosterStore.saved(jdbc,career,year).state(),market.state());
-        var life=CareerLifecycleStore.load(jdbc,career);engine.clEnabled=CareerClStore.active(jdbc,career,year);if(life!=null){engine.lifecycle=new CareerLifecycleEngine(life);engine.lifecycle.clEnabled=engine.clEnabled;}return engine;
+        var life=CareerLifecycleStore.load(jdbc,career);engine.clEnabled=CareerClStore.active(jdbc,career,year);if(life!=null){engine.lifecycle=new CareerLifecycleEngine(life);engine.lifecycle.clEnabled=engine.clEnabled;}
+        engine.developmentYear=year;engine.developmentFixtures=CareerDevelopmentStore.fixtures(jdbc,career);
+        if(engine.clEnabled&&jdbc.queryForObject("SELECT COUNT(*) FROM career_cl_state WHERE career_id=? AND season_year=?",Integer.class,career,year)>0)
+            engine.clLineups.putAll(CareerClStore.load(jdbc,career,year).lineups());
+        jdbc.query("SELECT snapshot_json,snapshot_hash,applied_receipt FROM career_appearance_binding WHERE career_id=?",(org.springframework.jdbc.core.RowCallbackHandler)r->{
+            if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("APPEARANCE_SNAPSHOT_INTEGRITY");
+            var a=read(r.getString(1),CareerManagementState.Appearance.class);
+            if(r.getString(3)==null||!a.date().isBefore(market.state().processedThrough()))for(var o:a.opportunities())if(o.selected())engine.squadRestrictions.add(new CareerSquadPlanner.Restriction(o.playerId(),a.squad(),a.date(),r.getString(3)==null));
+        },career);
+        jdbc.query("SELECT p.competition_id,p.pool_json,p.pool_hash FROM career_registered_player_pool p JOIN career_competition_instance i ON i.career_id=p.career_id AND i.calendar_season_year=p.season_year AND i.competition_id=p.competition_id WHERE p.career_id=? AND p.season_year=? AND i.lifecycle_status<>'COMPLETED'",(org.springframework.jdbc.core.RowCallbackHandler)r->{
+            String competition=r.getString(1);if(CareerInternationalRules.COMPETITIONS.contains(competition))pool(r.getString(2),r.getString(3)).forEach((team,ids)->engine.internationalPools.put(team+'|'+competition,Set.copyOf(ids)));
+        },career,year);
+        return engine;
     }
     public static boolean exists(JdbcTemplate jdbc,String career) {return jdbc.queryForObject("SELECT COUNT(*) FROM career_market_state WHERE career_id=?",Integer.class,career)>0;}
     public record Eligibility(boolean enabled,Map<String,String> employers) {
@@ -148,7 +160,7 @@ public final class CareerMarketStore {
         if(historical) {
             var snapshot=jdbc.query("SELECT market_json,closed_date,roster_json FROM career_market_season_close WHERE career_id=? AND season_year=?",(r,n)->List.of(r.getString(1),r.getObject(2,LocalDate.class).toString(),r.getString(3)),career,year);
             if(!snapshot.isEmpty()){state=read(snapshot.getFirst().get(0),CareerMarketState.class);date=LocalDate.parse(snapshot.getFirst().get(1));roster=new CareerRosterStore.Saved(roster.revision(),read(snapshot.getFirst().get(2),CareerRosterStore.State.class));}
-            else return new View("CAREER_MARKET_VIEW_V1",CareerMarketPolicy.VERSION,CareerMarketPolicy.CURRENCY,career,year,date,saved.revision(),true,managed(jdbc,career),false,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),Map.of(),List.of(),List.of(),"이주 전 시즌에는 게임 계약 이력이 없습니다. 공개 조사 계약은 선수 상세에서 확인하세요.",null);
+            else return new View("CAREER_MARKET_VIEW_V1",CareerMarketPolicy.VERSION,CareerMarketPolicy.CURRENCY,career,year,date,saved.revision(),true,managed(jdbc,career),false,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),Map.of(),List.of(),List.of(),"이주 전 시즌에는 게임 계약 이력이 없습니다. 공개 조사 계약은 선수 상세에서 확인하세요.",null,List.of());
         }
         String managed=managed(jdbc,career);var directory=historical?CareerDevelopmentStore.historicalDirectory(jdbc,career,year):directory(jdbc,career);
         var engine=new CareerMarketEngine(career,managed,directory,roster.state(),state);
@@ -175,7 +187,7 @@ public final class CareerMarketStore {
                 state.ledger().stream().filter(l->managed.equals(l.team())).sorted(Comparator.comparing(Ledger::date).reversed()).limit(100).toList(),gaps,
                 jdbc.query("SELECT competition_id,team,player_id,position,added_date,revision,reason FROM career_registration_supplement WHERE career_id=? AND season_year=? ORDER BY competition_id,revision",(r,n)->new Supplement(r.getString(1),r.getString(2),r.getString(3),r.getString(4),r.getObject(5,LocalDate.class),r.getLong(6),r.getString(7)),career,year),
                 historical?List.of():List.of("SUBMIT","REVISE","WITHDRAW","RELEASE","SUPPLEMENT","OPEN_STOVE"),
-                "영입 후 선발은 별도 선택합니다. 등록 밖 선수는 다음 등록부터 적용하며, 유효한 등록 대체자가 전혀 없는 포지션만 명시적 보충등록할 수 있습니다. 시작된 Series는 유지됩니다.",managementView(engine,year,historical,managed,date));
+                "영입 후 선발은 별도 선택합니다. 등록 밖 선수는 다음 등록부터 적용하며, 유효한 등록 대체자가 전혀 없는 포지션만 명시적 보충등록할 수 있습니다. 시작된 Series는 유지됩니다.",managementView(engine,year,historical,managed,date),engine.planner.publicDecisions());
     }
     private ManagementView managementView(CareerMarketEngine engine,int year,boolean historical,String managed,LocalDate date) {
         var state=engine.management();var quotes=new ArrayList<TradeQuote>();

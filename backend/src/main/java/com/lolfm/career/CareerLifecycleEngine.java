@@ -58,22 +58,4 @@ final class CareerLifecycleEngine {
             m.event(date,"RETIREMENT_EFFECTIVE",id,null,id+"|"+p.effectiveOn(),"은퇴 효력 · 마지막 급여 포함일 "+last+" · 기존 경기·계약·선수 기록 보존");
         }
     }
-    void youthProposals(CareerMarketEngine m,LocalDate date) {
-        for(String team:m.accounts.keySet()) {
-            if(team.equals(m.managed)||m.clEnabled&&team.startsWith("LCK:"))continue;
-            long held=m.contracts.values().stream().filter(c->team.equals(c.team())&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)&&c.terms().role()!=Role.STARTER&&people.containsKey(c.playerId())&&CareerLifecyclePolicy.age(people.get(c.playerId()).age(),date)<=20).count();
-            if(held>=CareerLifecyclePolicy.YOUNG_SLOTS||m.offers.values().stream().anyMatch(o->team.equals(o.team())&&o.open()&&o.terms().role()!=Role.STARTER))continue;
-            var account=m.accounts.get(team);long committed=m.contracts.values().stream().filter(c->team.equals(c.team())&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)&&c.terms().role()!=Role.STARTER).mapToLong(c->c.terms().annualSalary()).sum();
-            var candidates=m.freeAgents.stream().filter(id->!announced(id)&&people.containsKey(id)&&CareerLifecyclePolicy.age(people.get(id).age(),date)<=20&&m.availableStart(id,date)!=null)
-                .filter(id->m.members.values().stream().filter(v->team.equals(v.ownerTeam())&&m.player(v.playerId()).position()==m.player(id).position()).count()<2)
-                .filter(id->!m.offers.values().stream().anyMatch(o->team.equals(o.team())&&id.equals(o.playerId())&&!date.isAfter(o.decisionDate())))
-                .sorted(Comparator.comparingInt((String id)->CareerMarketPolicy.strength(m.player(id))).reversed().thenComparingInt(id->CareerLifecyclePolicy.age(people.get(id).age(),date)).thenComparing(id->id)).limit(CareerLifecyclePolicy.YOUNG_CANDIDATES).toList();
-            for(String id:candidates) {
-                long salary=CareerMarketPolicy.demand(m.player(id))*CareerLifecyclePolicy.YOUNG_SALARY_PERCENT/100;if(committed+salary>account.annualBudget()*CareerLifecyclePolicy.YOUNG_BUDGET_PERCENT/100)continue;
-                var start=m.availableStart(id,date);Role role=m.developmentOrganization(team)==null?Role.RESERVE:Role.DEVELOPMENT;
-                try{m.submit(team,id,new Terms(start,start.plusYears(CareerLifecyclePolicy.YOUNG_CONTRACT_YEARS).minusDays(1),salary,0,role),null,date);break;}
-                catch(CareerException ineligible){/* Bounded next candidate under existing budget and consent rules. */}
-            }
-        }
-    }
 }
