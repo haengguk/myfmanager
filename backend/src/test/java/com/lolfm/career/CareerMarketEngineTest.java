@@ -360,4 +360,31 @@ class CareerMarketEngineTest {
         var completed=a.management().trades().values().stream().filter(t->t.terms().playerId().equals("player-jiwoo")&&t.status()==CareerManagementState.TradeStatus.COMPLETED).toList();assertThat(completed).hasSize(1);
         assertThat(a.reservedCash("LCK:T1")).isZero();assertThat(a.reservedCash("LCK:HLE")).isZero();
     }
+    @ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void retirementSettlesLoanAndExpiryOnceWithoutResurrection(boolean sameExpiry) {
+        var e=engine("LCK:KT");var t=transfer(e,"player-jiwoo","LCK:T1",CareerManagementState.Kind.LOAN,100,25000);
+        var offer=e.tradeEngine.submit("LCK:T1",t,null,DATE);e.tradeEngine.respond("LCK:KT",offer.tradeId(),"ACCEPT",null,DATE);e.advance(t.startDate());
+        String id=t.playerId();var c=e.active(id,t.startDate());var end=t.endDate();
+        if(sameExpiry){c=new Contract(c.contractId(),c.careerId(),id,c.team(),c.organizationId(),c.signedDate(),new Terms(c.terms().startDate(),end,c.terms().annualSalary(),0,c.terms().role()),c.status(),c.revision(),c.policyVersion(),c.origin(),c.terminationPolicy(),null,c.paidThrough());e.contracts.put(c.contractId(),c);}
+        var age=new CareerLifecycleState.Age(null,LocalDate.of(1990,1,1),"TEST_GAME_AGE",DATE,DATE);
+        var person=new CareerLifecycleState.Person(age,"AUTHORED",null,DATE,150,DATE,CareerLifecycleState.Status.RETIREMENT_ANNOUNCED,t.startDate(),end.plusDays(1),"합성 은퇴 경계",0,0,0,null,"UNOBSERVED",null);
+        e.lifecycle=new CareerLifecycleEngine(new CareerLifecycleState(CareerLifecyclePolicy.VERSION,DATE,null,Map.of(id,person)));
+        e.lifecycle.cancelReservations(e,id,t.startDate());e.advance(end.plusDays(1));
+        assertThat(e.lifecycle.retired(id)).isTrue();assertThat(e.active(id,end.plusDays(1))).isNull();assertThat(e.freeAgents).doesNotContain(id);assertThat(e.lineups.values()).allMatch(ids->!ids.contains(id));assertThat(e.members.get(id).eligibilityReason()).isEqualTo("RETIRED");
+        String contract=c.contractId();long salary=-e.ledger.stream().filter(l->contract.equals(l.contractId())&&Set.of("SALARY","LOAN_SALARY_PARENT","LOAN_SALARY_BORROWER").contains(l.kind())).mapToLong(Ledger::amount).sum();
+        assertThat(salary).isEqualTo(wages(c.terms().annualSalary(),DATE,end));assertThat(e.contracts.get(contract).paidThrough()).isEqualTo(end);
+        var once=e.state();var life=e.lifecycle.state();e.advance(end.plusDays(1));assertThat(e.state()).isEqualTo(once);assertThat(e.lifecycle.state()).isEqualTo(life);
+        var restored=new CareerMarketEngine(e.career,e.managed,directory,e.roster(),CareerRosterStore.read(CareerRosterStore.write(once),CareerMarketState.class));restored.lifecycle=new CareerLifecycleEngine(CareerRosterStore.read(CareerRosterStore.write(life),CareerLifecycleState.class));restored.advance(end.plusDays(2));assertThat(restored.eligible(id,"LCK:KT",end.plusDays(2))).isFalse();assertThat(restored.availableStart(id,end.plusDays(2))).isNull();
+    }
+    @Test void retirementCancelsFutureContractAndUnpaidTradeReservation() {
+        var e=engine("LCK:T1");var start=e.availableStart("player-bo",DATE).plusDays(2);var o=e.submit("LCK:T1","player-bo",new Terms(start,start.plusYears(1).minusDays(1),400000,10000,Role.RESERVE),null,DATE);
+        var t=transfer(e,"player-jiwoo","LCK:T1",CareerManagementState.Kind.TRANSFER,135,220000);var trade=e.tradeEngine.submit("LCK:T1",t,null,DATE);
+        e.advance(o.decisionDate());var scheduled=e.scheduled("player-bo");assertThat(scheduled).isNotNull();
+        var people=new TreeMap<String,CareerLifecycleState.Person>();for(String id:List.of("player-bo","player-jiwoo")){var age=CareerLifecyclePolicy.ageProfile(directory.players().get(id),41,DATE);people.put(id,new CareerLifecycleState.Person(age,"AUTHORED",null,DATE,150,DATE,CareerLifecycleState.Status.RETIREMENT_ANNOUNCED,o.decisionDate(),start,"합성 미래 예약 경계",0,0,0,null,"UNOBSERVED",null));}
+        e.lifecycle=new CareerLifecycleEngine(new CareerLifecycleState(CareerLifecyclePolicy.VERSION,DATE,null,people));var ledger=List.copyOf(e.ledger);
+        for(String id:people.keySet())e.lifecycle.cancelReservations(e,id,o.decisionDate());
+        assertThat(e.contracts.get(scheduled.contractId()).status()).isEqualTo(ContractStatus.CANCELLED_RETIREMENT);assertThat(e.tradeEngine.trades.get(trade.tradeId()).status()).isEqualTo(CareerManagementState.TradeStatus.CANCELLED_RETIREMENT);
+        assertThat(e.ledger).isEqualTo(ledger);assertThat(e.reservedCash("LCK:T1")).isZero();e.advance(start);assertThat(e.active("player-bo",start)).isNull();assertThat(e.lifecycle.retired("player-bo")).isTrue();
+    }
+
 }

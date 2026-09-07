@@ -16,17 +16,18 @@ public final class CareerDevelopmentEngine {
     final Map<String,Schedule> teams=new TreeMap<>();
     final Map<String,Gain> gains=new TreeMap<>();
     final Map<String,Gain> monthly=new TreeMap<>();
+    final Set<String> retired=new HashSet<>();
     final LocalDate initialized;LocalDate next;
     public CareerDevelopmentEngine(CareerRosterStore.Directory base,CareerDevelopmentState state) {
         this.base=base;players.putAll(state.players());teams.putAll(state.teamPlans());state.gains().forEach(g->gains.put(g.date()+"|"+g.playerId(),g));monthly.putAll(state.monthly());
         initialized=state.initializedOn();next=state.nextSettlement();
         if(!VERSION.equals(state.policyVersion())||!INITIALIZATION.equals(state.initializationVersion())||!players.keySet().equals(base.players().keySet()))throw new IllegalStateException("DEVELOPMENT_STATE_REFERENCE");
-        base.players().forEach((id,p)->metadata.put(id,metadata(p)));
+        base.players().forEach((id,p)->{metadata.put(id,metadata(p));if("RETIRED".equals(CareerRosterStore.read(p.detailsJson(),com.fasterxml.jackson.databind.JsonNode.class).path("careerLifecycleStatus").asText()))retired.add(id);});
         for(var entry:players.entrySet()) {
             var p=entry.getValue();var d=base.players().get(entry.getKey());
             if(!p.internalRatings().keySet().equals(d.gameplay().ratings().keySet())||p.internalRatings().values().stream().anyMatch(v->v<UNIT||v>MAX)
                 ||p.internalProficiencies().values().stream().anyMatch(v->v<UNIT||v>MAX)||p.fatigue()<0||p.fatigue()>1000||p.remainder()<0||p.remainder()>=1_000_000_000_000L
-                ||p.cursors().values().stream().anyMatch(c->c.index()<0||c.filled()<0||c.filled()>=UNIT))throw new IllegalStateException("DEVELOPMENT_STATE_RANGE");
+                ||p.growthSubRemainder()<0||p.growthSubRemainder()>11||p.cursors().values().stream().anyMatch(c->c.index()<0||c.filled()<0||c.filled()>=UNIT))throw new IllegalStateException("DEVELOPMENT_STATE_RANGE");
         }
     }
     public static CareerDevelopmentState initial(CareerRosterStore.Directory base,LocalDate date) {
@@ -59,6 +60,7 @@ public final class CareerDevelopmentEngine {
         if(!date.equals(next))throw new IllegalStateException("DEVELOPMENT_SETTLEMENT_ORDER");
         teams.replaceAll((team,s)->activate(s,date,team));
         for(String id:players.keySet()) {
+            if(retired.contains(id))continue;
             var old=players.get(id);var member=members.get(id);String team=member==null?null:member.ownerTeam();
             var current=copy(old,old.fatigue(),old.playedOn(),activate(old.override(),date,team));players.put(id,current);
             var plan=effective(id,managed,member,date,team==null?List.of():fixtures.getOrDefault(team,List.of()));
@@ -67,7 +69,7 @@ public final class CareerDevelopmentEngine {
         next=date.plusDays(1);gains.values().removeIf(g->g.date().isBefore(next.minusDays(30)));
     }
     public void game(String id,String champion,com.lolfm.domain.Position role,LocalDate date,int year) {
-        if(!date.equals(next)||!players.containsKey(id)||base.players().get(id).position()!=role)throw new IllegalStateException("DEVELOPMENT_COMPLETION_SCOPE");
+        if(retired.contains(id)||!date.equals(next)||!players.containsKey(id)||base.players().get(id).position()!=role)throw new IllegalStateException("DEVELOPMENT_COMPLETION_SCOPE");
         var old=players.get(id);var result=CareerDevelopmentPolicy.game(old,base.players().get(id),metadata.get(id),date,champion);
         record(id,date,old,result,year);players.put(id,result);
     }

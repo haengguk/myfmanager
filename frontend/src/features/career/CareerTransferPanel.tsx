@@ -4,7 +4,7 @@ import type { CareerMarket, MarketRole } from './api/careerMarket.contract';
 import type { CareerRoster } from './api/careerRoster.contract';
 import { readTradeOperation, tradeOperationKey, validateTradeCommand } from './api/careerManagement.contract';
 import type { Negotiation, TradeCommand, TradeTerms } from './api/careerManagement.contract';
-const names: Record<string, string> = { CLUB_PENDING: '상대 구단 검토', CLUB_COUNTER: '구단 역제안', PLAYER_PENDING: '선수 결정 대기', AGREED: '합의 완료·적용일 대기', COMPLETED: '거래 완료', REJECTED: '거절', WITHDRAWN: '철회', EXPIRED: '만료', SUPERSEDED: '수정안으로 대체' };
+const names: Record<string, string> = { CLUB_PENDING: '상대 구단 검토', CLUB_COUNTER: '구단 역제안', PLAYER_PENDING: '선수 결정 대기', AGREED: '합의 완료·적용일 대기', COMPLETED: '거래 완료', REJECTED: '거절', WITHDRAWN: '철회', EXPIRED: '만료', SUPERSEDED: '수정안으로 대체', CANCELLED_RETIREMENT: '은퇴 발표로 취소' };
 const addDays = (date: string, days: number) => { const d = new Date(`${date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); };
 export function CareerTransferPanel({ view, roster, selected, disabled, onBegin, onResult }: { view: CareerMarket; roster: CareerRoster; selected: string | null; disabled: boolean; onBegin: () => (() => void) | null; onResult: (view: CareerMarket) => void }) {
   const [kind, setKind] = useState<TradeTerms['kind']>('TRANSFER'), [buyer, setBuyer] = useState(''), [start, setStart] = useState(''), [end, setEnd] = useState('');

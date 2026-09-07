@@ -13,7 +13,7 @@ public final class CareerAppearanceStore {
             String competition,CompetitionRosterSnapshot frozen) {
         if(frozen==null||!CareerMarketStore.exists(jdbc,career))return;
         if(jdbc.queryForObject("SELECT COUNT(*) FROM career_appearance_binding WHERE career_id=? AND fixture_identity=?",Integer.class,career,identity)>0)return;
-        var saved=CareerMarketStore.load(jdbc,career);var engine=CareerMarketStore.engine(jdbc,career,year,saved);LocalDate date=CareerMarketStore.date(jdbc,career);
+        var saved=CareerMarketStore.load(jdbc,career);var engine=CareerMarketStore.engine(jdbc,career,year,saved);LocalDate date=saved.state().processedThrough();
         var registration=competition==null?List.<LocalDate>of():jdbc.query("SELECT registered_date FROM career_opportunity_registration WHERE career_id=? AND season_year=? AND competition_id=?",(r,n)->r.getObject(1,LocalDate.class),career,year,competition);
         Map<String,List<String>> registered=new HashMap<>();
         if(competition!=null)jdbc.query("SELECT pool_json,pool_hash FROM career_registered_player_pool WHERE career_id=? AND season_year=? AND competition_id=?",
@@ -47,6 +47,7 @@ public final class CareerAppearanceStore {
         var row=rows.getFirst();if(row.receipt()!=null){if(!row.receipt().equals(receipt))throw new IllegalStateException("APPEARANCE_RECEIPT_CONFLICT");return;}
         var old=CareerMarketStore.load(jdbc,career);int year=activeYear(jdbc,career);var engine=CareerMarketStore.engine(jdbc,career,year,old);var a=row.snapshot();
         engine.applyAppearance(new Appearance(receipt,a.fixtureId(),a.seriesId(),a.seasonYear(),a.date(),sets,a.opportunities()));
+        if(engine.lifecycle!=null)for(var opportunity:a.opportunities())if(opportunity.selected())engine.lifecycle.people.computeIfPresent(opportunity.playerId(),(id,p)->p.appeared());
         CareerMarketStore.persist(jdbc,career,year,old,engine);
         jdbc.update("UPDATE career_appearance_binding SET applied_receipt=? WHERE career_id=? AND fixture_identity=?",receipt,career,identity);
     }

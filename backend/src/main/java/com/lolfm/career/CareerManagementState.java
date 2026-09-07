@@ -17,7 +17,7 @@ public record CareerManagementState(String policyVersion,LocalDate observationSt
             LocalDate startDate,LocalDate endDate,LocalDate observationStart,LocalDate lastEvaluation,
             int opportunities,int starts,int sets,int satisfaction,int trust,String status,String reason,String policyVersion,int evaluatedOpportunities) {}
     public enum Kind { TRANSFER, LOAN }
-    public enum TradeStatus { CLUB_PENDING, CLUB_COUNTER, PLAYER_PENDING, AGREED, COMPLETED, REJECTED, WITHDRAWN, EXPIRED, SUPERSEDED }
+    public enum TradeStatus { CLUB_PENDING, CLUB_COUNTER, PLAYER_PENDING, AGREED, COMPLETED, REJECTED, WITHDRAWN, EXPIRED, SUPERSEDED, CANCELLED_RETIREMENT }
     public record TradeTerms(Kind kind,String playerId,String seller,String buyer,LocalDate startDate,
             LocalDate endDate,long fee,int borrowerSalaryPercent,Terms playerTerms,String replacementPlayerId) {}
     public record Trade(String tradeId,String contractId,String proposer,TradeTerms terms,LocalDate submittedDate,

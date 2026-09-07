@@ -138,3 +138,9 @@ export function getCareerDevelopment(career: string, year: number, signal: Abort
 export function changeCareerTraining(career: string, body: TrainingCommand, signal: AbortSignal): Promise<TrainingChange> {
   return request(`${ROOT}/${encodeURIComponent(career)}/development`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateTrainingChange, [200]);
 }
+
+import type { CareerLifecycle } from './careerLifecycle.contract';
+import { validateCareerLifecycle } from './careerLifecycle.contract';
+export function getCareerLifecycle(career: string, year: number, signal: AbortSignal): Promise<CareerLifecycle> {
+  return request(`${ROOT}/${encodeURIComponent(career)}/development/${year}/lifecycle`, { method: 'GET' }, signal, validateCareerLifecycle, [200]);
+}

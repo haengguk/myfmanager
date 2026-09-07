@@ -12,6 +12,23 @@ KeSPA는 비활성 참고 대회이며 아시안게임은 명시적 제외다.
 [국내 순위·PO·최종 순위 보고서](../development/career-domestic-ranking-playoffs-finalization-v1.md)에
 공식 근거, 게임 정책, 기존 저장 처리 및 실제 검증 결과를 기록한다.
 
+## 선수 생애주기와 시즌 마감 연결 (V20)
+
+스토브 진입은 기존 대회/경기 마감 검사를 통과한 뒤 Calendar 잠금과 같은 transaction 안에서
+현재 날짜 성장 확인 → 시즌 노쇠화·은퇴 발표 → 미래 계약/거래 예약 취소 → 신인 공급을
+한 번 적용한다. 생성 선수는 Career 원본 디렉터리를 바꾸지 않고 별도 정의와 성장·시장·명부
+상태를 함께 저장해 합성한다. 과거 시즌의 생애주기와 성장 스냅샷은 이후 변경에서 분리한다.
+
+정상 은퇴는 다음 1월 1일에 마지막 활동일인 12월 31일까지 급여를 정산한 뒤 효력을 적용한다.
+이미 연말을 넘긴 심사는 발표 다음 날 이후로 적용하며 Calendar·시장·성장 정산이 역행하지 않는다.
+같은 날짜의 임대 반환/만료를 처리하고 은퇴를 적용한 뒤 미래 계약 활성화와 새 출전 자격을 검사한다.
+기존 스토브에 처음 적용된 저장은 명시적 도입 기록을 남기고 닫힌 심사를 소급 실행하지 않는다.
+
+Calendar Auto의 선수 capture와 등록은 시장에서 정산한 권위 있는 실행 날짜를 사용한다.
+완료 날짜 검사를 유지하며 과거 binding의 날짜/hash를 일괄 수정하지 않는다. 현재 경기 입력,
+국제 등록의 동결 범위, receipt와 checkpoint는 기존 경계를 유지한다.
+[선수 생애주기 보고서](../development/career-player-lifecycle-aging-retirement-and-rookie-supply-v1.md)를 참조한다.
+
 ## Authority와 mutation 경계
 
 - Career Calendar: 현재 날짜, event cursor, advance command/receipt, Calendar revision/hash

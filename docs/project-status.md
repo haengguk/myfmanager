@@ -2,6 +2,22 @@
 
 이 문서는 2026-09-07 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career 노쇠화·은퇴·신인 공급 V1 (2026-09-07)
+
+Calendar가 목표 날짜로 정산한 뒤 시작하는 Auto의 출전 날짜와 PA 상한 직전 1~11 내부 단위의
+성장 절삭을 수정했다. V20으로 Career별 공통 게임 나이·시즌 심사·은퇴 효력·신인 정의와
+과거 상태를 저장하며 기존 디렉터리·작성 PA·시작된 경기 입력을 유지한다.
+
+노쇠화는 소수 예산을 누적한 뒤 한 능력치씩 1점 단위로 적용한다. 관측할 수 없는 해외/CL과
+부분 첫 시즌을 무출전으로 벌주지 않는다. 은퇴 계약·임대·예약을 정리하고 생성 신인은 기존
+FA 협상·AI 육성 영입·명부·훈련·새 경기로 연결한다. PA는 영입/가격/선발 평가에 사용하지 않는다.
+
+실제 Calendar Auto에서 생성 신인이 3게임에 출전하고 완료가 한 번 반영됐으며, 브라우저에서
+심사 → 신인 FA 영입 → 선발 지정 → 다음 시즌 LCK Cup 관리 Series 진입을 확인했다.
+프런트 계약 81건과 build가 통과했다. 전체 백엔드 회귀 1회는 267 suites / 2,086건 중
+2,084 통과·실패/오류 0·기존 진단 skip 2로 완료됐고 38분 29초가 걸렸다.
+수치·이주·관측 한계·검증 구분은 [통합 보고서](development/career-player-lifecycle-aging-retirement-and-rookie-supply-v1.md)에 기록한다.
+
 ## Career 성장·훈련·챔피언 숙련도·피로 V1 (2026-09-07)
 
 Career별 고정소수 성장 상태와 D+1 훈련 예약을 날짜·시장·실제 완료 게임에 연결했다.

@@ -50,6 +50,10 @@ public final class CareerMarketStore {
     public static LocalDate date(JdbcTemplate jdbc,String career) {
         return jdbc.queryForObject("SELECT current_game_date FROM career_calendar_state WHERE career_id=?",LocalDate.class,career);
     }
+    /** Operating membership, contract eligibility and growth have all settled to this date. */
+    public static LocalDate executionDate(JdbcTemplate jdbc,String career) {
+        var market=load(jdbc,career);return market==null?date(jdbc,career):market.state().processedThrough();
+    }
     private static String managed(JdbcTemplate jdbc,String career) {return "LCK:"+jdbc.queryForObject("SELECT managed_team_code FROM career_save WHERE career_id=?",String.class,career);}
     public static void initialize(JdbcTemplate jdbc,String career) {
         lockCareer(jdbc,career);var existing=load(jdbc,career);
@@ -71,7 +75,8 @@ public final class CareerMarketStore {
         for(String id:ids)transactions.executeWithoutResult(ignored->initialize(jdbc,id));
     }
     static CareerMarketEngine engine(JdbcTemplate jdbc,String career,int year,Saved market) {
-        return new CareerMarketEngine(career,managed(jdbc,career),directory(jdbc,career),CareerRosterStore.saved(jdbc,career,year).state(),market.state());
+        var engine=new CareerMarketEngine(career,managed(jdbc,career),directory(jdbc,career),CareerRosterStore.saved(jdbc,career,year).state(),market.state());
+        var life=CareerLifecycleStore.load(jdbc,career);if(life!=null)engine.lifecycle=new CareerLifecycleEngine(life);return engine;
     }
     public static boolean exists(JdbcTemplate jdbc,String career) {return jdbc.queryForObject("SELECT COUNT(*) FROM career_market_state WHERE career_id=?",Integer.class,career)>0;}
     public record Eligibility(boolean enabled,Map<String,String> employers) {
@@ -84,6 +89,7 @@ public final class CareerMarketStore {
         LocalDate date=market.state().processedThrough();Map<String,String> employers=new TreeMap<>();
         for(var c:market.state().contracts().values())if(c.team()!=null&&c.status()==ContractStatus.ACTIVE&&!date.isBefore(c.terms().startDate())&&!date.isAfter(c.terms().endDate()))employers.put(c.playerId(),c.team());
         if(market.state().management()!=null)for(var loan:market.state().management().loans().values())if("ACTIVE".equals(loan.status())&&!date.isBefore(loan.startDate())&&!date.isAfter(loan.endDate())&&employers.containsKey(loan.playerId()))employers.put(loan.playerId(),loan.borrowingTeam());
+        var life=CareerLifecycleStore.load(jdbc,career);if(life!=null)life.players().forEach((id,p)->{if(p.status()==CareerLifecycleState.Status.RETIRED)employers.remove(id);});
         return new Eligibility(true,employers);
     }
     public static boolean eligible(JdbcTemplate jdbc,String career,String team,String player) {return eligibility(jdbc,career).allows(team,player);}
@@ -120,6 +126,7 @@ public final class CareerMarketStore {
         persist(jdbc,career,year,old,engine);touch(jdbc,career);
     }
     static void persist(JdbcTemplate jdbc,String career,int year,Saved old,CareerMarketEngine engine) {
+        if(engine.lifecycle!=null){engine.lifecycle.observe(engine,engine.state().processedThrough());CareerLifecycleStore.persist(jdbc,career,engine.lifecycle);}
         engine.validateIntegrity();String json=write(engine.state());
         if(jdbc.update("UPDATE career_market_state SET revision=?,state_json=?,state_hash=? WHERE career_id=? AND revision=?",
                 old.revision()+1,json,hash(json),career,old.revision())!=1)throw CareerException.calendarStaleRevision();
@@ -141,11 +148,12 @@ public final class CareerMarketStore {
         }
         String managed=managed(jdbc,career);var directory=historical?CareerDevelopmentStore.historicalDirectory(jdbc,career,year):directory(jdbc,career);
         var engine=new CareerMarketEngine(career,managed,directory,roster.state(),state);
+        if(!historical){var life=CareerLifecycleStore.load(jdbc,career);if(life!=null)engine.lifecycle=new CareerLifecycleEngine(life);}
         var players=new ArrayList<PlayerMarket>();
         for(String id:state.preferences().keySet().stream().sorted().toList()) {
             var c=engine.active(id,date);var future=engine.scheduled(id);LocalDate start=engine.availableStart(id,date);
-            String status=c!=null?"CONTRACTED":state.freeAgents().contains(id)?"FREE_AGENT":"UNAVAILABLE";
-            String reason="V4_REGISTERED_ROLE_REVIEW_REQUIRED".equals(directory.players().get(id).eligibilityReason())?"작성 포지션과 현재 등록 역할이 달라 검토가 필요합니다.":future!=null?"이미 미래 계약이 확정되어 있습니다.":c!=null&&c.team()==null?"현재 소속은 경쟁 팀이 없는 조직이므로 이 시장에서 이적을 제안할 수 없습니다.":start==null?(c==null?"소속 또는 영입 자격 미확인":"계약 만료 60일 전부터 협상할 수 있습니다."):null;
+            String status=engine.lifecycle!=null&&engine.lifecycle.retired(id)?"RETIRED":c!=null?"CONTRACTED":state.freeAgents().contains(id)?"FREE_AGENT":"UNAVAILABLE";
+            String reason=engine.lifecycle!=null&&engine.lifecycle.announced(id)?"은퇴 상태와 효력일은 시즌 성장·은퇴·신인에서 확인하세요.":"V4_REGISTERED_ROLE_REVIEW_REQUIRED".equals(directory.players().get(id).eligibilityReason())?"작성 포지션과 현재 등록 역할이 달라 검토가 필요합니다.":future!=null?"이미 미래 계약이 확정되어 있습니다.":c!=null&&c.team()==null?"현재 소속은 경쟁 팀이 없는 조직이므로 이 시장에서 이적을 제안할 수 없습니다.":start==null?(c==null?"소속 또는 영입 자격 미확인":"계약 만료 60일 전부터 협상할 수 있습니다."):null;
             players.add(new PlayerMarket(id,status,c==null?null:c.contractId(),future==null?null:future.contractId(),start,CareerMarketPolicy.demand(directory.players().get(id)),c==null?0:CareerMarketPolicy.releaseCost(c,date),reason,state.preferences().get(id)));
         }
         var finances=new ArrayList<Finance>();for(var a:state.accounts().values().stream().sorted(Comparator.comparing(Account::team)).toList())finances.add(new Finance(a.team(),a.annualBudget(),a.cash(),engine.reservedCash(a.team()),engine.salaryAt(a.team(),date,false),engine.peakSalary(a.team()),a.rosterLimit(),CareerMarketPolicy.FUNDING_POLICY,engine.salaryArrears(a.team()),Math.max(0,engine.paymentHeadroom(a.team(),date))));
@@ -231,6 +239,7 @@ public final class CareerMarketStore {
                 case "OPEN_STOVE" -> {requireEmpty(request,false,false,false);if(request.playerId()!=null)throw CareerException.invalid(null,"스토브 진입 요청을 확인해 주세요.");seasons.openStove(career);reference=Integer.toString(request.sourceYear());}
                 default -> throw CareerException.invalid("action","지원하지 않는 시장 명령입니다.");
             }
+            if("OPEN_STOVE".equals(request.action())){old=load(jdbc,career);engine=engine(jdbc,career,request.sourceYear(),old);}
             persist(jdbc,career,request.sourceYear(),old,engine);touch(jdbc,career);
             var receipt=new Receipt(command,career,request.sourceYear(),old.revision()+1,request.action(),reference,date,"변경 저장 완료 · 경기 시작/등록 자격은 별도 확인");
             String json=write(receipt);jdbc.update("INSERT INTO career_market_command VALUES (?,?,?,?,?)",career,command,payload,json,hash(json));

@@ -7,7 +7,7 @@ import type { CareerMarket, MarketCommand, MarketOffer, MarketRole } from './api
 import type { CareerRoster } from './api/careerRoster.contract';
 const money = (n: number) => `${n.toLocaleString('ko-KR')} 크레딧`;
 const roleName = (s: string) => ({ STARTER: '주전 약속', RESERVE: '후보', DEVELOPMENT: '육성' }[s] ?? s);
-const statusName = (s: string) => ({ ACTIVE: '계약 중', SCHEDULED: '입단 예정', EXPIRED: '만료', RELEASED: '방출', TRANSFERRED: '이적 종료', SUBMITTED: '검토 중', COUNTER: '수정 요청', ACCEPTED: '수락', REJECTED: '거절', WITHDRAWN: '철회', SUPERSEDED: '수정안으로 대체', FREE_AGENT: '영입 가능한 FA', CONTRACTED: '계약 중', UNAVAILABLE: '영입 자격 미확인' }[s] ?? s);
+const statusName = (s: string) => ({ RETIRED: '은퇴', CANCELLED_RETIREMENT: '은퇴로 취소', ACTIVE: '계약 중', SCHEDULED: '입단 예정', EXPIRED: '만료', RELEASED: '방출', TRANSFERRED: '이적 종료', SUBMITTED: '검토 중', COUNTER: '수정 요청', ACCEPTED: '수락', REJECTED: '거절', WITHDRAWN: '철회', SUPERSEDED: '수정안으로 대체', FREE_AGENT: '영입 가능한 FA', CONTRACTED: '계약 중', UNAVAILABLE: '영입 자격 미확인' }[s] ?? s);
 const eventName = (s: string) => ({ OFFER_SUBMITTED: '제안 제출', OFFER_REJECTED: '제안 거절', COUNTER_REQUESTED: '조건 수정 요청', OFFER_WITHDRAWN: '제안 철회', PLAYER_DECISION: '선수 결정', CONTRACT_SIGNED: '계약 체결', CONTRACT_ACTIVATED: '입단', CONTRACT_RELEASED: '방출', TRANSFERRED: '이적 종료', CONTRACT_EXPIRED: '계약 만료', EXPIRY_WARNING: '만료 예고', SALARY_ARREARS_RECORDED: '미지급 급여 발생' }[s] ?? '시장 소식');
 const inclination = (s: string) => ({ COMPARE_OFFERS: '여러 제안 비교', SEEK_OPPORTUNITY: '출전 기회 우선', PREFER_RENEWAL: '재계약 우선 검토' }[s] ?? '제안 검토');
 function failure(cause: unknown) { return cause instanceof CareerApiFailure ? cause.userMessage : '응답을 확인하지 못했습니다. 원본 요청으로 다시 확인해 주세요.'; }

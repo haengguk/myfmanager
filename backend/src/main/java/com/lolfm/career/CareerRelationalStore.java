@@ -162,6 +162,7 @@ public final class CareerRelationalStore {
                 rosters.initializeNew(requested.careerId(),year);
                 CareerMarketStore.initialize(jdbc,requested.careerId());
                 CareerDevelopmentStore.initialize(jdbc,requested.careerId());
+                CareerLifecycleStore.initialize(jdbc,requested.careerId());
             }
             jdbc.update("""
                     INSERT INTO career_create_command(

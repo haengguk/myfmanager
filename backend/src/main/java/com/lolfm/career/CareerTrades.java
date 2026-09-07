@@ -17,6 +17,7 @@ final class CareerTrades {
     boolean hasAgreement(String player) {return trades.values().stream().anyMatch(t->t.terms().playerId().equals(player)&&t.status()==TradeStatus.AGREED);}
     LocalDate decision(String player,LocalDate date) {return trades.values().stream().filter(t->t.open()&&t.terms().playerId().equals(player)&&!t.decisionDate().isBefore(date)).map(Trade::decisionDate).min(LocalDate::compareTo).orElse(date.plusDays(TRADE_DECISION_DAYS));}
     String unavailable(String player,LocalDate date) {
+        if(m.lifecycle!=null&&m.lifecycle.announced(player))return "은퇴 발표 선수는 새 이적·임대 대상이 아닙니다.";
         var c=m.active(player,date);
         if(c==null||c.team()==null)return "경쟁 구단의 유효한 원계약이 필요합니다.";
         if(m.scheduled(player)!=null)return "후속 계약이 확정되어 양도할 수 없습니다.";
@@ -105,6 +106,12 @@ final class CareerTrades {
     private void requireBuyer(Trade t,LocalDate date) {
         m.requireBudget(t.terms().buyer(),date);
         m.requireRosterCapacity(t.terms().buyer(),t.terms().playerId(),t.terms().playerTerms());
+    }
+    void cancelForRetirement(String player,LocalDate date) {
+        for(var t:new ArrayList<>(trades.values()))if(t.terms().playerId().equals(player)&&t.open()) {
+            trades.put(t.tradeId(),status(t,TradeStatus.CANCELLED_RETIREMENT,"은퇴 발표로 거래 취소 · 미지급 이적료/임대료 예약 해제",null));
+            m.event(date,"RETIREMENT_TRADE_CANCELLED",player,t.terms().buyer(),t.tradeId(),"거래 효력 전 예약 해제 · 아직 지급되지 않은 비용은 환불 장부를 만들지 않음");
+        }
     }
     private Trade status(Trade t,TradeStatus status,String reason,Long score) {return new Trade(t.tradeId(),t.contractId(),t.proposer(),t.terms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),t.round(),t.previousTradeId(),status,t.sellerAgreed(),t.buyerAgreed(),t.referenceValue(),t.sellerDemand(),t.buyerLimit(),score,reason,t.policyVersion(),t.playerEvaluation()!=null?t.playerEvaluation():score==null?null:evaluation(t,t.decisionDate()));}
     private Evaluation evaluation(Trade t,LocalDate date) {

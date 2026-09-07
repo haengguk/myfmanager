@@ -49,11 +49,26 @@ public final class CareerDevelopmentStore {
     static void persist(JdbcTemplate jdbc,String career,Saved old,CareerDevelopmentEngine engine) {
         String json=write(engine.state());
         if(jdbc.update("UPDATE career_development_state SET revision=revision+1,state_json=?,state_hash=? WHERE career_id=? AND revision=?",json,hash(json),career,old.revision())!=1)throw CareerException.calendarStaleRevision();
+        var life=CareerLifecycleStore.load(jdbc,career);if(life!=null){var lifecycle=new CareerLifecycleEngine(life);engine.players.forEach((id,p)->{var person=lifecycle.people.get(id);if(person==null)throw new IllegalStateException("LIFECYCLE_PLAYER_REFERENCE");lifecycle.people.put(id,person.peak(CareerLifecyclePolicy.ca(p)));});CareerLifecycleStore.persist(jdbc,career,lifecycle);}
     }
     public static Directory current(JdbcTemplate jdbc,String career,Directory base){var s=load(jdbc,career);return s==null?base:new CareerDevelopmentEngine(base,s.state()).directory();}
     public static Directory historicalDirectory(JdbcTemplate jdbc,String career,int year) {
         var base=baseDirectory(jdbc,career);var rows=closed(jdbc,career,year);
-        return rows.isEmpty()?base:new CareerDevelopmentEngine(base,rows.getFirst()).directory();
+        return rows.isEmpty()?sourceDirectory(jdbc,career):new CareerDevelopmentEngine(historicalBase(jdbc,career,year,base,rows.getFirst()),rows.getFirst()).directory();
+    }
+    private static Directory historicalBase(JdbcTemplate jdbc,String career,int year,Directory base,CareerDevelopmentState state) {
+        var historicalLife=jdbc.query("SELECT lifecycle_json,lifecycle_hash FROM career_development_season_close WHERE career_id=? AND season_year=?",(r,n)->{
+            String json=r.getString(1);if(json==null)return null;if(!hash(json).equals(r.getString(2)))throw new IllegalStateException("LIFECYCLE_HISTORY_INTEGRITY");return read(json,CareerLifecycleState.class);
+        },career,year);
+        var life=historicalLife.isEmpty()?null:historicalLife.getFirst();
+        var definitions=new TreeMap<String,com.lolfm.player.ExpandedPlayerCatalog.Definition>();
+        for(String id:state.players().keySet()) {
+            var d=base.players().get(id);if(d==null)throw new IllegalStateException("DEVELOPMENT_HISTORY_REFERENCE");
+            var details=read(d.detailsJson(),com.fasterxml.jackson.databind.node.ObjectNode.class);details.remove("careerLifecycleStatus");
+            if(life!=null){var person=life.players().get(id);if(person==null)throw new IllegalStateException("LIFECYCLE_HISTORY_REFERENCE");details.put("careerLifecycleStatus",person.status().name());}
+            definitions.put(id,new com.lolfm.player.ExpandedPlayerCatalog.Definition(id,d.nickname(),d.position(),d.gameplay(),d.provisional(),d.initialOrganizationId(),d.initialOwnerTeam(),d.initialSquad(),d.eligibilityReason(),details.toString()));
+        }
+        return new Directory(definitions,base.organizations());
     }
     private static List<CareerDevelopmentState> closed(JdbcTemplate jdbc,String career,int year) {
         return jdbc.query("SELECT state_json,state_hash FROM career_development_season_close WHERE career_id=? AND season_year=?",(r,n)->{
@@ -62,7 +77,7 @@ public final class CareerDevelopmentStore {
     }
     public static void closeSeason(JdbcTemplate jdbc,String career,int year,LocalDate date) {
         var saved=load(jdbc,career);if(saved==null||!closed(jdbc,career,year).isEmpty())return;String json=write(saved.state());
-        jdbc.update("INSERT INTO career_development_season_close VALUES (?,?,?,?,?)",career,year,date,json,hash(json));
+        jdbc.update("INSERT INTO career_development_season_close(career_id,season_year,closed_date,state_json,state_hash) VALUES (?,?,?,?,?)",career,year,date,json,hash(json));
     }
     /** Finalize the still-active season after its last day, before switching the active year. */
     public static void finishSeason(JdbcTemplate jdbc,String career,int year) {
@@ -70,6 +85,7 @@ public final class CareerDevelopmentStore {
         if(activeYear(jdbc,career)!=year)throw new IllegalStateException("DEVELOPMENT_SEASON_ALREADY_CLOSED");
         closeSeason(jdbc,career,year,saved.state().nextSettlement());String json=write(saved.state());
         jdbc.update("UPDATE career_development_season_close SET closed_date=?,state_json=?,state_hash=? WHERE career_id=? AND season_year=?",saved.state().nextSettlement(),json,hash(json),career,year);
+        var life=CareerLifecycleStore.load(jdbc,career);if(life!=null){String lifecycle=write(life);jdbc.update("UPDATE career_development_season_close SET lifecycle_json=?,lifecycle_hash=? WHERE career_id=? AND season_year=?",lifecycle,hash(lifecycle),career,year);}
     }
     static Map<String,List<LocalDate>> fixtures(JdbcTemplate jdbc,String career) {
         var result=new TreeMap<String,List<LocalDate>>();
@@ -111,11 +127,11 @@ public final class CareerDevelopmentStore {
         var saved=load(jdbc,career);if(saved==null)throw CareerException.invalid("development","서버 시작 시 성장 이주가 필요합니다.");
         var history=year==activeYear(jdbc,career)?List.<CareerDevelopmentState>of():closed(jdbc,career,year);
         var state=history.isEmpty()?saved.state():history.getFirst();
-        var engine=new CareerDevelopmentEngine(baseDirectory(jdbc,career),state);var roster=CareerRosterStore.saved(jdbc,career,year);if(roster==null)throw CareerException.notFound();
+        var base=baseDirectory(jdbc,career);var engine=new CareerDevelopmentEngine(history.isEmpty()?base:historicalBase(jdbc,career,year,base,state),state);var roster=CareerRosterStore.saved(jdbc,career,year);if(roster==null)throw CareerException.notFound();
         LocalDate date=history.isEmpty()?CareerMarketStore.date(jdbc,career):state.nextSettlement();String managed=managed(jdbc,career);var fixtures=year==activeYear(jdbc,career)?fixtures(jdbc,career):Map.<String,List<LocalDate>>of();var profiles=new ArrayList<Profile>();
         for(var entry:(year!=activeYear(jdbc,career)&&history.isEmpty()?Map.<String,Player>of():engine.players).entrySet()) {
             String id=entry.getKey();var p=entry.getValue();var m=engine.metadata.get(id);int sum=CareerDevelopmentPolicy.sum(p),ca=com.lolfm.player.PlayerAbilityPolicy.currentAbility(p.internalRatings().entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey,e->e.getValue()/1000)));
-            String status=m.potential()==null?"PA_MISSING":sum>CareerDevelopmentPolicy.ceiling(m.potential())?ca>m.potential()?"INITIAL_CA_ABOVE_PA":"INITIAL_ROUNDING_BOUNDARY":sum==CareerDevelopmentPolicy.ceiling(m.potential())?"PA_REACHED":"GROWING";
+            String status=engine.retired.contains(id)?"RETIRED":m.potential()==null?"PA_MISSING":sum>CareerDevelopmentPolicy.ceiling(m.potential())?ca>m.potential()?"INITIAL_CA_ABOVE_PA":"INITIAL_ROUNDING_BOUNDARY":sum==CareerDevelopmentPolicy.ceiling(m.potential())?"PA_REACHED":"GROWING";
             var member=roster.state().members().get(id);var dates=member.ownerTeam()==null?List.<LocalDate>of():fixtures.getOrDefault(member.ownerTeam(),List.of());
             profiles.add(new Profile(id,m.potential(),ca,status,p,engine.effective(id,managed,member,date,dates),CareerDevelopmentPolicy.efficiency(p.fatigue())));
         }
@@ -137,7 +153,7 @@ public final class CareerDevelopmentStore {
             var old=load(jdbc,career);if(old==null||old.revision()!=request.expectedRevision()||request.sourceYear()!=activeYear(jdbc,career))throw CareerException.calendarStaleRevision();
             String managed=managed(jdbc,career);var engine=new CareerDevelopmentEngine(baseDirectory(jdbc,career),old.state());var date=CareerMarketStore.date(jdbc,career);var when=date.plusDays(1);
             String id=request.playerId();var definition=id==null?null:engine.base.players().get(id);
-            if(id!=null&&(definition==null||!managed.equals(CareerRosterStore.saved(jdbc,career,request.sourceYear()).state().members().get(id).ownerTeam())))throw CareerException.invalid("playerId","현재 우리 구단에서 훈련하는 선수만 변경할 수 있습니다.");
+            if(id!=null&&(definition==null||engine.retired.contains(id)||!managed.equals(CareerRosterStore.saved(jdbc,career,request.sourceYear()).state().members().get(id).ownerTeam())))throw CareerException.invalid("playerId","현재 우리 구단에서 훈련하는 선수만 변경할 수 있습니다.");
             try {if(!request.clearOverride())CareerDevelopmentPolicy.validate(request.plan(),definition,legal);else if(id==null||request.plan()!=null)throw new IllegalArgumentException();}
             catch(IllegalArgumentException e){throw CareerException.invalid("plan","포지션에 맞는 능력치 또는 합법 챔피언 1~2개와 훈련 강도를 확인하세요.");}
             var previous=CareerDevelopmentPolicy.activate(id==null?engine.teams.get(managed):engine.players.get(id).override(),date,managed);

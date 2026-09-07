@@ -17,7 +17,11 @@ public record CareerDevelopmentState(String policyVersion,String initializationV
     public record Cursor(int index,int filled) {}
     public record Player(Map<PlayerSkill,Integer> internalRatings,Map<String,Integer> internalProficiencies,
             long remainder,Map<String,Long> proficiencyRemainders,Map<String,Cursor> cursors,int fatigue,
-            LocalDate playedOn,Schedule override) {
+            LocalDate playedOn,Schedule override,int growthSubRemainder) {
+        /** Legacy remainder keeps its 10^12 denominator; an absent sub-unit starts at zero. */
+        public Player(Map<PlayerSkill,Integer> ratings,Map<String,Integer> proficiencies,long remainder,Map<String,Long> profRemainders,Map<String,Cursor> cursors,int fatigue,LocalDate playedOn,Schedule override) {
+            this(ratings,proficiencies,remainder,profRemainders,cursors,fatigue,playedOn,override,0);
+        }
         public Player { internalRatings=Map.copyOf(internalRatings);internalProficiencies=Map.copyOf(internalProficiencies);
             proficiencyRemainders=Map.copyOf(proficiencyRemainders);cursors=Map.copyOf(cursors); }
     }

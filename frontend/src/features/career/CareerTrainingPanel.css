@@ -1,8 +1,9 @@
 .ca-training { margin: 24px 0; padding: 20px; border: 1px solid #354252; border-radius: 12px; background: #111a25; color: #d8e0ec; }
 .ca-training > summary { cursor: pointer; font-size: 18px; font-weight: 700; }
 .ca-training p { line-height: 1.6; color: #b4c1d2; }
+.ca-training a { color: #a9c8ff; }
 .ca-training label { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 8px 12px 8px 0; }
-.ca-training select, .ca-training button { max-width: 100%; padding: 9px 12px; color: #e5edf8; background: #202e40; border: 1px solid #52657c; border-radius: 6px; }
+.ca-training select, .ca-training input, .ca-training button { max-width: 100%; padding: 9px 12px; color: #e5edf8; background: #202e40; border: 1px solid #52657c; border-radius: 6px; }
 .ca-training button { cursor: pointer; margin: 8px 8px 8px 0; }
 .ca-training button:disabled { opacity: .5; cursor: default; }
 .ca-training fieldset { border: 1px solid #354252; margin: 16px 0; padding: 12px; }

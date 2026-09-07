@@ -7,7 +7,7 @@ import { readTrainingOperation, trainingOperationKey, validateTrainingCommand } 
 import type { CareerDevelopment, TrainingCommand, TrainingIntensity, TrainingFocus } from './api/careerDevelopment.contract';
 const intensityNames = { RECOVERY: '회복', LIGHT: '가볍게', NORMAL: '정상', INTENSIVE: '강훈련' };
 const focusNames = { BALANCED: '균형', COMMON_SKILLS: '공통 능력 집중', ROLE_SKILLS: '포지션 능력 집중', SPECIFIC_SKILL: '특정 능력 집중', CHAMPION_FOCUS: '챔피언 집중' };
-const growthNames: Record<string, string> = { PA_MISSING: 'PA 미입력 · 영구 능력치 성장 보류', PA_REACHED: 'PA 상한 도달', INITIAL_CA_ABOVE_PA: '시작 CA가 PA보다 높음 · 원래 능력치 유지, 추가 성장 제한', INITIAL_ROUNDING_BOUNDARY: '표시 반올림 경계 · 내부 총량 상한 초과, 추가 성장 제한', GROWING: '성장 가능 · PA 도달을 보장하지 않습니다' };
+const growthNames: Record<string, string> = { RETIRED: '은퇴 · 훈련과 성장 종료', PA_MISSING: 'PA 미입력 · 영구 능력치 성장 보류', PA_REACHED: 'PA 상한 도달', INITIAL_CA_ABOVE_PA: '시작 CA가 PA보다 높음 · 원래 능력치 유지, 추가 성장 제한', INITIAL_ROUNDING_BOUNDARY: '표시 반올림 경계 · 내부 총량 상한 초과, 추가 성장 제한', GROWING: '성장 가능 · PA 도달을 보장하지 않습니다' };
 export function CareerTrainingPanel({ careerId, year, revision, historical, busy, onBegin, onChanged }: { careerId: string; year: number; revision: number; historical: boolean; busy: boolean; onBegin: () => (() => void) | null; onChanged: () => void }) {
   const [view, setView] = useState<CareerDevelopment | null>(null), [roster, setRoster] = useState<CareerRoster | null>(null);
   const [selected, setSelected] = useState(''), [intensity, setIntensity] = useState<TrainingIntensity>('NORMAL'), [focus, setFocus] = useState<TrainingFocus>('BALANCED'), [skill, setSkill] = useState(''), [champions, setChampions] = useState<string[]>([]);
@@ -43,7 +43,7 @@ export function CareerTrainingPanel({ careerId, year, revision, historical, busy
     } finally { release(); if (mutation.current === owned) { mutation.current = null; setPending(false); } }
   };
   const invalidTargets = focus === 'SPECIFIC_SKILL' && !skill || focus === 'CHAMPION_FOCUS' && (!champions.length || new Set(champions).size !== champions.length);
-  const disabled = busy || pending || historical || !!operation || corrupt || !!view?.readOnly;
+  const disabled = player?.growthStatus === 'RETIRED' || busy || pending || historical || !!operation || corrupt || !!view?.readOnly;
   const own = !selected || roster?.state.members[selected]?.ownerTeam === view?.managedTeam;
   const visible = view?.players.filter(p => all || roster?.state.members[p.playerId]?.ownerTeam === view.managedTeam) ?? [];
   const schedule = selected ? player?.development.override : view?.teamPlan;

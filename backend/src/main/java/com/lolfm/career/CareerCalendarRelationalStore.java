@@ -95,6 +95,7 @@ public final class CareerCalendarRelationalStore {
         LocalDate date = LocalDate.of(year,1,1);
         if(!date.isAfter(row.currentDate())&&!hasMarket(career.careerId()))throw new CalendarIntegrityFailure();
         if(row.currentDate().isAfter(date))date=row.currentDate();
+        if(hasMarket(career.careerId())){var settled=CareerMarketStore.executionDate(jdbc,career.careerId());if(settled.isAfter(date))date=settled;}
         int cursor=template.eventCursor(template.project(year),date);
         long revision = expectedRevision + 1;
         String hash = template.stateHash(career.careerId(),year,date,cursor,revision,null,null,"ACTIVE",null);

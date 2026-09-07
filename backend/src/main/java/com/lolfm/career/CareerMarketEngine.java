@@ -14,6 +14,7 @@ public final class CareerMarketEngine {
     final long seed;
     CareerRosterStore.Directory directory;
     CareerDevelopmentEngine development;
+    CareerLifecycleEngine lifecycle;
     Map<String,List<LocalDate>> developmentFixtures=Map.of();
     int developmentYear;
     private LocalDate processed;
@@ -96,6 +97,7 @@ public final class CareerMarketEngine {
             && c.status()==ContractStatus.ACTIVE && !date.isBefore(c.terms().startDate()) && !date.isAfter(c.terms().endDate())).findFirst().orElse(null);}
     public Contract scheduled(String player) {return contracts.values().stream().filter(c->c.playerId().equals(player)&&c.status()==ContractStatus.SCHEDULED).findFirst().orElse(null);}
     public boolean eligible(String player,String team,LocalDate date) {
+        if(lifecycle!=null&&lifecycle.retired(player))return false;
         var c=active(player,date);var m=members.get(player);
         return c!=null && (loan(player,date)==null?team.equals(c.team()):team.equals(loan(player,date).borrowingTeam())) && m!=null && team.equals(m.ownerTeam()) && m.eligibilityReason()==null;
     }
@@ -104,6 +106,7 @@ public final class CareerMarketEngine {
                 .map(Offer::decisionDate).min(LocalDate::compareTo).orElse(date.plusDays(DECISION_DAYS));
     }
     public LocalDate availableStart(String player,LocalDate date) {
+        if(lifecycle!=null&&lifecycle.retired(player))return null;
         var c=active(player,date);if(loan(player,date)!=null||tradeEngine.hasAgreement(player)||scheduled(player)!=null||"V4_REGISTERED_ROLE_REVIEW_REQUIRED".equals(player(player).eligibilityReason()))return null;
         if(c!=null) {
             if(c.team()==null||c.terms().endDate().isAfter(date.plusDays(NEGOTIATION_DAYS)))return null;
@@ -218,7 +221,7 @@ public final class CareerMarketEngine {
         }
     }
     public Offer submit(String team,String playerId,Terms terms,String previousId,LocalDate date) {
-        validate(terms);player(playerId);LocalDate available=availableStart(playerId,date);
+        validate(terms);player(playerId);if(lifecycle!=null&&!lifecycle.permitsContract(playerId,terms))throw invalid("은퇴 효력일과 충돌하는 계약은 제안할 수 없습니다.");LocalDate available=availableStart(playerId,date);
         if(available==null)throw invalid("현재 계약 보호 기간이거나 이미 확정된 미래 계약이 있어 제안할 수 없습니다.");
         var current=active(playerId,date);
         if(current!=null && !terms.startDate().equals(available) || current==null && (terms.startDate().isBefore(available)||terms.startDate().isAfter(available.plusDays(FA_START_DELAY_DAYS))))
@@ -316,6 +319,7 @@ public final class CareerMarketEngine {
         event(date,kind,c.playerId(),c.team(),c.contractId(),"고용 종료 · 현재 선발 공백 허용 · 시작된 Series 보존");
     }
     void activate(Contract c,LocalDate date) {
+        if(lifecycle!=null&&!lifecycle.permitsContract(c.playerId(),c.terms()))throw invalid("은퇴 선수의 계약을 활성화할 수 없습니다.");
         var m=members.get(c.playerId());
         if(m.ownerTeam()!=null&&!Objects.equals(m.ownerTeam(),c.team()))throw new IllegalStateException("MARKET_DOUBLE_OWNERSHIP");
         String organization=c.terms().role()==Role.DEVELOPMENT?developmentOrganization(c.team()):c.team();
@@ -353,22 +357,24 @@ public final class CareerMarketEngine {
                 pay(c,date);c=contracts.get(c.contractId());
                 contracts.put(c.contractId(),contractStatus(c,ContractStatus.EXPIRED,c.terms().endDate(),c.paidThrough()));depart(c,date,"CONTRACT_EXPIRED");
             }
+            if(lifecycle!=null)lifecycle.effective(this,date);
             for(var c:new ArrayList<>(contracts.values()))if(c.status()==ContractStatus.SCHEDULED&&!date.isBefore(c.terms().startDate()))activate(c,date);
-            renewedSelections.forEach((player,team)->select(team,player,date));
+            renewedSelections.forEach((player,team)->{if(lifecycle==null||!lifecycle.retired(player))select(team,player,date);});
             tradeEngine.process(date);
             if(date.getDayOfMonth()==date.lengthOfMonth())for(var c:new ArrayList<>(contracts.values()))if(c.status()==ContractStatus.ACTIVE)pay(c,date);
             for(var c:contracts.values())if(c.status()==ContractStatus.ACTIVE&&date.equals(c.terms().endDate().minusDays(NEGOTIATION_DAYS)))event(date,"EXPIRY_WARNING",c.playerId(),c.team(),c.contractId(),"계약 만료 60일 전 · 재계약 및 미래 FA 협상 가능");
             promiseEngine.evaluate(date);
             responses(date);
-            if(date.getDayOfWeek()==DayOfWeek.MONDAY){aiProposals(date);tradeEngine.ai(date);}
+            if(date.getDayOfWeek()==DayOfWeek.MONDAY){aiProposals(date);if(lifecycle!=null)lifecycle.youthProposals(this,date);tradeEngine.ai(date);}
             decide(date);
             for(var o:new ArrayList<>(offers.values()))if(o.open()&&!date.isBefore(o.expiresDate()))offers.put(o.offerId(),offerStatus(o,OfferStatus.EXPIRED,"제안 유효기간 종료",null));
-            aiLineups(date);processed=date;
+            aiLineups(date);if(lifecycle!=null)lifecycle.observe(this,date);processed=date;
         }
         validateIntegrity();
     }
     public LocalDate nextEvent(LocalDate current) {
         TreeSet<LocalDate> dates=new TreeSet<>(tradeEngine.nextDates(current));dates.add(current.withDayOfMonth(current.lengthOfMonth()));
+        if(lifecycle!=null)for(var p:lifecycle.people.values())if(p.status()==CareerLifecycleState.Status.RETIREMENT_ANNOUNCED)dates.add(p.effectiveOn());
         dates.add(current.plusDays(1).with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY)));
         dates.add(LocalDate.of(current.getYear()+1,1,1));
         for(var c:contracts.values()) {
@@ -425,6 +431,7 @@ public final class CareerMarketEngine {
         }
     }
     private void accept(Offer o,LocalDate date) {
+        if(lifecycle!=null&&!lifecycle.permitsContract(o.playerId(),o.terms()))throw invalid("은퇴 효력일과 충돌하는 계약입니다.");
         if(loan(o.playerId(),date)!=null||tradeEngine.hasAgreement(o.playerId())||scheduled(o.playerId())!=null)throw invalid("이미 미래 계약이 확정되었습니다.");
         for(var c:contracts.values())if(c.playerId().equals(o.playerId())&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)&&overlaps(c.terms(),o.terms()))throw invalid("기존 고용 계약과 효력 기간이 겹칩니다.");
         var active=active(o.playerId(),date);
@@ -510,6 +517,7 @@ public final class CareerMarketEngine {
     }
     public void validateIntegrity() {
         CareerRosterStore.validate(roster(),directory);
+        if(!preferences.keySet().equals(directory.players().keySet())||!directory.players().keySet().containsAll(freeAgents))throw new IllegalStateException("MARKET_POPULATION_REFERENCE");
         // Insufficient funding is recoverable business state, not structural corruption.
         for(var a:accounts.values())if(a.cash()<0||salaryArrears(a.team())<0)throw new IllegalStateException("INVALID_MARKET_CASH_OR_ARREARS");
         var live=contracts.values().stream().filter(c->c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED).toList();

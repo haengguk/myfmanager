@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.*;
 public final class CareerDevelopmentApiV1Controller {
     private final CareerDevelopmentStore development;
     private final CareerApiV1RequestParser parser;
+    @org.springframework.beans.factory.annotation.Autowired private com.lolfm.career.CareerLifecycleStore lifecycle;
     public CareerDevelopmentApiV1Controller(CareerDevelopmentStore development,CareerApiV1RequestParser parser){this.development=development;this.parser=parser;}
     @GetMapping("/{year}") public CareerDevelopmentStore.View view(@PathVariable String careerId,@PathVariable int year){return development.view(careerId,year);}
+    @GetMapping("/{year}/lifecycle") public com.lolfm.career.CareerLifecycleStore.View lifecycle(@PathVariable String careerId,@PathVariable int year){return lifecycle.view(careerId,year);}
     @PostMapping public CareerDevelopmentStore.Change change(@PathVariable String careerId,@RequestBody byte[] body){return development.change(careerId,parser.trainingCommand(body));}
 }

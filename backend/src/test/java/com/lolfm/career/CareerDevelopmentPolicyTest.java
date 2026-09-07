@@ -27,6 +27,22 @@ class CareerDevelopmentPolicyTest {
         if(pa==null||ceiling(pa)<180000)assertThat(sum(p)).isEqualTo(180000);else assertThat(sum(p)).isLessThanOrEqualTo(ceiling(pa));
         if(pa==null||ceiling(pa)<=sum(p))assertThat(p.remainder()).isZero();
     }
+    @ParameterizedTest @ValueSource(ints={0,1,11,12})
+    void positiveHeadroomAccumulatesBelowFormerPrecisionBoundary(int remaining) {
+        var d=definition(20,200,19);var ratings=new EnumMap<PlayerSkill,Integer>(initial(d).internalRatings());ratings.put(PlayerSkill.MECHANICS,20000-remaining);
+        var p=new Player(ratings,Map.of(),12345,Map.of(),Map.of(),0,null,null);
+        // An old JSON row has no fine remainder, but keeps exactly the same coarse units.
+        String legacy=CareerRosterStore.write(p).replace(",\"growthSubRemainder\":0", "");
+        var restored=CareerRosterStore.read(legacy,Player.class);assertThat(restored.remainder()).isEqualTo(12345);assertThat(restored.growthSubRemainder()).isZero();
+        for(int i=0;i<12000;i++) {
+            p=grow(p,d,metadata(d),date,1,1000,1000,DEFAULT);
+            restored=grow(restored,d,metadata(d),date,1,1000,1000,DEFAULT);
+            if(i==37)restored=CareerRosterStore.read(CareerRosterStore.write(restored),Player.class);
+        }
+        assertThat(restored).isEqualTo(p);assertThat(sum(p)).isLessThanOrEqualTo(ceiling(200));
+        if(remaining>0)assertThat(sum(p)).isGreaterThan(ceiling(200)-remaining);
+        else {assertThat(p.remainder()).isZero();assertThat(p.growthSubRemainder()).isZero();}
+    }
     @Test void balancedBudgetAndRemainderSurviveRestartAndSaturation() {
         var d=definition(15,200,19);var p=initial(d);
         for(int i=0;i<150;i++)p=grow(p,d,metadata(d),date,10,1000,1000,DEFAULT);

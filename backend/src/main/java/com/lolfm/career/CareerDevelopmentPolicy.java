@@ -23,7 +23,7 @@ public final class CareerDevelopmentPolicy {
     public static Metadata metadata(Definition p) {
         try {
             var n=JSON.readTree(p.detailsJson());var pa=n.path("abilityMetadata").path("potentialAbility");
-            String birth=n.path("personal").path("birthDate").asText("");LocalDate date=null;
+            String birth=n.path("careerAge").path("simulationBirthDate").asText(n.path("personal").path("birthDate").asText(""));LocalDate date=null;
             try {date=LocalDate.parse(birth);}catch(java.time.format.DateTimeParseException ignored){}
             return new Metadata(pa.isIntegralNumber()?pa.asInt():null,date);
         }catch(java.io.IOException e){throw new IllegalStateException("DEVELOPMENT_METADATA",e);}
@@ -80,14 +80,17 @@ public final class CareerDevelopmentPolicy {
         n=proficiency(n,key(champion,d.position()),CHAMPION_GAME*1000,1000);
         return copy(n,Math.min(1000,n.fatigue()+GAME_FATIGUE),date,n.override());
     }
-    public static Player copy(Player p,int fatigue,LocalDate played,Schedule override){return new Player(p.internalRatings(),p.internalProficiencies(),p.remainder(),p.proficiencyRemainders(),p.cursors(),fatigue,played,override);}
+    public static Player copy(Player p,int fatigue,LocalDate played,Schedule override){return new Player(p.internalRatings(),p.internalProficiencies(),p.remainder(),p.proficiencyRemainders(),p.cursors(),fatigue,played,override,p.growthSubRemainder());}
     public static Player grow(Player p,Definition d,Metadata m,LocalDate date,int base,int intensity,int efficiency,Plan plan) {
         int remaining=Math.max(0,ceiling(m.potential())-sum(p));
-        if(remaining==0)return new Player(p.internalRatings(),p.internalProficiencies(),0,p.proficiencyRemainders(),p.cursors(),p.fatigue(),p.playedOn(),p.override());
-        int paFactor=Math.min(1000,remaining*1000/12000);
-        // Denominator 10^12: age, intensity, efficiency, PA factors each per 1000.
-        long numerator=p.remainder()+(long)base*ageFactor(age(m,date))*intensity*efficiency*paFactor;
-        int budget=(int)Math.min(remaining,numerator/1_000_000_000_000L);long rest=numerator%1_000_000_000_000L;
+        if(remaining==0)return new Player(p.internalRatings(),p.internalProficiencies(),0,p.proficiencyRemainders(),p.cursors(),p.fatigue(),p.playedOn(),p.override(),0);
+        // Exact PA ratio min(12000, remaining)/12000. Keep legacy remainder units intact.
+        long earned=Math.multiplyExact(Math.multiplyExact(Math.multiplyExact((long)base,ageFactor(age(m,date))),intensity),efficiency);
+        earned=Math.multiplyExact(earned,Math.min(12000,remaining));
+        long numerator=Math.addExact(Math.addExact(Math.multiplyExact(p.remainder(),12L),p.growthSubRemainder()),earned);
+        long denominator=12_000_000_000_000L;
+        int budget=(int)Math.min(remaining,numerator/denominator);long tail=numerator%denominator;
+        long rest=tail/12;int sub=(int)(tail%12);
         var ratings=new EnumMap<PlayerSkill,Integer>(PlayerSkill.class);ratings.putAll(p.internalRatings());var cursors=new TreeMap<>(p.cursors());
         var order=order(d,plan);String channel=plan.focus()+":"+plan.skill();var cursor=cursors.getOrDefault(channel,new Cursor(0,0));
         int index=cursor.index()%order.size(),filled=cursor.filled(),misses=0;
@@ -98,8 +101,8 @@ public final class CareerDevelopmentPolicy {
             if(filled==UNIT||ratings.get(skill)==MAX){index=(index+1)%order.size();filled=0;}
         }
         cursors.put(channel,new Cursor(index,filled));
-        if(ratings.values().stream().mapToInt(Integer::intValue).sum()>=ceiling(m.potential()))rest=0;
-        return new Player(ratings,p.internalProficiencies(),rest,p.proficiencyRemainders(),cursors,p.fatigue(),p.playedOn(),p.override());
+        if(ratings.values().stream().mapToInt(Integer::intValue).sum()>=ceiling(m.potential())){rest=0;sub=0;}
+        return new Player(ratings,p.internalProficiencies(),rest,p.proficiencyRemainders(),cursors,p.fatigue(),p.playedOn(),p.override(),sub);
     }
     static List<PlayerSkill> order(Definition d,Plan plan) {
         var all=PlayerSkill.orderedForPosition(d.position());var out=new ArrayList<PlayerSkill>();
@@ -125,6 +128,6 @@ public final class CareerDevelopmentPolicy {
         int next=(int)Math.min(MAX,value+numerator/1_000_000_000L);
         var prof=new TreeMap<>(p.internalProficiencies());prof.put(key,next);
         var remainders=new TreeMap<>(p.proficiencyRemainders());remainders.put(key,next==MAX?0:numerator%1_000_000_000L);
-        return new Player(p.internalRatings(),prof,p.remainder(),remainders,p.cursors(),p.fatigue(),p.playedOn(),p.override());
+        return new Player(p.internalRatings(),prof,p.remainder(),remainders,p.cursors(),p.fatigue(),p.playedOn(),p.override(),p.growthSubRemainder());
     }
 }

@@ -27,6 +27,61 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
     @Autowired com.lolfm.career.CareerMarketStore market;
     @Autowired com.lolfm.career.CareerCalendarApplicationService calendar;
 
+    @Autowired com.lolfm.career.CareerCalendarRelationalStore calendarStore;
+    @Autowired com.lolfm.career.CareerCalendarTemplate calendarTemplate;
+    @Autowired com.lolfm.career.CareerCompetitionApplicationService competitionService;
+
+    @Test
+    void calendarDateAdvanceCapturesSettledStartAndAppliesActualAutoExactlyOnce() {
+        var c=careers.create(new com.lolfm.dto.CareerApiV1Dtos.CreateRequest(com.lolfm.dto.CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,
+                "Calendar 실제 완료", "감독", "T1",java.util.UUID.randomUUID().toString())).career().career();
+        String id=c.careerId();var season=leagueStore.loadSeason(c.seasonId());
+        var fixture=season.schedule().fixtures().stream().filter(f->f.roundNumber()==1&&f.executionMode()==LeagueFixtureExecutionMode.FULL_AUTO).findFirst().orElseThrow();
+        var target=calendarTemplate.leagueRoundDates(2027).get(1);var previous=target.minusDays(1);
+        var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
+        var rookie=new java.util.concurrent.atomic.AtomicReference<String>();
+        var initial=calendar.view(c).state();String setup=java.util.UUID.randomUUID().toString();
+        // Test-only preparation isolates one due fixture; earlier competitions are outside this regression.
+        calendarStore.execute(setup,id,initial.calendarRevision(),"ADVANCE_ONE_DAY",calendarTemplate.advancePayloadHash(id,initial.calendarRevision(),"ADVANCE_ONE_DAY"),row->{
+            rookie.set(com.lolfm.career.CareerLifecycleTestSupport.recruitGeneratedStarter(jdbc,id,"LCK:"+fixture.firstTeamCode()));
+            com.lolfm.career.CareerMarketStore.processThrough(jdbc,id,previous);
+            com.lolfm.career.CareerLifecycleTestSupport.prepareOnlyStarter(jdbc,id,"LCK:"+fixture.firstTeamCode(),rookie.get());
+            jdbc.update("UPDATE league_fixture SET lifecycle_status='COMPLETED' WHERE season_id=? AND round_number=1 AND fixture_id<>?",c.seasonId(),fixture.fixtureId());
+            return new com.lolfm.career.CareerCalendarRelationalStore.AdvanceMutation(previous,calendarTemplate.eventCursor(calendarTemplate.project(2027),previous),row.lastProcessedEventId(),row.lastProcessedDate(),"ACTIVE",null,true,false,200,null,false);
+        });
+        var competitions=org.mockito.Mockito.spy(competitionService);
+        org.mockito.Mockito.doReturn(com.lolfm.career.CareerCompetitionApplicationService.CompetitionGate.clear()).when(competitions).gate(org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyInt(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any());
+        var realCalendar=new com.lolfm.career.CareerCalendarApplicationService(calendarStore,calendarTemplate,new LeagueCareerCalendarService(leagueStore,leagueJobs,owner->true),competitions);
+        var before=com.lolfm.career.CareerDevelopmentStore.load(jdbc,id);var state=realCalendar.view(c).state();String command=java.util.UUID.randomUUID().toString();
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->tx.executeWithoutResult(status->{
+            realCalendar.advance(c,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,state.calendarRevision(),"ADVANCE_ONE_DAY",command);
+            throw new IllegalStateException("ROLLBACK_CALENDAR_START");
+        })).hasMessage("ROLLBACK_CALENDAR_START");
+        assertThat(com.lolfm.career.CareerDevelopmentStore.load(jdbc,id)).isEqualTo(before);assertThat(realCalendar.view(c).state().currentDate()).isEqualTo(previous);
+        assertThat(leagueJobs.findJob(c.seasonId(),fixture.fixtureId())).isEmpty();
+        realCalendar.advance(c,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,state.calendarRevision(),"ADVANCE_ONE_DAY",command);
+        String identity="LEAGUE|"+c.seasonId()+'|'+fixture.fixtureId();
+        var appearance=com.lolfm.career.CareerRosterStore.read(jdbc.queryForObject("SELECT snapshot_json FROM career_appearance_binding WHERE career_id=? AND fixture_identity=?",String.class,id,identity),com.lolfm.career.CareerManagementState.Appearance.class);
+        assertThat(appearance.date()).isEqualTo(target);assertThat(realCalendar.view(c).state().currentDate()).isEqualTo(target);
+        var settled=com.lolfm.career.CareerDevelopmentStore.load(jdbc,id);assertThat(settled.state().nextSettlement()).isEqualTo(target);
+        var frozen=rosters.leagueFixtureRoster(c.seasonId(),fixture.fixtureId());
+        assertThat(frozen.teams().values().stream().flatMap(t->t.players().stream()).map(p->p.playerId())).contains(rookie.get());
+        realCalendar.advance(c,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,state.calendarRevision(),"ADVANCE_ONE_DAY",command);
+        assertThat(rosters.leagueFixtureRoster(c.seasonId(),fixture.fixtureId())).isEqualTo(frozen);assertThat(com.lolfm.career.CareerDevelopmentStore.load(jdbc,id)).isEqualTo(settled);
+        var lease=leagueJobs.leaseNext("calendar-development-regression").orElseThrow();assertThat(lease.fixtureId()).isEqualTo(fixture.fixtureId());
+        var result=leagueJobs.execute(lease,SimulationInstrumentation.disabled());assertThat(result.status()).isEqualTo(LeagueSimulationApplicationPort.Status.COMPLETED);
+        assertThat(leagueStore.deliverNextOutbox()).isTrue();var rewarded=com.lolfm.career.CareerDevelopmentStore.load(jdbc,id);
+        assertThat(rewarded.revision()).isEqualTo(settled.revision()+1);
+        var recorded=market.view(id,2027).management().appearances().stream().filter(a->a.fixtureId().equals(identity)).findFirst().orElseThrow();
+        assertThat(recorded.date()).isEqualTo(target);assertThat(recorded.completedSets()).isBetween(2,3);
+        for(var roster:frozen.teams().values())for(var player:roster.players())assertThat(rewarded.state().players().get(player.playerId()).playedOn()).isEqualTo(target);
+        jdbc.update("UPDATE league_outbox SET lifecycle_status='PENDING',delivered_at=NULL WHERE receipt_hash=?",result.receiptHash());
+        assertThat(leagueStore.deliverNextOutbox()).isTrue();assertThat(com.lolfm.career.CareerDevelopmentStore.load(jdbc,id)).isEqualTo(rewarded);
+        realCalendar.advance(c,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,state.calendarRevision(),"ADVANCE_ONE_DAY",command);
+        assertThat(com.lolfm.career.CareerDevelopmentStore.load(jdbc,id)).isEqualTo(rewarded);
+        System.out.println("CALENDAR_ACTUAL_COMPLETION previous="+previous+" captured="+appearance.date()+" settled="+settled.state().nextSettlement()+" rookie="+rookie.get()+" games="+recorded.completedSets()+" receipt="+result.receiptHash());
+    }
+
     @Test
     void selectedReserveRunsThroughActualLeagueAutoAndFrozenReceiptValidation() {
         var career=careers.create(new com.lolfm.dto.CareerApiV1Dtos.CreateRequest(com.lolfm.dto.CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,

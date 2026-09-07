@@ -20,7 +20,7 @@ public record CareerMarketState(String policyVersion, long seed, LocalDate proce
         this(policyVersion,seed,processedThrough,contracts,offers,accounts,preferences,freeAgents,ledger,decisions,events,null);
     }
     public enum Role { STARTER, RESERVE, DEVELOPMENT }
-    public enum ContractStatus { ACTIVE, SCHEDULED, EXPIRED, RELEASED, TRANSFERRED }
+    public enum ContractStatus { ACTIVE, SCHEDULED, EXPIRED, RELEASED, TRANSFERRED, RETIRED, CANCELLED_RETIREMENT }
     public enum OfferStatus { SUBMITTED, COUNTER, ACCEPTED, REJECTED, WITHDRAWN, EXPIRED, SUPERSEDED }
     public record Terms(LocalDate startDate, LocalDate endDate, long annualSalary, long signingBonus, Role role) {}
     public record Contract(String contractId, String careerId, String playerId, String team, String organizationId,

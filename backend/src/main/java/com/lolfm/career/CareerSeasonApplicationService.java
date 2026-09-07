@@ -21,6 +21,7 @@ public final class CareerSeasonApplicationService {
     private final CareerInternationalParticipants participants;
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transactions;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerLifecycleStore lifecycle;
 
     public CareerSeasonApplicationService(CareerRelationalStore careers, CareerCalendarRelationalStore calendars,
             CareerCompetitionRelationalStore competitions, CareerApplicationService.SeasonProvisioningPort provisioning,
@@ -111,7 +112,11 @@ public final class CareerSeasonApplicationService {
             if(CareerMarketStore.exists(jdbc,careerId)) {
                 if(calendar.currentDate().isBefore(java.time.LocalDate.of(calendar.seasonYear(),12,31)))throw CareerException.invalid("sourceYear","스토브에서 계약 사건을 진행한 뒤 12월 31일부터 다음 시즌을 시작할 수 있습니다.");
                 openStove(careerId);
-                CareerMarketStore.processThrough(jdbc,careerId,java.time.LocalDate.of(calendar.seasonYear()+1,1,1));
+                var target=java.time.LocalDate.of(calendar.seasonYear()+1,1,1);
+                if(target.isBefore(calendar.currentDate()))target=calendar.currentDate();
+                var life=CareerLifecycleStore.load(jdbc,careerId);
+                if(life!=null)for(var person:life.players().values())if(person.status()==CareerLifecycleState.Status.RETIREMENT_ANNOUNCED&&person.effectiveOn().isAfter(target))target=person.effectiveOn();
+                CareerMarketStore.processThrough(jdbc,careerId,target);
             }
             CareerDevelopmentStore.finishSeason(jdbc,careerId,calendar.seasonYear());
             var current = careers.activeSeason(career);
@@ -158,6 +163,7 @@ public final class CareerSeasonApplicationService {
         if(count("SELECT COUNT(*) FROM career_market_season_close WHERE career_id=? AND season_year=?",careerId,calendar.seasonYear())>0)return;
         var blocked=blockers(career,calendar.seasonYear());
         if(!blocked.isEmpty())throw CareerException.invalid("season","대회 결과를 모두 반영한 뒤 스토브에 진입할 수 있습니다: "+String.join(", ",blocked));
+        if(lifecycle!=null)lifecycle.review(careerId,calendar.seasonYear(),calendar.currentDate());
         var roster=CareerRosterStore.saved(jdbc,careerId,calendar.seasonYear());var market=CareerMarketStore.load(jdbc,careerId);
         if(roster==null||market==null)throw CareerException.invalid("market","계약 초기화가 필요합니다.");
         CareerDevelopmentStore.closeSeason(jdbc,careerId,calendar.seasonYear(),calendar.currentDate());
