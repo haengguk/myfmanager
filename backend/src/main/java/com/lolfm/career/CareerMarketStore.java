@@ -76,7 +76,7 @@ public final class CareerMarketStore {
     }
     static CareerMarketEngine engine(JdbcTemplate jdbc,String career,int year,Saved market) {
         var engine=new CareerMarketEngine(career,managed(jdbc,career),directory(jdbc,career),CareerRosterStore.saved(jdbc,career,year).state(),market.state());
-        var life=CareerLifecycleStore.load(jdbc,career);if(life!=null)engine.lifecycle=new CareerLifecycleEngine(life);return engine;
+        var life=CareerLifecycleStore.load(jdbc,career);engine.clEnabled=CareerClStore.active(jdbc,career,year);if(life!=null){engine.lifecycle=new CareerLifecycleEngine(life);engine.lifecycle.clEnabled=engine.clEnabled;}return engine;
     }
     public static boolean exists(JdbcTemplate jdbc,String career) {return jdbc.queryForObject("SELECT COUNT(*) FROM career_market_state WHERE career_id=?",Integer.class,career)>0;}
     public record Eligibility(boolean enabled,Map<String,String> employers) {
@@ -94,12 +94,15 @@ public final class CareerMarketStore {
     }
     public static boolean eligible(JdbcTemplate jdbc,String career,String team,String player) {return eligibility(jdbc,career).allows(team,player);}
     static boolean repairNeeded(JdbcTemplate jdbc,String career,int year,String first,String second,String competition) {
+        if(CareerClPolicy.isCl(competition)){try{CareerClStore.pair(jdbc,career,year,first,second);return false;}catch(CareerException e){return true;}}
         var authority=eligibility(jdbc,career);if(!authority.enabled()||first==null||second==null)return false;
         var roster=CareerRosterStore.saved(jdbc,career,year).state();var directory=directory(jdbc,career);
         var registrations=competition==null?List.<CareerInternationalState>of():jdbc.query("SELECT state_json FROM career_international_state WHERE career_id=? AND calendar_season_year=? AND competition_id=?",(r,n)->read(r.getString(1),CareerInternationalState.class),career,year,competition);
         for(String raw:List.of(first,second)) {
             String team=raw.contains(":")?raw:"LCK:"+raw;
-            var ids=roster.lineups().getOrDefault(team,List.of());if(ids.size()!=5||ids.stream().anyMatch(id->!authority.allows(team,id)))return true;
+            var ids=roster.lineups().getOrDefault(team,List.of());
+            try{CareerAppearanceStore.requireNoCrossSquad(jdbc,career,"FIRST_PRECHECK",date(jdbc,career),"FIRST_TEAM",Set.copyOf(ids));}catch(CareerException conflict){return true;}
+            if(ids.size()!=5||ids.stream().anyMatch(id->!authority.allows(team,id)))return true;
             if(!registrations.isEmpty()) {
                 var allowed=registeredIds(jdbc,career,year,competition,team,registrations.getFirst().rosters());
                 for(var role:com.lolfm.domain.Position.values())if(allowed.stream().noneMatch(id->directory.players().get(id).position()==role&&team.equals(roster.members().get(id).ownerTeam())&&authority.allows(team,id))) {
@@ -126,6 +129,7 @@ public final class CareerMarketStore {
         persist(jdbc,career,year,old,engine);touch(jdbc,career);
     }
     static void persist(JdbcTemplate jdbc,String career,int year,Saved old,CareerMarketEngine engine) {
+        CareerClStore.prepare(jdbc,career,year,engine);
         if(engine.lifecycle!=null){engine.lifecycle.observe(engine,engine.state().processedThrough());CareerLifecycleStore.persist(jdbc,career,engine.lifecycle);}
         engine.validateIntegrity();String json=write(engine.state());
         if(jdbc.update("UPDATE career_market_state SET revision=?,state_json=?,state_hash=? WHERE career_id=? AND revision=?",

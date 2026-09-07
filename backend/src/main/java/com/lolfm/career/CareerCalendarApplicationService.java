@@ -246,7 +246,7 @@ public final class CareerCalendarApplicationService {
     }
 
     private boolean marketRepairNeeded(CareerRelationalStore.CareerRow career,int year,LocalDate date,OverlayProjection overlay) {
-        if(!calendars.hasMarket(career.careerId()))return false;
+        if(!calendars.hasMarket(career.careerId())||calendars.unsettledAppearance(career.careerId()))return false;
         for(var fixture:overlay.fixtures())if(!fixture.date().isAfter(date)&&!"COMPLETED".equals(fixture.lifecycleStatus())
                 && calendars.marketRepair(career.careerId(),year,fixture.firstTeamCode(),fixture.secondTeamCode(),null,overlay.season().seasonId(),fixture.fixtureId()))return true;
         var competitionView=competitions.view(career,year,date,null,null);

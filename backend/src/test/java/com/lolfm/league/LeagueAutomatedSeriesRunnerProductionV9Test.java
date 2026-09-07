@@ -86,7 +86,7 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
     void selectedReserveRunsThroughActualLeagueAutoAndFrozenReceiptValidation() {
         var career=careers.create(new com.lolfm.dto.CareerApiV1Dtos.CreateRequest(com.lolfm.dto.CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,
                 "KT 후보 실제 Auto","감독","KT",java.util.UUID.randomUUID().toString())).career().career();
-        rosters.change(career.careerId(),new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-jiwoo","SELECT_STARTER",null,null,0,java.util.UUID.randomUUID().toString()));
+        rosters.change(career.careerId(),new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-jiwoo","SELECT_STARTER",null,null,rosters.view(career.careerId(),2027).revision(),java.util.UUID.randomUUID().toString()));
         String id=career.careerId();var view=market.view(id,2027);
         market.command(id,new com.lolfm.career.CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,view.revision(),"RELEASE","player-cuzz",null,null,null,null,java.util.UUID.randomUUID().toString()));
         view=market.view(id,2027);var bo=view.players().stream().filter(p->p.playerId().equals("player-bo")).findFirst().orElseThrow();

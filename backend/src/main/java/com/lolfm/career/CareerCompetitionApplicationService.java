@@ -165,7 +165,7 @@ public final class CareerCompetitionApplicationService {
         if (fixture != null && !fixture.date().isAfter(date)
                 && !"COMPLETED".equals(fixture.lifecycleStatus())) {
             if ("READY".equals(fixture.lifecycleStatus())) {
-                return new CompetitionGate(fixture.managedTeamIncluded()
+                return new CompetitionGate("PLAYER_CONTROLLED".equals(fixture.executionMode())
                         ? "MANAGED_COMPETITION_FIXTURE_REQUIRED"
                         : "AUTO_COMPETITION_FIXTURE_REQUIRED", fixture.fixtureId(),
                         fixture.seriesId());
@@ -259,11 +259,11 @@ public final class CareerCompetitionApplicationService {
             return List.of();
         }
         if (fixture.bindingHash() == null) {
-            return List.of(fixture.managedTeamIncluded()
+            return List.of("PLAYER_CONTROLLED".equals(fixture.executionMode())
                     ? "START_PLAYER_COMPETITION_SERIES"
                     : "DISPATCH_AUTO_COMPETITION_FIXTURE");
         }
-        if (fixture.managedTeamIncluded()) {
+        if ("PLAYER_CONTROLLED".equals(fixture.executionMode())) {
             return List.of("RECONCILE_COMPETITION_FIXTURE",
                     "RESUME_PLAYER_COMPETITION_SERIES");
         }

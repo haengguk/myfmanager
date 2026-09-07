@@ -9,6 +9,7 @@ import com.lolfm.career.CareerIdentity;
 import com.lolfm.dto.CareerApiV1Dtos;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
@@ -30,8 +31,18 @@ public final class CareerApiV1RequestParser {
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     }
 
+    public com.lolfm.career.CareerClStore.Request clCommand(byte[] body){
+        var json=read(body);var fields=new HashSet<String>();json.fieldNames().forEachRemaining(fields::add);
+        if(!json.isObject()||!fields.equals(Set.of("sourceYear","expectedRevision","expectedRosterRevision","action","players","matchId","clientCommandId")))throw invalid(null,"CL 요청 필드를 확인하세요.");
+        for(String field:List.of("sourceYear","expectedRevision","expectedRosterRevision"))if(!json.path(field).isIntegralNumber()||!json.path(field).canConvertToLong()||json.path(field).asLong()<0)throw invalid(field,"CL 연도·revision을 확인하세요.");
+        if(!json.path("sourceYear").canConvertToInt())throw invalid("sourceYear","시즌 연도를 확인하세요.");text(json,"action");text(json,"clientCommandId");optionalText(json,"matchId");
+        if(!json.path("players").isNull()&&(!json.path("players").isArray()||json.path("players").size()!=5))throw invalid("players","CL 선발 5명을 선택하세요.");
+        if(json.path("players").isArray())for(var id:json.path("players"))if(!id.isTextual()||id.asText().isBlank())throw invalid("players","선수 ID를 확인하세요.");
+        try{return strictMapper.readerFor(com.lolfm.career.CareerClStore.Request.class).with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).readValue(json);}catch(IOException|IllegalArgumentException e){throw invalid(null,"CL 요청 형식을 확인하세요.");}
+    }
     public com.lolfm.career.CareerDevelopmentStore.Request trainingCommand(byte[] body) {
         var json=read(body);var fields=new HashSet<String>();json.fieldNames().forEachRemaining(fields::add);
+        fields.remove("squad");
         if(!json.isObject()||!fields.equals(Set.of("schemaVersion","sourceYear","expectedRevision","playerId","plan","clearOverride","clientCommandId")))throw invalid(null,"훈련 명령 필드를 확인해 주세요.");
         if(!json.path("sourceYear").isIntegralNumber()||!json.path("sourceYear").canConvertToInt()||!json.path("expectedRevision").isIntegralNumber()||!json.path("expectedRevision").canConvertToLong()||!json.path("clearOverride").isBoolean())throw invalid(null,"훈련 연도·revision·해제 여부의 형식을 확인해 주세요.");
         optionalText(json,"playerId");text(json,"schemaVersion");text(json,"clientCommandId");

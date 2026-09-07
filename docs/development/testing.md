@@ -1594,3 +1594,26 @@ production/API/resource/저장 연결 변경이므로 전체 backend test가 필
 오류 0 / 기존 skip 2**, **33분 24초**(외부 wall 2,004.56초, XML 누적 3,212.621초)로 통과했다.
 clean full 이후 문서만 갱신했다. 명령·시간·중간 실패 분류는 [통합 보고서](career-playing-time-promises-paid-transfers-and-loans-v1.md)에 기록한다.
 장기 시장 분포, 큰 seed, 선수/구단 전수 경기, 새 감사 도구는 실행하지 않는다.
+
+## Career 선행 3건·LCK CL V1 (2026-09-07)
+
+선행 PA 순서 편향/이름/7개 순수 경로는 기존 CareerLifecyclePolicyTest에 추가했다.
+CL 새 테스트는 CareerClPolicyTest와 CareerClExecutionTest 2개이며 작은 일정/순위/관찰
+경계와 한 실제 Auto BO3→성장→1군 Player 입력, 통제된 전체 대진 전이를 구분한다.
+기존 CareerModePersistenceTest의 lifecycle file DB 흐름으로 다음 시즌 활성화와 생성
+placeholder 이름 이주·과거 입력 보존을 확인한다. 경기 전체를 반복하는 장기 검증은 없다.
+
+선행 17건, CL/성장/시장/파일 저장 집중 62건, 이월 준비 시점 보완 후 파일 저장 1건이
+통과했다. 프런트는 Career 계약 89건과 build, 격리된 실제 Auto 저장을 사용한 브라우저
+등록·결과·성장·승격·다음 Draft 및 응답 소실 재시도를 확인했다. 별도 Player 완주는
+실행하지 않았다. 전체 backend `test`는 이 요청 전체를 합쳐 계획된 1회로 실행하며,
+실패 수정은 해당 실패와 직접 영향 범위를 확인한다. 최종 집계·시간·첫 실패/후속 결과는
+[CL 보고서](career-lck-cl-execution-and-player-pathway-v1.md)에 기록한다.
+
+
+CL 작업 최종 집계: 전체 1회 **269 suites / 2,094 tests / 2,087 통과 / 5 실패 / 오류 0 /
+기존 skip 2**, **38분 22초**. 실패는 revision 준비 2건, 대회 수 1건, 이주 수 2건이다.
+원래 전체 집계를 보존하고 해당 5개 메서드 전체를 교정 후 재실행해 **5/5, 6분 18초**로 통과했다.
+뒤이어 사용자 수정 이름 판별과 구형 훈련 요청 payload hash 복구를 보완했고, 기존 이름 정책/
+file DB 메서드 3개가 **3/3, 2분 36초**로 통과했다. 영향 범위가 제한된 조건·저장 경계로
+확인돼 두 번째 전체는 실행하지 않았다. 최종 트리의 clean full 결과로 표기하지 않는다.

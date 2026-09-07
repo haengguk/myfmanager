@@ -4,7 +4,7 @@ const STATUS_COPY: Readonly<Record<string, string>> = {
   OFFICIAL_CONFIRMED: '공식 확정', OFFICIAL_BY_NO_CHANGE_STATEMENT: '공식 유지', OFFICIAL_PARTIAL: '공식 일부', DERIVED: '계산 파생', OFFICIAL_PENDING: '공식 발표 대기', SUPERSEDED: '대체됨',
 };
 const COMPETITION_COPY: Readonly<Record<string, string>> = {
-  LCK_CUP: 'LCK Cup', LCK_REGULAR_R1_R2: 'LCK R1–R2', LCK_ROAD_TO_MSI: 'Road to MSI', LCK_REGULAR_R3_R4: 'LCK R3–R4', LCK_PLAY_IN: 'LCK 플레이인', LCK_PLAYOFFS: 'LCK 플레이오프', FIRST_STAND: 'First Stand', MSI: 'MSI', EWC_LOL: 'EWC', WORLDS: 'Worlds', ASIAN_GAMES_LOL_RELEASE: '아시안게임 차출 기간', KESPA_CUP: 'KeSPA Cup',
+  LCK_CL: 'LCK CL', LCK_CUP: 'LCK Cup', LCK_REGULAR_R1_R2: 'LCK R1–R2', LCK_ROAD_TO_MSI: 'Road to MSI', LCK_REGULAR_R3_R4: 'LCK R3–R4', LCK_PLAY_IN: 'LCK 플레이인', LCK_PLAYOFFS: 'LCK 플레이오프', FIRST_STAND: 'First Stand', MSI: 'MSI', EWC_LOL: 'EWC', WORLDS: 'Worlds', ASIAN_GAMES_LOL_RELEASE: '아시안게임 차출 기간', KESPA_CUP: 'KeSPA Cup',
 };
 const EXECUTION_COPY: Readonly<Record<CareerCalendarViewDto['upcomingEvents'][number]['executionStatus'], string>> = {
   LINKED_EXISTING_LEAGUE_FIXTURES: 'League 연동',

@@ -177,6 +177,7 @@ public final class CareerSeasonApplicationService {
             var instance=cycle.competitions().stream().filter(c->c.competitionId().equals(competition)).findFirst();
             if(instance.isEmpty() || !instance.get().lifecycleStatus().equals("COMPLETED")) reasons.add("INCOMPLETE:"+competition);
         }
+        if(CareerClStore.active(competitions.jdbc,id,year)&&cycle.competitions().stream().noneMatch(c->CareerClPolicy.isCl(c.competitionId())&&"COMPLETED".equals(c.lifecycleStatus())))reasons.add("INCOMPLETE:LCK_CL");
         if(competitions.finalRanking(id,year)==null)reasons.add("SEALED_DOMESTIC_FINAL_REQUIRED");
         var international=competitions.internationalViews(id,year);
         if(international.size()!=4 || international.stream().anyMatch(v->!v.bracket().complete()))reasons.add("INTERNATIONAL_FINAL_RESULTS_REQUIRED");

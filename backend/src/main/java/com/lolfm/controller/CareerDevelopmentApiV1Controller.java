@@ -11,5 +11,6 @@ public final class CareerDevelopmentApiV1Controller {
     public CareerDevelopmentApiV1Controller(CareerDevelopmentStore development,CareerApiV1RequestParser parser){this.development=development;this.parser=parser;}
     @GetMapping("/{year}") public CareerDevelopmentStore.View view(@PathVariable String careerId,@PathVariable int year){return development.view(careerId,year);}
     @GetMapping("/{year}/lifecycle") public com.lolfm.career.CareerLifecycleStore.View lifecycle(@PathVariable String careerId,@PathVariable int year){return lifecycle.view(careerId,year);}
+    @GetMapping("/{year}/players/{playerId}/appearances") public java.util.List<com.lolfm.career.CareerAppearanceStore.Performance> appearances(@PathVariable String careerId,@PathVariable int year,@PathVariable String playerId){return development.performances(careerId,year,playerId);}
     @PostMapping public CareerDevelopmentStore.Change change(@PathVariable String careerId,@RequestBody byte[] body){return development.change(careerId,parser.trainingCommand(body));}
 }

@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = {CareerApiV1Controller.class, CareerRosterApiV1Controller.class, CareerMarketApiV1Controller.class})
+@RestControllerAdvice(assignableTypes = {CareerApiV1Controller.class, CareerRosterApiV1Controller.class, CareerMarketApiV1Controller.class, CareerDevelopmentApiV1Controller.class, CareerClApiV1Controller.class})
 public final class CareerApiV1ExceptionHandler {
     @ExceptionHandler(CareerException.class)
     public ResponseEntity<CareerApiV1Dtos.ErrorResponse> career(CareerException error) {

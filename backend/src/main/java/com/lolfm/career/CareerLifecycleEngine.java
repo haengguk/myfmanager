@@ -8,7 +8,7 @@ import static com.lolfm.career.CareerManagementState.*;
 
 /** A single locked market operation's lifecycle state. */
 final class CareerLifecycleEngine {
-    final LocalDate appliedOn;Integer lastReview;
+    final LocalDate appliedOn;Integer lastReview;boolean clEnabled;
     final Map<String,Person> people=new TreeMap<>();
     CareerLifecycleEngine(CareerLifecycleState state){appliedOn=state.appliedOn();lastReview=state.lastReviewedSeason();people.putAll(state.players());}
     CareerLifecycleState state(){return new CareerLifecycleState(CareerLifecyclePolicy.VERSION,appliedOn,lastReview,people);}
@@ -26,9 +26,9 @@ final class CareerLifecycleEngine {
     }
     void observePlacement(String id,CareerRosterStore.Membership member,LocalDate date) {
         var person=people.get(id);if(person==null)return;
-        boolean observed=member!=null&&member.ownerTeam()!=null&&"LCK".equals(CareerMarketPolicy.region(member.ownerTeam()))&&"FIRST_TEAM".equals(member.squad())&&member.eligibilityReason()==null&&!retired(id);
+        boolean observed=member!=null&&member.ownerTeam()!=null&&"LCK".equals(CareerMarketPolicy.region(member.ownerTeam()))&&("FIRST_TEAM".equals(member.squad())||clEnabled&&"DEVELOPMENT".equals(member.squad()))&&member.eligibilityReason()==null&&!retired(id);
         if(!observed&&person.domesticObservedSince()!=null)people.put(id,person.domesticSince(null));
-        else if(observed&&person.domesticObservedSince()==null)people.put(id,person.domesticSince(date));
+        else if(observed&&(person.domesticObservedSince()==null||!member.squad().equals(person.observedSquad())))people.put(id,person.domesticSince(date,member.squad()));
     }
     void cancelReservations(CareerMarketEngine m,String id,LocalDate date) {
         var person=people.get(id);
@@ -60,7 +60,7 @@ final class CareerLifecycleEngine {
     }
     void youthProposals(CareerMarketEngine m,LocalDate date) {
         for(String team:m.accounts.keySet()) {
-            if(team.equals(m.managed))continue;
+            if(team.equals(m.managed)||m.clEnabled&&team.startsWith("LCK:"))continue;
             long held=m.contracts.values().stream().filter(c->team.equals(c.team())&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)&&c.terms().role()!=Role.STARTER&&people.containsKey(c.playerId())&&CareerLifecyclePolicy.age(people.get(c.playerId()).age(),date)<=20).count();
             if(held>=CareerLifecyclePolicy.YOUNG_SLOTS||m.offers.values().stream().anyMatch(o->team.equals(o.team())&&o.open()&&o.terms().role()!=Role.STARTER))continue;
             var account=m.accounts.get(team);long committed=m.contracts.values().stream().filter(c->team.equals(c.team())&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)&&c.terms().role()!=Role.STARTER).mapToLong(c->c.terms().annualSalary()).sum();

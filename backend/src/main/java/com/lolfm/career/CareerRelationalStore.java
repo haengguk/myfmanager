@@ -32,6 +32,7 @@ public final class CareerRelationalStore {
     public CareerRelationalStore(JdbcTemplate jdbc, PlatformTransactionManager transactionManager, CareerInternationalParticipants participants, CareerRosterStore rosters) {
         this(jdbc,transactionManager,participants);this.rosters=rosters;
     }
+    @Autowired(required=false) private CareerClStore cl;
     private CareerRosterStore rosters;
     public CareerRelationalStore(JdbcTemplate jdbc, PlatformTransactionManager manager, CareerInternationalParticipants participants) {
         this(jdbc,manager);this.initialParticipants=participants;
@@ -163,6 +164,7 @@ public final class CareerRelationalStore {
                 CareerMarketStore.initialize(jdbc,requested.careerId());
                 CareerDevelopmentStore.initialize(jdbc,requested.careerId());
                 CareerLifecycleStore.initialize(jdbc,requested.careerId());
+                if(cl!=null)cl.initializeNew(requested.careerId(),year);
             }
             jdbc.update("""
                     INSERT INTO career_create_command(

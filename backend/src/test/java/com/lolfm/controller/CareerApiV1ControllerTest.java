@@ -159,8 +159,12 @@ class CareerApiV1ControllerTest {
         assertThat(count("league_job") - jobsBefore).isZero();
         assertThat(jdbc.queryForObject("""
                 SELECT COUNT(*) FROM career_competition_instance
-                WHERE career_id = ?
+                WHERE career_id = ? AND competition_id <> 'LCK_CL'
                 """, Integer.class, created.path("careerId").asText())).isEqualTo(12);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_instance WHERE career_id=? AND competition_id='LCK_CL'",
+                Integer.class, created.path("careerId").asText())).isOne();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_fixture WHERE career_id=? AND competition_id='LCK_CL'",
+                Integer.class, created.path("careerId").asText())).isEqualTo(90);
 
         JsonNode replay = json(mvc.perform(post("/api/v1/careers")
                         .contentType(MediaType.APPLICATION_JSON).content(request))

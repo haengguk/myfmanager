@@ -68,12 +68,41 @@ class CareerLifecyclePolicyTest {
             var p=new CareerDevelopmentState.Player(stats,Map.of(),0,Map.of(),Map.of(),0,null,null);int remainder=0,cursor=0;var annual=new ArrayList<Integer>();
             for(int year=0;year<12;year++) {
                 var begin=LocalDate.of(2027+year,1,1);
-                for(int day=0;day<365;day++){var date=begin.plusDays(day);p=CareerDevelopmentPolicy.day(p,d,CareerDevelopmentPolicy.metadata(d),date,games<0?new CareerDevelopmentState.Plan(CareerDevelopmentState.Intensity.LIGHT,CareerDevelopmentState.Focus.BALANCED,null,List.of()):CareerDevelopmentPolicy.DEFAULT,games<0);if(games>0&&day<300&&day%3==0)p=CareerDevelopmentPolicy.game(p,d,CareerDevelopmentPolicy.metadata(d),date,"aatrox");}
+                for(int day=0;day<365;day++){var date=begin.plusDays(day);if(games>0&&day<300&&day%3==0)p=CareerDevelopmentPolicy.game(p,d,CareerDevelopmentPolicy.metadata(d),date,"aatrox");p=CareerDevelopmentPolicy.day(p,d,CareerDevelopmentPolicy.metadata(d),date,games<0?new CareerDevelopmentState.Plan(CareerDevelopmentState.Intensity.LIGHT,CareerDevelopmentState.Focus.BALANCED,null,List.of()):CareerDevelopmentPolicy.DEFAULT,games<0);}
                 var observation=games<0?UNKNOWN:new Observation("FULL_DOMESTIC_SEASON",100,Math.max(0,games),Math.max(0,games),begin,begin.plusDays(299));
                 var loss=decline(p,Position.TOP,startAge+year,remainder,cursor,observation);p=loss.player();remainder=loss.carried();cursor=loss.cursor();annual.add(ca(p));assertThat(CareerDevelopmentPolicy.sum(p)).isLessThanOrEqualTo(CareerDevelopmentPolicy.ceiling(pa));
             }
             System.out.println("LIFECYCLE_PURE_TRAJECTORY age="+startAge+" PA="+pa+" initialCA="+target+" games="+games+" annualCA="+annual);
         }
+    }
+    @Test void generatedNamesAreStableResolveCollisionsAndPreserveGameplay() {
+        var champions=new ChampionCatalog(new ObjectMapper());
+        var r=CareerRookieFactory.generate("career-test",41,2028,DATE,Map.of(Position.TOP,1),false,1,champions,List.of("LCK")).getFirst();
+        var d=r.definition();var details=CareerRosterStore.read(d.detailsJson(),com.fasterxml.jackson.databind.node.ObjectNode.class);
+        assertThat(details.path("personal").path("legalName").asText()).isNotBlank();assertThat(details.path("personal").path("nameSource").asText()).isEqualTo("GENERATED_FICTIONAL_NAME");
+        var occupied=new HashSet<String>();occupied.add(d.nickname().toLowerCase(Locale.ROOT));var renamed=CareerGeneratedNames.assign(d,41,occupied);
+        assertThat(renamed.nickname()).isNotEqualTo(d.nickname());assertThat(renamed.gameplay().ratings()).isEqualTo(d.gameplay().ratings());assertThat(renamed.gameplay().proficiencies()).isEqualTo(d.gameplay().proficiencies());
+        assertThat(renamed.playerId()).isEqualTo(d.playerId());assertThat(CareerDevelopmentPolicy.metadata(renamed)).isEqualTo(CareerDevelopmentPolicy.metadata(d));
+        assertThat(CareerGeneratedNames.assign(d,41,new HashSet<>(Set.of(d.nickname().toLowerCase(Locale.ROOT))))).isEqualTo(renamed);
+        assertThat(CareerGeneratedNames.placeholder(d)).isFalse();
+        ((com.fasterxml.jackson.databind.node.ObjectNode)details.path("generated")).remove(List.of("namePolicyVersion","nameStatus"));((com.fasterxml.jackson.databind.node.ObjectNode)details.path("personal")).remove(List.of("legalName","nameSource"));
+        String old="LCK 신인 2028-1";details.put("name",old).put("nickname",old);
+        var legacy=new com.lolfm.player.ExpandedPlayerCatalog.Definition(d.playerId(),old,d.position(),new CompetitionRosterSnapshot.Starter(d.playerId(),old,d.position(),d.gameplay().ratings(),d.gameplay().proficiencies()),d.provisional(),d.initialOrganizationId(),d.initialOwnerTeam(),d.initialSquad(),d.eligibilityReason(),details.toString());
+        assertThat(CareerGeneratedNames.placeholder(legacy)).isTrue();assertThat(CareerGeneratedNames.assign(legacy,41,new HashSet<>())).isEqualTo(d);
+        for(String field:List.of("name","nickname")) {
+            var edited=details.deepCopy().put(field,"사용자 지정 이름");
+            var custom=new com.lolfm.player.ExpandedPlayerCatalog.Definition(legacy.playerId(),legacy.nickname(),legacy.position(),legacy.gameplay(),legacy.provisional(),legacy.initialOrganizationId(),legacy.initialOwnerTeam(),legacy.initialSquad(),legacy.eligibilityReason(),edited.toString());
+            assertThat(CareerGeneratedNames.placeholder(custom)).as("preserve user-edited %s",field).isFalse();
+        }
+    }
+    @Test void cappedPotentialUsesCandidatePriorityRatherThanTraversalOrder() {
+        var candidates=List.of(new CareerRookieFactory.PotentialCandidate("first-top",985),new CareerRookieFactory.PotentialCandidate("last-support",985));
+        long seed=0; // Fixed small candidate case: the later role wins priority.
+        assertThat(CareerRookieFactory.selectBand(seed,2028,candidates,980,995,1)).containsExactly("last-support");
+        assertThat(CareerRookieFactory.selectBand(seed,2028,candidates.reversed(),980,995,1)).containsExactly("last-support");
+        var upper=List.of("top","jungle","mid","adc","support").stream().map(id->new CareerRookieFactory.PotentialCandidate(id,950)).toList();
+        assertThat(CareerRookieFactory.selectBand(seed,2028,upper,900,980,3)).hasSize(3).isEqualTo(CareerRookieFactory.selectBand(seed,2028,upper.reversed(),900,980,3));
+        assertThat(CareerRookieFactory.selectBand(seed,2028,candidates,980,995,0)).isEmpty();
     }
     @Test void classLegendIsOneFivePercentDrawAndEmergencyCoversSeveralClubs() {
         assertThat(draw(59,"career-test",2028,"LEGEND_CLASS",100)).isEqualTo(2);

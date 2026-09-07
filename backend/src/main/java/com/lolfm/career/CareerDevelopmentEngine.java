@@ -49,21 +49,22 @@ public final class CareerDevelopmentEngine {
             result.put(id,new Definition(id,d.nickname(),d.position(),gameplay,d.provisional(),d.initialOrganizationId(),d.initialOwnerTeam(),d.initialSquad(),d.eligibilityReason(),d.detailsJson()));
         });return new CareerRosterStore.Directory(result,base.organizations());
     }
+    static String trainingTeam(CareerRosterStore.Membership member){return member==null||member.ownerTeam()==null?null:member.ownerTeam()+("DEVELOPMENT".equals(member.squad())?"|DEVELOPMENT":"");}
     public Plan effective(String id,String managed,CareerRosterStore.Membership member,LocalDate date,List<LocalDate> fixtures) {
         var p=players.get(id);String team=member==null?null:member.ownerTeam();var override=activate(p.override(),date,team);
         if(override!=null&&override.current()!=null)return override.current();
         if(team==null)return new Plan(Intensity.LIGHT,Focus.BALANCED,null,List.of());
         if(!team.equals(managed))return ai(base.players().get(id),metadata.get(id),p,date,fixtures.stream().filter(d->!d.isBefore(date)).mapToInt(d->(int)ChronoUnit.DAYS.between(date,d)).min().orElse(365));
-        var schedule=activate(teams.get(team),date,team);return schedule==null||schedule.current()==null?DEFAULT:schedule.current();
+        var schedule=activate(teams.get(trainingTeam(member)),date,team);return schedule==null||schedule.current()==null?DEFAULT:schedule.current();
     }
     public void closeDay(LocalDate date,String managed,Map<String,CareerRosterStore.Membership> members,Map<String,List<LocalDate>> fixtures,int year) {
         if(!date.equals(next))throw new IllegalStateException("DEVELOPMENT_SETTLEMENT_ORDER");
-        teams.replaceAll((team,s)->activate(s,date,team));
+        teams.replaceAll((team,s)->activate(s,date,s.team()));
         for(String id:players.keySet()) {
             if(retired.contains(id))continue;
             var old=players.get(id);var member=members.get(id);String team=member==null?null:member.ownerTeam();
             var current=copy(old,old.fatigue(),old.playedOn(),activate(old.override(),date,team));players.put(id,current);
-            var plan=effective(id,managed,member,date,team==null?List.of():fixtures.getOrDefault(team,List.of()));
+            var plan=effective(id,managed,member,date,team==null?List.of():fixtures.getOrDefault(trainingTeam(member),List.of()));
             var result=day(current,base.players().get(id),metadata.get(id),date,plan,team==null);record(id,date,old,result,year);players.put(id,result);
         }
         next=date.plusDays(1);gains.values().removeIf(g->g.date().isBefore(next.minusDays(30)));

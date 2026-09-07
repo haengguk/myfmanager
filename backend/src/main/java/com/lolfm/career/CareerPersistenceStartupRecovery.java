@@ -11,6 +11,7 @@ public final class CareerPersistenceStartupRecovery {
     private final CareerCalendarRelationalStore calendars;
     private final CareerCompetitionRelationalStore competitions;
 
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerClStore cl;
     private CareerRosterStore rosters;
     @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerLifecycleStore lifecycle;
     @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerDevelopmentStore development;
@@ -35,5 +36,6 @@ public final class CareerPersistenceStartupRecovery {
         if(market!=null)market.recover();
         if(development!=null)development.recover();
         if(lifecycle!=null)lifecycle.recover();
+        if(cl!=null)cl.recover();
     }
 }

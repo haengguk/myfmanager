@@ -144,3 +144,12 @@ import { validateCareerLifecycle } from './careerLifecycle.contract';
 export function getCareerLifecycle(career: string, year: number, signal: AbortSignal): Promise<CareerLifecycle> {
   return request(`${ROOT}/${encodeURIComponent(career)}/development/${year}/lifecycle`, { method: 'GET' }, signal, validateCareerLifecycle, [200]);
 }
+
+import { validateCareerCl, validateClChange } from './careerCl.contract';
+import type { ClCommand } from './careerCl.contract';
+export function getCareerCl(career: string, year: number, signal: AbortSignal) { return request(`${ROOT}/${encodeURIComponent(career)}/cl/${year}`, { method: 'GET' }, signal, validateCareerCl, [200]); }
+export function changeCareerCl(career: string, body: ClCommand, signal: AbortSignal) { return request(`${ROOT}/${encodeURIComponent(career)}/cl`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateClChange, [200]); }
+import { validatePerformances } from './careerCl.contract';
+export function getCareerAppearances(career: string, year: number, player: string, signal: AbortSignal) { return request(`${ROOT}/${encodeURIComponent(career)}/development/${year}/players/${encodeURIComponent(player)}/appearances`, { method: 'GET' }, signal, validatePerformances, [200]); }
+import { validateClResult } from './careerCl.contract';
+export function getCareerClResult(career: string, year: number, match: string, signal: AbortSignal) { return request(`${ROOT}/${encodeURIComponent(career)}/cl/${year}/results/${encodeURIComponent(match)}`, { method: 'GET' }, signal, validateClResult, [200]); }

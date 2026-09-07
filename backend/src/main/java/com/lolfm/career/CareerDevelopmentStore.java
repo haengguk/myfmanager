@@ -18,12 +18,15 @@ public final class CareerDevelopmentStore {
         this.jdbc=jdbc;tx=new TransactionTemplate(manager);legal=champions.legalRoleKeys().stream().map(k->CareerDevelopmentPolicy.key(k.championId().value(),k.position())).collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
     public record Saved(long revision,CareerDevelopmentState state) {}
-    public record Request(String schemaVersion,int sourceYear,long expectedRevision,String playerId,Plan plan,boolean clearOverride,String clientCommandId) {}
+    public record Request(String schemaVersion,int sourceYear,long expectedRevision,String playerId,Plan plan,boolean clearOverride,String clientCommandId,String squad) {
+        public Request(String schemaVersion,int sourceYear,long expectedRevision,String playerId,Plan plan,boolean clearOverride,String clientCommandId){this(schemaVersion,sourceYear,expectedRevision,playerId,plan,clearOverride,clientCommandId,"FIRST_TEAM");}
+        public Request{squad=squad==null?"FIRST_TEAM":squad;}
+    }
     public record Receipt(String clientCommandId,String careerId,int sourceYear,long resultingRevision,LocalDate effectiveOn,String stateHash) {}
     public record Change(boolean replayed,Receipt receipt,View development) {}
     public record Profile(String playerId,Integer potentialAbility,int currentAbility,String growthStatus,Player development,Plan effectivePlan,int trainingEfficiency) {}
     public record View(String schemaVersion,String careerId,int seasonYear,long revision,LocalDate currentDate,String managedTeam,boolean readOnly,
-            Schedule teamPlan,List<Profile> players,List<Gain> recentChanges,List<Gain> monthlySummaries,Map<String,List<String>> legalChampions,String policyVersion) {}
+            Schedule teamPlan,List<Profile> players,List<Gain> recentChanges,List<Gain> monthlySummaries,Map<String,List<String>> legalChampions,String policyVersion,Schedule developmentTeamPlan) {}
     public static Saved load(JdbcTemplate jdbc,String career) {
         var markers=jdbc.query("SELECT development_version FROM career_player_directory WHERE career_id=?",(r,n)->r.getString(1),career);
         if(markers.isEmpty()||markers.getFirst()==null) {
@@ -89,8 +92,8 @@ public final class CareerDevelopmentStore {
     }
     static Map<String,List<LocalDate>> fixtures(JdbcTemplate jdbc,String career) {
         var result=new TreeMap<String,List<LocalDate>>();
-        jdbc.query("SELECT scheduled_date,first_team_code,second_team_code FROM career_competition_fixture WHERE career_id=? AND lifecycle_status<>'COMPLETED'",(org.springframework.jdbc.core.RowCallbackHandler)r->{
-            for(int col:List.of(2,3)){String team=r.getString(col);if(team!=null)result.computeIfAbsent(team.contains(":")?team:"LCK:"+team,k->new ArrayList<>()).add(r.getObject(1,LocalDate.class));}
+        jdbc.query("SELECT scheduled_date,first_team_code,second_team_code,competition_id FROM career_competition_fixture WHERE career_id=? AND lifecycle_status<>'COMPLETED'",(org.springframework.jdbc.core.RowCallbackHandler)r->{
+            for(int col:List.of(2,3)){String team=r.getString(col);if(team!=null)result.computeIfAbsent((team.contains(":")?team:"LCK:"+team)+(CareerClPolicy.isCl(r.getString(4))?"|DEVELOPMENT":""),k->new ArrayList<>()).add(r.getObject(1,LocalDate.class));}
         },career);
         var template=new CareerCalendarTemplate(new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules());
         int year=activeYear(jdbc,career);var rounds=template.leagueRoundDates(year);
@@ -119,9 +122,18 @@ public final class CareerDevelopmentStore {
             if(!ids.equals(selected)||ids.size()!=10)throw new IllegalStateException("DEVELOPMENT_ASSIGNMENT_BINDING");
             for(var v:game.orderedFinalAssignments())engine.game(v.playerId().value(),v.championId().value(),v.position(),a.date(),a.seasonYear());
         }
+        var performance=new ArrayList<CareerAppearanceStore.Performance>();
+        for(var o:a.opportunities())if(o.selected()){
+            var before=old.state().players().get(o.playerId());var after=engine.players.get(o.playerId());var champions=new TreeMap<String,Integer>();int prof=0;
+            for(var game:games)game.orderedFinalAssignments().stream().filter(v->v.playerId().value().equals(o.playerId())).forEach(v->champions.merge(v.championId().value(),1,Integer::sum));
+            for(var e:after.internalProficiencies().entrySet())prof+=e.getValue()-before.internalProficiencies().getOrDefault(e.getKey(),14000);
+            performance.add(new CareerAppearanceStore.Performance(a.seasonYear(),a.date(),a.seriesId(),o.playerId(),o.team(),a.squad(),a.competitionId(),games.size(),champions,CareerDevelopmentPolicy.sum(after)-CareerDevelopmentPolicy.sum(before),prof));
+        }
+        String performanceJson=write(performance);jdbc.update("INSERT INTO career_appearance_performance VALUES (?,?,?,?,?)",career,receipt,a.seasonYear(),performanceJson,hash(performanceJson));
         persist(jdbc,career,old,engine);
         jdbc.update("UPDATE career_development_binding SET completion_hash=? WHERE career_id=? AND fixture_identity=?",payload,career,identity);
     }
+    public List<CareerAppearanceStore.Performance> performances(String career,int year,String player){return tx.execute(s->{lockCareer(jdbc,career);return CareerAppearanceStore.performance(jdbc,career,year,player);});}
     public View view(String career,int year){return tx.execute(s->{lockCareer(jdbc,career);return readView(career,year);});}
     private View readView(String career,int year) {
         var saved=load(jdbc,career);if(saved==null)throw CareerException.invalid("development","서버 시작 시 성장 이주가 필요합니다.");
@@ -132,33 +144,38 @@ public final class CareerDevelopmentStore {
         for(var entry:(year!=activeYear(jdbc,career)&&history.isEmpty()?Map.<String,Player>of():engine.players).entrySet()) {
             String id=entry.getKey();var p=entry.getValue();var m=engine.metadata.get(id);int sum=CareerDevelopmentPolicy.sum(p),ca=com.lolfm.player.PlayerAbilityPolicy.currentAbility(p.internalRatings().entrySet().stream().collect(java.util.stream.Collectors.toMap(Map.Entry::getKey,e->e.getValue()/1000)));
             String status=engine.retired.contains(id)?"RETIRED":m.potential()==null?"PA_MISSING":sum>CareerDevelopmentPolicy.ceiling(m.potential())?ca>m.potential()?"INITIAL_CA_ABOVE_PA":"INITIAL_ROUNDING_BOUNDARY":sum==CareerDevelopmentPolicy.ceiling(m.potential())?"PA_REACHED":"GROWING";
-            var member=roster.state().members().get(id);var dates=member.ownerTeam()==null?List.<LocalDate>of():fixtures.getOrDefault(member.ownerTeam(),List.of());
+            var member=roster.state().members().get(id);var dates=member.ownerTeam()==null?List.<LocalDate>of():fixtures.getOrDefault(CareerDevelopmentEngine.trainingTeam(member),List.of());
             profiles.add(new Profile(id,m.potential(),ca,status,p,engine.effective(id,managed,member,date,dates),CareerDevelopmentPolicy.efficiency(p.fatigue())));
         }
         var legalByRole=new TreeMap<String,List<String>>();for(var role:com.lolfm.domain.Position.values())legalByRole.put(role.name(),legal.stream().filter(k->k.endsWith("|"+role)).map(k->k.substring(0,k.lastIndexOf('|'))).sorted().toList());
         return new View("CAREER_DEVELOPMENT_VIEW_V1",career,year,year==activeYear(jdbc,career)?saved.revision():0,date,managed,year!=activeYear(jdbc,career),CareerDevelopmentPolicy.activate(engine.teams.get(managed),date,managed),profiles,
-            engine.gains.values().stream().filter(g->g.seasonYear()==year).toList(),engine.monthly.values().stream().filter(g->g.seasonYear()==year).toList(),legalByRole,CareerDevelopmentPolicy.VERSION);
+            engine.gains.values().stream().filter(g->g.seasonYear()==year).toList(),engine.monthly.values().stream().filter(g->g.seasonYear()==year).toList(),legalByRole,CareerDevelopmentPolicy.VERSION,CareerDevelopmentPolicy.activate(engine.teams.get(managed+"|DEVELOPMENT"),date,managed));
     }
     private static String managed(JdbcTemplate jdbc,String career){return "LCK:"+jdbc.queryForObject("SELECT managed_team_code FROM career_save WHERE career_id=?",String.class,career);}
     public Change change(String career,Request request) {
         if(request==null||!"CAREER_TRAINING_COMMAND_V1".equals(request.schemaVersion())||request.expectedRevision()<0)throw CareerException.invalid(null,"훈련 요청 형식을 확인하세요.");
         String command;try{command=CareerIdentity.canonicalCommandId(request.clientCommandId());}catch(RuntimeException e){throw CareerException.invalid("clientCommandId","원본 UUID가 필요합니다.");}
         String payload=hash(career+'|'+write(request));
+        // Pre-CL V1 commands omitted squad and meant FIRST_TEAM. Keep their stored receipts unchanged.
+        var legacyFields=read(write(request),com.fasterxml.jackson.databind.node.ObjectNode.class);legacyFields.remove("squad");
+        String legacyPayload=hash(career+'|'+write(legacyFields));
         return tx.execute(status->{
             lockCareer(jdbc,career);
             var prior=jdbc.query("SELECT payload_hash,receipt_json,receipt_hash FROM career_training_command WHERE career_id=? AND client_command_id=?",(r,n)->{
-                if(!payload.equals(r.getString(1)))throw CareerException.calendarCommandConflict();if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("TRAINING_RECEIPT_INTEGRITY");return read(r.getString(2),Receipt.class);
+                if(!payload.equals(r.getString(1))&&!("FIRST_TEAM".equals(request.squad())&&legacyPayload.equals(r.getString(1))))throw CareerException.calendarCommandConflict();if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("TRAINING_RECEIPT_INTEGRITY");return read(r.getString(2),Receipt.class);
             },career,command);
             if(!prior.isEmpty())return new Change(true,prior.getFirst(),readView(career,activeYear(jdbc,career)));
             var old=load(jdbc,career);if(old==null||old.revision()!=request.expectedRevision()||request.sourceYear()!=activeYear(jdbc,career))throw CareerException.calendarStaleRevision();
             String managed=managed(jdbc,career);var engine=new CareerDevelopmentEngine(baseDirectory(jdbc,career),old.state());var date=CareerMarketStore.date(jdbc,career);var when=date.plusDays(1);
+            if(!Set.of("FIRST_TEAM","DEVELOPMENT").contains(request.squad()))throw CareerException.invalid("squad","1군 또는 CL 훈련을 선택하세요.");
+            String teamKey=managed+("DEVELOPMENT".equals(request.squad())?"|DEVELOPMENT":"");
             String id=request.playerId();var definition=id==null?null:engine.base.players().get(id);
             if(id!=null&&(definition==null||engine.retired.contains(id)||!managed.equals(CareerRosterStore.saved(jdbc,career,request.sourceYear()).state().members().get(id).ownerTeam())))throw CareerException.invalid("playerId","현재 우리 구단에서 훈련하는 선수만 변경할 수 있습니다.");
             try {if(!request.clearOverride())CareerDevelopmentPolicy.validate(request.plan(),definition,legal);else if(id==null||request.plan()!=null)throw new IllegalArgumentException();}
             catch(IllegalArgumentException e){throw CareerException.invalid("plan","포지션에 맞는 능력치 또는 합법 챔피언 1~2개와 훈련 강도를 확인하세요.");}
-            var previous=CareerDevelopmentPolicy.activate(id==null?engine.teams.get(managed):engine.players.get(id).override(),date,managed);
+            var previous=CareerDevelopmentPolicy.activate(id==null?engine.teams.get(teamKey):engine.players.get(id).override(),date,managed);
             var schedule=new Schedule(managed,previous==null?(id==null?CareerDevelopmentPolicy.DEFAULT:null):previous.current(),previous==null?date:previous.effectiveOn(),request.plan(),when,request.clearOverride());
-            if(id==null)engine.teams.put(managed,schedule);else {var p=engine.players.get(id);engine.players.put(id,CareerDevelopmentPolicy.copy(p,p.fatigue(),p.playedOn(),schedule));}
+            if(id==null)engine.teams.put(teamKey,schedule);else {var p=engine.players.get(id);engine.players.put(id,CareerDevelopmentPolicy.copy(p,p.fatigue(),p.playedOn(),schedule));}
             persist(jdbc,career,old,engine);var receipt=new Receipt(command,career,request.sourceYear(),old.revision()+1,when,hash(write(engine.state())));String json=write(receipt);
             jdbc.update("INSERT INTO career_training_command VALUES (?,?,?,?,?)",career,command,payload,json,hash(json));return new Change(false,receipt,readView(career,request.sourceYear()));
         });

@@ -50,10 +50,12 @@ public final class CareerCalendarRelationalStore {
         if(leagueSeason!=null && (jdbc.queryForObject("SELECT COUNT(*) FROM league_player_binding WHERE season_id=? AND fixture_id=?",Integer.class,leagueSeason,fixture)>0||jdbc.queryForObject("SELECT COUNT(*) FROM league_job WHERE season_id=? AND fixture_id=?",Integer.class,leagueSeason,fixture)>0))return false;
         return CareerMarketStore.repairNeeded(jdbc,career,year,first,second,competition);
     }
+    boolean unsettledAppearance(String career){return jdbc.queryForObject("SELECT COUNT(*) FROM career_appearance_binding WHERE career_id=? AND applied_receipt IS NULL",Integer.class,career)>0;}
     boolean hasMarket(String career) { return CareerMarketStore.exists(jdbc,career); }
     boolean offseason(String career,int year) { return jdbc.queryForObject("SELECT COUNT(*) FROM career_market_season_close WHERE career_id=? AND season_year=?",Integer.class,career,year)>0; }
     LocalDate nextMarketEvent(String career,LocalDate date) { return CareerMarketStore.nextEvent(jdbc,career,date); }
-    void processMarket(String career,LocalDate date) { CareerMarketStore.processThrough(jdbc,career,date); }
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerLifecycleStore clSupply;
+    void processMarket(String career,LocalDate date) { if(clSupply!=null)clSupply.prepareClSupply(career,CareerRosterStore.activeYear(jdbc,career));CareerMarketStore.processThrough(jdbc,career,date); }
 
     /** Called after career_save is inserted, inside that same outer transaction. */
     public void initializeNew(CareerRelationalStore.NewCareer career) {

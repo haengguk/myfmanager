@@ -96,6 +96,21 @@ public final class CareerDomesticRanking {
         return new Decision(result, rows, strength(allTeams, matches, ranks), averages(allTeams, null, matches));
     }
 
+    /** CL uses the same partition machinery, with an explicit all-size mini-league policy. */
+    public static Decision development(List<String> teams,List<Match> matches) {
+        var rows=records(teams,matches);
+        var groups=split(List.of(new Group(teams,List.of())),"SERIES_WIN_RATE",g->t->{var r=rows.get(t);return new Fraction(r.wins(),Math.max(1,r.wins()+r.losses()));},true);
+        groups=split(groups,"GAME_DIFFERENTIAL",g->t->rows.get(t).difference(),true);
+        var result=new ArrayList<Group>();for(var group:groups)result.addAll(developmentHead(group,matches,rows));
+        return new Decision(result,rows,Map.of(),averages(teams,null,matches));
+    }
+    private static List<Group> developmentHead(Group group,List<Match> matches,Map<String,Record> rows) {
+        if(group.teams().size()<2)return List.of(group);
+        var head=split(List.of(group),"CL_GROUP_HEAD_TO_HEAD",g->headWins(g.teams(),matches)::get,true);
+        if(head.size()>1){var result=new ArrayList<Group>();for(var next:head)result.addAll(developmentHead(next,matches,rows));return result;}
+        return split(head,"TOTAL_GAME_WINS",g->t->rows.get(t).gameWins(),true);
+    }
+
     static List<Group> regularTie(Group group, List<Match> matches) {
         if (group.teams().size() != 2 && group.teams().size() != 3) return List.of(group);
         List<Group> head = split(List.of(group), "HEAD_TO_HEAD", g -> headWins(g.teams(), matches)::get, true);

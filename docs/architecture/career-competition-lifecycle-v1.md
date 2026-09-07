@@ -302,3 +302,29 @@ Cup/League 및 이후 국제 등록은 이 값을 사용한다. 상세는
 유효한 같은 포지션 등록 선수가 모두 없어진 경우에만 현재 적법한 1군 선수를 `SUPPLEMENT` 명령으로 추가한다. `career_registration_supplement`가 원본 등록과 별도로 사유/시점/revision을 보존하며 AI도 같은 조건을 사용한다. 이는 실제 대회 규정이 아닌 진행 복구 게임 정책이다. 참가자 등록 전부터 완전한 선발이 부족하면 `ROSTER_REPAIR_REQUIRED`로 시장 진행과 복구를 허용한다. 해외 참가자 전력 대체 지표는 변경된 현재 선발을 소비한다.
 
 상세 저장/API/정책은 [계약 시장 V1](../development/career-contracts-stove-fa-market-ai-competition-v1.md)을 따른다.
+
+## LCK CL 실행·선수 성장 연결 V1 (2026-09-07)
+
+V21의 Career별 활성 시즌과 시즌별 CL 등록/선발은 기존 1군 lineup과 독립적이다.
+신규 저장은 첫 시즌, 기존 정상 저장은 다음 시즌부터 90 BO3와 상위 6팀 5 BO5를 실행한다.
+이는 `LCK_CL_GAME_POLICY_V1` 게임 정책이며 기존 공식 규칙 resource hash는 변경하지 않는다.
+새 CL 경기만 현재 DEVELOPMENT 소속·계약·등록·포지션 5명을 고정하고 기존 Competition
+binding/lease/fence/receipt, Auto/Player와 Hard Fearless를 재사용한다.
+
+출전 snapshot의 squad/competition은 약속과 성장의 범위를 구분한다. 같은 playerId의 반대
+선수단 미적용 Series 또는 동일 게임 날짜의 출전은 새 고정 전에 차단하며 같은 선수단의
+기존 동률전 규칙은 유지한다. CL은 1군 출전 약속의 분모에 포함되지 않는다. 성장 상태는
+선수 ID당 하나이고 팀 훈련 기본 키만 1군/CL로 나눈다. 활성 CL의 실제 기회는 생애주기
+관찰에 포함하며 활성 CL 완료와 미적용 결과 정산이 시즌 마감의 필수 조건이다.
+
+CL 읽기/명령/결과는 `/api/v1/careers/{careerId}/cl/{year}`, `/cl`,
+`/cl/{year}/results/{matchId}`로 제공한다. 명령은 원본 UUID·CL revision·소속 revision을
+함께 검사하고 응답 소실 시 같은 요청을 재확인한다. 기존 Auto 완료의 세트 결과를 별도로
+읽으며 Player checkpoint가 있는 결과만 Series 화면 연결을 제공한다.
+세부 일정·관찰 기간·명부 준비·실제 경기 증거와 검증 한계는
+[CL 통합 보고서](../development/career-lck-cl-execution-and-player-pathway-v1.md)에 기록한다.
+
+구형 훈련 V1 요청의 squad 생략은 FIRST_TEAM 의미를 유지한다. 원래 payload hash로
+저장된 영수증도 읽을 수 있지만 같은 UUID를 DEVELOPMENT 요청으로 바꾸면 충돌이다.
+생성 이름 이주는 상세 name/nickname과 고정 정의 이름이 모두 기본 placeholder일 때만
+현재 프로필을 개선하며, 사용자 변경 표시 이름과 과거 경기 canonical/hash는 보존한다.

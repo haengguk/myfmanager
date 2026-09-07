@@ -30,11 +30,11 @@ class CareerDomesticExecutionTest {
     void oldInternationalFiveAndNewRegistrationPoolHaveDifferentEligibilityBoundaries() {
         var career=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"KT 등록 경계","감독","KT",UUID.randomUUID().toString())).career().career();
         CareerCompetitionTestSupport.installEwcExecutionFixture(store,career.careerId(),international,List.of("KT","GEN","T1","HLE","DK","BFX","NS","KRX","BRO","DNS"));
-        rosters.change(career.careerId(),new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-jiwoo","SELECT_STARTER",null,null,0,UUID.randomUUID().toString()));
+        rosters.change(career.careerId(),new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-jiwoo","SELECT_STARTER",null,null,rosters.view(career.careerId(),2027).revision(),UUID.randomUUID().toString()));
         assertThat(CareerCompetitionTestSupport.applicableEwcRoster(store,career.careerId(),false).roster("LCK:KT").players()).extracting(CompetitionRosterSnapshot.Starter::playerId).contains("player-fenrir").doesNotContain("player-jiwoo");
         assertThat(CareerCompetitionTestSupport.applicableEwcRoster(store,career.careerId(),true).roster("LCK:KT").players()).extracting(CompetitionRosterSnapshot.Starter::playerId).contains("player-jiwoo");
-        rosters.change(career.careerId(),new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-hwichan","MOVE_SQUAD","LCK:KT",null,1,UUID.randomUUID().toString()));
-        rosters.change(career.careerId(),new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-hwichan","SELECT_STARTER",null,null,2,UUID.randomUUID().toString()));
+        rosters.change(career.careerId(),new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-hwichan","MOVE_SQUAD","LCK:KT",null,rosters.view(career.careerId(),2027).revision(),UUID.randomUUID().toString()));
+        rosters.change(career.careerId(),new CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-hwichan","SELECT_STARTER",null,null,rosters.view(career.careerId(),2027).revision(),UUID.randomUUID().toString()));
         assertThat(CareerCompetitionTestSupport.applicableEwcRoster(store,career.careerId(),false).roster("LCK:KT").players()).extracting(CompetitionRosterSnapshot.Starter::playerId).contains("player-bdd","player-jiwoo").doesNotContain("player-hwichan");
         assertThat(rosters.view(career.careerId(),2027).registeredPlayers().get("EWC_LOL")).contains("player-jiwoo").doesNotContain("player-hwichan");
         String id=career.careerId();

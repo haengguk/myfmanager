@@ -2,6 +2,20 @@
 
 이 문서는 2026-09-07 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career 선행 수정·LCK CL V1 (2026-09-07)
+
+신인 상위 PA 배정의 순회 순서 편향과 생성 이름을 개선하고, 7개 순수 성장 모델의
+경기일 정산 순서를 교정했다. V21은 LCK CL 별도 등록/선발·90 BO3·6팀 5 BO5와
+기존 Auto/Player·출전·성장·생애주기·다음 시즌을 연결한다. 기존 1군/국제 등록과
+시작된 경기 입력은 유지하며, 정상 기존 저장은 다음 시즌부터 CL을 활성화한다.
+
+집중 62건과 후속 파일 저장 1건, 프런트 계약 89건 및 build, 실제 CL Auto 결과를
+사용한 브라우저 승격→다음 1군 Draft와 원본 CL 요청 복구를 확인했다.
+전체 백엔드 회귀 1회는 269 suites/2,094건 중 2,087 통과·기대값/준비 오류 5건·기존 skip 2
+(38분 22초)였다. 해당 5건은 교정 후 6분 18초에 통과했고, 사용자 이름/구형 훈련 요청
+호환 보완의 직접 영향 3건도 2분 36초에 통과했다. 전체 재실행은 하지 않았다.
+실제 경기 수치·정책·검증 범위와 최종 결과는 [CL 통합 보고서](development/career-lck-cl-execution-and-player-pathway-v1.md)에 있다.
+
 ## Career 노쇠화·은퇴·신인 공급 V1 (2026-09-07)
 
 Calendar가 목표 날짜로 정산한 뒤 시작하는 Auto의 출전 날짜와 PA 상한 직전 1~11 내부 단위의

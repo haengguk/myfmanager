@@ -11,22 +11,38 @@ import static com.lolfm.career.CareerLifecycleState.*;
 
 /** One deterministic class, built from legal current catalog keys and stored only in its Career. */
 public final class CareerRookieFactory {
+    public static final String GENERATION_POLICY="CAREER_ROOKIE_CLASS_V2";
     private CareerRookieFactory(){}
+    record PotentialCandidate(String id,int band) {}
+    static Set<String> selectBand(long seed,int year,List<PotentialCandidate> candidates,int low,int high,int limit) {
+        return candidates.stream().filter(c->c.band()>=low&&c.band()<high)
+            .sorted(Comparator.comparing((PotentialCandidate c)->CareerRosterStore.hash(GENERATION_POLICY+'|'+seed+'|'+year+'|'+c.id()+"|BAND_PRIORITY_"+low)).thenComparing(PotentialCandidate::id))
+            .limit(limit).map(PotentialCandidate::id).collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+    static String playerId(String career,int year,int sequence){return "player-ng-"+CareerRosterStore.hash(career).substring(0,12)+'-'+year+'-'+String.format(java.util.Locale.ROOT,"%03d",sequence);}
+
     public record Rookie(Definition definition,Age age) {}
     public static List<Rookie> generate(String career,long seed,int year,LocalDate date,Map<Position,Integer> allocation,
             boolean emergency,int firstSequence,ChampionCatalog catalog,List<String> regions) {
+        return generate(career,seed,year,date,allocation,emergency,firstSequence,catalog,regions,new HashSet<>());
+    }
+    public static List<Rookie> generate(String career,long seed,int year,LocalDate date,Map<Position,Integer> allocation,
+            boolean emergency,int firstSequence,ChampionCatalog catalog,List<String> regions,Set<String> occupiedNames) {
         var roles=new ArrayList<Position>();for(var role:Position.values())for(int i=0;i<allocation.getOrDefault(role,0);i++)roles.add(role);
         int size=roles.size();if(size==0)return List.of();
         int legend=!emergency&&draw(seed,career,year,"LEGEND_CLASS",100)<5?draw(seed,career,year,"LEGEND_SLOT",size):-1;
-        int elite=0,upper=0;var result=new ArrayList<Rookie>();var mapper=new ObjectMapper();
+        var candidates=new ArrayList<PotentialCandidate>();
+        for(int i=0;i<size;i++){String id=playerId(career,year,firstSequence+i);if(i!=legend)candidates.add(new PotentialCandidate(id,draw(seed,id,year,"POTENTIAL_BAND",1000)));}
+        var elite=selectBand(seed,year,candidates,980,995,legend<0?1:0);var upper=selectBand(seed,year,candidates,900,980,3);
+        var result=new ArrayList<Rookie>();var mapper=new ObjectMapper();
         for(int i=0;i<size;i++) {
-            int sequence=firstSequence+i;String id="player-ng-"+CareerRosterStore.hash(career).substring(0,12)+'-'+year+'-'+String.format(java.util.Locale.ROOT,"%03d",sequence);
+            int sequence=firstSequence+i;String id=playerId(career,year,sequence);
             var role=roles.get(i);int roll=draw(seed,id,year,"AGE",100),age=roll<25?17:roll<60?18:roll<90?19:20;
             int paRoll=draw(seed,id,year,"POTENTIAL_BAND",1000);int pa;
             if(emergency)pa=135+draw(seed,id,year,"EMERGENCY_PA",21);
-            else if(i==legend){pa=195+draw(seed,id,year,"LEGEND_PA",6);elite++;}
-            else if(legend<0&&elite==0&&paRoll>=980&&paRoll<995){pa=190+draw(seed,id,year,"ELITE_PA",5);elite++;}
-            else if(paRoll>=900&&paRoll<980&&upper<3){pa=180+draw(seed,id,year,"UPPER_PA",10);upper++;}
+            else if(i==legend)pa=195+draw(seed,id,year,"LEGEND_PA",6);
+            else if(elite.contains(id))pa=190+draw(seed,id,year,"ELITE_PA",5);
+            else if(upper.contains(id))pa=180+draw(seed,id,year,"UPPER_PA",10);
             else if(paRoll>=650)pa=165+draw(seed,id,year,"HIGH_PA",15);
             else if(paRoll>=250)pa=150+draw(seed,id,year,"MID_PA",15);
             else pa=135+draw(seed,id,year,"LOW_PA",15);
@@ -46,9 +62,9 @@ public final class CareerRookieFactory {
             var birth=date.minusYears(age).minusDays(draw(seed,id,year,"BIRTH_DATE",300));
             var details=mapper.createObjectNode();details.put("playerId",id);details.put("name",nickname);details.put("nickname",nickname);details.put("snapshotAt",date.toString());details.put("leagueContext",region);
             details.putObject("personal").putNull("birthDate").putArray("nationality").add(switch(region){case "LCK"->"South Korea";case "LPL"->"China";case "LEC"->"France";case "CBLOL"->"Brazil";case "LCP"->"Vietnam";default->"United States";});
-            details.putObject("abilityMetadata").put("potentialAbility",pa);details.putObject("generated").put("source","GENERATED").put("intakeYear",year).put("createdOn",date.toString()).put("simulationBirthDate",birth.toString()).put("policyVersion",VERSION).put("emergency",emergency).put("archetype",type);
+            details.putObject("abilityMetadata").put("potentialAbility",pa);details.putObject("generated").put("source","GENERATED").put("intakeYear",year).put("createdOn",date.toString()).put("simulationBirthDate",birth.toString()).put("policyVersion",GENERATION_POLICY).put("emergency",emergency).put("archetype",type);
             var definition=new Definition(id,nickname,role,new CompetitionRosterSnapshot.Starter(id,nickname,role,ratings,prof),false,null,null,"UNAFFILIATED",null,details.toString());
-            result.add(new Rookie(definition,new Age(null,birth,"GENERATED_GAME_BIRTH_DATE",date,date)));
+            result.add(new Rookie(CareerGeneratedNames.assign(definition,seed,occupiedNames),new Age(null,birth,"GENERATED_GAME_BIRTH_DATE",date,date)));
         }
         return List.copyOf(result);
     }

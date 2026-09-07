@@ -10,6 +10,7 @@ const focusNames = { BALANCED: '균형', COMMON_SKILLS: '공통 능력 집중', 
 const growthNames: Record<string, string> = { RETIRED: '은퇴 · 훈련과 성장 종료', PA_MISSING: 'PA 미입력 · 영구 능력치 성장 보류', PA_REACHED: 'PA 상한 도달', INITIAL_CA_ABOVE_PA: '시작 CA가 PA보다 높음 · 원래 능력치 유지, 추가 성장 제한', INITIAL_ROUNDING_BOUNDARY: '표시 반올림 경계 · 내부 총량 상한 초과, 추가 성장 제한', GROWING: '성장 가능 · PA 도달을 보장하지 않습니다' };
 export function CareerTrainingPanel({ careerId, year, revision, historical, busy, onBegin, onChanged }: { careerId: string; year: number; revision: number; historical: boolean; busy: boolean; onBegin: () => (() => void) | null; onChanged: () => void }) {
   const [view, setView] = useState<CareerDevelopment | null>(null), [roster, setRoster] = useState<CareerRoster | null>(null);
+  const [squad, setSquad] = useState<'FIRST_TEAM' | 'DEVELOPMENT'>('FIRST_TEAM');
   const [selected, setSelected] = useState(''), [intensity, setIntensity] = useState<TrainingIntensity>('NORMAL'), [focus, setFocus] = useState<TrainingFocus>('BALANCED'), [skill, setSkill] = useState(''), [champions, setChampions] = useState<string[]>([]);
   const [operation, setOperation] = useState<TrainingCommand | null>(null), [error, setError] = useState<string | null>(null), [notice, setNotice] = useState(''), [corrupt, setCorrupt] = useState(false), [pending, setPending] = useState(false), [all, setAll] = useState(false);
   const generation = useRef(0), mutation = useRef<{ controller: AbortController; release: () => void } | null>(null);
@@ -21,16 +22,17 @@ export function CareerTrainingPanel({ careerId, year, revision, historical, busy
     return () => { controller.abort(); ++generation.current; };
   }, [careerId, year, revision]);
   const player = view?.players.find(p => p.playerId === selected), definition = roster?.directory.players[selected];
+  const teamPlan = squad === 'DEVELOPMENT' ? view?.developmentTeamPlan : view?.teamPlan;
   useEffect(() => {
-    const plan = player?.development.override?.pending ?? player?.effectivePlan ?? view?.teamPlan?.pending ?? view?.teamPlan?.current;
+    const plan = player?.development.override?.pending ?? player?.effectivePlan ?? teamPlan?.pending ?? teamPlan?.current;
     setIntensity(plan?.intensity ?? 'NORMAL'); setFocus(plan?.focus ?? 'BALANCED'); setSkill(plan?.skill ?? ''); setChampions(plan?.champions ?? []);
-  }, [selected, view?.revision, view?.currentDate]);
+  }, [selected, squad, view?.revision, view?.currentDate]);
   const execute = async (clear = false) => {
     if (!view || historical || busy || corrupt || mutation.current) return;
     const release = onBegin(); if (!release) return; const owned = { controller: new AbortController(), release }; mutation.current = owned; ++generation.current; setPending(true); setError(null);
     try {
       let body = operation;
-      if (!body) { body = validateTrainingCommand({ schemaVersion: 'CAREER_TRAINING_COMMAND_V1', sourceYear: year, expectedRevision: view.revision, playerId: selected || null, clearOverride: clear, plan: clear ? null : { intensity, focus, skill: focus === 'SPECIFIC_SKILL' ? skill : null, champions: focus === 'CHAMPION_FOCUS' ? champions : [] }, clientCommandId: crypto.randomUUID() }); window.sessionStorage.setItem(trainingOperationKey(careerId), JSON.stringify(body)); setOperation(body); }
+      if (!body) { body = validateTrainingCommand({ schemaVersion: 'CAREER_TRAINING_COMMAND_V1', squad, sourceYear: year, expectedRevision: view.revision, playerId: selected || null, clearOverride: clear, plan: clear ? null : { intensity, focus, skill: focus === 'SPECIFIC_SKILL' ? skill : null, champions: focus === 'CHAMPION_FOCUS' ? champions : [] }, clientCommandId: crypto.randomUUID() }); window.sessionStorage.setItem(trainingOperationKey(careerId), JSON.stringify(body)); setOperation(body); }
       const result = await changeCareerTraining(careerId, body, owned.controller.signal);
       if (owned.controller.signal.aborted || mutation.current !== owned) return;
       if (result.development.careerId !== careerId || result.receipt.clientCommandId !== body.clientCommandId || result.receipt.sourceYear !== body.sourceYear) throw new Error('훈련 응답의 원본 요청 범위가 다릅니다.');
@@ -46,7 +48,7 @@ export function CareerTrainingPanel({ careerId, year, revision, historical, busy
   const disabled = player?.growthStatus === 'RETIRED' || busy || pending || historical || !!operation || corrupt || !!view?.readOnly;
   const own = !selected || roster?.state.members[selected]?.ownerTeam === view?.managedTeam;
   const visible = view?.players.filter(p => all || roster?.state.members[p.playerId]?.ownerTeam === view.managedTeam) ?? [];
-  const schedule = selected ? player?.development.override : view?.teamPlan;
+  const schedule = selected ? player?.development.override : teamPlan;
   const recent = view?.recentChanges.filter(g => g.playerId === selected) ?? [], monthly = view?.monthlySummaries.filter(g => g.playerId === selected) ?? [];
   return <details className="ca-training" id="career-training"><summary>훈련·성장 · 챔피언 숙련도와 피로</summary>
     <p>계획은 다음 날부터 적용됩니다. 날짜 마감과 검증된 실제 출전으로 성장합니다. 피로는 훈련 효율에만 영향을 주며 경기력 감점은 0입니다.</p>
@@ -55,8 +57,8 @@ export function CareerTrainingPanel({ careerId, year, revision, historical, busy
     {!view || !roster ? <p>훈련 상태 불러오는 중…</p> : <>
       <p>기준일 {view.currentDate}{historical ? ' · 과거 시즌 마감 기록 (읽기 전용)' : ''}</p>
       <label><input type="checkbox" checked={all} onChange={e => setAll(e.target.checked)} /> 다른 구단·FA도 확인</label>
-      <label>훈련 대상 <select value={selected} onChange={e => setSelected(e.target.value)}><option value="">우리 팀 기본 계획</option>{visible.map(p => <option key={p.playerId} value={p.playerId}>{roster.directory.players[p.playerId]?.nickname ?? p.playerId} · CA {p.currentAbility} / PA {p.potentialAbility ?? '미입력'} · 피로 {(p.development.fatigue / 10).toFixed(1)}</option>)}</select></label>
-      <p>현재 유효 계획: {intensityNames[player?.effectivePlan.intensity ?? view.teamPlan?.current?.intensity ?? 'NORMAL']} / {focusNames[player?.effectivePlan.focus ?? view.teamPlan?.current?.focus ?? 'BALANCED']}</p>
+      <label>팀 기본 훈련 범위 <select value={squad} onChange={e => { setSquad(e.target.value as 'FIRST_TEAM' | 'DEVELOPMENT'); setSelected(''); }}><option value="FIRST_TEAM">1군</option><option value="DEVELOPMENT">CL·육성팀</option></select></label><label>훈련 대상 <select value={selected} onChange={e => setSelected(e.target.value)}><option value="">우리 팀 기본 계획</option>{visible.map(p => <option key={p.playerId} value={p.playerId}>{roster.directory.players[p.playerId]?.nickname ?? p.playerId} · CA {p.currentAbility} / PA {p.potentialAbility ?? '미입력'} · 피로 {(p.development.fatigue / 10).toFixed(1)}</option>)}</select></label>
+      <p>현재 유효 계획: {intensityNames[player?.effectivePlan.intensity ?? teamPlan?.current?.intensity ?? 'NORMAL']} / {focusNames[player?.effectivePlan.focus ?? teamPlan?.current?.focus ?? 'BALANCED']}</p>
       {schedule?.pendingOn && schedule.pendingOn > view.currentDate ? <p>예약 적용일 {schedule.pendingOn}: {schedule.pendingClear ? '선수 설정 해제 → 팀 계획 따르기' : `${intensityNames[schedule.pending!.intensity]} / ${focusNames[schedule.pending!.focus]}`}</p> : null}
       {own ? <fieldset disabled={disabled}><legend>{selected ? '선수별 계획 설정' : '팀 기본 계획'}</legend>
         <label>훈련 강도 <select value={intensity} onChange={e => setIntensity(e.target.value as TrainingIntensity)}>{Object.entries(intensityNames).map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>

@@ -52,7 +52,7 @@ final class CareerPromises {
         var prior=appearances.putIfAbsent(appearance.completionId(),appearance);
         if(prior!=null) {if(!prior.equals(appearance))throw new IllegalStateException("APPEARANCE_COMPLETION_CONFLICT");return;}
         for(var fact:appearance.opportunities()) {
-            Promise p=promises.get(fact.promiseId());if(p==null)continue;
+            Promise p=promises.get(fact.promiseId());if(p==null||!"FIRST_TEAM".equals(appearance.squad())||p.role()==Role.DEVELOPMENT)continue;
             promises.put(p.promiseId(),new Promise(p.promiseId(),p.playerId(),p.team(),p.contractId(),p.loanId(),p.role(),p.startDate(),p.endDate(),
                     p.observationStart(),p.lastEvaluation(),p.opportunities()+(fact.eligible()?1:0),p.starts()+(fact.eligible()&&fact.selected()?1:0),
                     p.sets()+(fact.selected()?appearance.completedSets():0),p.satisfaction(),p.trust(),p.status(),p.reason(),p.policyVersion(),p.evaluatedOpportunities()));

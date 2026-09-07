@@ -32,7 +32,8 @@ public record CareerManagementState(String policyVersion,LocalDate observationSt
     public record Opportunity(String playerId,String team,Position position,String promiseId,boolean eligible,
             boolean selected,String reason) {}
     public record Appearance(String completionId,String fixtureId,String seriesId,int seasonYear,LocalDate date,
-            int completedSets,List<Opportunity> opportunities) {
-        public Appearance {opportunities=List.copyOf(opportunities);}
+            int completedSets,List<Opportunity> opportunities,String squad,String competitionId) {
+        public Appearance(String completionId,String fixtureId,String seriesId,int seasonYear,LocalDate date,int completedSets,List<Opportunity> opportunities){this(completionId,fixtureId,seriesId,seasonYear,date,completedSets,opportunities,"FIRST_TEAM",null);}
+        public Appearance {opportunities=List.copyOf(opportunities);squad=squad==null?"FIRST_TEAM":squad;}
     }
 }

@@ -17,6 +17,7 @@ public final class CareerMarketEngine {
     CareerLifecycleEngine lifecycle;
     Map<String,List<LocalDate>> developmentFixtures=Map.of();
     int developmentYear;
+    boolean clEnabled;
     private LocalDate processed;
     final Map<String,Contract> contracts=new TreeMap<>();
     final Map<String,Offer> offers=new TreeMap<>();
@@ -365,7 +366,7 @@ public final class CareerMarketEngine {
             for(var c:contracts.values())if(c.status()==ContractStatus.ACTIVE&&date.equals(c.terms().endDate().minusDays(NEGOTIATION_DAYS)))event(date,"EXPIRY_WARNING",c.playerId(),c.team(),c.contractId(),"계약 만료 60일 전 · 재계약 및 미래 FA 협상 가능");
             promiseEngine.evaluate(date);
             responses(date);
-            if(date.getDayOfWeek()==DayOfWeek.MONDAY){aiProposals(date);if(lifecycle!=null)lifecycle.youthProposals(this,date);tradeEngine.ai(date);}
+            if(date.getDayOfWeek()==DayOfWeek.MONDAY){aiProposals(date);if(clEnabled)CareerClStore.proposals(this,date);if(lifecycle!=null)lifecycle.youthProposals(this,date);tradeEngine.ai(date);}
             decide(date);
             for(var o:new ArrayList<>(offers.values()))if(o.open()&&!date.isBefore(o.expiresDate()))offers.put(o.offerId(),offerStatus(o,OfferStatus.EXPIRED,"제안 유효기간 종료",null));
             aiLineups(date);if(lifecycle!=null)lifecycle.observe(this,date);processed=date;
@@ -452,7 +453,7 @@ public final class CareerMarketEngine {
         for(String team:accounts.keySet()) {
             if(team.equals(managed))continue;
             for(Position role:Position.values()) {
-                List<String> held=members.values().stream().filter(m->team.equals(m.ownerTeam())&&player(m.playerId()).position()==role&&eligible(m.playerId(),team,date)).map(CareerRosterStore.Membership::playerId).toList();
+                List<String> held=members.values().stream().filter(m->team.equals(m.ownerTeam())&&(!clEnabled||!team.startsWith("LCK:")||"FIRST_TEAM".equals(m.squad()))&&player(m.playerId()).position()==role&&eligible(m.playerId(),team,date)).map(CareerRosterStore.Membership::playerId).toList();
                 boolean safe=held.stream().anyMatch(id->{var c=active(id,date);return c.terms().endDate().isAfter(date.plusDays(NEGOTIATION_DAYS))||scheduled(id)!=null&&team.equals(scheduled(id).team());});
                 if(offers.values().stream().anyMatch(o->team.equals(o.team())&&o.open()&&player(o.playerId()).position()==role))continue;
                 if(contracts.values().stream().anyMatch(c->team.equals(c.team())&&c.status()==ContractStatus.SCHEDULED&&player(c.playerId()).position()==role))continue;
@@ -474,7 +475,7 @@ public final class CareerMarketEngine {
     }
     private void aiLineups(LocalDate date) {
         for(String team:accounts.keySet())if(!team.equals(managed))for(Position role:Position.values()) {
-            String selected=members.values().stream().filter(m->team.equals(m.ownerTeam())&&player(m.playerId()).position()==role&&eligible(m.playerId(),team,date))
+            String selected=members.values().stream().filter(m->team.equals(m.ownerTeam())&&(!clEnabled||!team.startsWith("LCK:")||"FIRST_TEAM".equals(m.squad()))&&player(m.playerId()).position()==role&&eligible(m.playerId(),team,date))
                     .map(CareerRosterStore.Membership::playerId).sorted(Comparator.comparingInt((String p)->strength(player(p))).reversed().thenComparing(p->p)).findFirst().orElse(null);
             if(selected!=null&&!lineups.get(team).contains(selected))select(team,selected,date);
         }
