@@ -45,7 +45,7 @@ public final class CareerLifecycleStore {
     static void placementChanged(JdbcTemplate jdbc,String career,String player,Membership member,LocalDate date) {
         var state=load(jdbc,career);if(state==null)return;var engine=new CareerLifecycleEngine(state);engine.clEnabled=CareerClStore.active(jdbc,career,activeYear(jdbc,career));engine.overseasEnabled=CareerOverseasStore.active(jdbc,career,activeYear(jdbc,career));engine.observePlacement(player,member,date);persist(jdbc,career,engine);
     }
-    public void recover(){for(String career:jdbc.query("SELECT career_id FROM career_player_directory WHERE directory_version=? ORDER BY career_id",(r,n)->r.getString(1),com.lolfm.player.ExpandedPlayerCatalog.VERSION))tx.executeWithoutResult(s->{initialize(jdbc,career);migrateGeneratedNames(jdbc,career);});}
+    public void recover(){for(String career:jdbc.query("SELECT career_id FROM career_player_directory WHERE directory_version=? ORDER BY career_id",(r,n)->r.getString(1),com.lolfm.player.ExpandedPlayerCatalog.VERSION))tx.executeWithoutResult(s->{lockCareer(jdbc,career);if(!CareerSaveCompatibility.recoverySupported(jdbc,career))return;initialize(jdbc,career);migrateGeneratedNames(jdbc,career);});}
     static void migrateGeneratedNames(JdbcTemplate jdbc,String career) {
         lockCareer(jdbc,career);var market=CareerMarketStore.load(jdbc,career);if(market==null)return;
         var directory=compose(jdbc,career,sourceDirectory(jdbc,career));var occupied=new HashSet<String>();directory.players().values().forEach(d->occupied.add(d.nickname().toLowerCase(Locale.ROOT)));

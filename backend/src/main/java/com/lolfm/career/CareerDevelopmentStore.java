@@ -48,7 +48,7 @@ public final class CareerDevelopmentStore {
         jdbc.update("INSERT INTO career_development_state VALUES (?,0,?,?)",career,json,hash(json));
         jdbc.update("UPDATE career_player_directory SET development_version=? WHERE career_id=?",CareerDevelopmentPolicy.VERSION,career);
     }
-    public void recover(){for(String id:jdbc.query("SELECT career_id FROM career_player_directory WHERE directory_version=? ORDER BY career_id",(r,n)->r.getString(1),com.lolfm.player.ExpandedPlayerCatalog.VERSION))tx.executeWithoutResult(status->initialize(jdbc,id));}
+    public void recover(){for(String id:jdbc.query("SELECT career_id FROM career_player_directory WHERE directory_version=? ORDER BY career_id",(r,n)->r.getString(1),com.lolfm.player.ExpandedPlayerCatalog.VERSION))tx.executeWithoutResult(status->{lockCareer(jdbc,id);if(CareerSaveCompatibility.recoverySupported(jdbc,id))initialize(jdbc,id);});}
     static void persist(JdbcTemplate jdbc,String career,Saved old,CareerDevelopmentEngine engine) {
         String json=write(engine.state());
         if(jdbc.update("UPDATE career_development_state SET revision=revision+1,state_json=?,state_hash=? WHERE career_id=? AND revision=?",json,hash(json),career,old.revision())!=1)throw CareerException.calendarStaleRevision();

@@ -289,7 +289,7 @@ public final class CareerCompetitionRelationalStore {
             var current = jdbc.query("SELECT career_id, calendar_season_year FROM career_competition_cycle WHERE rule_version = ?",
                     (r,n) -> Map.entry(r.getString(1), r.getInt(2)), CareerCompetitionRules.VERSION);
             for (var key : current) {
-                if(!CareerSaveCompatibility.directoryVersionSupported(jdbc,key.getKey()))continue;
+                if(!CareerSaveCompatibility.recoverySupported(jdbc,key.getKey()))continue;
                 try{reconcileInternational(key.getKey(), key.getValue());}
                 catch(CareerException unsupported){if(!CareerSaveCompatibility.unsupported(unsupported))throw unsupported;}
             }
@@ -305,7 +305,7 @@ public final class CareerCompetitionRelationalStore {
                 """, (result, ignored) -> result.getString(1));
         for (String key : missing) {
             int separator = key.lastIndexOf('|');
-            if(!CareerSaveCompatibility.directoryVersionSupported(jdbc,key.substring(0,separator)))continue;
+            if(!CareerSaveCompatibility.recoverySupported(jdbc,key.substring(0,separator)))continue;
             try {
                 initialize(key.substring(0, separator),
                         Integer.parseInt(key.substring(separator + 1)));
@@ -328,6 +328,7 @@ public final class CareerCompetitionRelationalStore {
                 """, (r,n) -> Map.entry(r.getString(1), r.getInt(2)), CareerCompetitionRules.PREVIOUS_VERSION);
         for (var key : candidates) transactions.executeWithoutResult(ignored -> {
             String career = key.getKey(); int year = key.getValue();
+            if(!CareerSaveCompatibility.recoverySupported(jdbc,career))return;
             var cycle = lockCycle(career, year); validateAndView(cycle);
             if (cycle.r1r2ImportHash() != null || countRows("career_competition_application", career, year) != 0
                     || countRows("career_competition_series_binding", career, year) != 0

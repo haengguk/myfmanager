@@ -63,6 +63,7 @@ public final class CareerRosterStore {
     private void initialize(String careerId, int year, boolean newCareer) {
         transactions.executeWithoutResult(ignored -> {
             lockCareer(jdbc, careerId);
+            if (!newCareer&&!CareerSaveCompatibility.recoverySupported(jdbc,careerId)) return;
             if (!CareerSaveCompatibility.directoryVersionSupported(jdbc,careerId)) return;
             if (saved(jdbc, careerId, year) != null) return;
             boolean hasDirectory=jdbc.queryForObject("SELECT COUNT(*) FROM career_player_directory WHERE career_id=?",Integer.class,careerId)>0;

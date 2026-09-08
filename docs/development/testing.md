@@ -1,5 +1,28 @@
 # Testing
 
+## Career 시작 복구·회귀 비용 V2 (2026-09-08)
+
+Windows 마운트에서의 클래스 로딩 비용을 줄이려면 backend에서 다음 선택 실행 경로를 사용한다.
+현재 소스(미커밋·신규 파일 포함)를 읽고 Linux 출력만 사용한다. 최대 2 worker/각 1,536MiB이며
+`test --rerun --no-build-cache`로 실제 검사를 수행하고 compile/resources는 증분 결과를 재사용한다.
+
+```bash
+JAVA_HOME=/path/to/jdk-21 /usr/bin/time -p bash scripts/test-linux.sh
+# 집중 선택자는 동일하게 전달한다.
+JAVA_HOME=/path/to/jdk-21 bash scripts/test-linux.sh --tests 'fully.qualified.TestClass.method'
+```
+
+출력 위치는 실행 첫 줄에 표시된다. `LOLFM_TEST_BUILD_DIR`로 절대 경로를 지정할 수 있다.
+동일 출력은 스크립트 파일 잠금으로 직렬화하며 원본 소스/DB 이동은 필요 없다.
+기존 `./gradlew test` 경로와 진단 제외/독립 JVM 검증도 유지한다.
+계획된 full **1회는 24분 10.63초**, 274 classes / 2,164 tests 중 2,162 통과,
+실패·오류 0 / 기존 skip 2였다. 과거 44분 13초 대비 **45.32% 단축**했으나
+50%/22분 6초 및 권장 20분 목표에는 미달했다. 전체 이후 테스트 fixture의 저장 날짜 형식과 월별 요약을
+한정 보정한 뒤 직접 호출자 2건 모두 통과했다(1분 39.63초). API/G1 메서드 XML 시간은
+각각 49.609초/77.914초다. 제품 코드는 전체 이후 변경하지 않았고,
+원본 full과 후속 결과를 구분한다. 최종 fixture의 추가 절감을 full 수치에 더하지 않는다.
+구현 범위·유지한 경계·실행 비용은 [V2 결과](backend-regression-runtime-optimization-v2.md)를 참고한다.
+
 ## Career 해외 실행 교정·저장 호환 V1 (2026-09-08)
 
 새 테스트 클래스 없이 Tournament/Qualification의 순수 단계·이변 구간 검사, 공유 Execution의

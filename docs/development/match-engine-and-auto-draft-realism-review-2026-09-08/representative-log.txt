@@ -1,0 +1,90 @@
+구조화된 실제 실행 로그 발췌. 집계/판정에는 displayMessage를 사용하지 않음.
+시간: 게임 내부 경과 시간. 팀/선수/타깃/출처는 구조 필드.
+
+GEN(BLUE) vs T1(RED), seed=91008011
+inputHash=282bdb907ab8eb25fa21fb67e08db34fac7f9f65266e773658fa8fa7e82996a2
+outputHash=74a6bd53c4446b63d94b9b4e4f07d0fe4fe2e7d49082ede07c05474add81f1f2
+BLUE jayce / xin-zhao / ryze / varus / neeko
+RED  gnar / poppy / orianna / ezreal / bard
+00:30 KILL player-oner -> player-canyon source=SKIRMISH assist=['player-doran']
+07:00 KILL player-doran -> player-kiin source=LANE_COMBAT assist=[]
+07:10 KILL player-canyon -> player-doran source=SKIRMISH assist=['player-kiin']
+08:00 DRAGON actor=BLUE attacker=None lane=None kind=None tier=None source=None
+09:20 KILL player-oner -> player-canyon source=SKIRMISH assist=['player-doran']
+11:00 KILL player-ruler -> player-peyz source=LANE_COMBAT assist=['player-duro']
+13:00 KILL player-doran -> player-kiin source=SKIRMISH assist=['player-oner']
+14:00 TOWER actor=BLUE attacker=BLUE lane=TOP kind=TOWER tier=OUTER source=LANE_PRESSURE
+14:00 KILL player-doran -> player-chovy source=OBJECTIVE_FIGHT assist=['player-faker', 'player-keria']
+14:00 DRAGON actor=RED attacker=None lane=None kind=None tier=None source=None
+15:30 KILL player-ruler -> player-oner source=SKIRMISH assist=['player-duro', 'player-canyon']
+19:40 KILL player-doran -> player-canyon source=SKIRMISH assist=['player-oner']
+20:20 KILL player-canyon -> player-oner source=SKIRMISH assist=['player-duro']
+20:30 TOWER actor=RED attacker=RED lane=MID kind=TOWER tier=OUTER source=MACRO_PLAY
+20:40 KILL player-kiin -> player-doran source=SKIRMISH assist=['player-canyon']
+21:10 KILL player-duro -> player-keria source=SKIRMISH assist=['player-ruler']
+21:50 KILL player-keria -> player-ruler source=SKIRMISH assist=['player-peyz']
+24:00 KILL player-doran -> player-ruler source=OBJECTIVE_FIGHT assist=['player-oner', 'player-keria', 'player-faker']
+24:00 DRAGON actor=RED attacker=None lane=None kind=None tier=None source=None
+24:20 KILL player-peyz -> player-canyon source=SKIRMISH assist=['player-oner']
+25:00 TOWER actor=BLUE attacker=BLUE lane=TOP kind=TOWER tier=INNER source=MACRO_PLAY
+25:10 TOWER actor=RED attacker=RED lane=MID kind=TOWER tier=INNER source=MACRO_PLAY
+26:40 TOWER actor=BLUE attacker=BLUE lane=TOP kind=TOWER tier=INHIBITOR source=MACRO_PLAY
+27:10 KILL player-faker -> player-chovy source=SKIRMISH assist=['player-oner']
+27:20 TOWER actor=RED attacker=RED lane=TOP kind=TOWER tier=OUTER source=LATE_GAME_SIEGE
+28:00 TOWER actor=RED attacker=RED lane=MID kind=TOWER tier=INHIBITOR source=MACRO_PLAY
+28:10 TOWER actor=BLUE attacker=BLUE lane=BOT kind=TOWER tier=OUTER source=LATE_GAME_SIEGE
+28:30 TOWER actor=BLUE attacker=BLUE lane=BOT kind=TOWER tier=INNER source=LATE_GAME_SIEGE
+29:00 BARON actor=RED attacker=None lane=None kind=None tier=None source=None
+29:00 TOWER actor=RED attacker=RED lane=BOT kind=TOWER tier=OUTER source=BARON_PRESSURE
+29:20 TOWER actor=RED attacker=RED lane=BOT kind=TOWER tier=INNER source=BARON_PRESSURE
+30:10 TOWER actor=RED attacker=RED lane=MID kind=INHIBITOR tier=None source=LATE_GAME_SIEGE
+30:30 TOWER actor=RED attacker=RED lane=None kind=NEXUS_TURRET tier=None source=LATE_GAME_SIEGE
+31:30 STRUCTURE_ACTION RED target=BLUE:NEXUS_TURRET:1 phase=STARTED damage=2531.25 hp=968.75 participants=['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] ownThreat=None decision=None stop=None
+31:30 TOWER actor=BLUE attacker=BLUE lane=MID kind=TOWER tier=OUTER source=MACRO_PLAY
+31:40 STRUCTURE_ACTION BLUE target=RED:TOWER:MID:INNER phase=DAMAGE damage=2700.0 hp=2300.0 participants=['JUNGLE', 'MID', 'SUPPORT'] ownThreat=NEXUS_TURRET_THREAT decision=CONTINUATION_ALLOWED stop=None
+31:40 TOWER actor=RED attacker=RED lane=None kind=NEXUS_TURRET tier=None source=BARON_PRESSURE
+31:50 STRUCTURE_ACTION BLUE target=RED:TOWER:MID:INNER phase=ABORTED damage=0.0 hp=2300.0 participants=['JUNGLE', 'MID', 'SUPPORT'] ownThreat=NEXUS_THREAT decision=LOWER_VALUE_SIEGE_ABORTED_FOR_BASE_DEFENSE stop=WAVE_LOST
+31:50 STRUCTURE_ACTION RED target=BLUE:NEXUS phase=DAMAGE damage=2531.25 hp=2968.75 participants=['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] ownThreat=INHIBITOR_THREAT decision=CONTINUATION_ALLOWED stop=None
+32:00 STRUCTURE_ACTION RED target=BLUE:NEXUS phase=DAMAGE damage=2531.25 hp=437.5 participants=['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'] ownThreat=INHIBITOR_THREAT decision=CONTINUATION_ALLOWED stop=None
+32:10 TOWER actor=RED attacker=RED lane=None kind=NEXUS tier=None source=BARON_PRESSURE
+32:10 GAME_END actor=None attacker=None lane=None kind=None tier=None source=None
+
+FINAL TEAMS
+[
+  {
+    "teamIdentity": "GEN",
+    "teamSide": "BLUE",
+    "kills": 6,
+    "totalGold": 52255,
+    "dragons": 1,
+    "hasDragonSoul": false,
+    "hasBaronBuff": false,
+    "hasElderBuff": false,
+    "towersDestroyed": 6,
+    "inhibitorsRemaining": 2,
+    "nexusTurretsRemaining": 0,
+    "nexusAlive": false,
+    "alivePlayers": 5
+  },
+  {
+    "teamIdentity": "T1",
+    "teamSide": "RED",
+    "kills": 10,
+    "totalGold": 54479,
+    "dragons": 2,
+    "hasDragonSoul": false,
+    "hasBaronBuff": false,
+    "hasElderBuff": false,
+    "towersDestroyed": 6,
+    "inhibitorsRemaining": 3,
+    "nexusTurretsRemaining": 2,
+    "nexusAlive": true,
+    "alivePlayers": 5
+  }
+]
+
+HLE-GEN 동일 최종 챔피언·포지션 조합 반복
+BLUE rumble / xin-zhao / cassiopeia / varus / seraphine
+RED gnar / poppy / orianna / ezreal / neeko
+4/8회
+seeds=[91008011, 91008037, 91008051, 91008081]

@@ -20,6 +20,25 @@ class CareerDevelopmentPolicyTest {
         return new ExpandedPlayerCatalog.Definition("player-test","합성 선수",Position.TOP,new CompetitionRosterSnapshot.Starter("player-test","합성 선수",Position.TOP,r,List.of(new CompetitionRosterSnapshot.Proficiency("aatrox",Position.TOP,14))),false,"LCK:T1","LCK:T1","FIRST_TEAM",null,
             "{\"personal\":{\"birthDate\":\""+(2027-age)+"-01-01\"},\"abilityMetadata\":{\"potentialAbility\":"+pa+"}}");
     }
+    @Test void projectionPreservesFractionalGrowthAndRefreshesRatingsAndNewMastery() {
+        var definition=definition(15,200,19);
+        var base=new CareerRosterStore.Directory(Map.of(definition.playerId(),definition),Map.of());
+        var engine=new CareerDevelopmentEngine(base,CareerDevelopmentEngine.initial(base,date));
+        String initialJson=CareerRosterStore.write(engine.directory());
+        var initial=engine.players.get(definition.playerId());
+        var ratings=new EnumMap<PlayerSkill,Integer>(initial.internalRatings());ratings.put(PlayerSkill.MECHANICS,15001);
+        var proficiencies=new TreeMap<>(initial.internalProficiencies());proficiencies.put("aatrox|TOP",14001);
+        engine.players.put(definition.playerId(),new Player(ratings,proficiencies,0,Map.of(),Map.of(),0,null,null));
+        assertThat(CareerRosterStore.write(engine.directory())).isEqualTo(initialJson);
+        ratings.put(PlayerSkill.MECHANICS,16000);proficiencies.put("aatrox|TOP",15000);proficiencies.put("akali|TOP",12000);
+        engine.players.put(definition.playerId(),new Player(ratings,proficiencies,0,Map.of(),Map.of(),0,null,null));
+        var projected=engine.directory().players().get(definition.playerId()).gameplay();
+        assertThat(projected.ratings().get(PlayerSkill.MECHANICS)).isEqualTo(16);
+        assertThat(projected.proficiencies()).containsExactly(new CompetitionRosterSnapshot.Proficiency("aatrox",Position.TOP,15),new CompetitionRosterSnapshot.Proficiency("akali",Position.TOP,12));
+        var restarted=new CareerDevelopmentEngine(base,CareerRosterStore.read(CareerRosterStore.write(engine.state()),CareerDevelopmentState.class));
+        assertThat(restarted.directory()).isEqualTo(engine.directory());
+        assertThat(CareerRosterStore.write(new CareerDevelopmentEngine(base,CareerDevelopmentEngine.initial(base,date)).directory())).isEqualTo(initialJson);
+    }
     @ParameterizedTest @NullSource @ValueSource(ints={1,148,149,190,200})
     void initialProjectionAndStrictCeiling(Integer pa) {
         var d=definition(15,pa,19);var p=initial(d);assertThat(p.internalRatings().values()).containsOnly(15000);

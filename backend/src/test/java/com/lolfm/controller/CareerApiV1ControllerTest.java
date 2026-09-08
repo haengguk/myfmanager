@@ -569,17 +569,18 @@ class CareerApiV1ControllerTest {
     }
 
     private JsonNode advanceToFirstCup(String careerId,JsonNode previous) throws Exception {
-        var target=java.time.LocalDate.of(2027,1,14);int count=0;
+        var target=java.time.LocalDate.of(2027,1,14);
         com.lolfm.career.CareerCompetitionTestSupport.prepareFirstCupDay(competitionStore,careerId,target);
-        while(java.time.LocalDate.parse(previous.path("calendar").path("currentDate").asText()).isBefore(target)) {
-            var before=java.time.LocalDate.parse(previous.path("calendar").path("currentDate").asText());
-            previous=json(mvc.perform(post("/api/v1/careers/"+careerId+"/advance").contentType(MediaType.APPLICATION_JSON)
-                    .content(advanceBody(previous.path("calendar").path("calendarRevision").asLong(),"ADVANCE_TO_NEXT_EVENT",UUID.randomUUID().toString())))
-                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
-            assertThat(java.time.LocalDate.parse(previous.path("calendar").path("currentDate").asText())).isAfter(before);
-            assertThat(++count).isLessThan(150);
-        }
+        com.lolfm.career.CareerOperatingDateFixture.fresh(jdbc,careerId,target.minusDays(1));
+        long revision=jdbc.queryForObject("SELECT calendar_revision FROM career_calendar_state WHERE career_id=?",Long.class,careerId);
+        previous=json(mvc.perform(post("/api/v1/careers/"+careerId+"/advance").contentType(MediaType.APPLICATION_JSON)
+                .content(advanceBody(revision,"ADVANCE_ONE_DAY",UUID.randomUUID().toString())))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
         assertThat(previous.path("calendar").path("currentDate").asText()).isEqualTo(target.toString());
+        // The actual next day merges into one correctly dated monthly summary for each player.
+        var monthly=com.lolfm.career.CareerDevelopmentStore.load(jdbc,careerId).state().monthly().values();
+        assertThat(monthly).allSatisfy(gain->assertThat(gain.date()).isEqualTo(target.withDayOfMonth(1)))
+                .extracting(com.lolfm.career.CareerDevelopmentState.Gain::playerId).doesNotHaveDuplicates();
         return previous;
     }
 

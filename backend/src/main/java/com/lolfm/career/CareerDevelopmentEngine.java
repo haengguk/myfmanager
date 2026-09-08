@@ -37,7 +37,16 @@ public final class CareerDevelopmentEngine {
     public CareerDevelopmentState state(){return new CareerDevelopmentState(VERSION,INITIALIZATION,initialized,next,players,teams,List.copyOf(gains.values()),monthly);}
     public CareerRosterStore.Directory directory() {
         var result=new TreeMap<String,Definition>();base.players().forEach((id,d)->{
-            var p=players.get(id);var ratings=new EnumMap<PlayerSkill,Integer>(PlayerSkill.class);p.internalRatings().forEach((k,v)->ratings.put(k,v/UNIT));
+            var p=players.get(id);
+            // Reuse this operation's already validated immutable definition only while its public projection is identical.
+            var baseline=d.gameplay();
+            boolean unchanged=id.equals(d.playerId())&&id.equals(baseline.playerId())&&d.nickname().equals(baseline.nickname())&&d.position()==baseline.position()
+                    &&p.internalRatings().size()==baseline.ratings().size()
+                    &&p.internalRatings().entrySet().stream().allMatch(e->Objects.equals(e.getValue()/UNIT,baseline.ratings().get(e.getKey())))
+                    &&p.internalProficiencies().size()==baseline.proficiencies().size()
+                    &&baseline.proficiencies().stream().allMatch(v->{var value=p.internalProficiencies().get(key(v.championId(),v.position()));return value!=null&&value/UNIT==v.value();});
+            if(unchanged){result.put(id,d);return;}
+            var ratings=new EnumMap<PlayerSkill,Integer>(PlayerSkill.class);p.internalRatings().forEach((k,v)->ratings.put(k,v/UNIT));
             var prof=new ArrayList<CompetitionRosterSnapshot.Proficiency>();var authored=new HashSet<String>();
             for(var original:d.gameplay().proficiencies()) {
                 String key=key(original.championId(),original.position());authored.add(key);

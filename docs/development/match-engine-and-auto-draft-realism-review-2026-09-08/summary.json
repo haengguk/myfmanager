@@ -1,0 +1,1031 @@
+{
+  "fresh": {
+    "n": 64,
+    "duration": {
+      "n": 64,
+      "mean": 2017.5,
+      "median": 2000.0,
+      "min": 1410,
+      "max": 3040,
+      "p10": 1470,
+      "p90": 2600
+    },
+    "kills": {
+      "n": 64,
+      "mean": 22.969,
+      "median": 23.0,
+      "min": 6,
+      "max": 38,
+      "p10": 13,
+      "p90": 34
+    },
+    "firstBlood": {
+      "n": 64,
+      "mean": 83.125,
+      "median": 50.0,
+      "min": 20,
+      "max": 240,
+      "p10": 20,
+      "p90": 220
+    },
+    "earlyFirstBlood": {
+      "under60": 32,
+      "under120": 48
+    },
+    "firstDragon": {
+      "n": 64,
+      "mean": 456.875,
+      "median": 430.0,
+      "min": 340,
+      "max": 640,
+      "p10": 340,
+      "p90": 560
+    },
+    "firstBaron": {
+      "n": 60,
+      "mean": 1494,
+      "median": 1485.0,
+      "min": 1230,
+      "max": 1880,
+      "p10": 1260,
+      "p90": 1750
+    },
+    "killSources": {
+      "LANE_COMBAT": 61,
+      "OBJECTIVE_FIGHT": 68,
+      "SKIRMISH": 578,
+      "ROAM": 91,
+      "TEAMFIGHT": 367,
+      "COUNTER_GANK": 6,
+      "JUNGLE_GANK": 50,
+      "BASE_DEFENSE": 167,
+      "LATE_GAME_SIEGE": 82
+    },
+    "levels": {
+      "TOP": {
+        "n": 128,
+        "mean": 14.641,
+        "median": 15.0,
+        "min": 12,
+        "max": 19,
+        "p10": 12,
+        "p90": 17
+      },
+      "JUNGLE": {
+        "n": 128,
+        "mean": 12.719,
+        "median": 13.0,
+        "min": 10,
+        "max": 17,
+        "p10": 11,
+        "p90": 15
+      },
+      "MID": {
+        "n": 128,
+        "mean": 14.055,
+        "median": 14.0,
+        "min": 11,
+        "max": 17,
+        "p10": 12,
+        "p90": 16
+      },
+      "ADC": {
+        "n": 128,
+        "mean": 12.617,
+        "median": 13.0,
+        "min": 10,
+        "max": 16,
+        "p10": 11,
+        "p90": 15
+      },
+      "SUPPORT": {
+        "n": 128,
+        "mean": 12.711,
+        "median": 13.0,
+        "min": 10,
+        "max": 16,
+        "p10": 11,
+        "p90": 15
+      }
+    },
+    "csm": {
+      "TOP": {
+        "n": 128,
+        "mean": 7.135,
+        "median": 7.151,
+        "min": 5.93076923076923,
+        "max": 8.09032258064516,
+        "p10": 6.551724137931035,
+        "p90": 7.714285714285714
+      },
+      "JUNGLE": {
+        "n": 128,
+        "mean": 5.399,
+        "median": 5.395,
+        "min": 4.509554140127388,
+        "max": 6.453488372093023,
+        "p10": 5.003952569169961,
+        "p90": 5.819095477386935
+      },
+      "MID": {
+        "n": 128,
+        "mean": 7.493,
+        "median": 7.496,
+        "min": 6.2675159235668785,
+        "max": 8.81159420289855,
+        "p10": 6.853448275862069,
+        "p90": 8.03720930232558
+      },
+      "ADC": {
+        "n": 128,
+        "mean": 8.194,
+        "median": 8.227,
+        "min": 6.769230769230769,
+        "max": 9.333333333333334,
+        "p10": 7.478873239436619,
+        "p90": 8.821428571428571
+      },
+      "SUPPORT": {
+        "n": 128,
+        "mean": 0.0,
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p10": 0.0,
+        "p90": 0.0
+      }
+    },
+    "teamFinalGoldPerMinute": {
+      "n": 128,
+      "mean": 1689.482,
+      "median": 1685.438,
+      "min": 1450.8275862068965,
+      "max": 2148.8275862068967,
+      "p10": 1505.6989247311828,
+      "p90": 1861.8082191780823
+    },
+    "loserAllAliveAtEnd": 34,
+    "allAliveExamples": [
+      "GEN-T1:91008011",
+      "GEN-T1:91008023",
+      "GEN-T1:91008037",
+      "GEN-T1:91008081",
+      "GEN-T1:91008097"
+    ],
+    "secondsLastKillToEnd": {
+      "n": 64,
+      "mean": 88.438,
+      "median": 55.0,
+      "min": 0,
+      "max": 570,
+      "p10": 20,
+      "p90": 190
+    },
+    "blueWins": 30,
+    "lead15Wins": 41,
+    "lead15Count": 64,
+    "endReasons": {
+      "NEXUS_DESTROYED": 64
+    }
+  },
+  "fearless": {
+    "n": 10,
+    "duration": {
+      "n": 10,
+      "mean": 2029,
+      "median": 1975.0,
+      "min": 1490,
+      "max": 3080,
+      "p10": 1490,
+      "p90": 2580
+    },
+    "kills": {
+      "n": 10,
+      "mean": 24.7,
+      "median": 28.5,
+      "min": 12,
+      "max": 36,
+      "p10": 12,
+      "p90": 33
+    },
+    "firstBlood": {
+      "n": 10,
+      "mean": 150,
+      "median": 180.0,
+      "min": 60,
+      "max": 230,
+      "p10": 60,
+      "p90": 230
+    },
+    "earlyFirstBlood": {
+      "under60": 0,
+      "under120": 4
+    },
+    "firstDragon": {
+      "n": 10,
+      "mean": 444,
+      "median": 400.0,
+      "min": 360,
+      "max": 680,
+      "p10": 360,
+      "p90": 520
+    },
+    "firstBaron": {
+      "n": 10,
+      "mean": 1566,
+      "median": 1490.0,
+      "min": 1300,
+      "max": 1950,
+      "p10": 1300,
+      "p90": 1850
+    },
+    "killSources": {
+      "BASE_DEFENSE": 18,
+      "JUNGLE_GANK": 11,
+      "LANE_COMBAT": 8,
+      "OBJECTIVE_FIGHT": 13,
+      "ROAM": 13,
+      "SKIRMISH": 100,
+      "TEAMFIGHT": 60,
+      "LATE_GAME_SIEGE": 22,
+      "COUNTER_GANK": 2
+    },
+    "levels": {
+      "TOP": {
+        "n": 20,
+        "mean": 14.5,
+        "median": 14.0,
+        "min": 12,
+        "max": 18,
+        "p10": 12,
+        "p90": 17
+      },
+      "JUNGLE": {
+        "n": 20,
+        "mean": 12.9,
+        "median": 13.0,
+        "min": 11,
+        "max": 16,
+        "p10": 11,
+        "p90": 15
+      },
+      "MID": {
+        "n": 20,
+        "mean": 14.2,
+        "median": 14.0,
+        "min": 12,
+        "max": 18,
+        "p10": 12,
+        "p90": 17
+      },
+      "ADC": {
+        "n": 20,
+        "mean": 12.6,
+        "median": 12.0,
+        "min": 10,
+        "max": 16,
+        "p10": 11,
+        "p90": 15
+      },
+      "SUPPORT": {
+        "n": 20,
+        "mean": 12.8,
+        "median": 13.0,
+        "min": 10,
+        "max": 17,
+        "p10": 11,
+        "p90": 15
+      }
+    },
+    "csm": {
+      "TOP": {
+        "n": 20,
+        "mean": 6.988,
+        "median": 6.99,
+        "min": 6.3882352941176475,
+        "max": 7.882978723404255,
+        "p10": 6.446808510638298,
+        "p90": 7.552941176470589
+      },
+      "JUNGLE": {
+        "n": 20,
+        "mean": 5.571,
+        "median": 5.621,
+        "min": 4.9127516778523495,
+        "max": 6.414893617021277,
+        "p10": 4.9411764705882355,
+        "p90": 6.070588235294118
+      },
+      "MID": {
+        "n": 20,
+        "mean": 7.541,
+        "median": 7.47,
+        "min": 6.6063829787234045,
+        "max": 8.435294117647059,
+        "p10": 6.74025974025974,
+        "p90": 8.181818181818182
+      },
+      "ADC": {
+        "n": 20,
+        "mean": 8.021,
+        "median": 8.064,
+        "min": 6.791878172588832,
+        "max": 9.015228426395938,
+        "p10": 6.801980198019803,
+        "p90": 8.778523489932887
+      },
+      "SUPPORT": {
+        "n": 20,
+        "mean": 0.0,
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "p10": 0.0,
+        "p90": 0.0
+      }
+    },
+    "teamFinalGoldPerMinute": {
+      "n": 20,
+      "mean": 1695.609,
+      "median": 1697.677,
+      "min": 1482.3221476510068,
+      "max": 1927.1287128712872,
+      "p10": 1505.1538461538462,
+      "p90": 1859.9704433497536
+    },
+    "loserAllAliveAtEnd": 5,
+    "allAliveExamples": [
+      "GEN-T1:92008002",
+      "T1-GEN:92008003",
+      "T1-GEN:92008005",
+      "KT-DK:92008002",
+      "DK-KT:92008003"
+    ],
+    "secondsLastKillToEnd": {
+      "n": 10,
+      "mean": 67,
+      "median": 55.0,
+      "min": 30,
+      "max": 170,
+      "p10": 30,
+      "p90": 120
+    },
+    "blueWins": 3,
+    "lead15Wins": 6,
+    "lead15Count": 10,
+    "endReasons": {
+      "NEXUS_DESTROYED": 10
+    }
+  },
+  "fixtures": {
+    "GEN-T1": {
+      "n": 8,
+      "uniqueDrafts": 8,
+      "uniqueRoleTuples": 7,
+      "mostCommonRoleTuple": 2,
+      "meanSharedPicks": 5.75,
+      "blueWins": 4
+    },
+    "T1-GEN": {
+      "n": 8,
+      "uniqueDrafts": 8,
+      "uniqueRoleTuples": 8,
+      "mostCommonRoleTuple": 1,
+      "meanSharedPicks": 5.0,
+      "blueWins": 4
+    },
+    "HLE-GEN": {
+      "n": 8,
+      "uniqueDrafts": 8,
+      "uniqueRoleTuples": 4,
+      "mostCommonRoleTuple": 4,
+      "meanSharedPicks": 7.32,
+      "blueWins": 3
+    },
+    "GEN-HLE": {
+      "n": 8,
+      "uniqueDrafts": 8,
+      "uniqueRoleTuples": 8,
+      "mostCommonRoleTuple": 1,
+      "meanSharedPicks": 6.04,
+      "blueWins": 3
+    },
+    "KT-DK": {
+      "n": 8,
+      "uniqueDrafts": 8,
+      "uniqueRoleTuples": 8,
+      "mostCommonRoleTuple": 1,
+      "meanSharedPicks": 6.39,
+      "blueWins": 2
+    },
+    "DK-KT": {
+      "n": 8,
+      "uniqueDrafts": 8,
+      "uniqueRoleTuples": 8,
+      "mostCommonRoleTuple": 1,
+      "meanSharedPicks": 7.68,
+      "blueWins": 6
+    },
+    "T1-KRX": {
+      "n": 8,
+      "uniqueDrafts": 8,
+      "uniqueRoleTuples": 8,
+      "mostCommonRoleTuple": 1,
+      "meanSharedPicks": 5.46,
+      "blueWins": 5
+    },
+    "KRX-T1": {
+      "n": 8,
+      "uniqueDrafts": 8,
+      "uniqueRoleTuples": 8,
+      "mostCommonRoleTuple": 1,
+      "meanSharedPicks": 7.04,
+      "blueWins": 3
+    }
+  },
+  "pickCounts": [
+    [
+      "varus",
+      64
+    ],
+    [
+      "neeko",
+      53
+    ],
+    [
+      "orianna",
+      53
+    ],
+    [
+      "jayce",
+      47
+    ],
+    [
+      "rumble",
+      47
+    ],
+    [
+      "poppy",
+      46
+    ],
+    [
+      "xin-zhao",
+      39
+    ],
+    [
+      "ezreal",
+      36
+    ],
+    [
+      "ziggs",
+      31
+    ],
+    [
+      "cassiopeia",
+      29
+    ],
+    [
+      "gnar",
+      24
+    ],
+    [
+      "seraphine",
+      23
+    ],
+    [
+      "bard",
+      18
+    ],
+    [
+      "naafiri",
+      18
+    ],
+    [
+      "syndra",
+      17
+    ],
+    [
+      "pantheon",
+      14
+    ],
+    [
+      "lee-sin",
+      11
+    ],
+    [
+      "karma",
+      10
+    ],
+    [
+      "nocturne",
+      9
+    ],
+    [
+      "ryze",
+      8
+    ],
+    [
+      "azir",
+      6
+    ],
+    [
+      "anivia",
+      6
+    ],
+    [
+      "jarvan-iv",
+      5
+    ],
+    [
+      "nautilus",
+      5
+    ],
+    [
+      "taliyah",
+      4
+    ],
+    [
+      "mel",
+      3
+    ],
+    [
+      "galio",
+      3
+    ],
+    [
+      "rell",
+      2
+    ],
+    [
+      "wukong",
+      2
+    ],
+    [
+      "ashe",
+      2
+    ],
+    [
+      "rakan",
+      2
+    ],
+    [
+      "shen",
+      2
+    ],
+    [
+      "yunara",
+      1
+    ]
+  ],
+  "banCounts": [
+    [
+      "vi",
+      64
+    ],
+    [
+      "camille",
+      64
+    ],
+    [
+      "jarvan-iv",
+      59
+    ],
+    [
+      "nautilus",
+      59
+    ],
+    [
+      "nocturne",
+      53
+    ],
+    [
+      "ambessa",
+      49
+    ],
+    [
+      "wukong",
+      44
+    ],
+    [
+      "rakan",
+      37
+    ],
+    [
+      "azir",
+      30
+    ],
+    [
+      "rell",
+      24
+    ],
+    [
+      "gnar",
+      19
+    ],
+    [
+      "poppy",
+      18
+    ],
+    [
+      "alistar",
+      17
+    ],
+    [
+      "xin-zhao",
+      17
+    ],
+    [
+      "lee-sin",
+      12
+    ],
+    [
+      "pantheon",
+      12
+    ],
+    [
+      "shen",
+      10
+    ],
+    [
+      "orianna",
+      10
+    ],
+    [
+      "anivia",
+      7
+    ],
+    [
+      "ryze",
+      6
+    ],
+    [
+      "ksante",
+      5
+    ],
+    [
+      "neeko",
+      5
+    ],
+    [
+      "rumble",
+      5
+    ],
+    [
+      "syndra",
+      4
+    ],
+    [
+      "cassiopeia",
+      3
+    ],
+    [
+      "ahri",
+      2
+    ],
+    [
+      "leblanc",
+      1
+    ],
+    [
+      "sejuani",
+      1
+    ],
+    [
+      "akali",
+      1
+    ],
+    [
+      "ezreal",
+      1
+    ],
+    [
+      "sion",
+      1
+    ]
+  ],
+  "uniquePicked": 33,
+  "uniqueBanned": 31,
+  "planCounts": {
+    "PICK_CONTROL": 90,
+    "POKE_SIEGE": 37,
+    "FRONT_TO_BACK": 1
+  },
+  "selectionPool": {
+    "('BAN', 3)": 485,
+    "('BAN', 1)": 72,
+    "('BAN', 2)": 83,
+    "('PICK', 2)": 166,
+    "('PICK', 3)": 255,
+    "('PICK', 1)": 219
+  },
+  "selectionRank": {
+    "('BAN', 1)": 390,
+    "('BAN', 3)": 83,
+    "('BAN', 2)": 167,
+    "('PICK', 1)": 535,
+    "('PICK', 2)": 83,
+    "('PICK', 3)": 22
+  },
+  "rolePicks": {
+    "MID": [
+      [
+        "orianna",
+        53
+      ],
+      [
+        "cassiopeia",
+        29
+      ],
+      [
+        "syndra",
+        17
+      ],
+      [
+        "ryze",
+        8
+      ],
+      [
+        "ziggs",
+        8
+      ],
+      [
+        "azir",
+        6
+      ],
+      [
+        "anivia",
+        4
+      ],
+      [
+        "galio",
+        3
+      ]
+    ],
+    "JUNGLE": [
+      [
+        "xin-zhao",
+        39
+      ],
+      [
+        "poppy",
+        25
+      ],
+      [
+        "naafiri",
+        18
+      ],
+      [
+        "pantheon",
+        14
+      ],
+      [
+        "lee-sin",
+        11
+      ],
+      [
+        "nocturne",
+        9
+      ],
+      [
+        "jarvan-iv",
+        5
+      ],
+      [
+        "jayce",
+        5
+      ],
+      [
+        "wukong",
+        2
+      ]
+    ],
+    "SUPPORT": [
+      [
+        "neeko",
+        53
+      ],
+      [
+        "poppy",
+        19
+      ],
+      [
+        "bard",
+        18
+      ],
+      [
+        "seraphine",
+        17
+      ],
+      [
+        "karma",
+        10
+      ],
+      [
+        "nautilus",
+        5
+      ],
+      [
+        "rell",
+        2
+      ],
+      [
+        "rakan",
+        2
+      ],
+      [
+        "shen",
+        2
+      ]
+    ],
+    "ADC": [
+      [
+        "varus",
+        53
+      ],
+      [
+        "ezreal",
+        36
+      ],
+      [
+        "ziggs",
+        23
+      ],
+      [
+        "seraphine",
+        6
+      ],
+      [
+        "taliyah",
+        4
+      ],
+      [
+        "mel",
+        3
+      ],
+      [
+        "ashe",
+        2
+      ],
+      [
+        "yunara",
+        1
+      ]
+    ],
+    "TOP": [
+      [
+        "rumble",
+        47
+      ],
+      [
+        "jayce",
+        42
+      ],
+      [
+        "gnar",
+        24
+      ],
+      [
+        "varus",
+        11
+      ],
+      [
+        "poppy",
+        2
+      ],
+      [
+        "anivia",
+        2
+      ]
+    ]
+  },
+  "violations": [],
+  "initialPreferredPlans": {
+    "POKE_SIEGE": 128
+  },
+  "firstPicks": {
+    "varus": 38,
+    "orianna": 19,
+    "azir": 1,
+    "syndra": 6
+  },
+  "killsBefore120BySource": {
+    "SKIRMISH": 48
+  },
+  "levelCheckpoints": {
+    "600": {
+      "TOP": {
+        "n": 128,
+        "mean": 7.055
+      },
+      "JUNGLE": {
+        "n": 128,
+        "mean": 6.594
+      },
+      "MID": {
+        "n": 128,
+        "mean": 7.07
+      },
+      "ADC": {
+        "n": 128,
+        "mean": 6.273
+      },
+      "SUPPORT": {
+        "n": 128,
+        "mean": 6.281
+      }
+    },
+    "900": {
+      "TOP": {
+        "n": 128,
+        "mean": 9.195
+      },
+      "JUNGLE": {
+        "n": 128,
+        "mean": 8.25
+      },
+      "MID": {
+        "n": 128,
+        "mean": 9.023
+      },
+      "ADC": {
+        "n": 128,
+        "mean": 8.086
+      },
+      "SUPPORT": {
+        "n": 128,
+        "mean": 8.102
+      }
+    },
+    "1800": {
+      "TOP": {
+        "n": 80,
+        "mean": 14.012
+      },
+      "JUNGLE": {
+        "n": 80,
+        "mean": 12.125
+      },
+      "MID": {
+        "n": 80,
+        "mean": 13.463
+      },
+      "ADC": {
+        "n": 80,
+        "mean": 12.05
+      },
+      "SUPPORT": {
+        "n": 80,
+        "mean": 12.137
+      }
+    }
+  },
+  "selectedPlayerCSM": {
+    "player-chovy": {
+      "n": 32,
+      "mean": 7.8
+    },
+    "player-peyz": {
+      "n": 32,
+      "mean": 8.29
+    },
+    "player-faker": {
+      "n": 32,
+      "mean": 7.174
+    }
+  },
+  "replay": {
+    "draftIdentityEqual": true,
+    "seed": 91008011,
+    "outputHashEqual": true
+  },
+  "fearlessHistories": [
+    {
+      "teams": [
+        "GEN",
+        "T1"
+      ],
+      "uniquePicksAcrossFiveGames": 50,
+      "exclusionsPerGame": [
+        0,
+        10,
+        20,
+        30,
+        40
+      ]
+    },
+    {
+      "teams": [
+        "DK",
+        "KT"
+      ],
+      "uniquePicksAcrossFiveGames": 50,
+      "exclusionsPerGame": [
+        0,
+        10,
+        20,
+        30,
+        40
+      ]
+    }
+  ]
+}

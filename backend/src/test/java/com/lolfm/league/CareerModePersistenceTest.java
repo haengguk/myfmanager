@@ -583,10 +583,7 @@ class CareerModePersistenceTest {
             assertThat(clockReceipt.commandResult().updatedAt()).isAfterOrEqualTo(clockReceipt.commandResult().createdAt());
             // Existing inexpensive result preparation, not a full season of engine matches.
             finishSeason(h,store,career,2027);
-            for(int i=0;i<40;i++) {
-                var c=h.calendar().view(career);if(c.state().currentDate().isAfter(LocalDate.of(2027,10,1))||c.state().lifecycleStatus().equals("SEASON_ROLLOVER_REQUIRED"))break;
-                h.calendar().advance(career,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,c.state().calendarRevision(),"ADVANCE_TO_NEXT_EVENT",UUID.randomUUID().toString());
-            }
+            com.lolfm.career.CareerOperatingDateFixture.uninitialized(h.jdbc(),id,LocalDate.of(2027,12,20));
             var rosters=rosterStore(ds);rosters.recover();var market=new com.lolfm.career.CareerMarketStore(h.jdbc(),new DataSourceTransactionManager(ds),seasons);market.recover();
             var development=new com.lolfm.career.CareerDevelopmentStore(h.jdbc(),new DataSourceTransactionManager(ds),new com.lolfm.champion.ChampionCatalog(new ObjectMapper()));development.recover();
             var before=market.view(id,2027);assertThat(before.currentDate()).isBefore(LocalDate.of(2027,12,31));
@@ -614,6 +611,7 @@ class CareerModePersistenceTest {
             var binding=store.bindFixture(id,2028,cup.competitionId(),cup.matchId(),h.leagueStore().loadSeason(h.careerStore().activeSeason(career).seasonId()).frozenSnapshot(),"c".repeat(64));
             assertThat(binding.frozenRosters().roster("KT").players()).extracting(com.lolfm.career.CompetitionRosterSnapshot.Starter::playerId).contains("player-bo");
             finishSeason(h,store,career,2028);
+            com.lolfm.career.CareerOperatingDateFixture.carried(h.jdbc(),id,LocalDate.of(2028,11,1));
             market.command(id,marketCommand(market.view(id,2028),"OPEN_STOVE",null,null));
             advanceMarketToYearEnd(h,market,rosters,career,2028);
             // Prepare a delayed final-fixture repair date; rollover must never rewind already paid market time.
@@ -638,9 +636,9 @@ class CareerModePersistenceTest {
         }
     }
     private static void advanceMarketToYearEnd(Harness h,com.lolfm.career.CareerMarketStore market,com.lolfm.career.CareerRosterStore rosters,CareerRelationalStore.CareerRow career,int year) {
-        String id=career.careerId();int guard=0;
-        while(h.calendar().view(career).state().currentDate().isBefore(LocalDate.of(year,12,31))) {
-            var view=market.view(id,year);var selected=rosters.view(id,year).state().lineups().get("LCK:KT");
+        String id=career.careerId();int guard=0;var calendar=h.calendar().view(career);
+        while(calendar.state().currentDate().isBefore(LocalDate.of(year,12,31))) {
+            var view=market.view(id,year);var selected=com.lolfm.career.CareerRosterStore.saved(h.jdbc(),id,year).state().lineups().get("LCK:KT");
             // Explicit affordable user renewals: the new source wage cap has 10% headroom, not the legacy 60%.
             for(String player:selected) {
                 var p=view.players().stream().filter(x->x.playerId().equals(player)).findFirst().orElseThrow();
@@ -649,8 +647,9 @@ class CareerModePersistenceTest {
                     market.command(id,request);view=market.view(id,year);
                 }
             }
-            var calendar=h.calendar().view(career);var advanced=h.calendar().advance(career,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,calendar.state().calendarRevision(),"ADVANCE_TO_NEXT_EVENT",UUID.randomUUID().toString());
+            var advanced=h.calendar().advance(career,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,calendar.state().calendarRevision(),"ADVANCE_TO_NEXT_EVENT",UUID.randomUUID().toString());
             assertThat(advanced.calendar().state().currentDate()).as("market event must advance from %s",calendar.state().currentDate()).isAfter(calendar.state().currentDate());
+            calendar=advanced.calendar();
             assertThat(++guard).isLessThanOrEqualTo(LocalDate.of(year,1,1).lengthOfYear());
         }
     }

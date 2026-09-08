@@ -11,6 +11,12 @@ group = 'com.lolfm'
 version = '0.0.1-SNAPSHOT'
 description = 'LoL FM backend MVP'
 
+// Optional ext4 output for WSL: compile the live source tree, including uncommitted/new files.
+// Working directory stays backend/ so existing relative reference/artifact paths retain their meaning.
+providers.gradleProperty('backendBuildDir').orNull?.with { output ->
+    layout.buildDirectory.set(file(output))
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)

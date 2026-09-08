@@ -1,0 +1,55 @@
+5세트 깊이의 피어리스 이력 실험 2개. 3승에서 종료하는 실제 BO5 Series 완주를 뜻하지 않음.
+앞 세트에 픽한 챔피언을 다음 세트의 픽과 밴에서 제외. BAN 챔피언은 이력에 누적하지 않음.
+
+game=1 T1(BLUE)-GEN(RED) seed=92008001 priorExcluded=0
+BLUE varus / lee-sin / ryze / ezreal / neeko
+RED  rumble / xin-zhao / orianna / ziggs / bard
+result=RED duration=43:00
+
+game=2 GEN(BLUE)-T1(RED) seed=92008002 priorExcluded=10
+BLUE jayce / pantheon / azir / ashe / seraphine
+RED  sion / nocturne / anivia / yunara / alistar
+result=RED duration=28:20
+
+game=3 T1(BLUE)-GEN(RED) seed=92008003 priorExcluded=20
+BLUE renekton / jarvan-iv / syndra / mel / karma
+RED  gnar / naafiri / galio / jhin / rakan
+result=RED duration=24:50
+
+game=4 GEN(BLUE)-T1(RED) seed=92008004 priorExcluded=30
+BLUE ksante / sejuani / cassiopeia / corki / renata-glasc
+RED  olaf / wukong / ahri / sivir / nami
+result=BLUE duration=51:20
+
+game=5 T1(BLUE)-GEN(RED) seed=92008005 priorExcluded=40
+BLUE ambessa / viego / taliyah / caitlyn / thresh
+RED  zaahen / maokai / viktor / lucian / rell
+result=RED duration=26:00
+
+game=1 DK(BLUE)-KT(RED) seed=92008001 priorExcluded=0
+BLUE jayce / nocturne / orianna / ziggs / poppy
+RED  rumble / lee-sin / cassiopeia / varus / seraphine
+result=BLUE duration=33:00
+
+game=2 KT(BLUE)-DK(RED) seed=92008002 priorExcluded=10
+BLUE anivia / sejuani / syndra / ezreal / bard
+RED  gnar / pantheon / azir / mel / karma
+result=RED duration=33:40
+
+game=3 DK(BLUE)-KT(RED) seed=92008003 priorExcluded=20
+BLUE ambessa / xin-zhao / ryze / jhin / shen
+RED  renekton / naafiri / taliyah / yunara / neeko
+result=BLUE duration=31:20
+
+game=4 KT(BLUE)-DK(RED) seed=92008004 priorExcluded=30
+BLUE galio / olaf / viktor / corki / rell
+RED  sion / skarner / aurora / kaisa / nami
+result=RED duration=32:50
+
+game=5 DK(BLUE)-KT(RED) seed=92008005 priorExcluded=40
+BLUE jax / wukong / akali / ashe / senna
+RED  ornn / maokai / annie / lucian / alistar
+result=RED duration=33:50
+
+HISTORY CHECK [{"teams": ["GEN", "T1"], "uniquePicksAcrossFiveGames": 50, "exclusionsPerGame": [0, 10, 20, 30, 40]}, {"teams": ["DK", "KT"], "uniquePicksAcrossFiveGames": 50, "exclusionsPerGame": [0, 10, 20, 30, 40]}]
+REPLAY CHECK {"draftIdentityEqual": true, "seed": 91008011, "outputHashEqual": true}

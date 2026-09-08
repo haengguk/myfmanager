@@ -29,7 +29,7 @@ public final class CareerOverseasStore {
     void prepareSeason(String career,int year){if(active(db,career,year))CareerOverseasRoster.activate(db,career,year,false,champions);}
     public void recover(){
         for(String career:db.query("SELECT career_id FROM career_player_directory WHERE directory_version=? ORDER BY career_id",(r,n)->r.getString(1),com.lolfm.player.ExpandedPlayerCatalog.VERSION))tx.executeWithoutResult(s->{
-            lockCareer(db,career);int year=activeYear(db,career);introduce(career,year,false);
+            lockCareer(db,career);if(!CareerSaveCompatibility.recoverySupported(db,career))return;int year=activeYear(db,career);introduce(career,year,false);
             if(active(db,career,year))for(Event event:Event.values()){
                 var instance=competitions.instance(career,year,event.name());var state=load(db,career,year,event);
                 if(state==null&&!"WAITING_FOR_QUALIFICATION".equals(instance.lifecycleStatus()))throw new IllegalStateException("OVERSEAS_ACTIVE_STATE_MISSING:"+event);

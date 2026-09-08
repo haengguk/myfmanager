@@ -2,6 +2,16 @@
 
 이 문서는 2026-09-08 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career 시작 복구 격리·회귀 비용 V2 (2026-09-08)
+
+현재 명부가 유실된 Career만 시작 복구에서 격리하며 정상 저장의 복구·진행과 기존 legacy/무결성 정책을 유지한다.
+테스트의 장기간 준비/중복 조회를 줄이고, 불변 성장 투영 재사용 및 Linux 빌드 출력 실행 경로를 추가했다.
+계획된 full 1회는 **24분 10.63초**, 274 classes/2,164건 중 2,162 통과·실패/오류 0·기존 skip 2다.
+과거 44분 13초 대비 **45.32% 단축**했지만 50%/20분 목표에는 미달했다.
+전체 이후 테스트 fixture의 날짜 배열 변환·월 요약을 보정하여 API/G1 집중 2건도 통과했다(1분 39.63초).
+제품 코드는 전체 이후 바뀌지 않았고 추가 full은 실행하지 않았다. 후속 절감을 full 수치에 더하지 않는다.
+미해결 검증 실패는 없다. [구현·측정 범위와 남은 비용](development/backend-regression-runtime-optimization-v2.md)에 상세히 기록한다.
+
 ## Career 해외 실행 교정·저장 호환 V1 (2026-09-08)
 
 국제 등록 전 명부 공백을 구조적으로 조회하고 정상 시장 날짜 처리 뒤 같은 대회를 재등록한다.
