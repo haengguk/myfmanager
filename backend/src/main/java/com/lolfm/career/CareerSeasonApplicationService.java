@@ -149,6 +149,7 @@ public final class CareerSeasonApplicationService {
             if(!closedRoster.isEmpty())jdbc.update("UPDATE career_roster_state SET state_json=?,state_hash=? WHERE career_id=? AND season_year=?",closedRoster.getFirst(),CareerRosterStore.hash(closedRoster.getFirst()),careerId,current.year());
             competitions.initializeFuture(careerId,nextYear);
             var next=calendars.rollover(career,current.year(),request.expectedCalendarRevision());
+            CareerFinanceStore.startSeason(jdbc,careerId,nextYear);
             jdbc.update("""
                 INSERT INTO career_season_transition VALUES (?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
                 """,command,careerId,current.year(),request.expectedCalendarRevision(),payload,nextYear,season,next.calendarRevision(),result);
@@ -164,6 +165,7 @@ public final class CareerSeasonApplicationService {
         var blocked=blockers(career,calendar.seasonYear());
         if(!blocked.isEmpty())throw CareerException.invalid("season","대회 결과를 모두 반영한 뒤 스토브에 진입할 수 있습니다: "+String.join(", ",blocked));
         if(lifecycle!=null)lifecycle.review(careerId,calendar.seasonYear(),calendar.currentDate());
+        CareerFinanceStore.close(competitions,careerId,calendar.seasonYear(),calendar.currentDate());
         var roster=CareerRosterStore.saved(jdbc,careerId,calendar.seasonYear());var market=CareerMarketStore.load(jdbc,careerId);
         if(roster==null||market==null)throw CareerException.invalid("market","계약 초기화가 필요합니다.");
         CareerDevelopmentStore.closeSeason(jdbc,careerId,calendar.seasonYear(),calendar.currentDate());

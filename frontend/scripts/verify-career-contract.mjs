@@ -1,4 +1,5 @@
-import { validateCareerMarket, validateMarketCommand, validateMarketChange, marketOperationKey, readMarketOperation } from '../src/features/career/api/careerMarket.contract.ts';
+import assert from 'node:assert/strict';
+import { newerMarket, validateCareerMarket, validateMarketCommand, validateMarketChange, marketOperationKey, readMarketOperation } from '../src/features/career/api/careerMarket.contract.ts';
 import { validateCareerRoster, readRosterOperation, rosterOperationKey } from '../src/features/career/api/careerRoster.contract.ts';
 import { CareerMutationGate } from '../src/features/career/career.mutation.ts';
 import { CareerApiFailure } from '../src/features/career/api/careerApi.failure.ts';
@@ -426,3 +427,14 @@ accepts('legacy Career exposes the future CL activation season without fabricate
 rejects('a CL receipt from another Career cannot replace the selected Career', () => validateClChange({ replayed: true, receipt: { careerId: secondCareerId, seasonYear: 2027, revision: 1, clientCommandId: clCommand().clientCommandId }, cl: { careerId, seasonYear: 2027, activationYear: 2028, active: false, readOnly: false, revision: 0, rosterRevision: 3, managedTeam: 'LCK:T1', clubs: [], fixtures: [], standings: [], ranking: [] } }));
 accepts('CL completed sets and fractional growth remain scoped to the operating team', () => validatePerformances([{ seasonYear: 2027, date: '2027-04-05', seriesId, playerId: 'player-dal', team: 'LCK:T1', squad: 'DEVELOPMENT', competitionId: 'LCK_CL', sets: 2, champions: { Ornn: 1, Gnar: 1 }, internalGain: 53, proficiencyGain: 96 }]));
 accepts('Calendar recognizes CL while preserving existing competition fields', () => { const v = hardenedCalendarView(); v.competition.nextFixture.competitionId = 'LCK_CL'; validateCareerCalendar(v); });
+
+accepts('KRW commands keep large exact amounts and older credit responses cannot replace current finance', () => {
+  const old = marketView();
+  const next = { ...old, currency: 'KRW', revision: old.revision + 1 };
+  assert.equal(newerMarket(next, old), next);
+  const command = { ...marketBody(), schemaVersion: 'CAREER_MARKET_COMMAND_KRW_V1', terms: { ...marketBody().terms, annualSalary: 2_700_000_000, signingBonus: 100_000_000 } };
+  assert.deepEqual(validateMarketCommand(command), command);
+  const trade = { ...tradeBody(), schemaVersion: 'CAREER_TRADE_COMMAND_KRW_V1', terms: { ...tradeBody().terms, fee: 4_000_000_000 } };
+  assert.deepEqual(validateTradeCommand(trade), trade);
+  assert.throws(() => validateCareerMarket(next)); // KRW requires a matching finance policy snapshot.
+});

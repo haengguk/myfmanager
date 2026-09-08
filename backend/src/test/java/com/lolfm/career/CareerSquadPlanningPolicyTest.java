@@ -31,7 +31,7 @@ class CareerSquadPlanningPolicyTest {
         var once=m.state();m.planner.review(MONDAY);assertThat(m.state()).isEqualTo(once);
         var restored=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),CareerRosterStore.read(CareerRosterStore.write(once),CareerMarketState.class));
         restored.clEnabled=true;restored.clLineups.putAll(m.clLineups);rating(restored,first,20,200);restored.planner.review(MONDAY.plusWeeks(1));
-        assertThat(restored.lineups.get("LCK:BRO")).contains(cl);assertThat(restored.state().squadPlanning().cooldowns()).containsEntry("LCK:BRO|TOP",MONDAY.plusDays(28));
+        assertThat(restored.lineups.get("LCK:BRO")).contains(cl);assertThat(restored.state().squadPlanning().cooldowns()).containsEntry("LCK:BRO|TOP|FIRST_TEAM",MONDAY.plusDays(28));
     }
     @Test void smallDifferenceRetainsAndUnavailableClReplacementDefers(){
         var small=setup();String first=top(small,"FIRST_TEAM"),cl=top(small,"DEVELOPMENT");rating(small,first,15,190);rating(small,cl,16,190);
@@ -53,6 +53,41 @@ class CareerSquadPlanningPolicyTest {
         m.advance(MONDAY.plusDays(CareerMarketPolicy.DECISION_DAYS));
         assertThat(m.scheduled(id)).isNotNull();assertThat(m.scheduled(id).terms().role()).isEqualTo(Role.DEVELOPMENT);assertThat(m.members.get(id).ownerTeam()).isEqualTo("LCK:BRO");
         System.out.println("AI_CL_RENEWAL player="+id+" preparedEnd="+end+" before="+m.active(id,MONDAY)+" agreed="+m.scheduled(id));
+    }
+    @ParameterizedTest @ValueSource(ints={14,20})
+    void recruitmentRoleMatchesFirstTeamUpgradeOrDevelopmentUse(int value){
+        var m=setup();String first=top(m,"FIRST_TEAM"),cl=top(m,"DEVELOPMENT");rating(m,first,15,200);rating(m,cl,10,200);
+        String candidate=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.TOP&&!"LCK:BRO".equals(m.members.get(id).ownerTeam())).sorted().findFirst().orElseThrow();
+        // Only one available outside TOP; names and money do not define the intended role.
+        for(String id:new ArrayList<>(m.directory.players().keySet()))if(m.player(id).position()==Position.TOP&&!id.equals(first)&&!id.equals(cl)){
+            if(id.equals(candidate)){m.contracts.values().removeIf(c->c.playerId().equals(id));m.freeAgents.add(id);m.members.put(id,new CareerRosterStore.Membership(id,null,"FREE_AGENT","FREE_AGENT",null));rating(m,id,value,200);}
+            else m.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,true));
+        }
+        m.planner.review(MONDAY);
+        assertThat(m.offers.values()).anySatisfy(o->{assertThat(o.team()).isEqualTo("LCK:BRO");assertThat(o.playerId()).isEqualTo(candidate);assertThat(o.terms().role()).isEqualTo(value==20?Role.STARTER:Role.DEVELOPMENT);});
+    }
+    @Test void unaffordableFirstTeamUpgradeFallsThroughToAffordableClCandidate(){
+        var m=setup();String team="LCK:BRO",first=top(m,"FIRST_TEAM"),cl=top(m,"DEVELOPMENT");rating(m,first,15,200);rating(m,cl,10,200);
+        var candidates=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.TOP&&!team.equals(m.members.get(id).ownerTeam())).sorted().limit(2).toList();
+        for(String id:m.directory.players().keySet())if(m.player(id).position()==Position.TOP&&!id.equals(first)&&!id.equals(cl)){
+            if(candidates.contains(id)){m.contracts.values().removeIf(c->c.playerId().equals(id));m.freeAgents.add(id);m.members.put(id,new CareerRosterStore.Membership(id,null,"FREE_AGENT","FREE_AGENT",null));rating(m,id,id.equals(candidates.getFirst())?20:14,200);}
+            else m.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,true));
+        }
+        var account=m.accounts.get(team);m.accounts.put(team,new Account(team,m.peakSalary(team)+230_000,account.cash(),account.rosterLimit()));m.planner.review(MONDAY);
+        assertThat(m.offers.values().stream().filter(o->o.team().equals(team)&&m.player(o.playerId()).position()==Position.TOP)).singleElement().satisfies(o->{assertThat(o.playerId()).isEqualTo(candidates.getLast());assertThat(o.terms().role()).isEqualTo(Role.DEVELOPMENT);});
+    }
+    @ParameterizedTest @ValueSource(ints={12,13,18})
+    void clWeeklySelectionRespectsDifferenceCooldownAndPendingSeries(int value){
+        var m=CareerMarketEngineTest.engine("LCK:GEN");m.clEnabled=true;m.planner.repair(CareerMarketEngineTest.DATE);String team="LCK:T1";
+        String first=m.lineups.get(team).stream().filter(id->m.player(id).position()==Position.TOP).findFirst().orElseThrow();
+        var tops=m.members.values().stream().filter(v->team.equals(v.ownerTeam())&&v.squad().equals("DEVELOPMENT")&&m.player(v.playerId()).position()==Position.TOP).map(CareerRosterStore.Membership::playerId).sorted().toList();
+        String incumbent=tops.getFirst(),candidate=tops.getLast();rating(m,first,20,200);rating(m,incumbent,12,200);rating(m,candidate,value,200);
+        var lineup=new ArrayList<>(m.clLineups.get(team));lineup.removeIf(id->m.player(id).position()==Position.TOP);lineup.add(incumbent);m.clLineups.put(team,lineup);
+        var original=m.state();var waits=new TreeMap<>(original.squadPlanning().cooldowns());waits.put(team+"|TOP",MONDAY.plusDays(28));
+        m.planner=new CareerSquadPlanner(m,new CareerSquadPlanningPolicy.State(CareerSquadPlanningPolicy.VERSION,null,waits,List.of()));
+        m.squadRestrictions.add(new CareerSquadPlanner.Restriction(incumbent,"DEVELOPMENT",MONDAY,true));m.planner.review(MONDAY);assertThat(m.clLineups.get(team)).contains(incumbent);
+        m.squadRestrictions.clear();m.planner.review(MONDAY.plusWeeks(1));assertThat(m.clLineups.get(team)).contains(value>13?candidate:incumbent);
+        if(value>13){rating(m,incumbent,20,200);m.planner.review(MONDAY.plusWeeks(2));assertThat(m.clLineups.get(team)).contains(candidate);}
     }
     @Test void confirmedLoanReturnCoversOnlyDatesAfterReturnAndBeforeContractExpiry(){
         var m=setup();String id=top(m,"FIRST_TEAM");var c=m.active(id,MONDAY);String parent="LCK:BRO",borrower="LCK:BFX";

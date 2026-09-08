@@ -31,6 +31,7 @@ const SAFE_COPY: Readonly<Record<string, string>> = {
   CAREER_COMPETITION_STALE_REVISION: '대회 상태가 이미 변경되었습니다. 최신 캘린더를 다시 불러오세요.',
   CAREER_COMPETITION_COMMAND_CONFLICT: '현재 대회 경기 상태와 작업이 충돌합니다. 최신 상태를 다시 확인하세요.',
   CAREER_COMPETITION_BACKGROUND_UNAVAILABLE: '대회 경기 작업은 저장됐지만 worker를 깨우지 못했습니다. 같은 작업 ID로 다시 시도하세요.',
+  CAREER_MONEY_POLICY_REFRESH_REQUIRED: '이 크레딧 요청은 실행되지 않았습니다. 원본 입력을 보존한 뒤 최신 원화 조건으로 새 요청을 작성하세요.',
   CAREER_INTERNAL_ERROR: 'Career 요청을 처리하지 못했습니다. 잠시 뒤 다시 확인하세요.',
 };
 

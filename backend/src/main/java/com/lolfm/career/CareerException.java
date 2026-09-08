@@ -4,6 +4,7 @@ package com.lolfm.career;
 public final class CareerException extends RuntimeException {
     public enum Type {
         REQUEST_INVALID,
+        MONEY_POLICY_REFRESH_REQUIRED,
         NOT_FOUND,
         MANAGED_TEAM_NOT_FOUND,
         COMMAND_CONFLICT,
@@ -44,6 +45,8 @@ public final class CareerException extends RuntimeException {
     public static CareerException invalid(String field, String message) {
         return new CareerException(Type.REQUEST_INVALID, field, message, null);
     }
+
+    public static CareerException moneyPolicyRefresh() {return new CareerException(Type.MONEY_POLICY_REFRESH_REQUIRED,"schemaVersion","원화 전환 전 미실행 요청입니다. 원본 입력을 보존하고 최신 원화 조건으로 새 요청을 작성해 주세요.",null);}
 
     public static CareerException notFound() {
         return new CareerException(Type.NOT_FOUND, "careerId",

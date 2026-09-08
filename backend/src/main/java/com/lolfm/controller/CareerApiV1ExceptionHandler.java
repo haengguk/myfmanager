@@ -14,6 +14,7 @@ public final class CareerApiV1ExceptionHandler {
     public ResponseEntity<CareerApiV1Dtos.ErrorResponse> career(CareerException error) {
         HttpStatus status = switch (error.type()) {
             case REQUEST_INVALID -> HttpStatus.BAD_REQUEST;
+            case MONEY_POLICY_REFRESH_REQUIRED -> HttpStatus.CONFLICT;
             case NOT_FOUND, CALENDAR_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case MANAGED_TEAM_NOT_FOUND -> HttpStatus.UNPROCESSABLE_ENTITY;
             case COMMAND_CONFLICT, CAPACITY_REACHED,
@@ -49,6 +50,7 @@ public final class CareerApiV1ExceptionHandler {
     private static String code(CareerException.Type type) {
         return switch (type) {
             case REQUEST_INVALID -> "CAREER_REQUEST_INVALID";
+            case MONEY_POLICY_REFRESH_REQUIRED -> "CAREER_MONEY_POLICY_REFRESH_REQUIRED";
             case NOT_FOUND -> "CAREER_NOT_FOUND";
             case MANAGED_TEAM_NOT_FOUND -> "CAREER_MANAGED_TEAM_NOT_FOUND";
             case COMMAND_CONFLICT -> "CAREER_COMMAND_CONFLICT";

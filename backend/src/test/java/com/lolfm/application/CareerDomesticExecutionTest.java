@@ -42,13 +42,13 @@ class CareerDomesticExecutionTest {
         var frozen=store.bindFixture(id,2027,f.competitionId(),f.matchId(),snapshots.currentSnapshot(snapshots.currentTeamCodes()),snapshots.currentResourceProvenanceHash());
         String registered=jdbc.queryForObject("SELECT state_json FROM career_international_state WHERE career_id=? AND competition_id='EWC_LOL'",String.class,id);
         var view=market.view(id,2027);
-        market.command(id,new CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,view.revision(),"RELEASE","player-bdd",null,null,null,null,UUID.randomUUID().toString()));
+        market.command(id,new CareerMarketStore.Request("CAREER_MARKET_COMMAND_KRW_V1",2027,view.revision(),"RELEASE","player-bdd",null,null,null,null,UUID.randomUUID().toString()));
         org.assertj.core.api.Assertions.assertThatThrownBy(()->CareerCompetitionTestSupport.applicableEwcRoster(store,id,false)).isInstanceOf(CareerException.class);
         assertThat(store.bindFixture(id,2027,f.competitionId(),f.matchId(),snapshots.currentSnapshot(snapshots.currentTeamCodes()),snapshots.currentResourceProvenanceHash()).canonicalText()).isEqualTo(frozen.canonicalText());
-        market.command(id,new CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,market.view(id,2027).revision(),"SUPPLEMENT","player-hwichan",null,null,null,"EWC_LOL",UUID.randomUUID().toString()));
+        market.command(id,new CareerMarketStore.Request("CAREER_MARKET_COMMAND_KRW_V1",2027,market.view(id,2027).revision(),"SUPPLEMENT","player-hwichan",null,null,null,"EWC_LOL",UUID.randomUUID().toString()));
         assertThat(CareerCompetitionTestSupport.applicableEwcRoster(store,id,false).roster("LCK:KT").players()).extracting(CompetitionRosterSnapshot.Starter::playerId).contains("player-hwichan").doesNotContain("player-bdd");
         assertThat(jdbc.queryForObject("SELECT state_json FROM career_international_state WHERE career_id=? AND competition_id='EWC_LOL'",String.class,id)).isEqualTo(registered);
-        org.assertj.core.api.Assertions.assertThatThrownBy(()->market.command(id,new CareerMarketStore.Request("CAREER_MARKET_COMMAND_V1",2027,market.view(id,2027).revision(),"SUPPLEMENT","player-jiwoo",null,null,null,"EWC_LOL",UUID.randomUUID().toString()))).isInstanceOf(CareerException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->market.command(id,new CareerMarketStore.Request("CAREER_MARKET_COMMAND_KRW_V1",2027,market.view(id,2027).revision(),"SUPPLEMENT","player-jiwoo",null,null,null,"EWC_LOL",UUID.randomUUID().toString()))).isInstanceOf(CareerException.class);
 
     }
 

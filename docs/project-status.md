@@ -1,6 +1,28 @@
 # Project Status
 
-이 문서는 2026-09-07 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-09-08 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+
+## Career 원화 재정·시즌 목표 및 AI 후속 수정 V1 (2026-09-08)
+
+1군 보강을 육성 계약으로 분류하던 판단과 CL 정상 선발 갱신 누락을 수정했다.
+신규 Career의 활성 56개 구단은 2026 base 추정에서 초기 자금·급여 한도와 그룹별
+게임 연봉을 정하며, 24개 육성 조직은 모구단 비용에 포함한다. KRW 고정 게임 환율,
+구단 지원/가상 후원과 비급여 비용, 실제 계약 의무를 같은 날짜·시장 재정 검사에 연결했다.
+V22 전환 기록은 기존 현재 금액을 1회 1,000배 환산하면서 원본 JSON/명령 receipt와
+봉인된 과거 자료를 보존한다. 이미 완료된 대회 상금을 소급 지급하지 않는다.
+
+실제 완료 분류에서 LCK 0원, CL 공동 3~4위 게임 분배, 국제전 상금 권리를 만들고
+일반 +7일/EWC +42일에 현금으로 정산한다. 시즌 시작 목표, 마감 성과 보너스와 다음
+시즌 승인 한도를 저장하며 사용자 구단의 운영 결정을 대신 실행하지 않는다.
+자료는 LOW/VERY_LOW 추정 및 게임 설정이며 실제 구단 재무·개인 연봉으로 표시하지 않는다.
+
+정책·CL·두 시즌 집중 15건과 마지막 정책·AI·시장·파일 저장 66건, 프런트 계약 93건 및
+build가 통과했다. 대표 브라우저에서 원화 제안/철회, 통제 CL 우승의 4천만 원 미수→
+실제 날짜 명령 입금, 목표와 새로고침 보존을 확인했다. 전체 회귀 1회는 271 suites/2,123건 중
+2,115 통과·기대값/준비 오류 6건·기존 skip 2로 36분 27초에 완료했다.
+후속 6건은 2분 32초에 5 통과/준비 오류 1건이었고, 마지막 Auto 준비 교정 후 해당 1건도
+3분 19초에 통과했다. 전체는 추가 실행하지 않았으며 최종 tree의 clean full 통과로 표시하지 않는다. 상세 값·정책·검증 구분은
+[원화 재정 통합 보고서](development/career-finance-season-targets-krw-and-ai-followups-v1.md)를 따른다.
 
 ## Career AI 1군·CL 선수단 계획 V1 (2026-09-07)
 

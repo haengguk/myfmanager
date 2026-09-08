@@ -1,5 +1,42 @@
 # Testing
 
+## Career AI 후속 수정·원화 재정·시즌 목표 V1 (2026-09-08)
+
+새 정책 테스트 클래스는 `CareerFinancePolicyTest` 한 개다. 기존 AI 계획, CL 완료,
+시장/거래, 파일 DB 이주·재시작과 두 시즌 fixture를 확장했다. 별도 통합 클래스나
+대규모 경제 진단은 추가하지 않았다. 기존 명령 UUID/receipt와 임대·체불 환산, 전환
+archive 기록 뒤 저장 실패의 전체 롤백을 같은 파일 DB 사례에서 확인한다.
+
+```bash
+# 저장소 루트에서 실행. Gradle 명령은 같은 출력 디렉터리에서 순차 실행한다.
+JAVA_HOME=/tmp/career-development-jdk ./backend/gradlew -p backend test \
+  --tests 'com.lolfm.career.CareerFinancePolicyTest' \
+  --tests 'com.lolfm.career.CareerSquadPlanningPolicyTest' \
+  --tests 'com.lolfm.career.CareerMarketEngineTest' \
+  --tests 'com.lolfm.league.CareerModePersistenceTest.marketCommandsPersistMembershipMoneyAndOriginalReceiptsWithoutChangingFrozenSeries' \
+  --console=plain --no-daemon
+npm --prefix frontend run career:verify
+npm --prefix frontend run build
+JAVA_HOME=/tmp/career-development-jdk ./backend/gradlew -p backend test --console=plain --no-daemon
+```
+
+마지막 집중 66건은 2분 51초 통과했다. 앞선 정책·CL·두 시즌 집중 15건은 10분 49초
+통과했다. 프런트는 93건과 TypeScript/Vite build 통과다. 브라우저는 통제 CL 완료
+fixture에서 권리를 준비한 뒤 실제 API/UI 제안·철회와 7일 날짜 명령, 입금 및 재조회
+보존을 확인했다. 새 실제 경기 완주 행렬이나 다년 시장 분포 검증으로 보고하지 않는다.
+
+계획된 전체 회귀 **1회, 36분 27초**는 271 suites/총 2,123건 중 2,115 통과, 실패 6,
+오류 0, 기존 skip 2다. `/tmp/career-finance-full-evidence/`에 원본 로그/집계/XML을 보존했다.
+V22 이주 수 세 곳, 구 크레딧 신인 영입 준비, 종전 고정 가격 단언, 이주 후 revision 준비를
+교정했다. 후속 6건은 2분 32초에 5 통과/1 실패였다. 남은 신인 Auto 준비는 구단 예산을
+올리지 않고 현재 급여 여유가 큰 적격 fixture를 선택했고, 해당 1건은 3분 19초에 통과했다.
+backend 제품 코드 수정 없이 실패 사례와 helper의 유일한 호출자를 모두 검증했으므로
+전체는 추가 실행하지 않았다. 원본과 후속 XML/log를 별도 보존했으며 미해결 실패는 없다.
+최종 tree의 clean full 통과로 표시하지 않는다.
+집중 실행 중의 준비값/기대값 교정과 실제 검증 범위는
+[통합 구현 보고서](career-finance-season-targets-krw-and-ai-followups-v1.md)에 기록했다.
+
+
 ## Career 성장 경계·노쇠화·은퇴·신인 공급 V1 (2026-09-07)
 
 순수 생애주기 정책 테스트 1개와 작은 기존 Auto fixture helper 1개를 추가하고 기존 성장·시장·

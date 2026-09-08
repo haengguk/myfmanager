@@ -161,7 +161,7 @@ public final class CareerRelationalStore {
             if (rosters != null && initializeSeason) {
                 int year=jdbc.queryForObject("SELECT active_calendar_season_year FROM career_calendar_state WHERE career_id=?",Integer.class,requested.careerId());
                 rosters.initializeNew(requested.careerId(),year);
-                CareerMarketStore.initialize(jdbc,requested.careerId());
+                CareerMarketStore.initializeNew(jdbc,requested.careerId());
                 CareerDevelopmentStore.initialize(jdbc,requested.careerId());
                 CareerLifecycleStore.initialize(jdbc,requested.careerId());
                 if(cl!=null)cl.initializeNew(requested.careerId(),year);

@@ -1,0 +1,23 @@
+import { CareerContractError } from './careerApi.validation.ts';
+export interface FinanceApproval { team: string; seasonYear: number; effectiveOn: string; annualIncome: number; annualSupport: number; annualSponsor: number; annualNonWage: number; wageLimit: number; inheritedCommitments: number; overCommitted: number; evaluation: string; policy: string }
+export interface FinanceTarget { team: string; seasonYear: number; setOn: string; partial: boolean; maximumDomesticRank: number; worldsMaximumRank: number | null; fixedSponsor: number; initialWageLimit: number; sportingStatus: string; financeStatus: string; actualDomesticRank: number | null; actualWorldsRank: number | null; closingCash: number; closingHeadroom: number; arrears: number; bonus: number; evaluatedOn: string | null; evidence: string }
+export interface FinanceAward { id: string; seasonYear: number; competition: string; eventId: string; team: string; awardType: string; placementFrom: number; placementThrough: number; originalCurrency: string; originalAmount: number; evidenceStatus: string; allocationPolicy: string; fxPolicy: string; rate: string; krw: number; recognizedOn: string; dueOn: string; paidOn: string | null; resultHash: string; referenceHash: string }
+export interface FinanceReference { team: string; sourceCurrency: string; confidence: string; evidenceClass: string; sourceIds: string[]; originalBase: Record<string, number>; playerCompensation: number; operatingBudget: number; nonWage: number; contingency: number; wageLimit: number; openingCash: number; protectedCash: number; includedTransferAllowance: number; allocatedSalary: number; unallocatedCompensation: number }
+export interface ClubFinance { policyVersion: string; currency: 'KRW'; referenceSeason: number; scenario: string; sourceHash: string; fxPolicyVersion: string; fx: Record<string, string>; introducedOn: string; legacyTransition: boolean; reference: FinanceReference; currentFunding: FinanceApproval; operatingArrears: number; prizes: FinanceAward[]; targets: FinanceTarget[]; approvals: FinanceApproval[]; heldPrizes: Record<string, string>; policyExplanation: string }
+export function validateClubFinance(value: unknown, managed: string): ClubFinance {
+  const check = (ok: unknown) => { if (!ok) throw new CareerContractError('market.clubFinance'); };
+  check(value && typeof value === 'object'); const f = value as ClubFinance;
+  check(f.policyVersion === 'CAREER_FINANCE_KRW_V1' && f.currency === 'KRW' && f.referenceSeason === 2026 && f.scenario === 'base' && f.fxPolicyVersion === 'GAME_FIXED_FX_V1' && typeof f.policyExplanation === 'string');
+  check(typeof f.sourceHash === 'string' && /^[a-f0-9]{64}$/.test(f.sourceHash) && typeof f.legacyTransition === 'boolean');
+  const date = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v));
+  check(date(f.introducedOn) && f.fx && Object.values(f.fx).every(v => typeof v === 'string' && Number(v) > 0));
+  const money = (v: unknown, signed = false) => Number.isSafeInteger(v) && (signed || (v as number) >= 0);
+  check(money(f.operatingArrears) && f.reference?.team === managed && Array.isArray(f.reference.sourceIds));
+  for (const k of ['playerCompensation','operatingBudget','nonWage','contingency','wageLimit','openingCash','protectedCash','includedTransferAllowance','allocatedSalary','unallocatedCompensation'] as const) check(money(f.reference[k]));
+  check(Array.isArray(f.prizes) && Array.isArray(f.targets) && Array.isArray(f.approvals));
+  for (const a of [f.currentFunding, ...f.approvals]) { check(a?.team === managed && date(a.effectiveOn) && Number.isInteger(a.seasonYear)); for (const k of ['annualIncome','annualSupport','annualSponsor','annualNonWage','wageLimit','inheritedCommitments','overCommitted'] as const) check(money(a[k])); check(a.annualIncome === a.annualSupport + a.annualSponsor); }
+  const ids = new Set<string>();
+  for (const a of f.prizes) { check(a.team === managed && typeof a.id === 'string' && !ids.has(a.id)); ids.add(a.id); check(money(a.krw) && money(a.originalAmount) && date(a.recognizedOn) && date(a.dueOn) && (a.paidOn === null || date(a.paidOn)) && a.fxPolicy === f.fxPolicyVersion && a.referenceHash === f.sourceHash && typeof a.evidenceStatus === 'string'); }
+  for (const t of f.targets) { check(t.team === managed && date(t.setOn) && (t.evaluatedOn === null || date(t.evaluatedOn)) && typeof t.partial === 'boolean'); for (const k of ['fixedSponsor','initialWageLimit','closingCash','arrears','bonus'] as const) check(money(t[k])); check(money(t.closingHeadroom, true)); }
+  check(f.heldPrizes && Object.values(f.heldPrizes).every(v => typeof v === 'string')); return f;
+}

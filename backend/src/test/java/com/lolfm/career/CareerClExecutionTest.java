@@ -87,19 +87,39 @@ class CareerClExecutionTest {
         assertThat(competitions.loadBinding(id,year,"LCK_CL",match).canonicalText()).isEqualTo(canonical);assertThat(cl.view(id,year).clubs().stream().filter(c->c.team().equals("LCK:T1")).findFirst().orElseThrow().blockers()).isNotEmpty();
         System.out.println("CL_ACTUAL career="+id+" series="+binding.boundSeriesId()+" player="+player+" before="+CareerRosterStore.write(growthBefore)+" after="+CareerRosterStore.write(after.state().players().get(player))+" performance="+CareerRosterStore.write(appearances)+" firstInput="+newInput.boundSeriesId());
     }
-    @Test void controlledNinetySeriesTieGraphAndFivePlayoffsCloseExactlyOnce(){
+    @Test void controlledNinetySeriesTieGraphAndFivePlayoffsCloseExactlyOnce() throws Exception {
         var career=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"CL 통제 대진","감독","T1",UUID.randomUUID().toString())).career().career();String id=career.careerId();int year=2027;
         var snapshot=snapshots.currentSnapshot(snapshots.currentTeamCodes());var tx=new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()));int completed=0;
         while(true){var cycle=competitions.load(id,year);var next=cycle.fixtures().stream().filter(f->CareerClPolicy.isCl(f.competitionId())&&!"COMPLETED".equals(f.lifecycleStatus())).findFirst();if(next.isEmpty())break;var f=next.get();
             // Synthetic graph-only evidence uses the existing test completion bridge; it creates no appearance binding or growth.
             var instance=cycle.competitions().stream().filter(c->CareerClPolicy.isCl(c.competitionId())).findFirst().orElseThrow();
             var binding=CareerCompetitionSeriesBindingV1.create(cycle,instance,f,"T1",competitions.rules.resourceHash(),snapshot,snapshots.currentResourceProvenanceHash(),Set.of(),null);
-            tx.executeWithoutResult(t->{jdbc.update("INSERT INTO career_competition_series_binding(binding_hash,career_id,calendar_season_year,competition_id,match_id,fixture_id,series_id,execution_mode,binding_schema,binding_canonical,lifecycle_status,created_at,updated_at) VALUES (?,?,?,'LCK_CL',?,?,?,?,?,?,'CREATED',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",binding.bindingHash(),id,year,f.matchId(),f.fixtureId(),f.seriesId(),f.executionMode(),CareerCompetitionSeriesBindingV1.SCHEMA,binding.canonicalText());CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(competitions,binding,f.firstTeamCode());});
+            tx.executeWithoutResult(t->{jdbc.update("INSERT INTO career_competition_series_binding(binding_hash,career_id,calendar_season_year,competition_id,match_id,fixture_id,series_id,execution_mode,binding_schema,binding_canonical,lifecycle_status,created_at,updated_at) VALUES (?,?,?,'LCK_CL',?,?,?,?,?,?,'CREATED',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",binding.bindingHash(),id,year,f.matchId(),f.fixtureId(),f.seriesId(),f.executionMode(),CareerCompetitionSeriesBindingV1.SCHEMA,binding.canonicalText());CareerCompetitionTestSupport.applySyntheticVerifiedCompletion(competitions,binding,"T1".equals(f.secondTeamCode())?f.secondTeamCode():f.firstTeamCode());});
             if(++completed>140)throw new AssertionError("CL finite graph did not terminate");
         }
         var finalView=cl.view(id,year);assertThat(finalView.fixtures().stream().filter(f->f.stageId().equals("CL_REGULAR"))).hasSize(90);assertThat(finalView.fixtures().stream().filter(f->f.stageId().equals("CL_PLAYOFFS"))).hasSize(5);assertThat(finalView.fixtures().stream().filter(f->f.stageId().equals("CL_TIEBREAKER"))).isNotEmpty();assertThat(finalView.ranking()).hasSize(10).doesNotHaveDuplicates();
         assertThat(competitions.load(id,year).competitions().stream().filter(c->CareerClPolicy.isCl(c.competitionId())).findFirst().orElseThrow().lifecycleStatus()).isEqualTo("COMPLETED");
         assertThat(CareerMarketStore.load(jdbc,id).state().management().appearances()).isEmpty();
+        var finance=CareerMarketStore.load(jdbc,id).state().finance();
+        assertThat(finance.awards()).hasSize(10);assertThat(finance.awards().values().stream().mapToLong(CareerFinanceState.Award::krw).sum()).isEqualTo(87_500_000);
+        assertThat(finance.awards().values().stream().filter(a->a.placementFrom()==3)).hasSize(2).allSatisfy(a->{assertThat(a.placementThrough()).isEqualTo(4);assertThat(a.krw()).isEqualTo(11_250_000);assertThat(a.allocationPolicy()).isEqualTo("GAME_SHARED_PLACEMENT_POOL");});
+        var own=finance.awards().values().stream().filter(a->a.team().equals("LCK:T1")).findFirst().orElseThrow();
+        assertThat(own.paidOn()).isNull();assertThat(own.recognizedOn()).isEqualTo(calendar.currentDate(career));assertThat(own.dueOn()).isEqualTo(own.recognizedOn().plusDays(7));
+        long initialCash=CareerMarketStore.load(jdbc,id).state().accounts().get("LCK:T1").cash();
+        var before=CareerMarketStore.load(jdbc,id);market.view(id,year);tx.executeWithoutResult(t->CareerFinanceStore.recognize(competitions,id,year));assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(before);
+        java.nio.file.Files.createDirectories(java.nio.file.Path.of("build/reports/career-finance"));
+        jdbc.execute("SCRIPT TO 'build/reports/career-finance/browser-fixture.sql'");
+        java.nio.file.Files.writeString(java.nio.file.Path.of("build/reports/career-finance/browser-fixture-info.txt"),"career="+id+"\ndue="+own.dueOn()+"\nprize="+own.krw()+"\ncash="+initialCash);
+        while(calendar.currentDate(career).isBefore(own.dueOn())){var today=calendar.view(career).state();calendar.advance(career,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,today.calendarRevision(),"ADVANCE_ONE_DAY",UUID.randomUUID().toString());}
+        var paid=CareerMarketStore.load(jdbc,id);assertThat(paid.state().finance().awards().get(own.id()).paidOn()).isEqualTo(own.dueOn());
+        assertThat(paid.state().ledger().stream().filter(l->l.team().equals("LCK:T1")&&l.kind().equals("TOURNAMENT_PLACEMENT_PRIZE"))).hasSize(1);
+        var previousIds=before.state().ledger().stream().map(CareerMarketState.Ledger::entryId).collect(java.util.stream.Collectors.toSet());
+        long otherCashFlow=paid.state().ledger().stream().filter(l->l.team().equals("LCK:T1")&&!previousIds.contains(l.entryId())&&!Set.of("SALARY_ACCRUED","TOURNAMENT_PLACEMENT_PRIZE").contains(l.kind())).mapToLong(CareerMarketState.Ledger::amount).sum();
+        assertThat(own.krw()).isEqualTo(40_000_000);assertThat(paid.state().accounts().get("LCK:T1").cash()).isEqualTo(initialCash+own.krw()+otherCashFlow);
+        var projected=CareerMarketStore.engine(jdbc,id,year,paid);long available=projected.paymentHeadroom("LCK:T1",own.dueOn());var account=projected.accounts.get("LCK:T1");projected.accounts.put("LCK:T1",new CareerMarketState.Account(account.team(),account.annualBudget(),account.cash()-own.krw(),account.rosterLimit()));
+        assertThat(available-projected.paymentHeadroom("LCK:T1",own.dueOn())).isEqualTo(own.krw());
+        tx.executeWithoutResult(t->CareerFinanceStore.recognize(competitions,id,year));assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(paid);
+        System.out.println("FINANCE_CL_ACTUAL "+CareerRosterStore.write(own)+" cashBefore="+initialCash+" cashAfter="+paid.state().accounts().get("LCK:T1").cash()+" headroom="+market.view(id,year).finances().stream().filter(f->f.team().equals("LCK:T1")).findFirst().orElseThrow().paymentHeadroom());
         System.out.println("CL_CONTROLLED_GRAPH regular=90 playoffs=5 total="+completed+" ranking="+finalView.ranking());
     }
 

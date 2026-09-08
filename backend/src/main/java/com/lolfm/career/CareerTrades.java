@@ -28,14 +28,14 @@ final class CareerTrades {
         if(trades.values().stream().anyMatch(t->t.terms().playerId().equals(player)&&t.status()==TradeStatus.COMPLETED&&date.isBefore(t.terms().startDate().plusDays(RECONTACT_DAYS))))return "이동 직후 재거래 유예 기간입니다.";
         return null;
     }
-    long estimate(String player,LocalDate date) {var c=m.active(player,date);return c==null?0:value(m.player(player),date,c.terms().endDate());}
+    long estimate(String player,LocalDate date) {var c=m.active(player,date);return c==null?0:value(m.demand(player),date,c.terms().endDate());}
     String replacement(String team,String player,LocalDate date) {
         return m.members.values().stream().filter(p->!p.playerId().equals(player)&&team.equals(p.ownerTeam())&&"FIRST_TEAM".equals(p.squad())
                 &&m.player(p.playerId()).position()==m.player(player).position()&&m.eligible(p.playerId(),team,date))
                 .map(CareerRosterStore.Membership::playerId).sorted(Comparator.comparingInt((String p)->strength(m.player(p))).reversed().thenComparing(p->p)).findFirst().orElse(null);
     }
     long demandFee(TradeTerms t,LocalDate date) {
-        long base=t.kind()==Kind.TRANSFER?estimate(t.playerId(),date):loanFee(m.player(t.playerId()),t.startDate(),t.endDate());
+        long base=t.kind()==Kind.TRANSFER?estimate(t.playerId(),date):loanFee(m.demand(t.playerId()),t.startDate(),t.endDate());
         int percent=SELL_BASE_PERCENT+(m.lineups.get(t.seller()).contains(t.playerId())?SELL_STARTER_PREMIUM:0)
                 -(m.promiseEngine.mood(t.playerId(),date)<=MOVE_INTEREST?SELL_UNHAPPY_DISCOUNT:0)-(m.salaryArrears(t.seller())>0?SELL_ARREARS_DISCOUNT:0);
         return Math.multiplyExact(base,percent)/100;
@@ -43,7 +43,7 @@ final class CareerTrades {
     long buyerLimit(TradeTerms t,LocalDate date) {
         var held=m.lineups.get(t.buyer()).stream().filter(p->m.player(p).position()==m.player(t.playerId()).position()).findFirst();
         int percent=held.isEmpty()?BUY_URGENT_PERCENT:strength(m.player(t.playerId()))>strength(m.player(held.get()))?BUY_IMPROVEMENT_PERCENT:BUY_BASE_PERCENT;
-        long base=t.kind()==Kind.TRANSFER?estimate(t.playerId(),date):loanFee(m.player(t.playerId()),t.startDate(),t.endDate());
+        long base=t.kind()==Kind.TRANSFER?estimate(t.playerId(),date):loanFee(m.demand(t.playerId()),t.startDate(),t.endDate());
         return Math.min(Math.multiplyExact(base,percent)/100,Math.max(0,m.paymentHeadroom(t.buyer(),date)));
     }
     long reserved(String team) {return trades.values().stream().filter(t->t.open()&&t.buyerAgreed()&&t.terms().buyer().equals(team))
@@ -138,7 +138,7 @@ final class CareerTrades {
                     .thenComparing(t->t.terms().buyer())).toList();String winner=null;
             for(var t:ranked) {
                 var e=evaluation(t,date);long threshold=t.terms().kind()==Kind.LOAN?LOAN_ACCEPT_SCORE:MIN_ACCEPT_SCORE;
-                if(e.score()<threshold||t.terms().playerTerms().annualSalary()*100<demand(m.player(player))*MIN_SALARY_PERCENT){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,"선수가 보수·역할·기회·약속 신뢰·이동 부담을 비교해 거절: "+e.reason(),e.score()));continue;}
+                if(e.score()<threshold||t.terms().playerTerms().annualSalary()*100<m.demand(player)*MIN_SALARY_PERCENT){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,"선수가 보수·역할·기회·약속 신뢰·이동 부담을 비교해 거절: "+e.reason(),e.score()));continue;}
                 try{requireSeller(t,date);requireBuyer(t,date);winner=t.tradeId();trades.put(winner,status(t,TradeStatus.AGREED,"구단과 선수 동의 완료 · 적용일 최종 검사 대기: "+e.reason(),e.score()));break;}
                 catch(CareerException rejected){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,rejected.clientMessage(),e.score()));}
             }
@@ -197,7 +197,7 @@ final class CareerTrades {
         var c=m.active(player,date);if(c==null||unavailable(player,date)!=null)return null;
         LocalDate start=decision(player,date).plusDays(1),end=start.plusYears(AI_CONTRACT_YEARS).minusDays(1);
         String replacement=m.lineups.get(c.team()).contains(player)?replacement(c.team(),player,date):null;
-        var personal=new Terms(start,end,demand(m.player(player))*AI_MAX_BID_PERCENT/100,demand(m.player(player))/AI_BONUS_DIVISOR,role);
+        var personal=new Terms(start,end,m.demand(player)*AI_MAX_BID_PERCENT/100,m.demand(player)/AI_BONUS_DIVISOR,role);
         var terms=new TradeTerms(Kind.TRANSFER,player,c.team(),buyer,start,end,0,0,personal,replacement);
         long fee=demandFee(terms,date);
         if(fee>buyerLimit(terms,date)||m.paymentHeadroom(buyer,date)<fee+personal.signingBonus()) {

@@ -1,0 +1,16 @@
+import type { CareerMarket } from './api/careerMarket.contract';
+import { careerMoney as won } from './careerMoney';
+const status = (s: string) => ({ PENDING: '평가 전', NOT_EVALUABLE: '평가 불가·중립', MISSED: '미달', MET: '충족', EXCEEDED: '초과 달성', NOT_EVALUATED: '최초 승인' }[s] ?? s);
+export function CareerFinancePanel({ market }: { market: CareerMarket }) {
+  const f = market.clubFinance; if (!f) return null;
+  const a = f.currentFunding, t = f.targets.find(t => t.seasonYear === market.seasonYear);
+  return <section aria-label="구단 재정과 시즌 목표"><h3>구단 재정 · 시즌 목표</h3>
+    <dl><dt>보장 연수입 / 비급여 연운영비</dt><dd>{won(a.annualIncome)} / {won(a.annualNonWage)}</dd><dt>게임 구단 지원 / 가상 기본 후원</dt><dd>{won(a.annualSupport)} / {won(a.annualSponsor)}</dd><dt>비급여 체불</dt><dd>{won(f.operatingArrears)}</dd></dl>
+    <p>매월 말 누적 일할 정산합니다. 선수 급여는 실제 계약대로 별도 지급하며, 연봉 한도와 미수 상금은 현금 입금이 아닙니다.{f.legacyTransition && a.policy === 'LEGACY_FUNDING_UNTIL_NEXT_SEASON' ? ' 기존 저장의 이번 시즌은 원화로 환산한 종전 연간 지급을 유지합니다.' : ''}</p>
+    <h4>상금 권리와 입금</h4>{f.prizes.length ? f.prizes.map(p => <p key={p.id}>{p.seasonYear} {p.competition} · {p.placementFrom === p.placementThrough ? `${p.placementFrom}위` : `${p.placementFrom}~${p.placementThrough}위 구간`} · {won(p.krw)} · {p.paidOn ? `입금 완료 ${p.paidOn}` : `미수 · 입금 예정 ${p.dueOn}`}<br />원금 {p.originalAmount.toLocaleString('ko-KR')} {p.originalCurrency} · 권리 확정 {p.recognizedOn} · {p.evidenceStatus}{p.allocationPolicy === 'GAME_SHARED_PLACEMENT_POOL' ? ' · CL 공동 3~4위 게임 분배' : ''}</p>) : <p>확정된 상금 권리가 없습니다.</p>}
+    {Object.entries(f.heldPrizes).map(([id, reason]) => <p key={id}>상금 분류 확인 대기 · {id} · {reason}</p>)}
+    {t ? <><h4>{t.seasonYear} 시즌 목표</h4><p>{t.partial ? '도입 이후 부분 재정 목표 · 경기 평가 중립' : t.maximumDomesticRank ? `LCK 최종 ${t.maximumDomesticRank}위 이내${t.worldsMaximumRank ? ` · Worlds ${t.worldsMaximumRank}위 이내` : ''}` : '관측 가능한 국내 리그 없음 · 경기 평가 중립'}<br />경기 {status(t.sportingStatus)} · 재정 {status(t.financeStatus)} · 신규 급여 한도 준수, 체불 없이 확정 지출 재원 확보</p><p>{t.evidence}{t.evaluatedOn ? ` · 평가 ${t.evaluatedOn} · 성과 보너스 ${won(t.bonus)} · 기말 현금 ${won(t.closingCash)} / 지급 여유 ${won(t.closingHeadroom)}` : ` · 시즌 고정 기본 후원 ${won(t.fixedSponsor)} · 충족 5% / 초과 10% 한 번 지급`}</p></> : null}
+    {f.approvals.filter(n => n.seasonYear > market.seasonYear).map(n => <p key={n.seasonYear}>다음 {n.seasonYear} 시즌 승인 · 효력 {n.effectiveOn} · 보장 연수입 {won(n.annualIncome)} / 연봉 한도 {won(n.wageLimit)} · 기존 약정 {won(n.inheritedCommitments)} / 초과 약정 {won(n.overCommitted)}<br />승인으로 현금이 입금되지 않으며 기존 확정 계약은 유지됩니다.</p>)}
+    <details><summary>재정 기준과 게임 설정</summary><p>{f.policyExplanation}</p><p>원통화 {f.reference.sourceCurrency} · {f.reference.confidence} / {f.reference.evidenceClass} · 현재 참고 급여 배분 {won(f.reference.allocatedSalary)} / 미배분 추정 {won(f.reference.unallocatedCompensation)} · 예비비 {won(f.reference.contingency)} (계획 유보)</p><p>고정 환율: {Object.entries(f.fx).map(([c, r]) => `1 ${c} = ${r}원`).join(' · ')}</p></details>
+  </section>;
+}

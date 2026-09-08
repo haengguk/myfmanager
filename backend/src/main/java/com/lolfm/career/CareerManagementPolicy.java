@@ -21,6 +21,9 @@ public final class CareerManagementPolicy {
     /** Single lookup boundary for permanent saved Career ratings; future growth can supply this definition. */
     public static long referenceSalary(Definition player) {return CareerMarketPolicy.demand(player);}
     public static long value(Definition player,LocalDate date,LocalDate inclusiveEnd) {
+        return value(referenceSalary(player),date,inclusiveEnd);
+    }
+    public static long value(long referenceSalary,LocalDate date,LocalDate inclusiveEnd) {
         if(inclusiveEnd.isBefore(date))return 0;
         long remaining=ChronoUnit.DAYS.between(date,inclusiveEnd.plusDays(1));
         for(int i=1;i<MONTHS.length;i++) {
@@ -28,13 +31,16 @@ public final class CareerManagementPolicy {
             if(remaining<=upper) {
                 long lower=ChronoUnit.DAYS.between(date,date.plusMonths(MONTHS[i-1]));
                 long numerator=COEFFICIENT_PERMILLE[i-1]*(upper-lower)+(remaining-lower)*(COEFFICIENT_PERMILLE[i]-COEFFICIENT_PERMILLE[i-1]);
-                return Math.multiplyExact(referenceSalary(player),numerator)/Math.multiplyExact(1000L,upper-lower);
+                return Math.multiplyExact(referenceSalary,numerator)/Math.multiplyExact(1000L,upper-lower);
             }
         }
-        return Math.multiplyExact(referenceSalary(player),COEFFICIENT_PERMILLE[4])/1000;
+        return Math.multiplyExact(referenceSalary,COEFFICIENT_PERMILLE[4])/1000;
     }
     public static long loanFee(Definition player,LocalDate from,LocalDate through) {
-        return CareerMarketPolicy.wages(referenceSalary(player),from,through)*LOAN_FEE_PERCENT/100;
+        return loanFee(referenceSalary(player),from,through);
+    }
+    public static long loanFee(long referenceSalary,LocalDate from,LocalDate through) {
+        return CareerMarketPolicy.wages(referenceSalary,from,through)*LOAN_FEE_PERCENT/100;
     }
     public static int clamp(int value) {return Math.max(0,Math.min(100,value));}
 }

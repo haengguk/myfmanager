@@ -7,7 +7,7 @@ export interface Loan { loanId: string; tradeId: string; contractId: string; pla
 export interface Appearance { completionId: string; fixtureId: string; seriesId: string; seasonYear: number; date: string; completedSets: number; opportunities: { playerId: string; team: string; position: string; promiseId: string; eligible: boolean; selected: boolean; reason: string }[] }
 export interface TradeQuote { playerId: string; referenceSalary: number; estimatedValue: number; suggestedTransferFee: number; earliestStart: string; unavailableReason: string | null }
 export interface CareerManagement { policyVersion: string; observationStarted: string; promises: RolePromise[]; trades: Negotiation[]; loans: Loan[]; appearances: Appearance[]; quotes: TradeQuote[] }
-export interface TradeCommand { schemaVersion: 'CAREER_TRADE_COMMAND_V1'; sourceYear: number; expectedRevision: number; action: 'SUBMIT' | 'COUNTER' | 'ACCEPT' | 'REJECT' | 'WITHDRAW'; tradeId: string | null; terms: TradeTerms | null; replacementPlayerId: string | null; clientCommandId: string }
+export interface TradeCommand { schemaVersion: 'CAREER_TRADE_COMMAND_V1' | 'CAREER_TRADE_COMMAND_KRW_V1'; sourceYear: number; expectedRevision: number; action: 'SUBMIT' | 'COUNTER' | 'ACCEPT' | 'REJECT' | 'WITHDRAW'; tradeId: string | null; terms: TradeTerms | null; replacementPlayerId: string | null; clientCommandId: string }
 function require(ok: unknown): asserts ok { if (!ok) throw new CareerContractError('management'); }
 const object = (v: unknown): Record<string, unknown> => { require(v && typeof v === 'object' && !Array.isArray(v)); return v as Record<string, unknown>; };
 const nonnegative = (v: unknown): v is number => Number.isSafeInteger(v) && (v as number) >= 0;
@@ -24,7 +24,7 @@ export function validateManagement(value: unknown): CareerManagement {
 }
 export function validateTradeCommand(value: unknown): TradeCommand {
   const v = object(value); require(Object.keys(v).sort().join() === 'schemaVersion sourceYear expectedRevision action tradeId terms replacementPlayerId clientCommandId'.split(' ').sort().join());
-  require(v.schemaVersion === 'CAREER_TRADE_COMMAND_V1' && nonnegative(v.sourceYear) && nonnegative(v.expectedRevision) && ['SUBMIT', 'COUNTER', 'ACCEPT', 'REJECT', 'WITHDRAW'].includes(v.action as string) && typeof v.clientCommandId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v.clientCommandId));
+  require(['CAREER_TRADE_COMMAND_V1', 'CAREER_TRADE_COMMAND_KRW_V1'].includes(v.schemaVersion as string) && nonnegative(v.sourceYear) && nonnegative(v.expectedRevision) && ['SUBMIT', 'COUNTER', 'ACCEPT', 'REJECT', 'WITHDRAW'].includes(v.action as string) && typeof v.clientCommandId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v.clientCommandId));
   if (v.action === 'SUBMIT' || v.action === 'COUNTER') { terms(v.terms); require(v.action === 'SUBMIT' ? v.tradeId === null : typeof v.tradeId === 'string'); require(v.replacementPlayerId === null); } else require(v.terms === null && typeof v.tradeId === 'string');
   return v as unknown as TradeCommand;
 }

@@ -12,7 +12,7 @@ public final class CareerLifecycleTestSupport {
         var manager=new DataSourceTransactionManager(jdbc.getDataSource());var store=new CareerLifecycleStore(jdbc,manager,new ChampionCatalog(new com.fasterxml.jackson.databind.ObjectMapper()));
         var date=CareerMarketStore.executionDate(jdbc,career);int year=CareerRosterStore.activeYear(jdbc,career);var review=store.review(career,year,date);
         String id=review.rookieIds().getFirst();var old=CareerMarketStore.load(jdbc,career);var market=CareerMarketStore.engine(jdbc,career,year,old);var start=market.availableStart(id,date);
-        market.submit(team,id,new CareerMarketState.Terms(start,start.plusYears(2).minusDays(1),CareerMarketPolicy.demand(market.player(id))*3,0,CareerMarketState.Role.RESERVE),null,date);CareerMarketStore.persist(jdbc,career,year,old,market);
+        market.submit(team,id,new CareerMarketState.Terms(start,start.plusYears(2).minusDays(1),market.demand(id)*3,0,CareerMarketState.Role.RESERVE),null,date);CareerMarketStore.persist(jdbc,career,year,old,market);
         CareerMarketStore.processThrough(jdbc,career,start);old=CareerMarketStore.load(jdbc,career);market=CareerMarketStore.engine(jdbc,career,year,old);
         if(!team.equals(market.members.get(id).ownerTeam()))throw new AssertionError("Fixture rookie offer was not accepted");
         return id;

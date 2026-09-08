@@ -1,3 +1,4 @@
+import { careerMoney } from './careerMoney';
 import { useEffect, useRef, useState } from 'react';
 import { CareerApiFailure, changeCareerTrade } from './api/careerApi.client';
 import type { CareerMarket, MarketRole } from './api/careerMarket.contract';
@@ -7,6 +8,7 @@ import type { Negotiation, TradeCommand, TradeTerms } from './api/careerManageme
 const names: Record<string, string> = { CLUB_PENDING: '상대 구단 검토', CLUB_COUNTER: '구단 역제안', PLAYER_PENDING: '선수 결정 대기', AGREED: '합의 완료·적용일 대기', COMPLETED: '거래 완료', REJECTED: '거절', WITHDRAWN: '철회', EXPIRED: '만료', SUPERSEDED: '수정안으로 대체', CANCELLED_RETIREMENT: '은퇴 발표로 취소' };
 const addDays = (date: string, days: number) => { const d = new Date(`${date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); };
 export function CareerTransferPanel({ view, roster, selected, disabled, onBegin, onResult }: { view: CareerMarket; roster: CareerRoster; selected: string | null; disabled: boolean; onBegin: () => (() => void) | null; onResult: (view: CareerMarket) => void }) {
+  const [legacyRefresh, setLegacyRefresh] = useState(false);
   const [kind, setKind] = useState<TradeTerms['kind']>('TRANSFER'), [buyer, setBuyer] = useState(''), [start, setStart] = useState(''), [end, setEnd] = useState('');
   const [fee, setFee] = useState(0), [salary, setSalary] = useState(0), [bonus, setBonus] = useState(0), [share, setShare] = useState(50), [role, setRole] = useState<MarketRole>('RESERVE');
   const [replacement, setReplacement] = useState(''), [editing, setEditing] = useState<Negotiation | null>(null), [error, setError] = useState<string | null>(null), [corrupt, setCorrupt] = useState(false);
@@ -43,7 +45,7 @@ export function CareerTransferPanel({ view, roster, selected, disabled, onBegin,
           terms = { kind, playerId, seller, buyer, startDate: start, endDate: end, fee, borrowerSalaryPercent: kind === 'LOAN' ? share : 0,
             playerTerms: { startDate: start, endDate: end, annualSalary: kind === 'LOAN' ? original?.terms.annualSalary ?? 0 : salary, signingBonus: kind === 'LOAN' ? 0 : bonus, role }, replacementPlayerId: replacement || null };
         }
-        body = validateTradeCommand({ schemaVersion: 'CAREER_TRADE_COMMAND_V1', sourceYear: view.seasonYear, expectedRevision: view.revision, action,
+        body = validateTradeCommand({ schemaVersion: view.currency === 'KRW' ? 'CAREER_TRADE_COMMAND_KRW_V1' : 'CAREER_TRADE_COMMAND_V1', sourceYear: view.seasonYear, expectedRevision: view.revision, action,
           tradeId: action === 'SUBMIT' ? null : trade?.tradeId ?? editing?.tradeId ?? null, terms, replacementPlayerId: action === 'ACCEPT' ? replacement || null : null, clientCommandId: crypto.randomUUID() });
         window.sessionStorage.setItem(tradeOperationKey(view.careerId), JSON.stringify(body)); setOperation(body);
       }
@@ -53,6 +55,7 @@ export function CareerTransferPanel({ view, roster, selected, disabled, onBegin,
       window.sessionStorage.removeItem(tradeOperationKey(view.careerId)); setOperation(null); setEditing(null); onResult(result.market);
     } catch (e) {
       if (!owned.controller.signal.aborted && mutation.current === owned) {
+        if (e instanceof CareerApiFailure && e.code === 'CAREER_MONEY_POLICY_REFRESH_REQUIRED') setLegacyRefresh(true);
         setError(e instanceof CareerApiFailure ? e.userMessage : e instanceof Error ? e.message : '거래 응답을 확인하지 못했습니다. 원본 요청으로 다시 확인하세요.');
         if (e instanceof CareerApiFailure && ['CAREER_CALENDAR_STALE_REVISION', 'CAREER_REQUEST_INVALID'].includes(e.code ?? '')) { window.sessionStorage.removeItem(tradeOperationKey(view.careerId)); setOperation(null); onResult(view); }
       }
@@ -64,8 +67,8 @@ export function CareerTransferPanel({ view, roster, selected, disabled, onBegin,
   const target = editing?.terms.playerId ?? selected;
   const alternatives = Object.values(roster.directory.players).filter(p => p.playerId !== target && p.position === roster.directory.players[target ?? '']?.position && roster.state.members[p.playerId]?.ownerTeam === seller && roster.state.members[p.playerId]?.squad === 'FIRST_TEAM' && !roster.state.members[p.playerId]?.eligibilityReason);
   return <div aria-label="유료 이적과 임대"><h3>유료 이적·임대 협상</h3><p>추정 가치는 저장된 능력치 기준 연봉과 남은 계약기간의 게임 계산입니다. 구단 요구액·실제 합의 금액과 다르며 선수의 동의도 필요합니다.</p>
-    {error ? <p role="alert">{error}</p> : null}{operation ? <button disabled={disabled || pending || view.readOnly} onClick={() => void execute()}>원본 이적·임대 요청 다시 확인</button> : null}
-    {quote ? <p>{nickname(quote.playerId)} · 기준 연봉 {quote.referenceSalary.toLocaleString()} / 추정 이적가치 {quote.estimatedValue.toLocaleString()} 크레딧 · 판매 요구 참고 {quote.suggestedTransferFee.toLocaleString()} 크레딧<br />{quote.unavailableReason ?? `적용 가능일 ${quote.earliestStart}부터 · 실제 조건은 적용일까지 재검사합니다.`}</p> : <p>시장 선수 목록에서 계약 중인 선수를 선택하세요.</p>}
+    {operation?.schemaVersion === 'CAREER_TRADE_COMMAND_V1' && view.currency === 'KRW' ? <details open><summary>전환 전 원본 거래 · 크레딧</summary><pre>{JSON.stringify(operation.terms, null, 2)}</pre><p>원본 요청 확인으로 실행 여부를 복구한 뒤, 미실행 요청은 최신 원화 조건으로 다시 작성하세요.</p><button disabled={pending || disabled || !legacyRefresh} onClick={() => { setLegacyRefresh(false); window.sessionStorage.setItem(`${tradeOperationKey(view.careerId)}:legacy-review`, JSON.stringify(operation)); window.sessionStorage.removeItem(tradeOperationKey(view.careerId)); setOperation(null); setFee(quote?.suggestedTransferFee ?? 0); setSalary(quote?.referenceSalary ?? 0); setBonus(0); }}>원본 보관 · 최신 원화 조건으로 다시 작성</button></details> : null}{error ? <p role="alert">{error}</p> : null}{operation ? <button disabled={disabled || pending || view.readOnly} onClick={() => void execute()}>원본 이적·임대 요청 다시 확인</button> : null}
+    {quote ? <p>{nickname(quote.playerId)} · 기준 연봉 {careerMoney(quote.referenceSalary, view.currency)} / 추정 이적가치 {careerMoney(quote.estimatedValue, view.currency)} · 판매 요구 참고 {careerMoney(quote.suggestedTransferFee, view.currency)}<br />{quote.unavailableReason ?? `적용 가능일 ${quote.earliestStart}부터 · 실제 조건은 적용일까지 재검사합니다.`}</p> : <p>시장 선수 목록에서 계약 중인 선수를 선택하세요.</p>}
     {(contract?.team && !quote?.unavailableReason || editing) && !view.readOnly ? <fieldset disabled={blocked}><legend>{editing ? `${nickname(editing.terms.playerId)} 역제안` : own ? '판매·임대 보내기 제안' : '구매·임대 받기 제안'}</legend>
       <label>거래 종류 <select value={kind} onChange={e => { const next = e.target.value as TradeTerms['kind']; setKind(next); if (next === 'LOAN' && start) { const stop = addDays(start, 179); setEnd(contract && contract.terms.endDate < stop ? contract.terms.endDate : stop); setFee(Math.floor((quote?.referenceSalary ?? 0) * 0.1)); setBonus(0); } }}><option value="TRANSFER">유료 이적</option><option value="LOAN">임대</option></select></label>
       <label>받는 구단 <select value={buyer} disabled={!own && !editing || !!editing} onChange={e => setBuyer(e.target.value)}><option value="">구단 선택</option>{view.finances.filter(f => f.team !== seller).map(f => <option key={f.team}>{f.team}</option>)}</select></label>
@@ -77,7 +80,7 @@ export function CareerTransferPanel({ view, roster, selected, disabled, onBegin,
       <p>임대는 원계약을 유지하며 28~366일, 원계약 종료 이내입니다. 원소속은 복귀 자리를 확보하고 임대 구단만 현재 선발을 관리합니다. 진행 중 Series와 기존 국제 등록은 보존합니다.</p>
       <button disabled={!buyer || !start || !end} onClick={() => void execute(editing ? 'COUNTER' : 'SUBMIT')}>{editing ? '역제안 제출' : '구단 간 제안 제출'}</button>
     </fieldset> : null}
-    <h4>우리 구단 거래와 응답</h4>{view.management.trades.length ? view.management.trades.map(t => <article key={t.tradeId}><strong>{nickname(t.terms.playerId)} · {t.terms.kind === 'LOAN' ? '임대' : '이적'} · {names[t.status]}</strong><p>{t.terms.seller} → {t.terms.buyer} · {t.terms.fee.toLocaleString()} 크레딧 · 적용 {t.terms.startDate} / 종료 {t.terms.endDate}<br />구단 응답 {t.responseDate} · 선수 공통 결정 {t.decisionDate} · {t.reason}</p>
+    <h4>우리 구단 거래와 응답</h4>{view.management.trades.length ? view.management.trades.map(t => <article key={t.tradeId}><strong>{nickname(t.terms.playerId)} · {t.terms.kind === 'LOAN' ? '임대' : '이적'} · {names[t.status]}</strong><p>{t.terms.seller} → {t.terms.buyer} · {careerMoney(t.terms.fee, view.currency)} · 적용 {t.terms.startDate} / 종료 {t.terms.endDate}<br />구단 응답 {t.responseDate} · 선수 공통 결정 {t.decisionDate} · {t.reason}</p>
       {['CLUB_PENDING', 'CLUB_COUNTER', 'PLAYER_PENDING'].includes(t.status) ? <div><button disabled={blocked} onClick={() => fill(t)}>조건 확인·역제안</button> <button disabled={blocked || (t.terms.seller === view.managedTeam ? t.sellerAgreed : t.buyerAgreed)} onClick={() => void execute('ACCEPT', t)}>구단 조건 수락</button> <button disabled={blocked} onClick={() => void execute('REJECT', t)}>거절</button> <button disabled={blocked} onClick={() => void execute('WITHDRAW', t)}>철회</button></div> : null}</article>) : <p>진행하거나 완료한 우리 구단 거래가 없습니다.</p>}
   </div>;
 }

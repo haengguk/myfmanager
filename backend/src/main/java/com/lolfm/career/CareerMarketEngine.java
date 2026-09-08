@@ -22,6 +22,7 @@ public final class CareerMarketEngine {
     final List<CareerSquadPlanner.Restriction> squadRestrictions=new ArrayList<>();
     final Map<String,Set<String>> internationalPools=new TreeMap<>();
     CareerSquadPlanner planner;
+    CareerFinanceEngine finance;
     private LocalDate processed;
     final Map<String,Contract> contracts=new TreeMap<>();
     final Map<String,Offer> offers=new TreeMap<>();
@@ -52,6 +53,7 @@ public final class CareerMarketEngine {
         promiseEngine=new CareerPromises(this,management);tradeEngine=new CareerTrades(this,management);
         if(state.management()==null)promiseEngine.initialize(processed);
         planner=new CareerSquadPlanner(this,state.squadPlanning());
+        if(state.finance()!=null)finance=new CareerFinanceEngine(this,state.finance());
     }
     public static CareerMarketState initialize(String career,long seed,LocalDate date,int firstYear,
             CareerRosterStore.Directory directory,CareerRosterStore.State roster) {
@@ -82,7 +84,7 @@ public final class CareerMarketEngine {
             Role role=roster.lineups().values().stream().anyMatch(l->l.contains(player.playerId()))?Role.STARTER:
                     "DEVELOPMENT".equals(member.squad())?Role.DEVELOPMENT:Role.RESERVE;
             contracts.put(id,new Contract(id,career,player.playerId(),member.ownerTeam(),member.organizationId(),date,
-                    new Terms(date,end,demand(player),0,role),ContractStatus.ACTIVE,0,VERSION,origin,
+                    new Terms(date,end,CareerMarketPolicy.demand(player),0,role),ContractStatus.ACTIVE,0,VERSION,origin,
                     "REMAINING_SALARY_25_PERCENT_V1",null,date.minusDays(1)));
         }
         for(String team:roster.lineups().keySet().stream().sorted().toList()) {
@@ -94,9 +96,10 @@ public final class CareerMarketEngine {
         }
         return new CareerMarketState(VERSION,seed,date,contracts,Map.of(),accounts,preferences,free,ledger,Map.of(),List.of());
     }
-    public CareerMarketState state() {return new CareerMarketState(VERSION,seed,processed,contracts,offers,accounts,preferences,freeAgents,ledger,decisions,events,management(),planner.state());}
+    public CareerMarketState state() {return new CareerMarketState(VERSION,seed,processed,contracts,offers,accounts,preferences,freeAgents,ledger,decisions,events,management(),planner.state(),finance==null?null:finance.state());}
     public CareerRosterStore.State roster() {return new CareerRosterStore.State(CareerRosterStore.OPERATING_POLICY,members,lineups);}
     public static String id(String career,String event) {return "market_"+CareerRosterStore.hash(career+'|'+VERSION+'|'+event);}
+    long demand(String id) {return finance==null?CareerMarketPolicy.demand(player(id)):finance.demand(id);}
     Definition player(String id) {var p=directory.players().get(id);if(p==null)throw invalid("선수 정보를 찾을 수 없습니다.");return p;}
     static CareerException invalid(String reason) {return CareerException.invalid("market",reason);}
     public Contract active(String player,LocalDate date) {return contracts.values().stream().filter(c->c.playerId().equals(player)
@@ -136,26 +139,27 @@ public final class CareerMarketEngine {
         }
         return sum;
     }
-    public long peakSalary(String team) {
-        TreeSet<LocalDate> dates=new TreeSet<>(List.of(processed));
+    public long peakSalary(String team) {return peakSalaryFrom(team,processed);}
+    long peakSalaryFrom(String team,LocalDate from) {
+        TreeSet<LocalDate> dates=new TreeSet<>(List.of(from));
         contracts.values().stream().filter(c->team.equals(c.team())&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)).forEach(c->dates.add(c.terms().startDate()));
         offers.values().stream().filter(o->team.equals(o.team())&&o.open()).forEach(o->dates.add(o.terms().startDate()));
         for(var l:tradeEngine.loans.values()){dates.add(l.startDate());dates.add(l.endDate().plusDays(1));}
         for(var t:tradeEngine.obligations(team))dates.add(t.terms().startDate());
-        return dates.stream().filter(d->!d.isBefore(processed)).mapToLong(d->salaryAt(team,d,true)).max().orElse(0);
+        return dates.stream().filter(d->!d.isBefore(from)).mapToLong(d->salaryAt(team,d,true)).max().orElse(0);
     }
     void requireBudget(String team,LocalDate date) {
         var a=accounts.get(team);if(a==null)throw invalid("시장에 참여할 수 없는 조직입니다.");
-        if(salaryArrears(team)>0)throw invalid("미지급 급여를 먼저 정산해야 추가 계약 지출을 할 수 있습니다. 다음 확정 연간 예산에서 우선 정산합니다.");
+        if(salaryArrears(team)>0||finance!=null&&finance.debt.getOrDefault(team,0L)>0)throw invalid("미지급 급여를 먼저 정산해야 추가 계약 지출을 할 수 있습니다. 다음 확정 연간 예산에서 우선 정산합니다.");
         if(a.cash()<reservedCash(team))throw invalid("계약금 예약에 필요한 현금이 부족합니다.");
-        if(a.annualBudget()<peakSalary(team))throw invalid("계약 기간의 연봉 예산이 부족합니다.");
+        if(finance==null?a.annualBudget()<peakSalary(team):finance.wageLimitBreached(team,date))throw invalid("계약 기간의 연봉 예산이 부족합니다.");
         if(paymentHeadroom(team,date)<0)throw invalid("계약금 지급 후 확정 급여를 지급할 재원이 부족합니다. 계약금을 줄이거나 진행 중 제안을 정리해 주세요.");
     }
     /** Bonus reservations reduce spendable cash once. Salary is forecast at actual payment boundaries,
      * including accrued unpaid periods, scheduled employment and confirmed annual allocations. */
     public long paymentHeadroom(String team,LocalDate date) {return paymentHeadroom(team,date,null,null);}
     private long paymentHeadroom(String team,LocalDate date,String omittedContract,String omittedPlayerOffers) {
-        var flow=new TreeMap<LocalDate,Long>();long cash=accounts.get(team).cash()-salaryArrears(team);
+        var flow=new TreeMap<LocalDate,Long>();long cash=accounts.get(team).cash()-salaryArrears(team)-(finance==null?0:finance.debt.getOrDefault(team,0L));
         for(var c:contracts.values())if((team.equals(c.team())||tradeEngine.loans.values().stream().anyMatch(l->l.contractId().equals(c.contractId())&&team.equals(l.borrowingTeam())))&&(c.status()==ContractStatus.ACTIVE||c.status()==ContractStatus.SCHEDULED)&&!c.contractId().equals(omittedContract))
             forecastContract(flow,c,team,recognizedThrough(c).plusDays(1),date);
         for(var o:offers.values())if(team.equals(o.team())&&o.open()&&!o.playerId().equals(omittedPlayerOffers)) {
@@ -166,7 +170,8 @@ public final class CareerMarketEngine {
             var terms=t.terms();forecastWages(flow,new Terms(terms.startDate(),terms.endDate(),tradeSalary(t),0,terms.playerTerms().role()),terms.startDate(),date);
         }
         LocalDate last=flow.isEmpty()?date:flow.lastKey();
-        for(LocalDate allocation=LocalDate.of(date.getYear()+1,1,1);!allocation.isAfter(last);allocation=allocation.plusYears(1))
+        if(finance!=null)finance.forecast(team,date,last,flow);
+        else for(LocalDate allocation=LocalDate.of(date.getYear()+1,1,1);!allocation.isAfter(last);allocation=allocation.plusYears(1))
             flow.merge(allocation,accounts.get(team).annualBudget(),Long::sum);
         long minimum=cash;
         for(long change:flow.values()){cash=Math.addExact(cash,change);minimum=Math.min(minimum,cash);}
@@ -279,7 +284,7 @@ public final class CareerMarketEngine {
         return new Offer(o.offerId(),o.playerId(),o.team(),o.terms(),o.submittedDate(),o.responseDate(),o.decisionDate(),o.expiresDate(),o.revision()+1,s,o.previousOfferId(),o.round(),request,reason);
     }
     public Evaluation evaluate(Offer o,LocalDate date) {
-        var p=player(o.playerId());var pref=preferences.get(p.playerId());long wanted=demand(p);
+        var p=player(o.playerId());var pref=preferences.get(p.playerId());long wanted=demand(p.playerId());
         long compensation=o.terms().annualSalary()+o.terms().signingBonus()*365/Math.max(1,java.time.temporal.ChronoUnit.DAYS.between(o.terms().startDate(),o.terms().endDate())+1);
         int money=(int)Math.min(SCORE_MAX,compensation*COMPENSATION_AT_DEMAND/wanted); // Saturates at 125% of demand.
         List<String> competitors=members.values().stream().filter(m->o.team().equals(m.ownerTeam())&&!m.playerId().equals(p.playerId())
@@ -354,7 +359,8 @@ public final class CareerMarketEngine {
             }
             LocalDate date=processed.plusDays(1);
             // Same-date order: allocation/debt, loan return, expiry/settlement, activation, trade application, salary, promise evaluation, FA responses/proposals/decisions, AI lineup.
-            if(date.getDayOfYear()==1)for(var a:new ArrayList<>(accounts.values()))credit(a.team(),date);
+            if(finance!=null)finance.date(date);
+            if(date.getDayOfYear()==1)for(var a:new ArrayList<>(accounts.values()))if(finance==null||!finance.recurring(a.team(),date))credit(a.team(),date);
             tradeEngine.returns(date);
             Map<String,String> renewedSelections=new TreeMap<>();
             for(var c:new ArrayList<>(contracts.values()))if(c.status()==ContractStatus.ACTIVE&&date.isAfter(c.terms().endDate())) {
@@ -380,6 +386,7 @@ public final class CareerMarketEngine {
     }
     public LocalDate nextEvent(LocalDate current) {
         TreeSet<LocalDate> dates=new TreeSet<>(tradeEngine.nextDates(current));dates.add(current.withDayOfMonth(current.lengthOfMonth()));
+        if(finance!=null)for(var award:finance.awards.values())if(award.paidOn()==null)dates.add(award.dueOn());
         if(lifecycle!=null)for(var p:lifecycle.people.values())if(p.status()==CareerLifecycleState.Status.RETIREMENT_ANNOUNCED)dates.add(p.effectiveOn());
         dates.add(current.plusDays(1).with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY)));
         dates.add(LocalDate.of(current.getYear()+1,1,1));
@@ -393,7 +400,7 @@ public final class CareerMarketEngine {
     private void responses(LocalDate date) {
         for(var o:new ArrayList<>(offers.values())) {
             if(o.status()==OfferStatus.SUBMITTED&&date.equals(o.responseDate())&&date.isBefore(o.decisionDate())) {
-                var e=evaluate(o,date);long wanted=demand(player(o.playerId()));
+                var e=evaluate(o,date);long wanted=demand(o.playerId());
                 if(o.terms().annualSalary()*100<wanted*MIN_SALARY_PERCENT) {
                     offers.put(o.offerId(),offerStatus(o,OfferStatus.REJECTED,"요구 보수에 크게 미달하여 거절했습니다.",null));
                     event(date,"OFFER_REJECTED",o.playerId(),o.team(),o.offerId(),"보수 부족 · 예약 해제");
@@ -404,7 +411,7 @@ public final class CareerMarketEngine {
             }
         }
         for(var o:new ArrayList<>(offers.values()))if(o.status()==OfferStatus.COUNTER&&!o.team().equals(managed)&&date.isBefore(o.decisionDate())&&o.round()<MAX_ROUNDS) {
-            long ceiling=demand(player(o.playerId()))*AI_MAX_BID_PERCENT/100;
+            long ceiling=demand(o.playerId())*AI_MAX_BID_PERCENT/100;
             if(o.requestedSalary()<=ceiling) {
                 try{submit(o.team(),o.playerId(),new Terms(o.terms().startDate(),o.terms().endDate(),o.requestedSalary(),o.terms().signingBonus(),o.terms().role()),o.offerId(),date);}
                 catch(CareerException insufficient){withdraw(o.team(),o.offerId(),date);}
@@ -418,7 +425,7 @@ public final class CareerMarketEngine {
             var candidates=offers.values().stream().filter(o->o.playerId().equals(playerId)&&o.open()&&o.decisionDate().equals(date)).toList();
             var scores=candidates.stream().map(o->evaluate(o,date)).sorted(Comparator.comparingLong(Evaluation::score).reversed().thenComparing(Evaluation::team)).toList();
             var acceptable=scores.stream().filter(e->offers.get(e.offerId()).status()==OfferStatus.SUBMITTED&&e.score()>=MIN_ACCEPT_SCORE
-                    &&offers.get(e.offerId()).terms().annualSalary()>=demand(player(playerId))*MIN_SALARY_PERCENT/100).toList();
+                    &&offers.get(e.offerId()).terms().annualSalary()>=demand(playerId)*MIN_SALARY_PERCENT/100).toList();
             Evaluation winning=null;
             if(!acceptable.isEmpty()) {
                 long best=acceptable.getFirst().score();

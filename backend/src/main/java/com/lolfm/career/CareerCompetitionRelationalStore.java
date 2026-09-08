@@ -1212,6 +1212,7 @@ public final class CareerCompetitionRelationalStore {
         new CareerInternationalCompetition(this, internationalParticipants).reconcile(careerId, year);
         refreshInstanceHash(careerId, year, competitionId);
         refreshCycleHash(careerId, year);
+        CareerFinanceStore.recognize(this,careerId,year,competitionId);
     }
 
     private void advanceCupGraph(String careerId, int year) {
