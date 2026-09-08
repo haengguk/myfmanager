@@ -21,8 +21,8 @@ public record DraftControlEvidence(
         turns = List.copyOf(turns);
         requireHash(controlEvidenceHash, "controlEvidenceHash");
         if (!PlayerDraftControlPolicy.EVIDENCE_SCHEMA.equals(schemaVersion)
-                || !PlayerDraftControlPolicy.POLICY_ID.equals(policyId)
-                || !PlayerDraftControlPolicy.POLICY_HASH.equals(policyHash)
+                || !PlayerDraftControlPolicy.id(turns).equals(policyId)
+                || !PlayerDraftControlPolicy.policyHash(turns).equals(policyHash)
                 || !controlEvidenceHash.equals(hash(controlledSide, turns))) {
             throw new IllegalArgumentException("Player Draft control evidence identity mismatch");
         }
@@ -33,8 +33,8 @@ public record DraftControlEvidence(
     ) {
         return new DraftControlEvidence(
                 PlayerDraftControlPolicy.EVIDENCE_SCHEMA,
-                PlayerDraftControlPolicy.POLICY_ID,
-                PlayerDraftControlPolicy.POLICY_HASH,
+                PlayerDraftControlPolicy.id(turns),
+                PlayerDraftControlPolicy.policyHash(turns),
                 controlledSide,
                 turns,
                 hash(controlledSide, turns));
@@ -46,8 +46,8 @@ public record DraftControlEvidence(
         StringBuilder canonical = new StringBuilder()
                 .append("evidenceSchema=").append(PlayerDraftControlPolicy.EVIDENCE_SCHEMA)
                 .append('\n')
-                .append("policyId=").append(PlayerDraftControlPolicy.POLICY_ID).append('\n')
-                .append("policyHash=").append(PlayerDraftControlPolicy.POLICY_HASH).append('\n')
+                .append("policyId=").append(PlayerDraftControlPolicy.id(turns)).append('\n')
+                .append("policyHash=").append(PlayerDraftControlPolicy.policyHash(turns)).append('\n')
                 .append("controlledSide=").append(controlledSide).append('\n');
         for (DraftTurnControlEvidence turn : turns) turn.appendGameplayCanonical(canonical);
         return PlayerDraftControlPolicy.hash(canonical.toString());

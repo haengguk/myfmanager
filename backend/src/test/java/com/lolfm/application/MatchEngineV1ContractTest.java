@@ -66,7 +66,7 @@ class MatchEngineV1ContractTest {
 
     @BeforeAll
     void executeRepresentativeFixedMatch() {
-        legacy = orchestrator.orchestrate("GEN", "T1", SEED);
+        legacy = orchestrator.orchestrate("GEN", "T1", SEED, SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
         input = inputs.fromRealDraft(
                 legacy.blueTeamCode(), legacy.blueTeam(),
                 legacy.redTeamCode(), legacy.redTeam(), legacy.matchSeed(),
@@ -75,12 +75,12 @@ class MatchEngineV1ContractTest {
         execution = engine.executeDetailed(input, SimulationInstrumentation.enabled());
         replay = engine.execute(input);
         diagnosticsOff = engine.execute(input, SimulationInstrumentation.disabled());
-        orchestratedV1 = orchestrator.orchestrateV1("GEN", "T1", SEED);
+        orchestratedV1 = orchestrator.prepareV1(null,"GEN","T1",new SeriesDraftHistory(),SEED,SimulationInstrumentation.enabled(),null,MatchEngineV1Policy.requirement(MatchEngineV1Policy.legacy())).output();
     }
 
     @Test
     void productionPolicyActivatesApprovedMatchupCompositionAndSeparatesLowLevelDefaults() {
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.legacy();
 
         assertThat(policy.schemaVersion())
                 .isEqualTo("MATCH_ENGINE_V1_PRODUCTION_POLICY_V3");

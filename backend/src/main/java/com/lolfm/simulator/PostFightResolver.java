@@ -107,6 +107,7 @@ public class PostFightResolver {
 
     private int nextAttempt(ObjectiveState state, ObjectiveType type) {
         return switch (type) {
+            case VOID_GRUB, RIFT_HERALD -> state.upper().nextAttempt();
             case DRAGON -> state.getNextDragonAttemptSeconds();
             case BARON -> state.getNextBaronAttemptSeconds();
             case ELDER -> state.getNextElderAttemptSeconds();

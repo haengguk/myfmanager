@@ -134,6 +134,14 @@ public class MatchEvent {
     public void setStructureDefendingSide(TeamSide value) { structureDefendingSide = value; }
     public OuterTurretSiegeData getOuterTurretSiege() { return outerTurretSiege; }
     public void setOuterTurretSiege(OuterTurretSiegeData value) { outerTurretSiege = value; }
+    private UpperObjectiveData upperObjective;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    public UpperObjectiveData getUpperObjective() { return upperObjective; }
+    public void setUpperObjective(UpperObjectiveData value) { upperObjective = value; }
+    private BaseDefenseData baseDefense;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    public BaseDefenseData getBaseDefense() { return baseDefense; }
+    public void setBaseDefense(BaseDefenseData value) { baseDefense = value; }
     public StructureActionData getStructureAction() { return structureAction; }
     public void setStructureAction(StructureActionData value) { structureAction = value; }
     public MatchPhaseChangeData getMatchPhaseChange() { return matchPhaseChange; }

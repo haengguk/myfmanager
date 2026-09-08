@@ -45,7 +45,9 @@ public final class MatchEngineV1CrossJvmProbe {
                 RealDraftMatchOrchestrator.class);
         MatchEngineV1Canonicalizer canonicalizer = context.getBean(
                 MatchEngineV1Canonicalizer.class);
-        MatchEngineV1Output result = orchestrator.orchestrateV1("GEN", "T1", FIXED_SEED);
+        MatchEngineV1Output result = orchestrator.prepareV1(null, "GEN", "T1", new com.lolfm.draft.SeriesDraftHistory(), FIXED_SEED,
+                com.lolfm.simulator.SimulationInstrumentation.enabled(), null,
+                MatchEngineV1Policy.requirement(MatchEngineV1Policy.legacy())).output();
         writeCanonical(output.resolve(PAYLOAD_FILES.get(0)),
                 canonicalizer.canonicalJson(result));
         writeCanonical(output.resolve(PAYLOAD_FILES.get(1)),

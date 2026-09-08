@@ -99,6 +99,12 @@ public final class SimulationRuntimeProfiles {
                         JungleClearContribution.ECONOMY_AND_GANK_TEMPO_V1),
                 "c835280cbaa1244f4fecb099b19f71111c6d77aa1aeb1b7110a6e86e6381451c",
                 JUNGLE_TEMPO_ACTIVE_GAMEPLAY_RULES_VERSION);
+        register(result, SimulationRuntimeProfileId.PRODUCTION_REALISM_V1,
+                new SimulationGameplayConfiguration(true, true, true, true, true, true,
+                        true, true, true, true, true, true, true,
+                        ChampionMatchupMode.GEOMETRIC_V2, TeamCompositionGameplayMode.PRODUCTION_V2,
+                        JungleClearContribution.ECONOMY_AND_GANK_TEMPO_V1, true),
+                "eb241ac2fe57095e1410e39120d276f6ed39ef4ff25f2ea116dcf51953baf93f", "MATCH_SIMULATOR_REALISM_RULES_V1");
         return Collections.unmodifiableMap(result);
     }
 

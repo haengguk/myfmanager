@@ -33,7 +33,15 @@ public class StructureResolver {
         int minimum = isBaseTarget(target)
                 ? StructureRuleConfig.MIN_BASE_SIEGE_ATTACKERS
                 : StructureRuleConfig.MIN_LANE_SIEGE_ATTACKERS;
-        if (request.participants().size() < minimum) return false;
+        if (request.sourceOverride() == StructureActionSource.RIFT_HERALD) {
+            UpperObjectiveState upper = state.getObjectiveState().upper();
+            if (!state.isRealismEnabled() || upper.heraldPhase() != UpperObjectiveState.HeraldPhase.SUMMONED
+                    || upper.heraldOwner() != request.attackingSide() || target.kind() != StructureKind.TOWER
+                    || target.lane() != upper.summonLane() || state.getCurrentTimeSeconds() < upper.chargeAt()
+                    || state.getCurrentTimeSeconds() >= upper.expiresAt()
+                    || !java.util.Objects.equals(request.actionId(), "RIFT_HERALD:1:1:CHARGE:"+upper.charges())
+                    || !java.util.Objects.equals(request.fixedDamage(), UpperObjectiveResolver.chargeDamage(upper))) return false;
+        } else if (request.participants().size() < minimum) return false;
         if (request.mode() == StructureAttackMode.WITH_WAVE) {
             if (request.routeLane() == null) return false;
             LaneWaveState wave = state.getMapState().getWaveState(
@@ -155,11 +163,11 @@ public class StructureResolver {
                         if (next.get().kind() == StructureKind.NEXUS
                                 && destruction.structureKind() == StructureKind.NEXUS_TURRET
                                 && request.mode() == StructureAttackMode.WITH_WAVE
-                                && siege.grantNexusCommit(state.getCurrentTimeSeconds())) {
+                                && siege.grantNexusCommit(state.getCurrentTimeSeconds(), state.isRealismEnabled())) {
                             state.getMapState().getWaveState(
                                     request.attackingSide(), request.routeLane())
                                     .ensureAttackOpportunities(
-                                            StructureRuleConfig.NEXUS_COMMIT_BONUS_ATTACKS,
+                                            (state.isRealismEnabled() ? 1 : StructureRuleConfig.NEXUS_COMMIT_BONUS_ATTACKS),
                                             state.getCurrentTimeSeconds());
                             extendSiegeActivities(state, siege);
                         }
@@ -511,6 +519,8 @@ public class StructureResolver {
                 && state.getCurrentTimeSeconds() < StructureRuleConfig.EARLY_OUTER_PROTECTION_END_SECONDS) {
             damage *= StructureRuleConfig.EARLY_OUTER_DAMAGE_MULTIPLIER;
         }
+        if (state.isRealismEnabled()) damage += UpperObjectiveRuleConfig.grubStructureDamage(
+                state.getObjectiveState().upper().grubs(request.attackingSide()), request.participants().size());
         int defenders = localDefenderCount(state, target);
         damage *= Math.max(StructureRuleConfig.MIN_LOCAL_DEFENSE_DAMAGE_MULTIPLIER,
                 1.0 - defenders * StructureRuleConfig.LOCAL_DEFENDER_DAMAGE_REDUCTION_PER_PLAYER);
@@ -518,6 +528,9 @@ public class StructureResolver {
     }
 
     private int localDefenderCount(GameState state, StructureTargetId target) {
+        if (state.isRealismEnabled() && isBaseTarget(target)) {
+            return new BaseDefenseResolver().defenders(state, target.defendingSide()).size();
+        }
         List<Position> positions;
         if (isBaseTarget(target)) {
             positions = List.of(Position.TOP, Position.JUNGLE, Position.MID,
@@ -662,8 +675,10 @@ public class StructureResolver {
         }
         if (isBaseTarget(target)
                 && localDefenderCount(state, target) >= StructureRuleConfig.BASE_DEFENSE_RETURN_COUNT
-                && !siege.isNexusCommitGranted()
-                && !state.getTeamState(siege.getAttackingSide()).hasActiveBaronBuff(time)) {
+                && (state.isRealismEnabled()
+                    ? !new BaseDefenseResolver().canCommit(state, siege)
+                    : !siege.isNexusCommitGranted()
+                        && !state.getTeamState(siege.getAttackingSide()).hasActiveBaronBuff(time))) {
             return SiegeStopReason.DEFENDERS_RETURNED;
         }
         if (!decision.allowed()) return SiegeStopReason.OWN_BASE_EMERGENCY;
@@ -704,7 +719,14 @@ public class StructureResolver {
                 && opposingSiege.getCurrentTarget().kind() == StructureKind.NEXUS
                 && opposingSiege.getCurrentTarget().defendingSide() == attackingSide;
         boolean emergency = ownBaseThreat.overallLevel() == BaseThreatLevel.NEXUS_THREAT
-                || ownNexusUnderAttack;
+                || ownNexusUnderAttack
+                || state.isRealismEnabled() && opposingSiege.isActive()
+                    && ownBaseThreat.overallLevel().ordinal() >= BaseThreatLevel.INHIBITOR_THREAT.ordinal();
+        if (state.isRealismEnabled() && emergency && siege.getCurrentTarget().kind() == StructureKind.NEXUS
+                && new BaseDefenseResolver().canCommit(state, siege)) {
+            return new ContinuationDecision(ownBaseThreat.overallLevel(),
+                    SiegeContinuationDecisionReason.NEXUS_DAMAGE_RACE_ACCEPTED, true);
+        }
         if (!emergency) {
             return new ContinuationDecision(
                     ownBaseThreat.overallLevel(), SiegeContinuationDecisionReason.CONTINUATION_ALLOWED,

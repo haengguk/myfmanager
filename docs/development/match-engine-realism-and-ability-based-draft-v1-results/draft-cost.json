@@ -1,0 +1,32 @@
+{
+  "reuse": {
+    "cacheEnabled": true,
+    "roleAssignmentRequests": 333468,
+    "roleAssignmentHits": 307259,
+    "roleAssignmentMisses": 26209,
+    "roleAssignmentPhysicalComputations": 26209,
+    "roleAssignmentEntries": 26209,
+    "rolePositionRequests": 785045,
+    "rolePositionHits": 757414,
+    "rolePositionMisses": 27631,
+    "rolePositionEntries": 27631,
+    "completionRequests": 135991,
+    "completionHits": 45277,
+    "completionMisses": 90714,
+    "completionPhysicalComputations": 90714,
+    "completionEntries": 90714,
+    "poolHealthRequests": 43385,
+    "poolHealthHits": 4372,
+    "poolHealthMisses": 39013,
+    "poolHealthPhysicalComputations": 39013,
+    "poolHealthEntries": 39013,
+    "plannerCandidatePhysicalComputations": 0,
+    "plannerCandidateLocalReuses": 7477168,
+    "peakEntries": 183567
+  },
+  "rootCandidates": 240,
+  "fullDraftSeconds": 6.11539665,
+  "searchSeconds": 6.18048863,
+  "draftIdentity": "f7bb1ae520a620078d87e6ac7debe6fd959707f66e8dc770f20ff21cf8d1ae43",
+  "measurementNote": "Draft-only measurement before restoration of planner physical-work counter; plannerCandidatePhysicalComputations=0 is instrumentation omission, not zero work. Other reuse counters and measured times are retained; cached/uncached parity test passed after counter correction."
+}

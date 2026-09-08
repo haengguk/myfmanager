@@ -21,9 +21,27 @@ public record SimulationGameplayConfiguration(
         boolean championPowerEnabled,
         ChampionMatchupMode championMatchupMode,
         TeamCompositionGameplayMode teamCompositionGameplayMode,
-        JungleClearContribution jungleClearContribution
+        JungleClearContribution jungleClearContribution,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT) boolean realismEnabled
 ) {
     public static final String SCHEMA = "EXPLICIT_SIMULATION_RUNTIME_CONFIGURATION_V1";
+
+    /** Legacy constructors retain V9 semantics. */
+    public SimulationGameplayConfiguration(
+            boolean laneCombatEnabled, boolean farmRecoveryEnabled, boolean jungleGankEnabled,
+            boolean counterGankEnabled, boolean roamEnabled, boolean objectivePriorityEnabled,
+            boolean lanePhaseEnabled, boolean midGameMacroEnabled, boolean objectiveDecisionEnabled,
+            boolean lateGameMacroEnabled, boolean progressionEnabled, boolean progressionPowerEnabled,
+            boolean championPowerEnabled, ChampionMatchupMode championMatchupMode,
+            TeamCompositionGameplayMode teamCompositionGameplayMode,
+            JungleClearContribution jungleClearContribution
+    ) {
+        this(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled, counterGankEnabled,
+                roamEnabled, objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled,
+                objectiveDecisionEnabled, lateGameMacroEnabled, progressionEnabled,
+                progressionPowerEnabled, championPowerEnabled, championMatchupMode,
+                teamCompositionGameplayMode, jungleClearContribution, false);
+    }
 
     public SimulationGameplayConfiguration {
         Objects.requireNonNull(championMatchupMode, "championMatchupMode");
@@ -64,7 +82,8 @@ public record SimulationGameplayConfiguration(
                 + "championPowerEnabled=" + championPowerEnabled + '\n'
                 + "championMatchupMode=" + championMatchupMode.name() + '\n'
                 + "teamCompositionGameplayMode=" + teamCompositionGameplayMode.name() + '\n'
-                + "jungleClearContribution=" + jungleClearContribution.name() + '\n';
+                + "jungleClearContribution=" + jungleClearContribution.name() + '\n'
+                + (realismEnabled ? "realismRules=MATCH_REALISM_V1\n" : "");
     }
 
     public SimulationOptions toSimulationOptions(SimulationInstrumentation instrumentation) {
@@ -75,6 +94,6 @@ public record SimulationGameplayConfiguration(
                 objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled,
                 objectiveDecisionEnabled, lateGameMacroEnabled, progressionEnabled,
                 progressionPowerEnabled, championPowerEnabled, championMatchupMode,
-                teamCompositionGameplayMode, jungleClearContribution);
+                teamCompositionGameplayMode, jungleClearContribution, realismEnabled);
     }
 }

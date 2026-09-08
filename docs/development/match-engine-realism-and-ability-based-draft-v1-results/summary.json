@@ -1,0 +1,1876 @@
+{
+  "baseline": {
+    "matches": 64,
+    "durationMean": 2017.5,
+    "durationMedian": 2000.0,
+    "durationMax": 3040,
+    "killsMean": 22.96875,
+    "firstBloodMedian": 50.0,
+    "firstBloodBefore60": 32,
+    "firstBloodBefore120": 48,
+    "noKills": 0,
+    "timeouts": 0,
+    "winnerBlue": 30,
+    "loserFiveAlive": 34,
+    "picks": {
+      "varus": 64,
+      "neeko": 53,
+      "jayce": 47,
+      "ryze": 8,
+      "xin-zhao": 39,
+      "gnar": 24,
+      "orianna": 53,
+      "ezreal": 36,
+      "poppy": 46,
+      "bard": 18,
+      "cassiopeia": 29,
+      "ziggs": 31,
+      "karma": 10,
+      "naafiri": 18,
+      "rumble": 47,
+      "lee-sin": 11,
+      "seraphine": 23,
+      "azir": 6,
+      "nocturne": 9,
+      "syndra": 17,
+      "rell": 2,
+      "jarvan-iv": 5,
+      "anivia": 6,
+      "wukong": 2,
+      "ashe": 2,
+      "nautilus": 5,
+      "pantheon": 14,
+      "rakan": 2,
+      "taliyah": 4,
+      "mel": 3,
+      "shen": 2,
+      "galio": 3,
+      "yunara": 1
+    },
+    "bans": {
+      "vi": 64,
+      "jarvan-iv": 59,
+      "nautilus": 59,
+      "rell": 24,
+      "alistar": 17,
+      "camille": 64,
+      "nocturne": 53,
+      "wukong": 44,
+      "anivia": 7,
+      "ambessa": 49,
+      "rakan": 37,
+      "azir": 30,
+      "shen": 10,
+      "lee-sin": 12,
+      "gnar": 19,
+      "ksante": 5,
+      "orianna": 10,
+      "leblanc": 1,
+      "xin-zhao": 17,
+      "poppy": 18,
+      "ryze": 6,
+      "pantheon": 12,
+      "neeko": 5,
+      "rumble": 5,
+      "syndra": 4,
+      "ahri": 2,
+      "sejuani": 1,
+      "akali": 1,
+      "ezreal": 1,
+      "cassiopeia": 3,
+      "sion": 1
+    },
+    "plans": {
+      "blueInitialPlan": {},
+      "redInitialPlan": {},
+      "bluePlan": {
+        "PICK_CONTROL": 48,
+        "POKE_SIEGE": 15,
+        "FRONT_TO_BACK": 1
+      },
+      "redPlan": {
+        "PICK_CONTROL": 42,
+        "POKE_SIEGE": 22
+      },
+      "initialCombined": {},
+      "finalCombined": {
+        "PICK_CONTROL": 90,
+        "POKE_SIEGE": 37,
+        "FRONT_TO_BACK": 1
+      }
+    },
+    "killSources": {
+      "LANE_COMBAT": 61,
+      "OBJECTIVE_FIGHT": 68,
+      "SKIRMISH": 578,
+      "ROAM": 91,
+      "TEAMFIGHT": 367,
+      "COUNTER_GANK": 6,
+      "JUNGLE_GANK": 50,
+      "BASE_DEFENSE": 167,
+      "LATE_GAME_SIEGE": 82
+    },
+    "eventCounts": {
+      "ASSIST": 2776,
+      "BARON": 97,
+      "DRAGON": 249,
+      "GAME_END": 64,
+      "GAME_START": 64,
+      "ITEM_STAGE_REACHED": 2311,
+      "JUNGLE_GANK": 129,
+      "KILL": 1470,
+      "LANE_COMBAT": 113,
+      "LATE_GAME_ACTION": 344,
+      "LEVEL_UP": 7903,
+      "MACRO_ACTION": 554,
+      "MATCH_PHASE_CHANGE": 128,
+      "ROAM": 161,
+      "SHUTDOWN": 157,
+      "STRUCTURE_ACTION": 4573,
+      "TEAMFIGHT": 293,
+      "TEAMFIGHT_RESULT": 286,
+      "TOWER": 929,
+      "COUNTER_GANK": 22,
+      "ELDER": 5,
+      "ACE": 7
+    },
+    "roleStats": {
+      "600": {
+        "TOP": {
+          "players": 128,
+          "level": 7.0546875,
+          "cs": 71.71875,
+          "gold": 3357.578125
+        },
+        "JUNGLE": {
+          "players": 128,
+          "level": 6.59375,
+          "cs": 56.2578125,
+          "gold": 3111.640625
+        },
+        "MID": {
+          "players": 128,
+          "level": 7.0703125,
+          "cs": 76.203125,
+          "gold": 3460.46875
+        },
+        "ADC": {
+          "players": 128,
+          "level": 6.2734375,
+          "cs": 83.328125,
+          "gold": 3550.15625
+        },
+        "SUPPORT": {
+          "players": 128,
+          "level": 6.28125,
+          "cs": 0,
+          "gold": 2400.375
+        }
+      },
+      "900": {
+        "TOP": {
+          "players": 128,
+          "level": 9.1953125,
+          "cs": 111.328125,
+          "gold": 5089.0625
+        },
+        "JUNGLE": {
+          "players": 128,
+          "level": 8.25,
+          "cs": 85.7109375,
+          "gold": 4600.703125
+        },
+        "MID": {
+          "players": 128,
+          "level": 9.0234375,
+          "cs": 116.8828125,
+          "gold": 5114.21875
+        },
+        "ADC": {
+          "players": 128,
+          "level": 8.0859375,
+          "cs": 129.625,
+          "gold": 5343.9375
+        },
+        "SUPPORT": {
+          "players": 128,
+          "level": 8.1015625,
+          "cs": 0,
+          "gold": 3507.25
+        }
+      },
+      "1200": {
+        "TOP": {
+          "players": 128,
+          "level": 11.0703125,
+          "cs": 150.046875,
+          "gold": 6801.21875
+        },
+        "JUNGLE": {
+          "players": 128,
+          "level": 9.796875,
+          "cs": 114.5,
+          "gold": 6290.0859375
+        },
+        "MID": {
+          "players": 128,
+          "level": 10.84375,
+          "cs": 157.953125,
+          "gold": 6846.4921875
+        },
+        "ADC": {
+          "players": 128,
+          "level": 9.6953125,
+          "cs": 174.5234375,
+          "gold": 7278.7421875
+        },
+        "SUPPORT": {
+          "players": 128,
+          "level": 9.84375,
+          "cs": 0,
+          "gold": 4726.9453125
+        }
+      },
+      "1800": {
+        "TOP": {
+          "players": 80,
+          "level": 14.0125,
+          "cs": 222.3875,
+          "gold": 10443.3
+        },
+        "JUNGLE": {
+          "players": 80,
+          "level": 12.125,
+          "cs": 168.05,
+          "gold": 9874.3625
+        },
+        "MID": {
+          "players": 80,
+          "level": 13.4625,
+          "cs": 235.025,
+          "gold": 10560.1125
+        },
+        "ADC": {
+          "players": 80,
+          "level": 12.05,
+          "cs": 256.8875,
+          "gold": 11321.3875
+        },
+        "SUPPORT": {
+          "players": 80,
+          "level": 12.1375,
+          "cs": 0,
+          "gold": 7449.8625
+        }
+      }
+    },
+    "draftIdentities": 64,
+    "finalSideRoleCompositions": 57,
+    "executionMeanSeconds": 5.976667855078125,
+    "selectionPoolSizes": {
+      "3": 740,
+      "1": 291,
+      "2": 249
+    }
+  },
+  "realism": {
+    "matches": 64,
+    "durationMean": 1973.125,
+    "durationMedian": 1930.0,
+    "durationMax": 4240,
+    "killsMean": 23.625,
+    "firstBloodMedian": 185.0,
+    "firstBloodBefore60": 0,
+    "firstBloodBefore120": 16,
+    "noKills": 0,
+    "timeouts": 0,
+    "winnerBlue": 26,
+    "loserFiveAlive": 23,
+    "picks": {
+      "varus": 47,
+      "azir": 9,
+      "caitlyn": 33,
+      "karthus": 1,
+      "neeko": 25,
+      "alistar": 25,
+      "galio": 25,
+      "xin-zhao": 13,
+      "orianna": 30,
+      "ashe": 17,
+      "wukong": 18,
+      "lissandra": 32,
+      "gragas": 4,
+      "kalista": 18,
+      "lux": 13,
+      "jayce": 12,
+      "rumble": 20,
+      "annie": 14,
+      "morgana": 11,
+      "amumu": 4,
+      "poppy": 20,
+      "xayah": 8,
+      "gnar": 31,
+      "taliyah": 15,
+      "leona": 8,
+      "jhin": 8,
+      "mel": 6,
+      "seraphine": 13,
+      "zyra": 20,
+      "brand": 1,
+      "senna": 5,
+      "rell": 6,
+      "thresh": 22,
+      "fiddlesticks": 7,
+      "sion": 11,
+      "nautilus": 3,
+      "karma": 2,
+      "nocturne": 2,
+      "qiyana": 2,
+      "corki": 9,
+      "jarvan-iv": 12,
+      "ahri": 2,
+      "malphite": 2,
+      "zoe": 18,
+      "maokai": 5,
+      "heimerdinger": 1,
+      "rakan": 3,
+      "yasuo": 1,
+      "kindred": 3,
+      "pantheon": 1,
+      "syndra": 1,
+      "zaahen": 1,
+      "zac": 2,
+      "skarner": 7,
+      "lee-sin": 3,
+      "viktor": 1,
+      "samira": 1,
+      "pyke": 1,
+      "ziggs": 3,
+      "zeri": 1,
+      "sejuani": 1
+    },
+    "bans": {
+      "thresh": 22,
+      "camille": 52,
+      "seraphine": 8,
+      "gnar": 19,
+      "gragas": 6,
+      "kennen": 20,
+      "akali": 13,
+      "ahri": 9,
+      "vi": 55,
+      "jarvan-iv": 15,
+      "xin-zhao": 20,
+      "yone": 22,
+      "sylas": 21,
+      "varus": 14,
+      "ambessa": 17,
+      "alistar": 31,
+      "leona": 5,
+      "galio": 1,
+      "wukong": 30,
+      "samira": 1,
+      "kaisa": 5,
+      "mel": 4,
+      "nautilus": 25,
+      "pyke": 2,
+      "hecarim": 8,
+      "talon": 3,
+      "anivia": 11,
+      "pantheon": 12,
+      "nocturne": 35,
+      "leblanc": 11,
+      "poppy": 5,
+      "orianna": 5,
+      "neeko": 9,
+      "azir": 7,
+      "aurora": 15,
+      "elise": 1,
+      "qiyana": 22,
+      "zoe": 5,
+      "rell": 16,
+      "sejuani": 3,
+      "morgana": 3,
+      "lissandra": 1,
+      "fiddlesticks": 3,
+      "jayce": 3,
+      "naafiri": 9,
+      "ksante": 6,
+      "diana": 8,
+      "taliyah": 5,
+      "tahm-kench": 1,
+      "renekton": 1,
+      "rakan": 2,
+      "caitlyn": 2,
+      "syndra": 1,
+      "maokai": 1,
+      "karma": 4,
+      "braum": 2,
+      "skarner": 1,
+      "kalista": 1,
+      "ornn": 1
+    },
+    "plans": {
+      "blueInitialPlan": {
+        "POKE_SIEGE": 34,
+        "DIVE": 13,
+        "PICK_CONTROL": 15,
+        "FRONT_TO_BACK": 2
+      },
+      "redInitialPlan": {
+        "FRONT_TO_BACK": 6,
+        "POKE_SIEGE": 33,
+        "DIVE": 8,
+        "PICK_CONTROL": 17
+      },
+      "bluePlan": {
+        "POKE_SIEGE": 22,
+        "DIVE": 13,
+        "PICK_CONTROL": 21,
+        "FRONT_TO_BACK": 8
+      },
+      "redPlan": {
+        "FRONT_TO_BACK": 13,
+        "POKE_SIEGE": 24,
+        "DIVE": 7,
+        "PICK_CONTROL": 20
+      },
+      "initialCombined": {
+        "POKE_SIEGE": 67,
+        "FRONT_TO_BACK": 8,
+        "DIVE": 21,
+        "PICK_CONTROL": 32
+      },
+      "finalCombined": {
+        "POKE_SIEGE": 46,
+        "FRONT_TO_BACK": 21,
+        "DIVE": 20,
+        "PICK_CONTROL": 41
+      }
+    },
+    "killSources": {
+      "BASE_DEFENSE": 268,
+      "LANE_COMBAT": 44,
+      "OBJECTIVE_FIGHT": 158,
+      "SKIRMISH": 544,
+      "TEAMFIGHT": 311,
+      "ROAM": 78,
+      "LATE_GAME_SIEGE": 109
+    },
+    "eventCounts": {
+      "ASSIST": 2479,
+      "BARON": 78,
+      "BASE_DEFENSE": 184,
+      "BASE_RETURN": 2396,
+      "DRAGON": 239,
+      "GAME_END": 64,
+      "GAME_START": 64,
+      "HERALD_CHARGE": 145,
+      "HERALD_SUMMON": 61,
+      "ITEM_STAGE_REACHED": 2230,
+      "KILL": 1512,
+      "LANE_COMBAT": 109,
+      "LATE_GAME_ACTION": 356,
+      "LEVEL_UP": 7564,
+      "MACRO_ACTION": 532,
+      "MATCH_PHASE_CHANGE": 128,
+      "RIFT_HERALD": 61,
+      "SHUTDOWN": 176,
+      "STRUCTURE_ACTION": 4165,
+      "TEAMFIGHT": 389,
+      "TEAMFIGHT_RESULT": 384,
+      "TOWER": 958,
+      "VOID_GRUB": 184,
+      "ROAM": 176,
+      "ELDER": 5,
+      "ACE": 5,
+      "HERALD_EXPIRED": 2
+    },
+    "roleStats": {
+      "600": {
+        "TOP": {
+          "players": 128,
+          "level": 7.09375,
+          "cs": 70.375,
+          "gold": 3334.84375
+        },
+        "JUNGLE": {
+          "players": 128,
+          "level": 6.03125,
+          "cs": 62.5625,
+          "gold": 2985.78125
+        },
+        "MID": {
+          "players": 128,
+          "level": 7.0625,
+          "cs": 74.1875,
+          "gold": 3555.703125
+        },
+        "ADC": {
+          "players": 128,
+          "level": 6.34375,
+          "cs": 82.1484375,
+          "gold": 3568.046875
+        },
+        "SUPPORT": {
+          "players": 128,
+          "level": 6.046875,
+          "cs": 0,
+          "gold": 2289.125
+        }
+      },
+      "900": {
+        "TOP": {
+          "players": 128,
+          "level": 9.1875,
+          "cs": 108.2890625,
+          "gold": 5068.421875
+        },
+        "JUNGLE": {
+          "players": 128,
+          "level": 7.9609375,
+          "cs": 94.59375,
+          "gold": 4559.125
+        },
+        "MID": {
+          "players": 128,
+          "level": 9.0859375,
+          "cs": 113.9765625,
+          "gold": 5320.140625
+        },
+        "ADC": {
+          "players": 128,
+          "level": 8.1875,
+          "cs": 127.734375,
+          "gold": 5373.46875
+        },
+        "SUPPORT": {
+          "players": 128,
+          "level": 7.7265625,
+          "cs": 0,
+          "gold": 3380.28125
+        }
+      },
+      "1200": {
+        "TOP": {
+          "players": 128,
+          "level": 11.0234375,
+          "cs": 144.6484375,
+          "gold": 6787.296875
+        },
+        "JUNGLE": {
+          "players": 128,
+          "level": 9.234375,
+          "cs": 125.8125,
+          "gold": 6227.8046875
+        },
+        "MID": {
+          "players": 128,
+          "level": 10.734375,
+          "cs": 151.453125,
+          "gold": 7085.8515625
+        },
+        "ADC": {
+          "players": 128,
+          "level": 9.7734375,
+          "cs": 170.3984375,
+          "gold": 7318.6484375
+        },
+        "SUPPORT": {
+          "players": 128,
+          "level": 8.9453125,
+          "cs": 0,
+          "gold": 4541.3046875
+        }
+      },
+      "1800": {
+        "TOP": {
+          "players": 76,
+          "level": 13.881578947368421,
+          "cs": 210.43421052631578,
+          "gold": 10453.763157894737
+        },
+        "JUNGLE": {
+          "players": 76,
+          "level": 11.618421052631579,
+          "cs": 182.8421052631579,
+          "gold": 9737.776315789473
+        },
+        "MID": {
+          "players": 76,
+          "level": 13.31578947368421,
+          "cs": 220.82894736842104,
+          "gold": 10746.592105263158
+        },
+        "ADC": {
+          "players": 76,
+          "level": 12.263157894736842,
+          "cs": 245.82894736842104,
+          "gold": 11313.223684210527
+        },
+        "SUPPORT": {
+          "players": 76,
+          "level": 10.868421052631579,
+          "cs": 0,
+          "gold": 7131.144736842105
+        }
+      }
+    },
+    "draftIdentities": 64,
+    "finalSideRoleCompositions": 64,
+    "executionMeanSeconds": 5.953832554828125,
+    "selectionPoolSizes": {
+      "3": 1233,
+      "2": 30,
+      "1": 17
+    },
+    "pickSelectionPoolSizes": {
+      "3": 597,
+      "2": 27,
+      "1": 16
+    },
+    "pickSelectedRankOne": 447
+  },
+  "fearless": {
+    "matches": 10,
+    "durationMean": 1841,
+    "durationMedian": 1820.0,
+    "durationMax": 2540,
+    "killsMean": 21.2,
+    "firstBloodMedian": 130.0,
+    "firstBloodBefore60": 0,
+    "firstBloodBefore120": 4,
+    "noKills": 0,
+    "timeouts": 0,
+    "winnerBlue": 5,
+    "loserFiveAlive": 3,
+    "picks": {
+      "varus": 2,
+      "lux": 2,
+      "neeko": 2,
+      "kalista": 2,
+      "zyra": 2,
+      "annie": 2,
+      "poppy": 2,
+      "xin-zhao": 1,
+      "morgana": 2,
+      "ashe": 2,
+      "alistar": 2,
+      "gnar": 2,
+      "lissandra": 2,
+      "maokai": 1,
+      "caitlyn": 2,
+      "mel": 2,
+      "jhin": 2,
+      "seraphine": 2,
+      "fiddlesticks": 1,
+      "sion": 2,
+      "pyke": 1,
+      "wukong": 2,
+      "orianna": 2,
+      "taliyah": 2,
+      "kennen": 2,
+      "galio": 2,
+      "jarvan-iv": 2,
+      "azir": 2,
+      "rumble": 2,
+      "sivir": 1,
+      "anivia": 1,
+      "zoe": 2,
+      "xayah": 2,
+      "kindred": 1,
+      "heimerdinger": 1,
+      "leona": 1,
+      "vi": 1,
+      "ahri": 1,
+      "gragas": 1,
+      "corki": 2,
+      "thresh": 2,
+      "skarner": 2,
+      "sylas": 1,
+      "yunara": 2,
+      "ksante": 2,
+      "ziggs": 1,
+      "jayce": 2,
+      "cassiopeia": 1,
+      "olaf": 1,
+      "braum": 1,
+      "rakan": 1,
+      "zaahen": 1,
+      "illaoi": 1,
+      "nocturne": 1,
+      "nautilus": 1,
+      "hwei": 1,
+      "brand": 1,
+      "quinn": 1,
+      "twisted-fate": 1,
+      "viktor": 1,
+      "zac": 1,
+      "senna": 1,
+      "volibear": 1,
+      "karma": 1,
+      "syndra": 1,
+      "qiyana": 1,
+      "sett": 1
+    },
+    "bans": {
+      "kennen": 2,
+      "azir": 1,
+      "yone": 5,
+      "nautilus": 4,
+      "alistar": 1,
+      "thresh": 3,
+      "camille": 7,
+      "wukong": 2,
+      "jarvan-iv": 2,
+      "vi": 7,
+      "shen": 3,
+      "skarner": 2,
+      "hecarim": 2,
+      "diana": 7,
+      "qiyana": 1,
+      "akali": 4,
+      "aurora": 2,
+      "braum": 3,
+      "xayah": 1,
+      "gragas": 3,
+      "naafiri": 1,
+      "kled": 1,
+      "rell": 2,
+      "bard": 1,
+      "lucian": 2,
+      "kaisa": 2,
+      "ambessa": 5,
+      "pantheon": 1,
+      "renekton": 2,
+      "leblanc": 5,
+      "samira": 1,
+      "sylas": 2,
+      "nocturne": 1,
+      "jayce": 2,
+      "poppy": 2,
+      "xin-zhao": 4,
+      "leona": 2,
+      "fiddlesticks": 1,
+      "maokai": 1
+    },
+    "plans": {
+      "blueInitialPlan": {
+        "PICK_CONTROL": 3,
+        "DIVE": 3,
+        "POKE_SIEGE": 4
+      },
+      "redInitialPlan": {
+        "PICK_CONTROL": 2,
+        "POKE_SIEGE": 7,
+        "DIVE": 1
+      },
+      "bluePlan": {
+        "PICK_CONTROL": 3,
+        "DIVE": 1,
+        "POKE_SIEGE": 3,
+        "FRONT_TO_BACK": 3
+      },
+      "redPlan": {
+        "PICK_CONTROL": 2,
+        "POKE_SIEGE": 4,
+        "FRONT_TO_BACK": 2,
+        "DIVE": 2
+      },
+      "initialCombined": {
+        "PICK_CONTROL": 5,
+        "POKE_SIEGE": 11,
+        "DIVE": 4
+      },
+      "finalCombined": {
+        "PICK_CONTROL": 5,
+        "POKE_SIEGE": 7,
+        "DIVE": 3,
+        "FRONT_TO_BACK": 5
+      }
+    },
+    "killSources": {
+      "BASE_DEFENSE": 49,
+      "LANE_COMBAT": 5,
+      "OBJECTIVE_FIGHT": 18,
+      "ROAM": 14,
+      "SKIRMISH": 66,
+      "TEAMFIGHT": 41,
+      "LATE_GAME_SIEGE": 19
+    },
+    "eventCounts": {
+      "ASSIST": 356,
+      "BARON": 10,
+      "BASE_DEFENSE": 26,
+      "BASE_RETURN": 305,
+      "DRAGON": 37,
+      "GAME_END": 10,
+      "GAME_START": 10,
+      "HERALD_CHARGE": 23,
+      "HERALD_SUMMON": 9,
+      "ITEM_STAGE_REACHED": 326,
+      "KILL": 212,
+      "LANE_COMBAT": 12,
+      "LATE_GAME_ACTION": 56,
+      "LEVEL_UP": 1138,
+      "MACRO_ACTION": 74,
+      "MATCH_PHASE_CHANGE": 20,
+      "RIFT_HERALD": 9,
+      "ROAM": 29,
+      "SHUTDOWN": 27,
+      "STRUCTURE_ACTION": 622,
+      "TEAMFIGHT": 51,
+      "TEAMFIGHT_RESULT": 51,
+      "TOWER": 133,
+      "VOID_GRUB": 27
+    },
+    "roleStats": {
+      "600": {
+        "TOP": {
+          "players": 20,
+          "level": 7,
+          "cs": 71.75,
+          "gold": 3343.5
+        },
+        "JUNGLE": {
+          "players": 20,
+          "level": 6,
+          "cs": 62.4,
+          "gold": 2966
+        },
+        "MID": {
+          "players": 20,
+          "level": 7.1,
+          "cs": 76.3,
+          "gold": 3436
+        },
+        "ADC": {
+          "players": 20,
+          "level": 6.2,
+          "cs": 81.25,
+          "gold": 3534
+        },
+        "SUPPORT": {
+          "players": 20,
+          "level": 6.05,
+          "cs": 0,
+          "gold": 2320.5
+        }
+      },
+      "900": {
+        "TOP": {
+          "players": 20,
+          "level": 9.2,
+          "cs": 109.25,
+          "gold": 5007
+        },
+        "JUNGLE": {
+          "players": 20,
+          "level": 8,
+          "cs": 95.4,
+          "gold": 4518
+        },
+        "MID": {
+          "players": 20,
+          "level": 9,
+          "cs": 116.25,
+          "gold": 5259.5
+        },
+        "ADC": {
+          "players": 20,
+          "level": 8.05,
+          "cs": 126.35,
+          "gold": 5316.2
+        },
+        "SUPPORT": {
+          "players": 20,
+          "level": 7.6,
+          "cs": 0,
+          "gold": 3413
+        }
+      },
+      "1200": {
+        "TOP": {
+          "players": 20,
+          "level": 11,
+          "cs": 147.05,
+          "gold": 6757.1
+        },
+        "JUNGLE": {
+          "players": 20,
+          "level": 9.3,
+          "cs": 125.4,
+          "gold": 6217.35
+        },
+        "MID": {
+          "players": 20,
+          "level": 10.75,
+          "cs": 152.95,
+          "gold": 7028.85
+        },
+        "ADC": {
+          "players": 20,
+          "level": 9.7,
+          "cs": 167.5,
+          "gold": 7268.35
+        },
+        "SUPPORT": {
+          "players": 20,
+          "level": 8.9,
+          "cs": 0,
+          "gold": 4625.35
+        }
+      },
+      "1800": {
+        "TOP": {
+          "players": 10,
+          "level": 13.8,
+          "cs": 214.3,
+          "gold": 10112
+        },
+        "JUNGLE": {
+          "players": 10,
+          "level": 11.4,
+          "cs": 182,
+          "gold": 9511
+        },
+        "MID": {
+          "players": 10,
+          "level": 13.3,
+          "cs": 221.7,
+          "gold": 10627
+        },
+        "ADC": {
+          "players": 10,
+          "level": 12.1,
+          "cs": 244.3,
+          "gold": 11102.2
+        },
+        "SUPPORT": {
+          "players": 10,
+          "level": 10.9,
+          "cs": 0,
+          "gold": 7111
+        }
+      }
+    },
+    "draftIdentities": 10,
+    "finalSideRoleCompositions": 10,
+    "executionMeanSeconds": 6.4398018841999995,
+    "selectionPoolSizes": {
+      "3": 197,
+      "2": 2,
+      "1": 1
+    }
+  },
+  "notes": [
+    "Baseline original 64 logs reused; no historical games regenerated.",
+    "Later times only include games still running at that time.",
+    "Realism batch overlaps frontend build and isolated browser startup; no direct speedup claim.",
+    "Original realism 64 + fearless 10 + replay 1 preceded the finite-camp tempo fix.",
+    "Final same-pair/same-side two-seed comparison is 16 games; no final-tree 64-game claim.",
+    "Total diagnostic matches 91. Additional browser/focused correctness matches are separate."
+  ],
+  "tempoFixBeforeSame16": {
+    "matches": 16,
+    "durationMean": 2094.375,
+    "durationMedian": 1930.0,
+    "durationMax": 4240,
+    "killsMean": 27.6875,
+    "firstBloodMedian": 155.0,
+    "firstBloodBefore60": 0,
+    "firstBloodBefore120": 8,
+    "noKills": 0,
+    "timeouts": 0,
+    "winnerBlue": 2,
+    "loserFiveAlive": 4,
+    "picks": {
+      "varus": 11,
+      "azir": 4,
+      "caitlyn": 12,
+      "karthus": 1,
+      "neeko": 8,
+      "alistar": 6,
+      "galio": 7,
+      "xin-zhao": 5,
+      "orianna": 4,
+      "ashe": 4,
+      "wukong": 5,
+      "lissandra": 9,
+      "gragas": 1,
+      "kalista": 6,
+      "lux": 3,
+      "jayce": 4,
+      "rumble": 6,
+      "fiddlesticks": 3,
+      "nautilus": 1,
+      "karma": 1,
+      "annie": 5,
+      "poppy": 2,
+      "morgana": 6,
+      "gnar": 5,
+      "maokai": 2,
+      "zoe": 4,
+      "ahri": 1,
+      "sion": 4,
+      "thresh": 6,
+      "leona": 1,
+      "xayah": 1,
+      "seraphine": 2,
+      "kindred": 1,
+      "zyra": 4,
+      "syndra": 1,
+      "skarner": 1,
+      "jarvan-iv": 2,
+      "taliyah": 3,
+      "lee-sin": 1,
+      "rell": 1,
+      "pyke": 1,
+      "mel": 1,
+      "jhin": 1,
+      "nocturne": 1,
+      "amumu": 1,
+      "corki": 1
+    },
+    "bans": {
+      "thresh": 5,
+      "camille": 14,
+      "seraphine": 3,
+      "gnar": 9,
+      "gragas": 2,
+      "kennen": 5,
+      "akali": 5,
+      "ahri": 2,
+      "vi": 15,
+      "jarvan-iv": 6,
+      "xin-zhao": 6,
+      "yone": 5,
+      "sylas": 7,
+      "varus": 4,
+      "ambessa": 2,
+      "anivia": 2,
+      "alistar": 7,
+      "neeko": 2,
+      "nocturne": 7,
+      "azir": 2,
+      "zoe": 2,
+      "nautilus": 5,
+      "rell": 4,
+      "qiyana": 5,
+      "wukong": 6,
+      "hecarim": 2,
+      "poppy": 2,
+      "pantheon": 4,
+      "diana": 3,
+      "rakan": 1,
+      "leblanc": 3,
+      "ksante": 1,
+      "leona": 1,
+      "aurora": 4,
+      "morgana": 1,
+      "orianna": 2,
+      "braum": 1,
+      "kaisa": 1,
+      "skarner": 1,
+      "taliyah": 1
+    },
+    "plans": {
+      "blueInitialPlan": {
+        "POKE_SIEGE": 8,
+        "DIVE": 3,
+        "PICK_CONTROL": 4,
+        "FRONT_TO_BACK": 1
+      },
+      "redInitialPlan": {
+        "FRONT_TO_BACK": 1,
+        "POKE_SIEGE": 8,
+        "DIVE": 1,
+        "PICK_CONTROL": 6
+      },
+      "bluePlan": {
+        "POKE_SIEGE": 4,
+        "DIVE": 2,
+        "PICK_CONTROL": 8,
+        "FRONT_TO_BACK": 2
+      },
+      "redPlan": {
+        "FRONT_TO_BACK": 1,
+        "POKE_SIEGE": 8,
+        "DIVE": 1,
+        "PICK_CONTROL": 6
+      },
+      "initialCombined": {
+        "POKE_SIEGE": 16,
+        "FRONT_TO_BACK": 2,
+        "DIVE": 4,
+        "PICK_CONTROL": 10
+      },
+      "finalCombined": {
+        "POKE_SIEGE": 12,
+        "FRONT_TO_BACK": 3,
+        "DIVE": 3,
+        "PICK_CONTROL": 14
+      }
+    },
+    "killSources": {
+      "BASE_DEFENSE": 70,
+      "LANE_COMBAT": 11,
+      "OBJECTIVE_FIGHT": 43,
+      "SKIRMISH": 157,
+      "TEAMFIGHT": 108,
+      "ROAM": 17,
+      "LATE_GAME_SIEGE": 37
+    },
+    "eventCounts": {
+      "ASSIST": 712,
+      "BARON": 24,
+      "BASE_DEFENSE": 55,
+      "BASE_RETURN": 726,
+      "DRAGON": 62,
+      "GAME_END": 16,
+      "GAME_START": 16,
+      "HERALD_CHARGE": 34,
+      "HERALD_SUMMON": 15,
+      "ITEM_STAGE_REACHED": 577,
+      "KILL": 443,
+      "LANE_COMBAT": 35,
+      "LATE_GAME_ACTION": 112,
+      "LEVEL_UP": 1937,
+      "MACRO_ACTION": 122,
+      "MATCH_PHASE_CHANGE": 32,
+      "RIFT_HERALD": 15,
+      "SHUTDOWN": 53,
+      "STRUCTURE_ACTION": 1052,
+      "TEAMFIGHT": 116,
+      "TEAMFIGHT_RESULT": 114,
+      "TOWER": 267,
+      "VOID_GRUB": 48,
+      "ROAM": 29,
+      "ACE": 2,
+      "ELDER": 2,
+      "HERALD_EXPIRED": 1
+    },
+    "roleStats": {
+      "600": {
+        "TOP": {
+          "players": 32,
+          "level": 7,
+          "cs": 67.65625,
+          "gold": 3308.75
+        },
+        "JUNGLE": {
+          "players": 32,
+          "level": 6.03125,
+          "cs": 63.125,
+          "gold": 3006.5625
+        },
+        "MID": {
+          "players": 32,
+          "level": 7.125,
+          "cs": 75.5,
+          "gold": 3550.3125
+        },
+        "ADC": {
+          "players": 32,
+          "level": 6.46875,
+          "cs": 84.4375,
+          "gold": 3600.625
+        },
+        "SUPPORT": {
+          "players": 32,
+          "level": 6,
+          "cs": 0,
+          "gold": 2243.1875
+        }
+      },
+      "900": {
+        "TOP": {
+          "players": 32,
+          "level": 9.125,
+          "cs": 106,
+          "gold": 4998.125
+        },
+        "JUNGLE": {
+          "players": 32,
+          "level": 7.9375,
+          "cs": 94.5,
+          "gold": 4527.1875
+        },
+        "MID": {
+          "players": 32,
+          "level": 9.125,
+          "cs": 115.25,
+          "gold": 5302.8125
+        },
+        "ADC": {
+          "players": 32,
+          "level": 8.1875,
+          "cs": 129.75,
+          "gold": 5376.75
+        },
+        "SUPPORT": {
+          "players": 32,
+          "level": 7.6875,
+          "cs": 0,
+          "gold": 3306.3125
+        }
+      },
+      "1200": {
+        "TOP": {
+          "players": 32,
+          "level": 11,
+          "cs": 141.8125,
+          "gold": 6755.875
+        },
+        "JUNGLE": {
+          "players": 32,
+          "level": 9.3125,
+          "cs": 125.375,
+          "gold": 6239.625
+        },
+        "MID": {
+          "players": 32,
+          "level": 10.78125,
+          "cs": 152.71875,
+          "gold": 7174
+        },
+        "ADC": {
+          "players": 32,
+          "level": 9.8125,
+          "cs": 171.1875,
+          "gold": 7332.6875
+        },
+        "SUPPORT": {
+          "players": 32,
+          "level": 8.9375,
+          "cs": 0,
+          "gold": 4484.375
+        }
+      },
+      "1800": {
+        "TOP": {
+          "players": 20,
+          "level": 13.95,
+          "cs": 208.9,
+          "gold": 10500
+        },
+        "JUNGLE": {
+          "players": 20,
+          "level": 11.55,
+          "cs": 181.8,
+          "gold": 9699.5
+        },
+        "MID": {
+          "players": 20,
+          "level": 13.3,
+          "cs": 220.65,
+          "gold": 10677.5
+        },
+        "ADC": {
+          "players": 20,
+          "level": 12.35,
+          "cs": 247,
+          "gold": 11271.5
+        },
+        "SUPPORT": {
+          "players": 20,
+          "level": 10.95,
+          "cs": 0,
+          "gold": 7013.5
+        }
+      }
+    },
+    "draftIdentities": 16,
+    "finalSideRoleCompositions": 16,
+    "executionMeanSeconds": 6.167271496875,
+    "selectionPoolSizes": {
+      "3": 306,
+      "2": 9,
+      "1": 5
+    }
+  },
+  "finalSame16": {
+    "matches": 16,
+    "durationMean": 2070.625,
+    "durationMedian": 2000.0,
+    "durationMax": 2900,
+    "killsMean": 27,
+    "firstBloodMedian": 120.0,
+    "firstBloodBefore60": 0,
+    "firstBloodBefore120": 8,
+    "noKills": 0,
+    "timeouts": 0,
+    "winnerBlue": 5,
+    "loserFiveAlive": 3,
+    "picks": {
+      "varus": 11,
+      "azir": 4,
+      "caitlyn": 12,
+      "karthus": 1,
+      "neeko": 8,
+      "alistar": 6,
+      "galio": 7,
+      "xin-zhao": 5,
+      "orianna": 4,
+      "ashe": 4,
+      "wukong": 5,
+      "lissandra": 9,
+      "gragas": 1,
+      "kalista": 6,
+      "lux": 3,
+      "jayce": 4,
+      "rumble": 6,
+      "fiddlesticks": 3,
+      "nautilus": 1,
+      "karma": 1,
+      "annie": 5,
+      "poppy": 2,
+      "morgana": 6,
+      "gnar": 5,
+      "maokai": 2,
+      "zoe": 4,
+      "ahri": 1,
+      "sion": 4,
+      "thresh": 6,
+      "leona": 1,
+      "xayah": 1,
+      "seraphine": 2,
+      "kindred": 1,
+      "zyra": 4,
+      "syndra": 1,
+      "skarner": 1,
+      "jarvan-iv": 2,
+      "taliyah": 3,
+      "lee-sin": 1,
+      "rell": 1,
+      "pyke": 1,
+      "mel": 1,
+      "jhin": 1,
+      "nocturne": 1,
+      "amumu": 1,
+      "corki": 1
+    },
+    "bans": {
+      "thresh": 5,
+      "camille": 14,
+      "seraphine": 3,
+      "gnar": 9,
+      "gragas": 2,
+      "kennen": 5,
+      "akali": 5,
+      "ahri": 2,
+      "vi": 15,
+      "jarvan-iv": 6,
+      "xin-zhao": 6,
+      "yone": 5,
+      "sylas": 7,
+      "varus": 4,
+      "ambessa": 2,
+      "anivia": 2,
+      "alistar": 7,
+      "neeko": 2,
+      "nocturne": 7,
+      "azir": 2,
+      "zoe": 2,
+      "nautilus": 5,
+      "rell": 4,
+      "qiyana": 5,
+      "wukong": 6,
+      "hecarim": 2,
+      "poppy": 2,
+      "pantheon": 4,
+      "diana": 3,
+      "rakan": 1,
+      "leblanc": 3,
+      "ksante": 1,
+      "leona": 1,
+      "aurora": 4,
+      "morgana": 1,
+      "orianna": 2,
+      "braum": 1,
+      "kaisa": 1,
+      "skarner": 1,
+      "taliyah": 1
+    },
+    "plans": {
+      "blueInitialPlan": {
+        "POKE_SIEGE": 8,
+        "DIVE": 3,
+        "PICK_CONTROL": 4,
+        "FRONT_TO_BACK": 1
+      },
+      "redInitialPlan": {
+        "FRONT_TO_BACK": 1,
+        "POKE_SIEGE": 8,
+        "DIVE": 1,
+        "PICK_CONTROL": 6
+      },
+      "bluePlan": {
+        "POKE_SIEGE": 4,
+        "DIVE": 2,
+        "PICK_CONTROL": 8,
+        "FRONT_TO_BACK": 2
+      },
+      "redPlan": {
+        "FRONT_TO_BACK": 1,
+        "POKE_SIEGE": 8,
+        "DIVE": 1,
+        "PICK_CONTROL": 6
+      },
+      "initialCombined": {
+        "POKE_SIEGE": 16,
+        "FRONT_TO_BACK": 2,
+        "DIVE": 4,
+        "PICK_CONTROL": 10
+      },
+      "finalCombined": {
+        "POKE_SIEGE": 12,
+        "FRONT_TO_BACK": 3,
+        "DIVE": 3,
+        "PICK_CONTROL": 14
+      }
+    },
+    "killSources": {
+      "BASE_DEFENSE": 66,
+      "JUNGLE_GANK": 7,
+      "LANE_COMBAT": 24,
+      "OBJECTIVE_FIGHT": 44,
+      "SKIRMISH": 169,
+      "TEAMFIGHT": 87,
+      "LATE_GAME_SIEGE": 14,
+      "ROAM": 19,
+      "COUNTER_GANK": 2
+    },
+    "eventCounts": {
+      "ASSIST": 632,
+      "BARON": 24,
+      "BASE_DEFENSE": 48,
+      "BASE_RETURN": 547,
+      "DRAGON": 60,
+      "GAME_END": 16,
+      "GAME_START": 16,
+      "HERALD_CHARGE": 34,
+      "HERALD_SUMMON": 15,
+      "ITEM_STAGE_REACHED": 585,
+      "JUNGLE_GANK": 12,
+      "KILL": 432,
+      "LANE_COMBAT": 35,
+      "LATE_GAME_ACTION": 98,
+      "LEVEL_UP": 1951,
+      "MACRO_ACTION": 141,
+      "MATCH_PHASE_CHANGE": 32,
+      "RIFT_HERALD": 15,
+      "SHUTDOWN": 44,
+      "STRUCTURE_ACTION": 1074,
+      "TEAMFIGHT": 100,
+      "TEAMFIGHT_RESULT": 98,
+      "TOWER": 248,
+      "VOID_GRUB": 45,
+      "ROAM": 33,
+      "HERALD_EXPIRED": 1,
+      "COUNTER_GANK": 3,
+      "ACE": 2,
+      "ELDER": 2
+    },
+    "roleStats": {
+      "600": {
+        "TOP": {
+          "players": 32,
+          "level": 7.125,
+          "cs": 67.6875,
+          "gold": 3517.5
+        },
+        "JUNGLE": {
+          "players": 32,
+          "level": 6.03125,
+          "cs": 61.875,
+          "gold": 3012.1875
+        },
+        "MID": {
+          "players": 32,
+          "level": 7.28125,
+          "cs": 73.5,
+          "gold": 3642.1875
+        },
+        "ADC": {
+          "players": 32,
+          "level": 6.21875,
+          "cs": 81.90625,
+          "gold": 3522.5
+        },
+        "SUPPORT": {
+          "players": 32,
+          "level": 6,
+          "cs": 0,
+          "gold": 2284.125
+        }
+      },
+      "900": {
+        "TOP": {
+          "players": 32,
+          "level": 9.28125,
+          "cs": 105.96875,
+          "gold": 5262.4375
+        },
+        "JUNGLE": {
+          "players": 32,
+          "level": 7.9375,
+          "cs": 94.375,
+          "gold": 4546.8125
+        },
+        "MID": {
+          "players": 32,
+          "level": 9.15625,
+          "cs": 114.25,
+          "gold": 5393.375
+        },
+        "ADC": {
+          "players": 32,
+          "level": 8.09375,
+          "cs": 128.21875,
+          "gold": 5318.75
+        },
+        "SUPPORT": {
+          "players": 32,
+          "level": 7.8125,
+          "cs": 0,
+          "gold": 3357.1875
+        }
+      },
+      "1200": {
+        "TOP": {
+          "players": 30,
+          "level": 10.966666666666667,
+          "cs": 141.6,
+          "gold": 7008.133333333333
+        },
+        "JUNGLE": {
+          "players": 30,
+          "level": 9.233333333333333,
+          "cs": 126.66666666666667,
+          "gold": 6208.3
+        },
+        "MID": {
+          "players": 30,
+          "level": 10.833333333333334,
+          "cs": 151.66666666666666,
+          "gold": 7203.3
+        },
+        "ADC": {
+          "players": 30,
+          "level": 9.933333333333334,
+          "cs": 172.36666666666667,
+          "gold": 7350.633333333333
+        },
+        "SUPPORT": {
+          "players": 30,
+          "level": 8.966666666666667,
+          "cs": 0,
+          "gold": 4543.966666666666
+        }
+      },
+      "1800": {
+        "TOP": {
+          "players": 26,
+          "level": 13.884615384615385,
+          "cs": 209.80769230769232,
+          "gold": 10539.461538461539
+        },
+        "JUNGLE": {
+          "players": 26,
+          "level": 11.692307692307692,
+          "cs": 185.3846153846154,
+          "gold": 9566.192307692309
+        },
+        "MID": {
+          "players": 26,
+          "level": 13.5,
+          "cs": 223.5,
+          "gold": 10842.346153846154
+        },
+        "ADC": {
+          "players": 26,
+          "level": 12.23076923076923,
+          "cs": 249.8846153846154,
+          "gold": 11428.115384615385
+        },
+        "SUPPORT": {
+          "players": 26,
+          "level": 10.923076923076923,
+          "cs": 0,
+          "gold": 7047.576923076923
+        }
+      }
+    },
+    "draftIdentities": 16,
+    "finalSideRoleCompositions": 16,
+    "executionMeanSeconds": 5.792623954375,
+    "selectionPoolSizes": {
+      "3": 306,
+      "2": 9,
+      "1": 5
+    }
+  },
+  "baselineSame16": {
+    "matches": 16,
+    "durationMean": 1816.25,
+    "durationMedian": 1745.0,
+    "durationMax": 2480,
+    "killsMean": 20.9375,
+    "firstBloodMedian": 35.0,
+    "firstBloodBefore60": 16,
+    "firstBloodBefore120": 16,
+    "noKills": 0,
+    "timeouts": 0,
+    "winnerBlue": 7,
+    "loserFiveAlive": 11,
+    "picks": {
+      "varus": 16,
+      "neeko": 13,
+      "jayce": 13,
+      "ryze": 2,
+      "xin-zhao": 9,
+      "gnar": 5,
+      "orianna": 15,
+      "ezreal": 9,
+      "poppy": 11,
+      "bard": 5,
+      "cassiopeia": 8,
+      "ziggs": 5,
+      "karma": 2,
+      "jarvan-iv": 3,
+      "seraphine": 5,
+      "rumble": 13,
+      "naafiri": 5,
+      "anivia": 3,
+      "nautilus": 1,
+      "nocturne": 1,
+      "rakan": 1,
+      "pantheon": 3,
+      "syndra": 3,
+      "shen": 2,
+      "lee-sin": 4,
+      "taliyah": 1,
+      "azir": 1,
+      "galio": 1
+    },
+    "bans": {
+      "vi": 16,
+      "jarvan-iv": 13,
+      "nautilus": 15,
+      "rell": 7,
+      "alistar": 2,
+      "camille": 16,
+      "nocturne": 15,
+      "wukong": 13,
+      "anivia": 2,
+      "ambessa": 12,
+      "rakan": 6,
+      "azir": 9,
+      "xin-zhao": 6,
+      "poppy": 5,
+      "shen": 4,
+      "gnar": 7,
+      "lee-sin": 1,
+      "ryze": 1,
+      "neeko": 2,
+      "pantheon": 3,
+      "sejuani": 1,
+      "orianna": 1,
+      "cassiopeia": 1,
+      "ksante": 1,
+      "ahri": 1
+    },
+    "plans": {
+      "blueInitialPlan": {},
+      "redInitialPlan": {},
+      "bluePlan": {
+        "PICK_CONTROL": 13,
+        "POKE_SIEGE": 2,
+        "FRONT_TO_BACK": 1
+      },
+      "redPlan": {
+        "PICK_CONTROL": 10,
+        "POKE_SIEGE": 6
+      },
+      "initialCombined": {},
+      "finalCombined": {
+        "PICK_CONTROL": 23,
+        "POKE_SIEGE": 8,
+        "FRONT_TO_BACK": 1
+      }
+    },
+    "killSources": {
+      "LANE_COMBAT": 11,
+      "OBJECTIVE_FIGHT": 16,
+      "SKIRMISH": 145,
+      "ROAM": 15,
+      "TEAMFIGHT": 92,
+      "JUNGLE_GANK": 10,
+      "LATE_GAME_SIEGE": 15,
+      "BASE_DEFENSE": 30,
+      "COUNTER_GANK": 1
+    },
+    "eventCounts": {
+      "ASSIST": 638,
+      "BARON": 20,
+      "DRAGON": 53,
+      "GAME_END": 16,
+      "GAME_START": 16,
+      "ITEM_STAGE_REACHED": 535,
+      "JUNGLE_GANK": 28,
+      "KILL": 335,
+      "LANE_COMBAT": 28,
+      "LATE_GAME_ACTION": 64,
+      "LEVEL_UP": 1856,
+      "MACRO_ACTION": 116,
+      "MATCH_PHASE_CHANGE": 32,
+      "ROAM": 36,
+      "SHUTDOWN": 34,
+      "STRUCTURE_ACTION": 1051,
+      "TEAMFIGHT": 65,
+      "TEAMFIGHT_RESULT": 64,
+      "TOWER": 218,
+      "ACE": 1,
+      "COUNTER_GANK": 2
+    },
+    "roleStats": {
+      "600": {
+        "TOP": {
+          "players": 32,
+          "level": 7.0625,
+          "cs": 71.65625,
+          "gold": 3415.3125
+        },
+        "JUNGLE": {
+          "players": 32,
+          "level": 6.84375,
+          "cs": 56.125,
+          "gold": 3161.5625
+        },
+        "MID": {
+          "players": 32,
+          "level": 7,
+          "cs": 77.34375,
+          "gold": 3344.375
+        },
+        "ADC": {
+          "players": 32,
+          "level": 6.09375,
+          "cs": 83.96875,
+          "gold": 3471.875
+        },
+        "SUPPORT": {
+          "players": 32,
+          "level": 6.15625,
+          "cs": 0,
+          "gold": 2333.1875
+        }
+      },
+      "900": {
+        "TOP": {
+          "players": 32,
+          "level": 9.3125,
+          "cs": 111.71875,
+          "gold": 5209.375
+        },
+        "JUNGLE": {
+          "players": 32,
+          "level": 8.34375,
+          "cs": 85.4375,
+          "gold": 4678.125
+        },
+        "MID": {
+          "players": 32,
+          "level": 9.0625,
+          "cs": 117.78125,
+          "gold": 4978.4375
+        },
+        "ADC": {
+          "players": 32,
+          "level": 8,
+          "cs": 130.375,
+          "gold": 5286.9375
+        },
+        "SUPPORT": {
+          "players": 32,
+          "level": 8.09375,
+          "cs": 0,
+          "gold": 3462.25
+        }
+      },
+      "1200": {
+        "TOP": {
+          "players": 32,
+          "level": 11.15625,
+          "cs": 151.59375,
+          "gold": 6914.5
+        },
+        "JUNGLE": {
+          "players": 32,
+          "level": 10,
+          "cs": 114.53125,
+          "gold": 6404.34375
+        },
+        "MID": {
+          "players": 32,
+          "level": 10.78125,
+          "cs": 158.96875,
+          "gold": 6687.46875
+        },
+        "ADC": {
+          "players": 32,
+          "level": 9.6875,
+          "cs": 175.6875,
+          "gold": 7290.03125
+        },
+        "SUPPORT": {
+          "players": 32,
+          "level": 9.8125,
+          "cs": 0,
+          "gold": 4717.84375
+        }
+      },
+      "1800": {
+        "TOP": {
+          "players": 14,
+          "level": 13.928571428571429,
+          "cs": 219.14285714285714,
+          "gold": 10793.142857142857
+        },
+        "JUNGLE": {
+          "players": 14,
+          "level": 12.285714285714286,
+          "cs": 167.5,
+          "gold": 10193.5
+        },
+        "MID": {
+          "players": 14,
+          "level": 13.214285714285714,
+          "cs": 229.78571428571428,
+          "gold": 10576.357142857143
+        },
+        "ADC": {
+          "players": 14,
+          "level": 11.928571428571429,
+          "cs": 251.5,
+          "gold": 11302.214285714286
+        },
+        "SUPPORT": {
+          "players": 14,
+          "level": 12,
+          "cs": 0,
+          "gold": 7689.5
+        }
+      }
+    },
+    "draftIdentities": 16,
+    "finalSideRoleCompositions": 16,
+    "executionMeanSeconds": 6.6474211304375,
+    "selectionPoolSizes": {
+      "3": 189,
+      "1": 74,
+      "2": 57
+    }
+  }
+}

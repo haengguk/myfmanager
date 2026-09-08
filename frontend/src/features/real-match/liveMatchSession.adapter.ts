@@ -15,6 +15,7 @@ import type {
 const POSITIONS: readonly Position[] = ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'];
 const MAJOR_EVENT_TYPES = new Set([
   'KILL', 'JUNGLE_GANK', 'COUNTER_GANK', 'LANE_COMBAT', 'DRAGON', 'BARON', 'ELDER',
+  'VOID_GRUB', 'RIFT_HERALD', 'HERALD_SUMMON', 'HERALD_CHARGE', 'BASE_DEFENSE',
   'TOWER', 'TEAMFIGHT', 'TEAMFIGHT_RESULT', 'ACE', 'GAME_END',
 ]);
 const HIDDEN_LOG_EVENT_TYPES = new Set([
@@ -39,7 +40,7 @@ export interface CommonLiveMatchSource {
 }
 
 const STRUCTURE_SOURCE_LABELS = {
-  LANE_PRESSURE: '라인 압박', POST_FIGHT: '한타 후 공성', BARON_PRESSURE: '바론 압박',
+  RIFT_HERALD: '전령 돌진', LANE_PRESSURE: '라인 압박', POST_FIGHT: '한타 후 공성', BARON_PRESSURE: '바론 압박',
   MACRO_PLAY: '일반 운영', MID_GAME_MACRO: '미드게임 운영', OBJECTIVE_TRADE: '오브젝트 교환',
   LATE_GAME_SIEGE: '후반 공성', LATE_GAME_CROSS_MAP: '교차 맵 운영', NEXUS_FINISH: '넥서스 마무리',
 } as const;
@@ -195,6 +196,17 @@ function structureDisplayMessage(event: RealMatchEventDto, teams: Record<TeamSid
   return `${event.displayMessage ?? `${teamCode} · ${target} 파괴.`}${sourceText}`;
 }
 
+function upperObjectiveMessage(event: RealMatchEventDto, teams: Record<TeamSide, TeamViewModel>): string | null {
+  const upper = recordValue(event.structuredData.upperObjective);
+  if (!upper || (upper.side !== 'BLUE' && upper.side !== 'RED')) return null;
+  const team = teams[upper.side].code;
+  if (event.eventType === 'VOID_GRUB') return `${team} 공허 유충 확보 · 누적 ${numberValue(upper.teamGrubs)}마리`;
+  if (event.eventType === 'RIFT_HERALD') return `${team} 전령의 눈 확보`;
+  if (event.eventType === 'HERALD_SUMMON') return `${team} ${upper.lane === 'TOP' ? '탑' : upper.lane === 'MID' ? '미드' : '바텀'} 전령 소환`;
+  if (event.eventType === 'HERALD_CHARGE') return `${team} 전령 돌진 · 포탑 피해 ${Math.round(numberValue(upper.damage))}`;
+  if (event.eventType === 'HERALD_EXPIRED') return `${team} 전령 사용 종료`;
+  return null;
+}
 function createPlayback(source: CommonLiveMatchSource, options: MatchSetupOptionsViewModel, teams: Record<TeamSide, TeamViewModel>, championsById: Readonly<Record<string, ChampionViewModel>>): PlaybackViewModel {
   const playerNamesById = Object.fromEntries(source.teams.flatMap((team) => team.lineup.map((player) => [player.playerId, player.nickname])));
   const events: readonly PlaybackEventViewModel[] = source.timeline.events.map((event, index) => {
@@ -222,7 +234,7 @@ function createPlayback(source: CommonLiveMatchSource, options: MatchSetupOption
     parentActionId: event.parentActionId,
     displayMessage: event.eventType === 'KILL' ? killDisplayMessage(event, playerNamesById)
       : event.eventType === 'TOWER' || event.eventType === 'STRUCTURE_ACTION' ? structureDisplayMessage(event, teams, action)
-        : event.displayMessage ?? event.eventType,
+        : upperObjectiveMessage(event, teams) ?? event.displayMessage ?? event.eventType,
     isMajor: MAJOR_EVENT_TYPES.has(event.eventType),
     showInLog: !HIDDEN_LOG_EVENT_TYPES.has(event.eventType),
     });
@@ -278,6 +290,8 @@ function teamStats(source: CommonLiveMatchSource, side: TeamSide): TeamFinalStat
     assists: players.reduce((total, player) => total + player.assists, 0), gold: team.totalGold,
     goldDifference: team.totalGold - opponent.totalGold, towers: team.towersDestroyed, dragons: team.dragons,
     barons: source.timeline.events.filter((event) => event.eventType === 'BARON' && event.actorSide === side).length,
+    grubs: source.timeline.events.filter((event) => event.eventType === 'VOID_GRUB' && event.actorSide === side).length,
+    heralds: source.timeline.events.filter((event) => event.eventType === 'RIFT_HERALD' && event.actorSide === side).length,
     inhibitorsDestroyed: 3 - opponent.inhibitorsRemaining,
   };
 }

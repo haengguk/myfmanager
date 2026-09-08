@@ -1,5 +1,6 @@
 package com.lolfm.simulator;
 public enum StructureActionSource {
+    RIFT_HERALD,
     LANE_PRESSURE, POST_FIGHT, BARON_PRESSURE, MACRO_PLAY, MID_GAME_MACRO, OBJECTIVE_TRADE,
     LATE_GAME_SIEGE, LATE_GAME_CROSS_MAP, NEXUS_FINISH
 }

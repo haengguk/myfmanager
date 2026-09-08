@@ -71,6 +71,16 @@ public class SnapshotFactory {
         );
         snapshot.setProgression(progressionSnapshot(gameState));
         snapshot.setStructureState(structureStateSnapshot(gameState));
+        if (gameState.isRealismEnabled()) {
+            var realism = new java.util.LinkedHashMap<String,Object>();
+            realism.put("upperObjectives",gameState.getObjectiveState().upper().snapshot(currentTime));
+            for (TeamSide side : TeamSide.values()) {
+                var camps = gameState.jungleEconomyState(side).camps();
+                realism.put(side.name()+"Jungle",java.util.Map.of("completedCamps",camps.completed(),
+                        "respawns",camps.respawns(),"clearWorkSeconds",camps.workSeconds()));
+            }
+            snapshot.setRealism(realism);
+        }
         return snapshot;
     }
 

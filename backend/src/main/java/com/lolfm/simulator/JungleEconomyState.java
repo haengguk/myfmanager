@@ -4,6 +4,8 @@ import java.util.Optional;
 
 /** Match-scoped duplicate clock and latest outcome for one team's jungle economy. */
 public final class JungleEconomyState {
+    private final JungleCampState camps = new JungleCampState();
+    public JungleCampState camps() { return camps; }
     private int lastResolvedAtSeconds = -1;
     private int duplicateResolutionCount;
     private JungleEconomyOutcome latestOutcome;

@@ -59,11 +59,11 @@ final class MatchEngineV1Projector {
         String inputHash = input.inputHash();
         String outputHash = canonicalizer.hash(MatchEngineV1Output.outputHashMaterial(
                 MatchEngineV1Output.SCHEMA, input.matchIdentity(),
-                MatchEngineV1Policy.authoritative(), provenance.configurationHash(),
+                MatchEngineV1Policy.resolve(input.productionPolicy()), provenance.configurationHash(),
                 inputHash, summary, input.finalDraft(), structuredTimelineHash, provenance));
         return new MatchEngineV1Output(
                 MatchEngineV1Output.SCHEMA, input.matchIdentity(),
-                MatchEngineV1Policy.authoritative(), provenance.configurationHash(), summary,
+                MatchEngineV1Policy.resolve(input.productionPolicy()), provenance.configurationHash(), summary,
                 input.finalDraft(), timeline, provenance, inputHash,
                 MatchEngineV1Input.INPUT_HASH_ALGORITHM, provenance.timelineHash(),
                 structuredTimelineHash, MatchEngineV1Canonicalizer.HASH_ALGORITHM,
@@ -172,6 +172,8 @@ final class MatchEngineV1Projector {
         List<PlayerId> assistants = source.getAssistPlayerIds().stream()
                 .map(value -> participant(value, input)).toList();
         TeamSide actorSide = actorSide(source, actor, input);
+        if(source.getUpperObjective()!=null)actorSide=source.getUpperObjective().side();
+        else if(source.getBaseDefense()!=null)actorSide=source.getBaseDefense().defendingSide();
         com.lolfm.domain.Position actorPosition = actor == null
                 ? source.getRoam() == null ? null : source.getRoam().roamerPosition()
                 : input.player(actor).position();
@@ -191,6 +193,8 @@ final class MatchEngineV1Projector {
         put(structured, "midGameMacroAction", source.getMidGameMacroAction());
         put(structured, "outerTurretSiege", source.getOuterTurretSiege());
         put(structured, "structureAction", source.getStructureAction());
+        put(structured, "baseDefense", source.getBaseDefense());
+        put(structured, "upperObjective", source.getUpperObjective());
         put(structured, "matchPhaseChange", source.getMatchPhaseChange());
         put(structured, "lateGameDecision", source.getLateGameDecision());
         put(structured, "progressionEvent", source.getProgressionEvent());
@@ -226,6 +230,7 @@ final class MatchEngineV1Projector {
         put(state, "lateGame", source.getLateGame());
         put(state, "progression", source.getProgression());
         put(state, "structures", source.getStructureState());
+        put(state, "realism", source.getRealism());
         return new MatchEngineV1Output.SnapshotV1(
                 source.getTimeSeconds(), team(input, source, TeamSide.BLUE),
                 team(input, source, TeamSide.RED), players,

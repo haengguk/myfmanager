@@ -1778,3 +1778,27 @@ AI 계획 작업의 전체 결과는 **1회 / 270 suites / 2,104 tests / 통과 
 기존 skip 2 / 34분 50초**다. 최종 제품 코드에서 통과했으며 이후 문서만 갱신했다.
 원본 로그와 XML/집계는 `/tmp/career-ai-full-evidence/`에 보존했다. 전체 후 수정이나
 두 번째 전체 실행은 없었다. 기존 진단 제외와 Gradle 설정은 변경하지 않았다.
+
+
+## 매치 현실성·성능 Draft V1 검증 경로 (2026-09-08)
+
+신규 동작은 기존 realism/structure/progression/jungle 테스트와 `UpperObjectiveTest`,
+`DraftAbilityTest`, `RealismPolicyCompatibilityTest`에서 검사한다. 새 입력과 구 정책 선택을
+분리하고 historical fixtures는 그 정책을 명시한다. 실경기 진단은 correctness test에 넣지 않는다.
+이번 제한 진단은 기존 리뷰 64경기를 재사용하여 신규 75회와 tempo 연결 수정 후 같은 16개
+입력의 추가 실행으로 총 91회다. 64경기와 최종 수정 후 16경기를 같은 표본으로 합치지 않는다.
+
+프런트 `live:verify`는 기존 V9 artifact 정책과 신규 REALISM 정책을 각각 exact preflight한다.
+신규 응답 검증에는 `LOLMANAGER_REAL_MATCH_OPTIONS_PATH`, `LOLMANAGER_REAL_MATCH_RESPONSE_PATH`,
+`LOLMANAGER_REAL_MATCH_SEED`를 명시한다. 과거 artifact를 최신 기본값에 맞춰 덮어쓰지 않는다.
+`player-draft:verify`, `series:verify`와 build, 대표 Series 수동/AI/새로고침 복원/결과 흐름을 함께 확인한다.
+전체 회귀는 `JAVA_HOME=<JDK21> bash backend/scripts/test-linux.sh` 1회 후 원인별 영향 범위만
+재검증한다. [원본 전체와 후속 결과](match-engine-realism-and-ability-based-draft-improvement-v1.md).
+
+실제 전체 1회는 client disconnection/exit 143으로 중단됐다. 원본 완료 213개 클래스·1,675건
+(통과 1,640·실패 33·기존 skip 2)의 로그와 Gradle in-progress 결과를 먼저 보존했다.
+현재 JUnit 기본 discovery 277개 클래스와 대조한 미완료 64개 + 실패 영향 범위를 이어서 실행했다.
+별도 background 1건 통과 후 79개 클래스·594건(588 통과·6 실패, 16분 26.626초)을 완료했고,
+정책 기대값을 교정한 관련 5개 클래스·15건이 통과했다(1분 52.528초).
+원본 및 후속 클래스 합집합은 277/277, 미해결 실패 0이다. 단일 clean full 결과로 부르지 않으며
+두 번째 전체는 실행하지 않았다. 검증 요약은 해당 보고서의 `verification.json`에 보존한다.

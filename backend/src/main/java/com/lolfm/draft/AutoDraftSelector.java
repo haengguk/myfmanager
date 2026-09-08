@@ -83,10 +83,21 @@ public final class AutoDraftSelector {
                 turn.number(), turn.side(), turn.actionType(), pool.getFirst().championId(),
                 pool.getFirst().canonicalFinalScore(), pool, selected.championId(),
                 selected.canonicalRank(), selected.canonicalScoreLoss(), bucket,
-                totalWeight, reason);
+                totalWeight, reason, policy.policyId().equals(AutoDraftSelectionPolicy.POLICY_ID)?null:
+                        new DraftSelectionTrace.Evaluation(searchResult.portfolio().preferred().archetype(),
+                                selectedCandidate.componentBreakdown(), explanation(turn.actionType(),searchResult.portfolio().preferred().archetype())));
         return new Selection(selectedCandidate, trace);
     }
 
+    private String explanation(DraftActionType action,DraftPlanArchetype plan) {
+        if(action==DraftActionType.BAN)return "상대 대체 픽과 선점 순서를 고려한 차단";
+        return switch(plan) {
+            case DIVE -> "초중반 교전과 진입 조합을 위한 선택";
+            case PICK_CONTROL -> "고립된 적 공략과 지역 장악을 위한 선택";
+            case POKE_SIEGE -> "견제와 포탑 압박을 위한 선택";
+            case FRONT_TO_BACK -> "후반 전력과 정면 한타를 위한 선택";
+        };
+    }
     static long canonicalScore(double rawScore) {
         if (!Double.isFinite(rawScore)) {
             throw new IllegalArgumentException("Draft candidate score must be finite");
@@ -127,7 +138,7 @@ public final class AutoDraftSelector {
                                           List<DraftSelectionPoolEntry> pool) {
         DraftTurn turn = state.currentTurn();
         StringBuilder canonical = new StringBuilder("schema=")
-                .append(AutoDraftSelectionPolicy.POLICY_ID).append('\n')
+                .append(policy.policyId()).append('\n')
                 .append("matchSeed=").append(context.matchSeed()).append('\n')
                 .append("blueTeamIdentity=").append(context.blueTeamIdentity()).append('\n')
                 .append("redTeamIdentity=").append(context.redTeamIdentity()).append('\n')

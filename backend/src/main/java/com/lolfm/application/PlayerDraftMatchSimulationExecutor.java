@@ -61,11 +61,11 @@ final class PlayerDraftMatchSimulationExecutor {
                     output, "output").executionProvenance();
             var control = output.finalDraft().controlEvidence();
             boolean valid = output.productionPolicy().equals(
-                    MatchEngineV1Policy.authoritative())
+                    MatchEngineV1Policy.resolve(MatchEngineV1Policy.forSelection(session.progress().boundPolicyId())))
                     && output.configurationHash().equals(
-                    MatchEngineV1Policy.authoritative().configurationHash())
+                    MatchEngineV1Policy.resolve(MatchEngineV1Policy.forSelection(session.progress().boundPolicyId())).configurationHash())
                     && execution.runtimeProfileId()
-                    == MatchEngineV1Policy.authoritative().retainedRuntimeProfileId()
+                    == MatchEngineV1Policy.resolve(MatchEngineV1Policy.forSelection(session.progress().boundPolicyId())).retainedRuntimeProfileId()
                     && execution.blueTeamCode().equals(session.blueTeamCode())
                     && execution.redTeamCode().equals(session.redTeamCode())
                     && execution.matchSeed() == session.matchSeed()

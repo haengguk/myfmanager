@@ -22,6 +22,7 @@ import java.util.Set;
 /** Stateless transition engine for one mixed player/AI professional Draft. */
 public final class PlayerControlledDraftEngine {
     private final DraftResourceSet resources;
+    private final String selectionPolicyId;
     private final DraftRuleSet rules;
     private final ChampionCatalog champions;
     private final RoleAssignmentSolver assignments;
@@ -34,8 +35,10 @@ public final class PlayerControlledDraftEngine {
             DraftResourceSet resources, DraftRuleSet rules, DraftScoringPolicy policy
     ) {
         this.resources = Objects.requireNonNull(resources, "resources");
+        selectionPolicyId=(policy.abilityBased()?AutoDraftSelectionPolicy.ability():AutoDraftSelectionPolicy.production()).policyId();
         this.rules = Objects.requireNonNull(rules, "rules");
         champions = resources.champions().catalog();
+        DraftAbilityEvaluator ability=policy.abilityBased()?new DraftAbilityEvaluator(resources.champions()):null;
         assignments = new RoleAssignmentSolver(champions);
         DraftCompositionEvaluator composition = new DraftCompositionEvaluator(
                 champions, resources.champions().composition(), assignments);
@@ -43,20 +46,27 @@ public final class PlayerControlledDraftEngine {
         DraftMatchupEvaluator matchup = new DraftMatchupEvaluator(
                 assignments, resources.champions().matchup());
         PreDraftPlanner planner = new PreDraftPlanner(
-                champions, resources.meta(), resources.champions().composition(), assignments);
+                champions, resources.meta(), resources.champions().composition(), assignments, ability, policy.metaScale());
         PickEvaluator pickEvaluator = new PickEvaluator(
                 champions, resources.meta(), matchup, assignments, composition,
-                availability, policy);
+                availability, policy, ability);
         BanEvaluator banEvaluator = new BanEvaluator(
                 champions, resources.meta(), resources.champions().composition(), assignments,
-                availability, composition, matchup, policy);
+                availability, composition, matchup, policy, ability);
         DraftCandidateGenerator generator = new DraftCandidateGenerator(
-                champions, resources.meta(), assignments, composition, availability, policy);
+                champions, resources.meta(), assignments, composition, availability, policy, ability);
         search = new ShallowDraftSearch(
                 planner, generator, pickEvaluator, banEvaluator, policy);
-        selector = new AutoDraftSelector(AutoDraftSelectionPolicy.production());
-        finalRoles = new FinalRoleAssignmentResolver(assignments, matchup, composition);
+        selector = new AutoDraftSelector(policy.abilityBased()?AutoDraftSelectionPolicy.ability():AutoDraftSelectionPolicy.production());
+        finalRoles = new FinalRoleAssignmentResolver(assignments, matchup, composition, ability);
     }
+
+    public PlayerControlledDraftEngine forPolicy(String id) {
+        AutoDraftSelectionPolicy.resolve(id);
+        return selectionPolicyId.equals(id)?this:new PlayerControlledDraftEngine(resources,rules,
+                id.equals(AutoDraftSelectionPolicy.POLICY_ID)?DraftScoringPolicy.standard():DraftScoringPolicy.ability());
+    }
+    public PlayerControlledDraftEngine forProgress(Progress progress) { return forPolicy(progress.boundPolicyId()); }
 
     public Progress start(
             DraftTeamContext blue,
@@ -107,6 +117,7 @@ public final class PlayerControlledDraftEngine {
     ) {
         Objects.requireNonNull(selectionContext, "selectionContext");
         Objects.requireNonNull(computation, "computation");
+        computation.context.bindStrategy(selectionContext);
         Set<ChampionId> exclusions = Set.copyOf(hardFearlessExclusions);
         if (!selectionContext.seriesHistoryBeforeHash().equals(
                 com.lolfm.application.RealDraftSelectionContextFactory.seriesHistoryHash(
@@ -115,7 +126,7 @@ public final class PlayerControlledDraftEngine {
         }
         DraftState fresh = new DraftState(
                 rules, 0, List.of(), List.of(), List.of(), List.of(), exclusions);
-        return advanceAi(new Progress(controlledSide, fresh, List.of(), null),
+        return advanceAi(new Progress(controlledSide, fresh, List.of(), null, selectionPolicyId),
                 blue, red, selectionContext, computation.context);
     }
 
@@ -157,6 +168,8 @@ public final class PlayerControlledDraftEngine {
     ) {
         Objects.requireNonNull(progress, "progress");
         Objects.requireNonNull(computation, "computation");
+        if(!selectionPolicyId.equals(progress.boundPolicyId()))return forProgress(progress).selectProjected(
+                progress,blue,red,selectionContext,projection,championId,clientActionId,computation);
         if (progress.complete()) throw new IllegalStateException("PLAYER_DRAFT_ALREADY_COMPLETE");
         DraftState state = progress.state();
         DraftTurn turn = state.currentTurn();
@@ -187,7 +200,7 @@ public final class PlayerControlledDraftEngine {
                 null, manual);
         ArrayList<DraftTurnControlEvidence> turns = new ArrayList<>(progress.turnEvidence());
         turns.add(evidence);
-        return advanceAi(new Progress(progress.controlledSide(), afterState, turns, null),
+        return advanceAi(new Progress(progress.controlledSide(), afterState, turns, null, progress.selectionPolicyId()),
                 blue, red, selectionContext, computation.context);
     }
 
@@ -212,6 +225,7 @@ public final class PlayerControlledDraftEngine {
     ) {
         Objects.requireNonNull(progress, "progress");
         Objects.requireNonNull(computation, "computation");
+        if(!selectionPolicyId.equals(progress.boundPolicyId()))return forProgress(progress).project(progress,blue,red,computation);
         if (progress.complete()) {
             return new AuthoritativeSelectionProjection(progress,
                     new SelectionView(List.of(), List.of(), List.of(),
@@ -299,6 +313,10 @@ public final class PlayerControlledDraftEngine {
             Set<ChampionId> expectedHardFearlessExclusions
     ) {
         Objects.requireNonNull(result, "result");
+        String bound=PlayerDraftControlPolicy.autoPolicyId(result.turnEvidence());
+        if(!selectionPolicyId.equals(bound)) {
+            forPolicy(bound).validateCompletedSeries(result,blue,red,selectionContext,expectedHardFearlessExclusions);return;
+        }
         Set<ChampionId> expectedExclusions = Set.copyOf(expectedHardFearlessExclusions);
         if (!selectionContext.seriesHistoryBeforeHash().equals(
                 com.lolfm.application.RealDraftSelectionContextFactory.seriesHistoryHash(
@@ -321,6 +339,7 @@ public final class PlayerControlledDraftEngine {
         DraftState state = new DraftState(rules, 0, List.of(), List.of(), List.of(),
                 List.of(), result.hardFearlessExclusions());
         DraftComputationContext computation = DraftComputationContext.cached();
+        computation.bindStrategy(selectionContext);
         for (DraftTurnControlEvidence evidence : result.turnEvidence()) {
             DraftTurn turn = state.currentTurn();
             if (evidence.turn() != turn.number() || evidence.side() != turn.side()
@@ -347,7 +366,7 @@ public final class PlayerControlledDraftEngine {
             } else {
                 SelectionView legal = view(
                         new Progress(result.controlledSide(), state,
-                                result.turnEvidence().subList(0, turn.number() - 1), null),
+                                result.turnEvidence().subList(0, turn.number() - 1), null, selectionPolicyId),
                         blue, red);
                 PlayerManualSelectionEvidence manual = evidence.playerSelectionEvidence();
                 if (!legal.selectableChampionIds().contains(evidence.championId())
@@ -418,6 +437,7 @@ public final class PlayerControlledDraftEngine {
             DraftSelectionContext selectionContext,
             DraftComputationContext context
     ) {
+        context.bindStrategy(selectionContext);
         DraftState state = progress.state();
         ArrayList<DraftTurnControlEvidence> evidence =
                 new ArrayList<>(progress.turnEvidence());
@@ -439,7 +459,7 @@ public final class PlayerControlledDraftEngine {
         PlayerControlledDraftResult result = state.complete()
                 ? complete(progress.controlledSide(), state, evidence, blue, red, context)
                 : null;
-        return new Progress(progress.controlledSide(), state, evidence, result);
+        return new Progress(progress.controlledSide(), state, evidence, result, progress.selectionPolicyId());
     }
 
     private PlayerControlledDraftResult complete(
@@ -547,9 +567,18 @@ public final class PlayerControlledDraftEngine {
             TeamSide controlledSide,
             DraftState state,
             List<DraftTurnControlEvidence> turnEvidence,
-            PlayerControlledDraftResult result
+            PlayerControlledDraftResult result,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String selectionPolicyId
     ) {
+        public Progress(TeamSide side,DraftState state,List<DraftTurnControlEvidence> evidence,PlayerControlledDraftResult result) {
+            this(side,state,evidence,result,null);
+        }
+        public String boundPolicyId(){return selectionPolicyId==null?AutoDraftSelectionPolicy.POLICY_ID:selectionPolicyId;}
         public Progress {
+            AutoDraftSelectionPolicy.resolve(selectionPolicyId==null?AutoDraftSelectionPolicy.POLICY_ID:selectionPolicyId);
+            for(var turn:turnEvidence)if(turn.authority()==DraftDecisionAuthority.AI
+                    && !turn.autoSelectionTrace().policyId().equals(selectionPolicyId==null?AutoDraftSelectionPolicy.POLICY_ID:selectionPolicyId))
+                throw new IllegalArgumentException("Progress AI policy mismatch");
             Objects.requireNonNull(controlledSide, "controlledSide");
             Objects.requireNonNull(state, "state");
             turnEvidence = List.copyOf(turnEvidence);

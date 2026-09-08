@@ -70,7 +70,7 @@ public final class CareerCompetitionAutomatedSeriesKernel {
             LeagueAutomatedSeriesGameExecutor.Execution execution = games.execute(
                     new LeagueAutomatedSeriesGameExecutor.Request(fixture, gameNumber,
                             blue, red, gameSeed, matchIdentity, history,
-                            SimulationInstrumentation.enabled(), binding.frozenRosters()));
+                            SimulationInstrumentation.enabled(), binding.frozenRosters(), MatchEngineV1Policy.requirement(MatchEngineV1Policy.resolve(binding.matchPolicyId()))));
             LeagueFixtureGameReceiptV1 receipt = execution.gameReceipt();
             verifyGame(binding, snapshot, receipt, gameNumber, blue, red,
                     gameSeed, historyHash, matchIdentity);
@@ -105,7 +105,7 @@ public final class CareerCompetitionAutomatedSeriesKernel {
             int gameNumber, String blue, String red, long gameSeed,
             String historyHash, String matchIdentity
     ) {
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.resolve(binding.matchPolicyId());
         boolean valid = receipt.gameNumber() == gameNumber
                 && receipt.matchIdentity().equals(matchIdentity)
                 && receipt.blueTeamCode().equals(blue)

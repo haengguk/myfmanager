@@ -302,10 +302,12 @@ class SeriesRepositoryTest {
     ) {
         Instant now = repository.now();
         SeriesGame game = aggregate.currentGame();
+        var progress = mock(PlayerControlledDraftEngine.Progress.class);
+        org.mockito.Mockito.when(progress.boundPolicyId()).thenReturn(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID);
         SeriesChildDraft child = new SeriesChildDraft(
                 "draft-child", 1, 0, PlayerDraftSessionStatus.ACTIVE,
                 now, now, repository.childExpiresAt(now, aggregate.expiresAt()),
-                mock(PlayerControlledDraftEngine.Progress.class));
+                progress);
         SeriesGame changed = new SeriesGame(
                 game.gameId(), game.gameNumber(), game.blueTeamCode(), game.redTeamCode(),
                 game.controlledSide(), game.matchSeed(), game.historyBefore(),

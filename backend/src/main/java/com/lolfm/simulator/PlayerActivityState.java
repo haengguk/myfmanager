@@ -49,7 +49,37 @@ public final class PlayerActivityState {
         if (isSiegingAction(actionId)) clear();
     }
 
+    public void beginUpperObjectiveReturn(String actionId, int time, int until) {
+        activityType = PlayerActivityType.UPPER_OBJECTIVE_RETURN;
+        originLane = Lane.TOP; targetLane = null;
+        activityStartedAtSeconds = time; activityUntilSeconds = until;
+        structuredActionId = actionId;
+    }
+
+    public void beginBaseReturn(int time, int duration) {
+        activityType = PlayerActivityType.RETURNING_TO_BASE;
+        originLane = null;
+        targetLane = null;
+        activityStartedAtSeconds = time;
+        activityUntilSeconds = time + duration;
+        structuredActionId = "BASE_RETURN:" + time;
+    }
+
+    public void defendBase(int time) {
+        activityType = PlayerActivityType.DEFENDING_BASE;
+        activityStartedAtSeconds = time;
+        activityUntilSeconds = Integer.MAX_VALUE;
+        originLane = null;
+        targetLane = null;
+        structuredActionId = null;
+    }
+
     public void expireIfNeeded(int currentTimeSeconds) {
+        if (activityType == PlayerActivityType.RETURNING_TO_BASE
+                && currentTimeSeconds >= activityUntilSeconds) {
+            defendBase(currentTimeSeconds);
+            return;
+        }
         if (activityType != PlayerActivityType.DEFAULT_ROLE
                 && currentTimeSeconds >= activityUntilSeconds) clear();
     }

@@ -1,0 +1,72 @@
+{
+  "status": "IMPLEMENTED_AND_REQUIRED_COVERAGE_CLOSED",
+  "cleanFinalFullSuite": false,
+  "fullSuiteInvocations": 1,
+  "originalFull": {
+    "status": "ABORTED_CLIENT_DISCONNECTION",
+    "exitCode": 143,
+    "completedClasses": 213,
+    "completedTestInvocations": 1675,
+    "completedStatuses": {
+      "SUCCESS": 1640,
+      "FAILURE": 33,
+      "SKIPPED": 2
+    },
+    "discoveredClasses": 277,
+    "completedElapsedSeconds": 1434.744
+  },
+  "resumedRemainingAndAffected": {
+    "exitCode": 1,
+    "elapsedSeconds": 986.6262219649943,
+    "suites": 79,
+    "tests": 594,
+    "failures": 6,
+    "errors": 0,
+    "skipped": 0
+  },
+  "finalPolicyExpectationFixes": {
+    "exitCode": 0,
+    "elapsedSeconds": 112.52828900099848,
+    "suites": 5,
+    "tests": 15,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "separateBackgroundIntegration": {
+    "tests": 1,
+    "failures": 0,
+    "gradleWallSeconds": 90,
+    "deadlineSecondsUnchanged": 120
+  },
+  "coverage": {
+    "discoveredDefaultTestClasses": 277,
+    "completedClassUnion": 277,
+    "unverifiedClasses": [],
+    "latestResultByClassAcrossRuns": {
+      "SUCCESS": 2182,
+      "SKIPPED": 2
+    },
+    "note": "Multiple preserved executions; not a clean single full-suite run on the final tree."
+  },
+  "diagnosticExecutions": {
+    "firstSetBeforeTempoFix": 64,
+    "fearlessDepthBeforeTempoFix": 10,
+    "serializedInputReplayBeforeTempoFix": 1,
+    "sameInputsAfterTempoFix": 16,
+    "total": 91
+  },
+  "frontend": {
+    "playerDraftContract": "PASS",
+    "seriesContract": "PASS",
+    "actualResponseLiveContract": "PASS",
+    "typescriptAndViteBuild": "PASS",
+    "viteBuildSeconds": 10.45,
+    "browserActualGameExecutions": 1,
+    "storedReplayChecked": true,
+    "consoleErrors": 0,
+    "consoleWarnings": 0
+  },
+  "evidenceDirectory": "/tmp/realism-v1-evidence",
+  "failureResolution": "Explicitly bind historical fixtures to old policy; update new-runtime expectations and test doubles; make Career roster setup explicit; keep background deadline and all integrity/parity assertions."
+}

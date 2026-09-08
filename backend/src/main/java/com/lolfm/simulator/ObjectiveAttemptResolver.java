@@ -26,6 +26,10 @@ public class ObjectiveAttemptResolver {
             GameState gameState, Random random, ObjectiveResolver objectiveResolver,
             StructureResolver structureResolver, List<MatchEvent> events
     ) {
+        if (gameState.isRealismEnabled()) {
+            Optional<MatchEvent> upper = new UpperObjectiveResolver().attempt(gameState, random, objectiveResolver, structureResolver, events);
+            if (upper.isPresent()) return upper;
+        }
         ObjectiveState objectives = gameState.getObjectiveState();
         int currentTime = gameState.getCurrentTimeSeconds();
         if (objectives.isElderAttemptDue(currentTime)) {

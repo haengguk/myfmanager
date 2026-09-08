@@ -16,6 +16,8 @@ export function TeamFinalStats({ result, championsById }: { result: MatchResultV
     ['포탑', formatNumber(blue.towers), formatNumber(red.towers)],
     ['드래곤', formatNumber(blue.dragons), formatNumber(red.dragons)],
     ['바론', formatNumber(blue.barons), formatNumber(red.barons)],
+    ['공허 유충', formatNumber(blue.grubs ?? 0), formatNumber(red.grubs ?? 0)],
+    ['협곡의 전령', formatNumber(blue.heralds ?? 0), formatNumber(red.heralds ?? 0)],
     ['억제기 파괴', formatNumber(blue.inhibitorsDestroyed), formatNumber(red.inhibitorsDestroyed)],
     ['종료 사유', result.endReason === 'SIMULATION_TIMEOUT' ? '제한 시간 종료' : '넥서스 파괴', result.endReason === 'SIMULATION_TIMEOUT' ? '제한 시간 종료' : '넥서스 파괴'],
   ] as const;

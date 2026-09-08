@@ -99,6 +99,16 @@ accepts('valid ACTIVE session', () => validatePlayerDraftSessionPayload(baseSess
 accepts('valid COMPLETED session', () => validatePlayerDraftSessionPayload(completedSession, expectation));
 accepts('valid CANCELLED terminal session', () => validatePlayerDraftSessionPayload(cancelledSession, expectation));
 accepts('valid SIMULATION response', () => validatePlayerDraftSimulationPayload(simulation, expectation));
+accepts('new realism runtime keeps Player Draft result and integrity binding', () => {
+  const value = clone(simulation);
+  for (const part of [value.match.productionPolicy, value.match.integrity, value.match.result]) part.runtimeProfileId = 'PRODUCTION_REALISM_V1';
+  validatePlayerDraftSimulationPayload(value, expectation);
+});
+rejects('unknown runtime is not accepted as a production profile', () => {
+  const value = clone(simulation);
+  for (const part of [value.match.productionPolicy, value.match.integrity, value.match.result]) part.runtimeProfileId = 'UNREGISTERED_CANDIDATE';
+  return value;
+}, (value) => validatePlayerDraftSimulationPayload(value, expectation));
 rejects('wrong schema rejection', () => ({ ...clone(baseSession), schemaVersion: 'WRONG' }));
 rejects('invalid status rejection', () => ({ ...clone(baseSession), status: 'PAUSED' }));
 rejects('current turn side coherence rejection', () => { const value = clone(baseSession); value.currentTurn.teamSide = 'RED'; return value; });
@@ -180,5 +190,16 @@ accepts('session ordering rejects stale revision and terminal downgrade', () => 
 accepts('response-loss reconciliation finds the original clientActionId', () => {
   if (!playerDraftActionWasApplied(decisions, 'action-1')) throw new Error('accepted action not found');
   if (playerDraftActionWasApplied(decisions, 'action-missing')) throw new Error('unknown action was treated as accepted');
+});
+accepts('additive upper objective, defense activity and AI explanation survive validation', () => {
+  const value = clone(simulation);
+  const event = { ...clone(value.match.timeline.events[0]), eventType: 'VOID_GRUB', actorSide: 'BLUE',
+    structuredData: { upperObjective: { objectiveId: 'VOID_GRUB:1:1', phase: 'CAPTURED', teamSide: 'BLUE', teamGrubStacks: 1 } } };
+  value.match.timeline.events.push(event);
+  value.match.timeline.snapshots[0].players[0].activityType = 'RETURNING_TO_BASE';
+  const ai = value.session.decisions.find((turn) => turn.authority === 'AI');
+  ai.autoSelectionTrace.evaluation = { strategy: 'DIVE', components: { EARLY_POWER: 5 }, explanation: '초반 전력과 선수 적합도를 고려했습니다.' };
+  value.match.draft.decisions = clone(value.session.decisions);
+  validatePlayerDraftSimulationPayload(value, expectation);
 });
 if (!process.exitCode) console.log('PLAYER_DRAFT_FRONTEND_CONTRACT_VERIFICATION_PASSED');

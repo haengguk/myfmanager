@@ -69,7 +69,7 @@ public final class MatchEngineV1InputFactory {
                 seriesGameNumber,
                 draftResult.ruleSet().identity(),
                 provenance.draftRuleSetHash(),
-                provenance.draftScoringPolicyHash(),
+                MatchEngineV1Policy.scoringHash(draftResult.draftSelectionPolicyId()),
                 draftResult.draftSelectionPolicyId(),
                 draftResult.draftSelectionPolicyHash(),
                 draftResult.selectionTraces(),
@@ -95,7 +95,7 @@ public final class MatchEngineV1InputFactory {
                         blueTeamCode, blueTeam, redTeamCode, redTeam),
                 SimulationProvenanceService.seriesHistoryHash(
                         seriesGameNumber - 1, seriesExclusionsBeforeDraft),
-                MatchEngineV1Policy.requirement());
+                MatchEngineV1Policy.forSelection(draftResult.draftSelectionPolicyId()));
     }
 
     /** Unchecked projection only accepts the opaque token issued by the validating boundary. */
@@ -122,11 +122,11 @@ public final class MatchEngineV1InputFactory {
         String decisionHash = MatchEngineV1Input.draftDecisionHash(decisions);
         String assignmentHash = MatchEngineV1Input.finalAssignmentHash(assignments);
         var controlEvidence = draftResult.controlEvidence();
-        var autoPolicy = AutoDraftSelectionPolicy.production();
+        var autoPolicy = AutoDraftSelectionPolicy.resolve(com.lolfm.draft.PlayerDraftControlPolicy.autoPolicyId(draftResult.turnEvidence()));
         var traces = controlEvidence.autoSelectionTraces();
         MatchEngineV1Input.DraftInput unsigned = new MatchEngineV1Input.DraftInput(
                 1, draftResult.ruleSet().identity(), provenance.draftRuleSetHash(),
-                provenance.draftScoringPolicyHash(), autoPolicy.policyId(),
+                MatchEngineV1Policy.scoringHash(autoPolicy.policyId()), autoPolicy.policyId(),
                 autoPolicy.policyHash(), traces, DraftSelectionTraceHasher.hash(traces),
                 decisions, decisionHash, draftResult.blueBans(), draftResult.redBans(),
                 draftResult.bluePicks(), draftResult.redPicks(), List.of(),
@@ -136,7 +136,7 @@ public final class MatchEngineV1InputFactory {
         String finalDraftHash = MatchEngineV1Input.finalDraftHash(unsigned, assignments);
         MatchEngineV1Input.DraftInput draft = new MatchEngineV1Input.DraftInput(
                 1, draftResult.ruleSet().identity(), provenance.draftRuleSetHash(),
-                provenance.draftScoringPolicyHash(), autoPolicy.policyId(),
+                MatchEngineV1Policy.scoringHash(autoPolicy.policyId()), autoPolicy.policyId(),
                 autoPolicy.policyHash(), traces, DraftSelectionTraceHasher.hash(traces),
                 decisions, decisionHash, draftResult.blueBans(), draftResult.redBans(),
                 draftResult.bluePicks(), draftResult.redPicks(), List.of(),
@@ -151,7 +151,7 @@ public final class MatchEngineV1InputFactory {
                 + decisionHash;
         return new MatchEngineV1Input(
                 MatchEngineV1Input.SCHEMA, matchIdentity, blue, red, assignments, draft,
-                matchSeed, rosterHash, historyHash, MatchEngineV1Policy.requirement());
+                matchSeed, rosterHash, historyHash, MatchEngineV1Policy.forSelection(autoPolicy.policyId()));
     }
 
     MatchEngineV1Input fromValidatedSeriesPlayerControlledDraft(
@@ -175,14 +175,14 @@ public final class MatchEngineV1InputFactory {
         String decisionHash = MatchEngineV1Input.draftDecisionHash(decisions);
         String assignmentHash = MatchEngineV1Input.finalAssignmentHash(assignments);
         var controlEvidence = draftResult.controlEvidence();
-        var autoPolicy = AutoDraftSelectionPolicy.production();
+        var autoPolicy = AutoDraftSelectionPolicy.resolve(com.lolfm.draft.PlayerDraftControlPolicy.autoPolicyId(draftResult.turnEvidence()));
         var traces = controlEvidence.autoSelectionTraces();
         List<com.lolfm.champion.ChampionId> exclusions = binding.hardFearlessExclusions()
                 .stream().sorted(Comparator.comparing(
                         com.lolfm.champion.ChampionId::value)).toList();
         MatchEngineV1Input.DraftInput unsigned = new MatchEngineV1Input.DraftInput(
                 binding.gameNumber(), draftResult.ruleSet().identity(),
-                provenance.draftRuleSetHash(), provenance.draftScoringPolicyHash(),
+                provenance.draftRuleSetHash(), MatchEngineV1Policy.scoringHash(autoPolicy.policyId()),
                 autoPolicy.policyId(), autoPolicy.policyHash(), traces,
                 DraftSelectionTraceHasher.hash(traces), decisions, decisionHash,
                 draftResult.blueBans(), draftResult.redBans(), draftResult.bluePicks(),
@@ -192,7 +192,7 @@ public final class MatchEngineV1InputFactory {
         String finalDraftHash = MatchEngineV1Input.finalDraftHash(unsigned, assignments);
         MatchEngineV1Input.DraftInput draft = new MatchEngineV1Input.DraftInput(
                 binding.gameNumber(), draftResult.ruleSet().identity(),
-                provenance.draftRuleSetHash(), provenance.draftScoringPolicyHash(),
+                provenance.draftRuleSetHash(), MatchEngineV1Policy.scoringHash(autoPolicy.policyId()),
                 autoPolicy.policyId(), autoPolicy.policyHash(), traces,
                 DraftSelectionTraceHasher.hash(traces), decisions, decisionHash,
                 draftResult.blueBans(), draftResult.redBans(), draftResult.bluePicks(),
@@ -212,7 +212,7 @@ public final class MatchEngineV1InputFactory {
         return new MatchEngineV1Input(
                 MatchEngineV1Input.SCHEMA, matchIdentity, blue, red, assignments, draft,
                 binding.matchSeed(), rosterHash, expectedHistoryHash,
-                MatchEngineV1Policy.requirement());
+                MatchEngineV1Policy.forSelection(autoPolicy.policyId()));
     }
 
     private static MatchEngineV1Input.TeamInput team(

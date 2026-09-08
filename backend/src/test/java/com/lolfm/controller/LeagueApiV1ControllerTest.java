@@ -391,7 +391,7 @@ class LeagueApiV1ControllerTest {
                                     child.path("revision").asLong(), game)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.match.integrity.runtimeProfileId")
-                            .value("PRODUCTION_MATCHUP_COMPOSITION_V1"))
+                            .value("PRODUCTION_REALISM_V1"))
                     .andExpect(jsonPath("$.match.integrity.engineImplementationVersion")
                             .value("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9"))
                     .andReturn().getResponse().getContentAsString();

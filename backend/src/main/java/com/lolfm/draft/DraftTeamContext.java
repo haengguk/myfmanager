@@ -16,6 +16,7 @@ import java.util.Set;
 public final class DraftTeamContext {
     private final Map<Position, ChampionProficiencies> proficiencies;
     private final Map<Position, PlayerId> playerIds;
+    private final Map<Position, com.lolfm.domain.PlayerRatings> ratings;
 
     public DraftTeamContext(Map<Position, ChampionProficiencies> values) {
         this(values, Map.of());
@@ -23,6 +24,11 @@ public final class DraftTeamContext {
 
     public DraftTeamContext(Map<Position, ChampionProficiencies> values,
                             Map<Position, PlayerId> playerIds) {
+        this(values, playerIds, Map.of());
+    }
+    public DraftTeamContext(Map<Position, ChampionProficiencies> values,
+            Map<Position,PlayerId> playerIds, Map<Position,com.lolfm.domain.PlayerRatings> ratings) {
+        this.ratings=Map.copyOf(ratings);
         EnumMap<Position, ChampionProficiencies> proficiencyCopy = new EnumMap<>(Position.class);
         proficiencyCopy.putAll(values);
         for (Position position : Position.values()) {
@@ -59,9 +65,13 @@ public final class DraftTeamContext {
         if (stableIdentityCount != 0 && stableIdentityCount != Position.values().length) {
             throw new IllegalArgumentException("Draft roster mixes stable and legacy player identity");
         }
-        return new DraftTeamContext(values, identities);
+        return new DraftTeamContext(values, identities, team.getPlayers().stream().collect(
+                java.util.stream.Collectors.toUnmodifiableMap(Player::getPosition,Player::getRatings)));
     }
 
+    public com.lolfm.domain.PlayerRatings ratings(Position position) {
+        return ratings.getOrDefault(position, com.lolfm.domain.PlayerRatings.neutral(position));
+    }
     public int proficiency(ChampionRoleKey key) {
         return proficiencies.get(key.position()).get(key);
     }

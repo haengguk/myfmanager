@@ -92,7 +92,9 @@ public final class LeagueProductionSnapshotProvider
     }
 
     private String productionRuntimeIdentity(SimulationResourceProvenance resources) {
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        // Season snapshots froze this compatibility identity before per-Series policy binding existed.
+        // Keep the anchor stable for saved seasons; each new Series/receipt separately binds its actual policy.
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.legacy();
         String canonical = "productionRuntimeSchema=AI_LEAGUE_PRODUCTION_RUNTIME_V1\n"
                 + "policySchema=" + policy.schemaVersion() + '\n'
                 + "policyId=" + policy.policyId() + '\n'

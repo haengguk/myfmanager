@@ -78,6 +78,8 @@ public record MatchEngineV1Input(
         seriesHistoryBeforeHash = MatchEngineV1Policy.requiredHash(
                 seriesHistoryBeforeHash, "seriesHistoryBeforeHash");
         MatchEngineV1Policy.requireAuthoritative(productionPolicy);
+        if(!productionPolicy.equals(MatchEngineV1Policy.forSelection(finalDraft.draftSelectionPolicyId())))
+            throw new IllegalArgumentException("MATCH_ENGINE_INPUT_DRAFT_RUNTIME_POLICY_MISMATCH");
         validateTeams(blueTeam, redTeam);
         validateAssignments(blueTeam, redTeam, championAssignments, finalDraft);
         if (!rosterIdentityHash.equals(rosterIdentityHash(blueTeam, redTeam))) {
@@ -241,7 +243,7 @@ public record MatchEngineV1Input(
                 new DraftAction(value.turn(), value.side(), value.actionType(),
                         value.selectedChampionId())).toList();
         DraftSelectionEvidenceValidator validator =
-                new DraftSelectionEvidenceValidator(AutoDraftSelectionPolicy.production());
+                new DraftSelectionEvidenceValidator(AutoDraftSelectionPolicy.resolve(draft.draftSelectionPolicyId()));
         DraftSelectionEvidenceValidator.ValidatedDraft validated;
         if (draft.controlEvidence() == null) {
             validated = validator.validate(DraftRuleSet.professional(),
@@ -485,6 +487,7 @@ public record MatchEngineV1Input(
             TeamSide teamSide,
             Position position,
             Map<PlayerSkill, Integer> ratings,
+            @com.fasterxml.jackson.databind.annotation.JsonDeserialize(keyUsing = ChampionRoleMapKeyDeserializer.class)
             Map<ChampionRoleKey, Integer> proficiencies
     ) {
         public PlayerInput {
@@ -504,6 +507,21 @@ public record MatchEngineV1Input(
             return new Player(playerId, displayName, position,
                     new PlayerRatings(position, ratings),
                     new ChampionProficiencies(proficiencies));
+        }
+    }
+
+    /** Reads the existing record-form map keys without changing historical JSON bytes. */
+    public static final class ChampionRoleMapKeyDeserializer extends com.fasterxml.jackson.databind.KeyDeserializer {
+        @Override
+        public ChampionRoleKey deserializeKey(String key, com.fasterxml.jackson.databind.DeserializationContext context)
+                throws java.io.IOException {
+            var match = java.util.regex.Pattern.compile("ChampionRoleKey\\[championId=([^,]+), position=([A-Z]+)\\]").matcher(key);
+            if (!match.matches()) throw context.weirdKeyException(ChampionRoleKey.class, key, "Invalid champion-role map key");
+            try {
+                return new ChampionRoleKey(new ChampionId(match.group(1)), Position.valueOf(match.group(2)));
+            } catch (IllegalArgumentException error) {
+                throw context.weirdKeyException(ChampionRoleKey.class, key, "Unknown champion-role map key");
+            }
         }
     }
 
@@ -641,11 +659,11 @@ public record MatchEngineV1Input(
             if (!draftRuleSetIdentity.equals(MatchEngineV1Policy.DRAFT_RULE_SET_IDENTITY)
                     || !draftRuleSetHash.equals(MatchEngineV1Policy.DRAFT_RULE_SET_SHA256)
                     || !draftScoringPolicyHash.equals(
-                    MatchEngineV1Policy.DRAFT_SCORING_POLICY_SHA256)
+                    MatchEngineV1Policy.scoringHash(draftSelectionPolicyId))
                     || !draftSelectionPolicyId.equals(
-                    MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID)
+                    MatchEngineV1Policy.forSelection(draftSelectionPolicyId).draftSelectionPolicyId())
                     || !draftSelectionPolicyHash.equals(
-                    MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256)) {
+                    MatchEngineV1Policy.forSelection(draftSelectionPolicyId).draftSelectionPolicyHash())) {
                 throw new IllegalArgumentException("MATCH_ENGINE_V1_DRAFT_POLICY_MISMATCH");
             }
             if (decisions.size() != 20 || bluePicks.size() != Position.values().length

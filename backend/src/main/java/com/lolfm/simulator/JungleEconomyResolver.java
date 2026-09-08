@@ -68,9 +68,20 @@ public final class JungleEconomyResolver {
         double resourceMultiplier = playerEconomy.jungleResourceManagementMultiplier(
                 jungler, timeSeconds);
         double combinedEfficiency = clearMultiplier * resourceMultiplier;
+        boolean finiteCamps = gameState.isRealismEnabled();
+        if (finiteCamps && economyState.camps().hasAvailable(timeSeconds) && gameState.isJungleGankTempoEnabled()) {
+            var work = gameState.jungleTempoState(side).recordClearWork(timeSeconds,
+                    Math.min(elapsedSeconds, JungleEconomyRuleConfig.STANDARD_TICK_SECONDS), combinedEfficiency);
+            gameState.getJungleTempoExecutionStats().recordEconomyUpdate(work);
+        }
+        if (finiteCamps && !economyState.camps().clear(timeSeconds, elapsedSeconds, combinedEfficiency)) {
+            economyState.markResolvedAt(timeSeconds, null);
+            return Optional.empty();
+        }
         double expectedCs = JungleEconomyRuleConfig.BASE_CS_PER_MINUTE
                 * combinedEfficiency * elapsedSeconds / 60.0;
-        int awardedCs = stochasticRound(expectedCs, random);
+        if (finiteCamps) expectedCs = MatchRealismRuleConfig.CAMP_CS;
+        int awardedCs = finiteCamps ? MatchRealismRuleConfig.CAMP_CS : stochasticRound(expectedCs, random);
         int awardedGold = awardedCs * JungleEconomyRuleConfig.GOLD_PER_CS;
         int awardedExperience = gameState.isProgressionEnabled()
                 ? (int) Math.round(JungleEconomyRuleConfig.BASE_XP_PER_STANDARD_TICK
@@ -78,6 +89,7 @@ public final class JungleEconomyResolver {
                         / JungleEconomyRuleConfig.STANDARD_TICK_SECONDS)
                 : 0;
 
+        if (finiteCamps && gameState.isProgressionEnabled()) awardedExperience = MatchRealismRuleConfig.CAMP_XP;
         JungleEconomyOutcome outcome = new JungleEconomyOutcome(
                 side, playerKey, championRoleKey, catalog.profileVersion(), timeSeconds,
                 elapsedSeconds, clearMultiplier, resourceMultiplier, combinedEfficiency,
@@ -94,7 +106,7 @@ public final class JungleEconomyResolver {
         }
         economyState.markResolvedAt(timeSeconds, outcome);
         stats.recordOutcome(outcome);
-        if (gameState.isJungleGankTempoEnabled()) {
+        if (gameState.isJungleGankTempoEnabled() && !finiteCamps) {
             JungleTempoState.CreditUpdate update = gameState.jungleTempoState(side)
                     .recordEconomyOutcome(outcome);
             gameState.getJungleTempoExecutionStats().recordEconomyUpdate(update);

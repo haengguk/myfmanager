@@ -28,6 +28,51 @@ class JungleEconomyResolverTest {
     private static final ChampionResourceSet RESOURCES = ChampionResourceSet.loadDefault();
 
     @Test
+    void realismCampCompletionIsFiniteDuplicateSafeAndTravelDoesNotEarnCatchup() {
+        GameState state = enabledState("belveth"); state.configureRealism(true);
+        CountingRandom random = new CountingRandom(0);
+        var jungler = state.getBlueTeamState().playerAt(Position.JUNGLE);
+        var resolver = resolver();
+        state.advanceTimeSeconds(70);
+        assertThat(resolver.resolve(state, TeamSide.BLUE, 70, 10, random)).isEmpty();
+        double work = state.jungleEconomyState(TeamSide.BLUE).camps().workSeconds();
+        assertThat(resolver.resolve(state, TeamSide.BLUE, 70, 10, random)).isEmpty();
+        assertThat(state.jungleEconomyState(TeamSide.BLUE).camps().workSeconds()).isEqualTo(work);
+        jungler.blockFarmUntil(100);
+        state.advanceTimeSeconds(20);
+        assertThat(resolver.resolve(state, TeamSide.BLUE, 90, 20, random)).isEmpty();
+        assertThat(state.jungleEconomyState(TeamSide.BLUE).camps().workSeconds()).isEqualTo(work);
+        state.advanceTimeSeconds(10); resolver.resolve(state, TeamSide.BLUE,100,10,random);
+        state.advanceTimeSeconds(10); resolver.resolve(state, TeamSide.BLUE,110,10,random);
+        assertThat(jungler.getCs()).isEqualTo(MatchRealismRuleConfig.CAMP_CS);
+        assertThat(jungler.getProgressionState().getTotalExperience()).isEqualTo(MatchRealismRuleConfig.CAMP_XP);
+        assertThat(state.jungleEconomyState(TeamSide.BLUE).camps().completed()).isOne();
+        assertThat(state.jungleEconomyState(TeamSide.BLUE).camps().respawns().get(JungleCampState.Camp.BLUE))
+                .isEqualTo(110 + MatchRealismRuleConfig.BUFF_CAMP_RESPAWN_SECONDS);
+        assertThat(random.calls).isZero();
+    }
+
+    @Test
+    void finiteCampWorkBuildsGankReadinessWithoutPayingEveryTickOrDoubleCreditingCompletion() {
+        GameState state=state(assignments("belveth"),JungleClearContribution.ECONOMY_AND_GANK_TEMPO_V1);
+        state.configureRealism(true); var resolver=resolver(); var random=new CountingRandom(0);
+        state.advanceTimeSeconds(50);
+        for(int time=60;time<=200;time+=10) {
+            state.advanceTimeSeconds(10);
+            resolver.resolve(state,TeamSide.BLUE,time,10,random);
+            var credit=state.jungleTempoState(TeamSide.BLUE).snapshot();
+            resolver.resolve(state,TeamSide.BLUE,time,10,random);
+            assertThat(state.jungleTempoState(TeamSide.BLUE).snapshot()).isEqualTo(credit);
+        }
+        assertThat(state.jungleTempoState(TeamSide.BLUE).readinessAt(200).ready()).isTrue();
+        assertThat(new JungleGankResolver().junglerEligible(state,TeamSide.BLUE,200)).isTrue();
+        var jungle=state.getBlueTeamState().playerAt(Position.JUNGLE);
+        assertThat(jungle.getCs()).isEqualTo(state.jungleEconomyState(TeamSide.BLUE).camps().completed()*MatchRealismRuleConfig.CAMP_CS);
+        assertThat(state.getJungleTempoExecutionStats().snapshot(state.getJungleTempoStates()).economyUpdates()).isEqualTo(15);
+        assertThat(random.calls).isZero();
+    }
+
+    @Test
     void championClearAndResourceManagementProduceOneUnifiedCsGoldXpOutcome() {
         GameState state = enabledState("belveth");
         state.advanceTimeSeconds(600);

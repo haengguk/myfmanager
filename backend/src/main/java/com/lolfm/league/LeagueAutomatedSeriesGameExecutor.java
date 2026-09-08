@@ -30,8 +30,12 @@ interface LeagueAutomatedSeriesGameExecutor {
             String matchIdentity,
             SeriesDraftHistory history,
             SimulationInstrumentation instrumentation,
-            com.lolfm.career.CompetitionRosterSnapshot frozenRosters
+            com.lolfm.career.CompetitionRosterSnapshot frozenRosters, MatchEngineV1Policy.Requirement boundPolicy
     ) {
+        public Request(LeagueFixture fixture,int gameNumber,String blueTeamCode,String redTeamCode,long gameSeed,String matchIdentity,
+                SeriesDraftHistory history,SimulationInstrumentation instrumentation,com.lolfm.career.CompetitionRosterSnapshot rosters) {
+            this(fixture,gameNumber,blueTeamCode,redTeamCode,gameSeed,matchIdentity,history,instrumentation,rosters,MatchEngineV1Policy.requirement());
+        }
         public Request(LeagueFixture fixture, int gameNumber, String blueTeamCode, String redTeamCode,
                 long gameSeed, String matchIdentity, SeriesDraftHistory history, SimulationInstrumentation instrumentation) {
             this(fixture, gameNumber, blueTeamCode, redTeamCode, gameSeed, matchIdentity, history, instrumentation, null);
@@ -84,7 +88,7 @@ final class ProductionLeagueAutomatedSeriesGameExecutor
         String historyBeforeHash = request.history().identityHash();
         PreparedAutoDraftMatch prepared = matches.prepareV1(
                 request.matchIdentity(), request.blueTeamCode(), request.redTeamCode(),
-                request.history(), request.gameSeed(), request.instrumentation(), request.frozenRosters());
+                request.history(), request.gameSeed(), request.instrumentation(), request.frozenRosters(), request.boundPolicy());
         validate(request, historyBeforeHash, prepared);
         FinalDraftResult draft = prepared.completedDraft();
         HashSet<ChampionId> historyAfter = new HashSet<>(historyBefore);
@@ -107,7 +111,7 @@ final class ProductionLeagueAutomatedSeriesGameExecutor
         var input = prepared.input();
         var output = prepared.output();
         var execution = output.executionProvenance();
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.resolve(request.boundPolicy());
         boolean valid = prepared.gameNumber() == request.gameNumber()
                 && prepared.historyBefore().equals(request.history().consumedPicks())
                 && input.matchIdentity().equals(request.matchIdentity())

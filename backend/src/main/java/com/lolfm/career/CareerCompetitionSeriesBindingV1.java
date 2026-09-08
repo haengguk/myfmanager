@@ -58,6 +58,7 @@ public final class CareerCompetitionSeriesBindingV1 {
     private final String resourceProvenanceHash;
     private final CompetitionRosterSnapshot frozenRosters;
     private final String bindingHash;
+    private final String matchPolicyId;
 
     private CareerCompetitionSeriesBindingV1(
             String careerId, int seasonYear, String competitionId,
@@ -81,8 +82,10 @@ public final class CareerCompetitionSeriesBindingV1 {
             String matchupCompositionResourceIdentity,
             String productionRuntimeIdentity,
             String resourceProvenanceHash,
-            String expectedBindingHash, CompetitionRosterSnapshot frozenRosters
+            String expectedBindingHash, CompetitionRosterSnapshot frozenRosters, String matchPolicyId
     ) {
+        this.matchPolicyId=matchPolicyId;
+        com.lolfm.application.MatchEngineV1Policy.resolve(matchPolicyId());
         CareerIdentity.requireCareerId(careerId);
         if (seasonYear < 2026 || instanceRevision < 0 || matchOrder < 1) {
             throw new IllegalArgumentException("Competition binding revision/order");
@@ -255,7 +258,7 @@ public final class CareerCompetitionSeriesBindingV1 {
                 productionSnapshot.championDraftResourceIdentity(),
                 productionSnapshot.matchupCompositionResourceIdentity(),
                 productionSnapshot.productionRuntimeIdentity(), resourceProvenanceHash,
-                null, rosters);
+                null, rosters, com.lolfm.application.MatchEngineV1Policy.authoritative().policyId());
     }
 
     static CareerCompetitionSeriesBindingV1 createInternational(
@@ -292,7 +295,7 @@ public final class CareerCompetitionSeriesBindingV1 {
                 productionSnapshot.championDraftResourceIdentity(),
                 productionSnapshot.matchupCompositionResourceIdentity(),
                 productionSnapshot.productionRuntimeIdentity(), resourceProvenanceHash,
-                null, rosters);
+                null, rosters, com.lolfm.application.MatchEngineV1Policy.authoritative().policyId());
     }
 
     public static CareerCompetitionSeriesBindingV1 restoreCanonical(String canonical) {
@@ -352,7 +355,7 @@ public final class CareerCompetitionSeriesBindingV1 {
                         required(fields, "productionRuntimeIdentity"),
                         required(fields, "resourceProvenanceHash"),
                         required(fields, "bindingHash"), fields.containsKey("frozenRosters")
-                                ? CompetitionRosterSnapshot.decode(fields.get("frozenRosters")) : null);
+                                ? CompetitionRosterSnapshot.decode(fields.get("frozenRosters")) : null, fields.get("matchPolicyId"));
         if (!canonical.equals(restored.canonicalText())) {
             throw new IllegalArgumentException("Competition binding canonical mismatch");
         }
@@ -434,11 +437,13 @@ public final class CareerCompetitionSeriesBindingV1 {
                 + matchupCompositionResourceIdentity + '\n'
                 + "productionRuntimeIdentity=" + productionRuntimeIdentity + '\n'
                 + "resourceProvenanceHash=" + resourceProvenanceHash + '\n'
-                + (frozenRosters == null ? "" : "frozenRosters=" + frozenRosters.encoded() + '\n');
+                + (frozenRosters == null ? "" : "frozenRosters=" + frozenRosters.encoded() + '\n')
+                + (matchPolicyId==null?"":"matchPolicyId="+matchPolicyId+'\n');
     }
 
     public String canonicalText() { return payloadText() + "bindingHash=" + bindingHash + '\n'; }
     public CompetitionRosterSnapshot frozenRosters() { return frozenRosters; }
+    public String matchPolicyId(){return matchPolicyId==null?com.lolfm.application.MatchEngineV1Policy.POLICY_ID:matchPolicyId;}
     public String bindingHash() { return bindingHash; }
     public String careerId() { return careerId; }
     public int seasonYear() { return seasonYear; }

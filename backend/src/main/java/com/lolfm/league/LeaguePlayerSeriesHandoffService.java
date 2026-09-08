@@ -360,7 +360,7 @@ public final class LeaguePlayerSeriesHandoffService {
         LeagueFixture fixture = context.fixture();
         LeagueSeasonAggregate season = context.season();
         LeagueSeasonFrozenSnapshot snapshot = context.currentSnapshot();
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.resolve(binding.policyId());
         boolean valid = binding.leagueId().equals(season.leagueId())
                 && binding.seasonId().equals(season.seasonId())
                 && binding.fixtureId().equals(fixture.fixtureId())

@@ -18,11 +18,20 @@ public final class DraftCandidateGenerator {
     private final DraftCompositionEvaluator composition;
     private final DraftAvailability availability;
     private final DraftScoringPolicy policy;
+    private final DraftAbilityEvaluator ability;
 
     public DraftCandidateGenerator(ChampionCatalog champions, DraftMetaCatalog meta,
                                    RoleAssignmentSolver assignments,
                                    DraftCompositionEvaluator composition, DraftAvailability availability,
                                    DraftScoringPolicy policy) {
+        this(champions, meta, assignments, composition, availability, policy, null);
+    }
+
+    public DraftCandidateGenerator(ChampionCatalog champions, DraftMetaCatalog meta,
+                                   RoleAssignmentSolver assignments,
+                                   DraftCompositionEvaluator composition, DraftAvailability availability,
+                                   DraftScoringPolicy policy, DraftAbilityEvaluator ability) {
+        this.ability=ability;
         this.champions = champions; this.meta = meta; this.assignments = assignments;
         this.composition = composition; this.availability = availability; this.policy = policy;
     }
@@ -95,7 +104,7 @@ public final class DraftCandidateGenerator {
         double best = assignments.feasibleCandidatePositions(
                 state.picks(side), id, context).stream()
                 .map(position -> new ChampionRoleKey(id, position))
-                .mapToDouble(key -> meta.priority(key) * 0.62 + team.proficiency(key) * 0.38).max().orElse(0.0);
+                .mapToDouble(key -> ability==null ? meta.priority(key) * 0.62 + team.proficiency(key) * 0.38 : context.forecast(ability,team,key,portfolio.preferred().archetype()).value()+policy.metaScale()*meta.priority(key)/20.0).max().orElse(0.0);
         double relevance = portfolio.plans().stream().filter(plan -> plan.coreCandidates().contains(id))
                 .mapToDouble(DraftPlan::viability).max().orElse(0.0);
         return best + relevance * 0.18;
@@ -120,7 +129,7 @@ public final class DraftCandidateGenerator {
                         state.picks(side.opposite()), id, context);
         double enemyValue = enemyPositions.stream()
                 .map(position -> new ChampionRoleKey(id, position))
-                .mapToDouble(key -> meta.priority(key) * 0.48 + enemy.proficiency(key) * 0.34).max().orElse(0.0);
+                .mapToDouble(key -> ability==null ? meta.priority(key) * 0.48 + enemy.proficiency(key) * 0.34 : context.forecast(ability,enemy,key,enemyPortfolio.preferred().archetype()).value()).max().orElse(0.0);
         double flex = assignments.practicalFlexValue(
                 state.picks(side.opposite()), id, enemy, context);
         if (!Double.isFinite(flex)) flex = 0.0;

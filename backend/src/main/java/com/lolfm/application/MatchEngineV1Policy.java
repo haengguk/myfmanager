@@ -68,11 +68,14 @@ public final class MatchEngineV1Policy {
                     SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1);
     private static final Snapshot SNAPSHOT = createAndVerify();
 
+    public static final String REALISM_POLICY_ID="MATCH_ENGINE_REALISM_ABILITY_V1";
+    private static final Snapshot REALISM=createRealism();
+
     private MatchEngineV1Policy() {
     }
 
     public static Snapshot authoritative() {
-        return SNAPSHOT;
+        return REALISM;
     }
 
     public static ResolvedSimulationRuntimeProfile resolvedRuntimeProfile() {
@@ -80,26 +83,50 @@ public final class MatchEngineV1Policy {
     }
 
     /** Rejects caller-authored policy/profile combinations before a simulator is created. */
-    public static void requireAuthoritative(Requirement requirement) {
-        Objects.requireNonNull(requirement, "productionPolicyRequirement");
-        if (!requirement.policyId().equals(POLICY_ID)
-                || !requirement.draftSelectionPolicyId().equals(DRAFT_SELECTION_POLICY_ID)
-                || !requirement.draftSelectionPolicyHash().equals(
-                DRAFT_SELECTION_POLICY_SHA256)
-                || requirement.runtimeProfileId()
-                != SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1
-                || !requirement.configurationHash().equals(PROFILE.configurationHash())
-                || requirement.economyCandidateActivation()
-                || requirement.tempoCandidateActivation()) {
-            throw new IllegalArgumentException("MATCH_ENGINE_V1_PRODUCTION_POLICY_MISMATCH");
-        }
+    public static void requireAuthoritative(Requirement requirement) { resolve(requirement); }
+    public static Snapshot legacy() { return SNAPSHOT; }
+    public static Snapshot resolve(String policyId) {
+        if(POLICY_ID.equals(policyId))return SNAPSHOT;
+        if(REALISM_POLICY_ID.equals(policyId))return REALISM;
+        throw new IllegalArgumentException("MATCH_ENGINE_V1_UNKNOWN_POLICY");
     }
-
-    public static Requirement requirement() {
-        return new Requirement(POLICY_ID, DRAFT_SELECTION_POLICY_ID,
-                DRAFT_SELECTION_POLICY_SHA256,
-                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1,
-                PROFILE.configurationHash(), false, false);
+    public static Snapshot resolve(Requirement requirement) {
+        Objects.requireNonNull(requirement,"productionPolicyRequirement");
+        Snapshot snapshot=resolve(requirement.policyId());
+        if(!requirement.equals(requirement(snapshot)))throw new IllegalArgumentException("MATCH_ENGINE_V1_PRODUCTION_POLICY_MISMATCH");
+        return snapshot;
+    }
+    public static Requirement requirement() { return requirement(authoritative()); }
+    public static Requirement requirement(Snapshot snapshot) {
+        return new Requirement(snapshot.policyId(),snapshot.draftSelectionPolicyId(),snapshot.draftSelectionPolicyHash(),
+                snapshot.retainedRuntimeProfileId(),snapshot.configurationHash(),false,false);
+    }
+    public static Requirement forSelection(String id) {
+        if(AutoDraftSelectionPolicy.POLICY_ID.equals(id))return requirement(SNAPSHOT);
+        if(AutoDraftSelectionPolicy.ability().policyId().equals(id))return requirement(REALISM);
+        throw new IllegalArgumentException("MATCH_ENGINE_UNKNOWN_DRAFT_POLICY");
+    }
+    public static String scoringHash(String selectionId) {
+        if(AutoDraftSelectionPolicy.POLICY_ID.equals(selectionId))return DRAFT_SCORING_POLICY_SHA256;
+        if(AutoDraftSelectionPolicy.ability().policyId().equals(selectionId))return sha256(
+                SimulationProvenanceService.canonicalDraftPolicy(com.lolfm.draft.DraftScoringPolicy.ability()));
+        throw new IllegalArgumentException("MATCH_ENGINE_UNKNOWN_DRAFT_POLICY");
+    }
+    private static Snapshot createRealism() {
+        var profile=SimulationRuntimeProfiles.resolve(SimulationRuntimeProfileId.PRODUCTION_REALISM_V1);
+        var selection=AutoDraftSelectionPolicy.ability();
+        String canonical="policySchema=MATCH_ENGINE_REALISM_POLICY_V1\npolicyId="+REALISM_POLICY_ID+"\n"
+                +"runtimeProfile="+profile.profileId()+"\nconfigurationHash="+profile.configurationHash()+"\n"
+                +"rules="+profile.activeGameplayRulesVersion()+"\nscoringHash="+scoringHash(selection.policyId())+"\n"
+                +"selectionHash="+selection.policyHash()+"\nstatisticalHoldoutApproved=false\n";
+        return new Snapshot("MATCH_ENGINE_REALISM_POLICY_V1",REALISM_POLICY_ID,"REALISM_IMPLEMENTATION_REQUEST_V1",
+                "NEW_GAME_RUNTIME_CONNECTION","IMPLEMENTED_DEVELOPMENT_VALIDATION_NOT_STATISTICAL_APPROVAL",
+                "COARSE_LANE_TRAVEL_CAMP_AND_UPPER_OBJECTIVE_MODEL",List.of("COARSE_LANE_TRAVEL_CAMP_AND_UPPER_OBJECTIVE_MODEL"),false,
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1,ROLLBACK_MODE,false,CONTRACT_SCHEMA,
+                selection.policyId(),selection.policyHash(),profile.profileId(),profile.configurationHash(),
+                SimulationRuntimeProfiles.CONFIGURATION_HASH_ALGORITHM,profile.gameplayConfiguration(),profile.activeGameplayRulesVersion(),
+                SimulationProvenanceService.ENGINE_IMPLEMENTATION_VERSION,false,false,true,sha256(canonical),POLICY_HASH_ALGORITHM,
+                LOW_LEVEL_DEFAULT_IDENTITY,false);
     }
 
     /** Low-level defaults can align with production semantics without owning product authority. */

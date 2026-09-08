@@ -51,7 +51,15 @@ public final class PositionEconomyResolver {
                     && currentTimeSeconds < player.getRoamActionState().getRoamFarmBlockedUntilSeconds()) continue;
             if (player.getPosition() == Position.JUNGLE && gameState != null && side != null
                     && currentTimeSeconds < gameState.jungleActionState(side).getJungleFarmBlockedUntilSeconds()) continue;
+            LaneResourceResolver laneResources = new LaneResourceResolver();
+            boolean finiteLanes = gameState != null && gameState.isRealismEnabled();
+            if (finiteLanes && (player.getPosition() == Position.SUPPORT
+                    || !laneResources.present(player, currentTimeSeconds)
+                    || !gameState.getLaneResourceState().beginCs(new PlayerKey(side, player.getPosition()),
+                            laneResources.lane(player), currentTimeSeconds))) continue;
             int cs = actualCs(player, gameState, side, currentTimeSeconds, elapsedSeconds, random);
+            if (finiteLanes) cs = gameState.getLaneResourceState().consume(side,
+                    laneResources.lane(player), currentTimeSeconds, cs);
             if (cs <= 0) continue;
             player.addCs(cs);
             awards.awardGold(team, player,
@@ -90,7 +98,12 @@ public final class PositionEconomyResolver {
             int currentTimeSeconds,
             double farmingScore
     ) {
-        if (player.hasMatchPerformance()) {
+        return resourceManagementMultiplier(farmingScore, currentTimeSeconds, player.hasMatchPerformance());
+    }
+
+    /** Pure economy formula, also usable for a public-rating draft forecast without a match realization. */
+    public static double resourceManagementMultiplier(double farmingScore, int currentTimeSeconds, boolean explicitRatings) {
+        if (explicitRatings) {
             double timeFactor = clamp((currentTimeSeconds
                             - PositionEconomyRuleConfig.EXPLICIT_FARMING_REALIZATION_START_SECONDS)
                             / (double) (PositionEconomyRuleConfig.EXPLICIT_FARMING_REALIZATION_FULL_SECONDS
@@ -140,7 +153,7 @@ public final class PositionEconomyResolver {
         };
     }
 
-    private double clamp(double value, double min, double max) {
+    private static double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
 }

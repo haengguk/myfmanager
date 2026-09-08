@@ -65,7 +65,7 @@ public final class SeriesLifecycleService {
                 request.teamACode(), request.teamBCode(), request.managedTeamCode(),
                 request.game1BlueTeamCode(), request.rootSeed(), rootSeed, score,
                 List.of(first), Set.of(), historyHash, null, now, now,
-                repository.parentExpiresAt(now), Map.of());
+                repository.parentExpiresAt(now), Map.of()).withPolicy(MatchEngineV1Policy.authoritative().policyId());
         try {
             SeriesRepository.CreateResult result = repository.create(
                     request.clientCommandId(), payloadHash, aggregate);
@@ -97,7 +97,7 @@ public final class SeriesLifecycleService {
                 Long.toString(binding.fixtureRootSeed()), binding.fixtureRootSeed(), score,
                 List.of(first), Set.of(), binding.initialHistoryHash(), null, now, now,
                 repository.parentExpiresAt(now), Map.of(), SeriesOrigin.LEAGUE_BOUND,
-                binding.bindingHash(), binding.seedAnchorTeamCode(), null, binding.frozenRosters());
+                binding.bindingHash(), binding.seedAnchorTeamCode(), null, binding.frozenRosters()).withPolicy(binding.policyId());
         SeriesRepository.CreateResult result = repository.create(
                 "LEAGUE_BINDING:" + binding.bindingHash(), binding.bindingHash(), aggregate);
         requireLeagueBinding(result.aggregate(), binding);
@@ -135,7 +135,7 @@ public final class SeriesLifecycleService {
                 score, List.of(first), binding.initialHistoryPicks(), binding.initialHistoryHash(), null,
                 now, now, repository.parentExpiresAt(now), Map.of(),
                 SeriesOrigin.COMPETITION_BOUND, binding.bindingHash(),
-                binding.seedAnchorTeamCode(), binding.loserChoosesNextSide() ? binding.sideSelectionPolicy() : null, binding.frozenRosters());
+                binding.seedAnchorTeamCode(), binding.loserChoosesNextSide() ? binding.sideSelectionPolicy() : null, binding.frozenRosters()).withPolicy(binding.matchPolicyId());
         SeriesRepository.CreateResult result = repository.create(
                 "COMPETITION_BINDING:" + binding.bindingHash(),
                 binding.bindingHash(), aggregate);
@@ -332,7 +332,7 @@ public final class SeriesLifecycleService {
                 DraftTeamContext blueContext = DraftTeamContext.from(blue);
                 DraftTeamContext redContext = DraftTeamContext.from(red);
                 var computation = drafts.newInteractiveComputationContext();
-                PlayerControlledDraftEngine.Progress progress = drafts.startSeriesInteractive(
+                PlayerControlledDraftEngine.Progress progress = drafts.forPolicy(aggregate.boundPolicy().draftSelectionPolicyId()).startSeriesInteractive(
                         blueContext, redContext, context,
                         game.controlledSide(), Set.copyOf(game.historyBefore()), computation);
                 Instant now = repository.now();
@@ -340,7 +340,7 @@ public final class SeriesLifecycleService {
                 String childId = SeriesIdentity.childId(
                         seriesId, game.gameNumber(), generation);
                 var projection = progress.complete() ? null
-                        : drafts.project(progress, blueContext, redContext, computation);
+                        : drafts.forProgress(progress).project(progress, blueContext, redContext, computation);
                 PlayerDraftCompletionBinding completionBinding = progress.complete()
                         ? matches.bind(binding(aggregate, game), childId, generation, 0,
                                 progress.result()) : null;
@@ -429,7 +429,7 @@ public final class SeriesLifecycleService {
                         : child.computationContext();
                 try {
                     var currentProjection = child.selectionProjection() == null
-                            ? drafts.project(child.progress(), blueContext, redContext,
+                            ? drafts.forProgress(child.progress()).project(child.progress(), blueContext, redContext,
                                     computation)
                             : child.selectionProjection();
                     progress = drafts.selectProjected(child.progress(), blueContext,
@@ -448,7 +448,7 @@ public final class SeriesLifecycleService {
                 Instant now = repository.now();
                 long nextDraftRevision = child.revision() + 1;
                 var nextProjection = progress.complete() ? null
-                        : drafts.project(progress, blueContext, redContext, computation);
+                        : drafts.forProgress(progress).project(progress, blueContext, redContext, computation);
                 PlayerDraftCompletionBinding completionBinding = progress.complete()
                         ? matches.bind(binding(aggregate, game), child.childId(),
                                 child.generation(), nextDraftRevision, progress.result()) : null;
@@ -651,7 +651,7 @@ public final class SeriesLifecycleService {
                 || game.completedDraft() == null) {
             throw conflict(before, "SERIES_GAME_NOT_COMMITTED", false);
         }
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = before.boundPolicy();
         if (!game.receipt().policyId().equals(policy.policyId())
                 || !game.receipt().policyHash().equals(policy.policyHash())
                 || !game.receipt().runtimeProfileId().equals(

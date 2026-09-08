@@ -78,6 +78,7 @@ public class MatchSimulator {
     private final RoamResolver roamResolver = new RoamResolver();
     private final GoldAwardService goldAwards = new GoldAwardService();
     private final ProgressionEconomyResolver progressionEconomyResolver = new ProgressionEconomyResolver();
+    private final boolean realismEnabled;
     private final boolean laneCombatEnabled;
     private final boolean farmRecoveryEnabled;
     private final boolean jungleGankEnabled;
@@ -196,6 +197,7 @@ public class MatchSimulator {
         this.objectiveAttemptResolver = objectiveAttemptResolver;
         this.structureResolver = structureResolver;
         this.pushResolver = pushResolver;
+        this.realismEnabled = options.realismEnabled();
         this.laneCombatEnabled = options.laneCombatEnabled();
         this.farmRecoveryEnabled = options.farmRecoveryEnabled();
         this.jungleGankEnabled = options.jungleGankEnabled();
@@ -261,6 +263,7 @@ public class MatchSimulator {
         this.objectiveAttemptResolver = objectiveAttemptResolver;
         this.structureResolver = structureResolver;
         this.pushResolver = pushResolver;
+        this.realismEnabled = options.realismEnabled();
         this.laneCombatEnabled = options.laneCombatEnabled();
         this.farmRecoveryEnabled = options.farmRecoveryEnabled();
         this.jungleGankEnabled = options.jungleGankEnabled();
@@ -303,6 +306,7 @@ public class MatchSimulator {
         this.objectiveAttemptResolver = objectiveAttemptResolver;
         this.structureResolver = structureResolver;
         this.pushResolver = pushResolver;
+        this.realismEnabled = options.realismEnabled();
         this.laneCombatEnabled = options.laneCombatEnabled();
         this.farmRecoveryEnabled = options.farmRecoveryEnabled();
         this.jungleGankEnabled = options.jungleGankEnabled();
@@ -439,6 +443,8 @@ public class MatchSimulator {
             gameState.clearMajorCombatParticipantsThisTick();
             gameState.clearStructureActionRegistryThisTick();
             structureResolver.addLifecycleEvents(gameState, events);
+            new BaseDefenseResolver().updateReturns(gameState, events);
+            new LaneResourceResolver().rotateSupport(gameState);
             objectivePriorityResolver.decayRecentControl(gameState, gameState.getCurrentTimeSeconds());
             boolean blueEconomy = awardPassiveForTick(gameState.getBlueTeamState(), gameState.getCurrentTimeSeconds());
             boolean redEconomy = awardPassiveForTick(gameState.getRedTeamState(), gameState.getCurrentTimeSeconds());
@@ -455,14 +461,15 @@ public class MatchSimulator {
             boolean roamEvaluationDue = roamEnabled
                     && gameState.shouldResolveRoamAt(gameState.getCurrentTimeSeconds());
             randomContext(random, SideOrientationRandomTraceObserver.Source.JUNGLE_GANK, null, gameState);
-            boolean jungleGankAttempted = jungleGankEnabled && jungleGankResolver.resolve(gameState, random, events);
+            boolean baseDefenseAttempted = new BaseDefenseResolver().resolveCombat(gameState, random, events);
+            boolean jungleGankAttempted = !baseDefenseAttempted && jungleGankEnabled && jungleGankResolver.resolve(gameState, random, events);
             if (jungleGankAttempted && roamEvaluationDue) gameState.getRoamExecutionStats().recordSkippedByHigherPriority();
             int roamEvaluationBefore = gameState.getLastRoamEvaluationAtSeconds();
             randomContext(random, SideOrientationRandomTraceObserver.Source.ROAM, null, gameState);
-            boolean roamAttempted = !jungleGankAttempted && roamEnabled
+            boolean roamAttempted = !baseDefenseAttempted && !jungleGankAttempted && roamEnabled
                     && roamResolver.resolve(gameState, random, events);
             boolean roamEvaluated = gameState.getLastRoamEvaluationAtSeconds() != roamEvaluationBefore;
-            boolean laneCombatConsidered = !jungleGankAttempted && !roamAttempted && laneCombatEnabled;
+            boolean laneCombatConsidered = !baseDefenseAttempted && !jungleGankAttempted && !roamAttempted && laneCombatEnabled;
             randomContext(random, SideOrientationRandomTraceObserver.Source.LANE_COMBAT, null, gameState);
             boolean laneCombatAttempted = laneCombatConsidered
                     && laneCombatResolver.resolve(gameState, random, events);
@@ -472,7 +479,7 @@ public class MatchSimulator {
             } else if (roamEvaluated && laneCombatConsidered) {
                 gameState.getRoamExecutionStats().recordFallthroughToLaneCombat();
             }
-            boolean majorCombatAttempted = jungleGankAttempted || roamAttempted || laneCombatAttempted;
+            boolean majorCombatAttempted = baseDefenseAttempted || jungleGankAttempted || roamAttempted || laneCombatAttempted;
             objectiveResolver.updateSpawnState(gameState);
             boolean genericCombatAttempted = false;
             if (!majorCombatAttempted) {
@@ -487,6 +494,7 @@ public class MatchSimulator {
             outcome.ifPresent(result -> objectivePriorityResolver.applyTeamfightWin(
                     gameState, gameState.getCurrentTimeSeconds(), result));
             randomContext(random, SideOrientationRandomTraceObserver.Source.STRUCTURE_PUSH, null, gameState);
+            new UpperObjectiveResolver().lifecycle(gameState, structureResolver, events);
             structureResolver.resolveActiveSieges(gameState, events);
             lanePhaseResolver.resolveOuterSieges(
                     gameState, gameState.getCurrentTimeSeconds(), random, structureResolver, events);
@@ -736,6 +744,7 @@ public class MatchSimulator {
                 buildTeamState(redTeam, TeamSide.RED, assignments, seed), diagnosticsEnabled,
                 objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled,
                 lateGameMacroEnabled, assignments);
+        state.configureRealism(realismEnabled);
         state.configureChampionPower(DEFAULT_CHAMPION_POWER_CATALOG, championPowerEnabled);
         state.configureJungleEconomy(DEFAULT_JUNGLE_CLEAR_PROFILES, jungleClearContribution);
         if (championMatchupMode == ChampionMatchupMode.GEOMETRIC_V2) {
@@ -807,6 +816,8 @@ public class MatchSimulator {
             GameState state,
             List<MatchEvent> events
     ) {
+        if (state.isRealismEnabled() && (!state.realismSkirmishAvailable(state.getCurrentTimeSeconds())
+                || state.wasMajorCombatAttemptedThisTick())) return false;
         List<Lane> eligibleLanes = eligibleLocalizedSkirmishLanes(state);
         if (eligibleLanes.isEmpty()) return false;
         double chance = genericSkirmishChance(state);
@@ -865,9 +876,10 @@ public class MatchSimulator {
                     "HIGH".equals(band) && !attacking.localDecision().baselineDecision().equals(attacking.localDecision().candidateDecision()),
                     true, ""));
         }
+        if (state.isRealismEnabled()) state.markRealismSkirmish(state.getCurrentTimeSeconds());
         int eventStart = events.size();
         boolean resolved = teamfightResolver.resolveLocalizedSkirmishKill(
-                state.getCurrentTimeSeconds(), combatLane, random,
+                state.getCurrentTimeSeconds(), combatLane, state.isRealismEnabled(), random,
                 attacking.actingTeam(), attacking.actingState(),
                 attacking.opposingTeam(), attacking.opposingState(),
                 events, new HashSet<>()
@@ -891,8 +903,9 @@ public class MatchSimulator {
         int currentTime = state.getCurrentTimeSeconds();
         List<Lane> eligible = new ArrayList<>();
         for (Lane lane : Lane.values()) {
+            if (state.isRealismEnabled() && currentTime < MatchRealismRuleConfig.contactAt(lane)) continue;
             if (teamfightResolver.canResolveLocalizedSkirmishKill(
-                    currentTime, lane, state.getBlueTeamState(), state.getRedTeamState())) {
+                    currentTime, lane, state.isRealismEnabled(), state.getBlueTeamState(), state.getRedTeamState())) {
                 eligible.add(lane);
             }
         }

@@ -45,6 +45,20 @@ public final class DraftCompositionEvaluator {
         }).max().orElse(Double.NEGATIVE_INFINITY);
     }
 
+    double marginalFit(List<ChampionId> picks,ChampionId candidate,DraftPlanPortfolio plan,DraftComputationContext context) {
+        double before=assignments.feasibleAssignments(picks,context).stream().mapToDouble(a->qualityForPlan(a,plan)).max().orElse(0);
+        var next=append(picks,candidate);
+        double after=assignments.feasibleAssignments(next,context).stream().mapToDouble(a->qualityForPlan(a,plan)).max().orElse(0);
+        // Average team quality changes are scaled by roster size; never compare team totals with different counts.
+        return Math.clamp(after*(picks.size()+1)-before*picks.size()-10,-10,10);
+    }
+    private double qualityForPlan(RoleAssignmentSolver.RoleAssignment a,DraftPlanPortfolio plan) {
+        if(a.positions().isEmpty())return 0;
+        TeamShape s=shape(a);
+        double desired=plan.preferred().desiredCapabilities().stream().mapToDouble(c->s.capabilities().get(c)).average().orElse(0);
+        return desired*0.55+assignmentQuality(a)*0.45;
+    }
+
     public double compositionResponse(List<ChampionId> ownPicks, List<ChampionId> enemyPicks,
                                       ChampionId candidate, DraftTeamContext ownTeam,
                                       DraftTeamContext enemyTeam) {

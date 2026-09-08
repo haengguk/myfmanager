@@ -8,6 +8,10 @@ public final class ProgressionEconomyResolver {
 
     public void resolve(GameState state, int timeSeconds) {
         if (!state.isProgressionEnabled() || state.isFinished()) return;
+        if (state.isRealismEnabled()) {
+            new LaneResourceResolver().resolveExperience(state, timeSeconds);
+            return;
+        }
         for (TeamSide side : TeamSide.values()) resolveTeam(state, side, timeSeconds);
     }
 

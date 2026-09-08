@@ -39,6 +39,7 @@ import org.springframework.stereotype.Component;
 public final class RealDraftMatchOrchestrator {
     private final LckTeamAssembler teams;
     private final DraftEngine drafts;
+    private final DraftEngine abilityDrafts;
     private final ConfiguredMatchSimulatorFactory matches;
     private final RealDraftMatchPreflightValidator preflight;
     private final SimulationProvenanceService provenance;
@@ -61,6 +62,7 @@ public final class RealDraftMatchOrchestrator {
         DraftScoringPolicy policy = DraftScoringPolicy.standard();
         this.teams = Objects.requireNonNull(teams, "teams");
         this.drafts = new DraftEngine(resources, rules, policy);
+        this.abilityDrafts = new DraftEngine(resources,rules,DraftScoringPolicy.ability());
         this.draftAvailability = new DraftAvailability(
                 resources.champions().catalog(),
                 new RoleAssignmentSolver(resources.champions().catalog()));
@@ -139,7 +141,7 @@ public final class RealDraftMatchOrchestrator {
         DraftSelectionContext selectionContext = RealDraftSelectionContextFactory.create(
                 matchSeed, normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 gameNumber, exclusionsBeforeDraft);
-        FinalDraftResult draftResult = drafts.draft(
+        FinalDraftResult draftResult = (profileId==SimulationRuntimeProfileId.PRODUCTION_REALISM_V1?abilityDrafts:drafts).draft(
                 blueContext, redContext, seriesHistory, selectionContext);
         preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 blueContext, redContext, draftResult, seriesHistory);
@@ -224,6 +226,12 @@ public final class RealDraftMatchOrchestrator {
             SimulationInstrumentation instrumentation,
             com.lolfm.career.CompetitionRosterSnapshot frozenRosters
     ) {
+        return prepareV1(matchIdentity,blueTeamCode,redTeamCode,seriesHistory,matchSeed,instrumentation,frozenRosters,MatchEngineV1Policy.requirement());
+    }
+    public PreparedAutoDraftMatch prepareV1(String matchIdentity,String blueTeamCode,String redTeamCode,
+            SeriesDraftHistory seriesHistory,long matchSeed,SimulationInstrumentation instrumentation,
+            com.lolfm.career.CompetitionRosterSnapshot frozenRosters,MatchEngineV1Policy.Requirement boundPolicy) {
+        MatchEngineV1Policy.requireAuthoritative(boundPolicy);
         Objects.requireNonNull(seriesHistory, "seriesHistory");
         Objects.requireNonNull(instrumentation, "instrumentation");
         String normalizedBlueTeamCode = normalizeTeamCode(blueTeamCode, "blueTeamCode");
@@ -237,7 +245,7 @@ public final class RealDraftMatchOrchestrator {
         DraftSelectionContext selectionContext = RealDraftSelectionContextFactory.create(
                 matchSeed, normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 gameNumber, exclusionsBeforeDraft);
-        FinalDraftResult draftResult = drafts.draft(
+        FinalDraftResult draftResult = (boundPolicy.runtimeProfileId()==SimulationRuntimeProfileId.PRODUCTION_REALISM_V1?abilityDrafts:drafts).draft(
                 blueContext, redContext, seriesHistory, selectionContext);
         if (frozenRosters == null) preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 blueContext, redContext, draftResult, seriesHistory);

@@ -4,6 +4,10 @@ import com.lolfm.simulator.StructureActionExecutionStatsSnapshot;
 import java.util.List;
 
 public class MatchSnapshot {
+    private java.util.Map<String,Object> realism;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    public java.util.Map<String,Object> getRealism() { return realism; }
+    public void setRealism(java.util.Map<String,Object> value) { realism = java.util.Map.copyOf(value); }
 
     private final int timeSeconds;
     private final int blueKills;

@@ -168,7 +168,7 @@ public final class VerifiedLeagueFixtureCompletion {
         actualAuthorities = List.copyOf(actualAuthorities);
         Objects.requireNonNull(unifiedReceipt, "unifiedReceipt");
         LeagueFixtureCompletionReceiptV1 receipt = unifiedReceipt.fixtureReceipt();
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.resolve(binding.policyId());
         boolean bindingValid = fixture.executionMode()
                 == LeagueFixtureExecutionMode.PLAYER_CONTROLLED
                 && season.seasonMode() == LeagueSeasonMode.HYBRID_MANAGER

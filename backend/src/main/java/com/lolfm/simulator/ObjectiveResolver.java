@@ -9,6 +9,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class ObjectiveResolver {
 
+    public Optional<MatchEvent> captureUpper(GameState state, ObjectiveType type, TeamSide side) {
+        return new UpperObjectiveResolver().capture(state, type, side);
+    }
+
     public void updateSpawnState(GameState gameState) {
         gameState.getObjectiveState().updateSpawnState(gameState.getCurrentTimeSeconds());
     }

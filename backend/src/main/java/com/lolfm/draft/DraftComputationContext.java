@@ -26,6 +26,33 @@ final class DraftComputationContext {
     private final Map<CompletionKey, Boolean> completion = new HashMap<>();
     private final Map<PoolHealthKey, Double> poolHealth = new HashMap<>();
 
+    private record AbilityKey(DraftAbilityEvaluator evaluator, DraftTeamContext team,
+            com.lolfm.champion.ChampionRoleKey role, DraftPlanArchetype plan) { }
+    private final Map<AbilityKey,DraftAbilityEvaluator.Forecast> forecasts=new HashMap<>();
+    private DraftSelectionContext strategyContext;
+    private TeamSide strategyObserver;
+    TeamSide observeStrategyAs(TeamSide side) {
+        TeamSide previous = strategyObserver;
+        strategyObserver = side;
+        return previous;
+    }
+    void bindStrategy(DraftSelectionContext value) {
+        if(strategyContext!=null && !strategyContext.equals(value)) throw new IllegalArgumentException("Draft strategy context mismatch");
+        strategyContext=value;
+    }
+    double strategyPreference(TeamSide side,DraftPlanArchetype plan) {
+        if(strategyContext==null || (strategyObserver!=null && strategyObserver!=side))return 0;
+        String key="DRAFT_STRATEGY_V1|"+strategyContext+"|"+side+"|"+plan;
+        try {
+            byte[] hash=java.security.MessageDigest.getInstance("SHA-256").digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return Byte.toUnsignedInt(hash[0])/255.0;
+        } catch(java.security.NoSuchAlgorithmException e){throw new IllegalStateException(e);}
+    }
+    DraftAbilityEvaluator.Forecast forecast(DraftAbilityEvaluator evaluator,DraftTeamContext team,
+            com.lolfm.champion.ChampionRoleKey role,DraftPlanArchetype plan) {
+        if(!cacheEnabled)return evaluator.evaluate(role,team,plan);
+        return forecasts.computeIfAbsent(new AbilityKey(evaluator,team,role,plan),key->evaluator.evaluate(role,team,plan));
+    }
     private long roleAssignmentRequests;
     private long roleAssignmentHits;
     private long roleAssignmentMisses;
@@ -173,6 +200,7 @@ final class DraftComputationContext {
     }
 
     void clear() {
+        forecasts.clear();
         roleAssignments.clear();
         candidatePositions.clear();
         pickedPositions.clear();

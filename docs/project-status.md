@@ -2,6 +2,25 @@
 
 이 문서는 2026-09-08 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## 매치 현실성·성능 기반 Draft V1 (2026-09-08)
+
+새 Auto/Player/Series 경기에는 `MATCH_ENGINE_REALISM_ABILITY_V1` 정책을 결속한다.
+개막 라인 접촉, 선수별 본진 복귀·수비와 지속 공성 재평가, 유한 라인 CS/공유 XP,
+기존 정글 경제·템포와 캠프 소비/재생성, 유충·전령 생애주기를 실제 실행 경로에 연결했다.
+Auto 및 Player Draft의 AI 턴은 현재 선수 12개 능력치·숙련도와 실제 챔피언 power curve,
+대체재·남은 순서를 사용한다. 기존 명부·수동 선택·진행 중 저장·구 receipt/hash는 보존한다.
+
+개발 진단은 75회와 정글 tempo 교정 후 같은 16개 입력의 추가 실행으로 총 91회다.
+최종 16경기는 첫 킬 중앙값 2:00, 1분 전 첫 킬 0, 평균 34:30.6·27킬이며 공식 통계 승격은 아니다.
+바루스 픽·바이/카밀 밴 편중, 공간/경제 추상화와 정글 성장 밸런스 확인은 남아 있다.
+
+계획된 전체 1회는 약 25분 44초에 클라이언트 연결 해제로 중단됐다(완료 1,675건 중 33 실패).
+증거 보존 뒤 미완료/실패 영향 79개 클래스·594건을 실행했고(16분 26.626초), 남은 정책 기대값
+6건을 수정한 관련 5개 클래스·15건이 모두 통과했다(1분 52.528초). Background 1건도 별도 통과했다.
+기본 277개 클래스의 완료 범위를 확인했으며 미해결 실패는 없다. 최종 트리의 단일 clean full은 아니다.
+집중 경계, 프런트 계약 3종/build, 실제 수동 Draft 복구·경기·결과/타임라인 브라우저가 통과했다.
+[상세 구현·표본별 비교·검증 근거](development/match-engine-realism-and-ability-based-draft-improvement-v1.md).
+
 ## Career 시작 복구 격리·회귀 비용 V2 (2026-09-08)
 
 현재 명부가 유실된 Career만 시작 복구에서 격리하며 정상 저장의 복구·진행과 기존 legacy/무결성 정책을 유지한다.

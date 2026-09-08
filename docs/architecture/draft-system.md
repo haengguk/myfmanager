@@ -1,5 +1,19 @@
 # Draft System
 
+## 현재 신규 실행: 성능 기반 V1
+
+신규 runtime은 `AUTO_DRAFT_ABILITY_V1`을 사용한다. `DraftAbilityEvaluator`는 공개된
+챔피언 power profile의 대표 초/중/후반 상황, 현재 선발의 12개 능력치·숙련도와 정글 clear를
+기존 GEOMETRIC_V2 상성·조합 평가에 연결한다. 밴은 합법 대체재 대비 손실과 실제 pick 순서를
+평가한다. 메타 보정은 최대 .25이며 제거 가능하다. 전략 선호는 Draft 입력/시드에 결속되고
+상대의 비공개 전략은 탐색에서 읽지 않는다. 실제 경기 Random은 소비하지 않는다.
+
+기존 `AUTO_DRAFT_VARIETY_V1` scoring/selection/hash는 진행 중 저장과 historical profile에서
+유지한다. Progress/Series의 optional policy ID가 버전을 소유한다. Player의 합법 수동 선택은
+AI 평가로 대체하지 않는다. 새 AI trace의 구조적 점수와 짧은 이유는 일반 Draft 화면과 개발자
+기록에 전달된다. [식·버전·표본 한계](../development/match-engine-realism-and-ability-based-draft-improvement-v1.md).
+
+
 ## Current Entry Point
 
 `com.lolfm.draft.DraftEngine`이 production draft domain의 진입점이다. `DraftResourceSet.loadDefault()`는 active `ChampionResourceSet`과 고정 Draft Meta resource를 조립한다.

@@ -21,10 +21,18 @@ public final class PreDraftPlanner {
     private final DraftMetaCatalog meta;
     private final ChampionCompositionProfileCatalog composition;
     private final RoleAssignmentSolver assignments;
+    private final DraftAbilityEvaluator ability;
+    private final double metaScale;
 
     public PreDraftPlanner(ChampionCatalog champions, DraftMetaCatalog meta,
                            ChampionCompositionProfileCatalog composition,
                            RoleAssignmentSolver assignments) {
+        this(champions,meta,composition,assignments,null,1.0);
+    }
+    public PreDraftPlanner(ChampionCatalog champions,DraftMetaCatalog meta,
+            ChampionCompositionProfileCatalog composition,RoleAssignmentSolver assignments,
+            DraftAbilityEvaluator ability,double metaScale) {
+        this.ability=ability;this.metaScale=metaScale;
         this.champions = champions; this.meta = meta; this.composition = composition;
         this.assignments = assignments;
     }
@@ -113,10 +121,12 @@ public final class PreDraftPlanner {
                     archetype, team, pool, ownAssignments, context);
             double opponentExposure = opponentExposure(
                     archetype, opponent, available, enemyPicks,
-                    enemyCandidateRoles, enemyPickedRoles);
+                    enemyCandidateRoles, enemyPickedRoles, context);
             double sideLeverage = side == TeamSide.BLUE ? 0.25 : 0.0;
             plans.add(new DraftPlan(archetype, archetype.desired(), archetype.vulnerabilities(), core,
-                    missing, pool * 0.55 + own * 0.45 - opponentExposure + sideLeverage));
+                    missing, pool * 0.55 + own * 0.45 - opponentExposure + sideLeverage
+                            + (ability==null?0:context.strategyPreference(side,archetype)*2.0)));
+
         }
         return new DraftPlanPortfolio(plans.stream().sorted(Comparator.comparingDouble(DraftPlan::viability).reversed()
                 .thenComparing(plan -> plan.archetype().name())).limit(3).toList());
@@ -141,43 +151,39 @@ public final class PreDraftPlanner {
     private double opponentExposure(DraftPlanArchetype archetype, DraftTeamContext opponent,
                                     List<ChampionId> available, List<ChampionId> enemyPicks,
                                     Map<ChampionId, Set<Position>> enemyCandidateRoles,
-                                    Map<ChampionId, Set<Position>> enemyPickedRoles) {
+                                    Map<ChampionId, Set<Position>> enemyPickedRoles, DraftComputationContext context) {
         return java.util.stream.Stream.concat(
                         available.stream().map(id -> opponentThreatValue(
-                                id, archetype, opponent, enemyCandidateRoles.get(id))),
+                                id, archetype, opponent, enemyCandidateRoles.get(id), context)),
                         enemyPicks.stream().map(id -> opponentThreatValue(
-                                id, archetype, opponent, enemyPickedRoles.get(id))))
+                                id, archetype, opponent, enemyPickedRoles.get(id), context)))
                 .sorted(Comparator.reverseOrder()).limit(8).mapToDouble(Double::doubleValue)
                 .average().orElse(0.0) * 0.12;
     }
 
     private double opponentThreatValue(ChampionId id, DraftPlanArchetype archetype,
-                                       DraftTeamContext opponent, Set<Position> feasiblePositions) {
+                                       DraftTeamContext opponent, Set<Position> feasiblePositions, DraftComputationContext context) {
         return feasiblePositions.stream().map(position -> new ChampionRoleKey(id, position))
                 .mapToDouble(key -> {
                     ChampionCompositionProfile profile = composition.profiles().get(key);
                     double threat = archetype.vulnerabilities().stream().mapToInt(profile::capability).average().orElse(0.0);
-                    return threat * 0.55 + meta.priority(key) * 0.25 + opponent.proficiency(key) * 0.20;
+                    return ability==null ? threat * 0.55 + meta.priority(key) * 0.25 + opponent.proficiency(key) * 0.20
+                            : threat*0.55+context.forecast(ability,opponent,key,archetype).value()*0.25;
                 }).max().orElse(0.0);
     }
 
     private double candidatePlanValue(ChampionId id, DraftPlanArchetype archetype,
-                                      DraftTeamContext team, Set<Position> feasiblePositions) {
+                                      DraftTeamContext team, Set<Position> feasiblePositions, DraftComputationContext context) {
+        context.recordPlannerCandidatePhysicalComputation();
         double best = 0.0;
         for (Position position : feasiblePositions) {
             ChampionRoleKey key = new ChampionRoleKey(id, position);
             ChampionCompositionProfile profile = composition.profiles().get(key);
             double capability = archetype.desired().stream().mapToInt(profile::capability).average().orElse(0.0);
-            best = Math.max(best, capability * 0.55 + meta.priority(key) * 0.30 + team.proficiency(key) * 0.15);
+            best = Math.max(best, ability==null ? capability * 0.55 + meta.priority(key) * 0.30 + team.proficiency(key) * 0.15
+                    : capability*0.35+context.forecast(ability,team,key,archetype).value()*0.65+metaScale*meta.priority(key)/20.0);
         }
         return best;
-    }
-
-    private double candidatePlanValue(ChampionId id, DraftPlanArchetype archetype,
-                                      DraftTeamContext team, Set<Position> feasiblePositions,
-                                      DraftComputationContext context) {
-        context.recordPlannerCandidatePhysicalComputation();
-        return candidatePlanValue(id, archetype, team, feasiblePositions);
     }
 
     private double candidatePlanValue(ChampionId id, DraftPlanArchetype archetype,

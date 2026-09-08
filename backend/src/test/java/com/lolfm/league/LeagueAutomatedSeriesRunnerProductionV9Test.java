@@ -214,9 +214,9 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
             assertThat(game.orderedFinalAssignments()).hasSize(10);
             assertThat(game.bluePicks()).hasSize(5);
             assertThat(game.redPicks()).hasSize(5);
-            assertThat(game.policyId()).isEqualTo(MatchEngineV1Policy.POLICY_ID);
+            assertThat(game.policyId()).isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID);
             assertThat(game.runtimeProfileId()).isEqualTo(
-                    "PRODUCTION_MATCHUP_COMPOSITION_V1");
+                    "PRODUCTION_REALISM_V1");
             assertThat(game.engineImplementationVersion()).isEqualTo(
                     "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
             assertThat(game.resourceProvenanceHash()).isEqualTo(

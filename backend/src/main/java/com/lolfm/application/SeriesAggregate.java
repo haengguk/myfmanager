@@ -38,8 +38,28 @@ record SeriesAggregate(
         String leagueSeedAnchorTeamCode,
         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String competitionSidePolicy,
         @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
-        com.lolfm.career.CompetitionRosterSnapshot frozenCompetitionRosters
+        com.lolfm.career.CompetitionRosterSnapshot frozenCompetitionRosters,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String matchPolicyId
 ) {
+    SeriesAggregate(String seriesId,long revision,SeriesStatus status,String terminalReason,
+            SeriesFormat format,String teamACode,String teamBCode,String managedTeamCode,String game1BlueTeamCode,
+            String canonicalRootSeed,long rootSeed,Map<String,Integer> score,List<SeriesGame> games,Set<ChampionId> consumedPicks,
+            String historyHash,String winnerTeamCode,Instant createdAt,Instant lastActivityAt,Instant expiresAt,
+            Map<String,SeriesCommandReceipt> commandReceipts,SeriesOrigin origin,String leagueBindingHash,String leagueSeedAnchorTeamCode,
+            String competitionSidePolicy,com.lolfm.career.CompetitionRosterSnapshot frozenCompetitionRosters) {
+        this(seriesId,revision,status,terminalReason,format,teamACode,teamBCode,managedTeamCode,game1BlueTeamCode,
+                canonicalRootSeed,rootSeed,score,games,consumedPicks,historyHash,winnerTeamCode,createdAt,lastActivityAt,expiresAt,
+                commandReceipts,origin,leagueBindingHash,leagueSeedAnchorTeamCode,competitionSidePolicy,frozenCompetitionRosters,null);
+    }
+    MatchEngineV1Policy.Snapshot boundPolicy() {
+        return MatchEngineV1Policy.resolve(matchPolicyId==null?MatchEngineV1Policy.POLICY_ID:matchPolicyId);
+    }
+    SeriesAggregate withPolicy(String id) {
+        MatchEngineV1Policy.resolve(id);
+        return new SeriesAggregate(seriesId,revision,status,terminalReason,format,teamACode,teamBCode,managedTeamCode,game1BlueTeamCode,
+                canonicalRootSeed,rootSeed,score,games,consumedPicks,historyHash,winnerTeamCode,createdAt,lastActivityAt,expiresAt,
+                commandReceipts,origin,leagueBindingHash,leagueSeedAnchorTeamCode,competitionSidePolicy,frozenCompetitionRosters,id);
+    }
     SeriesAggregate(String seriesId, long revision, SeriesStatus status, String terminalReason,
             SeriesFormat format, String teamACode, String teamBCode, String managedTeamCode,
             String game1BlueTeamCode, String canonicalRootSeed, long rootSeed, Map<String, Integer> score,
@@ -93,6 +113,13 @@ record SeriesAggregate(
     }
 
     SeriesAggregate {
+        var policy=MatchEngineV1Policy.resolve(matchPolicyId==null?MatchEngineV1Policy.POLICY_ID:matchPolicyId);
+        for(var game:games) {
+            if(game.childDraft()!=null && !game.childDraft().progress().boundPolicyId().equals(policy.draftSelectionPolicyId()))
+                throw new IllegalArgumentException("SERIES_CHILD_POLICY_MISMATCH");
+            if(game.receipt()!=null && !game.receipt().policyId().equals(policy.policyId()))
+                throw new IllegalArgumentException("SERIES_RECEIPT_POLICY_MISMATCH");
+        }
         if (revision < 0) throw new IllegalArgumentException("revision");
         Objects.requireNonNull(status, "status");
         Objects.requireNonNull(format, "format");
@@ -161,7 +188,7 @@ record SeriesAggregate(
                 teamACode, teamBCode, managedTeamCode, game1BlueTeamCode,
                 canonicalRootSeed, rootSeed, nextScore, nextGames, nextConsumed,
                 nextHistoryHash, nextWinner, createdAt, activity, expiry, receipts,
-                origin, leagueBindingHash, leagueSeedAnchorTeamCode, competitionSidePolicy, frozenCompetitionRosters);
+                origin, leagueBindingHash, leagueSeedAnchorTeamCode, competitionSidePolicy, frozenCompetitionRosters, matchPolicyId);
     }
 
     private static void validate(

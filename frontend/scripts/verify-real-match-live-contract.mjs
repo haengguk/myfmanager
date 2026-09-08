@@ -32,6 +32,15 @@ const EXPECTED_V9 = {
   engineImplementationVersion: 'MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9',
 };
 
+const EXPECTED_REALISM = {
+  policyId: 'MATCH_ENGINE_REALISM_ABILITY_V1',
+  policyHash: '1e9672acf5055e2d5c2175b2ccddd7dca907e991de16b495cd42fb6a3db058f6',
+  runtimeProfileId: 'PRODUCTION_REALISM_V1',
+  configurationHash: 'eb241ac2fe57095e1410e39120d276f6ed39ef4ff25f2ea116dcf51953baf93f',
+  engineImplementationVersion: 'MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9',
+};
+let expectedPolicy = EXPECTED_V9;
+
 function parseArtifact(bytes, path) {
   try { return JSON.parse(bytes.toString('utf8')); }
   catch (error) {
@@ -42,18 +51,19 @@ function parseArtifact(bytes, path) {
 
 function preflightV9(options, response) {
   const optionPolicy = options?.productionPolicy;
+  expectedPolicy = optionPolicy?.policyId === EXPECTED_REALISM.policyId ? EXPECTED_REALISM : EXPECTED_V9;
   const responseIntegrity = response?.integrity;
   const mismatches = [
-    ['options policyId', optionPolicy?.policyId, EXPECTED_V9.policyId],
-    ['options policyHash', optionPolicy?.policyHash, EXPECTED_V9.policyHash],
-    ['options runtimeProfileId', optionPolicy?.runtimeProfileId, EXPECTED_V9.runtimeProfileId],
-    ['options configurationHash', optionPolicy?.configurationHash, EXPECTED_V9.configurationHash],
-    ['options engineImplementationVersion', optionPolicy?.engineImplementationVersion, EXPECTED_V9.engineImplementationVersion],
-    ['response policyId', responseIntegrity?.policyId, EXPECTED_V9.policyId],
-    ['response policyHash', responseIntegrity?.policyHash, EXPECTED_V9.policyHash],
-    ['response runtimeProfileId', responseIntegrity?.runtimeProfileId, EXPECTED_V9.runtimeProfileId],
-    ['response configurationHash', responseIntegrity?.configurationHash, EXPECTED_V9.configurationHash],
-    ['response engineImplementationVersion', responseIntegrity?.engineImplementationVersion, EXPECTED_V9.engineImplementationVersion],
+    ['options policyId', optionPolicy?.policyId, expectedPolicy.policyId],
+    ['options policyHash', optionPolicy?.policyHash, expectedPolicy.policyHash],
+    ['options runtimeProfileId', optionPolicy?.runtimeProfileId, expectedPolicy.runtimeProfileId],
+    ['options configurationHash', optionPolicy?.configurationHash, expectedPolicy.configurationHash],
+    ['options engineImplementationVersion', optionPolicy?.engineImplementationVersion, expectedPolicy.engineImplementationVersion],
+    ['response policyId', responseIntegrity?.policyId, expectedPolicy.policyId],
+    ['response policyHash', responseIntegrity?.policyHash, expectedPolicy.policyHash],
+    ['response runtimeProfileId', responseIntegrity?.runtimeProfileId, expectedPolicy.runtimeProfileId],
+    ['response configurationHash', responseIntegrity?.configurationHash, expectedPolicy.configurationHash],
+    ['response engineImplementationVersion', responseIntegrity?.engineImplementationVersion, expectedPolicy.engineImplementationVersion],
   ].filter(([, actual, expected]) => actual !== expected);
   if (!mismatches.length) return;
   const summary = mismatches.map(([label, actual, expected]) => `${label}: ${String(actual)} (expected ${expected})`).join('; ');
@@ -106,7 +116,7 @@ const request = {
   schemaVersion: 'REAL_MATCH_SIMULATE_REQUEST_V1',
   blueTeamCode: 'GEN',
   redTeamCode: 'T1',
-  seed: '73',
+  seed: process.env.LOLMANAGER_REAL_MATCH_SEED ?? '73',
 };
 
 let options; let response;
@@ -139,7 +149,7 @@ const expectedFixedResult = {
   snapshots: response.timeline.snapshots.length,
   winner: response.timeline.winner,
   durationSeconds: response.timeline.durationSeconds,
-  runtimeProfile: EXPECTED_V9.runtimeProfileId,
+  runtimeProfile: expectedPolicy.runtimeProfileId,
 };
 
 invariant(options.teams.length === 10, '실제 Options validator가 10개 팀을 확인하지 못했습니다.');
@@ -152,6 +162,15 @@ invariant(session.playback.winner === expectedFixedResult.winner && session.resu
 invariant(session.playback.durationSeconds === expectedFixedResult.durationSeconds && session.result.durationSeconds === expectedFixedResult.durationSeconds, '실제 adapter의 경기 시간이 다릅니다.');
 invariant(session.result.integrity.runtimeProfile === expectedFixedResult.runtimeProfile, '실제 adapter의 runtime profile이 고정 응답과 다릅니다.');
 invariant(!Object.hasOwn(session, 'response') && !Object.hasOwn(session, 'rawResponse'), '정규화 session이 raw 응답을 보유합니다.');
+
+if (expectedPolicy === EXPECTED_REALISM) {
+  for (const side of ['BLUE', 'RED']) {
+    const captures = response.timeline.events.filter((event) => event.actorSide === side);
+    invariant(session.result.teamStats[side].grubs === captures.filter((event) => event.eventType === 'VOID_GRUB').length, '유충 결과 카운터 불일치');
+    invariant(session.result.teamStats[side].heralds === captures.filter((event) => event.eventType === 'RIFT_HERALD').length, '전령 결과 카운터 불일치');
+  }
+  invariant(response.timeline.events.some((event) => event.eventType === 'VOID_GRUB'), '대표 응답에 유충 이벤트가 없습니다.');
+}
 
 function expectContractFailure(label, payload, payloadRequest = request) {
   let failure = null;
@@ -235,4 +254,4 @@ for (const path of liveSourceFiles) {
 console.log(`[real-match-live-contract] OK actual-validator=true actual-adapter=true teams=10 players=50 decisions=20 assignments=10 events=${session.playback.events.length} snapshots=${session.playback.snapshots.length} fixed=${session.playback.winner}/${session.playback.durationSeconds}s mutations=10`);
 console.log(`[real-match-live-contract] INPUT options=${OPTIONS_PATH} sha256=${optionsSha256}`);
 console.log(`[real-match-live-contract] INPUT response=${RESPONSE_PATH} sha256=${responseSha256}`);
-console.log(`[real-match-live-contract] V9 policy=${EXPECTED_V9.policyHash} profile=${response.integrity.runtimeProfileId} engine=${response.integrity.engineImplementationVersion}`);
+console.log(`[real-match-live-contract] V9 policy=${expectedPolicy.policyHash} profile=${response.integrity.runtimeProfileId} engine=${response.integrity.engineImplementationVersion}`);

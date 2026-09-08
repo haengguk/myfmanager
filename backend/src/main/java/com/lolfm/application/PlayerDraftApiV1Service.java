@@ -58,7 +58,7 @@ public final class PlayerDraftApiV1Service {
                 computation);
         PlayerControlledDraftEngine.AuthoritativeSelectionProjection projection =
                 progress.complete() ? null
-                        : drafts.project(progress, blueContext, redContext, computation);
+                        : drafts.forProgress(progress).project(progress, blueContext, redContext, computation);
         Instant created = sessions.now();
         String sessionId = UUID.randomUUID().toString();
         PlayerDraftCompletionBinding binding = progress.complete()
@@ -136,7 +136,7 @@ public final class PlayerDraftApiV1Service {
                         : session.computationContext();
                 try {
                     var currentProjection = session.selectionProjection() == null
-                            ? drafts.project(session.progress(), blueContext, redContext,
+                            ? drafts.forProgress(session.progress()).project(session.progress(), blueContext, redContext,
                                     computation)
                             : session.selectionProjection();
                     progress = drafts.selectProjected(session.progress(), blueContext,
@@ -158,7 +158,7 @@ public final class PlayerDraftApiV1Service {
                         ? PlayerDraftSessionStatus.COMPLETED : PlayerDraftSessionStatus.ACTIVE;
                 PlayerControlledDraftEngine.AuthoritativeSelectionProjection nextProjection =
                         progress.complete() ? null
-                                : drafts.project(progress, blueContext, redContext, computation);
+                                : drafts.forProgress(progress).project(progress, blueContext, redContext, computation);
                 PlayerDraftCompletionBinding completionBinding = progress.complete()
                         ? simulations.bind(session.sessionId(), nextRevision,
                                 session.blueTeamCode(), session.redTeamCode(),

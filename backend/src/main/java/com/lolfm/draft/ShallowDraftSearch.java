@@ -35,6 +35,16 @@ public final class ShallowDraftSearch {
 
     SearchResult evaluate(DraftState state, DraftTeamContext blue, DraftTeamContext red,
                           DraftComputationContext context) {
+        TeamSide previous = context.observeStrategyAs(state.currentTurn().side());
+        try {
+            return evaluateVisible(state, blue, red, context);
+        } finally {
+            context.observeStrategyAs(previous);
+        }
+    }
+
+    private SearchResult evaluateVisible(DraftState state, DraftTeamContext blue, DraftTeamContext red,
+                                         DraftComputationContext context) {
         TeamSide root = state.currentTurn().side();
         DraftPlanPortfolio rootPortfolio = portfolio(state, root, blue, red, context);
         DraftPlanPortfolio enemyPortfolio = portfolio(

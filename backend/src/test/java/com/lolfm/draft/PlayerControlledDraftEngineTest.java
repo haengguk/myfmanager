@@ -36,6 +36,7 @@ class PlayerControlledDraftEngineTest {
 
     @BeforeAll
     void fixture() {
+        engine=engine.forPolicy(AutoDraftSelectionPolicy.POLICY_ID);
         blue = teams.assemble("GEN");
         red = teams.assemble("T1");
         blueContext = DraftTeamContext.from(blue);

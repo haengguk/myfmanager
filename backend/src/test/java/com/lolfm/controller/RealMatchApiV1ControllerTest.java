@@ -88,27 +88,26 @@ class RealMatchApiV1ControllerTest {
         assertThat(codes).isSorted().doesNotHaveDuplicates();
         assertThat(playerIds).hasSize(50);
         assertThat(root.path("productionPolicy").path("policyId").asText())
-                .isEqualTo(MatchEngineV1Policy.POLICY_ID);
+                .isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID);
         assertThat(root.path("productionPolicy").path("policyHash").asText())
                 .isEqualTo(MatchEngineV1Policy.authoritative().policyHash());
         assertThat(root.path("productionPolicy").path("runtimeProfileId").asText())
-                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
+                .isEqualTo("PRODUCTION_REALISM_V1");
         assertThat(root.path("productionPolicy").path("activationDecisionCode").asText())
-                .isEqualTo("PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION");
+                .isEqualTo("NEW_GAME_RUNTIME_CONNECTION");
         assertThat(root.path("productionPolicy").path("knownDiagnosticLimitation").asText())
                 .isEqualTo(
-                        "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES");
+                        "COARSE_LANE_TRAVEL_CAMP_AND_UPPER_OBJECTIVE_MODEL");
         assertThat(root.path("productionPolicy").path("acceptanceStatus").asText())
-                .isEqualTo("PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT");
+                .isEqualTo("IMPLEMENTED_DEVELOPMENT_VALIDATION_NOT_STATISTICAL_APPROVAL");
         assertThat(root.path("productionPolicy").path("knownDiagnosticLimitations"))
                 .extracting(JsonNode::asText)
                 .containsExactly(
-                        "MATCHUP_CAUSAL_LINEAGE_UNRESOLVED_399_OF_400_CALIBRATION_PUBLIC_DIVERGENCES",
-                        "COMPOSITION_NEXUS_ENDING_SENSITIVITY_9_25_PERCENT_EXCEEDS_PROPOSED_7_5_PERCENT_TOLERANCE");
+                        "COARSE_LANE_TRAVEL_CAMP_AND_UPPER_OBJECTIVE_MODEL");
         assertThat(root.path("productionPolicy").path("statisticalHoldoutApproved").asBoolean())
                 .isFalse();
         assertThat(root.path("productionPolicy").path("rollbackProfileId").asText())
-                .isEqualTo("BASELINE_V1");
+                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
         assertThat(root.path("productionPolicy").path("rollbackMode").asText())
                 .isEqualTo("EXPLICIT_VERSIONED_POLICY_CHANGE_ONLY");
         assertThat(root.path("productionPolicy").path("automaticFallback").asBoolean()).isFalse();
@@ -117,7 +116,7 @@ class RealMatchApiV1ControllerTest {
         assertThat(root.path("productionPolicy").path("compositionMode").asText())
                 .isEqualTo("PRODUCTION_V2");
         assertThat(root.path("productionPolicy").path("jungleClearContribution").asText())
-                .isEqualTo("DISABLED_NOT_INTEGRATED");
+                .isEqualTo("ECONOMY_AND_GANK_TEMPO_V1");
         assertThat(root.path("productionPolicy").path("economyCandidateActivation").asBoolean())
                 .isFalse();
         assertThat(root.path("productionPolicy").path("tempoCandidateActivation").asBoolean())
@@ -168,7 +167,7 @@ class RealMatchApiV1ControllerTest {
                         .content("""
                                 {"schemaVersion":"REAL_MATCH_SIMULATE_REQUEST_V1",
                                  "blueTeamCode":"GEN","redTeamCode":"T1","seed":"73",
-                                 "runtimeProfileId":"BASELINE_V1"}
+                                 "runtimeProfileId":"PRODUCTION_MATCHUP_COMPOSITION_V1"}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("UNSUPPORTED_REQUEST_FIELD"))
@@ -197,9 +196,9 @@ class RealMatchApiV1ControllerTest {
         assertThat(first.path("draft").path("decisions")).hasSize(20);
         assertThat(first.path("draft").path("selectionTraces")).hasSize(20);
         assertThat(first.path("draft").path("draftSelectionPolicyId").asText())
-                .isEqualTo(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID);
+                .isEqualTo(MatchEngineV1Policy.authoritative().draftSelectionPolicyId());
         assertThat(first.path("draft").path("draftSelectionPolicyHash").asText())
-                .isEqualTo(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256);
+                .isEqualTo(MatchEngineV1Policy.authoritative().draftSelectionPolicyHash());
         assertThat(first.path("draft").path("draftSelectionTraceHash").asText())
                 .matches("[0-9a-f]{64}");
         assertThat(first.path("draft").path("finalAssignments")).hasSize(10);
@@ -214,21 +213,21 @@ class RealMatchApiV1ControllerTest {
         assertThat(first.path("timeline").path("events")).isNotEmpty();
         assertThat(first.path("timeline").path("snapshots")).isNotEmpty();
         assertThat(first.path("integrity").path("policyId").asText())
-                .isEqualTo(MatchEngineV1Policy.POLICY_ID);
+                .isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID);
         assertThat(first.path("integrity").path("acceptanceStatus").asText())
-                .isEqualTo("PRODUCT_ACCEPTED_WITH_KNOWN_LIMITATIONS_NOT_STATISTICAL_HOLDOUT");
+                .isEqualTo("IMPLEMENTED_DEVELOPMENT_VALIDATION_NOT_STATISTICAL_APPROVAL");
         assertThat(first.path("integrity").path("knownDiagnosticLimitations"))
                 .extracting(JsonNode::asText)
-                .containsExactlyElementsOf(MatchEngineV1Policy.KNOWN_DIAGNOSTIC_LIMITATIONS);
+                .containsExactlyElementsOf(MatchEngineV1Policy.authoritative().knownDiagnosticLimitations());
         assertThat(first.path("integrity").path("statisticalHoldoutApproved").asBoolean())
                 .isFalse();
         assertThat(first.path("integrity").path("rollbackProfileId").asText())
-                .isEqualTo("BASELINE_V1");
+                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
         assertThat(first.path("integrity").path("automaticFallback").asBoolean()).isFalse();
         assertThat(first.path("integrity").path("draftSelectionTraceHash"))
                 .isEqualTo(first.path("draft").path("draftSelectionTraceHash"));
         assertThat(first.path("integrity").path("runtimeProfileId").asText())
-                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
+                .isEqualTo("PRODUCTION_REALISM_V1");
         assertThat(first.path("integrity").path("outputHash").asText())
                 .matches("[0-9a-f]{64}");
         assertThat(first.path("integrity").path("randomFingerprint")

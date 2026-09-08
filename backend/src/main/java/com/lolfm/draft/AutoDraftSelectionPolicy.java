@@ -48,7 +48,7 @@ public record AutoDraftSelectionPolicy(
     }
 
     public AutoDraftSelectionPolicy {
-        if (!POLICY_ID.equals(policyId) || !MODE.equals(mode)) {
+        if ((!POLICY_ID.equals(policyId) && !"AUTO_DRAFT_ABILITY_V1".equals(policyId)) || !MODE.equals(mode)) {
             throw new IllegalArgumentException("Unsupported Auto Draft selection policy");
         }
         if (maximumSelectableCandidates != 3 || scoreScale != 1_000_000L
@@ -67,6 +67,15 @@ public record AutoDraftSelectionPolicy(
         }
     }
 
+    public static AutoDraftSelectionPolicy resolve(String id) {
+        if(POLICY_ID.equals(id))return production();
+        if("AUTO_DRAFT_ABILITY_V1".equals(id))return ability();
+        throw new IllegalArgumentException("Unknown Auto Draft policy");
+    }
+    public static AutoDraftSelectionPolicy ability() {
+        return new AutoDraftSelectionPolicy("AUTO_DRAFT_ABILITY_V1",MODE,3,1_000_000L,2_000_000L,
+                SCORE_CANONICALIZATION_VERSION,CONTEXT_HASH_ALGORITHM,DRAW_ALGORITHM,55,30,15,70,22,8);
+    }
     public static AutoDraftSelectionPolicy production() {
         return PRODUCTION;
     }

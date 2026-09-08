@@ -20,6 +20,7 @@ export function PlayerDraftHistory({ decisions, catalog, revealFrom }: {
             <span className="pd-history-portrait"><ChampionPortrait name={champion?.displayNameKo ?? decision.championId} portraitUrl={champion?.portraitUrl ?? ''} /></span>
             <strong>{champion?.displayNameKo ?? decision.championId}</strong>
             <small>{decision.teamSide} · {decision.actionType === 'BAN' ? '밴' : '픽'}</small>
+            {decision.autoSelectionTrace?.evaluation ? <span className="pd-history-reason">{decision.autoSelectionTrace.evaluation.explanation}</span> : null}
             <em>{decision.authority === 'PLAYER' ? 'PLAYER' : 'AI'}</em>
           </li>;
         })}

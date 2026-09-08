@@ -66,9 +66,12 @@ class RealDraftMatchOrchestratorTest {
     @BeforeAll
     void runRepresentativeRealGames() {
         seriesHistory = new SeriesDraftHistory();
-        gameOne = orchestrator.orchestrate("GEN", "T1", seriesHistory, MATCH_SEED);
-        gameTwo = orchestrator.orchestrate("GEN", "T1", seriesHistory, GAME_TWO_MATCH_SEED);
-        replay = orchestrator.orchestrate("GEN", "T1", MATCH_SEED);
+        gameOne = orchestrator.orchestrate("GEN", "T1", seriesHistory, MATCH_SEED,
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1, SimulationInstrumentation.enabled());
+        gameTwo = orchestrator.orchestrate("GEN", "T1", seriesHistory, GAME_TWO_MATCH_SEED,
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1, SimulationInstrumentation.enabled());
+        replay = orchestrator.orchestrate("GEN", "T1", new SeriesDraftHistory(), MATCH_SEED,
+                SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1, SimulationInstrumentation.enabled());
         diagnosticsOffReplay = orchestrator.orchestrate(
                 "GEN", "T1", new SeriesDraftHistory(), MATCH_SEED,
                 SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1,

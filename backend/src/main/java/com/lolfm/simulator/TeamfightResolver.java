@@ -322,6 +322,30 @@ public class TeamfightResolver {
                 localizedPositions(lane));
     }
 
+    boolean resolveLocalizedSkirmishKill(int time, Lane lane, boolean realism, Random random,
+            Team attackers, TeamState attackingState, Team defenders, TeamState defendingState,
+            List<MatchEvent> events, Set<PlayerState> dead) {
+        return resolveKill(time, random, attackers, attackingState, defenders, defendingState,
+                events, false, dead, null, realism ? contactPositions(lane) : localizedPositions(lane));
+    }
+
+    boolean canResolveLocalizedSkirmishKill(int time, Lane lane, boolean realism,
+            TeamState blue, TeamState red) {
+        Set<Position> positions = realism ? contactPositions(lane) : localizedPositions(lane);
+        return (!realism || time >= MatchRealismRuleConfig.contactAt(lane))
+                && hasEligibleLocalizedPlayer(blue, time, positions)
+                && hasEligibleLocalizedPlayer(red, time, positions);
+    }
+
+    private Set<Position> contactPositions(Lane lane) {
+        // Junglers enter lanes through the explicit gank/counter-gank path.
+        return switch (lane) {
+            case TOP -> Set.of(Position.TOP);
+            case MID -> Set.of(Position.MID);
+            case BOT -> Set.of(Position.ADC, Position.SUPPORT);
+        };
+    }
+
     /** Eligibility probe used before a localized skirmish consumes trigger or selection Random. */
     boolean canResolveLocalizedSkirmishKill(
             int timeSeconds,
@@ -361,7 +385,7 @@ public class TeamfightResolver {
                 frozenShutdownGold, null);
     }
 
-    private boolean resolveKill(
+    boolean resolveKill(
             int timeSeconds,
             Random random,
             Team attackingTeam,
@@ -651,13 +675,19 @@ public class TeamfightResolver {
 
     private double teamfightScore(GameState state, TeamSide side, Team team,
                                   boolean useRuntimeCompositionTools) {
+        return teamfightScore(state, side, team, useRuntimeCompositionTools, null);
+    }
+
+    double teamfightScore(GameState state, TeamSide side, Team team,
+                         boolean useRuntimeCompositionTools, Set<Position> allowed) {
         TeamState teamState = state.getTeamState(side);
         int currentTime = state.getCurrentTimeSeconds();
         int alive = 0;
         double totalTeamfighting = 0.0;
         double totalMechanics = 0.0;
         for (PlayerState player : teamState.getPlayers()) {
-            if (!player.canParticipateInMajorCombatAt(currentTime)) continue;
+            if (!player.canParticipateInMajorCombatAt(currentTime)
+                    || allowed != null && !allowed.contains(player.getPosition())) continue;
             alive++;
             if (player.hasMatchPerformance()) {
                 totalTeamfighting += playerSkills.combatExecution(player);
@@ -671,7 +701,7 @@ public class TeamfightResolver {
         double score = totalTeamfighting / alive * PlayerImpactRuleConfig.TEAMFIGHTING_SCORE_WEIGHT
                 + totalMechanics / alive * PlayerImpactRuleConfig.TEAMFIGHT_MECHANICS_SCORE_WEIGHT
                 + alive * PlayerImpactRuleConfig.ALIVE_PLAYER_SCORE_WEIGHT;
-        score += useRuntimeCompositionTools
+        if (allowed == null || allowed.contains(Position.SUPPORT)) score += useRuntimeCompositionTools
                 ? supportToolExecution(state, side) : supportToolExecutionWithoutComposition(state, side);
         if (state.getObjectiveState().isSoulOwner(side)) score += DragonSoulRuleConfig.SOUL_TEAMFIGHT_SCORE_BONUS;
         if (teamState.hasActiveBaronBuff(currentTime)) score += PlayerImpactRuleConfig.BARON_TEAMFIGHT_SCORE_BONUS;

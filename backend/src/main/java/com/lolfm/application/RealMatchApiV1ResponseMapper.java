@@ -92,7 +92,7 @@ public final class RealMatchApiV1ResponseMapper {
         return new SharedMatchComponents(
                 List.of(teamPresentation(output, TeamSide.BLUE, execution.blueTeamCode(), frozen),
                         teamPresentation(output, TeamSide.RED, execution.redTeamCode(), frozen)),
-                result(output.resultSummary()), timeline(output.timeline()), productionPolicy());
+                result(output.resultSummary()), timeline(output.timeline()), productionPolicy(output.productionPolicy()));
     }
 
     record SharedMatchComponents(
@@ -196,7 +196,7 @@ public final class RealMatchApiV1ResponseMapper {
                                         entry.canonicalScoreLoss(), entry.rankWeight())).toList(),
                                 trace.selectedChampionId().value(), trace.selectedRank(),
                                 trace.selectedCanonicalScoreLoss(), trace.drawBucket(),
-                                trace.totalEligibleWeight(), trace.reason().name())).toList(),
+                                trace.totalEligibleWeight(), trace.reason().name(), trace.evaluation())).toList(),
                 ids(source.hardFearlessExclusions()),
                 source.decisions().stream().map(decision ->
                         new RealMatchApiV1Dtos.DraftDecision(
@@ -332,7 +332,9 @@ public final class RealMatchApiV1ResponseMapper {
     }
 
     private static RealMatchApiV1Dtos.ProductionPolicy productionPolicy() {
-        MatchEngineV1Policy.Snapshot source = MatchEngineV1Policy.authoritative();
+        return productionPolicy(MatchEngineV1Policy.authoritative());
+    }
+    private static RealMatchApiV1Dtos.ProductionPolicy productionPolicy(MatchEngineV1Policy.Snapshot source) {
         return new RealMatchApiV1Dtos.ProductionPolicy(
                 source.policyId(), source.policyHash(), source.activationDecisionSchema(),
                 source.activationDecisionCode(), source.acceptanceStatus(),

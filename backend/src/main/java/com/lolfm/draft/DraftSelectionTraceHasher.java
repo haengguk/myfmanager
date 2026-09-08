@@ -58,6 +58,12 @@ public final class DraftSelectionTraceHasher {
                 .append(trace.drawBucket() == null ? "NONE" : trace.drawBucket()).append('\n')
                 .append("totalEligibleWeight=").append(trace.totalEligibleWeight()).append('\n')
                 .append("reason=").append(trace.reason().name()).append('\n');
+        if(trace.evaluation()!=null) {
+            canonical.append("evaluationSchema=DRAFT_ABILITY_EXPLANATION_V1\n")
+                    .append("strategy=").append(trace.evaluation().strategy()).append('\n');
+            trace.evaluation().components().entrySet().stream().sorted(java.util.Map.Entry.comparingByKey())
+                    .forEach(e->canonical.append("score=").append(e.getKey()).append('|').append(Double.toHexString(e.getValue())).append('\n'));
+        }
         return sha256(canonical.toString());
     }
 

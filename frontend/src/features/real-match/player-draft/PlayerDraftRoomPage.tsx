@@ -270,6 +270,9 @@ export function PlayerDraftRoomPage<TSimulation = PlayerDraftSimulationResult>({
   };
 
   const completed = session.completedDraft;
+  const latestAiDecision = [...session.decisions].reverse().find((decision) => decision.autoSelectionTrace?.evaluation);
+  const latestAiReason = latestAiDecision?.autoSelectionTrace?.evaluation?.explanation;
+  const latestAiChampion = latestAiDecision ? state.championsById[latestAiDecision.championId]?.champion.displayNameKo : null;
   if (terminalFailure) return (
     <div className="rm-draft-app pd-terminal-app"><MatchUtilityBar meta="직접 Draft · 세션 종료" onBack={onCancelled} /><main className="pd-terminal-state"><span aria-hidden="true">!</span><h1>{terminalFailure === 'EXPIRED' ? 'Draft 세션이 만료되었습니다' : 'Draft 세션을 찾을 수 없습니다'}</h1><p>로컬 상태로 결과를 추측하지 않았습니다. 경기 설정에서 새 직접 밴픽을 시작하세요.</p><button className="rm-primary-action" type="button" onClick={onCancelled}>경기 설정으로 이동</button></main></div>
   );
@@ -282,6 +285,7 @@ export function PlayerDraftRoomPage<TSimulation = PlayerDraftSimulationResult>({
       {preserveDraftOnBack && canCancelDraft && session.status !== 'SIMULATED' ? <button type="button" className="rm-secondary-action" disabled={actionPending || simulationPending || refreshPending || cancelPending} onClick={(event) => { setCancelReturnFocus(event.currentTarget); setCancelError(null); setCancelOpen(true); }}>현재 Draft 취소</button> : null}
       <PlayerDraftHeader session={session} options={state.options} blueTeam={blueTeam} redTeam={redTeam} catalog={state.championsById} />
       <div className="lm-sr-only" role="status" aria-live="polite" aria-atomic="true">{actionPending || refreshPending ? '상대 AI와 최신 Draft 상태를 확인하고 있습니다.' : statusMessage}</div>
+      {latestAiReason ? <p className="pd-ai-reason">상대 AI · {latestAiChampion} {latestAiDecision?.actionType === 'BAN' ? '밴' : '픽'} — {latestAiReason}</p> : null}
       {error ? <div className="lm-sr-only" role="alert" aria-live="assertive">{error}</div> : null}
       {developerView ? <PlayerDraftDeveloperPanel session={session} catalog={state.championsById} revealFrom={revealFrom} /> : <main className="rm-draft-stage">
         <PlayerDraftTeamPanel side="BLUE" teamCode={blueTeam.code} roster={blueTeam.roster} bans={session.state.blueBans} picks={session.state.bluePicks} controlledSide={session.controlledSide} catalog={state.championsById} completedDraft={completed} />

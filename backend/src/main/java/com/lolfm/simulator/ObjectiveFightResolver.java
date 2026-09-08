@@ -34,25 +34,31 @@ public final class ObjectiveFightResolver {
     ObjectiveFightOutcome resolve(
             GameState state, Random random, List<MatchEvent> events, String actionId,
             GameplayAttemptId compositionAttemptId) {
+        return resolve(state, random, events, actionId, compositionAttemptId, null);
+    }
+
+    ObjectiveFightOutcome resolve(GameState state, Random random, List<MatchEvent> events,
+            String actionId, GameplayAttemptId compositionAttemptId, Set<Position> allowed) {
         java.util.Objects.requireNonNull(actionId, "actionId");
         int eventStart = events.size();
         Team blue = domainTeam(state.getBlueTeamState());
         Team red = domainTeam(state.getRedTeamState());
-        ObjectiveFightSkillImpactData skillImpact = objectiveSkillImpact(state);
+        ObjectiveFightSkillImpactData skillImpact = allowed == null || allowed.contains(Position.SUPPORT)
+                ? objectiveSkillImpact(state) : new ObjectiveFightSkillImpactData(0,0,0,0,0,0,0);
         double goldContribution=(state.getBlueTeamState().getGold()-state.getRedTeamState().getGold())/500.0;
         double common = goldContribution
                 + (state.getBlueTeamState().getKills() - state.getRedTeamState().getKills()) * 11.0
                 + skillImpact.setupEdgeContribution();
-        double runtimeExisting = common + teamfights.teamfightScore(state, TeamSide.BLUE, blue)
-                - teamfights.teamfightScore(state, TeamSide.RED, red);
+        double runtimeExisting = common + teamfights.teamfightScore(state, TeamSide.BLUE, blue, true, allowed)
+                - teamfights.teamfightScore(state, TeamSide.RED, red, true, allowed);
         boolean productionCounterfactual = state.getCompositionRuntimeState().isProductionV2();
         double baselineExisting = productionCounterfactual
-                ? common + teamfights.teamfightScoreWithoutComposition(state, TeamSide.BLUE, blue)
-                - teamfights.teamfightScoreWithoutComposition(state, TeamSide.RED, red)
+                ? common + teamfights.teamfightScore(state, TeamSide.BLUE, blue, false, allowed)
+                - teamfights.teamfightScore(state, TeamSide.RED, red, false, allowed)
                 : runtimeExisting;
         CombatProgressionEvaluator progression = new CombatProgressionEvaluator();
-        List<PlayerState> blueAlive = alive(state.getBlueTeamState(), state.getCurrentTimeSeconds());
-        List<PlayerState> redAlive = alive(state.getRedTeamState(), state.getCurrentTimeSeconds());
+        List<PlayerState> blueAlive = scoped(state.getBlueTeamState(), state.getCurrentTimeSeconds(), allowed);
+        List<PlayerState> redAlive = scoped(state.getRedTeamState(), state.getCurrentTimeSeconds(), allowed);
         double baselineProgression;
         double runtimeProgression;
         if (productionCounterfactual) {
@@ -97,17 +103,17 @@ public final class ObjectiveFightResolver {
         Team losingTeam = winner == TeamSide.BLUE ? red : blue;
         TeamState winningState = state.getTeamState(winner);
         TeamState losingState = state.getTeamState(winner.opposite());
-        List<PlayerState> blueParticipants=participants(state.getBlueTeamState(),state.getCurrentTimeSeconds());
-        List<PlayerState> redParticipants=participants(state.getRedTeamState(),state.getCurrentTimeSeconds());
+        List<PlayerState> blueParticipants=scoped(state.getBlueTeamState(),state.getCurrentTimeSeconds(),allowed);
+        List<PlayerState> redParticipants=scoped(state.getRedTeamState(),state.getCurrentTimeSeconds(),allowed);
         List<String> participants = new ArrayList<>();
-        markParticipants(state, TeamSide.BLUE, state.getBlueTeamState(), participants);
-        markParticipants(state, TeamSide.RED, state.getRedTeamState(), participants);
+        markParticipants(state, TeamSide.BLUE, state.getBlueTeamState(), participants, allowed);
+        markParticipants(state, TeamSide.RED, state.getRedTeamState(), participants, allowed);
         MatchEvent startEvent = new MatchEvent(state.getCurrentTimeSeconds(), MatchEventType.TEAMFIGHT,
                 "오브젝트 지역에서 양 팀이 교전을 시작합니다.", null, null, List.of());
         events.add(startEvent);
         Set<PlayerState> dead = new HashSet<>();
         boolean killed = teamfights.resolveKill(state.getCurrentTimeSeconds(), random, winningTeam, winningState,
-                losingTeam, losingState, events, true, dead);
+                losingTeam, losingState, events, true, dead, null, allowed);
         teamfights.commitPendingCombatProgress(state.getBlueTeamState());
         teamfights.commitPendingCombatProgress(state.getRedTeamState());
         MatchEvent resultEvent = new MatchEvent(state.getCurrentTimeSeconds(), MatchEventType.TEAMFIGHT_RESULT,
@@ -156,14 +162,18 @@ public final class ObjectiveFightResolver {
         return new SupportSkill(area, vision, contribution);
     }
 
+    private List<PlayerState> scoped(TeamState team, int time, Set<Position> allowed) {
+        return team.getPlayers().stream().filter(p -> p.canParticipateInMajorCombatAt(time)
+                && (allowed == null || allowed.contains(p.getPosition()))).toList();
+    }
     private List<PlayerState> alive(TeamState team,int time){return team.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(time)).toList();}
     private List<PlayerState> participants(TeamState team,int time){return team.getPlayers().stream().filter(p->p.canParticipateInMajorCombatAt(time)).toList();}
 
     private void markParticipants(
-            GameState state, TeamSide side, TeamState team, List<String> participants) {
+            GameState state, TeamSide side, TeamState team, List<String> participants, Set<Position> allowed) {
         int time = state.getCurrentTimeSeconds();
         for (PlayerState player : team.getPlayers()) {
-            if (player.canParticipateInMajorCombatAt(time)) {
+            if (player.canParticipateInMajorCombatAt(time) && (allowed == null || allowed.contains(player.getPosition()))) {
                 state.markMajorCombatParticipant(player);
                 participants.add(structuredPlayerId(side, player));
             }

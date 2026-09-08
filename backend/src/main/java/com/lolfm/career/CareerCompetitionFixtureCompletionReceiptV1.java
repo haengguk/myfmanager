@@ -104,7 +104,7 @@ public record CareerCompetitionFixtureCompletionReceiptV1(
         if (games.isEmpty() || games.size() > binding.seriesFormat().maximumGames()) {
             throw new IllegalArgumentException("COMPETITION_GAME_CARDINALITY_MISMATCH");
         }
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.resolve(binding.matchPolicyId());
         LinkedHashMap<String, Integer> score = new LinkedHashMap<>();
         score.put(binding.firstTeamCode(), 0);
         score.put(binding.secondTeamCode(), 0);

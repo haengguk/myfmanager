@@ -1,5 +1,23 @@
 # Match Engine V1 Contract
 
+## 신규 경기 정책 (2026-09-08)
+
+새 Auto 경기와 새 Series/Player Draft는 `MATCH_ENGINE_REALISM_ABILITY_V1` →
+`PRODUCTION_REALISM_V1` / `MATCH_SIMULATOR_REALISM_RULES_V1` /
+`AUTO_DRAFT_ABILITY_V1`을 사용한다. 닫힌 레지스트리는 저장된 V9 정책도 정확히 해결한다.
+진행 중 Series는 자신의 policy ID를 child/input/receipt까지 유지한다. 구 형식의 필드 부재는
+legacy를 뜻하며 완료 hash를 최신 정책으로 다시 쓰지 않는다. 시즌 snapshot의 과거 runtime
+identity는 호환 앵커로 유지하고 실제 신규 경기 버전은 Series가 별도 결속한다.
+
+현실성 상태는 GameState/PlayerState/LaneResourceState/JungleEconomyState/UpperObjectiveState에
+소유된다. 본진 복귀·수비는 중앙 전투 순서에, 유충·전령은 기존 objective/structure 보상 경로에
+연결된다. 캠프 획득 보상과 실제 작업 tick의 tempo는 별개이며 중복 지급하지 않는다.
+Draft는 실경기 pure power/clear evaluator와 현재 12개 능력치·숙련도를 읽는다.
+새 필드는 additive이며 legacy 직렬화에서 비활성 realism/없는 평가 trace는 생략한다.
+
+[구현, 수치, 제한된 진단 및 검증 범위](../development/match-engine-realism-and-ability-based-draft-improvement-v1.md)를 참조한다.
+이하의 기존 V9 활성화·Freeze Evidence는 해당 역사적 정책의 설명이다.
+
 ## Purpose
 
 `MatchEngineV1`은 code-owned production policy가 승인한 현재 runtime을 실제 경기 기능이 사용하는 하나의 application boundary로 고정한다. Draft 결과를 다시 계산하거나 caller가 profile과 gameplay boolean을 조합하게 하지 않고, 완성된 두 roster와 final Draft, seed를 immutable input으로 받아 immutable result와 timeline, execution provenance를 반환한다.

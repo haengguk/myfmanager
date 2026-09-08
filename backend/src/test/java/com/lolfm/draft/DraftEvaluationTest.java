@@ -89,11 +89,11 @@ class DraftEvaluationTest {
         DraftPlanPortfolio redPlan = planner.plan(DraftTestSupport.NEUTRAL, DraftTestSupport.NEUTRAL, TeamSide.RED, java.util.Set.of());
         assertThat(ban.evaluate(banState, TeamSide.BLUE, id("poppy"), DraftTestSupport.NEUTRAL,
                 DraftTestSupport.NEUTRAL, bluePlan, redPlan).components().keySet())
-                .containsExactlyInAnyOrder(BanScoreComponent.values());
+                .containsExactlyInAnyOrderElementsOf(policy.banWeights().keySet());
         DraftState pickState = DraftTestSupport.stateAfter(List.of("rumble", "vi", "orianna", "varus", "nautilus", "poppy"));
         assertThat(pick.evaluate(pickState, TeamSide.BLUE, id("yasuo"), DraftTestSupport.NEUTRAL,
                 DraftTestSupport.NEUTRAL, bluePlan, redPlan).components().keySet())
-                .containsExactlyInAnyOrder(PickScoreComponent.values());
+                .containsExactlyInAnyOrderElementsOf(policy.pickWeights().keySet());
     }
 
     private static ChampionId id(String value) { return DraftTestSupport.id(value); }

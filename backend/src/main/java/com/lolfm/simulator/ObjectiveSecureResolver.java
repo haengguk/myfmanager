@@ -43,8 +43,9 @@ public final class ObjectiveSecureResolver {
 
         double winningSecure = playerSkills.objectiveSecure(winningJungler);
         double challengingSecure = playerSkills.objectiveSecure(challengingJungler);
-        double winningSetup = setupControl(state.getTeamState(fightWinner), time);
-        double challengingSetup = setupControl(state.getTeamState(challengingSide), time);
+        boolean upper = type == ObjectiveType.VOID_GRUB || type == ObjectiveType.RIFT_HERALD;
+        double winningSetup = upper ? ObjectivePlayerSkillRuleConfig.BASELINE_SKILL : setupControl(state.getTeamState(fightWinner), time);
+        double challengingSetup = upper ? ObjectivePlayerSkillRuleConfig.BASELINE_SKILL : setupControl(state.getTeamState(challengingSide), time);
         double secureContribution = (challengingSecure - winningSecure)
                 * ObjectivePlayerSkillRuleConfig.STEAL_CHANCE_PER_SECURE_EDGE_POINT;
         double setupContribution = (challengingSetup - winningSetup)
@@ -91,6 +92,7 @@ public final class ObjectiveSecureResolver {
     private boolean objectiveAvailable(GameState state, ObjectiveType type) {
         if (state.isFinished()) return false;
         return switch (type) {
+            case VOID_GRUB, RIFT_HERALD -> state.isRealismEnabled() && state.getObjectiveState().upper().available(type, state.getCurrentTimeSeconds());
             case DRAGON -> state.getObjectiveState().isElementalDragonPhase()
                     && state.getObjectiveState().isDragonAlive();
             case BARON -> state.getObjectiveState().isBaronAlive();

@@ -14,7 +14,13 @@ public final class JungleTempoState {
 
     public CreditUpdate recordEconomyOutcome(JungleEconomyOutcome outcome) {
         Objects.requireNonNull(outcome, "outcome");
-        int timeSeconds = outcome.timeSeconds();
+        return recordClearWork(outcome.timeSeconds(), outcome.elapsedSeconds(), outcome.combinedEfficiency());
+    }
+
+    /** Credit tracks actual eligible clear work; finite-camp loot is paid separately on completion. */
+    public CreditUpdate recordClearWork(int timeSeconds, int elapsedSeconds, double combinedEfficiency) {
+        if (elapsedSeconds <= 0 || !Double.isFinite(combinedEfficiency) || combinedEfficiency <= 0)
+            throw new IllegalArgumentException("Invalid jungle clear work");
         if (timeSeconds <= lastEconomyOutcomeAtSeconds) {
             throw new IllegalArgumentException(
                     "Jungle tempo economy time must advance exactly once per outcome");
@@ -29,10 +35,10 @@ public final class JungleTempoState {
             continuityResetCount++;
         }
         double boundedEfficiency = clamp(
-                outcome.combinedEfficiency(),
+                combinedEfficiency,
                 JungleTempoRuleConfig.MIN_CREDIT_EFFICIENCY,
                 JungleTempoRuleConfig.MAX_CREDIT_EFFICIENCY);
-        double added = outcome.elapsedSeconds() * boundedEfficiency;
+        double added = elapsedSeconds * boundedEfficiency;
         creditSeconds = Math.min(
                 JungleTempoRuleConfig.MAX_BANKED_CREDIT_SECONDS,
                 creditSeconds + added);

@@ -61,6 +61,7 @@ class LeagueApiV1BackgroundExecutionIntegrationTest {
 
         Instant deadline = Instant.now().plus(Duration.ofMinutes(2));
         List<JsonNode> terminal = List.of();
+        List<JsonNode> lastObservedJobs = List.of();
         while (Instant.now().isBefore(deadline)) {
             ArrayList<JsonNode> latest = new ArrayList<>();
             // Exercise the public season rebuild while outbox delivery commits
@@ -75,6 +76,7 @@ class LeagueApiV1BackgroundExecutionIntegrationTest {
                         .andExpect(status().isOk()).andReturn().getResponse()
                         .getContentAsString()).path("job"));
             }
+            lastObservedJobs = List.copyOf(latest);
             if (latest.stream().allMatch(job -> "COMPLETED".equals(
                     job.path("lifecycleStatus").asText()))
                     // Job completion stores the receipt; the outbox consumer applies standings afterwards.
@@ -84,7 +86,8 @@ class LeagueApiV1BackgroundExecutionIntegrationTest {
             }
             TimeUnit.MILLISECONDS.sleep(100);
         }
-        assertThat(terminal).hasSize(5).allSatisfy(job -> {
+        assertThat(terminal).as("Last observed background jobs: %s", lastObservedJobs)
+                .hasSize(5).allSatisfy(job -> {
             assertThat(job.path("lifecycleStatus").asText()).isEqualTo("COMPLETED");
             assertThat(job.path("attemptNumber").asInt()).isOne();
             assertThat(job.path("failureCode").isNull()).isTrue();

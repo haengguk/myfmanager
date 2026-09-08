@@ -55,7 +55,7 @@ public final class MatchEngineV1 {
         Team blueTeam = input.domainBlueTeam();
         Team redTeam = input.domainRedTeam();
         MatchSimulator simulator = simulators.create(
-                MatchEngineV1Policy.authoritative().retainedRuntimeProfileId(), instrumentation);
+                MatchEngineV1Policy.resolve(input.productionPolicy()).retainedRuntimeProfileId(), instrumentation);
         StructuredMatchSimulationOutcome outcome = simulator.simulateStructuredObserved(
                 blueTeam, redTeam, input.matchSeed(), input.domainChampionAssignments());
         SimulationExecutionProvenance executionProvenance = provenance.createV1(
@@ -70,7 +70,7 @@ public final class MatchEngineV1 {
         Objects.requireNonNull(input, "input");
         MatchEngineV1Policy.requireAuthoritative(input.productionPolicy());
         if (!input.productionPolicy().configurationHash().equals(
-                MatchEngineV1Policy.authoritative().configurationHash())
+                MatchEngineV1Policy.resolve(input.productionPolicy()).configurationHash())
                 || input.inputHash().isBlank()) {
             throw new IllegalArgumentException("MATCH_ENGINE_V1_INPUT_POLICY_MISMATCH");
         }

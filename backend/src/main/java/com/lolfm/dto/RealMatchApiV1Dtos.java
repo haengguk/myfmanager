@@ -309,7 +309,27 @@ public final class RealMatchApiV1Dtos {
             Integer drawBucket,
             int totalEligibleWeight,
             String reason
+,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) com.lolfm.draft.DraftSelectionTrace.Evaluation evaluation
     ) {
+        public DraftSelectionTrace(
+            String policyId,
+            String policyMode,
+            String policyHash,
+            String selectionContextHash,
+            int turn,
+            TeamSide teamSide,
+            DraftActionType actionType,
+            String bestCandidateId,
+            long bestCanonicalScore,
+            List<DraftSelectionPoolEntry> eligiblePool,
+            String selectedChampionId,
+            int selectedRank,
+            long selectedCanonicalScoreLoss,
+            Integer drawBucket,
+            int totalEligibleWeight,
+            String reason
+) {this(policyId,policyMode,policyHash,selectionContextHash,turn,teamSide,actionType,bestCandidateId,bestCanonicalScore,eligiblePool,selectedChampionId,selectedRank,selectedCanonicalScoreLoss,drawBucket,totalEligibleWeight,reason,null);}
         public DraftSelectionTrace {
             policyId = required(policyId, "policyId");
             policyMode = required(policyMode, "policyMode");

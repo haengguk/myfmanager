@@ -4,5 +4,8 @@ package com.lolfm.simulator;
 public enum PlayerActivityType {
     DEFAULT_ROLE,
     ROAMING,
+    RETURNING_TO_BASE,
+    DEFENDING_BASE,
+    UPPER_OBJECTIVE_RETURN,
     SIEGING
 }

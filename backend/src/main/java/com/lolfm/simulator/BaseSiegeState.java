@@ -64,13 +64,15 @@ public final class BaseSiegeState {
         currentTarget = Objects.requireNonNull(target, "target");
     }
 
-    public boolean grantNexusCommit(int timeSeconds) {
+    public boolean grantNexusCommit(int timeSeconds) { return grantNexusCommit(timeSeconds, false); }
+
+    public boolean grantNexusCommit(int timeSeconds, boolean realism) {
         if (nexusCommitGranted) return false;
         nexusCommitGranted = true;
         attackOpportunityLimit = Math.max(attackOpportunityLimit,
-                attackSequence + 1 + StructureRuleConfig.NEXUS_COMMIT_BONUS_ATTACKS);
+                attackSequence + 1 + (realism ? 1 : StructureRuleConfig.NEXUS_COMMIT_BONUS_ATTACKS));
         expiresAtSeconds = Math.max(expiresAtSeconds,
-                timeSeconds + StructureRuleConfig.NEXUS_COMMIT_GRACE_SECONDS);
+                timeSeconds + (realism ? MatchRealismRuleConfig.NEXUS_COMMIT_SECONDS : StructureRuleConfig.NEXUS_COMMIT_GRACE_SECONDS));
         return true;
     }
 

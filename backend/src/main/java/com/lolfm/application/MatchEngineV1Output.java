@@ -57,7 +57,7 @@ public record MatchEngineV1Output(
         }
         matchIdentity = MatchEngineV1Policy.required(matchIdentity, "matchIdentity");
         Objects.requireNonNull(productionPolicy, "productionPolicy");
-        if (!productionPolicy.equals(MatchEngineV1Policy.authoritative())) {
+        if (!productionPolicy.equals(MatchEngineV1Policy.resolve(productionPolicy.policyId()))) {
             throw new IllegalArgumentException("Match Engine V1 output policy mismatch");
         }
         configurationHash = MatchEngineV1Policy.requiredHash(

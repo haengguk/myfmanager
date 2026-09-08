@@ -22,8 +22,26 @@ public record SimulationOptions(
         boolean championPowerEnabled,
         ChampionMatchupMode championMatchupMode,
         TeamCompositionGameplayMode teamCompositionGameplayMode,
-        JungleClearContribution jungleClearContribution
+        JungleClearContribution jungleClearContribution,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT) boolean realismEnabled
 ) {
+    /** Legacy constructors retain V9 semantics. */
+    public SimulationOptions(
+            boolean laneCombatEnabled, boolean farmRecoveryEnabled, boolean jungleGankEnabled,
+            boolean counterGankEnabled, boolean roamEnabled, boolean diagnosticsEnabled, boolean objectivePriorityEnabled,
+            boolean lanePhaseEnabled, boolean midGameMacroEnabled, boolean objectiveDecisionEnabled,
+            boolean lateGameMacroEnabled, boolean progressionEnabled, boolean progressionPowerEnabled,
+            boolean championPowerEnabled, ChampionMatchupMode championMatchupMode,
+            TeamCompositionGameplayMode teamCompositionGameplayMode,
+            JungleClearContribution jungleClearContribution
+    ) {
+        this(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled, counterGankEnabled,
+                roamEnabled, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled,
+                objectiveDecisionEnabled, lateGameMacroEnabled, progressionEnabled,
+                progressionPowerEnabled, championPowerEnabled, championMatchupMode,
+                teamCompositionGameplayMode, jungleClearContribution, false);
+    }
+
     public SimulationOptions {
         Objects.requireNonNull(championMatchupMode, "championMatchupMode");
         Objects.requireNonNull(teamCompositionGameplayMode, "teamCompositionGameplayMode");
@@ -106,7 +124,7 @@ public record SimulationOptions(
                 champion == null ? championPowerEnabled : champion,
                 matchup == null ? championMatchupMode : matchup,
                 composition == null ? teamCompositionGameplayMode : composition,
-                jungleClear == null ? jungleClearContribution : jungleClear);
+                jungleClear == null ? jungleClearContribution : jungleClear, realismEnabled);
     }
 
     public SimulationOptions withRoamEnabled(boolean value) {

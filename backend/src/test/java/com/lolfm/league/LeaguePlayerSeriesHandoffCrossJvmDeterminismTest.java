@@ -33,7 +33,7 @@ class LeaguePlayerSeriesHandoffCrossJvmDeterminismTest {
                 .contains("schemaVersion=" + LeagueFixtureCompletionReceiptV2.SCHEMA)
                 .contains("playerSeriesBindingHash=")
                 .contains("draftAuthorityExecutionMode=PLAYER_CONTROLLED")
-                .contains("runtimeProfileId=PRODUCTION_MATCHUP_COMPOSITION_V1")
+                .contains("runtimeProfileId=PRODUCTION_REALISM_V1")
                 .contains("engineImplementationVersion="
                         + "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
     }

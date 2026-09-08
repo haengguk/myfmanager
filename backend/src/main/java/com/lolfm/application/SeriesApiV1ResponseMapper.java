@@ -37,7 +37,7 @@ public final class SeriesApiV1ResponseMapper {
                 : new SeriesApiV1Dtos.ReservationView(
                 current.reservation().commandId(), current.reservation().createdAt(),
                 current.reservation().leaseExpiresAt());
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = aggregate.boundPolicy();
         return new SeriesApiV1Dtos.SeriesView(
                 SeriesApiV1Dtos.VIEW_SCHEMA, aggregate.seriesId(), aggregate.revision(),
                 aggregate.status(), aggregate.terminalReason(), aggregate.format(),

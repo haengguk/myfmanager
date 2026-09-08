@@ -1,6 +1,8 @@
 package com.lolfm.simulator;
 
 public class ObjectiveState {
+    private final UpperObjectiveState upper = new UpperObjectiveState();
+    public UpperObjectiveState upper() { return upper; }
     private boolean dragonAlive;
     private int nextDragonSpawnSeconds = ObjectiveRuleConfig.FIRST_DRAGON_SPAWN_SECONDS;
     private int nextDragonAttemptSeconds = ObjectiveRuleConfig.FIRST_DRAGON_SPAWN_SECONDS + ObjectiveRuleConfig.OBJECTIVE_FIRST_ATTEMPT_DELAY_SECONDS;

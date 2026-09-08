@@ -9,9 +9,15 @@ public final class FinalRoleAssignmentResolver {
     private final RoleAssignmentSolver assignments;
     private final DraftMatchupEvaluator matchup;
     private final DraftCompositionEvaluator composition;
+    private final DraftAbilityEvaluator ability;
 
     public FinalRoleAssignmentResolver(RoleAssignmentSolver assignments, DraftMatchupEvaluator matchup,
                                        DraftCompositionEvaluator composition) {
+        this(assignments,matchup,composition,null);
+    }
+    public FinalRoleAssignmentResolver(RoleAssignmentSolver assignments,DraftMatchupEvaluator matchup,
+            DraftCompositionEvaluator composition,DraftAbilityEvaluator ability) {
+        this.ability=ability;
         this.assignments = assignments; this.matchup = matchup; this.composition = composition;
     }
 
@@ -46,7 +52,9 @@ public final class FinalRoleAssignmentResolver {
     public double utility(RoleAssignmentSolver.RoleAssignment own,
                           RoleAssignmentSolver.RoleAssignment opponent,
                           DraftTeamContext team) {
-        double proficiency = assignments.proficiencyScore(own, team);
+        double proficiency = ability==null ? assignments.proficiencyScore(own, team)
+                :own.positions().entrySet().stream().mapToDouble(e->ability.evaluate(
+                    new com.lolfm.champion.ChampionRoleKey(e.getKey(),e.getValue()),team,DraftPlanArchetype.FRONT_TO_BACK).playerFit()).average().orElse(0);
         double matchupScore = DraftMatchupEvaluator.normalize(matchup.assignmentEdge(own, opponent));
         double compositionScore = composition.assignmentQuality(own);
         return proficiency * 0.45 + matchupScore * 0.35 + compositionScore * 0.20;

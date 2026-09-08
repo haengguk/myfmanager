@@ -19,6 +19,7 @@ public final class DraftEngine {
             "f4c1cc238fa2da61e1f4202bf5a3e8e1d6401be453f00bfef8365ae543087899";
 
     private final DraftResourceSet resources;
+    private final AutoDraftSelectionPolicy selectionPolicy;
     private final DraftRuleSet rules;
     private final PreDraftPlanner planner;
     private final RoleAssignmentSolver assignments;
@@ -33,22 +34,24 @@ public final class DraftEngine {
     }
     public DraftEngine(DraftResourceSet resources, DraftRuleSet rules, DraftScoringPolicy policy) {
         this.resources = resources; this.rules = rules;
+        selectionPolicy=policy.abilityBased()?AutoDraftSelectionPolicy.ability():AutoDraftSelectionPolicy.production();
+        DraftAbilityEvaluator ability=policy.abilityBased()?new DraftAbilityEvaluator(resources.champions()):null;
         assignments = new RoleAssignmentSolver(resources.champions().catalog());
         DraftCompositionEvaluator composition = new DraftCompositionEvaluator(resources.champions().catalog(),
                 resources.champions().composition(), assignments);
         DraftAvailability availability = new DraftAvailability(resources.champions().catalog(), assignments);
         DraftMatchupEvaluator matchup = new DraftMatchupEvaluator(assignments, resources.champions().matchup());
         planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(),
-                resources.champions().composition(), assignments);
+                resources.champions().composition(), assignments, ability, policy.metaScale());
         pickEvaluator = new PickEvaluator(resources.champions().catalog(), resources.meta(), matchup,
-                assignments, composition, availability, policy);
+                assignments, composition, availability, policy, ability);
         banEvaluator = new BanEvaluator(resources.champions().catalog(), resources.meta(), resources.champions().composition(),
-                assignments, availability, composition, matchup, policy);
+                assignments, availability, composition, matchup, policy, ability);
         DraftCandidateGenerator generator = new DraftCandidateGenerator(resources.champions().catalog(), resources.meta(),
-                assignments, composition, availability, policy);
+                assignments, composition, availability, policy, ability);
         search = new ShallowDraftSearch(planner, generator, pickEvaluator, banEvaluator, policy);
-        selector = new AutoDraftSelector(AutoDraftSelectionPolicy.production());
-        finalRoles = new FinalRoleAssignmentResolver(assignments, matchup, composition);
+        selector = new AutoDraftSelector(policy.abilityBased()?AutoDraftSelectionPolicy.ability():AutoDraftSelectionPolicy.production());
+        finalRoles = new FinalRoleAssignmentResolver(assignments, matchup, composition, ability);
     }
 
     /** Authoritative seeded production boundary. */
@@ -72,6 +75,7 @@ public final class DraftEngine {
                                           SeriesDraftHistory history,
                                           DraftSelectionContext selectionContext) {
         DraftComputationContext context = DraftComputationContext.cached();
+        context.bindStrategy(selectionContext);
         DraftState state = DraftState.fresh(rules, history);
         DraftPlanPortfolio blueInitial = planner.plan(
                 blue, red, TeamSide.BLUE, state.fearlessExclusions(), context);
@@ -111,10 +115,10 @@ public final class DraftEngine {
                 red, blue, TeamSide.RED, state, context);
         String selectionPolicyId = selectionContext == null
                 ? DETERMINISTIC_BEST_REFERENCE_POLICY_ID
-                : AutoDraftSelectionPolicy.production().policyId();
+                : selectionPolicy.policyId();
         String selectionPolicyHash = selectionContext == null
                 ? DETERMINISTIC_BEST_REFERENCE_POLICY_HASH
-                : AutoDraftSelectionPolicy.production().policyHash();
+                : selectionPolicy.policyHash();
         return new FinalDraftResult(rules, state.blueBans(), state.redBans(), state.bluePicks(), state.redPicks(), decisions,
                 blueRoles.positions(), redRoles.positions(), matchAssignments, blueInitial, redInitial, blueFinal, redFinal,
                 state.fearlessExclusions(), selectionPolicyId, selectionPolicyHash,

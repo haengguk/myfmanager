@@ -52,6 +52,7 @@ export interface RealMatchDraftSelectionTraceDto {
   eligiblePool: readonly RealMatchDraftSelectionPoolEntryDto[]; selectedChampionId: string;
   selectedRank: number; selectedCanonicalScoreLoss: number; drawBucket: number | null;
   totalEligibleWeight: number; reason: 'ONLY_ONE_WITHIN_WINDOW' | 'SEEDED_WEIGHTED_SELECTION';
+  evaluation?: { strategy: string; components: Readonly<Record<string, number>>; explanation: string } | null;
 }
 export interface RealMatchFinalAssignmentDto { playerId: string; teamSide: TeamSide; position: Position; championId: string; }
 export interface RealMatchDraftDto {

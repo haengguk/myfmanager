@@ -123,6 +123,7 @@ class SeriesLifecycleHardeningTest {
         SeriesAggregate base = baseAggregate(repository, SeriesFormat.BO3);
         PlayerControlledDraftEngine.Progress progress = mock(
                 PlayerControlledDraftEngine.Progress.class);
+        org.mockito.Mockito.when(progress.boundPolicyId()).thenReturn(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID);
         SeriesChildDraft generationOne = new SeriesChildDraft(
                 "generation-one", 1, 0, PlayerDraftSessionStatus.ACTIVE,
                 START, START, START.plus(Duration.ofMinutes(30)), progress);
@@ -725,6 +726,7 @@ class SeriesLifecycleHardeningTest {
         SeriesAggregate base = baseAggregate(repository, SeriesFormat.BO3);
         PlayerControlledDraftResult draft = completedDraft(1);
         SeriesGameReceipt matchReceipt = mock(SeriesGameReceipt.class);
+        when(matchReceipt.policyId()).thenReturn(MatchEngineV1Policy.POLICY_ID);
         MatchEngineV1Output.MatchResultSummaryV1 summary = mock(
                 MatchEngineV1Output.MatchResultSummaryV1.class);
         when(summary.winner()).thenReturn(TeamSide.BLUE);
@@ -781,6 +783,7 @@ class SeriesLifecycleHardeningTest {
     private static PlayerControlledDraftEngine.Progress completedProgress(int gameNumber) {
         PlayerControlledDraftEngine.Progress progress = mock(
                 PlayerControlledDraftEngine.Progress.class);
+        org.mockito.Mockito.when(progress.boundPolicyId()).thenReturn(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID);
         PlayerControlledDraftResult result = completedDraft(gameNumber);
         when(progress.complete()).thenReturn(true);
         when(progress.result()).thenReturn(result);
@@ -850,7 +853,7 @@ class SeriesLifecycleHardeningTest {
         SeriesGameReceipt receipt = mock(SeriesGameReceipt.class);
         when(receipt.outputHash()).thenReturn(hash(
                 binding.gameId() + ":" + winner));
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.legacy();
         when(receipt.policyId()).thenReturn(policy.policyId());
         when(receipt.policyHash()).thenReturn(policy.policyHash());
         when(receipt.runtimeProfileId()).thenReturn(

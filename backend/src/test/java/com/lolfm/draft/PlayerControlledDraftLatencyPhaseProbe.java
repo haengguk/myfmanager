@@ -80,6 +80,7 @@ public final class PlayerControlledDraftLatencyPhaseProbe {
         long playerApplyNanos = elapsed(playerStart, captureTimings);
 
         DraftComputationContext computation = DraftComputationContext.cached();
+        computation.bindStrategy(selectionContext);
         ArrayList<AiTurnObservation> aiTurns = new ArrayList<>();
         DraftState current = afterPlayer;
         long aiStart = tick(captureTimings);
@@ -125,7 +126,7 @@ public final class PlayerControlledDraftLatencyPhaseProbe {
                 : null;
         long completionNanos = elapsed(completionStart, captureTimings);
         PlayerControlledDraftEngine.Progress projected = new PlayerControlledDraftEngine.Progress(
-                progress.controlledSide(), current, evidence, result);
+                progress.controlledSide(), current, evidence, result, progress.selectionPolicyId());
         return new Observation(projected, legalityNanos, playerApplyNanos,
                 aiTotalNanos, completionNanos, aiTurns, computation.snapshot());
     }

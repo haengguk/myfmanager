@@ -27,6 +27,7 @@ const EVENT_TYPES = [
   'SHUTDOWN', 'DRAGON', 'BARON', 'ELDER', 'TOWER', 'STRUCTURE_ACTION', 'TEAMFIGHT',
   'TEAMFIGHT_RESULT', 'ACE', 'MATCH_PHASE_CHANGE', 'MACRO_ACTION', 'LATE_GAME_ACTION',
   'LEVEL_UP', 'ITEM_STAGE_REACHED', 'GAME_END',
+  'VOID_GRUB', 'RIFT_HERALD', 'HERALD_SUMMON', 'HERALD_CHARGE', 'HERALD_EXPIRED', 'BASE_RETURN', 'BASE_DEFENSE',
 ] as const;
 const COMBAT_SOURCES = [
   'COUNTER_GANK', 'JUNGLE_GANK', 'LANE_COMBAT', 'ROAM', 'SKIRMISH', 'TEAMFIGHT',
@@ -34,11 +35,11 @@ const COMBAT_SOURCES = [
 ] as const;
 const STRUCTURE_SOURCES = [
   'LANE_PRESSURE', 'POST_FIGHT', 'BARON_PRESSURE', 'MACRO_PLAY', 'MID_GAME_MACRO',
-  'OBJECTIVE_TRADE', 'LATE_GAME_SIEGE', 'LATE_GAME_CROSS_MAP', 'NEXUS_FINISH',
+  'RIFT_HERALD', 'OBJECTIVE_TRADE', 'LATE_GAME_SIEGE', 'LATE_GAME_CROSS_MAP', 'NEXUS_FINISH',
 ] as const;
 const STRUCTURE_KINDS = ['TOWER', 'INHIBITOR', 'NEXUS_TURRET', 'NEXUS'] as const;
 const TOWER_TIERS = ['OUTER', 'INNER', 'INHIBITOR'] as const;
-const ACTIVITIES = ['DEFAULT_ROLE', 'ROAMING', 'SIEGING'] as const;
+const ACTIVITIES = ['DEFAULT_ROLE', 'ROAMING', 'SIEGING', 'RETURNING_TO_BASE', 'DEFENDING_BASE', 'UPPER_OBJECTIVE_RETURN'] as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SERIES_CHILD_ID = /^draft_[0-9a-f]{64}$/;
 const SHA256 = /^[0-9a-f]{64}$/;
@@ -370,7 +371,9 @@ function validateProductionPolicy(value: unknown, path: string): JsonRecord {
   if (!limitations.length || limitations[0] !== policy.knownDiagnosticLimitation) fail(`${path}.knownDiagnosticLimitations`, 'primary limitation과 일치하는 제한이 필요합니다.');
   for (const key of ['statisticalHoldoutApproved', 'automaticFallback', 'economyCandidateActivation', 'tempoCandidateActivation', 'diagnosticsExcludedFromGameplayIdentity']) bool(policy[key], `${path}.${key}`);
   if (policy.statisticalHoldoutApproved !== false || policy.automaticFallback !== false) fail(path, '통계 holdout 승인과 자동 fallback은 false여야 합니다.');
-  if (policy.runtimeProfileId !== 'PRODUCTION_MATCHUP_COMPOSITION_V1') fail(`${path}.runtimeProfileId`, 'Production runtime profile이 필요합니다.');
+  if (!['PRODUCTION_MATCHUP_COMPOSITION_V1', 'PRODUCTION_REALISM_V1'].includes(policy.runtimeProfileId as string)) {
+    fail(`${path}.runtimeProfileId`, '지원되는 Production runtime profile이 필요합니다.');
+  }
   if (policy.engineImplementationVersion !== 'MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9') fail(`${path}.engineImplementationVersion`, 'Production V9 engine이 필요합니다.');
   return policy;
 }

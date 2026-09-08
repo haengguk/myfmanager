@@ -21,7 +21,7 @@ export interface MatchSetupSelection {
 
 export interface TeamFinalStatsViewModel {
   kills: number; deaths: number; assists: number; gold: number; goldDifference: number;
-  towers: number; dragons: number; barons: number; inhibitorsDestroyed: number;
+  towers: number; dragons: number; barons: number; grubs?: number; heralds?: number; inhibitorsDestroyed: number;
 }
 
 export interface FinalPlayerViewModel {

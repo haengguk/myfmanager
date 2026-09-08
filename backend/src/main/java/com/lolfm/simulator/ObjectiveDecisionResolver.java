@@ -78,7 +78,8 @@ public final class ObjectiveDecisionResolver {
 
         if (responderAction == ObjectiveDecisionAction.CONTEST) {
             ObjectiveFightOutcome fight = objectiveFights.resolve(
-                    state, random, events, fightActionId, compositionAttemptId);
+                    state, random, events, fightActionId, compositionAttemptId,
+                    isUpper(type) ? UpperObjectiveResolver.LOCAL_POSITIONS : null);
             fightWinner = fight.winningSide();
             fightSkillImpact = fight.skillImpact();
             secureDecision = objectiveSecures.resolve(state, type, fightWinner, random);
@@ -217,10 +218,10 @@ public final class ObjectiveDecisionResolver {
         double urgency = urgency(context, side);
         int missing = 5 - context.alive(side);
         int minimumParticipants = minimumAlive(context.objectiveType());
-        int ownParticipants = participatingCount(
-                state.getTeamState(side), context.evaluationTimeSeconds());
-        int enemyParticipants = participatingCount(
-                state.getTeamState(side.opposite()), context.evaluationTimeSeconds());
+        int ownParticipants = isUpper(context.objectiveType()) ? UpperObjectiveResolver.participants(state, side).size()
+                : participatingCount(state.getTeamState(side), context.evaluationTimeSeconds());
+        int enemyParticipants = isUpper(context.objectiveType()) ? UpperObjectiveResolver.participants(state, side.opposite()).size()
+                : participatingCount(state.getTeamState(side.opposite()), context.evaluationTimeSeconds());
         boolean contest = context.majorCombatAvailable() && context.objectiveAvailable()
                 && context.alive(side) >= minimumParticipants
                 && ownParticipants >= minimumParticipants
@@ -317,6 +318,7 @@ public final class ObjectiveDecisionResolver {
                 : firstMessage ? "시야와 인원 우위를 바탕으로 확보합니다."
                         : "지역 주도권을 바탕으로 처치합니다.";
         return switch (type) {
+            case VOID_GRUB, RIFT_HERALD -> resolver.captureUpper(state, type, side);
             case DRAGON -> resolver.captureDragon(state, side, state.getCurrentTimeSeconds(), DragonCaptureSource.GENERAL, message);
             case BARON -> resolver.captureBaron(state, side, state.getCurrentTimeSeconds(), message);
             case ELDER -> resolver.captureElder(state, side, state.getCurrentTimeSeconds(), message).map(ElderCaptureOutcome::event);
@@ -350,7 +352,7 @@ public final class ObjectiveDecisionResolver {
     private ObjectiveDecisionContext.TradeTarget findTradeTarget(GameState state, ObjectiveType type, TeamSide side) {
         if (state.wasStructureActionPerformedThisTick(side) || state.isFinished()
                 || state.getBaseSiegeState(side).isActive()) return null;
-        Lane[] order = type == ObjectiveType.BARON
+        Lane[] order = (type == ObjectiveType.BARON || type == ObjectiveType.VOID_GRUB || type == ObjectiveType.RIFT_HERALD)
                 ? new Lane[]{Lane.BOT, Lane.MID, Lane.TOP}
                 : new Lane[]{Lane.TOP, Lane.MID, Lane.BOT};
         int time = state.getCurrentTimeSeconds();
@@ -375,7 +377,7 @@ public final class ObjectiveDecisionResolver {
                 || state.getBaseSiegeState(side).isActive()) {
             return ObjectiveDecisionIneligibleReason.STRUCTURE_ACTION_ALREADY_USED;
         }
-        Lane[] order = type == ObjectiveType.BARON
+        Lane[] order = (type == ObjectiveType.BARON || type == ObjectiveType.VOID_GRUB || type == ObjectiveType.RIFT_HERALD)
                 ? new Lane[]{Lane.BOT, Lane.MID, Lane.TOP}
                 : new Lane[]{Lane.TOP, Lane.MID, Lane.BOT};
         int time = state.getCurrentTimeSeconds();
@@ -451,6 +453,8 @@ public final class ObjectiveDecisionResolver {
 
     private double urgency(ObjectiveDecisionContext context, TeamSide side) {
         return switch (context.objectiveType()) {
+            case VOID_GRUB -> UpperObjectiveRuleConfig.GRUB_URGENCY;
+            case RIFT_HERALD -> UpperObjectiveRuleConfig.HERALD_URGENCY;
             case DRAGON -> (context.dragonStacks(side) == 3 ? ObjectiveDecisionRuleConfig.OWN_SOUL_POINT_URGENCY_BONUS : 0)
                     + (context.dragonStacks(side.opposite()) == 3 ? ObjectiveDecisionRuleConfig.ENEMY_SOUL_POINT_DENIAL_BONUS : 0);
             case BARON -> context.evaluationTimeSeconds() >= ObjectiveDecisionRuleConfig.BARON_LATE_GAME_START_SECONDS
@@ -500,19 +504,21 @@ public final class ObjectiveDecisionResolver {
         return (int) team.getPlayers().stream().filter(player -> player.isAlive(time)).count();
     }
 
-    private int minimumAlive(ObjectiveType type) { return type == ObjectiveType.DRAGON ? 3 : 4; }
+    private boolean isUpper(ObjectiveType type) { return type == ObjectiveType.VOID_GRUB || type == ObjectiveType.RIFT_HERALD; }
+    private int minimumAlive(ObjectiveType type) { return type == ObjectiveType.VOID_GRUB ? 1 : type == ObjectiveType.RIFT_HERALD ? 2 : type == ObjectiveType.DRAGON ? 3 : 4; }
     private boolean objectiveAvailable(GameState state, ObjectiveType type) {
         return !state.isFinished() && switch (type) {
+            case VOID_GRUB, RIFT_HERALD -> state.isRealismEnabled() && state.getObjectiveState().upper().available(type, state.getCurrentTimeSeconds());
             case DRAGON -> state.getObjectiveState().isElementalDragonPhase() && state.getObjectiveState().isDragonAlive();
             case BARON -> state.getObjectiveState().isBaronAlive();
             case ELDER -> state.getObjectiveState().isElderPhase() && state.getObjectiveState().isElderAlive();
         };
     }
     private int spawnedAt(ObjectiveState state, ObjectiveType type) {
-        return switch (type) { case DRAGON -> state.getDragonSpawnedAtSeconds(); case BARON -> state.getBaronSpawnedAtSeconds(); case ELDER -> state.getElderSpawnedAtSeconds(); };
+        return switch (type) { case VOID_GRUB -> UpperObjectiveRuleConfig.GRUB_SPAWN; case RIFT_HERALD -> UpperObjectiveRuleConfig.HERALD_SPAWN; case DRAGON -> state.getDragonSpawnedAtSeconds(); case BARON -> state.getBaronSpawnedAtSeconds(); case ELDER -> state.getElderSpawnedAtSeconds(); };
     }
     private int nextAttempt(ObjectiveState state, ObjectiveType type) {
-        return switch (type) { case DRAGON -> state.getNextDragonAttemptSeconds(); case BARON -> state.getNextBaronAttemptSeconds(); case ELDER -> state.getNextElderAttemptSeconds(); };
+        return switch (type) { case VOID_GRUB, RIFT_HERALD -> state.upper().nextAttempt(); case DRAGON -> state.getNextDragonAttemptSeconds(); case BARON -> state.getNextBaronAttemptSeconds(); case ELDER -> state.getNextElderAttemptSeconds(); };
     }
     private DecisionSkill objectiveDecisionSkill(GameState state, TeamSide side, Edges edge) {
         double favorability = clamp(

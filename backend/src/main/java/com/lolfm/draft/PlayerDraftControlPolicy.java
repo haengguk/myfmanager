@@ -24,6 +24,29 @@ public final class PlayerDraftControlPolicy {
         }
     }
 
+    public static String autoPolicyId(java.util.List<DraftTurnControlEvidence> turns) {
+        var ids=turns.stream().filter(t->t.authority()==DraftDecisionAuthority.AI)
+                .map(t->t.autoSelectionTrace().policyId()).distinct().toList();
+        if(ids.size()>1)throw new IllegalArgumentException("Mixed AI policy versions");
+        String id=ids.isEmpty()?AutoDraftSelectionPolicy.POLICY_ID:ids.getFirst();
+        AutoDraftSelectionPolicy.resolve(id); return id;
+    }
+    public static String id(java.util.List<DraftTurnControlEvidence> turns) {
+        return idForAuto(autoPolicyId(turns));
+    }
+    public static String policyHash(java.util.List<DraftTurnControlEvidence> turns) {
+        return hashForAuto(autoPolicyId(turns));
+    }
+    public static String idForAuto(String autoId) {
+        AutoDraftSelectionPolicy.resolve(autoId);
+        return autoId.equals(AutoDraftSelectionPolicy.POLICY_ID)?POLICY_ID:"PLAYER_CONTROLLED_DRAFT_ABILITY_V1";
+    }
+    public static String hashForAuto(String autoId) {
+        if(idForAuto(autoId).equals(POLICY_ID))return POLICY_HASH;
+        return hash(canonicalPolicy().replace(POLICY_ID,"PLAYER_CONTROLLED_DRAFT_ABILITY_V1")
+                .replace(AutoDraftSelectionPolicy.POLICY_ID,AutoDraftSelectionPolicy.ability().policyId())
+                .replace(AutoDraftSelectionPolicy.APPROVED_POLICY_SHA256,AutoDraftSelectionPolicy.ability().policyHash()));
+    }
     public static String canonicalPolicy() {
         AutoDraftSelectionPolicy auto = AutoDraftSelectionPolicy.production();
         return "policySchema=PLAYER_CONTROLLED_DRAFT_POLICY_V1\n"

@@ -23,6 +23,24 @@ import java.util.Map;
 import java.util.Set;
 
 public class GameState {
+    private boolean realismEnabled;
+    private final LaneResourceState laneResources = new LaneResourceState();
+    public LaneResourceState getLaneResourceState() { return laneResources; }
+    private int lastBaseDefenseEvaluationAt = -1;
+    public boolean beginBaseDefenseEvaluation(int time) {
+        if (time < lastBaseDefenseEvaluationAt) throw new IllegalArgumentException("Base defense time moved backwards");
+        if (time == lastBaseDefenseEvaluationAt) return false;
+        lastBaseDefenseEvaluationAt = time;
+        return true;
+    }
+    private int lastRealismSkirmishAt = -1;
+    public boolean realismSkirmishAvailable(int time) {
+        if (time < lastRealismSkirmishAt) throw new IllegalArgumentException("Skirmish time moved backwards");
+        return time != lastRealismSkirmishAt;
+    }
+    public void markRealismSkirmish(int time) { lastRealismSkirmishAt = time; }
+    public void configureRealism(boolean enabled) { realismEnabled = enabled; }
+    public boolean isRealismEnabled() { return realismEnabled; }
 
     private MatchChampionAssignments championAssignments;
     private ChampionPowerProfileCatalog championPowerProfileCatalog;

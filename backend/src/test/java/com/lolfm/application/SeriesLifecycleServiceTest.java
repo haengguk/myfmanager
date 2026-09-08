@@ -64,6 +64,7 @@ class SeriesLifecycleServiceTest {
         Instant now = repository.now();
         String historyHash = SeriesIdentity.historyHash(0, Set.of());
         var progress = mock(PlayerControlledDraftEngine.Progress.class);
+        org.mockito.Mockito.when(progress.boundPolicyId()).thenReturn(MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID);
         SeriesChildDraft child = new SeriesChildDraft(
                 "draft", 1, 10, PlayerDraftSessionStatus.COMPLETED,
                 now, now, repository.childExpiresAt(now, repository.parentExpiresAt(now)),

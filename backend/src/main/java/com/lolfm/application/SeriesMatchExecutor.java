@@ -147,7 +147,7 @@ final class ProductionSeriesMatchExecutor implements SeriesMatchExecutor {
             MatchEngineV1Input input,
             MatchEngineV1Output output
     ) {
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.resolve(input.productionPolicy());
         SimulationExecutionProvenance execution = output.executionProvenance();
         boolean valid = output.productionPolicy().equals(policy)
                 && output.configurationHash().equals(policy.configurationHash())

@@ -25,6 +25,7 @@ public class PlayerState {
     private int lastDeathAtSeconds = -1;
     private int respawnAtSeconds;
     private int farmResumeAtSeconds;
+    private int laneReturnAtSeconds;
     private final boolean farmRecoveryEnabled;
     private int elderBuffExpiresAtSeconds = -1;
     private double bountyProgress;
@@ -155,6 +156,7 @@ public class PlayerState {
     public int getGold() { return gold; }
     public int getRespawnAtSeconds() { return respawnAtSeconds; }
     public int getLastDeathAtSeconds() { return lastDeathAtSeconds; }
+    public int getLaneReturnAtSeconds() { return laneReturnAtSeconds; }
     public int getFarmResumeAtSeconds() { return farmResumeAtSeconds; }
     public int getElderBuffExpiresAtSeconds() { return elderBuffExpiresAtSeconds; }
     public void grantElderBuff(int currentTimeSeconds, int durationSeconds) {
@@ -212,7 +214,8 @@ public class PlayerState {
         int returnDelay = farmRecoveryEnabled
                 ? FarmRecoveryRuleConfig.returnDelaySeconds(position, currentTimeSeconds)
                 : 0;
-        farmResumeAtSeconds = Math.max(farmResumeAtSeconds, respawnAtSeconds + returnDelay);
+        laneReturnAtSeconds = respawnAtSeconds + returnDelay;
+        farmResumeAtSeconds = Math.max(farmResumeAtSeconds, laneReturnAtSeconds);
     }
 
     public void respawn() { respawnAtSeconds = 0; }

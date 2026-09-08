@@ -256,7 +256,7 @@ public final class PlayerControlledDraftMatchInputBoundary {
                         binding.requiredLegalRoleKeyHash())
                 && drafts.activeActualLegalRoleKeyHash().equals(
                         binding.actualLegalRoleKeyHash())
-                && binding.productionPolicy().equals(MatchEngineV1Policy.requirement());
+                && binding.productionPolicy().equals(MatchEngineV1Policy.forSelection(com.lolfm.draft.PlayerDraftControlPolicy.autoPolicyId(result.turnEvidence())));
         if (!valid) {
             throw new IllegalArgumentException("PLAYER_DRAFT_COMPLETION_BINDING_MISMATCH");
         }

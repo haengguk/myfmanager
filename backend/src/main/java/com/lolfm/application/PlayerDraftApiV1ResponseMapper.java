@@ -87,9 +87,9 @@ public final class PlayerDraftApiV1ResponseMapper {
                 new PlayerDraftApiV1Dtos.RuleIdentity(
                         state.ruleSet().identity(), provenance.draftRuleSetHash()),
                 new PlayerDraftApiV1Dtos.PolicyIdentity(
-                        "DRAFT_SCORING_POLICY_STANDARD_V1",
-                        provenance.draftScoringPolicyHash()),
-                autoPolicy(), controlPolicy(), current,
+                        view.progress().boundPolicyId().equals(AutoDraftSelectionPolicy.POLICY_ID)?"DRAFT_SCORING_POLICY_STANDARD_V1":"DRAFT_ABILITY_SCORING_V1",
+                        MatchEngineV1Policy.scoringHash(view.progress().boundPolicyId())),
+                autoPolicy(view.progress().boundPolicyId()), controlPolicy(view.progress().boundPolicyId()), current,
                 new PlayerDraftApiV1Dtos.DraftState(
                         ids(state.blueBans()), ids(state.redBans()),
                         ids(state.bluePicks()), ids(state.redPicks()),
@@ -136,7 +136,8 @@ public final class PlayerDraftApiV1ResponseMapper {
                 new PlayerDraftApiV1Dtos.MatchDraftBinding(
                         output.finalDraft().draftDecisionHash(),
                         output.finalDraft().finalDraftHash(),
-                        output.finalDraft().finalAssignmentHash(), autoPolicy(), controlPolicy(),
+                        output.finalDraft().finalAssignmentHash(), autoPolicy(output.finalDraft().draftSelectionPolicyId()),
+                        new PlayerDraftApiV1Dtos.PolicyIdentity(control.policyId(),control.policyHash()),
                         output.finalDraft().draftSelectionTraceHash(),
                         control.controlEvidenceHash(), evidence(control.turns()));
         PlayerDraftApiV1Dtos.MatchIntegrity integrity =
@@ -216,7 +217,7 @@ public final class PlayerDraftApiV1ResponseMapper {
                                 entry.canonicalScoreLoss(), entry.rankWeight())).toList(),
                 trace.selectedChampionId().value(), trace.selectedRank(),
                 trace.selectedCanonicalScoreLoss(), trace.drawBucket(),
-                trace.totalEligibleWeight(), trace.reason().name());
+                trace.totalEligibleWeight(), trace.reason().name(), trace.evaluation());
     }
 
     private RealMatchApiV1Dtos.ChampionPresentation champion(ChampionId id) {
@@ -225,15 +226,14 @@ public final class PlayerDraftApiV1ResponseMapper {
                 id.value(), value.displayNameKo(), value.displayNameEn(), value.portraitUrl());
     }
 
-    private static PlayerDraftApiV1Dtos.PolicyIdentity autoPolicy() {
-        AutoDraftSelectionPolicy policy = AutoDraftSelectionPolicy.production();
+    private static PlayerDraftApiV1Dtos.PolicyIdentity autoPolicy(String id) {
+        AutoDraftSelectionPolicy policy = AutoDraftSelectionPolicy.resolve(id);
         return new PlayerDraftApiV1Dtos.PolicyIdentity(
                 policy.policyId(), policy.policyHash());
     }
 
-    private static PlayerDraftApiV1Dtos.PolicyIdentity controlPolicy() {
-        return new PlayerDraftApiV1Dtos.PolicyIdentity(
-                PlayerDraftControlPolicy.POLICY_ID, PlayerDraftControlPolicy.POLICY_HASH);
+    private static PlayerDraftApiV1Dtos.PolicyIdentity controlPolicy(String autoId) {
+        return new PlayerDraftApiV1Dtos.PolicyIdentity(PlayerDraftControlPolicy.idForAuto(autoId),PlayerDraftControlPolicy.hashForAuto(autoId));
     }
 
     private static List<String> ids(List<ChampionId> ids) {

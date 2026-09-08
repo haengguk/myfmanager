@@ -199,9 +199,9 @@ public final class RealDraftMatchPreflightValidator {
 
     private void validateSelectionEvidence(FinalDraftResult result) {
         if (!result.draftSelectionPolicyId().equals(
-                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID)
+                MatchEngineV1Policy.forSelection(result.draftSelectionPolicyId()).draftSelectionPolicyId())
                 || !result.draftSelectionPolicyHash().equals(
-                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256)
+                MatchEngineV1Policy.forSelection(result.draftSelectionPolicyId()).draftSelectionPolicyHash())
                 || result.selectionTraces().size() != result.decisions().size()
                 || !result.selectionTraceHash().matches("[0-9a-f]{64}")) {
             throw failure("DRAFT_SELECTION_EVIDENCE_MISMATCH", result.draftIdentity());

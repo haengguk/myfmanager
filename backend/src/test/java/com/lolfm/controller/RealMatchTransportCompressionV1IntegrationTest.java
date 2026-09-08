@@ -146,18 +146,18 @@ class RealMatchTransportCompressionV1IntegrationTest {
         assertThat(response.path("draft").path("decisions")).hasSize(20);
         assertThat(response.path("draft").path("finalAssignments")).hasSize(10);
         assertThat(policy.retainedRuntimeProfileId().name())
-                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
+                .isEqualTo("PRODUCTION_REALISM_V1");
         assertThat(policy.gameplayConfiguration().championMatchupMode().name())
                 .isEqualTo("GEOMETRIC_V2");
         assertThat(policy.gameplayConfiguration().teamCompositionGameplayMode().name())
                 .isEqualTo("PRODUCTION_V2");
         assertThat(policy.gameplayConfiguration().jungleClearContribution().name())
-                .isEqualTo("DISABLED_NOT_INTEGRATED");
+                .isEqualTo("ECONOMY_AND_GANK_TEMPO_V1");
         assertThat(policy.activationDecisionCode())
-                .isEqualTo("PRODUCT_DECISION_ACCEPT_WITH_KNOWN_DIAGNOSTIC_LIMITATION");
+                .isEqualTo("NEW_GAME_RUNTIME_CONNECTION");
         assertThat(policy.statisticalHoldoutApproved()).isFalse();
         assertThat(response.path("integrity").path("runtimeProfileId").asText())
-                .isEqualTo("PRODUCTION_MATCHUP_COMPOSITION_V1");
+                .isEqualTo("PRODUCTION_REALISM_V1");
         assertThat(response.path("integrity").path("policyHash").asText())
                 .isEqualTo(policy.policyHash());
         assertThat(response.path("integrity").path("configurationHash").asText())

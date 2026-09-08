@@ -285,6 +285,41 @@ class StructureEngineRedesignTest {
     }
 
     @Test
+    void realismReturningPlayersArriveBeforeDefenseAndBaronDoesNotExemptReevaluation() {
+        GameState state = stateAt(1_800);
+        state.configureRealism(true);
+        openBase(state, TeamSide.RED, Lane.TOP);
+        structures.attemptSiege(state, StructureAttackRequest.siege(
+                TeamSide.BLUE, Lane.TOP, LateGameStructureTarget.NEXUS_TURRET,
+                PushReason.MACRO_PLAY, allPositions(), "REALISM_RETURN")).orElseThrow();
+        BaseDefenseResolver defense = new BaseDefenseResolver();
+        var events = new ArrayList<MatchEvent>();
+        defense.updateReturns(state, events);
+        assertThat(defense.defenders(state, TeamSide.RED)).isEmpty();
+        assertThat(events).hasSize(5);
+        defense.updateReturns(state, events);
+        assertThat(events).hasSize(5);
+        CountingRandom random = new CountingRandom(0);
+        assertThat(defense.resolveCombat(state, random, events)).isFalse();
+        assertThat(random.calls()).isZero();
+        state.advanceTimeSeconds(10);
+        state.expireBaronBuffsIfNeeded();
+        assertThat(defense.defenders(state, TeamSide.RED)).hasSize(5);
+        state.getBlueTeamState().grantBaronBuff(state.getCurrentTimeSeconds(), 180);
+        assertThat(defense.canCommit(state, state.getBaseSiegeState(TeamSide.BLUE))).isFalse();
+        assertThat(defense.resolveCombat(state, random, events)).isTrue();
+        int draws = random.calls();
+        assertThat(defense.resolveCombat(state, random, events)).isFalse();
+        assertThat(random.calls()).isEqualTo(draws);
+        assertThat(events).filteredOn(e -> e.getType() == com.lolfm.domain.MatchEventType.KILL)
+                .singleElement().satisfies(e -> assertThat(e.getCombatSource())
+                    .isEqualTo(com.lolfm.domain.CombatSource.BASE_DEFENSE));
+        state.clearStructureActionRegistryThisTick();
+        structures.resolveActiveSieges(state, events);
+        assertThat(state.getBaseSiegeState(TeamSide.BLUE).isActive()).isFalse();
+    }
+
+    @Test
     void returningDefendersStopPersistentSiegeAndEmitRepelledEvent() {
         GameState state = stateAt(1_000);
         openBase(state, TeamSide.RED, Lane.TOP);

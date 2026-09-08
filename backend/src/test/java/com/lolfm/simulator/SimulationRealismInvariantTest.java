@@ -180,6 +180,34 @@ class SimulationRealismInvariantTest {
     }
 
     @Test
+    void realismOpeningContactAndDuplicateAttemptPreserveRandomAndLocalizedParticipants() {
+        DummyDataFactory data = new DummyDataFactory();
+        Team blue = data.createBlueTeam(), red = data.createRedTeam();
+        GameState state = new GameState(teamState(blue, TeamSide.BLUE), teamState(red, TeamSide.RED));
+        state.configureRealism(true);
+        MatchSimulator simulator = simulator();
+        CountingRandom random = new CountingRandom();
+        var events = new java.util.ArrayList<MatchEvent>();
+        state.advanceTimeSeconds(MatchRealismRuleConfig.MID_CONTACT_SECONDS - 1);
+        assertThat(simulator.maybeCreateKillEvent(random, blue, red, state, events)).isFalse();
+        assertThat(random.calls).isZero();
+        assertThat(state.wasMajorCombatAttemptedThisTick()).isFalse();
+        assertThat(events).isEmpty();
+        state.advanceTimeSeconds(1);
+        assertThat(simulator.eligibleLocalizedSkirmishLanes(state)).containsExactly(Lane.MID);
+        assertThat(simulator.maybeCreateKillEvent(random, blue, red, state, events)).isTrue();
+        assertThat(events).filteredOn(e -> e.getType() == com.lolfm.domain.MatchEventType.KILL)
+                .singleElement().satisfies(e -> {
+                    assertThat(e.getCombatLane()).isEqualTo(Lane.MID);
+                    assertThat(e.getAssistPlayerIds()).isEmpty();
+                });
+        int draws = random.calls, count = events.size();
+        assertThat(simulator.maybeCreateKillEvent(random, blue, red, state, events)).isFalse();
+        assertThat(random.calls).isEqualTo(draws);
+        assertThat(events).hasSize(count);
+    }
+
+    @Test
     void genericSkirmishWithoutAnyEligibleLaneConsumesNothing() {
         DummyDataFactory data = new DummyDataFactory();
         Team blue = data.createBlueTeam();

@@ -23,7 +23,32 @@ public record DraftSelectionTrace(
         Integer drawBucket,
         int totalEligibleWeight,
         DraftSelectionReason reason
+,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) Evaluation evaluation
 ) {
+    public DraftSelectionTrace(
+        String policyId,
+        String policyMode,
+        String policyHash,
+        String selectionContextHash,
+        int turn,
+        TeamSide side,
+        DraftActionType actionType,
+        ChampionId bestCandidateId,
+        long bestCanonicalScore,
+        List<DraftSelectionPoolEntry> eligiblePool,
+        ChampionId selectedChampionId,
+        int selectedRank,
+        long selectedCanonicalScoreLoss,
+        Integer drawBucket,
+        int totalEligibleWeight,
+        DraftSelectionReason reason
+) {
+        this(policyId,policyMode,policyHash,selectionContextHash,turn,side,actionType,bestCandidateId,bestCanonicalScore,eligiblePool,selectedChampionId,selectedRank,selectedCanonicalScoreLoss,drawBucket,totalEligibleWeight,reason,null);
+    }
+    public record Evaluation(DraftPlanArchetype strategy, java.util.Map<String,Double> components,String explanation) {
+        public Evaluation { components=java.util.Map.copyOf(components); }
+    }
     public DraftSelectionTrace {
         policyId = required(policyId, "policyId");
         policyMode = required(policyMode, "policyMode");

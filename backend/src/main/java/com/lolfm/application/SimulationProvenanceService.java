@@ -156,7 +156,7 @@ public final class SimulationProvenanceService {
                 profile.configurationHash(), resourceProvenance.resourceProvenanceHash(),
                 blueTeamCode, redTeamCode, rosterIdentityHash, matchSeed, seriesGameNumber,
                 historyBeforeHash, draftResult.ruleSet().identity(), draftRuleSetHash,
-                draftScoringPolicyHash, draftResult.draftSelectionPolicyId(),
+                MatchEngineV1Policy.scoringHash(draftResult.draftSelectionPolicyId()), draftResult.draftSelectionPolicyId(),
                 draftResult.draftSelectionPolicyHash(), draftResult.selectionTraceHash(),
                 draftResult.draftIdentity(), finalDraftHash,
                 finalAssignmentHash);
@@ -170,7 +170,7 @@ public final class SimulationProvenanceService {
                 resourceProvenance,
                 blueTeamCode, redTeamCode, rosterIdentityHash, matchSeed, seriesGameNumber,
                 historyBeforeHash, draftResult.ruleSet().identity(), draftRuleSetHash,
-                draftScoringPolicyHash, draftResult.draftSelectionPolicyId(),
+                MatchEngineV1Policy.scoringHash(draftResult.draftSelectionPolicyId()), draftResult.draftSelectionPolicyId(),
                 draftResult.draftSelectionPolicyHash(), draftResult.selectionTraceHash(),
                 draftResult.draftIdentity(), finalDraftHash,
                 finalAssignmentHash, replayHash, ORDERED_LINES_HASH_ALGORITHM,
@@ -190,17 +190,17 @@ public final class SimulationProvenanceService {
         Objects.requireNonNull(timeline, "timeline");
         Objects.requireNonNull(randomFingerprint, "randomFingerprint");
         ResolvedSimulationRuntimeProfile profile =
-                MatchEngineV1Policy.resolvedRuntimeProfile();
+                com.lolfm.simulator.SimulationRuntimeProfiles.resolve(input.productionPolicy().runtimeProfileId());
         MatchEngineV1Input.DraftInput draft = input.finalDraft();
         if (!resourceProvenance.resourceProvenanceHash().equals(
                 MatchEngineV1Policy.APPROVED_RESOURCE_PROVENANCE_SHA256)
                 || !draft.draftRuleSetIdentity().equals(draftRules.identity())
                 || !draft.draftRuleSetHash().equals(draftRuleSetHash)
-                || !draft.draftScoringPolicyHash().equals(draftScoringPolicyHash)
+                || !draft.draftScoringPolicyHash().equals(MatchEngineV1Policy.scoringHash(draft.draftSelectionPolicyId()))
                 || !draft.draftSelectionPolicyId().equals(
-                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_ID)
+                input.productionPolicy().draftSelectionPolicyId())
                 || !draft.draftSelectionPolicyHash().equals(
-                MatchEngineV1Policy.DRAFT_SELECTION_POLICY_SHA256)) {
+                input.productionPolicy().draftSelectionPolicyHash())) {
             throw new IllegalStateException("MATCH_ENGINE_V1_PROVENANCE_IDENTITY_DRIFT");
         }
         String selectionPolicyId = draft.controlEvidence() == null
@@ -357,18 +357,23 @@ public final class SimulationProvenanceService {
         return canonical.toString();
     }
 
-    private static String canonicalDraftPolicy(DraftScoringPolicy policy) {
+    public static String canonicalDraftPolicy(DraftScoringPolicy policy) {
         StringBuilder canonical = new StringBuilder("draftScoringPolicySchema=DRAFT_SCORING_POLICY_V1\n")
                 .append("candidateLimit=").append(policy.candidateLimit()).append('\n')
                 .append("structuralRepairSlots=").append(policy.structuralRepairSlots()).append('\n')
                 .append("searchDepth=").append(policy.searchDepth()).append('\n')
                 .append("beamWidth=").append(policy.beamWidth()).append('\n');
+        if(policy.abilityBased())canonical.append("forecastVersion=DRAFT_ABILITY_SCORING_V1\n")
+                .append("metaScale=").append(Double.toHexString(policy.metaScale())).append('\n');
         for (PickScoreComponent component : PickScoreComponent.values()) {
+            if(!policy.abilityBased() && !policy.pickWeights().containsKey(component))continue;
             canonical.append("pickWeight=").append(component.name()).append('|')
                     .append(Double.toHexString(requiredWeight(policy.pickWeights(), component)))
                     .append('\n');
         }
         for (BanScoreComponent component : BanScoreComponent.values()) {
+            // Additional forecast observations carry zero score weight and do not rewrite legacy policy bytes.
+            if(component.ordinal()>BanScoreComponent.OUR_LOST_PICK_OPPORTUNITY.ordinal())continue;
             canonical.append("banWeight=").append(component.name()).append('|')
                     .append(Double.toHexString(requiredWeight(policy.banWeights(), component)))
                     .append('\n');

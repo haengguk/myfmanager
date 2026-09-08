@@ -17,11 +17,20 @@ public final class PickEvaluator {
     private final DraftCompositionEvaluator composition;
     private final DraftAvailability availability;
     private final DraftScoringPolicy policy;
+    private final DraftAbilityEvaluator ability;
 
     public PickEvaluator(ChampionCatalog champions, DraftMetaCatalog meta,
                          DraftMatchupEvaluator matchup, RoleAssignmentSolver assignments,
                          DraftCompositionEvaluator composition, DraftAvailability availability,
                          DraftScoringPolicy policy) {
+        this(champions, meta, matchup, assignments, composition, availability, policy, null);
+    }
+
+    public PickEvaluator(ChampionCatalog champions, DraftMetaCatalog meta,
+                         DraftMatchupEvaluator matchup, RoleAssignmentSolver assignments,
+                         DraftCompositionEvaluator composition, DraftAvailability availability,
+                         DraftScoringPolicy policy, DraftAbilityEvaluator ability) {
+        this.ability=ability;
         this.champions = champions; this.meta = meta; this.matchup = matchup;
         this.assignments = assignments; this.composition = composition;
         this.availability = availability; this.policy = policy;
@@ -49,6 +58,7 @@ public final class PickEvaluator {
         }
         Set<com.lolfm.domain.Position> feasiblePositions = assignments.feasibleCandidatePositions(
                 state.picks(side), candidate, context);
+        if(ability!=null) return abilityEvaluation(state,side,candidate,own,enemy,ownPortfolio,enemyPortfolio,feasiblePositions,context);
         double metaPriority = bestRoleValue(candidate, feasiblePositions, key -> meta.priority(key));
         double playerFit = feasible.stream().mapToDouble(value -> assignments.proficiencyScore(value, own)).max().orElse(0.0);
         double matchupValue = matchup.robustScore(
@@ -73,6 +83,32 @@ public final class PickEvaluator {
         components.put(PickScoreComponent.FUTURE_FEASIBILITY, future);
         double total = components.entrySet().stream().mapToDouble(entry -> entry.getValue() * policy.pickWeights().get(entry.getKey())).sum();
         return new PickEvaluation(candidate, total, components, true);
+    }
+
+    private PickEvaluation abilityEvaluation(DraftState state,TeamSide side,ChampionId id,
+            DraftTeamContext own,DraftTeamContext enemy,DraftPlanPortfolio plan,DraftPlanPortfolio enemyPlan,
+            Set<com.lolfm.domain.Position> roles,DraftComputationContext context) {
+        var role=roles.stream().map(p->new ChampionRoleKey(id,p)).max(java.util.Comparator
+                .comparingDouble((ChampionRoleKey k)->context.forecast(ability,own,k,plan.preferred().archetype()).value())
+                .thenComparing(k->k.position().name())).orElseThrow();
+        var f=context.forecast(ability,own,role,plan.preferred().archetype());
+        var components=new EnumMap<PickScoreComponent,Double>(PickScoreComponent.class);
+        components.put(PickScoreComponent.EARLY_POWER,f.early());components.put(PickScoreComponent.MID_POWER,f.mid());
+        components.put(PickScoreComponent.LATE_POWER,f.late());components.put(PickScoreComponent.PLAYER_FIT,f.playerFit());
+        components.put(PickScoreComponent.JUNGLE_CLEAR,f.jungleClear());components.put(PickScoreComponent.RESOURCE_RISK,f.resourceRisk());
+        components.put(PickScoreComponent.META_PRIORITY,policy.metaScale()*meta.priority(role)/20.0);
+        var next=new ArrayList<>(state.picks(side));next.add(id);
+        double beforeMatch=state.picks(side).isEmpty()?10:matchup.robustScore(state.picks(side),state.picks(side.opposite()),context);
+        components.put(PickScoreComponent.MATCHUP,Math.clamp(matchup.robustScore(next,state.picks(side.opposite()),context)-beforeMatch,-5,5));
+        components.put(PickScoreComponent.COMPOSITION_FIT,composition.marginalFit(state.picks(side),id,plan,context));
+        components.put(PickScoreComponent.COMPOSITION_RESPONSE,composition.compositionResponse(state.picks(side),state.picks(side.opposite()),id,own,enemy,context)-10);
+        components.put(PickScoreComponent.FLEXIBILITY,Math.clamp(assignments.practicalFlexValue(state.picks(side),id,own,context),0,4));
+        components.put(PickScoreComponent.FUTURE_FEASIBILITY,Math.clamp(availability.poolHealth(state,side,id,context),0,10));
+        double denied=assignments.feasibleCandidatePositions(state.picks(side.opposite()),id,context).stream()
+                .map(p->new ChampionRoleKey(id,p)).mapToDouble(k->context.forecast(ability,enemy,k,enemyPlan.preferred().archetype()).value()).max().orElse(0);
+        components.put(PickScoreComponent.DENIAL,Math.max(0,denied-20));
+        double total=components.entrySet().stream().mapToDouble(e->e.getValue()*policy.pickWeights().get(e.getKey())).sum();
+        return new PickEvaluation(id,total,components,true);
     }
 
     private double opponentValue(DraftState state, TeamSide side, ChampionId candidate,
