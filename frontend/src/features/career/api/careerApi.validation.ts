@@ -111,11 +111,23 @@ function commands(value: unknown, path: string): CareerAllowedCommand[] {
   return values;
 }
 
+function compatibility(value: unknown, team: unknown, path: string): void {
+  const item=object(value,path); exactKeys(item,['policyVersion','dataSource','sourceChanged','managedTeamCode','managedTeamName','directoryVersion','status','reasonCode','message'],path);
+  oneOf(item.policyVersion,['CAREER_SAVED_PLAYER_DIRECTORY_V1'] as const,path);
+  const source=oneOf(item.dataSource,['SAVED_CAREER','LEGACY_MATCHING_REFERENCE','UNAVAILABLE'] as const,path);
+  const status=oneOf(item.status,['SUPPORTED','UNSUPPORTED'] as const,path);
+  if(item.managedTeamCode!==team)throw new CareerContractError(path,'saved team scope mismatch');
+  text(item.managedTeamName,path);bool(item.sourceChanged,path);nullableText(item.directoryVersion,path);nullableText(item.reasonCode,path);nullableText(item.message,path);
+  if(status==='SUPPORTED'&&(source==='UNAVAILABLE'||item.reasonCode!==null||item.message!==null)||status==='UNSUPPORTED'&&(source!=='UNAVAILABLE'||item.reasonCode===null||item.message===null))throw new CareerContractError(path,'compatibility status mismatch');
+  if(source==='SAVED_CAREER'&&item.directoryVersion!=='EXPANDED_PLAYER_DIRECTORY_V1'||source==='LEGACY_MATCHING_REFERENCE'&&(item.sourceChanged!==false||item.directoryVersion!==null))throw new CareerContractError(path,'saved directory authority required');
+}
+
 function summary(value: unknown, path: string): CareerSummaryDto {
   const item = object(value, path);
-  exactKeys(item, ['careerId', 'saveName', 'managerName', 'managedTeamCode', 'currentDate', 'leagueId', 'seasonId', 'lifecycleStatus', 'resumeKind', 'updatedAt'], path);
+  exactKeys(item, ['careerId', 'saveName', 'managerName', 'managedTeamCode', 'currentDate', 'leagueId', 'seasonId', 'lifecycleStatus', 'resumeKind', 'updatedAt', ...('compatibility' in item ? ['compatibility'] : [])], path);
   identity(item.careerId, CAREER_ID, `${path}.careerId`); display(item.saveName, `${path}.saveName`); display(item.managerName, `${path}.managerName`);
   if (!/^[A-Z0-9]{2,16}$/.test(text(item.managedTeamCode, `${path}.managedTeamCode`))) throw new CareerContractError(`${path}.managedTeamCode`, 'canonical team code required');
+  if(item.compatibility!==undefined)compatibility(item.compatibility,item.managedTeamCode,`${path}.compatibility`);
   date(item.currentDate, `${path}.currentDate`);
   identity(item.leagueId, LEAGUE_ID, `${path}.leagueId`); identity(item.seasonId, SEASON_ID, `${path}.seasonId`);
   if (item.lifecycleStatus !== 'ACTIVE') throw new CareerContractError(`${path}.lifecycleStatus`, 'ACTIVE required');
@@ -145,9 +157,10 @@ function resume(value: unknown, path: string, leagueId: string, seasonId: string
 
 export function validateCareerView(value: unknown): CareerViewDto {
   const item = object(value, '$');
-  exactKeys(item, ['schemaVersion', 'careerId', 'saveName', 'managerName', 'managedTeamCode', 'startDate', 'currentDate', 'lifecycleStatus', 'revision', 'leagueId', 'seasonId', 'rootSeedAlgorithmId', 'rootSeed', 'leagueFrozenSnapshotIdentity', 'leagueProductDecisionIdentity', 'referenceCatalogVersion', 'referenceCatalogHash', 'bindingSchemaVersion', 'bindingHash', 'resume', 'createdAt', 'updatedAt'], '$');
+  exactKeys(item, ['schemaVersion', 'careerId', 'saveName', 'managerName', 'managedTeamCode', 'startDate', 'currentDate', 'lifecycleStatus', 'revision', 'leagueId', 'seasonId', 'rootSeedAlgorithmId', 'rootSeed', 'leagueFrozenSnapshotIdentity', 'leagueProductDecisionIdentity', 'referenceCatalogVersion', 'referenceCatalogHash', 'bindingSchemaVersion', 'bindingHash', 'resume', 'createdAt', 'updatedAt', ...('compatibility' in item ? ['compatibility'] : [])], '$');
   if (item.schemaVersion !== CAREER_SCHEMAS.view) throw new CareerContractError('$.schemaVersion', `expected ${CAREER_SCHEMAS.view}`);
   const summaryValue = summary({ careerId: item.careerId, saveName: item.saveName, managerName: item.managerName, managedTeamCode: item.managedTeamCode, currentDate: item.currentDate, leagueId: item.leagueId, seasonId: item.seasonId, lifecycleStatus: item.lifecycleStatus, resumeKind: object(item.resume, '$.resume').kind, updatedAt: item.updatedAt }, '$.summary');
+  if(item.compatibility!==undefined){compatibility(item.compatibility,item.managedTeamCode,'$.compatibility');if(object(item.compatibility,'$.compatibility').status!=='SUPPORTED')throw new CareerContractError('$.compatibility','unsupported save cannot be an opened view');}
   const startDate = date(item.startDate, '$.startDate'); if (startDate > summaryValue.currentDate) throw new CareerContractError('$.startDate', 'cannot follow currentDate');
   if (integer(item.revision, '$.revision') !== 0) throw new CareerContractError('$.revision', 'Career V1 revision must be zero');
   if (text(item.rootSeedAlgorithmId, '$.rootSeedAlgorithmId') !== 'CAREER_ROOT_SEED_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1') throw new CareerContractError('$.rootSeedAlgorithmId', 'unsupported seed algorithm');
@@ -194,8 +207,18 @@ function calendarFixture(value: unknown, path: string): CareerCalendarFixtureDto
   const item = object(value, path); exactKeys(item, ['fixtureId', 'roundNumber', 'date', 'scheduleStatus', 'executionMode', 'firstTeamCode', 'secondTeamCode', 'lifecycleStatus', 'seriesId', 'jobStatus', 'pendingOutbox'], path); identity(item.fixtureId, FIXTURE_ID, `${path}.fixtureId`); integer(item.roundNumber, `${path}.roundNumber`, 1); if (Number(item.roundNumber) > 18) throw new CareerContractError(`${path}.roundNumber`); date(item.date, `${path}.date`); if (item.scheduleStatus !== 'GAME_DERIVED_SCHEDULE_POLICY') throw new CareerContractError(`${path}.scheduleStatus`); oneOf(item.executionMode, ['FULL_AUTO', 'PLAYER_CONTROLLED'] as const, `${path}.executionMode`); for (const key of ['firstTeamCode', 'secondTeamCode'] as const) if (!/^[A-Z0-9]{2,16}$/.test(text(item[key], `${path}.${key}`))) throw new CareerContractError(`${path}.${key}`); text(item.lifecycleStatus, `${path}.lifecycleStatus`); identity(item.seriesId, SERIES_ID, `${path}.seriesId`); nullableText(item.jobStatus, `${path}.jobStatus`); bool(item.pendingOutbox, `${path}.pendingOutbox`); return item as unknown as CareerCalendarFixtureDto;
 }
 
+function registrationWait(value:unknown,event:unknown,path:string):void {
+  const row=object(value,path);exactKeys(row,['code','competitionId','requiredEventId','teamId','ownerTeam','responsibility','missingPositions','obstacles'],path);
+  const code=oneOf(row.code,['ROSTER_REPAIR_REQUIRED','OVERSEAS_RESULT_REQUIRED','INTERNATIONAL_QUALIFICATION_REQUIRED'] as const,path);
+  if(row.competitionId!==event)throw new CareerContractError(path,'registration event scope mismatch');
+  oneOf(row.responsibility,['AI_CLUB','MANAGER','RESULTS','ROSTER_REVIEW'] as const,path);
+  for(const key of ['requiredEventId','teamId','ownerTeam'])nullableText(row[key],path);
+  if(!Array.isArray(row.missingPositions)||!Array.isArray(row.obstacles))throw new CareerContractError(path);
+  row.missingPositions.forEach(v=>oneOf(v,['TOP','JUNGLE','MID','ADC','SUPPORT'] as const,path));row.obstacles.forEach(v=>text(v,path));
+  if(code==='ROSTER_REPAIR_REQUIRED'&&row.responsibility==='RESULTS'||code!=='ROSTER_REPAIR_REQUIRED'&&row.responsibility!=='RESULTS')throw new CareerContractError(path,'repair responsibility mismatch');
+}
 function competitionSummary(value: unknown, path: string): RecordValue {
-  const item = object(value, path); exactKeys(item, ['competitionId', 'stageId', 'ruleStatus', 'lifecycleStatus', 'blockingReason', 'revision', 'stateHash', 'completedFixtures', 'totalFixtures'], path); oneOf(item.competitionId, COMPETITION_IDS, `${path}.competitionId`); if (!/^[A-Z0-9_]+$/.test(text(item.stageId, `${path}.stageId`))) throw new CareerContractError(`${path}.stageId`, 'structured stage identity required'); const ruleStatus = oneOf(item.ruleStatus, ['RULE_SOURCE_COMPLETE', 'RULE_SOURCE_INCOMPLETE', 'PRODUCT_POLICY_REQUIRED', 'REFERENCE_TEMPLATE_ONLY', 'VERIFIED_PRIOR_SEASON_REQUIRED', 'GAME_POLICY_DEFINED'] as const, `${path}.ruleStatus`); const lifecycle = text(item.lifecycleStatus, `${path}.lifecycleStatus`); nullableText(item.blockingReason, `${path}.blockingReason`); integer(item.revision, `${path}.revision`); if (item.stateHash !== null) identity(item.stateHash, SHA256, `${path}.stateHash`); if ((item.stateHash === null) !== (ruleStatus === 'VERIFIED_PRIOR_SEASON_REQUIRED' && lifecycle === 'BLOCKED' && item.stageId === 'UNMATERIALIZED')) throw new CareerContractError(`${path}.stateHash`, 'materialization/hash relation mismatch'); const completed = integer(item.completedFixtures, `${path}.completedFixtures`); const total = integer(item.totalFixtures, `${path}.totalFixtures`); if (completed > total) throw new CareerContractError(path, 'fixture progress mismatch'); return item;
+  const item = object(value, path); exactKeys(item, ['competitionId', 'stageId', 'ruleStatus', 'lifecycleStatus', 'blockingReason', 'revision', 'stateHash', 'completedFixtures', 'totalFixtures', ...('registrationWait' in item ? ['registrationWait'] : [])], path); oneOf(item.competitionId, COMPETITION_IDS, `${path}.competitionId`); if (!/^[A-Z0-9_]+$/.test(text(item.stageId, `${path}.stageId`))) throw new CareerContractError(`${path}.stageId`, 'structured stage identity required'); const ruleStatus = oneOf(item.ruleStatus, ['RULE_SOURCE_COMPLETE', 'RULE_SOURCE_INCOMPLETE', 'PRODUCT_POLICY_REQUIRED', 'REFERENCE_TEMPLATE_ONLY', 'VERIFIED_PRIOR_SEASON_REQUIRED', 'GAME_POLICY_DEFINED'] as const, `${path}.ruleStatus`); const lifecycle = text(item.lifecycleStatus, `${path}.lifecycleStatus`); nullableText(item.blockingReason, `${path}.blockingReason`); integer(item.revision, `${path}.revision`); if (item.stateHash !== null) identity(item.stateHash, SHA256, `${path}.stateHash`); if ((item.stateHash === null) !== (ruleStatus === 'VERIFIED_PRIOR_SEASON_REQUIRED' && lifecycle === 'BLOCKED' && item.stageId === 'UNMATERIALIZED')) throw new CareerContractError(`${path}.stateHash`, 'materialization/hash relation mismatch'); const completed = integer(item.completedFixtures, `${path}.completedFixtures`); const total = integer(item.totalFixtures, `${path}.totalFixtures`); if (completed > total) throw new CareerContractError(path, 'fixture progress mismatch'); if(item.registrationWait!==undefined&&item.registrationWait!==null)registrationWait(item.registrationWait,item.competitionId,`${path}.registrationWait`); return item;
 }
 
 const COMPETITION_TEAM = /^(?:[A-Z0-9]{2,16}|(?:LCK|LPL|LEC|LCS|LCP|CBLOL):[A-Z0-9]{1,8})$/;

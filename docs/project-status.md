@@ -2,6 +2,23 @@
 
 이 문서는 2026-09-08 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career 해외 실행 교정·저장 호환 V1 (2026-09-08)
+
+국제 등록 전 명부 공백을 구조적으로 조회하고 정상 시장 날짜 처리 뒤 같은 대회를 재등록한다.
+LPL/LCP 등 단계 시작일과 LPL 최종 공동 순위 구간을 교정했으며, 미사용 이벤트만 새 projection을
+채택하고 시작·완료한 이벤트의 역사와 receipt는 보존한다.
+기존 Career는 설치 참고 데이터가 바뀌어도 저장된 선수/조직·성장·계약·명부로 진행하고
+다음 시즌에 이월한다. 새 Career만 최신 authored/global editor 데이터를 사용한다.
+저장 내부 손상과 지원 불가 명부 형식은 별도 오류로 유지하며, 생성 provenance/hash를 바꾸지 않는다.
+
+집중 30건 및 보강한 파일 DB 1건, 프런트 106건/build와 저장 진입 브라우저 확인이 통과했다.
+전체 회귀 **1회(44분 13초)**는 274 suites/2,162건 중 2,159 통과·1 실패·기존 skip 2였다.
+신인 선발 준비를 교정한 실제 Auto는 후속 집중에서 통과했다. 별도 재현한 복구 완료/미확정 등록 gate를
+수정한 뒤 G1과 기존 Calendar/API 2건도 모두 통과했다(8분 5초). 원본과 후속 결과는 별도 보존했다.
+미해결 실패는 없으며 추가 전체는 실행하지 않았다. 최종 tree의 clean full 통과로 표시하지 않는다.
+세부 근거와 호환 범위는 [해외 실행 교정·저장 호환 보고서](development/career-overseas-fixes-and-save-compatibility-v1.md)에 기록한다.
+아래 해외 실행 V1의 전체 결과는 선행 작업의 역사적 결과다.
+
 ## Career 해외 리그 실행 V1 (2026-09-08)
 
 LPL·LEC·LCP·CBLOL·LCS와 Americas Cup의 17개 이벤트를 기존 Auto job/Series/검증 receipt/Calendar에 연결했다.

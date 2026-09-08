@@ -37,7 +37,7 @@ public final class CareerApplicationService {
         String saveName = display(request.saveName(), "saveName");
         String managerName = display(request.managerName(), "managerName");
         String teamCode = request.managedTeamCode();
-        if (teamCode == null || references.findTeam(teamCode).isEmpty()) {
+        if (teamCode == null) {
             throw CareerException.teamNotFound();
         }
         String commandId;
@@ -60,6 +60,8 @@ public final class CareerApplicationService {
         try {
             CareerRelationalStore.CreateResult stored = careers.createOrReplay(
                     commandId, payloadHash, () -> {
+                        // Existing create receipts remain replayable even if the installed catalog changed teams.
+                        if (references.findTeam(teamCode).isEmpty()) throw CareerException.teamNotFound();
                         ProvisionedSeason provisioned = provisioning.provision(
                                 leagueId, seasonId, teamCode, rootSeed);
                         requireProvisioned(provisioned, leagueId, seasonId, teamCode, rootSeed);
@@ -111,7 +113,11 @@ public final class CareerApplicationService {
             var active = careers.activeSeason(row);
             LinkedSeason season = linked.get(new SeasonReference(active.leagueId(), active.seasonId()));
             if (season == null) throw CareerException.linkedSeasonIntegrity();
-            return linkedView(row, season);
+            try{return linkedView(row, season);}
+            catch(CareerException unsupported){
+                if(!CareerSaveCompatibility.unsupported(unsupported))throw unsupported;
+                return new CareerViewState(row,season,calendar.currentDate(row),CareerSaveCompatibility.View.unsupported(row,unsupported));
+            }
         }).toList();
         int current = views.size();
         int maximum = careers.maximumCareers();
@@ -154,7 +160,7 @@ public final class CareerApplicationService {
                 || !linked.productDecisionIdentity().equals(active.productDecisionHash())) {
             throw CareerException.linkedSeasonIntegrity();
         }
-        return new CareerViewState(row, linked, calendar.currentDate(row));
+        return new CareerViewState(row, linked, calendar.currentDate(row),careers.compatibility(row,sameReference(row)));
     }
 
     private void validateCareerIdentity(CareerRelationalStore.CareerRow row) {
@@ -182,12 +188,12 @@ public final class CareerApplicationService {
         } catch (RuntimeException invalid) {
             throw CareerException.linkedSeasonIntegrity();
         }
-        if (!references.provenance().catalogVersion().equals(
-                row.referenceCatalogVersion())
-                || !references.provenance().catalogHash().equals(row.referenceCatalogHash())
-                || references.findTeam(row.managedTeamCode()).isEmpty()) {
-            throw CareerException.resourceIntegrity();
-        }
+    }
+
+    private boolean sameReference(CareerRelationalStore.CareerRow row) {
+        return references.provenance().catalogVersion().equals(row.referenceCatalogVersion())
+                &&references.provenance().catalogHash().equals(row.referenceCatalogHash())
+                &&references.findTeam(row.managedTeamCode()).isPresent();
     }
 
     private LocalDate referenceSnapshotDate() {
@@ -291,7 +297,8 @@ public final class CareerApplicationService {
     public record CareerViewState(
             CareerRelationalStore.CareerRow career,
             LinkedSeason linkedSeason,
-            LocalDate currentGameDate
+            LocalDate currentGameDate,
+            CareerSaveCompatibility.View compatibility
     ) {}
 
     public record CreateResult(boolean replayed, CareerViewState career) {}

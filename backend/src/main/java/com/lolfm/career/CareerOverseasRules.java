@@ -6,6 +6,7 @@ import java.util.*;
 /** Adopted regional formats. Missing public operational details are explicit game policies. */
 final class CareerOverseasRules {
     static final String VERSION="CAREER_OVERSEAS_EXECUTION_V1";
+    static final String PROJECTION_VERSION="CAREER_OVERSEAS_STAGE_AND_PLACEMENT_V2";
     static final String SOURCE_HASH="3a0fdf9602c84c1f2351141138385502aa46c2eff240354bd4195e5ed6b3f163";
     static final String SIDE=CareerDomesticCompetition.SIDE_POLICY;
     static final String SELECTION="OVERSEAS_SEEDED_FIRST_MEETING_RETURN_ALTERNATION_HIGHER_SEED_KNOCKOUT_V1";
@@ -15,6 +16,20 @@ final class CareerOverseasRules {
         if(isOverseas(competition))return Event.valueOf(competition).date(year,Event.valueOf(competition).end).plusDays(SCHEDULE_EXTENSION_DAYS);
         String end=switch(competition){case "FIRST_STAND"->"03-22";case "MSI"->"07-12";case "EWC_LOL"->"07-19";case "WORLDS"->"11-14";default->throw new IllegalArgumentException("SCHEDULE_EVENT");};
         return LocalDate.parse(year+"-"+end).plusDays(SCHEDULE_EXTENSION_DAYS);
+    }
+    /** Reference stage dates projected to the game year; unpublished bounds retain the adopted V1 policy. */
+    static LocalDate stageStart(Event event,int year,String stage) {
+        String md=switch(stage) {
+            case "REGULAR","SWISS"->event.start;
+            case "TIEBREAKER"->null; // Game policy: first day after the regular window.
+            case "PLAYOFFS"->switch(event) {
+                case LPL_SPLIT_1->"02-24";case LPL_SPLIT_2->"05-29";case LPL_SPLIT_3,LCP_SPLIT_3->"08-29";
+                case CBLOL_COPA->"02-07";default->event.post;
+            };
+            case "KNIGHTS","PLAY_IN","FINAL_SEEDING","LAST_CHANCE","REGIONAL_FINALS"->event.post;
+            default->throw new IllegalArgumentException("OVERSEAS_STAGE_UNKNOWN:"+stage);
+        };
+        return md==null?event.date(year,event.regularEnd).plusDays(1):event.date(year,md);
     }
     enum Event {
         LPL_SPLIT_1("LPL","LPL Split 1","01-14","02-06","02-09","03-08",14),

@@ -8,13 +8,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = {CareerApiV1Controller.class, CareerRosterApiV1Controller.class, CareerMarketApiV1Controller.class, CareerDevelopmentApiV1Controller.class, CareerClApiV1Controller.class})
+@RestControllerAdvice(assignableTypes = {CareerApiV1Controller.class, CareerRosterApiV1Controller.class, CareerMarketApiV1Controller.class, CareerDevelopmentApiV1Controller.class, CareerClApiV1Controller.class, CareerSeasonApiV1Controller.class, CareerOverseasApiV1Controller.class})
 public final class CareerApiV1ExceptionHandler {
     @ExceptionHandler(CareerException.class)
     public ResponseEntity<CareerApiV1Dtos.ErrorResponse> career(CareerException error) {
         HttpStatus status = switch (error.type()) {
             case REQUEST_INVALID -> HttpStatus.BAD_REQUEST;
-            case MONEY_POLICY_REFRESH_REQUIRED -> HttpStatus.CONFLICT;
+            case MONEY_POLICY_REFRESH_REQUIRED, SAVE_COMPATIBILITY_DATA_MISSING, SAVE_COMPATIBILITY_VERSION_UNSUPPORTED, SAVE_COMPATIBILITY_ORGANIZATION_UNSUPPORTED -> HttpStatus.CONFLICT;
             case NOT_FOUND, CALENDAR_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case MANAGED_TEAM_NOT_FOUND -> HttpStatus.UNPROCESSABLE_ENTITY;
             case COMMAND_CONFLICT, CAPACITY_REACHED,
@@ -60,6 +60,7 @@ public final class CareerApiV1ExceptionHandler {
             case LINKED_SEASON_INTEGRITY_FAILURE ->
                     "CAREER_LINKED_SEASON_INTEGRITY_FAILURE";
             case RESOURCE_INTEGRITY_FAILURE -> "CAREER_RESOURCE_INTEGRITY_FAILURE";
+            case SAVE_COMPATIBILITY_DATA_MISSING, SAVE_COMPATIBILITY_VERSION_UNSUPPORTED, SAVE_COMPATIBILITY_ORGANIZATION_UNSUPPORTED -> "CAREER_"+type.name();
             case CALENDAR_NOT_FOUND -> "CAREER_CALENDAR_NOT_FOUND";
             case CALENDAR_STALE_REVISION -> "CAREER_CALENDAR_STALE_REVISION";
             case CALENDAR_COMMAND_CONFLICT -> "CAREER_CALENDAR_COMMAND_CONFLICT";

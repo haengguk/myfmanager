@@ -82,7 +82,7 @@ public final class CareerMarketStore {
     }
     public void recover() {
         var ids=jdbc.query("SELECT s.career_id FROM career_save s LEFT JOIN career_market_state m ON m.career_id=s.career_id WHERE m.career_id IS NULL OR m.state_json NOT LIKE '%\"management\"%' OR m.state_json LIKE '%\"management\":null%' OR m.state_json NOT LIKE '%\"finance\"%' OR m.state_json LIKE '%\"finance\":null%' OR m.state_json LIKE '%\"legacyTransition\":true%' ORDER BY s.career_id",(r,n)->r.getString(1));
-        for(String id:ids)transactions.executeWithoutResult(ignored->initialize(jdbc,id));
+        for(String id:ids)transactions.executeWithoutResult(ignored->{if(CareerSaveCompatibility.directoryVersionSupported(jdbc,id))initialize(jdbc,id);});
     }
     static CareerMarketEngine engine(JdbcTemplate jdbc,String career,int year,Saved market) {
         var engine=new CareerMarketEngine(career,managed(jdbc,career),directory(jdbc,career),CareerRosterStore.saved(jdbc,career,year).state(),market.state());

@@ -328,3 +328,14 @@ CL 읽기/명령/결과는 `/api/v1/careers/{careerId}/cl/{year}`, `/cl`,
 저장된 영수증도 읽을 수 있지만 같은 UUID를 DEVELOPMENT 요청으로 바꾸면 충돌이다.
 생성 이름 이주는 상세 name/nickname과 고정 정의 이름이 모두 기본 placeholder일 때만
 현재 프로필을 개선하며, 사용자 변경 표시 이름과 과거 경기 canonical/hash는 보존한다.
+
+## 해외 단계·최종 순위 교정 적용 (2026-09-08)
+
+`CAREER_OVERSEAS_STAGE_AND_PLACEMENT_V2`는 stage별 시작일과 선행 단계 하한,
+공동 순위를 유지한 LPL 최종 구간 배정을 적용한다. 기존 activation 원본 hash는 유지하고
+이벤트의 projection policyVersion으로 교정 버전을 구분한다. binding/application이 없고
+모든 fixture가 READY인 미사용 이벤트만 승격한다. 시작 이벤트는 V1 투영, 완료 이벤트는
+저장된 plan/순위/지급 근거를 보존한다. 다음 새 이벤트는 V2를 사용한다.
+새 투영은 fixture ID/seed를 재번호 매기지 않으며 날짜 조정의 종료일+7일 한도를 유지한다.
+G1의 현재 국제 등록 공백은 이 역사 보존 정책과 별도로 정상 시장 경로에서 복구한다.
+[적용 표와 근거](../development/career-overseas-fixes-and-save-compatibility-v1.md).

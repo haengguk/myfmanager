@@ -28,9 +28,37 @@ class CareerOverseasTournamentTest {
         int po=switch(event){case LPL_SPLIT_1,LPL_SPLIT_2,LEC_VERSUS->14;case LPL_SPLIT_3->12;case CBLOL_COPA,CBLOL_ETAPA_1,CBLOL_ETAPA_2,LCS_SUMMER->10;case LCP_SPLIT_3,AMERICAS_CUP->6;case LPL_REGIONAL_FINALS->0;default->8;};
         assertThat(p.bouts().stream().filter(b->b.stage().equals("PLAYOFFS"))).hasSize(po);
         if(event.league.equals("LPL")&&event!=Event.LPL_REGIONAL_FINALS)assertThat(p.bouts().stream().filter(b->b.stage().equals("KNIGHTS"))).hasSize(event==Event.LPL_SPLIT_1?6:event==Event.LPL_SPLIT_2?4:2);
-        var dates=new HashSet<String>();for(var b:p.bouts()){assertThat(dates.add(b.first()+"|"+b.date())).isTrue();assertThat(dates.add(b.second()+"|"+b.date())).isTrue();assertThat(b.date()).isBeforeOrEqualTo(event.date(input.year(),event.end).plusDays(SCHEDULE_EXTENSION_DAYS));}
+        var dates=new HashSet<String>();for(var b:p.bouts()){assertThat(dates.add(b.first()+"|"+b.date())).isTrue();assertThat(dates.add(b.second()+"|"+b.date())).isTrue();assertThat(b.date()).isBeforeOrEqualTo(event.date(input.year(),event.end).plusDays(SCHEDULE_EXTENSION_DAYS));assertThat(b.date()).isAfterOrEqualTo(stageStart(event,input.year(),b.stage()));}
         var reversed=new LinkedHashMap<String,Score>();scores.entrySet().stream().sorted(Map.Entry.<String,Score>comparingByKey().reversed()).forEach(e->reversed.put(e.getKey(),e.getValue()));assertThat(project(input,reversed)).isEqualTo(p);
         assertThat(p.bouts()).extracting(Bout::id).doesNotHaveDuplicates();
+    }
+    @Test void stageFloorsSeparateKnightsSeedingAndPlayoffs() {
+        for(var e:List.of(Event.LPL_SPLIT_1,Event.LPL_SPLIT_2,Event.LPL_SPLIT_3,Event.LCP_SPLIT_3,Event.CBLOL_COPA)) {
+            var p=finish(input(e),new TreeMap<>());
+            var expected=java.time.LocalDate.parse("2027-"+switch(e){
+                case LPL_SPLIT_1->"02-24";case LPL_SPLIT_2->"05-29";case LPL_SPLIT_3->"08-29";
+                case LCP_SPLIT_3->"08-29";default->"02-07";});
+            assertThat(p.bouts().stream().filter(b->b.stage().equals("PLAYOFFS")).map(Bout::date)).allMatch(d->!d.isBefore(expected));
+        }
+    }
+    @ParameterizedTest @EnumSource(value=Event.class,names={"LPL_SPLIT_1","LPL_SPLIT_2","LPL_SPLIT_3"})
+    void lowerGroupUpsetsKeepFinalRankIntervalsComplete(Event event) {
+        var in=input(event);var scores=new TreeMap<String,Score>();Plan plan=null;
+        for(int turn=0;turn<50;turn++) {
+            plan=project(in,scores);if(plan.complete())break;
+            for(var b:plan.bouts())if(!scores.containsKey(b.id())) {
+                boolean first=b.stage().equals("KNIGHTS")?in.entrants().indexOf(b.first())>in.entrants().indexOf(b.second()):in.entrants().indexOf(b.first())<in.entrants().indexOf(b.second());
+                int win=b.bestOf()/2+1;scores.put(b.id(),new Score(first?win:0,first?0:win));
+            }
+        }
+        assertThat(plan.complete()).isTrue();
+        var counts=new TreeMap<Integer,Long>();plan.placements().values().forEach(p->counts.merge(p,1L,Long::sum));
+        int next=1;for(var group:counts.entrySet()){assertThat(group.getKey()).isEqualTo(next);next+=group.getValue().intValue();}
+        assertThat(next).isEqualTo(event.count+1);
+        assertThat(plan.playoffTeams()).anyMatch(in.groups().get("NIRVANA")::contains);
+        assertThat(plan.placements().values().stream().filter(p->p==5)).hasSize(2);
+        assertThat(project(in,scores)).isEqualTo(plan);
+        for(var t:plan.ranking())assertThat(plan.points().get(t)).isEqualTo(lplPoints(event,plan.placements().get(t)));
     }
     @Test void hybridEntryAndMixedFormatsRetainTheirOwnRules(){
         for(Event e:List.of(Event.LCP_SPLIT_1,Event.LCP_SPLIT_2)){var p=finish(input(e),new TreeMap<>());assertThat(p.bouts().stream().filter(b->b.id().startsWith("ENTRY_"))).hasSize(2);assertThat(p.playoffTeams()).hasSize(6);}

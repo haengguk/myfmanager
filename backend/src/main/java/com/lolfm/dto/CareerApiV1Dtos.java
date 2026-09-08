@@ -117,7 +117,8 @@ public final class CareerApiV1Dtos {
             String seasonId,
             String lifecycleStatus,
             String resumeKind,
-            OffsetDateTime updatedAt
+            OffsetDateTime updatedAt,
+            com.lolfm.career.CareerSaveCompatibility.View compatibility
     ) {}
 
     public record CareerView(
@@ -142,7 +143,8 @@ public final class CareerApiV1Dtos {
             String bindingHash,
             ResumeProjection resume,
             OffsetDateTime createdAt,
-            OffsetDateTime updatedAt
+            OffsetDateTime updatedAt,
+            com.lolfm.career.CareerSaveCompatibility.View compatibility
     ) {}
 
     public record ResumeProjection(
@@ -327,7 +329,8 @@ public final class CareerApiV1Dtos {
             long revision,
             String stateHash,
             int completedFixtures,
-            int totalFixtures
+            int totalFixtures,
+            com.lolfm.career.CareerRegistrationWait registrationWait
     ) {}
 
     public record CompetitionFixture(

@@ -27,12 +27,14 @@ final class CareerOverseasTournament {
                 Map<String,Integer> placements,List<String> ranking,Map<String,Integer> points,List<String> seasonEliminated,List<Draw> draws,boolean complete,Map<String,String> entitlements){
         Plan{bouts=List.copyOf(bouts);groupRanks=Map.copyOf(groupRanks);regularRanking=List.copyOf(regularRanking);playoffTeams=List.copyOf(playoffTeams);placements=Map.copyOf(placements);ranking=List.copyOf(ranking);points=Map.copyOf(points);seasonEliminated=List.copyOf(seasonEliminated);draws=List.copyOf(draws);entitlements=Map.copyOf(entitlements);}
     }
-    private final Input in;private final Map<String,Score> scores;
+    private final Input in;private final Map<String,Score> scores;private final boolean corrected;
     private final List<Bout> bouts=new ArrayList<>();private final Map<String,List<String>> groupRanks=new TreeMap<>();
     private final Map<String,Integer> places=new TreeMap<>(),points=new TreeMap<>();private final List<Draw> draws=new ArrayList<>();
     private List<String> regular=List.of(),playoffs=List.of(),eliminated=List.of();private boolean complete;
-    private CareerOverseasTournament(Input input,Map<String,Score> scores){in=input;this.scores=Map.copyOf(scores);}
-    static Plan project(Input input,Map<String,Score> scores){var g=new CareerOverseasTournament(input,scores);g.build();
+    private CareerOverseasTournament(Input input,Map<String,Score> scores,String policy){in=input;this.scores=Map.copyOf(scores);if(!Set.of(VERSION,PROJECTION_VERSION).contains(policy))throw new IllegalArgumentException("OVERSEAS_PROJECTION_VERSION");corrected=PROJECTION_VERSION.equals(policy);}
+    static Plan project(Input input,Map<String,Score> scores){return project(input,scores,PROJECTION_VERSION);}
+    static Plan project(Input input,Map<String,Score> scores,String policy){var g=new CareerOverseasTournament(input,scores,policy);g.build();
+        if(g.corrected&&g.complete)g.validatePlacements();
         if(!g.bouts.stream().map(Bout::id).collect(java.util.stream.Collectors.toSet()).containsAll(scores.keySet()))throw new IllegalArgumentException("OVERSEAS_ORPHAN_RESULT");
         var ranked=new ArrayList<>(input.entrants());ranked.sort(Comparator.comparingInt((String t)->g.places.getOrDefault(t,Integer.MAX_VALUE)).thenComparingInt(t->g.regular.contains(t)?g.regular.indexOf(t):input.entrants().indexOf(t)));
         return new Plan(g.bouts,g.groupRanks,g.regular,g.playoffs,g.places,g.complete?ranked:List.of(),g.points,g.eliminated,g.draws,g.complete,g.complete&&input.event()==Event.AMERICAS_CUP?Map.of("KOREA_BOOTCAMP_SUPPORT",ranked.getFirst()):Map.of());}
@@ -42,7 +44,8 @@ final class CareerOverseasTournament {
     private int seed(String team){return playoffs.contains(team)?playoffs.indexOf(team):regular.contains(team)?regular.indexOf(team):in.entrants().indexOf(team);}
     private void add(String id,String stage,String round,String group,LocalDate proposed,int bo,String first,String second,boolean regularMatch){
         if(first==null||second==null)return;if(first.equals(second)||!in.entrants().containsAll(List.of(first,second)))throw new IllegalStateException("OVERSEAS_PAIR_SCOPE");
-        LocalDate date=proposed;
+        LocalDate floor=corrected?stageStart(in.event(),in.year(),stage):proposed;
+        LocalDate date=proposed.isBefore(floor)?floor:proposed;
         for(var b:bouts)if(Set.of(b.first(),b.second()).contains(first)||Set.of(b.first(),b.second()).contains(second))if(!b.date().isBefore(date))date=b.date().plusDays(1);
         if(date.isAfter(in.event().date(in.year(),in.event().end).plusDays(SCHEDULE_EXTENSION_DAYS)))throw new IllegalStateException("OVERSEAS_FINITE_SCHEDULE_EXHAUSTED:"+in.event()+":"+id);
         String owner=regularMatch?(Long.parseUnsignedLong(CareerRosterStore.hash(in.seed()+"|FIRST_SELECTION|"+pair(first,second)).substring(0,15),16)%2==0?first:second):seed(first)<seed(second)?first:second;
@@ -51,7 +54,15 @@ final class CareerOverseasTournament {
         var b=new Bout(id,stage,round,group,date,bo,first,second,owner);bouts.add(b);var s=scores.get(id);
         if(s!=null&&(Math.max(s.first(),s.second())!=bo/2+1||Math.min(s.first(),s.second())<0||Math.min(s.first(),s.second())>=bo/2+1))throw new IllegalArgumentException("OVERSEAS_SERIES_SCORE");
     }
-    private void knockout(String id,String stage,int bo,String a,String b){add(id,stage,id,null,in.event().date(in.year(),in.event().post),bo,a,b,false);}
+    private void knockout(String id,String stage,int bo,String a,String b){
+        LocalDate start=corrected?stageStart(in.event(),in.year(),stage):in.event().date(in.year(),in.event().post);
+        if(corrected)for(var prior:bouts) {
+            boolean prerequisite=stage.equals("PLAYOFFS")&&!prior.stage().equals("PLAYOFFS")
+                    ||!stage.equals("TIEBREAKER")&&(prior.stage().equals("REGULAR")||prior.stage().equals("TIEBREAKER")||prior.stage().equals("SWISS"));
+            if(prerequisite&&!prior.date().isBefore(start))start=prior.date().plusDays(1);
+        }
+        add(id,stage,id,null,start,bo,a,b,false);
+    }
     private List<String> rr(String group,List<String> teams,int legs,int bo){
         var ring=new ArrayList<>(teams);int rounds=teams.size()-1;LocalDate start=in.event().date(in.year(),in.event().start),end=in.event().date(in.year(),in.event().regularEnd);
         for(int leg=0;leg<legs;leg++){
@@ -98,7 +109,28 @@ final class CareerOverseasTournament {
         }
     }
     private void markLoser(String id,int place){if(loser(id)!=null)places.put(loser(id),place);}
-    private void finish(String id){if(winner(id)==null)return;places.put(winner(id),1);places.put(loser(id),2);for(String t:in.entrants())if(!places.containsKey(t))places.put(t,Math.max(playoffs.size()+1,regular.indexOf(t)+1));if(in.event().league.equals("CBLOL")){var tied=places.entrySet().stream().filter(e->e.getValue()==5).map(Map.Entry::getKey).sorted(Comparator.comparingInt(regular::indexOf)).toList();for(int i=0;i<tied.size();i++)places.put(tied.get(i),5+i);}complete=true;}
+    private void finish(String id){if(winner(id)==null)return;places.put(winner(id),1);places.put(loser(id),2);if(corrected)assignRemainingPlaces();else for(String t:in.entrants())if(!places.containsKey(t))places.put(t,Math.max(playoffs.size()+1,regular.indexOf(t)+1));if(in.event().league.equals("CBLOL")){var tied=places.entrySet().stream().filter(e->e.getValue()==5).map(Map.Entry::getKey).sorted(Comparator.comparingInt(regular::indexOf)).toList();for(int i=0;i<tied.size();i++)places.put(tied.get(i),5+i);}complete=true;}
+    private void assignRemainingPlaces() {
+        if(in.event()==Event.LPL_SPLIT_1) {
+            for(int i=0;i<2;i++){markLoser("K3_"+i,9);markLoser("K2_"+i,11);}
+        } else if(in.event()==Event.LPL_SPLIT_2) {
+            for(int i=0;i<4;i++)markLoser("K_"+i,9);
+        } else if(in.event()==Event.LPL_SPLIT_3) {
+            for(int i=0;i<2;i++)markLoser("K_"+i,9);
+        } else if(in.event()==Event.CBLOL_COPA) {
+            markLoser("PI_3",7);markLoser("PI_2",8);
+        }
+        // Remaining teams never reached the elimination bracket. Their regular order is the explicit fallback.
+        for(String team:regular)if(!places.containsKey(team))places.put(team,places.size()+1);
+    }
+    private void validatePlacements() {
+        if(!places.keySet().equals(new HashSet<>(in.entrants())))throw new IllegalStateException("OVERSEAS_FINAL_PARTITION");
+        var counts=new TreeMap<Integer,Integer>();places.values().forEach(p->counts.merge(p,1,Integer::sum));
+        int next=1;for(var group:counts.entrySet()) {
+            if(group.getKey()!=next)throw new IllegalStateException("OVERSEAS_FINAL_RANK_INTERVAL");next+=group.getValue();
+        }
+        if(next!=in.entrants().size()+1)throw new IllegalStateException("OVERSEAS_FINAL_RANK_COVERAGE");
+    }
     private void four(String prefix,List<String> t,int openingBo){
         knockout(prefix+"U1","PLAYOFFS",openingBo,t.get(0),t.get(3));knockout(prefix+"U2","PLAYOFFS",openingBo,t.get(1),t.get(2));
         knockout(prefix+"UF","PLAYOFFS",5,winner(prefix+"U1"),winner(prefix+"U2"));knockout(prefix+"L1","PLAYOFFS",5,loser(prefix+"U1"),loser(prefix+"U2"));

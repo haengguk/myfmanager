@@ -1,5 +1,53 @@
 # Testing
 
+## Career 해외 실행 교정·저장 호환 V1 (2026-09-08)
+
+새 테스트 클래스 없이 Tournament/Qualification의 순수 단계·이변 구간 검사, 공유 Execution의
+등록 전 정상 시장 복구·독립 경기 게이트·기존 규칙 적용 경계, 기존 파일 DB의 A→B→시즌 이월과
+API 계약을 확장한다. 파일 DB의 경기 준비는 기존 통제 helper에 이미 고정된 참가자를 전달하며
+실제 장시간 Series를 다시 실행하지 않는다. 브라우저는 저장 진입/보존 안내/새로고침 한 흐름이다.
+
+```bash
+# backend/에서 순차 실행. 아래는 전체 실행 전 결합 집중 범위다.
+JAVA_HOME=/tmp/career-development-jdk ./gradlew test \
+  --tests 'com.lolfm.league.CareerModePersistenceTest.savedPlayerAuthoritySurvivesCatalogReplacementAndFileRestart' \
+  --tests 'com.lolfm.career.CareerOverseasExecutionTest.correctionAdoptsUnusedEventsAndPreservesStartedAndCompletedHistory' \
+  --tests 'com.lolfm.career.CareerOverseasTournamentTest' \
+  --tests 'com.lolfm.career.CareerOverseasQualificationTest' --console=plain --no-daemon
+# frontend/
+npm run career:verify
+npm run build
+# 구현·집중 검증 완료 후 backend/의 계획된 전체 1회
+JAVA_HOME=/tmp/career-development-jdk ./gradlew test --console=plain --no-daemon
+```
+
+프런트 계약 106건과 build, 저장 진입 대표 브라우저 흐름은 통과했다.
+전체 전 결합 집중 30건(4분 15초), 실제 League handoff/가격 보존을 보강한 파일 DB 1건(4분 7초)이 통과했다.
+계획된 전체는 **1회, 44분 13초, 274 suites/2,162건 중 2,159 통과·1 실패·기존 skip 2**다.
+원본은 `/tmp/career-compat-full-evidence/`에 보존했다.
+신인 영입 후 수개월의 시장 운영에도 원구단에서 선발할 수 있다고 가정한 fixture를 경기 직전 영입으로 수정했다.
+후속 1차 2건/5분 9초에서 실제 Auto는 통과했고, 추가 G1 사례는 진행 모드가 0개인 교착으로 실패하여 결함을 재현했다.
+해당 gate 수정 뒤 **G1 + 기존 Calendar/API 2건은 모두 통과했다(8분 5초)**.
+
+```bash
+# 전체 이후 1차: 기존 실패 수정 + G1 추가 교착 재현
+JAVA_HOME=/tmp/career-development-jdk ./gradlew test \
+  --tests 'com.lolfm.league.LeagueAutomatedSeriesRunnerProductionV9Test.calendarDateAdvanceCapturesSettledStartAndAppliesActualAutoExactlyOnce' \
+  --tests 'com.lolfm.career.CareerOverseasExecutionTest.registrationWithoutFixturesRepairsThroughMarketDatesAndKeepsIndependentGates' --console=plain --no-daemon
+# 최종 gate 수정: G1 및 직접 연결된 Calendar/API
+JAVA_HOME=/tmp/career-development-jdk ./gradlew test \
+  --tests 'com.lolfm.career.CareerOverseasExecutionTest.registrationWithoutFixturesRepairsThroughMarketDatesAndKeepsIndependentGates' \
+  --tests 'com.lolfm.controller.CareerApiV1ControllerTest.createListGetReplayConflictAndStrictErrorsPreserveLeagueState' --console=plain --no-daemon
+```
+
+후속 원본/집계는 `/tmp/career-compat-post-full-evidence/first/`, `final/`에 보존했다.
+수정은 로컬 등록 gate와 테스트 준비 순서이며 공유 엔진/Random/저장 형식을 바꾸지 않았다.
+실패한 실제 Auto와 해당 gate의 Calendar/API 호출자를 집중 검증했으므로 두 번째 전체는 실행하지 않았다.
+미해결 실패는 없으며 최종 tree의 clean full 통과로 표시하지 않는다.
+[이번 보고서](career-overseas-fixes-and-save-compatibility-v1.md)의 실제 실행/통제 fixture 구분을 따른다.
+아래 선행 작업의 검증 결과와 합치지 않는다.
+
+
 ## Career 해외 리그 실행 V1 + 선행 재정·AI 게이트 (2026-09-08)
 
 신규 검증은 `CareerOverseasTournamentTest`, `CareerOverseasQualificationTest`의 순수 클래스 2개와

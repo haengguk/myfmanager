@@ -142,7 +142,7 @@ public final class CareerApiV1ResponseMapper {
                 value.competitionId(), value.stageId(), value.ruleStatus(),
                 value.lifecycleStatus(),
                 value.blockingReason(), value.revision(), value.stateHash(),
-                value.completedFixtures(), value.totalFixtures());
+                value.completedFixtures(), value.totalFixtures(),value.registrationWait());
     }
 
     private CareerApiV1Dtos.CompetitionFixture competitionFixture(
@@ -192,7 +192,7 @@ public final class CareerApiV1ResponseMapper {
                 career.productDecisionHash(), career.referenceCatalogVersion(),
                 career.referenceCatalogHash(), career.bindingSchema(),
                 career.bindingHash(), resume(state.linkedSeason().resume()),
-                career.createdAt(), career.updatedAt());
+                career.createdAt(), career.updatedAt(),state.compatibility());
     }
 
     private CareerApiV1Dtos.CareerSummary summary(
@@ -203,7 +203,7 @@ public final class CareerApiV1ResponseMapper {
                 career.saveName(), career.managerName(), career.managedTeamCode(),
                 state.currentGameDate(), state.linkedSeason().leagueId(), state.linkedSeason().seasonId(),
                 career.lifecycleStatus(), state.linkedSeason().resume().kind(),
-                career.updatedAt());
+                career.updatedAt(),state.compatibility());
     }
 
     private CareerApiV1Dtos.ResumeProjection resume(

@@ -147,8 +147,9 @@ public final class CareerCalendarApplicationService {
         if(marketRepairNeeded(career,state.seasonYear(),state.currentDate(),overlay)) {
             LocalDate target=ADVANCE_ONE_DAY.equals(mode)?state.currentDate().plusDays(1):calendars.nextMarketEvent(career.careerId(),state.currentDate());
             // An unfinished match must remain repairable even when negotiation crosses December 31.
-            if(target==null)target=state.currentDate().plusDays(1);
+            if(target==null||target.isAfter(state.currentDate().plusDays(1)))target=state.currentDate().plusDays(1);
             calendars.processMarket(career.careerId(),target);
+            competitions.reconcileForAdvance(career,state.seasonYear(),overlay.season());
             boolean remains=marketRepairNeeded(career,state.seasonYear(),target,overlay);
             return mutation(state,target,template.eventCursor(projected,target),state.lastProcessedEventId(),state.lastProcessedDate(),"ACTIVE",remains?"ROSTER_REPAIR_REQUIRED":null,true,false,200,remains?"ROSTER_REPAIR_REQUIRED":null,false);
         }
@@ -246,13 +247,26 @@ public final class CareerCalendarApplicationService {
     }
 
     private boolean marketRepairNeeded(CareerRelationalStore.CareerRow career,int year,LocalDate date,OverlayProjection overlay) {
-        if(!calendars.hasMarket(career.careerId())||calendars.unsettledAppearance(career.careerId()))return false;
-        for(var fixture:overlay.fixtures())if(!fixture.date().isAfter(date)&&!"COMPLETED".equals(fixture.lifecycleStatus())
-                && calendars.marketRepair(career.careerId(),year,fixture.firstTeamCode(),fixture.secondTeamCode(),null,overlay.season().seasonId(),fixture.fixtureId()))return true;
-        var competitionView=competitions.view(career,year,date,null,null);
-        if(competitionView.currentCompetition()!=null&&"ROSTER_REPAIR_REQUIRED".equals(competitionView.currentCompetition().blockingReason()))return true;
+        if(!calendars.hasMarket(career.careerId())||calendars.unsettledAppearance(career.careerId())
+                ||lifecycleBlockingReason(overlay.season().seasonLifecycleStatus(),overlay.season().allFixturesCompleted())!=null)return false;
+        boolean needed=false;
+        for(var fixture:overlay.fixtures())if(!fixture.date().isAfter(date)&&!"COMPLETED".equals(fixture.lifecycleStatus())) {
+            if(!calendars.marketRepair(career.careerId(),year,fixture.firstTeamCode(),fixture.secondTeamCode(),null,overlay.season().seasonId(),fixture.fixtureId()))return false;
+            needed=true;
+        }
+        if(competitions.independentFixtureBlocksRepair(career,year,date))return false;
+        var projected=template.project(year);
+        var competitionView=competitions.view(career,year,date,competitionIdAt(projected,date),null);
+        if(competitionView.activePendingCommand()!=null)return false;
         var current=competitionView.nextFixture();
-        return current!=null&&!current.date().isAfter(date)&&current.bindingHash()==null&&calendars.marketRepair(career.careerId(),year,current.firstTeamCode(),current.secondTeamCode(),current.competitionId(),null,null);
+        if(current!=null&&!current.date().isAfter(date)&&current.bindingHash()==null
+                &&calendars.marketRepair(career.careerId(),year,current.firstTeamCode(),current.secondTeamCode(),current.competitionId(),null,null))needed=true;
+        // Include overdue registration as well as the current window; no fixture exists before registration.
+        for(var event:projected.events())if(!event.startDate().isAfter(date)&&CareerInternationalRules.COMPETITIONS.contains(event.templateId())) {
+            var waiting=competitions.registrationWait(career,year,event.templateId());
+            if(waiting!=null&&waiting.code().equals("ROSTER_REPAIR_REQUIRED"))needed=true;
+        }
+        return needed;
     }
 
     private static String competitionIdAt(

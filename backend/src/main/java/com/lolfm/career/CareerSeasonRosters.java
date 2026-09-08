@@ -21,6 +21,7 @@ final class CareerSeasonRosters {
     static CompetitionRosterSnapshot freezeInitial(CareerCompetitionRelationalStore store, CareerInternationalParticipants provider,
                                                     String career, int year) {
         var existing = load(store,career,year); if (existing != null) return existing;
+        CareerSaveCompatibility.requireOriginalReference(store.jdbc,career);
         if (store.findCycle(career,year,false).getFirst().seasonOrdinal() != 1)
             throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
         var frozen = new LinkedHashMap<String,CompetitionRosterSnapshot.Roster>();

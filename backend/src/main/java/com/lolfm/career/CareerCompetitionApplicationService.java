@@ -171,12 +171,26 @@ public final class CareerCompetitionApplicationService {
                     fixture.seriesId());
         }
         if (current != null && blocked(current)) {
-            if(fixture!=null&&current.blockingReason()!=null&&current.blockingReason().startsWith("OVERSEAS_RESULT_REQUIRED"))return CompetitionGate.clear();
+            // A repaired squad may still have the old persisted wait. The next command confirms registration.
+            if("WAITING_FOR_QUALIFICATION".equals(current.lifecycleStatus())&&current.registrationWait()==null
+                    &&view.activePendingCommand()==null&&store.registrationReady(career.careerId(),calendarSeasonYear,current.competitionId()))return CompetitionGate.clear();
+            if(fixture!=null&&current.registrationWait()!=null&&current.registrationWait().code().equals("OVERSEAS_RESULT_REQUIRED"))return CompetitionGate.clear();
             return new CompetitionGate(current.blockingReason(), null, null);
         }
         return CompetitionGate.clear();
     }
 
+    CareerRegistrationWait registrationWait(CareerRelationalStore.CareerRow career,int year,String event) {
+        return store.registrationWait(career.careerId(),year,event);
+    }
+    /** Any unrelated due Series remains a barrier while a different club repairs its roster. */
+    boolean independentFixtureBlocksRepair(CareerRelationalStore.CareerRow career,int year,LocalDate date) {
+        for(var f:store.load(career.careerId(),year).fixtures())if(!f.date().isAfter(date)&&!f.lifecycleStatus().equals("COMPLETED")) {
+            if(!f.lifecycleStatus().equals("READY")||store.executionProjection(career.careerId(),year,f.competitionId(),f.matchId())!=null
+                    ||!CareerMarketStore.repairNeeded(store.jdbc,career.careerId(),year,f.firstTeamCode(),f.secondTeamCode(),f.competitionId()))return true;
+        }
+        return false;
+    }
     private static boolean blocked(CompetitionSummary value) {
         if ("BLOCKED".equals(value.lifecycleStatus())
                 || "SOURCE_GAP".equals(value.lifecycleStatus())
@@ -215,10 +229,11 @@ public final class CareerCompetitionApplicationService {
                 .orElse(null);
         String stage = total > 0 && completed == total ? "COMPLETED"
                 : nextFixture == null ? stageId(competitionId) : nextFixture.stageId();
+        var wait=store.registrationWait(cycle.careerId(),cycle.seasonYear(),competitionId);
         return new CompetitionSummary(instance.competitionId(), stage,
                 instance.ruleStatus(),
-                instance.lifecycleStatus(), instance.blockingReason(), instance.revision(),
-                instance.stateHash(), (int) completed, (int) total);
+                instance.lifecycleStatus(), wait==null?instance.blockingReason():wait.code(), instance.revision(),
+                instance.stateHash(), (int) completed, (int) total,wait);
     }
 
     private CompetitionFixture fixture(
@@ -370,8 +385,11 @@ public final class CareerCompetitionApplicationService {
             long revision,
             String stateHash,
             int completedFixtures,
-            int totalFixtures
-    ) {}
+            int totalFixtures,
+            CareerRegistrationWait registrationWait
+    ) {
+        public CompetitionSummary(String competitionId,String stageId,String ruleStatus,String lifecycleStatus,String blockingReason,long revision,String stateHash,int completedFixtures,int totalFixtures){this(competitionId,stageId,ruleStatus,lifecycleStatus,blockingReason,revision,stateHash,completedFixtures,totalFixtures,null);}
+    }
 
     public record CompetitionFixture(
             String competitionId,

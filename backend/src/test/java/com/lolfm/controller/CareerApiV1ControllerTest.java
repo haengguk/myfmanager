@@ -131,6 +131,8 @@ class CareerApiV1ControllerTest {
                 .isEqualTo("lck-team-and-player-information-2026-08-24-v1");
         assertThat(created.path("referenceCatalogHash").asText())
                 .isEqualTo("91516fe84f5ebaedf9e68b765ce27cb603c56a494dd0de50505974100fd63ff7");
+        assertThat(created.path("compatibility").path("dataSource").asText()).isEqualTo("SAVED_CAREER");
+        assertThat(created.path("compatibility").path("status").asText()).isEqualTo("SUPPORTED");
         assertThat(created.path("resume").path("kind").asText())
                 .isEqualTo("LEAGUE_DASHBOARD");
         assertThat(created.path("resume").path("seasonLifecycleStatus").asText())
@@ -216,7 +218,7 @@ class CareerApiV1ControllerTest {
         assertThat(summaryFields).containsExactlyInAnyOrderElementsOf(Set.of(
                 "careerId", "saveName", "managerName", "managedTeamCode",
                 "currentDate", "leagueId", "seasonId", "lifecycleStatus",
-                "resumeKind", "updatedAt"));
+                "resumeKind", "updatedAt", "compatibility"));
         assertThat(summary.path("resumeKind").asText()).isEqualTo("LEAGUE_DASHBOARD");
 
         long lifecycleBeforeReads = jdbc.queryForObject("""

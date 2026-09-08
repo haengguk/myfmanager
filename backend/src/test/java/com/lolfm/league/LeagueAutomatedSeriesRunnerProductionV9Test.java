@@ -46,6 +46,8 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
         var initial=calendar.view(c).state();String setup=java.util.UUID.randomUUID().toString();
         // Test-only preparation isolates one due fixture; earlier competitions are outside this regression.
         calendarStore.execute(setup,id,initial.calendarRevision(),"ADVANCE_ONE_DAY",calendarTemplate.advancePayloadHash(id,initial.calendarRevision(),"ADVANCE_ONE_DAY"),row->{
+            // Recruit immediately before capture; months of AI operation may legitimately move a reserve away.
+            com.lolfm.career.CareerMarketStore.processThrough(jdbc,id,previous.minusDays(com.lolfm.career.CareerMarketPolicy.DECISION_DAYS));
             rookie.set(com.lolfm.career.CareerLifecycleTestSupport.recruitGeneratedStarter(jdbc,id,"LCK:"+fixture.firstTeamCode()));
             com.lolfm.career.CareerMarketStore.processThrough(jdbc,id,previous);
             com.lolfm.career.CareerLifecycleTestSupport.prepareOnlyStarter(jdbc,id,"LCK:"+fixture.firstTeamCode(),rookie.get());

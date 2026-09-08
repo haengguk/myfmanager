@@ -324,3 +324,16 @@ PO 승패에서 1·2위와 공동 3~4위를 얻고, 국제전은 봉인된 plan�
 해외 경기 시작/재개는 기존 Calendar competition 명령·job/lease/receipt를 그대로 사용한다.
 신규 저장은 첫 실행 시즌, 기존 저장은 저장된 activationYear부터 17개 해외 event를 사용한다.
 상세 정책과 증거는 [해외 리그 실행 V1](../development/career-overseas-league-execution-v1.md)을 참조한다.
+
+## 국제 등록 전 명부 복구 (2026-09-08)
+
+국제 fixture가 없는 상태도 `registrationWait`의 구조적 code/competitionId/requiredEventId/teamId/
+ownerTeam/responsibility/missingPositions/obstacles로 조회한다. 문자열 설명을 파싱하지 않는다.
+현재 이벤트와 시작일이 지난 국제 등록 대기를 검사하며 AI/관리 구단의 복구 책임을 구분한다.
+독립 미완료 경기·대회 선택·명령·출전 정산·시즌 제한이 없을 때 기존 시장 명령의 날짜 처리를 허용한다.
+진행 transaction 안에서 시장 사건 처리 후 동일 국제 인스턴스를 reconcile한다. 하루 단위로 제한하며
+예산/후보/계약 검사를 우회하지 않는다. GET은 저장을 변경하지 않는다.
+
+명부가 이미 복구되어 국제 등록 준비가 끝났다면 과거 `WAITING_FOR_QUALIFICATION`만으로 진행을 막지 않는다.
+현재 자격·명부를 읽기 전용으로 재평가하여 다음 명령을 허용하고, 해당 명령에서 같은 등록을 확정한다.
+별개 미완료 fixture와 대기 명령은 이 경우에도 차단 조건이다.

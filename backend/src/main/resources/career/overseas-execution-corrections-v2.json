@@ -1,0 +1,534 @@
+{
+  "version": "CAREER_OVERSEAS_STAGE_AND_PLACEMENT_V2",
+  "sourcePackage": "lol-esports-2026-five-league-formats-v1",
+  "sourceHash": "3a0fdf9602c84c1f2351141138385502aa46c2eff240354bd4195e5ed6b3f163",
+  "stageDatePolicy": "Career logical year projects reference month/day. Stage lower bound, all prerequisite stages and team non-overlap apply; existing finite end+7 limit remains. TIEBREAKER is regularEnd+1 game policy.",
+  "adoption": "Unstarted events without binding/application/non-READY fixture upgrade under command transaction. Started and completed events retain V1 projection and sealed evidence.",
+  "lplFinalPlacementPolicy": {
+    "split1": "PO 1-8; Knights round3 losers joint 9-10; round2 losers joint 11-12; remaining regular order 13/14",
+    "split2": "PO 1-8; Knights losers joint 9-12; Nirvana eliminated regular order 13/14",
+    "split3": "PO 1-8; Knights losers joint 9-10; remaining regular order 11/12",
+    "displayOrder": "Within equal placement, regular ranking; does not replace shared placement or CP.",
+    "status": "EXPLICIT_STAGE_ELIMINATION_GAME_ADOPTION_V2"
+  },
+  "events": [
+    {
+      "eventId": "LPL_SPLIT_1",
+      "referenceEventId": "lpl_split_1_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-01-14",
+          "referenceEnd": "2026-02-06",
+          "sourceIds": [
+            "P01",
+            "P02",
+            "P09"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "KNIGHTS",
+          "referenceStageId": "knights",
+          "referenceStart": "2026-02-09",
+          "referenceEnd": "2026-02-11",
+          "sourceIds": [
+            "P01",
+            "P02",
+            "P09"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-02-24",
+          "referenceEnd": "2026-03-08",
+          "sourceIds": [
+            "P01",
+            "P02"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LPL_SPLIT_2",
+      "referenceEventId": "lpl_split_2_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-04-04",
+          "referenceEnd": "2026-05-17",
+          "sourceIds": [
+            "P03",
+            "P04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "KNIGHTS",
+          "referenceStageId": "knights",
+          "referenceStart": "2026-05-23",
+          "referenceEnd": "2026-05-24",
+          "sourceIds": [
+            "P03",
+            "P04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-05-29",
+          "referenceEnd": "2026-06-14",
+          "sourceIds": [
+            "P03",
+            "P04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LPL_SPLIT_3",
+      "referenceEventId": "lpl_split_3_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-07-22",
+          "referenceEnd": "2026-08-23",
+          "sourceIds": [
+            "P05",
+            "P06"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "KNIGHTS",
+          "referenceStageId": "knights",
+          "referenceStart": "2026-08-28",
+          "referenceEnd": "2026-08-28",
+          "sourceIds": [
+            "P05",
+            "P06"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-08-29",
+          "referenceEnd": "2026-09-13",
+          "sourceIds": [
+            "P05",
+            "P06",
+            "P07"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LPL_REGIONAL_FINALS",
+      "referenceEventId": "lpl_regional_finals_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGIONAL_FINALS",
+          "referenceStageId": "regional_final",
+          "referenceStart": "2026-09-17",
+          "referenceEnd": "2026-09-19",
+          "sourceIds": [
+            "P08",
+            "G06",
+            "P11"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LEC_VERSUS",
+      "referenceEventId": "lec_versus_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-01-17",
+          "referenceEnd": "2026-02-08",
+          "sourceIds": [
+            "E02",
+            "E03"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-02-16",
+          "referenceEnd": "2026-03-01",
+          "sourceIds": [
+            "E02",
+            "E03"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LEC_SPRING",
+      "referenceEventId": "lec_spring_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-03-28",
+          "referenceEnd": "2026-05-10",
+          "sourceIds": [
+            "E04",
+            "E05"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-05-23",
+          "referenceEnd": "2026-06-07",
+          "sourceIds": [
+            "E04",
+            "E05"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LEC_SUMMER",
+      "referenceEventId": "lec_summer_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-07-24",
+          "referenceEnd": "2026-08-30",
+          "sourceIds": [
+            "E06",
+            "E07"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-09-05",
+          "referenceEnd": "2026-09-20",
+          "sourceIds": [
+            "E06",
+            "E07"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LCP_SPLIT_1",
+      "referenceEventId": "lcp_split_1_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-01-16",
+          "referenceEnd": null,
+          "sourceIds": [
+            "C01",
+            "C02"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": null,
+          "referenceEnd": "2026-03-01",
+          "sourceIds": [
+            "C01",
+            "C02"
+          ],
+          "lowerBoundPolicy": "RETAIN_EXPLICIT_V1_POST_WINDOW_PLUS_PREREQUISITES"
+        }
+      ]
+    },
+    {
+      "eventId": "LCP_SPLIT_2",
+      "referenceEventId": "lcp_split_2_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-04-04",
+          "referenceEnd": null,
+          "sourceIds": [
+            "C02",
+            "C03"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": null,
+          "referenceEnd": "2026-06-07",
+          "sourceIds": [
+            "C02",
+            "C03"
+          ],
+          "lowerBoundPolicy": "RETAIN_EXPLICIT_V1_POST_WINDOW_PLUS_PREREQUISITES"
+        }
+      ]
+    },
+    {
+      "eventId": "LCP_SPLIT_3",
+      "referenceEventId": "lcp_split_3_2026",
+      "stages": [
+        {
+          "runtimeStageId": "SWISS",
+          "referenceStageId": "swiss",
+          "referenceStart": "2026-07-25",
+          "referenceEnd": null,
+          "sourceIds": [
+            "C04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "FINAL_SEEDING",
+          "referenceStageId": "final_seeding",
+          "referenceStart": null,
+          "referenceEnd": null,
+          "sourceIds": [
+            "C04"
+          ],
+          "lowerBoundPolicy": "RETAIN_EXPLICIT_V1_POST_WINDOW_PLUS_PREREQUISITES"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-08-29",
+          "referenceEnd": "2026-08-30",
+          "sourceIds": [
+            "C04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "CBLOL_COPA",
+      "referenceEventId": "cblol_copa_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-01-17",
+          "referenceEnd": "2026-02-01",
+          "sourceIds": [
+            "B02",
+            "B06"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAY_IN",
+          "referenceStageId": "play_in",
+          "referenceStart": "2026-02-03",
+          "referenceEnd": "2026-02-06",
+          "sourceIds": [
+            "B02",
+            "B06"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-02-07",
+          "referenceEnd": "2026-03-01",
+          "sourceIds": [
+            "B01",
+            "B02"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "CBLOL_ETAPA_1",
+      "referenceEventId": "cblol_etapa_1_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-03-28",
+          "referenceEnd": "2026-05-03",
+          "sourceIds": [
+            "B03"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-05-09",
+          "referenceEnd": "2026-06-06",
+          "sourceIds": [
+            "B03",
+            "G04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "CBLOL_ETAPA_2",
+      "referenceEventId": "cblol_etapa_2_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-07-25",
+          "referenceEnd": "2026-08-30",
+          "sourceIds": [
+            "B04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-09-05",
+          "referenceEnd": "2026-10-10",
+          "sourceIds": [
+            "B04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LCS_LOCK_IN",
+      "referenceEventId": "lcs_lock_in_2026",
+      "stages": [
+        {
+          "runtimeStageId": "SWISS",
+          "referenceStageId": "swiss",
+          "referenceStart": "2026-01-24",
+          "referenceEnd": null,
+          "sourceIds": [
+            "N01",
+            "N02"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "LAST_CHANCE",
+          "referenceStageId": "last_chance",
+          "referenceStart": null,
+          "referenceEnd": null,
+          "sourceIds": [
+            "N01",
+            "N02"
+          ],
+          "lowerBoundPolicy": "RETAIN_EXPLICIT_V1_POST_WINDOW_PLUS_PREREQUISITES"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": null,
+          "referenceEnd": "2026-03-01",
+          "sourceIds": [
+            "N01",
+            "N02",
+            "N03"
+          ],
+          "lowerBoundPolicy": "RETAIN_EXPLICIT_V1_POST_WINDOW_PLUS_PREREQUISITES"
+        }
+      ]
+    },
+    {
+      "eventId": "AMERICAS_CUP",
+      "referenceEventId": "americas_cup_2026",
+      "stages": [
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "bracket",
+          "referenceStart": "2026-03-04",
+          "referenceEnd": "2026-03-08",
+          "sourceIds": [
+            "G04",
+            "N02"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LCS_SPRING",
+      "referenceEventId": "lcs_spring_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-04-04",
+          "referenceEnd": null,
+          "sourceIds": [
+            "N02",
+            "N04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-05-23",
+          "referenceEnd": "2026-06-14",
+          "sourceIds": [
+            "N02",
+            "N04"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    },
+    {
+      "eventId": "LCS_SUMMER",
+      "referenceEventId": "lcs_summer_2026",
+      "stages": [
+        {
+          "runtimeStageId": "REGULAR",
+          "referenceStageId": "regular",
+          "referenceStart": "2026-07-25",
+          "referenceEnd": "2026-09-06",
+          "sourceIds": [
+            "N05"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        },
+        {
+          "runtimeStageId": "PLAYOFFS",
+          "referenceStageId": "playoffs",
+          "referenceStart": "2026-09-12",
+          "referenceEnd": "2026-10-04",
+          "sourceIds": [
+            "N05",
+            "N06"
+          ],
+          "lowerBoundPolicy": "REFERENCE_MONTH_DAY_PROJECTED"
+        }
+      ]
+    }
+  ]
+}

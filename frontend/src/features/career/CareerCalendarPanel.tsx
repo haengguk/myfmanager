@@ -13,6 +13,15 @@ const EXECUTION_COPY: Readonly<Record<CareerCalendarViewDto['upcomingEvents'][nu
   EXCLUDED_BY_GAME_POLICY: '게임 정책상 제외',
 };
 
+const REPAIR_OBSTACLES: Readonly<Record<string, string>> = {
+  NO_FREE_AGENT_FOR_MISSING_ROLE: '부족한 포지션에 영입 가능한 FA가 없습니다. 임대·승격 등 다른 명부 복구가 필요합니다.',
+  LINEUP_OR_SELECTION_ELIGIBILITY_REQUIRED: '보유 선수의 선발과 등록 자격을 확인해야 합니다.',
+  FINANCE_OWNER_UNAVAILABLE: '구단 재정 자료를 확인할 수 없습니다.',
+  ARREARS_REQUIRE_SETTLEMENT: '미지급 급여 정산이 필요합니다.',
+  CASH_HEADROOM_SHORTFALL: '계약을 집행할 현금 여유가 부족합니다.',
+  PAYROLL_HEADROOM_EXHAUSTED: '급여 예산 여유가 부족합니다.',
+};
+
 function range(start: string, end: string): string { return start === end ? start : `${start} — ${end}`; }
 
 export function CareerCalendarPanel({ calendar, loading, pending, competitionPending = false, error, onAdvance, onRefresh, onCompetitionAction, onReconcilePending = onRefresh }: {
@@ -46,6 +55,11 @@ export function CareerCalendarPanel({ calendar, loading, pending, competitionPen
       <span>{calendar.competition.currentCompetition ? 'CURRENT COMPETITION' : 'NEXT COMPETITION'}</span>
       <strong>{COMPETITION_COPY[competition.competitionId] ?? competition.competitionId}</strong>
       <small>{competition.stageId} · {competition.lifecycleStatus} · {competition.completedFixtures}/{competition.totalFixtures}{competition.blockingReason ? ` · ${competition.blockingReason}` : ''}</small>
+      {competition.registrationWait?.code === 'ROSTER_REPAIR_REQUIRED' ? <div role="status">
+        <p>{competition.registrationWait.teamId} · {competition.registrationWait.missingPositions.join(', ') || '선발·등록 자격'} 복구 필요</p>
+        <p>{competition.registrationWait.responsibility === 'AI_CLUB' ? 'AI 구단이 기존 계약 시장에서 명부를 복구합니다. 날짜를 진행하면 제안과 계약 결과가 처리됩니다.' : competition.registrationWait.responsibility === 'MANAGER' ? '관리 구단의 영입·임대·승격 또는 선발을 변경해 등록 가능한 명부를 준비하세요.' : '등록 가능한 선수 명부를 확인하세요.'}</p>
+        {competition.registrationWait.obstacles.map(reason => <p key={reason}>{REPAIR_OBSTACLES[reason] ?? '추가 명부 복구 조건을 확인하세요.'}</p>)}
+      </div> : null}
       {calendar.competition.nextFixture ? <p><time>{calendar.competition.nextFixture.date}</time><b>{COMPETITION_COPY[calendar.competition.nextFixture.competitionId] ?? calendar.competition.nextFixture.competitionId} {calendar.competition.nextFixture.matchId}</b><em>{calendar.competition.nextFixture.firstTeamCode ?? 'TBD'} vs {calendar.competition.nextFixture.secondTeamCode ?? 'TBD'} · {calendar.competition.nextFixture.seriesFormat} · {calendar.competition.nextFixture.executionMode === 'PLAYER_CONTROLLED' ? '관리 경기' : 'Auto'}{calendar.competition.nextFixture.jobStatus ? ` · ${calendar.competition.nextFixture.jobStatus}` : ''}{calendar.competition.nextFixture.blockingReason ? ` · ${calendar.competition.nextFixture.blockingReason}` : ''}</em></p> : null}
       {competitionActionLabel && onCompetitionAction ? <button type="button" className="lm-primary-button" disabled={competitionPending} onClick={onCompetitionAction}>{competitionPending ? '대회 상태 확인 중…' : competitionActionLabel}</button> : null}
       {calendar.competition.internationalCompetitions?.map(international => <details key={international.competitionId} className="ca-calendar__competition-data">

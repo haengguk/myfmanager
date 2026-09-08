@@ -28,7 +28,7 @@ public final class CareerOverseasStore {
     public void initializeNew(String career,int year){tx.executeWithoutResult(s->{lockCareer(db,career);introduce(career,year,true);CareerOverseasRoster.activate(db,career,year,true,champions);initialize(competitions,career,year);});}
     void prepareSeason(String career,int year){if(active(db,career,year))CareerOverseasRoster.activate(db,career,year,false,champions);}
     public void recover(){
-        for(String career:db.query("SELECT career_id FROM career_player_directory ORDER BY career_id",(r,n)->r.getString(1)))tx.executeWithoutResult(s->{
+        for(String career:db.query("SELECT career_id FROM career_player_directory WHERE directory_version=? ORDER BY career_id",(r,n)->r.getString(1),com.lolfm.player.ExpandedPlayerCatalog.VERSION))tx.executeWithoutResult(s->{
             lockCareer(db,career);int year=activeYear(db,career);introduce(career,year,false);
             if(active(db,career,year))for(Event event:Event.values()){
                 var instance=competitions.instance(career,year,event.name());var state=load(db,career,year,event);
@@ -37,7 +37,7 @@ public final class CareerOverseasStore {
             }
         });
     }
-    static State load(JdbcTemplate db,String career,int year,Event event){var rows=db.query("SELECT state_json,state_hash FROM career_overseas_state WHERE career_id=? AND season_year=? AND competition_id=?",(r,n)->{if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("OVERSEAS_STATE_INTEGRITY");var v=read(r.getString(1),State.class);if(!VERSION.equals(v.policyVersion())||v.input().event()!=event||v.input().year()!=year)throw new IllegalStateException("OVERSEAS_STATE_SCOPE");return v;},career,year,event.name());return rows.isEmpty()?null:rows.getFirst();}
+    static State load(JdbcTemplate db,String career,int year,Event event){var rows=db.query("SELECT state_json,state_hash FROM career_overseas_state WHERE career_id=? AND season_year=? AND competition_id=?",(r,n)->{if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("OVERSEAS_STATE_INTEGRITY");var v=read(r.getString(1),State.class);if(!Set.of(VERSION,PROJECTION_VERSION).contains(v.policyVersion())||v.input().event()!=event||v.input().year()!=year)throw new IllegalStateException("OVERSEAS_STATE_SCOPE");return v;},career,year,event.name());return rows.isEmpty()?null:rows.getFirst();}
     private static void save(JdbcTemplate db,String career,State state){String text=write(state);int year=state.input().year();String event=state.input().event().name();if(db.update("UPDATE career_overseas_state SET state_json=?,state_hash=? WHERE career_id=? AND season_year=? AND competition_id=?",text,hash(text),career,year,event)==0)db.update("INSERT INTO career_overseas_state VALUES (?,?,?,?,?)",career,year,event,text,hash(text));}
     static void initialize(CareerCompetitionRelationalStore store,String career,int year){if(!active(store.jdbc,career,year))return;var a=activation(store.jdbc,career);
         for(Event e:Event.values())if(store.jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_instance WHERE career_id=? AND calendar_season_year=? AND competition_id=?",Integer.class,career,year,e.name())==0){String input=hash(career+'|'+year+'|'+e+'|'+a.ruleHash());store.jdbc.update("""
@@ -54,8 +54,14 @@ public final class CareerOverseasStore {
         """,(org.springframework.jdbc.core.RowCallbackHandler)r->out.put(r.getString(1),new Score(r.getInt(2),r.getInt(3))),career,year,event.name());return out;}
     static void reconcile(CareerCompetitionRelationalStore store,String career,int year){if(!active(store.jdbc,career,year))return;
         for(Event event:Event.values()){
-            var state=load(store.jdbc,career,year,event);if(state==null){var input=input(store,career,year,event);if(input==null)continue;state=new State(VERSION,activation(store.jdbc,career).ruleHash(),input,project(input,Map.of()));}
-            var plan=project(state.input(),scores(store,career,year,event));var next=new State(state.policyVersion(),state.ruleHash(),state.input(),plan);if(!next.equals(state)||load(store.jdbc,career,year,event)==null)save(store.jdbc,career,next);
+            var state=load(store.jdbc,career,year,event);if(state==null){var input=input(store,career,year,event);if(input==null)continue;state=new State(PROJECTION_VERSION,activation(store.jdbc,career).ruleHash(),input,project(input,Map.of()));}
+            if(state.plan().complete())continue; // Historical ranking, awards and qualification evidence are sealed.
+            boolean upgrade=VERSION.equals(state.policyVersion())&&store.jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_series_binding WHERE career_id=? AND calendar_season_year=? AND competition_id=?",Integer.class,career,year,event.name())==0
+                    &&store.jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_fixture WHERE career_id=? AND calendar_season_year=? AND competition_id=? AND lifecycle_status<>'READY'",Integer.class,career,year,event.name())==0
+                    &&store.jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_application WHERE career_id=? AND calendar_season_year=? AND competition_id=?",Integer.class,career,year,event.name())==0;
+            String policy=upgrade?PROJECTION_VERSION:state.policyVersion();
+            var plan=project(state.input(),scores(store,career,year,event),policy);var next=new State(policy,state.ruleHash(),state.input(),plan);
+            if(upgrade)for(var bout:plan.bouts())store.jdbc.update("UPDATE career_competition_fixture SET scheduled_date=? WHERE career_id=? AND calendar_season_year=? AND competition_id=? AND match_id=? AND lifecycle_status='READY'",bout.date(),career,year,event.name(),bout.id());if(!next.equals(state)||load(store.jdbc,career,year,event)==null)save(store.jdbc,career,next);
             for(int i=0;i<plan.bouts().size();i++)insert(store,career,year,event,plan.bouts().get(i),i+1);
             store.jdbc.update("UPDATE career_competition_instance SET lifecycle_status=?,blocking_reason=NULL WHERE career_id=? AND calendar_season_year=? AND competition_id=?",plan.complete()?"COMPLETED":"RUNNING",career,year,event.name());store.refreshInstanceHash(career,year,event.name());
         }

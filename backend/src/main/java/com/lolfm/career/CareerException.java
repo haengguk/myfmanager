@@ -12,6 +12,9 @@ public final class CareerException extends RuntimeException {
         COMMAND_RECEIPT_INTEGRITY_FAILURE,
         LINKED_SEASON_INTEGRITY_FAILURE,
         RESOURCE_INTEGRITY_FAILURE,
+        SAVE_COMPATIBILITY_DATA_MISSING,
+        SAVE_COMPATIBILITY_VERSION_UNSUPPORTED,
+        SAVE_COMPATIBILITY_ORGANIZATION_UNSUPPORTED,
         CALENDAR_NOT_FOUND,
         CALENDAR_STALE_REVISION,
         CALENDAR_COMMAND_CONFLICT,
@@ -81,6 +84,11 @@ public final class CareerException extends RuntimeException {
     public static CareerException linkedSeasonIntegrity(Throwable cause) {
         return new CareerException(Type.LINKED_SEASON_INTEGRITY_FAILURE, null,
                 "Career와 연결된 League Season의 무결성을 확인할 수 없습니다.", cause);
+    }
+
+    public static CareerException compatibility(Type type,String message) {
+        if(type!=Type.SAVE_COMPATIBILITY_DATA_MISSING&&type!=Type.SAVE_COMPATIBILITY_VERSION_UNSUPPORTED&&type!=Type.SAVE_COMPATIBILITY_ORGANIZATION_UNSUPPORTED)throw new IllegalArgumentException("COMPATIBILITY_FAILURE_TYPE");
+        return new CareerException(type,null,message,null);
     }
 
     public static CareerException resourceIntegrity() {

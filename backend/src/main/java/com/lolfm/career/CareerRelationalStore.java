@@ -198,6 +198,10 @@ public final class CareerRelationalStore {
             throw new IllegalStateException("CAREER_ACTIVE_SEASON_BINDING_INTEGRITY");
         return active;
     }
+    CareerSaveCompatibility.View compatibility(CareerRow row,boolean sameReference) {
+        return transactions.execute(ignored->{CareerRosterStore.lockCareer(jdbc,row.careerId());return CareerSaveCompatibility.inspect(jdbc,row,sameReference);});
+    }
+
     public record SeasonRow(int year, int ordinal, String leagueId, String seasonId, long rootSeed,
                             String frozenSnapshotHash, String productDecisionHash) {}
 

@@ -50,7 +50,14 @@ export interface CareerResumeDto {
   allowedCommands: readonly CareerAllowedCommand[];
 }
 
+export interface CareerSaveCompatibilityDto {
+  policyVersion: 'CAREER_SAVED_PLAYER_DIRECTORY_V1'; dataSource: 'SAVED_CAREER' | 'LEGACY_MATCHING_REFERENCE' | 'UNAVAILABLE';
+  sourceChanged: boolean; managedTeamCode: string; managedTeamName: string; directoryVersion: string | null;
+  status: 'SUPPORTED' | 'UNSUPPORTED'; reasonCode: string | null; message: string | null;
+}
+export interface CareerRegistrationWaitDto { code: 'ROSTER_REPAIR_REQUIRED' | 'OVERSEAS_RESULT_REQUIRED' | 'INTERNATIONAL_QUALIFICATION_REQUIRED'; competitionId: string; requiredEventId: string | null; teamId: string | null; ownerTeam: string | null; responsibility: 'AI_CLUB' | 'MANAGER' | 'RESULTS' | 'ROSTER_REVIEW'; missingPositions: readonly string[]; obstacles: readonly string[] }
 export interface CareerSummaryDto {
+  compatibility?: CareerSaveCompatibilityDto;
   careerId: string;
   saveName: string;
   managerName: string;
@@ -64,6 +71,7 @@ export interface CareerSummaryDto {
 }
 
 export interface CareerViewDto {
+  compatibility?: CareerSaveCompatibilityDto;
   schemaVersion: typeof CAREER_SCHEMAS.view;
   careerId: string;
   saveName: string;
@@ -108,7 +116,7 @@ export interface CareerCalendarEventDto { eventId: string; templateId: string; s
 export interface CareerCalendarFixtureDto { fixtureId: string; roundNumber: number; date: string; scheduleStatus: 'GAME_DERIVED_SCHEDULE_POLICY'; executionMode: 'FULL_AUTO' | 'PLAYER_CONTROLLED'; firstTeamCode: string; secondTeamCode: string; lifecycleStatus: string; seriesId: string; jobStatus: string | null; pendingOutbox: boolean }
 export interface CareerCalendarProvenanceDto { referenceYear: 2026; sourceAsOf: string; referenceCatalogSnapshotAt: string; templateVersion: string; templateHash: string; projectionPolicy: 'SAME_LOCAL_MONTH_DAY_FROM_2026_REFERENCE_V1'; anchorAlgorithm: 'FIRST_FULL_CYCLE_AFTER_CURRENT_DATE_V1'; sourceCount: 15; calendarDefinitionCount: 11; qualificationEdgeCount: 6; derivedRestWindowCount: 7; pendingOfficialFieldCount: 6 }
 export type CareerCompetitionRuleStatus = 'RULE_SOURCE_COMPLETE' | 'RULE_SOURCE_INCOMPLETE' | 'PRODUCT_POLICY_REQUIRED' | 'REFERENCE_TEMPLATE_ONLY' | 'VERIFIED_PRIOR_SEASON_REQUIRED';
-export interface CareerCompetitionSummaryDto { competitionId: string; stageId: string; ruleStatus: CareerCompetitionRuleStatus; lifecycleStatus: string; blockingReason: string | null; revision: number; stateHash: string | null; completedFixtures: number; totalFixtures: number }
+export interface CareerCompetitionSummaryDto { registrationWait?: CareerRegistrationWaitDto | null; competitionId: string; stageId: string; ruleStatus: CareerCompetitionRuleStatus; lifecycleStatus: string; blockingReason: string | null; revision: number; stateHash: string | null; completedFixtures: number; totalFixtures: number }
 export interface CareerCompetitionFixtureDto { competitionId: string; matchId: string; fixtureId: string; seriesId: string; date: string; scheduleStatus: 'OFFICIAL_PROJECTED_DATE' | 'GAME_DERIVED_SCHEDULE_POLICY'; seriesFormat: 'BO1' | 'BO3' | 'BO5'; hardFearless: true; firstTeamCode: string | null; secondTeamCode: string | null; executionMode: 'FULL_AUTO' | 'PLAYER_CONTROLLED'; lifecycleStatus: string; managedTeamIncluded: boolean; rootSeed: string; seedAlgorithm: 'CAREER_COMPETITION_MATCH_SHA256_FIRST_8_BYTES_BIG_ENDIAN_SIGNED_LONG_V1'; firstSelectorType: string; firstSelectorValue: string; secondSelectorType: string; secondSelectorValue: string; stageId: string; blockingReason: string | null; bindingHash: string | null; jobId: string | null; jobStatus: string | null; resultApplicationStatus: 'NOT_APPLIED' | 'APPLIED'; failureCode: string | null }
 export interface CareerCompetitionStandingDto { groupId: 'BARON' | 'ELDER'; groupPoints: number; groupRank: number; teamCode: string; matchWins: number; matchLosses: number; gameWins: number; gameLosses: number; strengthOfVictory: number; winTimeSeconds: number; tieBreakTrace: string; standingsHash: string }
 export interface CareerCompetitionSeedDto { competitionId: string; seedScope: 'CUP_PLAY_IN_SEED' | 'CUP_PLAYOFF_SEED' | 'PLAY_IN_SEED' | 'LCK_PLAYOFF_SEED'; seedNumber: number; teamCode: string; sourceInputHash: string }

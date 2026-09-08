@@ -288,7 +288,11 @@ public final class CareerCompetitionRelationalStore {
         if (internationalParticipants != null) {
             var current = jdbc.query("SELECT career_id, calendar_season_year FROM career_competition_cycle WHERE rule_version = ?",
                     (r,n) -> Map.entry(r.getString(1), r.getInt(2)), CareerCompetitionRules.VERSION);
-            for (var key : current) reconcileInternational(key.getKey(), key.getValue());
+            for (var key : current) {
+                if(!CareerSaveCompatibility.directoryVersionSupported(jdbc,key.getKey()))continue;
+                try{reconcileInternational(key.getKey(), key.getValue());}
+                catch(CareerException unsupported){if(!CareerSaveCompatibility.unsupported(unsupported))throw unsupported;}
+            }
         }
         List<String> missing = jdbc.query("""
                 SELECT s.career_id || '|' || s.active_calendar_season_year
@@ -301,9 +305,12 @@ public final class CareerCompetitionRelationalStore {
                 """, (result, ignored) -> result.getString(1));
         for (String key : missing) {
             int separator = key.lastIndexOf('|');
+            if(!CareerSaveCompatibility.directoryVersionSupported(jdbc,key.substring(0,separator)))continue;
             try {
                 initialize(key.substring(0, separator),
                         Integer.parseInt(key.substring(separator + 1)));
+            } catch (CareerException unsupported) {
+                if(!CareerSaveCompatibility.unsupported(unsupported))throw unsupported;
             } catch (IllegalStateException missingFutureAuthority) {
                 if (!"PRIOR_SEASON_SEALED_RANKING_REQUIRED".equals(
                         missingFutureAuthority.getMessage())) throw missingFutureAuthority;
@@ -2708,6 +2715,13 @@ public final class CareerCompetitionRelationalStore {
         return value == null || value.isEmpty() ? List.of() : List.of(value.split(","));
     }
 
+    CareerRegistrationWait registrationWait(String career,int year,String event) {
+        return new CareerInternationalCompetition(this,internationalParticipants).waiting(career,year,event);
+    }
+    boolean registrationReady(String career,int year,String event) {
+        return internationalParticipants!=null&&event!=null&&CareerInternationalRules.COMPETITIONS.contains(event)
+                &&CareerInternationalCompetition.load(this,career,year,event)==null&&registrationWait(career,year,event)==null;
+    }
     public record CycleView(
             String careerId, int seasonYear, String lifecycleStatus,
             String blockingReason, long revision, String stateHash,

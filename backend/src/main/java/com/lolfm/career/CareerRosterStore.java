@@ -63,9 +63,18 @@ public final class CareerRosterStore {
     private void initialize(String careerId, int year, boolean newCareer) {
         transactions.executeWithoutResult(ignored -> {
             lockCareer(jdbc, careerId);
+            if (!CareerSaveCompatibility.directoryVersionSupported(jdbc,careerId)) return;
             if (saved(jdbc, careerId, year) != null) return;
-            var definitions = new LinkedHashMap<>(catalog.players());
-            var lineups = new LinkedHashMap<>(catalog.initialLineups());
+            boolean hasDirectory=jdbc.queryForObject("SELECT COUNT(*) FROM career_player_directory WHERE career_id=?",Integer.class,careerId)>0;
+            if(!newCareer&&!hasDirectory) {
+                try{CareerSaveCompatibility.requireOriginalReference(jdbc,careerId);}
+                catch(CareerException unsupported){if(CareerSaveCompatibility.unsupported(unsupported))return;throw unsupported;}
+            }
+            if(!newCareer&&hasDirectory&&CareerMarketStore.exists(jdbc,careerId))return; // Lost operating membership cannot be recreated from initial ownership.
+            var definitions = new LinkedHashMap<>(hasDirectory?sourceDirectory(jdbc,careerId).players():catalog.players());
+            var lineups = new LinkedHashMap<String,List<String>>();
+            if(hasDirectory)definitions.values().stream().filter(p->p.initialOwnerTeam()!=null&&p.initialSquad().equals("FIRST_TEAM")&&p.eligibilityReason()==null).forEach(p->lineups.computeIfAbsent(p.initialOwnerTeam(),k->new ArrayList<>()).add(p.playerId()));
+            else lineups.putAll(catalog.initialLineups());
             var frozen = jdbc.query("SELECT roster_json FROM career_season WHERE career_id=? AND season_year=?",
                     (r,n) -> r.getString(1), careerId, year);
             if (!frozen.isEmpty() && frozen.getFirst() != null) {
@@ -254,7 +263,8 @@ public final class CareerRosterStore {
     }
     public static Directory baseDirectory(JdbcTemplate jdbc,String career) {return CareerLifecycleStore.compose(jdbc,career,sourceDirectory(jdbc,career));}
     public static Directory sourceDirectory(JdbcTemplate jdbc,String career) {
-        return jdbc.queryForObject("SELECT directory_json,directory_hash FROM career_player_directory WHERE career_id=?",(r,n)->{
+        return jdbc.queryForObject("SELECT directory_json,directory_hash,directory_version FROM career_player_directory WHERE career_id=?",(r,n)->{
+            CareerSaveCompatibility.requireDirectoryVersion(r.getString(3));
             if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("DIRECTORY_INTEGRITY");
             return read(r.getString(1),Directory.class);
         },career);

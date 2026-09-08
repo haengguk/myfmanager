@@ -95,10 +95,10 @@ Career 생성 자체가 durable save 슬롯 생성이다. 이후 League/Series/D
 checkpoint, receipt와 outbox 경로가 즉시 저장한다. Career GET은 linked Season/fixture/Series를
 기존 relational authority에서 읽을 뿐 복사하거나 새로 만들지 않는다.
 
-load 때 Career ID/League ID/Season ID/root seed/binding hash와 current reference/frozen/product/team
-identity를 다시 검증한다. linked Season이 없거나 identity가 다르면 자동 재생성·재결속하지 않고
+load 때 Career ID/League ID/Season ID/root seed/binding hash와 저장된 reference/frozen/product/team
+identity를 다시 검증한다. 현재 설치 reference와의 차이는 아래 저장 호환 정책으로 별도 판단한다. linked Season이 없거나 identity가 다르면 자동 재생성·재결속하지 않고
 `CAREER_LINKED_SEASON_INTEGRITY_FAILURE` 또는 `CAREER_RESOURCE_INTEGRITY_FAILURE`로 fail-closed한다.
-보장 범위는 동일 application/schema version의 process restart recovery다.
+선수 참고 데이터 변경에 대한 지원 범위는 아래 저장 호환 V1을 따른다. 미래 엔진/규칙 전체의 호환을 뜻하지 않는다.
 
 Career GET/List는 public `LeagueApiV1ResponseMapper`나 process-local Series repository를 통하지 않는다.
 Career row 조회와 별도로, 최대 100개 linked Season을 대상으로 한 scalar Season query 하나와 resume
@@ -243,3 +243,17 @@ V19의 `career_development_state`는 기존 directory JSON/hash와 분리된 Car
 등록된 선수 집합과 과거 등록 본문은 유지하고, 새 Series에서만 등록 자격 안의 현재 프로필을 고정한다.
 이미 고정한 Series는 과거 입력을 유지한다. API·정책·검증은
 [성장·훈련 V1](../development/career-player-development-training-proficiency-fatigue-v1.md)을 참고한다.
+
+## 선수 참고 데이터 변경과 저장 호환 V1 (2026-09-08)
+
+`CareerSaveCompatibility`는 생성 reference version/hash를 provenance로 유지하고, 저장된
+`EXPANDED_PLAYER_DIRECTORY_V1` directory와 조직/선수 ID, 현재 명부·시즌 roster hash를 검사한다.
+정상 저장은 설치 카탈로그가 달라도 자신의 성장/계약/소속으로 읽고 다음 시즌까지 이월한다.
+새 Career만 최신 authored/global editor snapshot을 사용한다. 시작 Series와 닫힌 국제 등록은 보존한다.
+
+목록/상세에 additive `compatibility`를 제공한다. 지원 불가 directory 버전/누락 자료/조직 정의는
+`CAREER_SAVE_COMPATIBILITY_{VERSION_UNSUPPORTED,DATA_MISSING,ORGANIZATION_UNSUPPORTED}` 409로 구분한다.
+목록은 지원 불가 저장도 이유와 함께 반환하되, 실제 내부 hash/연결 손상을 성공으로 처리하지 않는다.
+누락 옛 자료는 생성 reference가 일치하는 기존 startup 복구 경로만 사용한다. GET import는 없다.
+추가 SQL migration 없이 기존 V23 정상 저장의 directory와 개별 운영 상태를 재사용한다.
+상세 적용 표/검증은 [해외 수정·저장 호환 보고서](../development/career-overseas-fixes-and-save-compatibility-v1.md)를 따른다.

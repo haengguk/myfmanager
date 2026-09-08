@@ -39,7 +39,7 @@ final class CareerInternationalCompetition {
                 String waitingReason="INTERNATIONAL_QUALIFICATION_REQUIRED";
                 try {state=register(career,year,competition);}
                 catch (RegistrationRosterRepair needed) {waitingReason="ROSTER_REPAIR_REQUIRED";}
-                catch (CareerOverseasQualification.Waiting needed) {waitingReason=needed.getMessage();}
+                catch (CareerOverseasQualification.Waiting needed) {waitingReason=needed.code;}
                 if(state==null){
                     if(!"WAITING_FOR_QUALIFICATION".equals(instance.lifecycleStatus())||!waitingReason.equals(instance.blockingReason())){
                         store.jdbc.update("UPDATE career_competition_instance SET rule_status = 'GAME_POLICY_DEFINED', lifecycle_status = 'WAITING_FOR_QUALIFICATION', blocking_reason = ?, materialization_policy_id = ?, materialization_receipt_hash = ?, revision = revision + 1 WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",waitingReason,CareerInternationalRules.POLICY,CareerInternationalRules.RESOURCE_HASH,career,year,competition);
@@ -127,7 +127,19 @@ final class CareerInternationalCompetition {
                 upgraded.policyVersion(),career,year,competition);
         return upgraded;
     }
-    private static final class RegistrationRosterRepair extends RuntimeException {}
+    private static final class RegistrationRosterRepair extends RuntimeException {
+        final String team;
+        RegistrationRosterRepair(){this(null);}RegistrationRosterRepair(String team){this.team=team;}
+    }
+    /** Re-evaluates persisted qualification inputs without writing registration; also reads pre-fix waits. */
+    CareerRegistrationWait waiting(String career,int year,String competition) {
+        if(competition==null||!CareerInternationalRules.COMPETITIONS.contains(competition)||participants==null
+                ||load(store,career,year,competition)!=null)return null;
+        try {return register(career,year,competition)==null?CareerRegistrationWait.qualification(competition):null;}
+        catch(RegistrationRosterRepair needed){return CareerRegistrationWait.roster(store,career,year,competition,needed.team);}
+        catch(CareerOverseasQualification.Waiting needed){return needed.code.equals("ROSTER_REPAIR_REQUIRED")
+                ?CareerRegistrationWait.roster(store,career,year,competition,needed.team):CareerRegistrationWait.result(competition,needed.requiredEvent);}
+    }
     private CareerInternationalState register(String career,int year,String competition){
         boolean future = store.findCycle(career,year,false).getFirst().seasonOrdinal() > 1;
         var previousWorlds = future ? load(store,career,year-1,"WORLDS") : null;
@@ -181,8 +193,8 @@ final class CareerInternationalCompetition {
                 int count=competition.equals("EWC_LOL")?(region.equals("LPL")||region.equals("LEC")?3:2):competition.equals("FIRST_STAND")?(region.equals("LPL")?2:1):region.equals("CBLOL")?1:2;
                 if(selection.rankings().get(region).size()<count)throw new RegistrationRosterRepair();
             }
-            for(String team:domestic.subList(0,Math.min(required,domestic.size())))if(!seasonRosters.teams().containsKey("LCK:"+team))throw new RegistrationRosterRepair();
-            if(msiChampion!=null && domestic.subList(0,Math.min(6,domestic.size())).contains(msiChampion.replace("LCK:",""))&&!seasonRosters.teams().containsKey(msiChampion))throw new RegistrationRosterRepair();
+            for(String team:domestic.subList(0,Math.min(required,domestic.size())))if(!seasonRosters.teams().containsKey("LCK:"+team))throw new RegistrationRosterRepair("LCK:"+team);
+            if(msiChampion!=null && domestic.subList(0,Math.min(6,domestic.size())).contains(msiChampion.replace("LCK:",""))&&!seasonRosters.teams().containsKey(msiChampion))throw new RegistrationRosterRepair(msiChampion);
             if(competition.equals("WORLDS"))domestic=new ArrayList<>(domestic.subList(0,Math.min(6,domestic.size())));
             domestic.removeIf(team->!seasonRosters.teams().containsKey("LCK:"+team));
         }
