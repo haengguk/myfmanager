@@ -24,6 +24,9 @@ import java.util.Set;
 
 public class GameState {
     private boolean realismEnabled;
+    private boolean boundaryFixesEnabled;
+    public void configureBoundaryFixes(boolean value) { boundaryFixesEnabled = value; }
+    public boolean isBoundaryFixesEnabled() { return boundaryFixesEnabled; }
     private final LaneResourceState laneResources = new LaneResourceState();
     public LaneResourceState getLaneResourceState() { return laneResources; }
     private int lastBaseDefenseEvaluationAt = -1;

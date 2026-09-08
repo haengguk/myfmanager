@@ -150,3 +150,21 @@ export interface CareerSeasonsDto { schemaVersion: 'CAREER_SEASONS_V1'; careerId
 export interface CareerSeasonDetailDto { schemaVersion: 'CAREER_SEASON_DETAIL_V1'; careerId: string; season: CareerSeasonSummaryDto; readOnly: boolean; domestic: CareerFinalRankingDto | null; international: readonly CareerInternationalDto[]; fixtures: readonly { competitionId: string; matchId: string; firstTeam: string | null; secondTeam: string | null; winner: string | null; seriesId: string; status: string; replayAvailable: boolean }[] }
 export interface CareerTransitionRequestDto { schemaVersion: 'CAREER_SEASON_TRANSITION_REQUEST_V1'; sourceYear: number; expectedCalendarRevision: number; clientCommandId: string }
 export interface CareerTransitionDto { replayed: boolean; receipt: { clientCommandId: string; careerId: string; sourceYear: number; destinationYear: number; destinationSeasonId: string; resultingRevision: number; resultHash: string; completedAt: string }; seasons: CareerSeasonsDto }
+
+export type CareerContinuousStatus = 'RUNNING' | 'WAITING' | 'PAUSE_REQUESTED' | 'PAUSED' | 'STOPPED' | 'COMPLETED' | 'FAILED';
+export interface CareerContinuousCommand {
+  schemaVersion: 'CAREER_CONTINUOUS_COMMAND_V1'; action: 'START' | 'PAUSE' | 'RESUME'; clientCommandId: string;
+  runId: string | null; expectedRevision: number | null; mode: 'NEXT_MANAGED_MATCH' | 'TARGET_DATE' | null; targetDate: string | null;
+}
+export interface CareerContinuousView {
+  schemaVersion: 'CAREER_CONTINUOUS_VIEW_V1'; careerId: string; currentDate: string;
+  run: null | { runId: string; careerId: string; seasonYear: number; mode: 'NEXT_MANAGED_MATCH' | 'TARGET_DATE'; targetDate: string | null; startDate: string;
+    status: CareerContinuousStatus; revision: number; completedDates: number; completedSeries: number; completedGames: number;
+    intent: null | { action: 'ADVANCE' | 'COMPETITION' | 'REFRESH'; commandId: string; jobId: string | null };
+    stop: null | { category: string; reason: string; owner: string | null; referenceId: string | null; nextAction: string | null } };
+  allowedCommands: CareerContinuousCommand['action'][];
+}
+export interface CareerContinuousResponse {
+  replayed: boolean; receipt: { clientCommandId: string; runId: string; action: CareerContinuousCommand['action']; resultingRevision: number; status: CareerContinuousStatus };
+  progress: CareerContinuousView;
+}

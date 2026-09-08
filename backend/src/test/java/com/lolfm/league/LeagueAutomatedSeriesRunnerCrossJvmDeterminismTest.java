@@ -29,7 +29,7 @@ class LeagueAutomatedSeriesRunnerCrossJvmDeterminismTest {
                 .contains("canonicalHashAlgorithm="
                         + LeagueFixtureCompletionReceiptV2.HASH_ALGORITHM)
                 .contains("playerSeriesBindingHash=NONE")
-                .contains("runtimeProfileId=PRODUCTION_REALISM_V1")
+                .contains("runtimeProfileId=PRODUCTION_REALISM_V2")
                 .contains("engineImplementationVersion=MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9")
                 .contains("canonicalFixtureReceiptHash=");
     }

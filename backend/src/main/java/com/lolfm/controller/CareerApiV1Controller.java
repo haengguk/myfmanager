@@ -44,6 +44,19 @@ public final class CareerApiV1Controller {
         this.competitionBackground = competitionBackground;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.lolfm.career.CareerContinuousApplicationService continuous;
+    @GetMapping("/{careerId}/continuous")
+    public com.lolfm.career.CareerContinuousProgress.View continuous(@PathVariable String careerId) {
+        return continuous.view(careerId);
+    }
+    @PostMapping("/{careerId}/continuous")
+    public ResponseEntity<com.lolfm.career.CareerContinuousProgress.Response> continuousCommand(
+            @PathVariable String careerId,@RequestBody byte[] body) {
+        var response=continuous.command(careerId,parser.continuous(body));
+        return ResponseEntity.status(response.replayed()?200:202).body(response);
+    }
+
     @PostMapping
     public ResponseEntity<CareerApiV1Dtos.CreateResponse> create(
             @RequestBody byte[] body

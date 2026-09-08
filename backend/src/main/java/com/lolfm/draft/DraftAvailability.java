@@ -104,6 +104,15 @@ public final class DraftAvailability {
                 () -> computeCanComplete(state, side, candidate, targetPosition, context));
     }
 
+    Set<Position> evaluationPositions(DraftState state, TeamSide side, ChampionId id,
+            DraftScoringPolicy policy, DraftComputationContext context) {
+        Set<Position> positions=assignments.feasibleCandidatePositions(state.picks(side),id,context);
+        if(!policy.completeRoleRequired())return positions;
+        EnumSet<Position> complete=EnumSet.noneOf(Position.class);
+        for(Position p:positions)if(canCompleteWithCandidateAtRole(state,side,id,p,context))complete.add(p);
+        return complete;
+    }
+
     public double poolHealth(DraftState state, TeamSide side, ChampionId candidate) {
         return computePoolHealth(state, side, candidate, null);
     }
@@ -169,7 +178,7 @@ public final class DraftAvailability {
         return Math.max(0.0, Math.min(20.0, (before - afterHealth) / before * 20.0));
     }
 
-    private DraftState syntheticUnavailable(DraftState state, ChampionId champion) {
+    DraftState syntheticUnavailable(DraftState state, ChampionId champion) {
         Set<ChampionId> exclusions = new HashSet<>(state.fearlessExclusions());
         exclusions.add(champion);
         return new DraftState(state.ruleSet(), state.nextTurnIndex(), state.bluePicks(), state.redPicks(),

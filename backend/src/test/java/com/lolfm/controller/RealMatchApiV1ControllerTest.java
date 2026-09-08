@@ -88,11 +88,11 @@ class RealMatchApiV1ControllerTest {
         assertThat(codes).isSorted().doesNotHaveDuplicates();
         assertThat(playerIds).hasSize(50);
         assertThat(root.path("productionPolicy").path("policyId").asText())
-                .isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID);
+                .isEqualTo(MatchEngineV1Policy.REALISM_V2_POLICY_ID);
         assertThat(root.path("productionPolicy").path("policyHash").asText())
                 .isEqualTo(MatchEngineV1Policy.authoritative().policyHash());
         assertThat(root.path("productionPolicy").path("runtimeProfileId").asText())
-                .isEqualTo("PRODUCTION_REALISM_V1");
+                .isEqualTo("PRODUCTION_REALISM_V2");
         assertThat(root.path("productionPolicy").path("activationDecisionCode").asText())
                 .isEqualTo("NEW_GAME_RUNTIME_CONNECTION");
         assertThat(root.path("productionPolicy").path("knownDiagnosticLimitation").asText())
@@ -213,7 +213,7 @@ class RealMatchApiV1ControllerTest {
         assertThat(first.path("timeline").path("events")).isNotEmpty();
         assertThat(first.path("timeline").path("snapshots")).isNotEmpty();
         assertThat(first.path("integrity").path("policyId").asText())
-                .isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID);
+                .isEqualTo(MatchEngineV1Policy.REALISM_V2_POLICY_ID);
         assertThat(first.path("integrity").path("acceptanceStatus").asText())
                 .isEqualTo("IMPLEMENTED_DEVELOPMENT_VALIDATION_NOT_STATISTICAL_APPROVAL");
         assertThat(first.path("integrity").path("knownDiagnosticLimitations"))
@@ -227,7 +227,7 @@ class RealMatchApiV1ControllerTest {
         assertThat(first.path("integrity").path("draftSelectionTraceHash"))
                 .isEqualTo(first.path("draft").path("draftSelectionTraceHash"));
         assertThat(first.path("integrity").path("runtimeProfileId").asText())
-                .isEqualTo("PRODUCTION_REALISM_V1");
+                .isEqualTo("PRODUCTION_REALISM_V2");
         assertThat(first.path("integrity").path("outputHash").asText())
                 .matches("[0-9a-f]{64}");
         assertThat(first.path("integrity").path("randomFingerprint")

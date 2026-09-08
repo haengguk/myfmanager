@@ -4,6 +4,7 @@ package com.lolfm.simulator;
 public final class UpperObjectiveRuleConfig {
     private UpperObjectiveRuleConfig() {}
     public static final String VERSION = "SR_26_16_UPPER_OBJECTIVES_V1";
+    public static final int GRUB_MIN_PARTICIPANTS = 1, HERALD_MIN_PARTICIPANTS = 2;
     public static final int GRUB_SPAWN = 480, GRUB_DESPAWN = 885, GRUB_COUNT = 3;
     public static final int HERALD_SPAWN = 900, HERALD_DESPAWN = 1185;
     public static final int GRUB_GOLD = 30, GRUB_XP = 65, HERALD_GOLD = 100, HERALD_XP = 240;

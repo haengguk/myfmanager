@@ -83,4 +83,36 @@ class UpperObjectiveTest {
         assertThat(s.getObjectiveState().upper().heraldPhase()).isEqualTo(UpperObjectiveState.HeraldPhase.EXPIRED);
         assertThat(events).singleElement().satisfies(e->assertThat(e.getType()).isEqualTo(MatchEventType.HERALD_EXPIRED));
     }
+    @Test void correctedHeraldRequiresTwoLocalPlayersBeforeAnyRandomOrAttempt() {
+        var resolver=new UpperObjectiveResolver();
+        for(boolean corrected:List.of(false,true)) {
+            GameState s=at(900);s.configureBoundaryFixes(corrected);
+            s.getRedTeamState().getPlayers().forEach(p->p.markDead(900,300));
+            for(Position p:List.of(Position.JUNGLE,Position.MID))s.getBlueTeamState().playerAt(p).markDead(900,300);
+            var random=org.mockito.Mockito.mock(Random.class);var events=new ArrayList<MatchEvent>();
+            int gold=s.getBlueTeamState().getGold();
+            var result=resolver.attempt(s,random,new ObjectiveResolver(),new StructureResolver(),events);
+            if(!corrected) { assertThat(result).isPresent();continue; }
+            assertThat(result).isEmpty();
+            assertThat(resolver.attempt(s,random,new ObjectiveResolver(),new StructureResolver(),events)).isEmpty();
+            assertThat(resolver.capture(s,ObjectiveType.RIFT_HERALD,TeamSide.BLUE)).isEmpty();
+            org.mockito.Mockito.verifyNoInteractions(random);
+            assertThat(s.getObjectiveState().upper().due(ObjectiveType.RIFT_HERALD,900)).isTrue();
+            assertThat(s.getBlueTeamState().getGold()).isEqualTo(gold);
+            assertThat(s.wasMajorCombatAttemptedThisTick()).isFalse();assertThat(events).isEmpty();
+            var decisions=new ObjectiveDecisionResolver();
+            var context=decisions.buildContext(s,ObjectiveType.RIFT_HERALD,TeamSide.BLUE,0);
+            assertThat(decisions.initiativeWeights(s,context).getFirst().eligible()).isFalse();
+        }
+        GameState s=at(900);s.configureBoundaryFixes(true);
+        s.getRedTeamState().getPlayers().forEach(p->p.markDead(900,300));
+        s.getBlueTeamState().playerAt(Position.MID).markDead(900,300);
+        var random=org.mockito.Mockito.mock(Random.class);var events=new ArrayList<MatchEvent>();
+        assertThat(resolver.attempt(s,random,new ObjectiveResolver(),new StructureResolver(),events)).isPresent();
+        assertThat(s.getObjectiveState().upper().heraldOwner()).isEqualTo(TeamSide.BLUE);
+        long before=org.mockito.Mockito.mockingDetails(random).getInvocations().size();
+        assertThat(resolver.attempt(s,random,new ObjectiveResolver(),new StructureResolver(),events)).isEmpty();
+        assertThat(org.mockito.Mockito.mockingDetails(random).getInvocations()).hasSize((int)before);
+    }
+
 }

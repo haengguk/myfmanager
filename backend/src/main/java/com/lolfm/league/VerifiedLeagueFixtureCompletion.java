@@ -61,7 +61,7 @@ public final class VerifiedLeagueFixtureCompletion {
         actualOrderedGames = List.copyOf(actualOrderedGames);
         LeagueSeasonAggregate season = input.season();
         LeagueFixture fixture = input.fixture();
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.resolve(input.boundPolicy());
         boolean valid = fixture.executionMode() == LeagueFixtureExecutionMode.FULL_AUTO
                 && season.schedule().fixture(fixture.fixtureId()).equals(fixture)
                 && season.frozenSnapshot().equals(currentSnapshot)

@@ -63,6 +63,7 @@ public final class CareerCompetitionExecutionService {
     ) {
         return transactions.execute(ignored -> {
             int active = jdbc.queryForObject("SELECT active_calendar_season_year FROM career_calendar_state WHERE career_id = ? FOR UPDATE",Integer.class,career.careerId());
+            CareerContinuousGuard.requireCommand(jdbc,career.careerId());
             if (active != seasonYear) throw new IllegalStateException("CAREER_COMPETITION_SOURCE_SEASON_CONFLICT");
             if (jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_command WHERE career_id = ? AND client_command_id = ? AND calendar_season_year <> ?",Integer.class,career.careerId(),clientCommandId,seasonYear)>0)
                 throw new IllegalStateException("COMPETITION_COMMAND_ID_CONFLICT");
@@ -151,6 +152,13 @@ public final class CareerCompetitionExecutionService {
             String careerId, int seasonYear, long expectedRevision,
             String clientCommandId
     ) {
+        return transactions.execute(t -> {
+            CareerRosterStore.lockCareer(jdbc,careerId);
+            CareerContinuousGuard.requireCommand(jdbc,careerId);
+            return reconcileInTransaction(careerId,seasonYear,expectedRevision,clientCommandId);
+        });
+    }
+    private ExecutionResult reconcileInTransaction(String careerId,int seasonYear,long expectedRevision,String clientCommandId) {
         requireCommand(clientCommandId);
         CommandRow command = priorCommand(careerId, seasonYear, clientCommandId);
         if (command == null) return new ExecutionResult("NONE", null, null, null,
@@ -187,6 +195,17 @@ public final class CareerCompetitionExecutionService {
         return new ExecutionResult("PLAYER_CONTROLLED", binding.fixtureId(),
                 binding.matchId(), binding.boundSeriesId(), binding.bindingHash(),
                 null, reference.status().name(), true, null);
+    }
+
+    /** Reattach to a durable Auto job without reconstructing a missing historical request revision. */
+    public ExecutionResult observeAutoJob(String career,int year,String jobId) {
+        String bindingHash=jdbc.queryForObject("SELECT binding_hash FROM career_competition_job WHERE job_id=?",String.class,jobId);
+        var binding=bindingByHash(bindingHash);requireScope(binding,bindingHash,career,year);
+        if(!"FULL_AUTO".equals(binding.executionMode()))throw new IllegalArgumentException("AUTO_JOB_REQUIRED");
+        if(store.hasAppliedCompletion(binding))return completedReplay(binding);
+        var job=jobs(bindingHash).stream().filter(j->j.jobId().equals(jobId)).findFirst().orElseThrow();
+        return new ExecutionResult("FULL_AUTO",binding.fixtureId(),binding.matchId(),binding.boundSeriesId(),bindingHash,
+                jobId,job.status(),true,job.failureCode());
     }
 
     private ExecutionResult queueAuto(

@@ -1,5 +1,29 @@
 # Testing
 
+## Career 연속 진행·AI 자동 처리 V1 (2026-09-08)
+
+선행 경계는 기존 UpperObjectiveTest, DraftAbilityTest, CareerOverseasExecutionTest의
+혼합 저장 startup 사례와 RealismPolicyCompatibilityTest로 검증한다.
+본 기능은 CareerContinuousPlannerTest(소유권/당일 종료/자동 대기),
+CareerContinuousExecutionTest(기존 날짜/실제 BO3/수동 busy/Player 진입),
+CareerContinuousRecoveryTest(파일 DB 재열기/자식 커밋 후 부모 미기록/pause/fence) 3개 집중 클래스다.
+각 날짜와 fixture의 합성 준비를 실제 경기 증거와 구분한다. 통계 진단은 추가하지 않았다.
+
+```bash
+JAVA_HOME=/path/to/jdk-21 bash scripts/test-linux.sh --tests '*CareerContinuous*Test' --tests '*SimulationRuntimeProfilesTest' --tests '*RealismPolicyCompatibilityTest'
+```
+
+이 선택은 33건 통과/2분 25초였고, 미접수 intent의 pause 경합을 보강한 파일 복구 1건은
+33초에 통과했다. 준비 기간의 목표 날짜 첫 실패는 실제 제품 조건을 수정해 확인했다.
+전체 회귀는 계획된 **1회 / 280 suites / 2,211건 / 15 실패·기존 skip 2 / wall 1,769.57초**로 완료했다.
+원본 XML을 `/tmp/continuous-evidence/full-original/`에 보존한 뒤 실패 15건을 포함한 집중 43건이
+통과했다(wall 579.81초). 마지막 제품 보강의 직접 영향 68건 중 66건 통과·새 테스트 준비 오류
+2건이었고(wall 211.55초), ID/준비 순서만 고친 두 메서드가 통과했다(wall 17.23초).
+추가 전체 실행은 0회이며 최종 clean full 통과로 표기하지 않는다. 미해결 실패는 없다.
+정확한 선택자·원인·검증별 증거는 [구현 보고서](career-continuous-progression-and-ai-auto-v1.md)를 따른다.
+프런트는 career:verify/build, 공유 Player policy 및 Series 명령 경계 변경에 따른
+player-draft:verify/series:verify를 사용한다. 프런트 최종 Career verifier는 110 PASS 표기, build는 통과했다.
+
 ## Career 시작 복구·회귀 비용 V2 (2026-09-08)
 
 Windows 마운트에서의 클래스 로딩 비용을 줄이려면 backend에서 다음 선택 실행 경로를 사용한다.

@@ -39,13 +39,13 @@ public final class PlayerDraftControlPolicy {
     }
     public static String idForAuto(String autoId) {
         AutoDraftSelectionPolicy.resolve(autoId);
-        return autoId.equals(AutoDraftSelectionPolicy.POLICY_ID)?POLICY_ID:"PLAYER_CONTROLLED_DRAFT_ABILITY_V1";
+        return autoId.equals(AutoDraftSelectionPolicy.POLICY_ID)?POLICY_ID:autoId.equals("AUTO_DRAFT_ABILITY_V2")?"PLAYER_CONTROLLED_DRAFT_ABILITY_V2":"PLAYER_CONTROLLED_DRAFT_ABILITY_V1";
     }
     public static String hashForAuto(String autoId) {
         if(idForAuto(autoId).equals(POLICY_ID))return POLICY_HASH;
-        return hash(canonicalPolicy().replace(POLICY_ID,"PLAYER_CONTROLLED_DRAFT_ABILITY_V1")
-                .replace(AutoDraftSelectionPolicy.POLICY_ID,AutoDraftSelectionPolicy.ability().policyId())
-                .replace(AutoDraftSelectionPolicy.APPROVED_POLICY_SHA256,AutoDraftSelectionPolicy.ability().policyHash()));
+        return hash(canonicalPolicy().replace(POLICY_ID,idForAuto(autoId))
+                .replace(AutoDraftSelectionPolicy.POLICY_ID,AutoDraftSelectionPolicy.resolve(autoId).policyId())
+                .replace(AutoDraftSelectionPolicy.APPROVED_POLICY_SHA256,AutoDraftSelectionPolicy.resolve(autoId).policyHash()));
     }
     public static String canonicalPolicy() {
         AutoDraftSelectionPolicy auto = AutoDraftSelectionPolicy.production();

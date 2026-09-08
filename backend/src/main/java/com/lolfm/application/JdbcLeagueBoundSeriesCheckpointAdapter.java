@@ -62,6 +62,23 @@ final class JdbcLeagueBoundSeriesCheckpointAdapter
         this.clock = clock;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private org.springframework.transaction.PlatformTransactionManager transactions;
+    @Override
+    public <T>T commandBoundary(SeriesAggregate current,java.util.function.Supplier<T> action) {
+        if(transactions==null||!current.origin().durableBound())return action.get();
+        return new org.springframework.transaction.support.TransactionTemplate(transactions).execute(t -> {
+            var careers=jdbc.query(current.origin()==SeriesOrigin.LEAGUE_BOUND
+                    ? "SELECT c.career_id FROM career_season c JOIN league_fixture f ON f.season_id=c.season_id WHERE f.bound_series_id=?"
+                    : "SELECT career_id FROM career_competition_series_binding WHERE series_id=?",(r,n)->r.getString(1),current.seriesId());
+            for(String career:careers) {
+                com.lolfm.career.CareerRosterStore.lockCareer(jdbc,career);
+                // A simulation reserved before START may commit its existing result.
+                if(current.currentGame().reservation()==null)com.lolfm.career.CareerContinuousGuard.requireCommand(jdbc,career);
+            }
+            return action.get();
+        });
+    }
     @Override
     public void save(SeriesAggregate aggregate) {
         if (!aggregate.origin().durableBound()) return;

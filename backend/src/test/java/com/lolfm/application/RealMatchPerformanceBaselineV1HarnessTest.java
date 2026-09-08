@@ -38,7 +38,7 @@ class RealMatchPerformanceBaselineV1HarnessTest {
                 .isEqualTo(canonicalizer.canonicalJson(unobserved.response()));
         MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
         assertThat(observed.response().integrity().runtimeProfileId())
-                .isEqualTo("PRODUCTION_REALISM_V1");
+                .isEqualTo("PRODUCTION_REALISM_V2");
         assertThat(observed.response().result().runtimeProfileId())
                 .isEqualTo(observed.response().integrity().runtimeProfileId());
         assertThat(observed.response().integrity().configurationHash())

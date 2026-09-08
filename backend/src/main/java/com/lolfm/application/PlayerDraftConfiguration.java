@@ -24,6 +24,6 @@ public class PlayerDraftConfiguration {
     ) {
         return new PlayerControlledDraftEngine(
                 DraftResourceSet.loadDefault(mapper, champions),
-                DraftRuleSet.professional(), DraftScoringPolicy.ability());
+                DraftRuleSet.professional(), DraftScoringPolicy.abilityV2());
     }
 }

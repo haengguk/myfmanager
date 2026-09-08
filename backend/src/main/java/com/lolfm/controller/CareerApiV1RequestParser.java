@@ -31,6 +31,16 @@ public final class CareerApiV1RequestParser {
                 .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     }
 
+    public com.lolfm.career.CareerContinuousProgress.Command continuous(byte[] body) {
+        var json=read(body);var fields=new HashSet<String>();json.fieldNames().forEachRemaining(fields::add);
+        if(!json.isObject()||!Set.of("schemaVersion","action","clientCommandId","runId","expectedRevision","mode","targetDate").containsAll(fields))throw invalid(null,"연속 진행 요청 필드를 확인하세요.");
+        text(json,"schemaVersion");text(json,"action");text(json,"clientCommandId");
+        var revision=json.path("expectedRevision");
+        if(!revision.isMissingNode()&&!revision.isNull()&&(!revision.isIntegralNumber()||!revision.canConvertToLong()||revision.asLong()<0))throw invalid("expectedRevision","revision은 0 이상의 정수여야 합니다.");
+        try{return strictMapper.readerFor(com.lolfm.career.CareerContinuousProgress.Command.class).with(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).readValue(json);}
+        catch(IOException|IllegalArgumentException e){throw invalid(null,"연속 진행 날짜·모드 형식을 확인하세요.");}
+    }
+
     public com.lolfm.career.CareerClStore.Request clCommand(byte[] body){
         var json=read(body);var fields=new HashSet<String>();json.fieldNames().forEachRemaining(fields::add);
         if(!json.isObject()||!fields.equals(Set.of("sourceYear","expectedRevision","expectedRosterRevision","action","players","matchId","clientCommandId")))throw invalid(null,"CL 요청 필드를 확인하세요.");

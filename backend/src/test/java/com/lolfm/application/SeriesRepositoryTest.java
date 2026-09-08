@@ -25,6 +25,27 @@ import org.junit.jupiter.api.Test;
 class SeriesRepositoryTest {
     private static final Instant START = Instant.parse("2026-08-28T00:00:00Z");
 
+    @Test void careerBoundaryIsAcquiredBeforeTheSeriesMapLock() throws Exception {
+        CountDownLatch waiting=new CountDownLatch(1),release=new CountDownLatch(1);
+        var port=new LeagueBoundSeriesPersistencePort() {
+            public void save(SeriesAggregate value) {}
+            public java.util.Optional<SeriesAggregate> load(String id){return java.util.Optional.empty();}
+            public <T>T commandBoundary(SeriesAggregate current,java.util.function.Supplier<T> work) {
+                waiting.countDown();await(release);return work.get();
+            }
+        };
+        var repository=new SeriesRepository(new MutableClock(START),new SeriesLifecycleConfiguration(),SeriesRepository.CleanupObserver.NONE,port);
+        var initial=aggregate(repository,"boundary");repository.create("command","payload",initial);
+        var executor=Executors.newFixedThreadPool(2);
+        try {
+            var change=executor.submit(()->repository.mutate(initial.seriesId(),current->new SeriesRepository.Mutation<>(current,current)));
+            await(waiting);
+            // A Calendar owner may read/reconcile this Series while the other caller waits for Calendar.
+            assertThat(executor.submit(()->repository.get(initial.seriesId())).get(2,TimeUnit.SECONDS).seriesId()).isEqualTo(initial.seriesId());
+            release.countDown();assertThat(change.get(2,TimeUnit.SECONDS).seriesId()).isEqualTo(initial.seriesId());
+        } finally {release.countDown();executor.shutdownNow();}
+    }
+
     @Test
     void concurrentCreateHonorsExactCapacity32AndRepositoryInstancesAreIsolated()
             throws Exception {

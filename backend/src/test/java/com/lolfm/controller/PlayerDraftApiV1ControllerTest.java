@@ -44,7 +44,7 @@ class PlayerDraftApiV1ControllerTest {
         assertThat(session.path("decisions").get(0).path("authority").asText())
                 .isEqualTo("AI");
         assertThat(session.path("decisions").get(0).path("autoSelectionTrace")
-                .path("policyId").asText()).isEqualTo("AUTO_DRAFT_ABILITY_V1");
+                .path("policyId").asText()).isEqualTo("AUTO_DRAFT_ABILITY_V2");
         assertThat(session.path("currentTurn").path("turn").asInt()).isEqualTo(2);
         assertThat(session.path("currentTurn").path("teamSide").asText()).isEqualTo("RED");
         assertThat(session.path("selectableChampions").size())
@@ -52,7 +52,7 @@ class PlayerDraftApiV1ControllerTest {
         assertThat(session.path("advisoryRecommendations")).allSatisfy(value ->
                 assertThat(value.path("advisoryOnly").asBoolean()).isTrue());
         assertThat(session.path("playerControlPolicy").path("policyHash").asText())
-                .isEqualTo(PlayerDraftControlPolicy.hashForAuto("AUTO_DRAFT_ABILITY_V1"));
+                .isEqualTo(PlayerDraftControlPolicy.hashForAuto("AUTO_DRAFT_ABILITY_V2"));
     }
 
     @Test
@@ -158,16 +158,16 @@ class PlayerDraftApiV1ControllerTest {
                 .isEqualTo("PLAYER_DRAFT_MATCH_RESPONSE_V1");
         assertThat(first.path("session").path("status").asText()).isEqualTo("SIMULATED");
         assertThat(first.path("match").path("productionPolicy").path("policyId").asText())
-                .isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID);
+                .isEqualTo(MatchEngineV1Policy.REALISM_V2_POLICY_ID);
         assertThat(first.path("match").path("productionPolicy")
                 .path("runtimeProfileId").asText())
-                .isEqualTo("PRODUCTION_REALISM_V1");
+                .isEqualTo("PRODUCTION_REALISM_V2");
         assertThat(first.path("match").path("integrity")
                 .path("engineImplementationVersion").asText())
                 .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
         assertThat(first.path("match").path("integrity")
                 .path("controlPolicyId").asText())
-                .isEqualTo(PlayerDraftControlPolicy.idForAuto("AUTO_DRAFT_ABILITY_V1"));
+                .isEqualTo(PlayerDraftControlPolicy.idForAuto("AUTO_DRAFT_ABILITY_V2"));
         assertThat(first.path("match").path("draft").path("decisions")).hasSize(20);
         assertThat(first.path("match").path("result").path("players")).hasSize(10);
         assertThat(first.path("match").path("timeline").path("events")).isNotEmpty();

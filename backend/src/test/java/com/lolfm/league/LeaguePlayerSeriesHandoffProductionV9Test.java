@@ -103,7 +103,7 @@ class LeaguePlayerSeriesHandoffProductionV9Test {
             assertThat(simulated.response().game().status())
                     .isEqualTo(SeriesGameStatus.COMMITTED);
             assertThat(simulated.response().match().integrity().runtimeProfileId())
-                    .isEqualTo("PRODUCTION_REALISM_V1");
+                    .isEqualTo("PRODUCTION_REALISM_V2");
             assertThat(simulated.response().match().integrity().engineImplementationVersion())
                     .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
             view = simulated.response().series();
@@ -196,9 +196,9 @@ class LeaguePlayerSeriesHandoffProductionV9Test {
                 .allSatisfy(game -> {
                     assertThat(game.orderedDraftDecisions()).hasSize(20);
                     assertThat(game.orderedFinalAssignments()).hasSize(10);
-                    assertThat(game.policyId()).isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID);
+                    assertThat(game.policyId()).isEqualTo(MatchEngineV1Policy.REALISM_V2_POLICY_ID);
                     assertThat(game.runtimeProfileId())
-                            .isEqualTo("PRODUCTION_REALISM_V1");
+                            .isEqualTo("PRODUCTION_REALISM_V2");
                     assertThat(game.engineImplementationVersion())
                             .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
                 });

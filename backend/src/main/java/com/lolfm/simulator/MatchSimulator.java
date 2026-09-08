@@ -79,6 +79,7 @@ public class MatchSimulator {
     private final GoldAwardService goldAwards = new GoldAwardService();
     private final ProgressionEconomyResolver progressionEconomyResolver = new ProgressionEconomyResolver();
     private final boolean realismEnabled;
+    private final boolean boundaryFixesEnabled;
     private final boolean laneCombatEnabled;
     private final boolean farmRecoveryEnabled;
     private final boolean jungleGankEnabled;
@@ -198,6 +199,7 @@ public class MatchSimulator {
         this.structureResolver = structureResolver;
         this.pushResolver = pushResolver;
         this.realismEnabled = options.realismEnabled();
+        this.boundaryFixesEnabled = options.boundaryFixesEnabled();
         this.laneCombatEnabled = options.laneCombatEnabled();
         this.farmRecoveryEnabled = options.farmRecoveryEnabled();
         this.jungleGankEnabled = options.jungleGankEnabled();
@@ -264,6 +266,7 @@ public class MatchSimulator {
         this.structureResolver = structureResolver;
         this.pushResolver = pushResolver;
         this.realismEnabled = options.realismEnabled();
+        this.boundaryFixesEnabled = options.boundaryFixesEnabled();
         this.laneCombatEnabled = options.laneCombatEnabled();
         this.farmRecoveryEnabled = options.farmRecoveryEnabled();
         this.jungleGankEnabled = options.jungleGankEnabled();
@@ -307,6 +310,7 @@ public class MatchSimulator {
         this.structureResolver = structureResolver;
         this.pushResolver = pushResolver;
         this.realismEnabled = options.realismEnabled();
+        this.boundaryFixesEnabled = options.boundaryFixesEnabled();
         this.laneCombatEnabled = options.laneCombatEnabled();
         this.farmRecoveryEnabled = options.farmRecoveryEnabled();
         this.jungleGankEnabled = options.jungleGankEnabled();
@@ -745,6 +749,7 @@ public class MatchSimulator {
                 objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled, objectiveDecisionEnabled,
                 lateGameMacroEnabled, assignments);
         state.configureRealism(realismEnabled);
+        state.configureBoundaryFixes(boundaryFixesEnabled);
         state.configureChampionPower(DEFAULT_CHAMPION_POWER_CATALOG, championPowerEnabled);
         state.configureJungleEconomy(DEFAULT_JUNGLE_CLEAR_PROFILES, jungleClearContribution);
         if (championMatchupMode == ChampionMatchupMode.GEOMETRIC_V2) {

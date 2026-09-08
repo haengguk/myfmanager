@@ -33,6 +33,31 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 class LeagueRelationalPersistenceAndJobTest {
     @TempDir Path temporary;
 
+    @Test void queuedBaselineJobKeepsV1PolicyAfterMigrationAndNewJobsBindV2() {
+        String url=fileUrl("policy-job");
+        try(var ds=dataSource(url)) {
+            Flyway.configure().dataSource(ds).target("23").load().migrate();
+            var bundle=store(ds,Clock.systemUTC());var season=season("policy",LeagueSeasonMode.SPECTATOR_FULL_AUTO);bundle.store().freeze(season);
+            new LeagueSeasonApplicationService(bundle.store()).ready(season.seasonId(),0);
+            var f=season.schedule().fixtures().getFirst();
+            String canonical="jobInputSchema=AI_LEAGUE_FULL_AUTO_FROZEN_INPUT_V1\nseasonId="+season.seasonId()+"\nfixtureId="+f.fixtureId()+"\nboundSeriesId="+f.boundSeriesId()+"\nfixtureRootSeed="+f.fixtureRootSeed()+"\nscheduleIdentity="+season.schedule().scheduleIdentity()+"\nsnapshotIdentity="+season.frozenSnapshot().snapshotIdentity()+"\nproductDecisionHash="+season.productDecisionHash()+"\n";
+            String job="job_"+LeagueIdentity.sha256("jobSchema=AI_LEAGUE_FULL_AUTO_JOB_V1\nseasonId="+season.seasonId()+"\nfixtureId="+f.fixtureId()+"\n");
+            bundle.jdbc().update("INSERT INTO league_job(job_id,season_id,fixture_id,lifecycle_status,revision,attempt_number,fencing_number,frozen_input_hash,created_at,updated_at) VALUES(?,?,?,'QUEUED',0,0,0,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",job,season.seasonId(),f.fixtureId(),LeagueIdentity.sha256(canonical));
+            Flyway.configure().dataSource(ds).load().migrate();
+            var runner=mock(LeagueAutomatedSeriesRunner.class);
+            when(runner.run(any(),any())).thenReturn(LeagueAutomatedSeriesRunResult.blocked("FIXTURE_EXPECTED_STOP",0));
+            var jobs=coordinator(bundle,runner,new MutableClock(Instant.now()),"process_policy0001");
+            assertThat(jobs.dispatchFullAutoFixture(season.seasonId(),f.fixtureId()).replayed()).isTrue();
+            var lease=jobs.leaseNext("policy-worker").orElseThrow();
+            var second=season.schedule().fixtures().get(1);jobs.dispatchFullAutoFixture(season.seasonId(),second.fixtureId());
+            jobs.execute(lease,com.lolfm.simulator.SimulationInstrumentation.enabled());
+            var input=org.mockito.ArgumentCaptor.forClass(LeagueAutomatedSeriesRunnerInput.class);
+            org.mockito.Mockito.verify(runner).run(input.capture(),any());
+            assertThat(com.lolfm.application.MatchEngineV1Policy.resolve(input.getValue().boundPolicy()).policyId()).isEqualTo(com.lolfm.application.MatchEngineV1Policy.REALISM_POLICY_ID);
+            assertThat(bundle.jdbc().queryForObject("SELECT match_policy_id FROM league_job WHERE fixture_id=?",String.class,second.fixtureId())).isEqualTo(com.lolfm.application.MatchEngineV1Policy.REALISM_V2_POLICY_ID);
+        }
+    }
+
     @Test
     void migratesEmptyAndPreviousSchemaThenRestartsFromSameFile() {
         String url = fileUrl("migration-restart");
@@ -40,7 +65,7 @@ class LeagueRelationalPersistenceAndJobTest {
             var first = Flyway.configure().dataSource(dataSource).target("1").load().migrate();
             assertThat(first.migrationsExecuted).isOne();
             var upgraded = Flyway.configure().dataSource(dataSource).load().migrate();
-            assertThat(upgraded.migrationsExecuted).isEqualTo(22);
+            assertThat(upgraded.migrationsExecuted).isEqualTo(23);
             var repeated = Flyway.configure().dataSource(dataSource).load().migrate();
             assertThat(repeated.migrationsExecuted).isZero();
 

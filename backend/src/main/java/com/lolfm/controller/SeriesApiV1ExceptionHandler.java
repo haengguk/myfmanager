@@ -9,6 +9,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice(assignableTypes = SeriesApiV1Controller.class)
 public final class SeriesApiV1ExceptionHandler {
+    @ExceptionHandler(com.lolfm.career.CareerException.class)
+    public ResponseEntity<SeriesApiV1Dtos.ErrorResponse> careerBusy(com.lolfm.career.CareerException error) {
+        if(error.type()!=com.lolfm.career.CareerException.Type.CONTINUOUS_BUSY)return internal();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new SeriesApiV1Dtos.ErrorResponse(
+                SeriesApiV1Dtos.ERROR_SCHEMA,"CAREER_CONTINUOUS_BUSY",null,"연속 진행을 일시정지한 뒤 이 작업을 수행하세요.",false,null,null));
+    }
+
     @ExceptionHandler(SeriesApiV1Exception.class)
     public ResponseEntity<SeriesApiV1Dtos.ErrorResponse> series(SeriesApiV1Exception error) {
         return ResponseEntity.status(error.status()).body(new SeriesApiV1Dtos.ErrorResponse(

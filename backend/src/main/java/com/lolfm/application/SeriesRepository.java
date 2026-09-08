@@ -121,6 +121,14 @@ final class SeriesRepository {
 
     <T> T mutate(String seriesId, Function<SeriesAggregate, Mutation<T>> operation) {
         restoreLeagueSeries(seriesId);
+        SeriesAggregate snapshot=series.get(seriesId);
+        if(snapshot==null)throw new RepositoryFailure("SERIES_NOT_FOUND");
+        // Calendar precedes the per-Series map lock, including continuous reconciliation callers.
+        return durableLeagueSeries==null?mutateLocked(seriesId,operation)
+                :durableLeagueSeries.commandBoundary(snapshot,()->mutateLocked(seriesId,operation));
+    }
+
+    private <T>T mutateLocked(String seriesId,Function<SeriesAggregate,Mutation<T>> operation) {
         AtomicReference<T> result = new AtomicReference<>();
         AtomicReference<RuntimeException> failure = new AtomicReference<>();
         series.compute(seriesId, (id, current) -> {
@@ -130,8 +138,10 @@ final class SeriesRepository {
             }
             SeriesAggregate live = expire(current, clock.instant());
             try {
-                Mutation<T> mutation = operation.apply(live);
-                saveLeagueSeries(mutation.aggregate());
+                java.util.function.Supplier<Mutation<T>> change=()-> {
+                    Mutation<T> next=operation.apply(live);saveLeagueSeries(next.aggregate());return next;
+                };
+                Mutation<T> mutation = durableLeagueSeries==null?change.get():durableLeagueSeries.commandBoundary(live,change);
                 result.set(mutation.result());
                 return mutation.aggregate();
             } catch (RuntimeException error) {

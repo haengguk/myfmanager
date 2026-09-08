@@ -88,6 +88,8 @@ public final class PickEvaluator {
     private PickEvaluation abilityEvaluation(DraftState state,TeamSide side,ChampionId id,
             DraftTeamContext own,DraftTeamContext enemy,DraftPlanPortfolio plan,DraftPlanPortfolio enemyPlan,
             Set<com.lolfm.domain.Position> roles,DraftComputationContext context) {
+        roles=availability.evaluationPositions(state,side,id,policy,context);
+        if(roles.isEmpty())return illegal(id);
         var role=roles.stream().map(p->new ChampionRoleKey(id,p)).max(java.util.Comparator
                 .comparingDouble((ChampionRoleKey k)->context.forecast(ability,own,k,plan.preferred().archetype()).value())
                 .thenComparing(k->k.position().name())).orElseThrow();
@@ -104,7 +106,7 @@ public final class PickEvaluator {
         components.put(PickScoreComponent.COMPOSITION_RESPONSE,composition.compositionResponse(state.picks(side),state.picks(side.opposite()),id,own,enemy,context)-10);
         components.put(PickScoreComponent.FLEXIBILITY,Math.clamp(assignments.practicalFlexValue(state.picks(side),id,own,context),0,4));
         components.put(PickScoreComponent.FUTURE_FEASIBILITY,Math.clamp(availability.poolHealth(state,side,id,context),0,10));
-        double denied=assignments.feasibleCandidatePositions(state.picks(side.opposite()),id,context).stream()
+        double denied=availability.evaluationPositions(state,side.opposite(),id,policy,context).stream()
                 .map(p->new ChampionRoleKey(id,p)).mapToDouble(k->context.forecast(ability,enemy,k,enemyPlan.preferred().archetype()).value()).max().orElse(0);
         components.put(PickScoreComponent.DENIAL,Math.max(0,denied-20));
         double total=components.entrySet().stream().mapToDouble(e->e.getValue()*policy.pickWeights().get(e.getKey())).sum();

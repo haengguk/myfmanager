@@ -5,8 +5,26 @@ import java.util.Map;
 public record DraftScoringPolicy(
         int candidateLimit, int structuralRepairSlots, int searchDepth, int beamWidth,
         Map<PickScoreComponent, Double> pickWeights,
-        Map<BanScoreComponent, Double> banWeights, boolean abilityBased, double metaScale
+        Map<BanScoreComponent, Double> banWeights, boolean abilityBased, double metaScale, boolean completeRoleRequired
 ) {
+    public DraftScoringPolicy(int candidates,int repair,int depth,int beam,
+            Map<PickScoreComponent,Double> picks, Map<BanScoreComponent,Double> bans, boolean ability, double meta) {
+        this(candidates,repair,depth,beam,picks,bans,ability,meta,false);
+    }
+    public AutoDraftSelectionPolicy selection() {
+        return completeRoleRequired ? AutoDraftSelectionPolicy.abilityV2()
+                : abilityBased ? AutoDraftSelectionPolicy.ability() : AutoDraftSelectionPolicy.production();
+    }
+    public static DraftScoringPolicy forSelection(String id) {
+        AutoDraftSelectionPolicy.resolve(id);
+        return id.equals(AutoDraftSelectionPolicy.POLICY_ID) ? standard()
+                : id.equals("AUTO_DRAFT_ABILITY_V2") ? abilityV2() : ability();
+    }
+    public static DraftScoringPolicy abilityV2() {
+        var p=ability();
+        return new DraftScoringPolicy(p.candidateLimit,p.structuralRepairSlots,p.searchDepth,p.beamWidth,
+                p.pickWeights,p.banWeights,true,p.metaScale,true);
+    }
     public DraftScoringPolicy {
         if (candidateLimit < 1 || structuralRepairSlots < 0 || searchDepth < 1 || beamWidth < 1) throw new IllegalArgumentException("Invalid DraftScoringPolicy bounds");
         pickWeights = Map.copyOf(pickWeights); banWeights = Map.copyOf(banWeights);

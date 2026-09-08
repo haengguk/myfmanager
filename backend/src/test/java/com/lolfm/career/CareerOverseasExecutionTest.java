@@ -21,7 +21,9 @@ class CareerOverseasExecutionTest {
     @Autowired CareerCalendarApplicationService calendar;
     private org.springframework.transaction.support.TransactionTemplate transaction(){return new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));}
     @Autowired CareerPersistenceStartupRecovery startup;
-    @Test void startupRecoveryIsolatesMissingOperatingRosterAndStillRecoversHealthySave() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void startupRecoveryIsolatesMissingOperatingRosterAndStillRecoversHealthySave(boolean frozenMissing) {
         var broken=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"명부 누락 복구 격리","감독","KT",UUID.randomUUID().toString())).career().career();
         var good=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"정상 시작 복구","감독","GEN",UUID.randomUUID().toString())).career().career();
         String id=broken.careerId();int year=2027;
@@ -31,13 +33,17 @@ class CareerOverseasExecutionTest {
             var source=jdbc.queryForObject("SELECT match_id FROM career_competition_fixture WHERE career_id=? AND competition_id='LCK_CUP' ORDER BY match_order LIMIT 1",String.class,id);
             for(int i=1;i<=2;i++)jdbc.update("INSERT INTO career_competition_output VALUES (?,?,?,?,?,?,?,CURRENT_TIMESTAMP)",id,year,"LCK_CUP","FIRST_STAND_LCK_SEED_"+i,i==1?"GEN":"T1",source,"a".repeat(64));
             competitions.refreshAllInstanceHashes(id,year);competitions.refreshCycleHash(id,year);
-            jdbc.update("DELETE FROM career_roster_state WHERE career_id=? AND season_year=?",id,year);
+            if(frozenMissing) {
+                jdbc.update("UPDATE career_season SET roster_json=NULL,roster_hash=NULL WHERE career_id=? AND season_year=?",id,year);
+                jdbc.update("DELETE FROM career_development_state WHERE career_id=?",id);
+                jdbc.update("UPDATE career_player_directory SET development_version=NULL WHERE career_id=?",id);
+            } else jdbc.update("DELETE FROM career_roster_state WHERE career_id=? AND season_year=?",id,year);
             // A valid pending initialization on the healthy save must actually run.
             jdbc.update("DELETE FROM career_development_state WHERE career_id=?",good.careerId());
             jdbc.update("UPDATE career_player_directory SET development_version=NULL WHERE career_id=?",good.careerId());
         });
         var preserved=new TreeMap<String,List<Map<String,Object>>>();
-        for(String table:List.of("career_player_directory","career_market_state","career_development_state","career_lifecycle_state","career_create_command","career_competition_instance"))preserved.put(table,jdbc.queryForList("SELECT * FROM "+table+" WHERE career_id=?",id));
+        for(String table:List.of("career_player_directory","career_market_state","career_development_state","career_lifecycle_state","career_create_command","career_competition_instance","career_season"))preserved.put(table,jdbc.queryForList("SELECT * FROM "+table+" WHERE career_id=?",id));
         assertThatThrownBy(()->careers.get(id)).isInstanceOfSatisfying(CareerException.class,e->assertThat(e.type()).isEqualTo(CareerException.Type.SAVE_COMPATIBILITY_DATA_MISSING));
         startup.recover();
         assertThat(CareerDevelopmentStore.load(jdbc,good.careerId())).isNotNull();
@@ -45,9 +51,9 @@ class CareerOverseasExecutionTest {
         var day=calendar.view(good).state();calendar.advance(good,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,day.calendarRevision(),"ADVANCE_ONE_DAY",UUID.randomUUID().toString());
         assertThat(calendar.view(good).state().currentDate()).isAfter(day.currentDate());
         assertThat(careers.list().careers()).anyMatch(c->c.career().careerId().equals(id)&&c.compatibility().status().equals("UNSUPPORTED"));
-        assertThat(CareerRosterStore.saved(jdbc,id,year)).isNull();
+        assertThat(CareerRosterStore.saved(jdbc,id,year)==null).isEqualTo(!frozenMissing);
         preserved.forEach((table,rows)->assertThat(jdbc.queryForList("SELECT * FROM "+table+" WHERE career_id=?",id)).as(table).isEqualTo(rows));
-        startup.recover();assertThat(CareerRosterStore.saved(jdbc,id,year)).isNull();
+        startup.recover();assertThat(CareerRosterStore.saved(jdbc,id,year)==null).isEqualTo(!frozenMissing);
         String digest=jdbc.queryForObject("SELECT directory_hash FROM career_player_directory WHERE career_id=?",String.class,id);
         jdbc.update("UPDATE career_player_directory SET directory_hash=? WHERE career_id=?","0".repeat(64),id);
         assertThatThrownBy(startup::recover).isInstanceOf(IllegalStateException.class).hasMessage("DIRECTORY_INTEGRITY");

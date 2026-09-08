@@ -10,6 +10,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice(assignableTypes = LeagueApiV1Controller.class)
 public final class LeagueApiV1ExceptionHandler {
+    @ExceptionHandler(com.lolfm.career.CareerException.class)
+    public ResponseEntity<LeagueApiV1Dtos.ErrorResponse> careerBusy(com.lolfm.career.CareerException error) {
+        if(error.type()!=com.lolfm.career.CareerException.Type.CONTINUOUS_BUSY)return internal();
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new LeagueApiV1Dtos.ErrorResponse(
+                LeagueApiV1Dtos.ERROR_SCHEMA,"CAREER_CONTINUOUS_BUSY",null,"연속 진행을 일시정지한 뒤 이 작업을 수행하세요.",false,null,null));
+    }
+
     @ExceptionHandler(LeagueApiV1Exception.class)
     public ResponseEntity<LeagueApiV1Dtos.ErrorResponse> league(
             LeagueApiV1Exception error

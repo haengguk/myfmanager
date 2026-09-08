@@ -33,6 +33,16 @@ public class LeagueAutomatedSeriesRunnerTest {
     private static final String RESOURCE_HASH = LeagueDomainTestFixtures.hash(
             "production-resource-provenance");
 
+    @Test void retainedV1PolicyFlowsThroughExecutionAndReceiptVerification() {
+        var season=season(LeagueSeasonMode.SPECTATOR_FULL_AUTO,null);
+        var fixture=LeagueDomainTestFixtures.fixture(season.schedule(),"GEN","T1");
+        var policy=MatchEngineV1Policy.requirement(MatchEngineV1Policy.resolve(MatchEngineV1Policy.REALISM_POLICY_ID));
+        var input=new LeagueAutomatedSeriesRunnerInput(season,fixture,LeagueV1ProductDecisions.productDecisionHash(),null,policy);
+        var result=runner(season.frozenSnapshot(),new FakeGameExecutor(List.of("GEN","GEN"))).run(input);
+        assertThat(result.status()).isEqualTo(LeagueAutomatedSeriesRunResult.Status.COMPLETED);
+        assertThat(result.receipt().orderedGameReceipts()).allSatisfy(game->assertThat(game.policyId()).isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID));
+    }
+
     @Test
     void fullAutoBo3CompletesTwoZeroAndStopsBeforeThirdGame() {
         LeagueSeasonAggregate season = season(LeagueSeasonMode.SPECTATOR_FULL_AUTO, null);
@@ -513,7 +523,7 @@ public class LeagueAutomatedSeriesRunnerTest {
             List<ChampionId> historyAfter,
             String winnerTeam
     ) {
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.resolve(request.boundPolicy());
         TeamSide winnerSide = winnerTeam == null ? null
                 : winnerTeam.equals(request.blueTeamCode()) ? TeamSide.BLUE : TeamSide.RED;
         List<LeagueFixtureGameReceiptV1.DraftTurnEvidence> decisions =

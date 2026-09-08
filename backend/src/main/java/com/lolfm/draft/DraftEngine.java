@@ -34,7 +34,7 @@ public final class DraftEngine {
     }
     public DraftEngine(DraftResourceSet resources, DraftRuleSet rules, DraftScoringPolicy policy) {
         this.resources = resources; this.rules = rules;
-        selectionPolicy=policy.abilityBased()?AutoDraftSelectionPolicy.ability():AutoDraftSelectionPolicy.production();
+        selectionPolicy=policy.selection();
         DraftAbilityEvaluator ability=policy.abilityBased()?new DraftAbilityEvaluator(resources.champions()):null;
         assignments = new RoleAssignmentSolver(resources.champions().catalog());
         DraftCompositionEvaluator composition = new DraftCompositionEvaluator(resources.champions().catalog(),
@@ -50,7 +50,7 @@ public final class DraftEngine {
         DraftCandidateGenerator generator = new DraftCandidateGenerator(resources.champions().catalog(), resources.meta(),
                 assignments, composition, availability, policy, ability);
         search = new ShallowDraftSearch(planner, generator, pickEvaluator, banEvaluator, policy);
-        selector = new AutoDraftSelector(policy.abilityBased()?AutoDraftSelectionPolicy.ability():AutoDraftSelectionPolicy.production());
+        selector = new AutoDraftSelector(policy.selection());
         finalRoles = new FinalRoleAssignmentResolver(assignments, matchup, composition, ability);
     }
 

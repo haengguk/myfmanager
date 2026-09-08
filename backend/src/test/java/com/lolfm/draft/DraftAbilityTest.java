@@ -94,4 +94,41 @@ class DraftAbilityTest {
         assertThat(first.decisions().stream().filter(d->d.actionType()==DraftActionType.PICK).toList())
                 .allSatisfy(d->assertThat(d.componentBreakdown()).containsKeys("EARLY_POWER","MID_POWER","LATE_POWER","PLAYER_FIT"));
     }
+    @Test void restrictedPoolForecastAndReplacementUseOnlyCompletableRoles() {
+        var c=RESOURCES.champions();var solver=new RoleAssignmentSolver(c.catalog());
+        var avail=new DraftAvailability(c.catalog(),solver);
+        var allowed=Set.of("aatrox","jinx","nautilus","morgana","vi","zyra");
+        var exclusions=new HashSet<ChampionId>();
+        c.catalog().all().stream().filter(x->!allowed.contains(x.id().value())).forEach(x->exclusions.add(x.id()));
+        var state=new DraftState(DraftRuleSet.professional(),16,
+                List.of(new ChampionId("aatrox"),new ChampionId("jinx"),new ChampionId("nautilus")),List.of(),List.of(),List.of(),exclusions);
+        var ratings=new EnumMap<Position,PlayerRatings>(Position.class);
+        for(var p:Position.values()) {
+            var a=PlayerRatings.neutral(p);
+            for(var skill:PlayerSkill.orderedForPosition(p))a=a.with(skill,p==Position.JUNGLE?20:1);
+            ratings.put(p,a);
+        }
+        var team=new DraftTeamContext(Map.of(),Map.of(),ratings);var ability=new DraftAbilityEvaluator(c);
+        var composition=new DraftCompositionEvaluator(c.catalog(),c.composition(),solver);
+        var matchup=new DraftMatchupEvaluator(solver,c.matchup());
+        var plan=new PreDraftPlanner(c.catalog(),RESOURCES.meta(),c.composition(),solver,ability,0).replan(team,team,TeamSide.BLUE,state);
+        var id=new ChampionId("morgana");var policy=DraftScoringPolicy.abilityV2();
+        for(var context:List.of(DraftComputationContext.cached(),DraftComputationContext.uncached())) {
+            assertThat(avail.evaluationPositions(state,TeamSide.BLUE,id,policy,context)).containsExactly(Position.MID);
+            var picks=new PickEvaluator(c.catalog(),RESOURCES.meta(),matchup,solver,composition,avail,policy,ability);
+            var result=picks.evaluate(state,TeamSide.BLUE,id,team,team,plan,plan,context);
+            assertThat(result.components().get(PickScoreComponent.PLAYER_FIT))
+                    .isEqualTo(ability.evaluate(new ChampionRoleKey(id,Position.MID),team,plan.preferred().archetype()).playerFit());
+            assertThat(result.components().get(PickScoreComponent.JUNGLE_CLEAR)).isZero();
+            var removed=avail.syntheticUnavailable(state,id);
+            assertThat(avail.evaluationPositions(removed,TeamSide.BLUE,new ChampionId("vi"),policy,context)).isEmpty();
+            var bans=new BanEvaluator(c.catalog(),RESOURCES.meta(),c.composition(),solver,avail,composition,matchup,policy,ability);
+            var ban=bans.evaluate(state,TeamSide.RED,id,team,team,plan,plan,context);
+            assertThat(ban.components().get(BanScoreComponent.OPPONENT_REPLACEMENT_VALUE)).isZero();
+        }
+        var old=new PickEvaluator(c.catalog(),RESOURCES.meta(),matchup,solver,composition,avail,DraftScoringPolicy.ability(),ability)
+                .evaluate(state,TeamSide.BLUE,id,team,team,plan,plan);
+        assertThat(old.components().get(PickScoreComponent.JUNGLE_CLEAR)).isPositive();
+    }
+
 }

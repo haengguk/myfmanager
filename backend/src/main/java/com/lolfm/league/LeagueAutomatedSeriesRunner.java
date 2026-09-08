@@ -73,10 +73,10 @@ public final class LeagueAutomatedSeriesRunner {
                 LeagueAutomatedSeriesGameExecutor.Execution execution = games.execute(
                         new LeagueAutomatedSeriesGameExecutor.Request(
                                 fixture, gameNumber, blue, red, gameSeed, matchIdentity,
-                                history, instrumentation, input.frozenRosters()));
+                                history, instrumentation, input.frozenRosters(),input.boundPolicy()));
                 LeagueFixtureGameReceiptV1 game = execution.gameReceipt();
                 validateGameEvidence(fixture, current, game, gameNumber,
-                        historyBeforeHash, blue, red, gameSeed, matchIdentity);
+                        historyBeforeHash, blue, red, gameSeed, matchIdentity,input.boundPolicy());
                 if (game.winnerTeamCode() == null) {
                     return LeagueAutomatedSeriesRunResult.blocked(
                             "NO_DECISIVE_MATCH_ENGINE_RESULT", executions);
@@ -170,9 +170,10 @@ public final class LeagueAutomatedSeriesRunner {
             String blue,
             String red,
             long gameSeed,
-            String matchIdentity
+            String matchIdentity,
+            MatchEngineV1Policy.Requirement boundPolicy
     ) {
-        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.authoritative();
+        MatchEngineV1Policy.Snapshot policy = MatchEngineV1Policy.resolve(boundPolicy);
         boolean valid = game.gameNumber() == gameNumber
                 && game.matchIdentity().equals(matchIdentity)
                 && game.blueTeamCode().equals(blue)

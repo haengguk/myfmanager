@@ -93,7 +93,7 @@ public final class BanEvaluator {
 
     private BanEvaluation abilityBan(DraftState state,TeamSide side,ChampionId id,DraftTeamContext own,DraftTeamContext enemy,
             DraftPlanPortfolio ownPlan,DraftPlanPortfolio enemyPlan,DraftComputationContext context) {
-        var roles=assignments.feasibleCandidatePositions(state.picks(side.opposite()),id,context);
+        var roles=availability.evaluationPositions(state,side.opposite(),id,policy,context);
         double value=0,replacement=0; com.lolfm.domain.Position bestRole=null;
         for(var p:roles) {
             double v=context.forecast(ability,enemy,new ChampionRoleKey(id,p),enemyPlan.preferred().archetype()).value();
@@ -101,14 +101,15 @@ public final class BanEvaluator {
         }
         if(bestRole!=null && availability.canComplete(state,side.opposite(),id,context)) {
             var role=bestRole;
+            var replacementState=policy.completeRoleRequired()?availability.syntheticUnavailable(state,id):state;
             replacement=champions.all().stream().map(c->c.id()).filter(c->!c.equals(id)&&!state.unavailableChampions().contains(c))
-                    .filter(c->assignments.feasibleCandidatePositions(state.picks(side.opposite()),c,context).contains(role))
+                    .filter(c->availability.evaluationPositions(replacementState,side.opposite(),c,policy,context).contains(role))
                     .filter(c->availability.canComplete(state,side.opposite(),c,context))
                     .mapToDouble(c->context.forecast(ability,enemy,new ChampionRoleKey(c,role),enemyPlan.preferred().archetype()).value()).max().orElse(0);
         } else value=0;
         int ownDistance=nextPickDistance(state,side),enemyDistance=nextPickDistance(state,side.opposite());
         double opponentChance=value<=0?0:Math.clamp(0.5+(value-replacement)/10+(ownDistance-enemyDistance)*0.08,0.05,0.95);
-        double ownValue=assignments.feasibleCandidatePositions(state.picks(side),id,context).stream()
+        double ownValue=availability.evaluationPositions(state,side,id,policy,context).stream()
                 .map(p->new ChampionRoleKey(id,p)).mapToDouble(k->context.forecast(ability,own,k,ownPlan.preferred().archetype()).value()).max().orElse(0);
         double ownChance=ownDistance<enemyDistance?0.8:Math.pow(0.65,Math.max(1,ownDistance-enemyDistance));
         var c=new EnumMap<BanScoreComponent,Double>(BanScoreComponent.class);

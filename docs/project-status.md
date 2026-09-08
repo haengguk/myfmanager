@@ -2,9 +2,23 @@
 
 이 문서는 2026-09-08 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career 연속 진행·AI 자동 처리 V1 (2026-09-08)
+
+Calendar의 다음 내 경기/지정 날짜 진행을 영속 서버 worker에 연결했다. 사용자 경기·실제 계약 응답·
+명부 결정·시즌 전환에서 정지하고, Auto 경기·결과 반영과 기존 일별 정산을 이어 처리한다.
+V24는 원본 명령/자식 intent, pause 상태와 lease/fence를 보존한다. 브라우저 연결 종료는 서버 취소가 아니다.
+
+G1 상체 오브젝트의 현장 최소 인원, G2 남은 Draft를 완성할 수 있는 역할 필터,
+G3 운영 저장의 현재 시즌 고정 명부 누락 복구 격리를 수정했다.
+새 경기 기본 정책은 `MATCH_ENGINE_REALISM_ABILITY_V2`이며 이미 고정된 V1/이전 입력은 유지한다.
+집중 검증 33건과 미접수 intent의 pause 경합 검사가 통과했다. 대표 실제 Auto BO3와
+Player 진입, 파일 DB 재열기/원본 UUID/PAUSED 복원을 확인했다. 전체 회귀 1회는 2,211건 중 15 실패·기존 skip 2로 완료했다(29분 30초). 원본을 보존한 뒤 실패 15건을 포함한 43건이 통과했다. 마지막 직접 영향 68건의 준비 오류 2건도 해당 메서드 재검증으로 통과하여 미해결 실패는 없다. 추가 전체 실행은 하지 않았다.
+[구현·정지 기준·복구·검증 결과](development/career-continuous-progression-and-ai-auto-v1.md).
+
 ## 매치 현실성·성능 기반 Draft V1 (2026-09-08)
 
-새 Auto/Player/Series 경기에는 `MATCH_ENGINE_REALISM_ABILITY_V1` 정책을 결속한다.
+V1 도입 당시 새 Auto/Player/Series 경기에는 `MATCH_ENGINE_REALISM_ABILITY_V1` 정책을 결속했다.
+현재 신규 요청의 V2 교정과 구 입력 보존은 위 연속 진행 항목을 따른다.
 개막 라인 접촉, 선수별 본진 복귀·수비와 지속 공성 재평가, 유한 라인 CS/공유 XP,
 기존 정글 경제·템포와 캠프 소비/재생성, 유충·전령 생애주기를 실제 실행 경로에 연결했다.
 Auto 및 Player Draft의 AI 턴은 현재 선수 12개 능력치·숙련도와 실제 챔피언 power curve,

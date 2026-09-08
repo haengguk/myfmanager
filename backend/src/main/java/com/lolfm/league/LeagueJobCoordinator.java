@@ -71,8 +71,9 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
             seasons.requireDispatchable(seasonId);
             lockFixture(seasonId, fixtureId);
             store.freezeFixtureRoster(seasonId,fixtureId);
-            String frozenHash = frozenInputHash(season, fixture);
             Optional<JobView> existing = findJob(seasonId, fixtureId);
+            String policyId=existing.isPresent()?boundPolicyId(jobId):com.lolfm.application.MatchEngineV1Policy.authoritative().policyId();
+            String frozenHash = frozenInputHash(season, fixture,policyId);
             if (existing.isPresent()) {
                 if (!existing.get().jobId().equals(jobId)
                         || !existing.get().frozenInputHash().equals(frozenHash)) {
@@ -85,9 +86,9 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                     INSERT INTO league_job(
                       job_id, season_id, fixture_id, lifecycle_status, revision,
                       attempt_number, fencing_number, frozen_input_hash,
-                      created_at, updated_at)
-                    VALUES (?, ?, ?, 'QUEUED', 0, 0, 0, ?, ?, ?)
-                    """, jobId, seasonId, fixtureId, frozenHash, now, now);
+                      created_at, updated_at, match_policy_id)
+                    VALUES (?, ?, ?, 'QUEUED', 0, 0, 0, ?, ?, ?, ?)
+                    """, jobId, seasonId, fixtureId, frozenHash, now, now,policyId);
             store.jdbc().update("""
                     UPDATE league_fixture SET lifecycle_status = 'QUEUED',
                       revision = revision + 1 WHERE season_id = ? AND fixture_id = ?
@@ -217,13 +218,16 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
         try {
             LeagueSeasonAggregate season = store.loadSeason(lease.seasonId());
             LeagueFixture fixture = season.schedule().fixture(lease.fixtureId());
-            if (!frozenInputHash(season, fixture).equals(lease.frozenInputHash())) {
+            String policyId=boundPolicyId(lease.jobId());
+            if (!frozenInputHash(season, fixture,policyId).equals(lease.frozenInputHash())) {
                 return finishFailure(lease,
                         LeaguePersistenceState.FailureClass.DETERMINISTIC,
                         "FROZEN_JOB_INPUT_MISMATCH");
             }
             result = runner.run(new LeagueAutomatedSeriesRunnerInput(
-                    season, fixture, season.productDecisionHash(), store.fixtureRoster(season.seasonId(),fixture.fixtureId())), instrumentation);
+                    season, fixture, season.productDecisionHash(), store.fixtureRoster(season.seasonId(),fixture.fixtureId()),
+                    com.lolfm.application.MatchEngineV1Policy.requirement(com.lolfm.application.MatchEngineV1Policy.resolve(policyId==null
+                            ?com.lolfm.application.MatchEngineV1Policy.REALISM_POLICY_ID:policyId))), instrumentation);
         } catch (RuntimeException error) {
             LeagueJobFailureClassifier.Failure failure =
                     LeagueJobFailureClassifier.classify(error);
@@ -500,9 +504,13 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
         if (rows.isEmpty()) throw new IllegalStateException("LEAGUE_FIXTURE_NOT_PERSISTED");
     }
 
+    private String boundPolicyId(String job) {
+        return store.jdbc().queryForObject("SELECT match_policy_id FROM league_job WHERE job_id=?",String.class,job);
+    }
+
     private String frozenInputHash(
             LeagueSeasonAggregate season,
-            LeagueFixture fixture
+            LeagueFixture fixture,String policyId
     ) {
         return LeagueIdentity.sha256(
                 "jobInputSchema=AI_LEAGUE_FULL_AUTO_FROZEN_INPUT_V1\n"
@@ -513,7 +521,9 @@ public final class LeagueJobCoordinator implements LeagueSimulationApplicationPo
                         + "scheduleIdentity=" + season.schedule().scheduleIdentity() + '\n'
                         + "snapshotIdentity=" + season.frozenSnapshot().snapshotIdentity() + '\n'
                         + "productDecisionHash=" + season.productDecisionHash() + '\n'
-                        + rosterInput(season.seasonId(),fixture.fixtureId()));
+                        + rosterInput(season.seasonId(),fixture.fixtureId())
+                        + (policyId==null?"":"matchPolicy="+policyId+'\n'+"matchPolicyHash="
+                        +com.lolfm.application.MatchEngineV1Policy.resolve(policyId).policyHash()+'\n'));
     }
 
     private String rosterInput(String season,String fixture) {

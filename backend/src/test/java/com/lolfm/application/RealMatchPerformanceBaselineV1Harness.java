@@ -84,7 +84,7 @@ public final class RealMatchPerformanceBaselineV1Harness {
         this.responses = Objects.requireNonNull(responses, "responses");
         this.canonicalizer = Objects.requireNonNull(canonicalizer, "canonicalizer");
         this.clock = Objects.requireNonNull(clock, "clock");
-        drafts = field(orchestrator, "abilityDrafts", DraftEngine.class);
+        drafts = field(orchestrator, "correctedDrafts", DraftEngine.class);
         validateRequest = method(RealMatchApiV1Service.class, "validateRequest",
                 RealMatchApiV1Dtos.SimulateRequest.class);
         validateOutput = method(RealMatchApiV1Service.class, "validateOutput",

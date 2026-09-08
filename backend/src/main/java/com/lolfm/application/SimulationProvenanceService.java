@@ -363,6 +363,7 @@ public final class SimulationProvenanceService {
                 .append("structuralRepairSlots=").append(policy.structuralRepairSlots()).append('\n')
                 .append("searchDepth=").append(policy.searchDepth()).append('\n')
                 .append("beamWidth=").append(policy.beamWidth()).append('\n');
+        if(policy.completeRoleRequired())canonical.append("roleCompletion=ROLE_BOUND_COMPLETION_V2\n");
         if(policy.abilityBased())canonical.append("forecastVersion=DRAFT_ABILITY_SCORING_V1\n")
                 .append("metaScale=").append(Double.toHexString(policy.metaScale())).append('\n');
         for (PickScoreComponent component : PickScoreComponent.values()) {

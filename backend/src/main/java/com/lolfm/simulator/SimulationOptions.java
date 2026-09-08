@@ -23,8 +23,26 @@ public record SimulationOptions(
         ChampionMatchupMode championMatchupMode,
         TeamCompositionGameplayMode teamCompositionGameplayMode,
         JungleClearContribution jungleClearContribution,
-        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT) boolean realismEnabled
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT) boolean realismEnabled,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT) boolean boundaryFixesEnabled
 ) {
+    /** Legacy constructors retain V9 semantics. */
+    public SimulationOptions(
+            boolean laneCombatEnabled, boolean farmRecoveryEnabled, boolean jungleGankEnabled,
+            boolean counterGankEnabled, boolean roamEnabled, boolean diagnosticsEnabled, boolean objectivePriorityEnabled,
+            boolean lanePhaseEnabled, boolean midGameMacroEnabled, boolean objectiveDecisionEnabled,
+            boolean lateGameMacroEnabled, boolean progressionEnabled, boolean progressionPowerEnabled,
+            boolean championPowerEnabled, ChampionMatchupMode championMatchupMode,
+            TeamCompositionGameplayMode teamCompositionGameplayMode,
+            JungleClearContribution jungleClearContribution, boolean realismEnabled
+    ) {
+        this(laneCombatEnabled, farmRecoveryEnabled, jungleGankEnabled, counterGankEnabled,
+                roamEnabled, diagnosticsEnabled, objectivePriorityEnabled, lanePhaseEnabled, midGameMacroEnabled,
+                objectiveDecisionEnabled, lateGameMacroEnabled, progressionEnabled,
+                progressionPowerEnabled, championPowerEnabled, championMatchupMode,
+                teamCompositionGameplayMode, jungleClearContribution, realismEnabled, false);
+    }
+
     /** Legacy constructors retain V9 semantics. */
     public SimulationOptions(
             boolean laneCombatEnabled, boolean farmRecoveryEnabled, boolean jungleGankEnabled,
@@ -124,7 +142,7 @@ public record SimulationOptions(
                 champion == null ? championPowerEnabled : champion,
                 matchup == null ? championMatchupMode : matchup,
                 composition == null ? teamCompositionGameplayMode : composition,
-                jungleClear == null ? jungleClearContribution : jungleClear, realismEnabled);
+                jungleClear == null ? jungleClearContribution : jungleClear, realismEnabled, boundaryFixesEnabled);
     }
 
     public SimulationOptions withRoamEnabled(boolean value) {

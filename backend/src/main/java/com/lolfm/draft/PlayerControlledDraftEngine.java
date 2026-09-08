@@ -35,7 +35,7 @@ public final class PlayerControlledDraftEngine {
             DraftResourceSet resources, DraftRuleSet rules, DraftScoringPolicy policy
     ) {
         this.resources = Objects.requireNonNull(resources, "resources");
-        selectionPolicyId=(policy.abilityBased()?AutoDraftSelectionPolicy.ability():AutoDraftSelectionPolicy.production()).policyId();
+        selectionPolicyId=(policy.selection()).policyId();
         this.rules = Objects.requireNonNull(rules, "rules");
         champions = resources.champions().catalog();
         DraftAbilityEvaluator ability=policy.abilityBased()?new DraftAbilityEvaluator(resources.champions()):null;
@@ -57,14 +57,14 @@ public final class PlayerControlledDraftEngine {
                 champions, resources.meta(), assignments, composition, availability, policy, ability);
         search = new ShallowDraftSearch(
                 planner, generator, pickEvaluator, banEvaluator, policy);
-        selector = new AutoDraftSelector(policy.abilityBased()?AutoDraftSelectionPolicy.ability():AutoDraftSelectionPolicy.production());
+        selector = new AutoDraftSelector(policy.selection());
         finalRoles = new FinalRoleAssignmentResolver(assignments, matchup, composition, ability);
     }
 
     public PlayerControlledDraftEngine forPolicy(String id) {
         AutoDraftSelectionPolicy.resolve(id);
         return selectionPolicyId.equals(id)?this:new PlayerControlledDraftEngine(resources,rules,
-                id.equals(AutoDraftSelectionPolicy.POLICY_ID)?DraftScoringPolicy.standard():DraftScoringPolicy.ability());
+                DraftScoringPolicy.forSelection(id));
     }
     public PlayerControlledDraftEngine forProgress(Progress progress) { return forPolicy(progress.boundPolicyId()); }
 

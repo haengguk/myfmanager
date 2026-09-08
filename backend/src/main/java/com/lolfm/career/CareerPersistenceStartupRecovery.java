@@ -30,6 +30,7 @@ public final class CareerPersistenceStartupRecovery {
     }
 
     @EventListener(ApplicationReadyEvent.class)
+    @org.springframework.core.annotation.Order(0)
     public void recover() {
         calendars.recoverLegacyStates();
         competitions.recoverLegacyCompetitions();

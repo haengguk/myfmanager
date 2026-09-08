@@ -36,11 +36,14 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
         var c=careers.create(new com.lolfm.dto.CareerApiV1Dtos.CreateRequest(com.lolfm.dto.CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,
                 "Calendar 실제 완료", "감독", "T1",java.util.UUID.randomUUID().toString())).career().career();
         String id=c.careerId();var season=leagueStore.loadSeason(c.seasonId());
+        var target=calendarTemplate.leagueRoundDates(2027).get(1);var previous=target.minusDays(1);
+        // Avoid months of unrelated AI recruitment filling this fixture club's roster capacity.
+        com.lolfm.career.CareerOperatingDateFixture.fresh(jdbc,id,previous.minusDays(com.lolfm.career.CareerMarketPolicy.DECISION_DAYS));
         // This fixture verifies generated-player capture, not recruitment by a low-budget club.
         var wageHeadroom=new java.util.TreeMap<String,Long>();market.view(id,2027).finances().forEach(a->wageHeadroom.put(a.team(),a.annualBudget()-a.committedPeakSalary()));
         var fixture=season.schedule().fixtures().stream().filter(f->f.roundNumber()==1&&f.executionMode()==LeagueFixtureExecutionMode.FULL_AUTO)
                 .max(java.util.Comparator.comparingLong(f->wageHeadroom.get("LCK:"+f.firstTeamCode()))).orElseThrow();
-        var target=calendarTemplate.leagueRoundDates(2027).get(1);var previous=target.minusDays(1);
+
         var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
         var rookie=new java.util.concurrent.atomic.AtomicReference<String>();
         var initial=calendar.view(c).state();String setup=java.util.UUID.randomUUID().toString();
@@ -214,9 +217,9 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
             assertThat(game.orderedFinalAssignments()).hasSize(10);
             assertThat(game.bluePicks()).hasSize(5);
             assertThat(game.redPicks()).hasSize(5);
-            assertThat(game.policyId()).isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID);
+            assertThat(game.policyId()).isEqualTo(MatchEngineV1Policy.REALISM_V2_POLICY_ID);
             assertThat(game.runtimeProfileId()).isEqualTo(
-                    "PRODUCTION_REALISM_V1");
+                    "PRODUCTION_REALISM_V2");
             assertThat(game.engineImplementationVersion()).isEqualTo(
                     "MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
             assertThat(game.resourceProvenanceHash()).isEqualTo(

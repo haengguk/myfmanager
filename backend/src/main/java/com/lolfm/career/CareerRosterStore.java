@@ -90,8 +90,10 @@ public final class CareerRosterStore {
                     }
                 });
             }
-            if (newCareer && playerData!=null) {
-                definitions.clear(); definitions.putAll(playerData.snapshot());
+            if (newCareer && playerData!=null || !newCareer && (frozen.isEmpty() || frozen.getFirst()==null)) {
+                // Only reachable before operating membership exists. Keep the recovered initial input
+                // durable before later startup stages initialize the market and development state.
+                if(newCareer){definitions.clear(); definitions.putAll(playerData.snapshot());}
                 var teams=new TreeMap<String,CompetitionRosterSnapshot.Roster>();
                 lineups.forEach((team,ids)-> {
                     var players=ids.stream().map(id->definitions.get(id).gameplay()).toList();
@@ -177,7 +179,7 @@ public final class CareerRosterStore {
         try {command=CareerIdentity.canonicalCommandId(request.clientCommandId());}catch(RuntimeException invalid){throw CareerException.invalid("clientCommandId","UUID가 필요합니다.");}
         String payload=hash(careerId+'\n'+write(request));
         return transactions.execute(ignored -> {
-            lockCareer(jdbc,careerId);
+            lockCareer(jdbc,careerId);CareerContinuousGuard.requireCommand(jdbc,careerId);
             var old=jdbc.query("SELECT payload_hash,receipt_json,receipt_hash FROM career_roster_command WHERE client_command_id=?",(r,n)-> {
                 if(!payload.equals(r.getString(1)))throw CareerException.calendarCommandConflict();
                 if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("ROSTER_RECEIPT_INTEGRITY");

@@ -371,7 +371,7 @@ function validateProductionPolicy(value: unknown, path: string): JsonRecord {
   if (!limitations.length || limitations[0] !== policy.knownDiagnosticLimitation) fail(`${path}.knownDiagnosticLimitations`, 'primary limitation과 일치하는 제한이 필요합니다.');
   for (const key of ['statisticalHoldoutApproved', 'automaticFallback', 'economyCandidateActivation', 'tempoCandidateActivation', 'diagnosticsExcludedFromGameplayIdentity']) bool(policy[key], `${path}.${key}`);
   if (policy.statisticalHoldoutApproved !== false || policy.automaticFallback !== false) fail(path, '통계 holdout 승인과 자동 fallback은 false여야 합니다.');
-  if (!['PRODUCTION_MATCHUP_COMPOSITION_V1', 'PRODUCTION_REALISM_V1'].includes(policy.runtimeProfileId as string)) {
+  if (!['PRODUCTION_MATCHUP_COMPOSITION_V1', 'PRODUCTION_REALISM_V1', 'PRODUCTION_REALISM_V2'].includes(policy.runtimeProfileId as string)) {
     fail(`${path}.runtimeProfileId`, '지원되는 Production runtime profile이 필요합니다.');
   }
   if (policy.engineImplementationVersion !== 'MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9') fail(`${path}.engineImplementationVersion`, 'Production V9 engine이 필요합니다.');

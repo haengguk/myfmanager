@@ -40,12 +40,21 @@ public final class RealDraftMatchOrchestrator {
     private final LckTeamAssembler teams;
     private final DraftEngine drafts;
     private final DraftEngine abilityDrafts;
+    private final DraftEngine correctedDrafts;
     private final ConfiguredMatchSimulatorFactory matches;
     private final RealDraftMatchPreflightValidator preflight;
     private final SimulationProvenanceService provenance;
     private final MatchEngineV1InputFactory matchEngineV1Inputs;
     private final MatchEngineV1 matchEngineV1;
     private final DraftAvailability draftAvailability;
+
+    private DraftEngine draftEngine(SimulationRuntimeProfileId id) {
+        return switch(id) {
+            case PRODUCTION_REALISM_V2 -> correctedDrafts;
+            case PRODUCTION_REALISM_V1 -> abilityDrafts;
+            default -> drafts;
+        };
+    }
 
     @Autowired
     public RealDraftMatchOrchestrator(ObjectMapper mapper, ChampionCatalog champions,
@@ -63,6 +72,7 @@ public final class RealDraftMatchOrchestrator {
         this.teams = Objects.requireNonNull(teams, "teams");
         this.drafts = new DraftEngine(resources, rules, policy);
         this.abilityDrafts = new DraftEngine(resources,rules,DraftScoringPolicy.ability());
+        this.correctedDrafts = new DraftEngine(resources,rules,DraftScoringPolicy.abilityV2());
         this.draftAvailability = new DraftAvailability(
                 resources.champions().catalog(),
                 new RoleAssignmentSolver(resources.champions().catalog()));
@@ -141,7 +151,7 @@ public final class RealDraftMatchOrchestrator {
         DraftSelectionContext selectionContext = RealDraftSelectionContextFactory.create(
                 matchSeed, normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 gameNumber, exclusionsBeforeDraft);
-        FinalDraftResult draftResult = (profileId==SimulationRuntimeProfileId.PRODUCTION_REALISM_V1?abilityDrafts:drafts).draft(
+        FinalDraftResult draftResult = draftEngine(profileId).draft(
                 blueContext, redContext, seriesHistory, selectionContext);
         preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 blueContext, redContext, draftResult, seriesHistory);
@@ -245,7 +255,7 @@ public final class RealDraftMatchOrchestrator {
         DraftSelectionContext selectionContext = RealDraftSelectionContextFactory.create(
                 matchSeed, normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 gameNumber, exclusionsBeforeDraft);
-        FinalDraftResult draftResult = (boundPolicy.runtimeProfileId()==SimulationRuntimeProfileId.PRODUCTION_REALISM_V1?abilityDrafts:drafts).draft(
+        FinalDraftResult draftResult = draftEngine(boundPolicy.runtimeProfileId()).draft(
                 blueContext, redContext, seriesHistory, selectionContext);
         if (frozenRosters == null) preflight.validate(normalizedBlueTeamCode, blueTeam, normalizedRedTeamCode, redTeam,
                 blueContext, redContext, draftResult, seriesHistory);

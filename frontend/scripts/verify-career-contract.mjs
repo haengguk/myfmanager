@@ -457,3 +457,12 @@ rejects('unsupported save cannot be opened as a valid detail', () => validateCar
 function registrationRepairCalendar() { const c = hardenedCalendarView(); c.competition.nextCompetition.registrationWait = { code: 'ROSTER_REPAIR_REQUIRED', competitionId: 'LCK_CUP', requiredEventId: null, teamId: 'LPL:AL', ownerTeam: 'LPL:AL', responsibility: 'AI_CLUB', missingPositions: ['TOP'], obstacles: ['CASH_HEADROOM_SHORTFALL'] }; return c; }
 accepts('structured registration repair includes owner and budget obstacle', () => validateCareerCalendar(registrationRepairCalendar(), careerId));
 rejects('registration repair context cannot target another competition', () => { const c=registrationRepairCalendar(); c.competition.nextCompetition.registrationWait.competitionId='MSI'; validateCareerCalendar(c,careerId); });
+
+const { validateCareerContinuous, validateCareerContinuousResponse } = await import('../src/features/career/api/careerApi.validation.ts');
+const continuous = { schemaVersion: 'CAREER_CONTINUOUS_VIEW_V1', careerId, currentDate: '2027-01-04', run: { runId: 'continuous_test', careerId, seasonYear: 2027, mode: 'TARGET_DATE', targetDate: '2027-01-05', startDate: '2027-01-04', status: 'RUNNING', revision: 0, completedDates: 0, completedSeries: 0, completedGames: 0, intent: null, stop: null }, allowedCommands: ['PAUSE'] };
+assert.deepEqual(validateCareerContinuous(continuous), continuous);
+for (const status of ['WAITING', 'PAUSE_REQUESTED', 'PAUSED', 'STOPPED', 'COMPLETED', 'FAILED']) { const c = clone(continuous); c.run.status = status; validateCareerContinuous(c); }
+for (const change of [v => { v.run.careerId = secondCareerId; }, v => { v.run.completedGames = -1; }, v => { v.run.targetDate = '2027-02-30'; }, v => { v.run.status = 'ALMOST_DONE'; }, v => { v.run.intent = { action: 'PLAY_USER_MATCH', commandId: 'bad' }; }]) { const c = clone(continuous); change(c); assert.throws(() => validateCareerContinuous(c)); }
+const continuousReply = { replayed: true, receipt: { clientCommandId: '00000000-0000-4000-8000-000000000099', runId: 'continuous_test', action: 'START', resultingRevision: 0, status: 'RUNNING' }, progress: continuous };
+assert.deepEqual(validateCareerContinuousResponse(continuousReply), continuousReply);
+console.log('Career continuous: compact status, malformed boundary and original command replay verified.');

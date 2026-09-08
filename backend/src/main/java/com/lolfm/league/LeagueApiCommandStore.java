@@ -30,6 +30,7 @@ final class LeagueApiCommandStore {
         require(commandId, commandType, payloadHash);
         Objects.requireNonNull(action, "action");
         return store.transactions().execute(ignored -> {
+            com.lolfm.career.CareerContinuousGuard.requireSeasonCommand(store.jdbc(),seasonId);
             store.lockApiCommands();
             List<Row> prior = store.jdbc().query("""
                     SELECT command_type, payload_hash, lifecycle_status, http_status

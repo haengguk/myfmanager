@@ -17,7 +17,7 @@ public final class CareerApiV1ExceptionHandler {
             case MONEY_POLICY_REFRESH_REQUIRED, SAVE_COMPATIBILITY_DATA_MISSING, SAVE_COMPATIBILITY_VERSION_UNSUPPORTED, SAVE_COMPATIBILITY_ORGANIZATION_UNSUPPORTED -> HttpStatus.CONFLICT;
             case NOT_FOUND, CALENDAR_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case MANAGED_TEAM_NOT_FOUND -> HttpStatus.UNPROCESSABLE_ENTITY;
-            case COMMAND_CONFLICT, CAPACITY_REACHED,
+            case CONTINUOUS_BUSY, COMMAND_CONFLICT, CAPACITY_REACHED,
                     CALENDAR_STALE_REVISION, CALENDAR_COMMAND_CONFLICT,
                     CALENDAR_ADVANCE_ALREADY_PENDING,
                     CALENDAR_LEGACY_PENDING_RECONCILIATION_REQUIRED,
@@ -49,6 +49,7 @@ public final class CareerApiV1ExceptionHandler {
 
     private static String code(CareerException.Type type) {
         return switch (type) {
+            case CONTINUOUS_BUSY -> "CAREER_CONTINUOUS_BUSY";
             case REQUEST_INVALID -> "CAREER_REQUEST_INVALID";
             case MONEY_POLICY_REFRESH_REQUIRED -> "CAREER_MONEY_POLICY_REFRESH_REQUIRED";
             case NOT_FOUND -> "CAREER_NOT_FOUND";

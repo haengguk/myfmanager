@@ -10,6 +10,7 @@ import { validateCareerSeasons, validateCareerSeasonDetail, validateCareerTransi
 const ROOT = `${realMatchConfig.apiBaseUrl}/api/v1/careers`;
 const REQUEST_TIMEOUT_MS = 30_000;
 const SAFE_COPY: Readonly<Record<string, string>> = {
+  CAREER_CONTINUOUS_BUSY: '연속 진행을 일시정지한 뒤 이 작업을 수행하세요.',
   CAREER_REQUEST_INVALID: '입력한 Career 정보를 다시 확인하세요.',
   CAREER_MANAGED_TEAM_NOT_FOUND: '현재 LCK 팀 목록에 없는 관리 팀입니다.',
   CAREER_COMMAND_CONFLICT: '이 생성 작업 ID가 다른 입력에 이미 사용되었습니다. 입력을 확인한 뒤 새로 시작하세요.',
@@ -164,4 +165,13 @@ export function getCareerOverseas(career: string, year: number, league: string, 
 }
 export function getCareerOverseasResult(career: string, year: number, event: string, match: string, signal: AbortSignal) {
   return request(`${ROOT}/${encodeURIComponent(career)}/overseas/${year}/${encodeURIComponent(event)}/results/${encodeURIComponent(match)}`, { method: 'GET' }, signal, validateClResult, [200]);
+}
+
+import type { CareerContinuousCommand, CareerContinuousResponse, CareerContinuousView } from './careerApi.types';
+import { validateCareerContinuous, validateCareerContinuousResponse } from './careerApi.validation';
+export function getCareerContinuous(career: string, signal: AbortSignal): Promise<CareerContinuousView> {
+  return request(`${ROOT}/${encodeURIComponent(career)}/continuous`, { method: 'GET' }, signal, validateCareerContinuous, [200]);
+}
+export function commandCareerContinuous(career: string, body: CareerContinuousCommand, signal: AbortSignal): Promise<CareerContinuousResponse> {
+  return request(`${ROOT}/${encodeURIComponent(career)}/continuous`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, signal, validateCareerContinuousResponse, [200, 202]);
 }

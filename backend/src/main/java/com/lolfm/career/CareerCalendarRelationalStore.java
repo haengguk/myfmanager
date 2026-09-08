@@ -207,6 +207,8 @@ public final class CareerCalendarRelationalStore {
         CareerIdentity.requireSha256(payloadHash, "payloadHash");
         return transactions.execute(ignored -> {
             lockAdvanceCommands();
+            CareerRosterStore.lockCareer(jdbc,careerId);
+            CareerContinuousGuard.requireCommand(jdbc,careerId);
             Optional<CommandRow> prior = findCommand(commandId);
             if (prior.isPresent()) {
                 CommandRow command = prior.get();

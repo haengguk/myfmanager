@@ -36,10 +36,13 @@ public final class CareerSaveCompatibility {
             var source=sourceDirectory(jdbc,career);validateSource(source,managed);
             int year=activeYear(jdbc,career);
             if(operating&&saved(jdbc,career,year)==null)throw CareerException.compatibility(CareerException.Type.SAVE_COMPATIBILITY_DATA_MISSING,"현재 시즌의 운영 선수단이 없습니다.");
-            jdbc.query("SELECT roster_json,roster_hash FROM career_season WHERE career_id=? AND season_year=?",(r,n)->{
-                if(r.getString(1)==null)return false;
+            var frozen = jdbc.query("SELECT roster_json,roster_hash FROM career_season WHERE career_id=? AND season_year=?",(r,n)->{
+                if(r.getString(1)==null || r.getString(2)==null)return false;
                 if(!CompetitionRosterSnapshot.decode(r.getString(1)).identity().equals(r.getString(2)))throw new IllegalStateException("SAVED_SEASON_ROSTER_HASH");return true;
             },career,year);
+            if (operating && (frozen.size()!=1 || !Boolean.TRUE.equals(frozen.getFirst())))
+                throw CareerException.compatibility(CareerException.Type.SAVE_COMPATIBILITY_DATA_MISSING,
+                        "현재 시즌의 고정 선수 입력이 없습니다.");
             // Untouched legacy seasons may not yet have a frozen roster. If present, its hash still must match.
             return true;
         } catch(CareerException known) {if(unsupported(known))return false;throw known;}
@@ -72,7 +75,7 @@ public final class CareerSaveCompatibility {
             if(roster==null)throw CareerException.compatibility(CareerException.Type.SAVE_COMPATIBILITY_DATA_MISSING,"현재 시즌의 저장 선수단이 없습니다. 원래 시즌 명부가 보존된 저장을 복구해야 합니다.");
             var current=directory(jdbc,row.careerId());validate(roster.state(),current);
             var snapshots=jdbc.query("SELECT roster_json,roster_hash FROM career_season WHERE career_id=? AND season_year=?",(r,n)->{
-                String json=r.getString(1);if(json==null)return false;
+                String json=r.getString(1);if(json==null || r.getString(2)==null)return false;
                 var frozen=CompetitionRosterSnapshot.decode(json);if(!frozen.identity().equals(r.getString(2)))throw new IllegalStateException("SAVED_SEASON_ROSTER_HASH");
                 for(var savedTeam:frozen.teams().values())for(var player:savedTeam.players()) {
                     var definition=current.players().get(player.playerId());

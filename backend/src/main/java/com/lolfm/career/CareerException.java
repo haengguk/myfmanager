@@ -3,6 +3,7 @@ package com.lolfm.career;
 /** Stable application failure; HTTP mapping stays in the controller boundary. */
 public final class CareerException extends RuntimeException {
     public enum Type {
+        CONTINUOUS_BUSY,
         REQUEST_INVALID,
         MONEY_POLICY_REFRESH_REQUIRED,
         NOT_FOUND,
@@ -45,6 +46,9 @@ public final class CareerException extends RuntimeException {
         this.clientMessage = clientMessage;
     }
 
+    public static CareerException continuousBusy() {
+        return new CareerException(Type.CONTINUOUS_BUSY,"careerId","연속 진행 중입니다. 일시정지 완료 후 변경해 주세요.",null);
+    }
     public static CareerException invalid(String field, String message) {
         return new CareerException(Type.REQUEST_INVALID, field, message, null);
     }

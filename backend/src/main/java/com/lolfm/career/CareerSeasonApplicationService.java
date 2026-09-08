@@ -98,6 +98,7 @@ public final class CareerSeasonApplicationService {
             jdbc.queryForObject("SELECT lock_name FROM career_calendar_operation_lock WHERE lock_name = 'ADVANCE_COMMANDS' FOR UPDATE",String.class);
             var career = requireCareer(careerId);
             jdbc.queryForObject("SELECT career_id FROM career_calendar_state WHERE career_id = ? FOR UPDATE",String.class,careerId);
+            CareerContinuousGuard.requireCommand(jdbc,careerId);
             var prior = jdbc.query("SELECT * FROM career_season_transition WHERE client_command_id = ?",(r,n)-> {
                 if (!payload.equals(r.getString("payload_hash"))) throw CareerException.calendarCommandConflict();
                 return new Receipt(command,r.getString("career_id"),r.getInt("source_year"),r.getInt("destination_year"),

@@ -101,8 +101,7 @@ public final class DraftCandidateGenerator {
     private double pickCoarseValue(DraftState state, TeamSide side, ChampionId id,
                                    DraftTeamContext team, DraftPlanPortfolio portfolio,
                                    DraftComputationContext context) {
-        double best = assignments.feasibleCandidatePositions(
-                state.picks(side), id, context).stream()
+        double best = availability.evaluationPositions(state,side,id,policy,context).stream()
                 .map(position -> new ChampionRoleKey(id, position))
                 .mapToDouble(key -> ability==null ? meta.priority(key) * 0.62 + team.proficiency(key) * 0.38 : context.forecast(ability,team,key,portfolio.preferred().archetype()).value()+policy.metaScale()*meta.priority(key)/20.0).max().orElse(0.0);
         double relevance = portfolio.plans().stream().filter(plan -> plan.coreCandidates().contains(id))
@@ -125,8 +124,7 @@ public final class DraftCandidateGenerator {
                                   DraftComputationContext context) {
         if (!availability.canComplete(state, side.opposite(), id, context)) return 0.0;
         java.util.Set<com.lolfm.domain.Position> enemyPositions =
-                assignments.feasibleCandidatePositions(
-                        state.picks(side.opposite()), id, context);
+                availability.evaluationPositions(state,side.opposite(),id,policy,context);
         double enemyValue = enemyPositions.stream()
                 .map(position -> new ChampionRoleKey(id, position))
                 .mapToDouble(key -> ability==null ? meta.priority(key) * 0.48 + enemy.proficiency(key) * 0.34 : context.forecast(ability,enemy,key,enemyPortfolio.preferred().archetype()).value()).max().orElse(0.0);

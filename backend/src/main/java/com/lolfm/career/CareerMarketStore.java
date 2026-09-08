@@ -221,7 +221,7 @@ public final class CareerMarketStore {
         String command;try{command=CareerIdentity.canonicalCommandId(request.clientCommandId());}catch(RuntimeException e){throw CareerException.invalid("clientCommandId","원본 UUID가 필요합니다.");}
         String payload=hash(career+'|'+write(request));
         return transactions.execute(ignored->{
-            lockCareer(jdbc,career);
+            lockCareer(jdbc,career);CareerContinuousGuard.requireCommand(jdbc,career);
             var prior=jdbc.query("SELECT payload_hash,receipt_json,receipt_hash FROM career_market_command WHERE career_id=? AND client_command_id=?",(r,n)->{
                 if(!payload.equals(r.getString(1)))throw CareerException.calendarCommandConflict();
                 if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("MARKET_RECEIPT_INTEGRITY");return read(r.getString(2),Receipt.class);
@@ -249,7 +249,7 @@ public final class CareerMarketStore {
         String command;try{command=CareerIdentity.canonicalCommandId(request.clientCommandId());}catch(RuntimeException invalid){throw CareerException.invalid("clientCommandId","원본 UUID가 필요합니다.");}
         String payload=hash(career+'|'+write(request));
         return transactions.execute(ignored->{
-            lockCareer(jdbc,career);
+            lockCareer(jdbc,career);CareerContinuousGuard.requireCommand(jdbc,career);
             var prior=jdbc.query("SELECT payload_hash,receipt_json,receipt_hash FROM career_market_command WHERE career_id=? AND client_command_id=?",(r,n)->{
                 if(!payload.equals(r.getString(1)))throw CareerException.calendarCommandConflict();
                 if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("MARKET_RECEIPT_INTEGRITY");return read(r.getString(2),Receipt.class);

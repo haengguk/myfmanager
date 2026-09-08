@@ -56,11 +56,11 @@ class SeriesProductionV9SmokeTest {
                             "smoke-simulate-" + gameNumber));
             assertThat(simulated.accepted()).isFalse();
             assertThat(simulated.response().match().integrity().runtimeProfileId())
-                    .isEqualTo("PRODUCTION_REALISM_V1");
+                    .isEqualTo("PRODUCTION_REALISM_V2");
             assertThat(simulated.response().match().integrity().engineImplementationVersion())
                     .isEqualTo("MATCH_SIMULATOR_ENGINE_IMPLEMENTATION_V9");
             assertThat(simulated.response().series().productionIdentity().policyId())
-                    .isEqualTo(MatchEngineV1Policy.REALISM_POLICY_ID);
+                    .isEqualTo(MatchEngineV1Policy.REALISM_V2_POLICY_ID);
             assertThat(simulated.response().game().status())
                     .isEqualTo(SeriesGameStatus.COMMITTED);
             committed.add(simulated.response().game());
@@ -160,7 +160,7 @@ class SeriesProductionV9SmokeTest {
             assertThat(simulated.response().game().status())
                     .isEqualTo(SeriesGameStatus.COMMITTED);
             assertThat(simulated.response().match().integrity().runtimeProfileId())
-                    .isEqualTo("PRODUCTION_REALISM_V1");
+                    .isEqualTo("PRODUCTION_REALISM_V2");
             view = simulated.response().series();
             committedGames++;
             assertThat(view.excludedChampionIds()).hasSize(committedGames * 10);

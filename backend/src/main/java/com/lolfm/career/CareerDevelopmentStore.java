@@ -160,7 +160,7 @@ public final class CareerDevelopmentStore {
         var legacyFields=read(write(request),com.fasterxml.jackson.databind.node.ObjectNode.class);legacyFields.remove("squad");
         String legacyPayload=hash(career+'|'+write(legacyFields));
         return tx.execute(status->{
-            lockCareer(jdbc,career);
+            lockCareer(jdbc,career);CareerContinuousGuard.requireCommand(jdbc,career);
             var prior=jdbc.query("SELECT payload_hash,receipt_json,receipt_hash FROM career_training_command WHERE career_id=? AND client_command_id=?",(r,n)->{
                 if(!payload.equals(r.getString(1))&&!("FIRST_TEAM".equals(request.squad())&&legacyPayload.equals(r.getString(1))))throw CareerException.calendarCommandConflict();if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("TRAINING_RECEIPT_INTEGRITY");return read(r.getString(2),Receipt.class);
             },career,command);

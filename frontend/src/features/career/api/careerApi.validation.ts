@@ -402,3 +402,23 @@ export function validateCareerTransition(value: unknown): CareerTransitionDto {
   if (r.destinationYear !== (r.sourceYear as number) + 1 || list.careerId !== r.careerId || list.activeYear < (r.destinationYear as number) || list.calendarRevision < (r.resultingRevision as number) || !list.seasons.some(s => s.year === r.destinationYear && s.seasonId === r.destinationSeasonId)) throw new CareerContractError('$.receipt', 'original transition and current season mismatch');
   return root as unknown as CareerTransitionDto;
 }
+
+const CONTINUOUS_STATUS = ['RUNNING', 'WAITING', 'PAUSE_REQUESTED', 'PAUSED', 'STOPPED', 'COMPLETED', 'FAILED'] as const;
+const CONTINUOUS_ACTION = ['START', 'PAUSE', 'RESUME'] as const;
+export function validateCareerContinuous(value: unknown): import('./careerApi.types').CareerContinuousView {
+  const v = object(value, 'continuous'); oneOf(v.schemaVersion, ['CAREER_CONTINUOUS_VIEW_V1'], 'continuous.schemaVersion'); identity(v.careerId, CAREER_ID, 'continuous.careerId'); date(v.currentDate, 'continuous.currentDate');
+  texts(v.allowedCommands, 'continuous.allowedCommands').forEach(a => oneOf(a, CONTINUOUS_ACTION, 'continuous.allowedCommands'));
+  if (v.run !== null) {
+    const r = object(v.run, 'continuous.run'); text(r.runId, 'runId'); if (r.careerId !== v.careerId) throw new CareerContractError('continuous.run.careerId');
+    oneOf(r.status, CONTINUOUS_STATUS, 'continuous.run.status'); oneOf(r.mode, ['NEXT_MANAGED_MATCH', 'TARGET_DATE'], 'continuous.run.mode');
+    for (const k of ['revision', 'seasonYear', 'completedDates', 'completedSeries', 'completedGames']) integer(r[k], `continuous.run.${k}`);
+    date(r.startDate, 'continuous.run.startDate'); if (r.mode === 'TARGET_DATE') date(r.targetDate, 'continuous.run.targetDate'); else if (r.targetDate !== null) throw new CareerContractError('continuous.run.targetDate');
+    if (r.intent !== null) { const i = object(r.intent, 'continuous.run.intent'); oneOf(i.action, ['ADVANCE', 'COMPETITION', 'REFRESH'], 'intent.action'); identity(i.commandId, UUID, 'intent.commandId'); }
+    if (r.stop !== null) { const s = object(r.stop, 'continuous.run.stop'); oneOf(s.category, ['AUTOMATIC_WAIT', 'USER_DECISION', 'RECOVERABLE_ERROR', 'BLOCKED_ERROR', 'BOUNDARY'], 'stop.category'); text(s.reason, 'stop.reason'); for (const k of ['owner', 'referenceId', 'nextAction']) if (s[k] !== null) text(s[k], `stop.${k}`); }
+  }
+  return value as import('./careerApi.types').CareerContinuousView;
+}
+export function validateCareerContinuousResponse(value: unknown): import('./careerApi.types').CareerContinuousResponse {
+  const v = object(value, 'continuousResponse'); bool(v.replayed, 'replayed'); const r = object(v.receipt, 'receipt'); identity(r.clientCommandId, UUID, 'receipt.clientCommandId'); text(r.runId, 'receipt.runId'); oneOf(r.action, CONTINUOUS_ACTION, 'receipt.action'); oneOf(r.status, CONTINUOUS_STATUS, 'receipt.status'); integer(r.resultingRevision, 'receipt.resultingRevision'); validateCareerContinuous(v.progress);
+  return value as import('./careerApi.types').CareerContinuousResponse;
+}

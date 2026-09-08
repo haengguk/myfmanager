@@ -337,3 +337,37 @@ ownerTeam/responsibility/missingPositions/obstacles로 조회한다. 문자열 �
 명부가 이미 복구되어 국제 등록 준비가 끝났다면 과거 `WAITING_FOR_QUALIFICATION`만으로 진행을 막지 않는다.
 현재 자격·명부를 읽기 전용으로 재평가하여 다음 명령을 허용하고, 해당 명령에서 같은 등록을 확정한다.
 별개 미완료 fixture와 대기 명령은 이 경우에도 차단 조건이다.
+
+
+## 서버 연속 진행 V1 (2026-09-08)
+
+`GET /api/v1/careers/{careerId}/continuous`는 현재 날짜와 작은 run projection만 반환한다.
+`POST`는 `CAREER_CONTINUOUS_COMMAND_V1`의 `START`, `PAUSE`, `RESUME`를 접수한다.
+START에는 `mode=NEXT_MANAGED_MATCH|TARGET_DATE`와 해당 목표 날짜를 전달한다.
+PAUSE/RESUME은 저장된 runId/revision을 사용한다. PAUSE는 같은 run의 과거 revision도
+받아 진행 poll과 경합해도 정지 요청을 잃지 않는다. 미래 revision과 다른 run은 거절한다.
+모든 명령은 UUID/payload 원본 receipt를 revision 검사 전에 replay한다.
+
+V24의 Career당 단일 run을 서버 coordinator가 읽고 기존 Calendar 하루 진행·대회 Auto
+job을 호출한다. 날짜 이동·일별 정산·실제 경기·보상·성장 반영은 기존 경로를 그대로 사용한다.
+목표 날짜는 현재 준비 기간부터 활성 시즌 12월 31일까지다. 목표 당일의 필수 자동 처리를
+마친 뒤 종료하며 사용자 소유 경기/계약/선발 결정은 날짜 도달보다 먼저 멈춘다.
+시장 운영이 허용되는 시즌 말 날짜는 계속 진행할 수 있고 시즌 전환은 직접 수행한다.
+
+실행 intent와 원본 자식 UUID/revision은 자식 호출 전 별도 transaction에 저장한다.
+결과 커밋 후 부모 checkpoint 전 종료는 같은 자식 command/receipt로 복구한다.
+coordinator lease/fence와 기존 Auto job lease/fence는 서로 다른 책임을 갖는다.
+PAUSE_REQUESTED는 이미 수행 중인 자식의 완료·반영을 기다리고 PAUSED에서 새 자식을 시작하지 않는다.
+수동 날짜·시장·훈련·명부·CL·시즌·League API 및 Player Series 명령은 Calendar 잠금 안에서
+활성 run을 검사하며 `CAREER_CONTINUOUS_BUSY`/409를 반환한다. 이미 예약된 경기의 결과는 반영할 수 있다.
+읽기 API는 run 생성이나 날짜 진행을 수행하지 않는다.
+
+구현 정책과 검증 결과: [Career 연속 진행·AI 자동 처리 V1](../development/career-continuous-progression-and-ai-auto-v1.md).
+
+
+추가 경계: NEXT_MANAGED_MATCH도 활성 시즌 12월 31일의 당일 작업을 마친 뒤 멈춘다.
+아직 접수되지 않은 intent는 PAUSE에서 폐기하여 정지 중 수동 조작 후 최신 revision으로 재개한다.
+이미 접수된 자식은 원본을 유지한다. 과거 competition job에 원본 revision 기록이 없으면
+intent의 revision은 null이며 원래 job 조회/반영을 사용한다. 임의 revision을 만들어 재명령하지 않는다.
+자식 transaction 전후의 fence 확인으로 만료 작업을 롤백하며 Calendar → Series 잠금 순서를 지킨다.
+이전 시즌 PAUSED가 남은 경우 사용자의 명시적 rollover 뒤 새 START를 허용한다.

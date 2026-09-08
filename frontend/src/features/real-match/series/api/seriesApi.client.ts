@@ -45,6 +45,7 @@ function parseJson(raw: string): unknown {
 }
 
 const ERROR_COPY: Readonly<Record<string, string>> = {
+  CAREER_CONTINUOUS_BUSY: '연속 진행을 일시정지한 뒤 경기를 조작해 주세요.',
   SERIES_UNSUPPORTED_FORMAT: '시리즈 형식은 BO3 또는 BO5여야 합니다.',
   SERIES_UNKNOWN_TEAM: 'LIVE Options에 없는 팀입니다. 팀 목록을 새로고침하세요.',
   SERIES_SAME_TEAM_NOT_ALLOWED: '내 팀과 상대 팀은 서로 달라야 합니다.',

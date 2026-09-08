@@ -2,6 +2,7 @@ package com.lolfm.simulator;
 
 /** The only application-selectable match-runtime configurations. */
 public enum SimulationRuntimeProfileId {
+    PRODUCTION_REALISM_V2,
     PRODUCTION_REALISM_V1,
     BASELINE_V1,
     MATCHUP_ONLY_CANDIDATE_V1,

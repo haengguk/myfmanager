@@ -16,10 +16,10 @@ class SimulationRuntimeProfilesTest {
         Map<SimulationRuntimeProfileId, ResolvedSimulationRuntimeProfile> profiles =
                 SimulationRuntimeProfiles.all();
 
-        assertThat(profiles).hasSize(7).containsOnlyKeys(SimulationRuntimeProfileId.values());
+        assertThat(profiles).hasSize(8).containsOnlyKeys(SimulationRuntimeProfileId.values());
         assertThat(profiles.values().stream()
                 .filter(profile -> switch (profile.profileId()) {
-                    case PRODUCTION_REALISM_V1, FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1,
+                    case PRODUCTION_REALISM_V2, PRODUCTION_REALISM_V1, FULL_SYSTEM_WITH_JUNGLE_ECONOMY_CANDIDATE_V1,
                             FULL_SYSTEM_WITH_JUNGLE_TEMPO_CANDIDATE_V1 -> false;
                     default -> true;
                 }))
@@ -33,6 +33,11 @@ class SimulationRuntimeProfilesTest {
                 .isEqualTo(JungleClearContribution.ECONOMY_AND_GANK_TEMPO_V1);
         assertThat(realism.configurationHash())
                 .isEqualTo("eb241ac2fe57095e1410e39120d276f6ed39ef4ff25f2ea116dcf51953baf93f");
+        var corrected=profiles.get(SimulationRuntimeProfileId.PRODUCTION_REALISM_V2);
+        assertThat(corrected.activeGameplayRulesVersion()).isEqualTo("MATCH_SIMULATOR_REALISM_RULES_V2");
+        assertThat(corrected.gameplayConfiguration().boundaryFixesEnabled()).isTrue();
+        assertThat(realism.gameplayConfiguration().boundaryFixesEnabled()).isFalse();
+        assertThat(corrected.configurationHash()).isNotEqualTo(realism.configurationHash());
         assertExactCommonGameplay(profiles.get(SimulationRuntimeProfileId.BASELINE_V1));
         assertExactCommonGameplay(
                 profiles.get(SimulationRuntimeProfileId.MATCHUP_ONLY_CANDIDATE_V1));

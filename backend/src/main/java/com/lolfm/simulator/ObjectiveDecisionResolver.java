@@ -174,6 +174,8 @@ public final class ObjectiveDecisionResolver {
         double urgency = urgency(context, side);
         int minimumParticipants = minimumAlive(context.objectiveType());
         int availableParticipants = state == null ? context.alive(side)
+                : state.isBoundaryFixesEnabled() && isUpper(context.objectiveType())
+                ? UpperObjectiveResolver.participants(state, side).size()
                 : participatingCount(state.getTeamState(side), context.evaluationTimeSeconds());
         boolean takeEligible = context.objectiveAvailable()
                 && availableParticipants >= minimumParticipants;
@@ -219,6 +221,8 @@ public final class ObjectiveDecisionResolver {
         int missing = 5 - context.alive(side);
         int minimumParticipants = minimumAlive(context.objectiveType());
         int ownParticipants = isUpper(context.objectiveType()) ? UpperObjectiveResolver.participants(state, side).size()
+                : state.isBoundaryFixesEnabled() && isUpper(context.objectiveType())
+                ? UpperObjectiveResolver.participants(state, side).size()
                 : participatingCount(state.getTeamState(side), context.evaluationTimeSeconds());
         int enemyParticipants = isUpper(context.objectiveType()) ? UpperObjectiveResolver.participants(state, side.opposite()).size()
                 : participatingCount(state.getTeamState(side.opposite()), context.evaluationTimeSeconds());
@@ -505,7 +509,7 @@ public final class ObjectiveDecisionResolver {
     }
 
     private boolean isUpper(ObjectiveType type) { return type == ObjectiveType.VOID_GRUB || type == ObjectiveType.RIFT_HERALD; }
-    private int minimumAlive(ObjectiveType type) { return type == ObjectiveType.VOID_GRUB ? 1 : type == ObjectiveType.RIFT_HERALD ? 2 : type == ObjectiveType.DRAGON ? 3 : 4; }
+    private int minimumAlive(ObjectiveType type) { return isUpper(type) ? UpperObjectiveResolver.minimumParticipants(type) : type == ObjectiveType.DRAGON ? 3 : 4; }
     private boolean objectiveAvailable(GameState state, ObjectiveType type) {
         return !state.isFinished() && switch (type) {
             case VOID_GRUB, RIFT_HERALD -> state.isRealismEnabled() && state.getObjectiveState().upper().available(type, state.getCurrentTimeSeconds());

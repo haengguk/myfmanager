@@ -16,6 +16,7 @@ final class CareerCompetitionBackgroundJobExecutor
     private final CareerCompetitionExecutionService execution;
     private final ThreadPoolExecutor worker;
     private final boolean enabled;
+    private final java.util.Set<String> scheduled=java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     CareerCompetitionBackgroundJobExecutor(
             CareerCompetitionExecutionService execution,
@@ -38,11 +39,12 @@ final class CareerCompetitionBackgroundJobExecutor
     @Override
     public boolean submit(String jobId) {
         if (!enabled) return false;
+        if(!scheduled.add(jobId))return true;
         try {
-            worker.execute(() -> execution.executeAutoJob(jobId));
+            worker.execute(() -> {try {execution.executeAutoJob(jobId);}finally{scheduled.remove(jobId);}});
             return true;
         } catch (java.util.concurrent.RejectedExecutionException unavailable) {
-            return false;
+            scheduled.remove(jobId);return false;
         }
     }
 

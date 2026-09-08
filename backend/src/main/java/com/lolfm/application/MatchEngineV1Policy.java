@@ -69,13 +69,15 @@ public final class MatchEngineV1Policy {
     private static final Snapshot SNAPSHOT = createAndVerify();
 
     public static final String REALISM_POLICY_ID="MATCH_ENGINE_REALISM_ABILITY_V1";
-    private static final Snapshot REALISM=createRealism();
+    private static final Snapshot REALISM=createRealism(false);
+    public static final String REALISM_V2_POLICY_ID="MATCH_ENGINE_REALISM_ABILITY_V2";
+    private static final Snapshot REALISM_V2=createRealism(true);
 
     private MatchEngineV1Policy() {
     }
 
     public static Snapshot authoritative() {
-        return REALISM;
+        return REALISM_V2;
     }
 
     public static ResolvedSimulationRuntimeProfile resolvedRuntimeProfile() {
@@ -88,6 +90,7 @@ public final class MatchEngineV1Policy {
     public static Snapshot resolve(String policyId) {
         if(POLICY_ID.equals(policyId))return SNAPSHOT;
         if(REALISM_POLICY_ID.equals(policyId))return REALISM;
+        if(REALISM_V2_POLICY_ID.equals(policyId))return REALISM_V2;
         throw new IllegalArgumentException("MATCH_ENGINE_V1_UNKNOWN_POLICY");
     }
     public static Snapshot resolve(Requirement requirement) {
@@ -104,22 +107,26 @@ public final class MatchEngineV1Policy {
     public static Requirement forSelection(String id) {
         if(AutoDraftSelectionPolicy.POLICY_ID.equals(id))return requirement(SNAPSHOT);
         if(AutoDraftSelectionPolicy.ability().policyId().equals(id))return requirement(REALISM);
+        if(AutoDraftSelectionPolicy.abilityV2().policyId().equals(id))return requirement(REALISM_V2);
         throw new IllegalArgumentException("MATCH_ENGINE_UNKNOWN_DRAFT_POLICY");
     }
     public static String scoringHash(String selectionId) {
         if(AutoDraftSelectionPolicy.POLICY_ID.equals(selectionId))return DRAFT_SCORING_POLICY_SHA256;
         if(AutoDraftSelectionPolicy.ability().policyId().equals(selectionId))return sha256(
                 SimulationProvenanceService.canonicalDraftPolicy(com.lolfm.draft.DraftScoringPolicy.ability()));
+        if(AutoDraftSelectionPolicy.abilityV2().policyId().equals(selectionId))return sha256(
+                SimulationProvenanceService.canonicalDraftPolicy(com.lolfm.draft.DraftScoringPolicy.abilityV2()));
         throw new IllegalArgumentException("MATCH_ENGINE_UNKNOWN_DRAFT_POLICY");
     }
-    private static Snapshot createRealism() {
-        var profile=SimulationRuntimeProfiles.resolve(SimulationRuntimeProfileId.PRODUCTION_REALISM_V1);
-        var selection=AutoDraftSelectionPolicy.ability();
-        String canonical="policySchema=MATCH_ENGINE_REALISM_POLICY_V1\npolicyId="+REALISM_POLICY_ID+"\n"
+    private static Snapshot createRealism(boolean corrected) {
+        var profile=SimulationRuntimeProfiles.resolve(corrected ? SimulationRuntimeProfileId.PRODUCTION_REALISM_V2 : SimulationRuntimeProfileId.PRODUCTION_REALISM_V1);
+        String id=corrected ? REALISM_V2_POLICY_ID : REALISM_POLICY_ID;
+        var selection=corrected ? AutoDraftSelectionPolicy.abilityV2() : AutoDraftSelectionPolicy.ability();
+        String canonical="policySchema=MATCH_ENGINE_REALISM_POLICY_V1\npolicyId="+id+"\n"
                 +"runtimeProfile="+profile.profileId()+"\nconfigurationHash="+profile.configurationHash()+"\n"
                 +"rules="+profile.activeGameplayRulesVersion()+"\nscoringHash="+scoringHash(selection.policyId())+"\n"
                 +"selectionHash="+selection.policyHash()+"\nstatisticalHoldoutApproved=false\n";
-        return new Snapshot("MATCH_ENGINE_REALISM_POLICY_V1",REALISM_POLICY_ID,"REALISM_IMPLEMENTATION_REQUEST_V1",
+        return new Snapshot("MATCH_ENGINE_REALISM_POLICY_V1",id,"REALISM_IMPLEMENTATION_REQUEST_V1",
                 "NEW_GAME_RUNTIME_CONNECTION","IMPLEMENTED_DEVELOPMENT_VALIDATION_NOT_STATISTICAL_APPROVAL",
                 "COARSE_LANE_TRAVEL_CAMP_AND_UPPER_OBJECTIVE_MODEL",List.of("COARSE_LANE_TRAVEL_CAMP_AND_UPPER_OBJECTIVE_MODEL"),false,
                 SimulationRuntimeProfileId.PRODUCTION_MATCHUP_COMPOSITION_V1,ROLLBACK_MODE,false,CONTRACT_SCHEMA,

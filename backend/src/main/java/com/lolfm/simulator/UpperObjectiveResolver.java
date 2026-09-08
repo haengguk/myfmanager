@@ -14,6 +14,10 @@ public final class UpperObjectiveResolver {
         ObjectiveType type=upper.available(ObjectiveType.VOID_GRUB,time) ? ObjectiveType.VOID_GRUB : ObjectiveType.RIFT_HERALD;
         if (!upper.due(type,time)) return Optional.empty();
         var blue=participants(state,TeamSide.BLUE); var red=participants(state,TeamSide.RED);
+        if (state.isBoundaryFixesEnabled()) {
+            if (!eligible(state,type,TeamSide.BLUE)) blue=List.of();
+            if (!eligible(state,type,TeamSide.RED)) red=List.of();
+        }
         if (blue.isEmpty() && red.isEmpty()) return Optional.empty();
         double top=state.laneState(Lane.TOP).getPressure()*UpperObjectiveRuleConfig.TOP_PRIORITY_WEIGHT
                 + state.laneState(Lane.MID).getPressure()*UpperObjectiveRuleConfig.MID_PRIORITY_WEIGHT;
@@ -35,6 +39,13 @@ public final class UpperObjectiveResolver {
         state.getObjectivePriorityExecutionStats().recordDecision(decision);
         return new ObjectiveDecisionResolver().resolve(state,type,initiative,top,random,objectives,structures,events,decision);
     }
+    public static int minimumParticipants(ObjectiveType type) {
+        return switch(type) { case VOID_GRUB -> UpperObjectiveRuleConfig.GRUB_MIN_PARTICIPANTS; case RIFT_HERALD -> UpperObjectiveRuleConfig.HERALD_MIN_PARTICIPANTS;
+            default -> throw new IllegalArgumentException("Not an upper objective"); };
+    }
+    public static boolean eligible(GameState state, ObjectiveType type, TeamSide side) {
+        return participants(state,side).size() >= minimumParticipants(type);
+    }
     public static List<PlayerState> participants(GameState state, TeamSide side) {
         return state.getTeamState(side).getPlayers().stream().filter(p -> LOCAL_POSITIONS.contains(p.getPosition())
                 && p.canParticipateInMajorCombatAt(state.getCurrentTimeSeconds())).toList();
@@ -42,7 +53,7 @@ public final class UpperObjectiveResolver {
     public Optional<MatchEvent> capture(GameState state, ObjectiveType type, TeamSide side) {
         if (!state.isRealismEnabled() || state.isFinished()) return Optional.empty();
         List<PlayerState> local=participants(state,side);
-        if(local.isEmpty())return Optional.empty();
+        if(local.isEmpty() || state.isBoundaryFixesEnabled() && !eligible(state,type,side))return Optional.empty();
         PlayerState killer=local.stream().filter(p->p.getPosition()==Position.JUNGLE).findFirst().orElse(local.getFirst());
         int time=state.getCurrentTimeSeconds(); var upper=state.getObjectiveState().upper();
         String id=upper.capture(type,side,killer.getPosition(),time);

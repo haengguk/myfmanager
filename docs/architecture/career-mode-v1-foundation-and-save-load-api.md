@@ -257,3 +257,19 @@ V19의 `career_development_state`는 기존 directory JSON/hash와 분리된 Car
 누락 옛 자료는 생성 reference가 일치하는 기존 startup 복구 경로만 사용한다. GET import는 없다.
 추가 SQL migration 없이 기존 V23 정상 저장의 directory와 개별 운영 상태를 재사용한다.
 상세 적용 표/검증은 [해외 수정·저장 호환 보고서](../development/career-overseas-fixes-and-save-compatibility-v1.md)를 따른다.
+
+
+## 연속 진행 저장 확장 (V24)
+
+`career_continuous_run`은 현재 실행 상태·원본 자식 intent·소유 lease/fence를,
+`career_continuous_command`는 사용자 UUID/payload/receipt를 보존한다.
+브라우저 연결은 실행 소유권이 아니다. 실행 중 상태는 lease 회수 후 이어가고 PAUSED는 재개하지 않는다.
+기존 Career 고정 입력·Series·등록·receipt를 수정하거나 다시 import하지 않는다.
+시작 복구는 운영 중 Career의 현재 시즌 고정 roster 행/JSON/hash 누락을 DATA_MISSING으로
+분류해 건너뛴다. 초기화 가능한 legacy는 기존 정책으로 처리하고 hash 손상은 숨기지 않는다.
+
+
+정상 legacy가 선수단을 처음 복구할 때 확보한 초기 명부는 시장 초기화 전에 시즌 입력으로 고정한다.
+시장·운영 명부가 이미 존재한 뒤 유실된 고정 입력을 새 카탈로그로 재생성하는 예외는 아니다.
+V24의 nullable league_job.match_policy_id가 없는 기존 job은 기준 V1 정책으로 실행하고,
+새 job의 정책 ID는 frozen input hash에도 포함한다. 이전 결과·원본 job ID는 유지한다.

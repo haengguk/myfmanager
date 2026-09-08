@@ -24,7 +24,7 @@ class RealismPolicyCompatibilityTest {
                 SimulationInstrumentation.enabled());
         assertThat(newGame.input().productionPolicy()).isEqualTo(MatchEngineV1Policy.requirement());
         assertThat(newGame.output().productionPolicy().gameplayConfiguration().realismEnabled()).isTrue();
-        assertThat(newGame.completedDraft().draftSelectionPolicyId()).isEqualTo("AUTO_DRAFT_ABILITY_V1");
+        assertThat(newGame.completedDraft().draftSelectionPolicyId()).isEqualTo("AUTO_DRAFT_ABILITY_V2");
         assertThat(newGame.output().timeline().events()).anySatisfy(e->assertThat(e.structuredData()).containsKey("upperObjective"));
         var restored=json.readValue(json.writeValueAsBytes(newGame.input()),MatchEngineV1Input.class);
         var replay=engine.execute(restored,SimulationInstrumentation.disabled());
@@ -37,7 +37,7 @@ class RealismPolicyCompatibilityTest {
     @Test void ongoingLegacyPlayerDraftAndNewDraftKeepSeparateAiVersionsAndManualChoices() throws Exception {
         var blue=DraftTeamContext.from(teams.assemble("GEN"));var red=DraftTeamContext.from(teams.assemble("T1"));
         var selection=RealDraftSelectionContextFactory.create(901,"GEN",teams.assemble("GEN"),"T1",teams.assemble("T1"),1,Set.of());
-        for(String policy:List.of(AutoDraftSelectionPolicy.POLICY_ID,AutoDraftSelectionPolicy.ability().policyId())) {
+        for(String policy:List.of(AutoDraftSelectionPolicy.POLICY_ID,AutoDraftSelectionPolicy.ability().policyId(),AutoDraftSelectionPolicy.abilityV2().policyId())) {
             var progress=drafts.forPolicy(policy).start(blue,red,selection,TeamSide.BLUE);
             // Old saves predate this additive field. Missing means verified legacy, including an empty first turn.
             var tree=json.valueToTree(progress);
