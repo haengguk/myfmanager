@@ -19,18 +19,18 @@ public final class CareerAppearanceStore {
         if(competition!=null)jdbc.query("SELECT pool_json,pool_hash FROM career_registered_player_pool WHERE career_id=? AND season_year=? AND competition_id=?",
                 (org.springframework.jdbc.core.RowCallbackHandler) r->registered.putAll(pool(r.getString(1),r.getString(2))),career,year,competition);
         String squad=CareerClPolicy.isCl(competition)?"DEVELOPMENT":"FIRST_TEAM";
-        requireNoCrossSquad(jdbc,career,identity,date,squad,frozen.teams().values().stream().flatMap(t->t.players().stream()).map(CompetitionRosterSnapshot.Starter::playerId).collect(java.util.stream.Collectors.toSet()));
+        requireNoCrossSquad(jdbc,career,identity,date,squad,frozen.teams().values().stream().flatMap(t->t.players().stream()).map(CompetitionRosterSnapshot.Starter::playerId).collect(java.util.stream.Collectors.toSet()),competition!=null&&CareerOverseasStore.active(jdbc,career,year)&&(CareerOverseasRules.isOverseas(competition)||CareerInternationalRules.COMPETITIONS.contains(competition)));
         var facts=new ArrayList<Opportunity>();
         for(var roster:frozen.teams().values()) {
-            String team=CompetitionRosterSnapshot.token(roster.team());var selected=new HashSet<>(roster.players().stream().map(CompetitionRosterSnapshot.Starter::playerId).toList());
-            for(var member:engine.members.values())if(team.equals(member.ownerTeam())) {
+            String competitionTeam=CompetitionRosterSnapshot.token(roster.team()),team=CareerOverseasRoster.owner(competitionTeam);var selected=new HashSet<>(roster.players().stream().map(CompetitionRosterSnapshot.Starter::playerId).toList());
+            for(var member:engine.members.values())if(team.equals(member.ownerTeam())&&(!competitionTeam.equals("LEC:KCB")||"DEVELOPMENT".equals(member.squad()))) {
                 var promise=engine.promise(member.playerId(),team,date);
-                if(!collects(squad,member.squad(),promise,selected.contains(member.playerId())))continue;
+                if(!competitionTeam.equals("LEC:KCB")&&!collects(squad,member.squad(),promise,selected.contains(member.playerId())))continue;
                 boolean eligible=engine.eligible(member.playerId(),team,date);String reason=eligible?"CONTRACT_AT_SERIES_START":"OBJECTIVE_CONTRACT_OR_ROLE_INELIGIBILITY";
                 if(competition!=null&&CareerInternationalRules.COMPETITIONS.contains(competition)) {
                     // Bench/non-registration by club choice cannot erase a promise. Joining after registration can.
                     if(registration.isEmpty()&&!selected.contains(member.playerId())){eligible=false;reason="PRE_MIGRATION_REGISTRATION_EVIDENCE_UNKNOWN";}
-                    else if(!registration.isEmpty()&&!selected.contains(member.playerId())&&!registered.getOrDefault(team,List.of()).contains(member.playerId())&&engine.promiseEngine.continuousSince(member.playerId(),team,date).isAfter(registration.getFirst())){eligible=false;reason="JOINED_AFTER_REGISTRATION";}
+                    else if(!registration.isEmpty()&&!selected.contains(member.playerId())&&!registered.getOrDefault(competitionTeam,List.of()).contains(member.playerId())&&engine.promiseEngine.continuousSince(member.playerId(),team,date).isAfter(registration.getFirst())){eligible=false;reason="JOINED_AFTER_REGISTRATION";}
                 }
                 if("DEVELOPMENT".equals(squad)&&!CareerClStore.load(jdbc,career,year).registered().getOrDefault(team,List.of()).contains(member.playerId())){eligible=false;reason="CL_NOT_REGISTERED_AT_START";}
                 facts.add(new Opportunity(member.playerId(),team,engine.player(member.playerId()).position(),promise==null?null:promise.promiseId(),eligible,selected.contains(member.playerId()),reason));
@@ -73,10 +73,11 @@ public final class CareerAppearanceStore {
         var ids=jdbc.query("SELECT career_id FROM career_season WHERE season_id=?",(r,n)->r.getString(1),season);
         if(!ids.isEmpty())complete(jdbc,ids.getFirst(),"LEAGUE|"+season+'|'+fixture,receipt,games);
     }
-    static void requireNoCrossSquad(JdbcTemplate jdbc,String career,String identity,LocalDate date,String squad,Set<String> players){
+    static void requireNoCrossSquad(JdbcTemplate jdbc,String career,String identity,LocalDate date,String squad,Set<String> players){requireNoCrossSquad(jdbc,career,identity,date,squad,players,false);}
+    static void requireNoCrossSquad(JdbcTemplate jdbc,String career,String identity,LocalDate date,String squad,Set<String> players,boolean separateSeries){
         jdbc.query("SELECT fixture_identity,snapshot_json,snapshot_hash,applied_receipt FROM career_appearance_binding WHERE career_id=?",(org.springframework.jdbc.core.RowCallbackHandler)r->{
             if(identity.equals(r.getString(1)))return;if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("APPEARANCE_SNAPSHOT_INTEGRITY");
-            var old=read(r.getString(2),Appearance.class);if(!squad.equals(old.squad())&&(r.getString(4)==null||date.equals(old.date()))&&old.opportunities().stream().anyMatch(o->o.selected()&&players.contains(o.playerId())))throw CareerException.invalid("lineup","같은 날짜의 1군·CL 중복 출전 또는 진행 중인 다른 선수단 Series가 있습니다. 선발을 보완하거나 경기 완료 후 다음 날 진행하세요.");
+            var old=read(r.getString(2),Appearance.class);if((separateSeries||CareerOverseasRules.isOverseas(old.competitionId())||!squad.equals(old.squad()))&&(r.getString(4)==null||date.equals(old.date()))&&old.opportunities().stream().anyMatch(o->o.selected()&&players.contains(o.playerId())))throw CareerException.invalid("lineup","같은 날짜의 중복 출전 또는 진행 중인 다른 Series가 있습니다. 선발을 보완하거나 경기 완료 후 다음 날 진행하세요.");
         },career);
     }
     public record Performance(int seasonYear,LocalDate date,String seriesId,String playerId,String team,String squad,String competitionId,int sets,Map<String,Integer> champions,int internalGain,int proficiencyGain){}

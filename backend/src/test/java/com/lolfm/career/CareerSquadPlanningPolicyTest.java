@@ -89,6 +89,21 @@ class CareerSquadPlanningPolicyTest {
         m.squadRestrictions.clear();m.planner.review(MONDAY.plusWeeks(1));assertThat(m.clLineups.get(team)).contains(value>13?candidate:incumbent);
         if(value>13){rating(m,incumbent,20,200);m.planner.review(MONDAY.plusWeeks(2));assertThat(m.clLineups.get(team)).contains(candidate);}
     }
+    @ParameterizedTest @ValueSource(ints={11,15})
+    void clSkipsStrongerIneligibleCandidateBeforeApplyingThresholdAndWait(int value){
+        var m=CareerMarketEngineTest.engine("LCK:GEN");m.clEnabled=true;m.planner.repair(CareerMarketEngineTest.DATE);String team="LCK:T1";
+        var tops=m.members.values().stream().filter(v->team.equals(v.ownerTeam())&&v.squad().equals("DEVELOPMENT")&&m.player(v.playerId()).position()==Position.TOP).map(CareerRosterStore.Membership::playerId).sorted().toList();
+        String incumbent=tops.getFirst(),eligible=tops.getLast(),blocked=top(m,"DEVELOPMENT");
+        var c=m.active(blocked,MONDAY);m.contracts.put(c.contractId(),new Contract(c.contractId(),c.careerId(),blocked,team,team+":DEVELOPMENT",c.signedDate(),c.terms(),c.status(),c.revision(),c.policyVersion(),c.origin(),c.terminationPolicy(),c.endedDate(),c.paidThrough()));
+        m.members.put(blocked,new CareerRosterStore.Membership(blocked,team,team+":DEVELOPMENT","DEVELOPMENT",null));
+        m.lineups.get(team).stream().filter(id->m.player(id).position()==Position.TOP).forEach(id->rating(m,id,20,200));
+        rating(m,incumbent,10,200);rating(m,eligible,value,200);rating(m,blocked,18,200);
+        var lineup=new ArrayList<>(m.clLineups.get(team));lineup.removeIf(id->m.player(id).position()==Position.TOP);lineup.add(incumbent);m.clLineups.put(team,lineup);
+        m.squadRestrictions.add(new CareerSquadPlanner.Restriction(blocked,"FIRST_TEAM",MONDAY,false));
+        m.planner.review(MONDAY);assertThat(m.clLineups.get(team)).contains(value==15?eligible:incumbent).doesNotContain(blocked);
+        var once=m.state();m.planner.review(MONDAY);assertThat(m.state()).isEqualTo(once);
+        if(value==15){rating(m,incumbent,19,200);m.planner.review(MONDAY.plusWeeks(1));assertThat(m.clLineups.get(team)).contains(eligible);}
+    }
     @Test void confirmedLoanReturnCoversOnlyDatesAfterReturnAndBeforeContractExpiry(){
         var m=setup();String id=top(m,"FIRST_TEAM");var c=m.active(id,MONDAY);String parent="LCK:BRO",borrower="LCK:BFX";
         var member=m.members.get(id);var end=MONDAY.plusDays(10);

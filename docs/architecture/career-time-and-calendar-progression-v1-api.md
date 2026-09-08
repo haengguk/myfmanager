@@ -308,3 +308,19 @@ PO 승패에서 1·2위와 공동 3~4위를 얻고, 국제전은 봉인된 plan�
 
 금액·출처·초기화/이주 구분과 검증 결과는
 [원화 재정·시즌 목표 구현 보고서](../development/career-finance-season-targets-krw-and-ai-followups-v1.md)를 따른다.
+
+
+## 해외 리그 실행 V1 추가 조회 (2026-09-08)
+
+`GET /api/v1/careers/{careerId}/overseas/{year}?league={LPL|LEC|LCP|CBLOL|LCS}&event={eventId}`는
+해당 리그/이벤트의 activation, 일정·Series 상태/점수, 정규/Swiss 성적, PO, 최종 순위,
+누적 CP, 봉인 국제 자격을 반환한다. `event` 생략 시 해당 리그만 반환하며 게임 timeline은 포함하지 않는다.
+서로 다른 리그와 event 조합은 400이다. 과거 시즌은 readOnly이며 GET은 대진 생성·정산을 하지 않는다.
+
+`GET /api/v1/careers/{careerId}/overseas/{year}/{eventId}/results/{matchId}`는
+적용 완료된 검증 receipt의 세트별 결과·10인 픽과 replayAvailable을 반환한다.
+현재/지난 시즌 조회는 같은 경로를 사용한다.
+
+해외 경기 시작/재개는 기존 Calendar competition 명령·job/lease/receipt를 그대로 사용한다.
+신규 저장은 첫 실행 시즌, 기존 저장은 저장된 activationYear부터 17개 해외 event를 사용한다.
+상세 정책과 증거는 [해외 리그 실행 V1](../development/career-overseas-league-execution-v1.md)을 참조한다.

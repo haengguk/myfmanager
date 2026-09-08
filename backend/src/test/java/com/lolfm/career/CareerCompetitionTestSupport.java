@@ -6,6 +6,18 @@ import java.util.List;
 public final class CareerCompetitionTestSupport {
     private CareerCompetitionTestSupport() {}
 
+    /** Keeps the existing Cup API scenario on its own day; all overseas events remain active. */
+    public static void prepareFirstCupDay(CareerCompetitionRelationalStore store,String career,java.time.LocalDate date) {
+        var events=store.load(career,date.getYear()).fixtures().stream()
+                .filter(f->!f.competitionId().equals("LCK_CUP")&&f.date().equals(date))
+                .map(CareerCompetitionRelationalStore.FixtureRow::competitionId).distinct().toList();
+        for(String event:events) {
+            store.jdbc.update("UPDATE career_competition_fixture SET scheduled_date=? WHERE career_id=? AND calendar_season_year=? AND competition_id=? AND scheduled_date=?",date.plusDays(1),career,date.getYear(),event,date);
+            store.refreshInstanceHash(career,date.getYear(),event);
+        }
+        store.refreshCycleHash(career,date.getYear());
+    }
+
     /** Models an existing fixture history authored before international registration was available. */
     public static void retainLegacyInternationalHistory(CareerCompetitionRelationalStore store, String career, int year, String competition) {
         store.jdbc.update("DELETE FROM career_international_state WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?", career, year, competition);

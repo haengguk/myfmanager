@@ -43,7 +43,7 @@ public final class CareerLifecycleStore {
         if(stove)saveReview(jdbc,career,new Review(year,date,CareerLifecyclePolicy.VERSION,"LEGACY_STOVE_NO_RETROACTIVE_REVIEW",List.of(),List.of(),null));
     }
     static void placementChanged(JdbcTemplate jdbc,String career,String player,Membership member,LocalDate date) {
-        var state=load(jdbc,career);if(state==null)return;var engine=new CareerLifecycleEngine(state);engine.clEnabled=CareerClStore.active(jdbc,career,activeYear(jdbc,career));engine.observePlacement(player,member,date);persist(jdbc,career,engine);
+        var state=load(jdbc,career);if(state==null)return;var engine=new CareerLifecycleEngine(state);engine.clEnabled=CareerClStore.active(jdbc,career,activeYear(jdbc,career));engine.overseasEnabled=CareerOverseasStore.active(jdbc,career,activeYear(jdbc,career));engine.observePlacement(player,member,date);persist(jdbc,career,engine);
     }
     public void recover(){for(String career:jdbc.query("SELECT career_id FROM career_player_directory ORDER BY career_id",(r,n)->r.getString(1)))tx.executeWithoutResult(s->{initialize(jdbc,career);migrateGeneratedNames(jdbc,career);});}
     static void migrateGeneratedNames(JdbcTemplate jdbc,String career) {
@@ -157,16 +157,16 @@ public final class CareerLifecycleStore {
         jdbc.query("SELECT competition_id,series_id FROM career_competition_fixture WHERE career_id=? AND calendar_season_year=?",(org.springframework.jdbc.core.RowCallbackHandler)r->{if(!CareerInternationalRules.COMPETITIONS.contains(r.getString(1)))ids.add(r.getString(2));},career,year);return ids;
     }
     static Observation observation(CareerMarketEngine m,String id,int year,LocalDate date,Set<String> domesticSeries) {
-        var person=m.lifecycle.people.get(id);var member=m.members.get(id);int opportunities=0,starts=0,sets=0;LocalDate first=null,last=null;
+        var person=m.lifecycle.people.get(id);var member=m.members.get(id);boolean guest=m.overseasEnabled&&"LEC:KCB".equals(member.organizationId());String observedSquad=guest?"FIRST_TEAM":member.squad();int opportunities=0,starts=0,sets=0;LocalDate first=null,last=null;
         for(var a:m.promiseEngine.appearances.values())if(a.seasonYear()==year&&!a.date().isBefore(m.lifecycle.appliedOn)) {
             for(var o:a.opportunities())if(o.playerId().equals(id)&&o.selected())sets+=a.completedSets();
-            if(!domesticSeries.contains(a.seriesId())||!a.squad().equals(member.squad()))continue;
+            if(!domesticSeries.contains(a.seriesId())||!a.squad().equals(observedSquad))continue;
             var o=a.opportunities().stream().filter(v->v.playerId().equals(id)&&v.eligible()).findFirst().orElse(null);if(o==null)continue;
             opportunities++;if(o.selected())starts++;if(first==null||a.date().isBefore(first))first=a.date();if(last==null||a.date().isAfter(last))last=a.date();
         }
         var employed=m.active(id,date);
         boolean continuous=person.domesticObservedSince()!=null&&!person.domesticObservedSince().isAfter(LocalDate.of(year,1,1))&&employed!=null&&!employed.terms().startDate().isAfter(LocalDate.of(year,1,1))&&m.tradeEngine.loans.values().stream().noneMatch(l->l.playerId().equals(id)&&!l.endDate().isBefore(LocalDate.of(year,1,1)));
-        String coverage=member.ownerTeam()==null?"NO_DOMESTIC_EMPLOYMENT":!member.ownerTeam().startsWith("LCK:")||"DEVELOPMENT".equals(member.squad())&&!m.clEnabled?"OVERSEAS_OR_CL_UNOBSERVED":person.introducedOn().isAfter(LocalDate.of(year,1,1))||m.lifecycle.appliedOn.isAfter(LocalDate.of(year,1,1))?"PARTIAL_FIRST_SEASON":!continuous?"PARTIAL_EMPLOYMENT":opportunities<CareerLifecyclePolicy.MIN_OBSERVED_SERIES||first==null||ChronoUnit.DAYS.between(first,last)+("DEVELOPMENT".equals(member.squad())?1:0)<CareerLifecyclePolicy.MIN_OBSERVED_DAYS?"INSUFFICIENT_OPPORTUNITIES":"DEVELOPMENT".equals(member.squad())?"FULL_DEVELOPMENT_SEASON":"FULL_DOMESTIC_SEASON";
+        String coverage=member.ownerTeam()==null?"NO_DOMESTIC_EMPLOYMENT":!member.ownerTeam().startsWith("LCK:")&&!m.overseasEnabled||!guest&&"DEVELOPMENT".equals(member.squad())&&(!member.ownerTeam().startsWith("LCK:")||!m.clEnabled)?"OVERSEAS_OR_CL_UNOBSERVED":person.introducedOn().isAfter(LocalDate.of(year,1,1))||m.lifecycle.appliedOn.isAfter(LocalDate.of(year,1,1))?"PARTIAL_FIRST_SEASON":!continuous?"PARTIAL_EMPLOYMENT":opportunities<CareerLifecyclePolicy.MIN_OBSERVED_SERIES||first==null||ChronoUnit.DAYS.between(first,last)+("DEVELOPMENT".equals(member.squad())?1:0)<CareerLifecyclePolicy.MIN_OBSERVED_DAYS?"INSUFFICIENT_OPPORTUNITIES":"DEVELOPMENT".equals(member.squad())?"FULL_DEVELOPMENT_SEASON":"FULL_DOMESTIC_SEASON";
         return new Observation(coverage,opportunities,starts,sets,first,last);
     }
     public record Profile(String playerId,String nickname,String position,int currentCA,Integer potentialAbility,int gameAge,int seasonGrowth,int seasonDecline,int seasonNet,Person lifecycle) {}

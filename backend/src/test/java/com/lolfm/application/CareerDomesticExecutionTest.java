@@ -56,7 +56,8 @@ class CareerDomesticExecutionTest {
     void actualAutoLoserSelectionAndPlayerBo1ReuseParentFearlessAndCheckpoint() {
         var career = careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,
                 "국내 실행 검증", "감독", "HLE", UUID.randomUUID().toString())).career().career();
-        var fixtures = store.load(career.careerId(), 2027).fixtures();
+        var fixtures = store.load(career.careerId(), 2027).fixtures().stream()
+                .filter(f -> f.competitionId().equals("LCK_CUP")).toList();
         var snapshot = snapshots.currentSnapshot(snapshots.currentTeamCodes());
         var binding = CareerCompetitionTestSupport.engineBinding(store, career.careerId(), fixtures.get(0).matchId(),
                 "BO3", "GEN", "T1", "HLE", snapshot, snapshots.currentResourceProvenanceHash(), Set.of());

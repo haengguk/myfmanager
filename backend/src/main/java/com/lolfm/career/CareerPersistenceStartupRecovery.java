@@ -12,6 +12,7 @@ public final class CareerPersistenceStartupRecovery {
     private final CareerCompetitionRelationalStore competitions;
 
     @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerClStore cl;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerOverseasStore overseas;
     private CareerRosterStore rosters;
     @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerLifecycleStore lifecycle;
     @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerDevelopmentStore development;
@@ -37,5 +38,6 @@ public final class CareerPersistenceStartupRecovery {
         if(development!=null)development.recover();
         if(lifecycle!=null)lifecycle.recover();
         if(cl!=null)cl.recover();
+        if(overseas!=null)overseas.recover();
     }
 }

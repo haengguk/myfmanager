@@ -26,7 +26,18 @@ final class CareerFinanceStore {
         var excluded=new TreeSet<>(jdbc.query("SELECT calendar_season_year,competition_id FROM career_competition_instance WHERE career_id=? AND lifecycle_status='COMPLETED'",(r,n)->r.getInt(1)+"|"+r.getString(2),career));
         engine.finance=new CareerFinanceEngine(engine,CareerFinanceReference.initialize(engine,year,true,excluded));
         engine.finance.initializeTargets(year,engine.state().processedThrough(),true);
+        if(closed(jdbc,career,year))engine.finance.close(year,engine.state().processedThrough(),Map.of(),Map.of());
         CareerMarketStore.persist(jdbc,career,year,old,engine);
+    }
+    private static boolean closed(JdbcTemplate jdbc,String career,int year){return jdbc.queryForObject("SELECT COUNT(*) FROM career_market_season_close WHERE career_id=? AND season_year=?",Integer.class,career,year)>0;}
+    /** Repair the interrupted legacy boundary without rewriting the already sealed season. */
+    static boolean repairClosedLegacy(JdbcTemplate jdbc,String career,CareerMarketStore.Saved old){
+        if(old==null||old.state().finance()==null||!old.state().finance().legacyTransition())return false;
+        int year=activeYear(jdbc,career);var finance=old.state().finance();
+        if(old.state().accounts().keySet().stream().noneMatch(team->finance.targets().containsKey(team+"|"+year)&&finance.targets().get(team+"|"+year).partial()&&!finance.approvals().containsKey(team+"|"+(year+1)))||!closed(jdbc,career,year))return false;
+        var engine=CareerMarketStore.engine(jdbc,career,year,old);
+        engine.finance.close(year,old.state().processedThrough(),Map.of(),Map.of());
+        CareerMarketStore.persist(jdbc,career,year,old,engine);return true;
     }
     static void requirePolicy(CareerMarketState state,String schema,boolean trade){
         if(state.finance()!=null&&!(trade?TRADE_COMMAND:MARKET_COMMAND).equals(schema))throw CareerException.moneyPolicyRefresh();
@@ -62,6 +73,10 @@ final class CareerFinanceStore {
                 var states=store.jdbc.query("SELECT state_json,state_hash FROM career_international_state WHERE career_id=? AND calendar_season_year=? AND competition_id=?",(r,n)->{if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("INTERNATIONAL_FINANCE_INTEGRITY");return read(r.getString(1),CareerInternationalState.class);},career,year,competition);
                 if(states.isEmpty())continue;var s=states.getFirst();if(!s.plan().complete())continue;
                 if(s.plan().placements().keySet().equals(s.rosters().teams().keySet()))ranks.putAll(ranks(s.plan().placements()));evidence=hash(write(s.plan()));
+            }else if(CareerOverseasRules.isOverseas(competition)){
+                var state=CareerOverseasStore.load(store.jdbc,career,year,CareerOverseasRules.Event.valueOf(competition));
+                if(state==null||!state.plan().complete())continue;
+                ranks.putAll(ranks(state.plan().placements()));evidence=hash(write(state));
             }else if(competition.equals("LCK_PLAYOFFS")){
                 var finalRank=store.finalRanking(career,year);if(finalRank==null)continue;
                 finalRank.ranking().forEach(r->ranks.put(r.teamCode(),new CareerFinanceEngine.Rank(r.seed(),r.seed())));evidence=finalRank.stateHash();

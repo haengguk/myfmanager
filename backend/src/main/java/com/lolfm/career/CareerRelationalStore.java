@@ -34,6 +34,7 @@ public final class CareerRelationalStore {
     }
     @Autowired(required=false) private CareerClStore cl;
     private CareerRosterStore rosters;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerOverseasStore overseas;
     public CareerRelationalStore(JdbcTemplate jdbc, PlatformTransactionManager manager, CareerInternationalParticipants participants) {
         this(jdbc,manager);this.initialParticipants=participants;
     }
@@ -165,6 +166,7 @@ public final class CareerRelationalStore {
                 CareerDevelopmentStore.initialize(jdbc,requested.careerId());
                 CareerLifecycleStore.initialize(jdbc,requested.careerId());
                 if(cl!=null)cl.initializeNew(requested.careerId(),year);
+                if(overseas!=null)overseas.initializeNew(requested.careerId(),year);
             }
             jdbc.update("""
                     INSERT INTO career_create_command(

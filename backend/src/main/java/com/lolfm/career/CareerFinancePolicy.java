@@ -13,8 +13,12 @@ public final class CareerFinancePolicy {
             SUPPORT_FLOOR=80,SUPPORT_CEILING=120,RESERVE_MONTHS=2,REFERENCE_STRENGTH=180,
             TARGET_BONUS_MET=5,TARGET_BONUS_EXCEEDED=10,FUNDING_CHANGE=5,TOP_TARGET=3,MID_TARGET=6,LOW_TARGET=10,WORLDS_TARGET=8,WORLDS_EXCEEDED=4;
     public static final long DEFAULT_DEVELOPMENT_REFERENCE=45_000_000;
-    public static final Map<String,String> EVENT_IDS=Map.of("LCK_CUP","lck_cup_2026","LCK_PLAYOFFS","lck_season_2026",
-            "LCK_CL","lck_cl_season_2026","FIRST_STAND","first_stand_2026","MSI","msi_2026","EWC_LOL","ewc_lol_2026","WORLDS","worlds_2026");
+    public static final Map<String,String> EVENT_IDS=events();
+    private static Map<String,String> events(){var events=new TreeMap<>(Map.of("LCK_CUP","lck_cup_2026","LCK_PLAYOFFS","lck_season_2026",
+            "LCK_CL","lck_cl_season_2026","FIRST_STAND","first_stand_2026","MSI","msi_2026","EWC_LOL","ewc_lol_2026","WORLDS","worlds_2026"));
+        for(var event:CareerOverseasRules.Event.values())events.put(event.name(),event.reference());
+        return Collections.unmodifiableMap(events);
+    }
     private CareerFinancePolicy(){}
     public static long safe(long amount){if(amount>MAX_SAFE||amount< -MAX_SAFE)throw new IllegalArgumentException("MONEY_SAFE_INTEGER");return amount;}
     public static long convert(long original,String rate){return safe(BigDecimal.valueOf(original).multiply(new BigDecimal(rate)).setScale(0,RoundingMode.HALF_UP).longValueExact());}

@@ -302,7 +302,7 @@ public final class CareerRosterStore {
         var state=saved(jdbc,career,year);if(state==null)return;
         var registered=new TreeMap<String,List<String>>();
         for(String team:teams)registered.put(team,state.state().members().values().stream()
-                .filter(m->team.equals(m.ownerTeam()) && "FIRST_TEAM".equals(m.squad()) && m.eligibilityReason()==null)
+                .filter(m->CareerOverseasRoster.owner(team).equals(m.ownerTeam()) && (team.equals("LEC:KCB")?"DEVELOPMENT":"FIRST_TEAM").equals(m.squad()) && m.eligibilityReason()==null)
                 .map(Membership::playerId).sorted().toList());
         jdbc.update("INSERT INTO career_opportunity_registration VALUES (?,?,?,?)",career,year,competition,CareerMarketStore.executionDate(jdbc,career));
         String json=write(registered);jdbc.update("INSERT INTO career_registered_player_pool VALUES (?,?,?,?,?,?)",
@@ -322,11 +322,12 @@ public final class CareerRosterStore {
             for(var original:base.players()) {
                 Position role=original.position();
                 java.util.function.Predicate<String> eligible=id->directory.players().get(id).position()==role
-                        && team.equals(state.members().get(id).ownerTeam()) && "FIRST_TEAM".equals(state.members().get(id).squad())
-                        && state.members().get(id).eligibilityReason()==null && authority.allows(team,id);
+                        && CareerOverseasRoster.owner(team).equals(state.members().get(id).ownerTeam()) && (team.equals("LEC:KCB")?"DEVELOPMENT":"FIRST_TEAM").equals(state.members().get(id).squad())
+                        && state.members().get(id).eligibilityReason()==null && authority.allows(CareerOverseasRoster.owner(team),id);
                 var valid=allowed.stream().filter(eligible).toList();
                 if(valid.isEmpty()&&!team.equals(managed)&&authority.enabled()) {
-                    var replacement=state.lineups().getOrDefault(team,List.of()).stream().filter(eligible).findFirst();
+                    var candidates=team.equals("LEC:KCB")?state.members().keySet().stream().filter(eligible).sorted(Comparator.comparingInt((String id)->CareerMarketPolicy.strength(directory.players().get(id))).reversed().thenComparing(id->id)).toList():state.lineups().getOrDefault(team,List.of());
+                    var replacement=candidates.stream().filter(eligible).findFirst();
                     if(replacement.isPresent()){CareerMarketStore.supplement(jdbc,career,year,competition,team,replacement.get(),CareerMarketStore.executionDate(jdbc,career));allowed.add(replacement.get());valid=List.of(replacement.get());}
                 }
                 if(valid.isEmpty())throw CareerException.invalid("registration",team+"의 "+role+" 등록 선수가 현재 출전할 수 없습니다. 계약·선발을 복구하고 보충등록해 주세요.");

@@ -2,6 +2,22 @@
 
 이 문서는 2026-09-08 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
+## Career 해외 리그 실행 V1 (2026-09-08)
+
+LPL·LEC·LCP·CBLOL·LCS와 Americas Cup의 17개 이벤트를 기존 Auto job/Series/검증 receipt/Calendar에 연결했다.
+실제 정규·PO·CP 결과로 FST/MSI/EWC/Worlds 참가 자격을 만들며, 시즌별 지역 추가 slot은 실제 MSI 성적을 따른다.
+LPL은 14→14→12→다음 시즌 14, LEC Versus는 게스트 포함 12팀/Spring·Summer는 10파트너다.
+원본 56구단 팩을 보존하고 OMG/UP/LR의 재정 소유자 3개만 확장했다. KCB는 별도 경기 팀이지만 KC 고용·재정에 속한다.
+신규 저장은 첫 실행 시즌, 기존 저장은 marker에 고정한 다음 온전한 시즌부터 활성화한다.
+
+이미 스토브인 구 저장의 다음 시즌 재정 승인 누락, 구 크레딧 원본 명령의 stale 우선 처리, CL 차선 적격 후보 누락을 함께 수정했다.
+17개 대회의 통제 점수 완결성, 실제 BO1/BO3/BO5, 파일 재시작·rollover·롤백·정상 영입, 프런트 100건/build와 격리 브라우저가 통과했다.
+계획된 전체 backend 회귀 1회는 274 suites/2,155건 중 2,141 통과·12 실패·기존 skip 2(38분 28초)였다.
+출전 null 경계·CL 해시 갱신 순서와 이주/대회 수·테스트 준비를 수정한 뒤 실패 및 직접 영향 18건이 모두 통과했다(11분 26초).
+미해결 실패는 없으며 추가 전체는 실행하지 않았다. 최종 tree의 clean full 통과로 표시하지 않는다.
+최초 결과와 후속 근거는 [해외 리그 통합 보고서](development/career-overseas-league-execution-v1.md)에 기록했다.
+승강전 3개·부트캠프 효과·해외 감독 UI·해외 성과 예산 튜닝은 V1 범위 밖이다.
+
 ## Career 원화 재정·시즌 목표 및 AI 후속 수정 V1 (2026-09-08)
 
 1군 보강을 육성 계약으로 분류하던 판단과 CL 정상 선발 갱신 누락을 수정했다.

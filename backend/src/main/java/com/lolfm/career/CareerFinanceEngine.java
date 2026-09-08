@@ -64,14 +64,14 @@ final class CareerFinanceEngine {
     record Rank(int from,int through){}
     void recognize(int year,String competition,Map<String,Rank> classification,LocalDate completed,String resultHash){
         String instance=year+"|"+competition;if(basis.excludedInstances().contains(instance))return;
-        String event=EVENT_IDS.get(competition);if(event==null)return;var rule=basis.prizeRules().get(event);
+        String event=EVENT_IDS.get(competition);if(event==null)return;var rule=basis.prizeRules().get(event);if(rule==null||!rule.complete()){held.put(instance,"PRIZE_DISTRIBUTION_UNCONFIRMED");return;}
         if(awards.values().stream().anyMatch(a->a.seasonYear()==year&&a.competition().equals(competition)&&(!a.resultHash().equals(resultHash)||!a.referenceHash().equals(basis.sourceHash()))))throw new IllegalStateException("PRIZE_RESULT_CONFLICT");
         if(classification.isEmpty()){held.put(instance,"PRIZE_CLASSIFICATION_INCOMPLETE");return;}
         var planned=new ArrayList<Award>();
         try{for(var e:classification.entrySet()){
-            String team=e.getKey().contains(":")?e.getKey():"LCK:"+e.getKey();if(!m.accounts.containsKey(team))throw new IllegalArgumentException("PRIZE_TEAM_ID");
+            String competitionTeam=e.getKey().contains(":")?e.getKey():"LCK:"+e.getKey();String team=CareerOverseasRoster.owner(competitionTeam);if(!m.accounts.containsKey(team))throw new IllegalArgumentException("PRIZE_TEAM_ID");
             long amount=placement(rule,e.getValue().from(),e.getValue().through(),competition.equals("LCK_CL"));String rate=basis.fx().get(rule.currency());
-            String id=CareerMarketEngine.id(m.career,"AWARD|"+instance+"|"+team+"|FINAL_PLACEMENT");
+            String id=CareerMarketEngine.id(m.career,"AWARD|"+instance+"|"+competitionTeam+"|FINAL_PLACEMENT");
             var next=new Award(id,year,competition,event,team,"FINAL_PLACEMENT",e.getValue().from(),e.getValue().through(),rule.currency(),amount,rule.evidenceStatus(),competition.equals("LCK_CL")&&e.getValue().from()==3?"GAME_SHARED_PLACEMENT_POOL":"GAME_CLUB_RETENTION_100_PERCENT",basis.fxPolicyVersion(),rate,convert(amount,rate),completed,due(competition,completed),null,resultHash,basis.sourceHash());
             var old=awards.get(id);if(old!=null&&(!old.resultHash().equals(resultHash)||old.originalAmount()!=amount||old.placementFrom()!=next.placementFrom()||old.placementThrough()!=next.placementThrough()))throw new IllegalStateException("PRIZE_RESULT_CONFLICT");
             if(old==null)planned.add(next);
@@ -89,7 +89,8 @@ final class CareerFinanceEngine {
     }
     void close(int year,LocalDate date,Map<String,Integer> domestic,Map<String,Integer> worlds){
         for(String team:m.accounts.keySet()){
-            var t=targets.get(team+"|"+year);if(t==null||t.evaluatedOn()!=null)continue;
+            var t=targets.get(team+"|"+year);if(t==null)continue;
+            if(t.evaluatedOn()!=null){approveNext(team,year,date,t.financeStatus(),t.sportingStatus());continue;}
             Integer rank=domestic.get(team),world=worlds.get(team);String sport="NOT_EVALUABLE";
             if(!t.partial()&&t.maximumDomesticRank()>0&&rank!=null){boolean met=rank<=t.maximumDomesticRank()&&(t.worldsMaximumRank()==null||world!=null&&world<=t.worldsMaximumRank());sport=met?(rank==1||rank<t.maximumDomesticRank()&&(t.worldsMaximumRank()==null||world<=WORLDS_EXCEEDED)?"EXCEEDED":"MET"):"MISSED";}
             long arrears=m.salaryArrears(team)+debt.getOrDefault(team,0L),headroom=m.paymentHeadroom(team,date);boolean newCommitment=m.contracts.values().stream().anyMatch(c->team.equals(c.team())&&!c.signedDate().isBefore(t.setOn())&&Set.of("NEGOTIATED_RENEWAL","NEGOTIATED_FREE_AGENT","PAID_TRANSFER_AGREEMENT").contains(c.origin()));
@@ -97,6 +98,12 @@ final class CareerFinanceEngine {
             long bonus=t.partial()?0:pct(t.fixedSponsor(),sport.equals("EXCEEDED")?TARGET_BONUS_EXCEEDED:sport.equals("MET")?TARGET_BONUS_MET:0);
             entry(team,date,"TARGET_BONUS|"+year,"GAME_SPONSOR_PERFORMANCE_BONUS",bonus);
             targets.put(team+"|"+year,new Target(team,year,t.setOn(),t.partial(),t.maximumDomesticRank(),t.worldsMaximumRank(),t.fixedSponsor(),t.initialWageLimit(),sport,financial,rank,world,m.accounts.get(team).cash(),headroom,arrears,bonus,date,"봉인 최종 순위·현재 현금·확정 의무·체불"));
+            approveNext(team,year,date,financial,sport);
+        }
+    }
+    private void approveNext(String team,int year,LocalDate date,String financial,String sport){
+            if(approvals.containsKey(team+"|"+(year+1)))return;
+            long arrears=m.salaryArrears(team)+debt.getOrDefault(team,0L);
             var base=basis.teams().get(team);long original=base.playerCompensation()+base.nonWage();var prior=approval(team,date);
             String outcome=financial.equals("MISSED")?"MISSED":sport;long proposed=pct(FUNDING.equals(prior.policy())?prior.annualIncome():original,outcome.equals("MISSED")?100-FUNDING_CHANGE:outcome.equals("EXCEEDED")?100+FUNDING_CHANGE:100);
             long income=Math.max(pct(original,SUPPORT_FLOOR),Math.min(pct(original,SUPPORT_CEILING),proposed));
@@ -105,6 +112,5 @@ final class CareerFinanceEngine {
             LocalDate effective=LocalDate.of(year+1,1,1);long committed=m.peakSalaryFrom(team,effective);
             approvals.put(team+"|"+(year+1),new Approval(team,year+1,effective,income,pct(income,SUPPORT_PERCENT),income-pct(income,SUPPORT_PERCENT),base.nonWage(),cap,committed,Math.max(0,committed-cap),outcome,FUNDING));
             if(recurringEffective==null)recurringEffective=effective;
-        }
     }
 }

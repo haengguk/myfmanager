@@ -158,9 +158,6 @@ public final class CareerCompetitionApplicationService {
         CompetitionSummary current = view.currentCompetition();
         if ("PRESERVED_PREVIOUS_RULES".equals(view.domesticRuleCompatibility()) && view.activePendingCommand() == null)
             return new CompetitionGate("DOMESTIC_RULE_VERSION_REQUIRES_NEW_CYCLE", null, null);
-        if (current != null && blocked(current)) {
-            return new CompetitionGate(current.blockingReason(), null, null);
-        }
         CompetitionFixture fixture = view.nextFixture();
         if (fixture != null && !fixture.date().isAfter(date)
                 && !"COMPLETED".equals(fixture.lifecycleStatus())) {
@@ -172,6 +169,10 @@ public final class CareerCompetitionApplicationService {
             }
             return new CompetitionGate(fixtureBlocker(fixture), fixture.fixtureId(),
                     fixture.seriesId());
+        }
+        if (current != null && blocked(current)) {
+            if(fixture!=null&&current.blockingReason()!=null&&current.blockingReason().startsWith("OVERSEAS_RESULT_REQUIRED"))return CompetitionGate.clear();
+            return new CompetitionGate(current.blockingReason(), null, null);
         }
         return CompetitionGate.clear();
     }

@@ -1,3 +1,4 @@
+import { OVERSEAS_EVENT_IDS } from './careerOverseas.contract.ts';
 import {
   CAREER_SCHEMAS,
   type CareerSeasonsDto, type CareerSeasonDetailDto, type CareerTransitionDto, type CareerTransitionRequestDto,
@@ -49,7 +50,7 @@ const ADVANCE_MODES = ['ADVANCE_ONE_DAY', 'ADVANCE_TO_NEXT_EVENT'] as const;
 const CALENDAR_EVENT_ID = /^calendar_event_[0-9a-f]{64}$/;
 const COMPETITION_FIXTURE_ID = /^competition_fixture_[0-9a-f]{64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const COMPETITION_IDS = ['LCK_CL', 'LCK_CUP', 'LCK_REGULAR_R1_R2', 'LCK_ROAD_TO_MSI', 'LCK_REGULAR_R3_R4', 'LCK_PLAY_IN', 'LCK_PLAYOFFS', 'FIRST_STAND', 'MSI', 'EWC_LOL', 'WORLDS', 'ASIAN_GAMES_LOL_RELEASE', 'KESPA_CUP'] as const;
+const COMPETITION_IDS = [...OVERSEAS_EVENT_IDS, 'LCK_CL', 'LCK_CUP', 'LCK_REGULAR_R1_R2', 'LCK_ROAD_TO_MSI', 'LCK_REGULAR_R3_R4', 'LCK_PLAY_IN', 'LCK_PLAYOFFS', 'FIRST_STAND', 'MSI', 'EWC_LOL', 'WORLDS', 'ASIAN_GAMES_LOL_RELEASE', 'KESPA_CUP'] as const;
 
 function object(value: unknown, path: string): RecordValue {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new CareerContractError(path, 'object required');

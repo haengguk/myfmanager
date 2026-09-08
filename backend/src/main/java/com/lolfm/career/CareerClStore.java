@@ -74,8 +74,9 @@ public final class CareerClStore {
     public record Pick(String playerId,String nickname,Position position,String team,String champion){}
     public record GameResult(int game,String blueTeam,String redTeam,String winner,int durationSeconds,List<Pick> picks){}
     public record MatchResult(String careerId,int seasonYear,String matchId,String seriesId,String firstTeam,String secondTeam,int firstScore,int secondScore,List<GameResult> games,boolean replayAvailable){}
-    public MatchResult result(String career,int year,String match){return tx.execute(s->{lockCareer(db,career);
-        var binding=competitions.loadBinding(career,year,CareerClPolicy.ID,match);if(!competitions.hasAppliedCompletion(binding))throw CareerException.invalid("matchId","아직 검증·정산이 끝나지 않은 경기입니다.");
+    public MatchResult result(String career,int year,String match){return tx.execute(s->result(db,competitions,career,year,CareerClPolicy.ID,match));}
+    static MatchResult result(JdbcTemplate db,CareerCompetitionRelationalStore competitions,String career,int year,String competition,String match){lockCareer(db,career);
+        var binding=competitions.loadBinding(career,year,competition,match);if(!competitions.hasAppliedCompletion(binding))throw CareerException.invalid("matchId","아직 검증·정산이 끝나지 않은 경기입니다.");
         var receipt=db.queryForObject("SELECT receipt_json,receipt_hash,receipt_canonical FROM career_competition_completion_receipt WHERE binding_hash=?",(r,n)->{
             var value=read(r.getString(1),CareerCompetitionFixtureCompletionReceiptV1.class);if(!value.receiptHash().equals(r.getString(2))||!value.canonicalText().equals(r.getString(3)))throw new IllegalStateException("CL_RESULT_INTEGRITY");return value;
         },binding.bindingHash());
@@ -83,7 +84,7 @@ public final class CareerClStore {
         var games=new ArrayList<GameResult>();for(var g:receipt.orderedGames()){var picks=g.orderedFinalAssignments().stream().map(p->new Pick(p.playerId().value(),names.getOrDefault(p.playerId().value(),p.playerId().value()),p.position(),p.teamSide()==com.lolfm.simulator.TeamSide.BLUE?g.blueTeamCode():g.redTeamCode(),p.championId().value())).toList();games.add(new GameResult(g.gameNumber(),g.blueTeamCode(),g.redTeamCode(),g.winnerTeamCode(),g.durationSeconds(),picks));}
         boolean replay=db.queryForObject("SELECT COUNT(*) FROM career_competition_series_checkpoint WHERE binding_hash=? AND series_status='COMPLETED'",Integer.class,binding.bindingHash())>0;
         return new MatchResult(career,year,match,binding.boundSeriesId(),binding.firstTeamCode(),binding.secondTeamCode(),receipt.firstScore(),receipt.secondScore(),games,replay);
-    });}
+    }
     public Change change(String career,Request r){if(r==null||r.action()==null)throw CareerException.invalid("cl","CL 명령을 확인하세요.");String uuid;try{uuid=CareerIdentity.canonicalCommandId(r.clientCommandId());}catch(RuntimeException e){throw CareerException.invalid("clientCommandId","원본 UUID가 필요합니다.");}String payload=hash(career+'|'+write(r));
         return tx.execute(s->{lockCareer(db,career);var prior=db.query("SELECT payload_hash,receipt_json,receipt_hash FROM career_cl_command WHERE client_command_id=?",(v,n)->{if(!payload.equals(v.getString(1)))throw CareerException.calendarCommandConflict();if(!hash(v.getString(2)).equals(v.getString(3)))throw new IllegalStateException("CL_RECEIPT_INTEGRITY");return read(v.getString(2),Receipt.class);},uuid);
             if(!prior.isEmpty())return new Change(true,prior.getFirst(),readView(career,activeYear(db,career)));

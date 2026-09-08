@@ -17,7 +17,7 @@ public final class CareerMarketEngine {
     CareerLifecycleEngine lifecycle;
     Map<String,List<LocalDate>> developmentFixtures=Map.of();
     int developmentYear;
-    boolean clEnabled;
+    boolean clEnabled,overseasEnabled;
     final Map<String,List<String>> clLineups=new TreeMap<>();
     final List<CareerSquadPlanner.Restriction> squadRestrictions=new ArrayList<>();
     final Map<String,Set<String>> internationalPools=new TreeMap<>();

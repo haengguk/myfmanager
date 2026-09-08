@@ -1,6 +1,6 @@
 import { careerMoney } from './careerMoney';
 import { useEffect, useRef, useState } from 'react';
-import { CareerApiFailure, changeCareerTrade } from './api/careerApi.client';
+import { CareerApiFailure, changeCareerTrade, getCareerMarket } from './api/careerApi.client';
 import type { CareerMarket, MarketRole } from './api/careerMarket.contract';
 import type { CareerRoster } from './api/careerRoster.contract';
 import { readTradeOperation, tradeOperationKey, validateTradeCommand } from './api/careerManagement.contract';
@@ -19,7 +19,7 @@ export function CareerTransferPanel({ view, roster, selected, disabled, onBegin,
   const own = contract?.team === view.managedTeam;
   const nickname = (id: string) => roster.directory.players[id]?.nickname ?? id;
   useEffect(() => {
-    setPending(false); setEditing(null); setCorrupt(false); setError(null);
+    setLegacyRefresh(false); setPending(false); setEditing(null); setCorrupt(false); setError(null);
     try { setOperation(readTradeOperation(window.sessionStorage, view.careerId)); } catch { setCorrupt(true); setError('보관된 이적/임대 요청이 손상되었습니다. 원본 요청을 확인해 주세요.'); }
     return () => { mutation.current?.controller.abort(); mutation.current?.release(); mutation.current = null; };
   }, [view.careerId, view.seasonYear]);
@@ -55,9 +55,12 @@ export function CareerTransferPanel({ view, roster, selected, disabled, onBegin,
       window.sessionStorage.removeItem(tradeOperationKey(view.careerId)); setOperation(null); setEditing(null); onResult(result.market);
     } catch (e) {
       if (!owned.controller.signal.aborted && mutation.current === owned) {
-        if (e instanceof CareerApiFailure && e.code === 'CAREER_MONEY_POLICY_REFRESH_REQUIRED') setLegacyRefresh(true);
+        if (e instanceof CareerApiFailure && e.code === 'CAREER_MONEY_POLICY_REFRESH_REQUIRED') {
+          setLegacyRefresh(false);
+          try { const latest = await getCareerMarket(view.careerId, view.seasonYear, owned.controller.signal); if (!owned.controller.signal.aborted && mutation.current === owned && latest.careerId === view.careerId && latest.seasonYear === view.seasonYear && latest.currency === 'KRW') { onResult(latest); setLegacyRefresh(true); } } catch { /* Preserve the original until latest KRW terms are available. */ }
+        }
         setError(e instanceof CareerApiFailure ? e.userMessage : e instanceof Error ? e.message : '거래 응답을 확인하지 못했습니다. 원본 요청으로 다시 확인하세요.');
-        if (e instanceof CareerApiFailure && ['CAREER_CALENDAR_STALE_REVISION', 'CAREER_REQUEST_INVALID'].includes(e.code ?? '')) { window.sessionStorage.removeItem(tradeOperationKey(view.careerId)); setOperation(null); onResult(view); }
+        if (operation?.schemaVersion !== 'CAREER_TRADE_COMMAND_V1' && e instanceof CareerApiFailure && ['CAREER_CALENDAR_STALE_REVISION', 'CAREER_REQUEST_INVALID'].includes(e.code ?? '')) { window.sessionStorage.removeItem(tradeOperationKey(view.careerId)); setOperation(null); onResult(view); }
       }
     } finally { release(); if (mutation.current === owned) { mutation.current = null; setPending(false); } }
   };

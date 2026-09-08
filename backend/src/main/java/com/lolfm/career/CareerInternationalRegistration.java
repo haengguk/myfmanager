@@ -12,6 +12,7 @@ final class CareerInternationalRegistration {
     private final Map<String,CompetitionRosterSnapshot.Roster> frozen = new LinkedHashMap<>();
     private final Map<String,List<CompetitionRosterSnapshot.Roster>> rankings;
     private final String competition;
+    private CareerInternationalParticipants.Selection selection;
     private CareerInternationalRegistration(String competition, Map<String,List<CompetitionRosterSnapshot.Roster>> rankings) {
         this.competition=competition;this.rankings=rankings;
     }
@@ -26,6 +27,7 @@ final class CareerInternationalRegistration {
         var rankings=new LinkedHashMap<>(selection.rankings());rankings.put("LCK",List.copyOf(domestic));
         if(!rankings.keySet().equals(java.util.Set.copyOf(CareerInternationalRules.REFERENCE_REGIONS)))throw new IllegalArgumentException("SIX_REGIONAL_INPUTS_REQUIRED");
         var builder=new CareerInternationalRegistration(competition,rankings);
+        builder.selection=selection;
         switch(competition){
             case "FIRST_STAND" -> {
                 for(String region:CareerInternationalRules.REFERENCE_REGIONS) {
@@ -64,7 +66,7 @@ final class CareerInternationalRegistration {
                     int count=(region.equals("CBLOL")?2:3)+(region.equals(championRegion)?1:0)+(region.equals(otherBonus)?1:0);
                     var candidates=rankings.get(region);var qualified=new ArrayList<>(candidates.subList(0,count));
                     int championRank=-1;for(int i=0;i<candidates.size();i++)if(token(candidates.get(i)).equals(champion))championRank=i;
-                    boolean eligible=region.equals(championRegion)&&championRank>=0&&championRank<6;
+                    boolean eligible=region.equals(championRegion)&&championRank>=0&&(selection.qualifications().isEmpty()?championRank<6:selection.playoffEligible().contains(champion));
                     if(eligible&&!qualified.contains(candidates.get(championRank)))qualified.set(count-1,candidates.get(championRank));
                     int regionalOrder=regionOrder.indexOf(region);
                     for(int seed=1;seed<=count;seed++){
@@ -119,6 +121,9 @@ final class CareerInternationalRegistration {
         throw new IllegalStateException("NO_ELIGIBLE_REPLACEMENT:"+competition+":"+region);
     }
     private void addRoster(CompetitionRosterSnapshot.Roster roster,int seed,int pool,String phase,String path){
+        var actual=selection.qualifications().getOrDefault(roster.team().leagueCode(),List.of()).stream().filter(q->q.team().equals(token(roster))).findFirst();
+        if(actual.isPresent()&&!path.startsWith("MSI_")&&!competition.equals("EWC_LOL"))path=actual.get().path();
+        if(actual.isPresent()&&competition.equals("EWC_LOL"))path="ACTUAL_MIDSEASON_RESULT;"+path;
         if(frozen.putIfAbsent(token(roster),roster)!=null)throw new IllegalArgumentException("DUPLICATE_QUALIFICATION_TEAM");
         entries.add(new Entry(token(roster),roster.team().leagueCode(),seed,pool,phase,path));
     }

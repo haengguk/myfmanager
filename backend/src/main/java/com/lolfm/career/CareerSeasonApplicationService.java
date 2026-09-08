@@ -11,6 +11,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** One transactional season closure, receipt and activation; reads never advance the Career. */
 @Service
 public final class CareerSeasonApplicationService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private CareerOverseasStore overseas;
     public static final String REQUEST_SCHEMA = "CAREER_SEASON_TRANSITION_REQUEST_V1";
     public static final List<String> REQUIRED = List.of("LCK_CUP","LCK_REGULAR_R1_R2","LCK_ROAD_TO_MSI",
             "LCK_REGULAR_R3_R4","LCK_PLAY_IN","LCK_PLAYOFFS","FIRST_STAND","MSI","EWC_LOL","WORLDS");
@@ -147,6 +148,7 @@ public final class CareerSeasonApplicationService {
             CareerRosterStore.carry(jdbc,careerId,current.year(),nextYear);
             var closedRoster=jdbc.query("SELECT roster_json FROM career_market_season_close WHERE career_id=? AND season_year=?",(r,n)->r.getString(1),careerId,current.year());
             if(!closedRoster.isEmpty())jdbc.update("UPDATE career_roster_state SET state_json=?,state_hash=? WHERE career_id=? AND season_year=?",closedRoster.getFirst(),CareerRosterStore.hash(closedRoster.getFirst()),careerId,current.year());
+            if(overseas!=null)overseas.prepareSeason(careerId,nextYear);
             competitions.initializeFuture(careerId,nextYear);
             var next=calendars.rollover(career,current.year(),request.expectedCalendarRevision());
             CareerFinanceStore.startSeason(jdbc,careerId,nextYear);
@@ -161,7 +163,7 @@ public final class CareerSeasonApplicationService {
     public void openStove(String careerId) {
         // Caller uses Calendar row, no separate global lock acquired after it.
         var career=requireCareer(careerId);var calendar=calendars.loadReady(career);
-        if(count("SELECT COUNT(*) FROM career_market_season_close WHERE career_id=? AND season_year=?",careerId,calendar.seasonYear())>0)return;
+        if(count("SELECT COUNT(*) FROM career_market_season_close WHERE career_id=? AND season_year=?",careerId,calendar.seasonYear())>0){CareerFinanceStore.repairClosedLegacy(jdbc,careerId,CareerMarketStore.load(jdbc,careerId));return;}
         var blocked=blockers(career,calendar.seasonYear());
         if(!blocked.isEmpty())throw CareerException.invalid("season","대회 결과를 모두 반영한 뒤 스토브에 진입할 수 있습니다: "+String.join(", ",blocked));
         if(lifecycle!=null)lifecycle.review(careerId,calendar.seasonYear(),calendar.currentDate());
@@ -174,6 +176,7 @@ public final class CareerSeasonApplicationService {
     private List<String> blockers(CareerRelationalStore.CareerRow career,int year) {
         String id=career.careerId();var active=careers.activeSeason(career);
         var reasons=new ArrayList<String>();
+        if(CareerOverseasStore.active(jdbc,id,year))for(var event:CareerOverseasRules.Event.values()){var state=CareerOverseasStore.load(jdbc,id,year,event);if(state==null||!state.plan().complete())reasons.add("INCOMPLETE:"+event.name());}
         var cycle=competitions.load(id,year);
         for(String competition:REQUIRED) {
             var instance=cycle.competitions().stream().filter(c->c.competitionId().equals(competition)).findFirst();

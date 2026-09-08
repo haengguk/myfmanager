@@ -60,6 +60,24 @@ class CareerInternationalTournamentTest {
         assertThat(CareerInternationalTournament.project(worlds.state,worlds.results)).isEqualTo(worlds.state.plan());
         assertSwiss(worlds);assertEwcGroupsAndKnockout(ewc);
     }
+    @Test void actualRegionalEligibilityOverridesUniversalTopSixAndBonusMovesOutsideLpl(){
+        var msi=finish(registration("MSI",CareerInternationalRules.REFERENCE_REGIONS,null),"CBLOL").state();
+        String champion=msi.plan().champion();var rankings=new TreeMap<>(selection.rankings());
+        var br=new ArrayList<>(rankings.get("CBLOL"));var champ=br.stream().filter(r->CompetitionRosterSnapshot.token(r.team()).equals(champion)).findFirst().orElseThrow();br.remove(champ);br.add(champ);rankings.put("CBLOL",br);
+        var qualifications=new TreeMap<String,List<CareerInternationalParticipants.Qualification>>();
+        rankings.forEach((region,teams)->{var q=new ArrayList<CareerInternationalParticipants.Qualification>();for(int n=0;n<teams.size();n++)q.add(new CareerInternationalParticipants.Qualification(CompetitionRosterSnapshot.token(teams.get(n).team()),n+1,"ACTUAL_CP_ORDER","REGIONAL_EVENT","e".repeat(64)));qualifications.put(region,q);});
+        var regions=List.of("CBLOL","LEC","LCK","LPL","LCP","LCS");
+        for(boolean eligible:List.of(true,false)){
+            var actual=new CareerInternationalParticipants.Selection(CareerOverseasQualification.POLICY,"CONTROLLED_ACTUAL_RESULTS",rankings,qualifications,eligible?Set.of(champion):Set.of());
+            var worlds=CareerInternationalRegistration.create(CAREER,2027,"WORLDS",912,actual,lck,"ACTUAL_DOMESTIC",regions,msi);
+            assertThat(worlds.entries()).hasSize(19).extracting(CareerInternationalState.Entry::team).doesNotHaveDuplicates();
+            assertThat(worlds.entries().stream().filter(e->e.region().equals("LEC"))).hasSize(4);assertThat(worlds.entries().stream().filter(e->e.region().equals("LPL"))).hasSize(3);
+            assertThat(worlds.entries().stream().anyMatch(e->e.team().equals(champion))).isEqualTo(eligible);
+            if(eligible)assertThat(worlds.entries().stream().filter(e->e.team().equals(champion)).findFirst().orElseThrow().qualification()).isEqualTo("MSI_CHAMPION_HOME_PLAYOFF_ELIGIBLE");
+            else assertThat(worlds.entries().stream().filter(e->e.region().equals("CBLOL")&&e.regionalSeed()==3).findFirst().orElseThrow().qualification()).contains("INELIGIBLE_CHAMPION_REPLACEMENT");
+            assertThat(worlds.entries().stream().filter(e->e.region().equals("LCP")).map(CareerInternationalState.Entry::team)).containsExactlyElementsOf(rankings.get("LCP").subList(0,3).stream().map(r->CompetitionRosterSnapshot.token(r.team())).toList());
+        }
+    }
     @Test void correctedSelectionSeparatesPlayInSeedsAndUsesActualKnockoutDraw() {
         var fst = finish(registration("FIRST_STAND",CareerInternationalRules.REFERENCE_REGIONS,null),"LCK").state;
         var msi = finish(registration("MSI",fst.plan().regionalPerformance(),null),"LCK");

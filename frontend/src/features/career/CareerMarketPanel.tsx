@@ -31,7 +31,7 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
     void Promise.all([getCareerMarket(careerId, year, controller.signal), getCareerRoster(careerId, year, controller.signal)]).then(([m, r]) => { if (!controller.signal.aborted && token === generation.current) { setView(old => newerMarket(old, m)); setRoster(r); setError(null); } }).catch(e => { if (!controller.signal.aborted && token === generation.current) setError(failure(e)); });
     return () => { ++generation.current; controller.abort(); };
   }, [careerId, year, revision]);
-  useEffect(() => { setPending(false); setSelected(null); setEditing(null); setReleaseReview(false); setView(null); setRoster(null); return () => { mutation.current?.controller.abort(); mutation.current?.release(); mutation.current = null; }; }, [careerId, year]);
+  useEffect(() => { setLegacyRefresh(false); setPending(false); setSelected(null); setEditing(null); setReleaseReview(false); setView(null); setRoster(null); return () => { mutation.current?.controller.abort(); mutation.current?.release(); mutation.current = null; }; }, [careerId, year]);
   const money = (n: number) => careerMoney(n, view?.currency ?? 'GAME_CREDITS');
   const pick = (id: string, offer?: MarketOffer) => {
     const p = view?.players.find(p => p.playerId === id); setSelected(id); setEditing(offer?.offerId ?? null); setReleaseReview(false); setReplacement('');
@@ -61,8 +61,11 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
     } catch (cause) {
       if (!owned.controller.signal.aborted && mutation.current === owned) {
         setError(failure(cause));
-        if (cause instanceof CareerApiFailure && cause.code === 'CAREER_MONEY_POLICY_REFRESH_REQUIRED') setLegacyRefresh(true);
-        if (cause instanceof CareerApiFailure && ['CAREER_CALENDAR_STALE_REVISION', 'CAREER_REQUEST_INVALID'].includes(cause.code ?? '')) {
+        if (cause instanceof CareerApiFailure && cause.code === 'CAREER_MONEY_POLICY_REFRESH_REQUIRED') {
+          setLegacyRefresh(false);
+          try { const latest = await getCareerMarket(careerId, year, owned.controller.signal); if (!owned.controller.signal.aborted && mutation.current === owned && latest.careerId === careerId && latest.seasonYear === year && latest.currency === 'KRW') { setView(old => newerMarket(old, latest)); setLegacyRefresh(true); } } catch { /* Retain the original request until current terms can be loaded. */ }
+        }
+        if (operation?.schemaVersion !== 'CAREER_MARKET_COMMAND_V1' && cause instanceof CareerApiFailure && ['CAREER_CALENDAR_STALE_REVISION', 'CAREER_REQUEST_INVALID'].includes(cause.code ?? '')) {
           window.sessionStorage.removeItem(marketOperationKey(careerId)); setOperation(null);
           try { const latest = await getCareerMarket(careerId, year, owned.controller.signal); if (!owned.controller.signal.aborted && mutation.current === owned) setView(old => newerMarket(old, latest)); } catch { /* Keep the original failure visible. */ }
         }

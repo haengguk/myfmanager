@@ -37,11 +37,13 @@ final class CareerSquadPlanner {
         String id=CareerMarketEngine.id(m.career,"SQUAD|"+date+'|'+team+'|'+role+'|'+squad+'|'+action+'|'+player);
         if(history.stream().noneMatch(d->d.id().equals(id)))history.add(new CareerSquadPlanningPolicy.Decision(id,m.developmentYear>0?m.developmentYear:date.getYear(),date,team,role,squad,action,status,player,before,effective,ref,reason));
     }
-    private boolean cl(String team){return m.clEnabled&&team.startsWith("LCK:");}
+    private boolean cl(String team){return m.clEnabled&&team.startsWith("LCK:")||m.overseasEnabled&&team.equals("LEC:KC");}
     private List<String> held(String team,Position role,String squad,LocalDate date){return m.members.values().stream()
             .filter(v->team.equals(v.ownerTeam())&&m.player(v.playerId()).position()==role&&(squad==null||squad.equals(v.squad()))&&m.eligible(v.playerId(),team,date))
             .map(CareerRosterStore.Membership::playerId).sorted(order(m)).toList();}
-    private String selected(String team,Position role,String squad,LocalDate date){return (squad.equals("DEVELOPMENT")?m.clLineups:m.lineups).getOrDefault(team,List.of()).stream()
+    private String selected(String team,Position role,String squad,LocalDate date){
+        if(m.overseasEnabled&&team.equals("LEC:KC")&&squad.equals("DEVELOPMENT"))return held(team,role,squad,date).stream().filter(id->usableNext(team,id,squad,date)).findFirst().orElse(null);
+        return (squad.equals("DEVELOPMENT")?m.clLineups:m.lineups).getOrDefault(team,List.of()).stream()
             .filter(id->m.player(id).position()==role&&m.eligible(id,team,date)&&squad.equals(m.members.get(id).squad())).findFirst().orElse(null);}
     boolean movable(String id,String target,LocalDate date){
         if(m.squadRestrictions.stream().anyMatch(r->r.playerId().equals(id)&&(r.pending()||r.date().equals(date)&&!r.squad().equals(target))))return false;
@@ -104,7 +106,7 @@ final class CareerSquadPlanner {
     private void chooseCl(String team,Position role,LocalDate date){
         if(selectionWaiting(team,role,"DEVELOPMENT",date))return;
         String current=selected(team,role,"DEVELOPMENT",date);
-        var candidates=held(team,role,"DEVELOPMENT",date).stream().limit(CANDIDATES).toList();
+        var candidates=held(team,role,"DEVELOPMENT",date).stream().filter(id->usableNext(team,id,"DEVELOPMENT",date)).limit(CANDIDATES).toList();
         if(candidates.isEmpty())return;
         String best=candidates.getFirst();
         if(current!=null&&(best.equals(current)||strength(m.player(best))<=strength(m.player(current))+IMPROVEMENT))return;

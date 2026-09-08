@@ -30,6 +30,7 @@ class CareerApiV1ControllerTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired CareerApplicationService careers;
     @Autowired CareerCompetitionExecutionService competitionExecution;
+    @Autowired com.lolfm.career.CareerCompetitionRelationalStore competitionStore;
 
     @Test
     @org.springframework.transaction.annotation.Transactional
@@ -160,7 +161,7 @@ class CareerApiV1ControllerTest {
         assertThat(jdbc.queryForObject("""
                 SELECT COUNT(*) FROM career_competition_instance
                 WHERE career_id = ? AND competition_id <> 'LCK_CL'
-                """, Integer.class, created.path("careerId").asText())).isEqualTo(12);
+                """, Integer.class, created.path("careerId").asText())).isEqualTo(29);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_instance WHERE career_id=? AND competition_id='LCK_CL'",
                 Integer.class, created.path("careerId").asText())).isOne();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_fixture WHERE career_id=? AND competition_id='LCK_CL'",
@@ -567,6 +568,7 @@ class CareerApiV1ControllerTest {
 
     private JsonNode advanceToFirstCup(String careerId,JsonNode previous) throws Exception {
         var target=java.time.LocalDate.of(2027,1,14);int count=0;
+        com.lolfm.career.CareerCompetitionTestSupport.prepareFirstCupDay(competitionStore,careerId,target);
         while(java.time.LocalDate.parse(previous.path("calendar").path("currentDate").asText()).isBefore(target)) {
             var before=java.time.LocalDate.parse(previous.path("calendar").path("currentDate").asText());
             previous=json(mvc.perform(post("/api/v1/careers/"+careerId+"/advance").contentType(MediaType.APPLICATION_JSON)

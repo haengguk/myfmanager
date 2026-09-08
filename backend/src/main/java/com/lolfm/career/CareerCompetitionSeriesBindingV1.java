@@ -270,8 +270,8 @@ public final class CareerCompetitionSeriesBindingV1 {
         String red = blue.equals(fixture.firstTeamCode()) ? fixture.secondTeamCode() : fixture.firstTeamCode();
         return new CareerCompetitionSeriesBindingV1(cycle.careerId(), cycle.seasonYear(),
                 fixture.competitionId(), ruleResourceHash,
-                CareerInternationalRules.RESOURCE_HASH_V2.equals(ruleResourceHash) ? CareerInternationalRules.VERSION_V2 : CareerInternationalRules.VERSION,
-                CareerInternationalRules.RESOURCE_HASH_V2.equals(ruleResourceHash) ? CareerInternationalRules.POLICY_V2 : CareerInternationalRules.POLICY, cycle.hashAlgorithm(),
+                CareerOverseasRules.isOverseas(fixture.competitionId()) ? CareerOverseasRules.VERSION : CareerInternationalRules.RESOURCE_HASH_V2.equals(ruleResourceHash) ? CareerInternationalRules.VERSION_V2 : CareerInternationalRules.VERSION,
+                CareerOverseasRules.isOverseas(fixture.competitionId()) ? CareerOverseasRules.VERSION : CareerInternationalRules.RESOURCE_HASH_V2.equals(ruleResourceHash) ? CareerInternationalRules.POLICY_V2 : CareerInternationalRules.POLICY, cycle.hashAlgorithm(),
                 instance.stateHash(), instance.revision(), fixture.fixtureId(),
                 fixture.matchId(), fixture.matchOrder(), fixture.stageId(),
                 new CareerCompetitionRules.ParticipantSelector(

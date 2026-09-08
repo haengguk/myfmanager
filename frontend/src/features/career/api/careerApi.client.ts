@@ -154,3 +154,11 @@ import { validatePerformances } from './careerCl.contract';
 export function getCareerAppearances(career: string, year: number, player: string, signal: AbortSignal) { return request(`${ROOT}/${encodeURIComponent(career)}/development/${year}/players/${encodeURIComponent(player)}/appearances`, { method: 'GET' }, signal, validatePerformances, [200]); }
 import { validateClResult } from './careerCl.contract';
 export function getCareerClResult(career: string, year: number, match: string, signal: AbortSignal) { return request(`${ROOT}/${encodeURIComponent(career)}/cl/${year}/results/${encodeURIComponent(match)}`, { method: 'GET' }, signal, validateClResult, [200]); }
+
+import { validateOverseas } from './careerOverseas.contract';
+export function getCareerOverseas(career: string, year: number, league: string, event: string, signal: AbortSignal) {
+  return request(`${ROOT}/${encodeURIComponent(career)}/overseas/${year}?league=${encodeURIComponent(league)}&event=${encodeURIComponent(event)}`, { method: 'GET' }, signal, validateOverseas, [200]);
+}
+export function getCareerOverseasResult(career: string, year: number, event: string, match: string, signal: AbortSignal) {
+  return request(`${ROOT}/${encodeURIComponent(career)}/overseas/${year}/${encodeURIComponent(event)}/results/${encodeURIComponent(match)}`, { method: 'GET' }, signal, validateClResult, [200]);
+}

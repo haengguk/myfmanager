@@ -430,7 +430,10 @@ public final class CareerCalendarApplicationService {
                 || "ATTENTION_REQUIRED".equals(reason)
                 || "SEASON_CANCELLED".equals(reason)
                 || "COMPETITION_TRANSITION_REQUIRED".equals(reason)
-                || "SEASON_NOT_READY".equals(reason);
+                || "SEASON_NOT_READY".equals(reason)
+                // Completion can clear these gates without advancing the saved Calendar row.
+                || "AUTO_COMPETITION_FIXTURE_REQUIRED".equals(reason)
+                || "MANAGED_COMPETITION_FIXTURE_REQUIRED".equals(reason);
     }
 
     private CareerCalendarRelationalStore.CalendarRow ready(

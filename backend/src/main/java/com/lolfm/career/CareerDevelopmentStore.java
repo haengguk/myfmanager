@@ -93,7 +93,7 @@ public final class CareerDevelopmentStore {
     static Map<String,List<LocalDate>> fixtures(JdbcTemplate jdbc,String career) {
         var result=new TreeMap<String,List<LocalDate>>();
         jdbc.query("SELECT scheduled_date,first_team_code,second_team_code,competition_id FROM career_competition_fixture WHERE career_id=? AND lifecycle_status<>'COMPLETED'",(org.springframework.jdbc.core.RowCallbackHandler)r->{
-            for(int col:List.of(2,3)){String team=r.getString(col);if(team!=null)result.computeIfAbsent((team.contains(":")?team:"LCK:"+team)+(CareerClPolicy.isCl(r.getString(4))?"|DEVELOPMENT":""),k->new ArrayList<>()).add(r.getObject(1,LocalDate.class));}
+            for(int col:List.of(2,3)){String team=r.getString(col);if(team!=null)result.computeIfAbsent((team.equals("LEC:KCB")?"LEC:KC|DEVELOPMENT":(team.contains(":")?team:"LCK:"+team)+(CareerClPolicy.isCl(r.getString(4))?"|DEVELOPMENT":"")),k->new ArrayList<>()).add(r.getObject(1,LocalDate.class));}
         },career);
         var template=new CareerCalendarTemplate(new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules());
         int year=activeYear(jdbc,career);var rounds=template.leagueRoundDates(year);

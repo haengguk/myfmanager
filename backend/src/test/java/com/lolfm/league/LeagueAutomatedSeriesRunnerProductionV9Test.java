@@ -53,6 +53,8 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
             return new com.lolfm.career.CareerCalendarRelationalStore.AdvanceMutation(previous,calendarTemplate.eventCursor(calendarTemplate.project(2027),previous),row.lastProcessedEventId(),row.lastProcessedDate(),"ACTIVE",null,true,false,200,null,false);
         });
         var competitions=org.mockito.Mockito.spy(competitionService);
+        // The direct jump to the regular season intentionally omits earlier competitions.
+        org.mockito.Mockito.doNothing().when(competitions).reconcileForAdvance(org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyInt(),org.mockito.ArgumentMatchers.any());
         org.mockito.Mockito.doReturn(com.lolfm.career.CareerCompetitionApplicationService.CompetitionGate.clear()).when(competitions).gate(org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyInt(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any());
         var realCalendar=new com.lolfm.career.CareerCalendarApplicationService(calendarStore,calendarTemplate,new LeagueCareerCalendarService(leagueStore,leagueJobs,owner->true),competitions);
         var before=com.lolfm.career.CareerDevelopmentStore.load(jdbc,id);var state=realCalendar.view(c).state();String command=java.util.UUID.randomUUID().toString();

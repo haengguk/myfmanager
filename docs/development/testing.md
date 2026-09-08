@@ -1,5 +1,26 @@
 # Testing
 
+## Career 해외 리그 실행 V1 + 선행 재정·AI 게이트 (2026-09-08)
+
+신규 검증은 `CareerOverseasTournamentTest`, `CareerOverseasQualificationTest`의 순수 클래스 2개와
+`CareerOverseasExecutionTest`의 공유 저장/실행 통합 1개다. 기존 AI·재정·국제전·API·파일 저장 검사를 확장했다.
+17개 이벤트의 전체 대진은 통제 점수로 확인하고, 실제 Auto는 공통 BO1/BO3/BO5만 대표 실행했다.
+게이트의 초기 재현 3실패 뒤 29건 통과, 결합 집중 38건 통과, 추가 경계/롤백/정상 영입을 확인했다.
+프런트 `career:verify` 100건 및 build가 통과했으며, 격리 브라우저에서 실제 날짜 명령·BO1·결과/새로고침과
+G2 미실행 원본 요청 보관·명시적 KRW 재작성을 확인했다.
+
+계획된 전체 `test`는 **1회, 38분 28초, 274 suites/2,155건 중 2,141 통과·12 실패·기존 skip 2**다.
+후속 실행 전에 `/tmp/career-overseas-full-evidence/`에 원본 로그·XML·HTML·실패 목록을 보존했다.
+일반 리그 출전의 null competition 처리와 CL 완료 후 해시 갱신 순서라는 실제 회귀 2건,
+V23/추가 대회·상금 수 기대값과 기존 Cup/정규 시즌 날짜 준비를 고쳤다.
+실패 12건과 직접 영향을 받는 국내/CL/해외 실제 완료를 포함한 **8 suites/18건이 모두 통과했다(11분 26초)**.
+후속 로그·XML·집계는 `/tmp/career-overseas-post-full-evidence/`에 따로 보존했다.
+한정된 null/transaction 내 갱신 순서의 호출자와 API/파일 복구를 모두 검사했으므로 두 번째 전체 실행은 불필요했다.
+미해결 실패는 없지만 최종 tree의 clean full 통과로 보고하지 않는다.
+
+전체·집중 선택자, 브라우저 준비와 실제 엔진 실행 구간, 공식 규칙 공백/게임 정책은
+[해외 리그 통합 보고서](career-overseas-league-execution-v1.md)에 기록했다.
+
 ## Career AI 후속 수정·원화 재정·시즌 목표 V1 (2026-09-08)
 
 새 정책 테스트 클래스는 `CareerFinancePolicyTest` 한 개다. 기존 AI 계획, CL 완료,

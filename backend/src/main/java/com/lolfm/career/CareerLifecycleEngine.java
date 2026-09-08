@@ -8,7 +8,7 @@ import static com.lolfm.career.CareerManagementState.*;
 
 /** A single locked market operation's lifecycle state. */
 final class CareerLifecycleEngine {
-    final LocalDate appliedOn;Integer lastReview;boolean clEnabled;
+    final LocalDate appliedOn;Integer lastReview;boolean clEnabled,overseasEnabled;
     final Map<String,Person> people=new TreeMap<>();
     CareerLifecycleEngine(CareerLifecycleState state){appliedOn=state.appliedOn();lastReview=state.lastReviewedSeason();people.putAll(state.players());}
     CareerLifecycleState state(){return new CareerLifecycleState(CareerLifecyclePolicy.VERSION,appliedOn,lastReview,people);}
@@ -26,7 +26,8 @@ final class CareerLifecycleEngine {
     }
     void observePlacement(String id,CareerRosterStore.Membership member,LocalDate date) {
         var person=people.get(id);if(person==null)return;
-        boolean observed=member!=null&&member.ownerTeam()!=null&&"LCK".equals(CareerMarketPolicy.region(member.ownerTeam()))&&("FIRST_TEAM".equals(member.squad())||clEnabled&&"DEVELOPMENT".equals(member.squad()))&&member.eligibilityReason()==null&&!retired(id);
+        boolean guest=member!=null&&overseasEnabled&&"LEC:KCB".equals(member.organizationId());
+        boolean observed=member!=null&&member.ownerTeam()!=null&&(guest||"FIRST_TEAM".equals(member.squad())&&("LCK".equals(CareerMarketPolicy.region(member.ownerTeam()))||overseasEnabled)||"LCK".equals(CareerMarketPolicy.region(member.ownerTeam()))&&clEnabled&&"DEVELOPMENT".equals(member.squad()))&&member.eligibilityReason()==null&&!retired(id);
         if(!observed&&person.domesticObservedSince()!=null)people.put(id,person.domesticSince(null));
         else if(observed&&(person.domesticObservedSince()==null||!member.squad().equals(person.observedSquad())))people.put(id,person.domesticSince(date,member.squad()));
     }

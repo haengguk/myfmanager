@@ -1,0 +1,2756 @@
+{
+  "version": "CAREER_OVERSEAS_EXECUTION_V1",
+  "sourceHash": "3a0fdf9602c84c1f2351141138385502aa46c2eff240354bd4195e5ed6b3f163",
+  "referenceSeason": 2026,
+  "checkedOn": "2026-09-08",
+  "sources": [
+    {
+      "id": "G01",
+      "authority": "OFFICIAL_SEASON_HANDBOOK",
+      "organization": "Riot Games / LoL Esports",
+      "title": "2026 League Handbook — regional season overview",
+      "url": "https://lolesports.com/ko-KR/season/115547545029543948/handbook/115548016979679444",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 4,
+      "use": "Global season order, Tier-1 regions, regional-to-global qualification overview",
+      "notes": null
+    },
+    {
+      "id": "G02",
+      "authority": "OFFICIAL_SEASON_ANNOUNCEMENT",
+      "organization": "Riot Games / LoL Esports",
+      "title": "Season Start 2026: LoL Esports",
+      "url": "https://lolesports.com/ko-KR/news/season-start-2026-lol-esports",
+      "publishedAt": "2026-01-08",
+      "checkedAt": "2026-09-06",
+      "priority": 3,
+      "use": "Regional opening dates; First Stand field and all-Bo5/Fearless overview",
+      "notes": null
+    },
+    {
+      "id": "G03",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "First Stand 2026 Primer",
+      "url": "https://lolesports.com/en-US/news/fst-2026-primer",
+      "publishedAt": "2026-03-02",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "First Stand dates, participants and international context",
+      "notes": null
+    },
+    {
+      "id": "G04",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "Americas Cup Primer",
+      "url": "https://lolesports.com/en-US/news/americas-",
+      "publishedAt": "2026-02-18",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "LCS/CBLOL second- and third-place crossover tournament and Korea bootcamp reward",
+      "notes": null
+    },
+    {
+      "id": "G05",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "MSI 2026 format explainer / primer",
+      "url": "https://lolesports.com/en-US/news/msi-2026-format-explainer",
+      "publishedAt": "2026-06-15",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "MSI regional slot distribution and event structure",
+      "notes": null
+    },
+    {
+      "id": "G06",
+      "authority": "OFFICIAL_GLOBAL_POLICY",
+      "organization": "Riot Games / LoL Esports",
+      "title": "2026 MSI and Worlds qualification updates",
+      "url": "https://lolesports.com/en-US/news/msi-and-worlds-updates-venues-ticket-information-and-more",
+      "publishedAt": "2026-03-22",
+      "checkedAt": "2026-09-06",
+      "priority": 2,
+      "use": "MSI champion conditional Worlds qualification and runner-up region additional Worlds slot",
+      "notes": null
+    },
+    {
+      "id": "G07",
+      "authority": "OFFICIAL_SEASON_HANDBOOK",
+      "organization": "Riot Games / LoL Esports",
+      "title": "2026 Worlds League Handbook",
+      "url": "https://lolesports.com/ko-KR/season/115547545029543948/handbook/115548016979679448",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 4,
+      "use": "World Championship season endpoint",
+      "notes": null
+    },
+    {
+      "id": "P01",
+      "authority": "OFFICIAL_TOURNAMENT_PAGE",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LPL 2026 Split 1 overview",
+      "url": "https://lolesports.com/en-GB/tournament/115610660442964993/overview",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 2,
+      "use": "Split 1 groups, Knights Rivals, knockout and First Stand qualification",
+      "notes": null
+    },
+    {
+      "id": "P02",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Liquipedia",
+      "title": "LPL 2026 Split 1",
+      "url": "https://liquipedia.net/leagueoflegends/LPL/2026/Split_1",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Exact group routing, tie-break order, First Selection and exact dates",
+      "notes": null
+    },
+    {
+      "id": "P03",
+      "authority": "OFFICIAL_TOURNAMENT_PAGE",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LPL 2026 Split 2 overview",
+      "url": "https://lolesports.com/en-GB/tournament/115615907996665826/overview",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 2,
+      "use": "Split 2 high-level group and international qualification structure",
+      "notes": null
+    },
+    {
+      "id": "P04",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Liquipedia",
+      "title": "LPL 2026 Split 2",
+      "url": "https://liquipedia.net/leagueoflegends/LPL/2026/Split_2",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Observed bracket-compatible routing, tie-break order, First Selection and dates",
+      "notes": "Used where the official overview's direct-qualification count conflicts with the completed bracket."
+    },
+    {
+      "id": "P05",
+      "authority": "OFFICIAL_TOURNAMENT_PAGE",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LPL 2026 Split 3 overview",
+      "url": "https://lolesports.com/en-GB/tournament/115616254668930796/overview",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 2,
+      "use": "12-team Split 3 groups, Knights Rivals, playoffs and Worlds path",
+      "notes": null
+    },
+    {
+      "id": "P06",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Liquipedia",
+      "title": "LPL 2026 Split 3",
+      "url": "https://liquipedia.net/leagueoflegends/LPL/2026/Split_3",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Exact dates, active bracket labels and match schedule cross-check",
+      "notes": null
+    },
+    {
+      "id": "P07",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Leaguepedia",
+      "title": "LPL 2026 Championship Points",
+      "url": "https://lol.fandom.com/wiki/LPL/2026_Season/Championship_Points",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Split-by-split Championship Point table and Worlds point tie-break",
+      "notes": null
+    },
+    {
+      "id": "P08",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Liquipedia",
+      "title": "LPL 2026 Regional Finals",
+      "url": "https://liquipedia.net/leagueoflegends/LPL/2026/Regional_Finals",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Regional Finals participant selection and two Worlds qualifiers",
+      "notes": null
+    },
+    {
+      "id": "P09",
+      "authority": "SECONDARY_NEWS",
+      "organization": "Esports Insider",
+      "title": "LPL Split 1 2026 format changes and schedule",
+      "url": "https://esportsinsider.com/2026/01/lpl-split-1-2026-format-changes",
+      "publishedAt": "2026-01-08",
+      "checkedAt": "2026-09-06",
+      "priority": 7,
+      "use": "Exact Split 1 windows and Championship Point cross-check",
+      "notes": null
+    },
+    {
+      "id": "P10",
+      "authority": "TERTIARY_COMMUNITY_WIKI",
+      "organization": "NamuWiki",
+      "title": "League of Legends Pro League",
+      "url": "https://d.namu.moe/w/League%20of%20Legends%20Pro%20League",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 8,
+      "use": "Korean-language tertiary cross-check only; never overrides Riot/event pages",
+      "notes": null
+    },
+    {
+      "id": "P11",
+      "authority": "SECONDARY_NEWS",
+      "organization": "Dot Esports",
+      "title": "Hanwha Life Esports win MSI 2026 over Bilibili Gaming",
+      "url": "https://dotesports.com/league-of-legends/news/hanwha-life-esports-win-msi-2026",
+      "publishedAt": "2026-07-12",
+      "checkedAt": "2026-09-06",
+      "priority": 7,
+      "use": "BLG runner-up result used with Riot's global additional-slot policy",
+      "notes": null
+    },
+    {
+      "id": "E01",
+      "authority": "OFFICIAL_FORMAT_ANNOUNCEMENT",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LEC 2026 format update",
+      "url": "https://lolesports.com/en-GB/news/lec-2026-format-update-evolving-the-lol-esports-emea-experience",
+      "publishedAt": "2025-10-23",
+      "checkedAt": "2026-09-06",
+      "priority": 2,
+      "use": "Versus replacement for Winter and Spring/Summer core formats",
+      "notes": null
+    },
+    {
+      "id": "E02",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LEC Versus 2026 Primer",
+      "url": "https://lolesports.com/en-GB/news/lec-versus-2026-primer",
+      "publishedAt": "2025-12-16",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "12-team Bo1 round robin, top-eight double elimination and series lengths",
+      "notes": null
+    },
+    {
+      "id": "E03",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Liquipedia",
+      "title": "LEC 2026 Versus",
+      "url": "https://liquipedia.net/leagueoflegends/LEC/2026/Versus",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Exact regular/playoff date windows and bracket cross-check",
+      "notes": null
+    },
+    {
+      "id": "E04",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "2026 LEC Spring Primer",
+      "url": "https://lolesports.com/en-GB/news/2026-lec-spring-primer",
+      "publishedAt": "2026-03-06",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Spring dates, Bo3 regular season, six-team Bo5 playoffs and MSI berths",
+      "notes": null
+    },
+    {
+      "id": "E05",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Liquipedia",
+      "title": "LEC 2026 Spring",
+      "url": "https://liquipedia.net/leagueoflegends/LEC/2026/Spring",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Top-four upper/top-two lower seeding and regular-season tie-break chain",
+      "notes": null
+    },
+    {
+      "id": "E06",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LEC Summer 2026: format, Roadtrips and tickets",
+      "url": "https://lolesports.com/en-GB/news/2026-lec-summer-format-roadtrips-tickets",
+      "publishedAt": "2026-07-09",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Summer exact windows, Bo3 regular season, six-team Bo5 playoffs and Worlds berths",
+      "notes": null
+    },
+    {
+      "id": "E07",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Liquipedia",
+      "title": "LEC 2026 Summer",
+      "url": "https://liquipedia.net/leagueoflegends/LEC/2026/Summer",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Summer seeding/tie-break and playoff bracket cross-check",
+      "notes": null
+    },
+    {
+      "id": "C01",
+      "authority": "OFFICIAL_FORMAT_ANNOUNCEMENT",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LCP 2026 Format Updates",
+      "url": "https://lolesports.com/en-SG/news/lcp-2026-format-updates",
+      "publishedAt": "2025-11-05",
+      "checkedAt": "2026-09-06",
+      "priority": 2,
+      "use": "Three-split format, all-Bo5 playoffs, Split 3 Swiss, points, 2v2 side selection and P&R",
+      "notes": null
+    },
+    {
+      "id": "C02",
+      "authority": "OFFICIAL_SEASON_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LCP 2026 Season Primer",
+      "url": "https://lolesports.com/en-AU/news/lcp-2026-season-primer",
+      "publishedAt": "2026-01-05",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Split windows, Championship Point formulas, global qualification and P&R selection concept",
+      "notes": null
+    },
+    {
+      "id": "C03",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LCP 2026 Split 2",
+      "url": "https://lolesports.com/en-SG/news/lcp-2026-split-2-etynk",
+      "publishedAt": "2026-03-24",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Split 2 schedule and two-path MSI qualification",
+      "notes": null
+    },
+    {
+      "id": "C04",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LCP 2026 Split 3 — Everything You Need to Know",
+      "url": "https://lolesports.com/en-AU/news/lcp-2026-split-3-everything-you-need-to-know",
+      "publishedAt": "2026-07-09",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Swiss matching/Bo rules, final seeding, Worlds, point tie-break and P&R dates",
+      "notes": null
+    },
+    {
+      "id": "C05",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Liquipedia",
+      "title": "LCP 2026 Championship Points",
+      "url": "https://liquipedia.net/leagueoflegends/LCP/2026/Championship_Points",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Point ledger cross-check",
+      "notes": null
+    },
+    {
+      "id": "B01",
+      "authority": "OFFICIAL_FORMAT_ANNOUNCEMENT",
+      "organization": "Riot Games / LoL Esports",
+      "title": "Tudo sobre o CBLOL 2026",
+      "url": "https://lolesports.com/pt-BR/news/tudo-sobre-o-cblol-2026",
+      "publishedAt": "2025-11-05",
+      "checkedAt": "2026-09-06",
+      "priority": 2,
+      "use": "Three-event season and high-level Copa/Stage format",
+      "notes": "Broad announcement is superseded by later event primers when match-length text conflicts."
+    },
+    {
+      "id": "B02",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "Copa CBLOL 2026 — tudo que você precisa saber",
+      "url": "https://lolesports.com/pt-BR/news/copa-cblol-2026-tudo-que-voc-precisa-saber",
+      "publishedAt": "2025-12-18",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Copa regular season, play-in routing, detailed playoff schedule and First Stand berth",
+      "notes": null
+    },
+    {
+      "id": "B03",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "CBLOL 2026 Etapa 1 Primer",
+      "url": "https://lolesports.com/pt-BR/news/cblol-2026-tudo-que-voc-precisa-saber-sobre-a-etapa-1",
+      "publishedAt": "2026-03-18",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Etapa 1 Bo3 regular season, six-team double-elimination Bo5 playoffs and MSI berth",
+      "notes": null
+    },
+    {
+      "id": "B04",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "CBLOL 2026 Etapa 2 Primer",
+      "url": "https://lolesports.com/pt-BR/news/cblol-2026-tudo-que-voc-precisa-saber-sobre-a-etapa-2",
+      "publishedAt": "2026-07-09",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Etapa 2 format, Worlds berths and October 10 final",
+      "notes": "Article contains apparent weekday/month typos in an internal week list; those dates are not materialized."
+    },
+    {
+      "id": "B05",
+      "authority": "OFFICIAL_TIER2_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "Circuito Desafiante 2026 Etapa 2 Primer",
+      "url": "https://lolesports.com/pt-BR/news/circuito-desafiante-2026-tudo-que-voc-precisa-saber-sobre-a-etapa-2",
+      "publishedAt": "2026-07-09",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "2027 CBLOL promotion participants, Academy ineligibility and five-team double-elimination Bo5",
+      "notes": null
+    },
+    {
+      "id": "B06",
+      "authority": "OFFICIAL_TOURNAMENT_PAGE",
+      "organization": "Riot Games / LoL Esports",
+      "title": "Copa CBLOL 2026 tournament overview",
+      "url": "https://lolesports.com/pt-BR/tournament/115565518151768348/overview",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 3,
+      "use": "Copa high-level advancement cross-check",
+      "notes": null
+    },
+    {
+      "id": "N01",
+      "authority": "OFFICIAL_FORMAT_ANNOUNCEMENT",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LCS 2026 Updates",
+      "url": "https://lolesports.com/en-US/news/lcs-2026-updates",
+      "publishedAt": "2025-11-05",
+      "checkedAt": "2026-09-06",
+      "priority": 2,
+      "use": "Lock-In Swiss, Spring/Summer round robin and postseason structures",
+      "notes": null
+    },
+    {
+      "id": "N02",
+      "authority": "OFFICIAL_SEASON_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "LCS 2026 Address",
+      "url": "https://lolesports.com/news/lcs-2026-address",
+      "publishedAt": "2026-01-12",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Teams, split windows, qualification and Americas Cup/bootcamp details",
+      "notes": null
+    },
+    {
+      "id": "N03",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "2026 LCS Lock-In Playoffs and Finals Primer",
+      "url": "https://lolesports.com/en-US/news/2026-lcs-lock-in-playoffs-and-finals-primer",
+      "publishedAt": "2026-02-17",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Lock-In qualified teams, playoff/final context",
+      "notes": null
+    },
+    {
+      "id": "N04",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "2026 LCS Spring Split Primer",
+      "url": "https://lolesports.com/en-US/news/2026-lcs-spring-split-primer",
+      "publishedAt": "2026-03-08",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Spring exact schedule, six-team double elimination and MSI berths",
+      "notes": null
+    },
+    {
+      "id": "N05",
+      "authority": "OFFICIAL_EVENT_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "2026 LCS Summer Primer",
+      "url": "https://lolesports.com/en-US/news/2026-lcs-summer-primer",
+      "publishedAt": "2026-06-15",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Summer exact schedule, lower-bracket gauntlet and three Worlds berths",
+      "notes": null
+    },
+    {
+      "id": "N06",
+      "authority": "SECONDARY_STRUCTURED_WIKI",
+      "organization": "Leaguepedia",
+      "title": "LCS 2026 Summer Playoffs",
+      "url": "https://lol.fandom.com/wiki/LCS/2026_Season/Summer_Playoffs",
+      "publishedAt": null,
+      "checkedAt": "2026-09-06",
+      "priority": 6,
+      "use": "Top-two bye/top-six modified double-elimination bracket cross-check",
+      "notes": null
+    },
+    {
+      "id": "N07",
+      "authority": "OFFICIAL_TIER2_POLICY",
+      "organization": "Riot Games / LoL Esports",
+      "title": "NACL Updates for 2026",
+      "url": "https://lolesports.com/en-US/news/nacl-updates-for-2026",
+      "publishedAt": "2025-12-16",
+      "checkedAt": "2026-09-06",
+      "priority": 2,
+      "use": "2026 NACL path-to-pro calendar/policy",
+      "notes": null
+    },
+    {
+      "id": "N08",
+      "authority": "OFFICIAL_TIER2_PRIMER",
+      "organization": "Riot Games / LoL Esports",
+      "title": "2026 NACL Summer Split Primer",
+      "url": "https://lolesports.com/en-US/news/2026",
+      "publishedAt": "2026-07-10",
+      "checkedAt": "2026-09-06",
+      "priority": 1,
+      "use": "Top two NACL teams advance to the LCS Promotion Tournament against DSG; exact bracket pending",
+      "notes": null
+    }
+  ],
+  "leagues": [
+    {
+      "leagueId": "LPL",
+      "officialName": "League of Legends Pro League",
+      "displayNameKo": "중국 LPL",
+      "region": "China",
+      "organizer": "TJ Sports / Riot Games",
+      "timezone": "Asia/Shanghai",
+      "seasonTeamUniverse": [
+        "AL",
+        "BLG",
+        "EDG",
+        "IG",
+        "JDG",
+        "LGD",
+        "LNG",
+        "NIP",
+        "OMG",
+        "TT",
+        "TES",
+        "UP",
+        "WE",
+        "WBG"
+      ],
+      "seasonOrder": [
+        "lpl_split_1_2026",
+        "lpl_split_2_2026",
+        "lpl_split_3_2026",
+        "lpl_regional_finals_2026"
+      ],
+      "events": [
+        {
+          "eventId": "lpl_split_1_2026",
+          "name": "LPL 2026 Split 1",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_PARTIAL",
+          "startDate": "2026-01-14",
+          "endDate": "2026-03-08",
+          "participantTeams": [
+            "AL",
+            "BLG",
+            "EDG",
+            "IG",
+            "JDG",
+            "LGD",
+            "LNG",
+            "NIP",
+            "OMG",
+            "TT",
+            "TES",
+            "UP",
+            "WE",
+            "WBG"
+          ],
+          "formatSummary": "14 teams split 6/4/4 by 2025 performance; intra-group double round robin Bo3, hybrid Knights Rivals Bo5, then eight-team double-elimination Bo5.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Group Stage",
+              "status": "SECONDARY_CROSSCHECK",
+              "startDate": "2026-01-14",
+              "endDate": "2026-02-06",
+              "participants": 14,
+              "structure": "Three seeded groups: Ascend 6, Perseverance 4, Nirvana 4; double round robin within each group.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "First meeting Game 1 random; return meeting alternates; prior-game loser gets next-game First Selection (secondary structured source).",
+              "advancement": [
+                "Ascend top 4 -> Knockout Stage",
+                "Ascend bottom 2 + Perseverance top 2 -> Knights Rivals Round 1",
+                "Perseverance bottom 2 + Nirvana top 2 -> Knights Rivals Round 2",
+                "Nirvana bottom 2 -> eliminated for Split 1"
+              ],
+              "tiebreakers": [
+                "Series wins",
+                "Game difference",
+                "Head-to-head series wins",
+                "Head-to-head game difference",
+                "Conditional Bo3 tiebreaker"
+              ],
+              "seriesCount": {
+                "value": 54,
+                "status": "DERIVED",
+                "derivation": "C(6,2)*2 + C(4,2)*2 + C(4,2)*2"
+              },
+              "sourceIds": [
+                "P01",
+                "P02",
+                "P09"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "knights",
+              "name": "Knights Rivals",
+              "status": "SECONDARY_CROSSCHECK",
+              "startDate": "2026-02-09",
+              "endDate": "2026-02-11",
+              "participants": 8,
+              "structure": "Hybrid elimination: two Round-1 winners qualify directly; Round-1 losers join two Round-2 winners, reseeded for Round 3; two Round-3 winners qualify.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "Higher group/regular-season seed gets Game 1 First Selection; prior-game loser gets subsequent First Selection (secondary structured source).",
+              "advancement": [
+                "Four winners -> eight-team Knockout Stage"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 6,
+                "status": "DERIVED",
+                "derivation": "2 Round 1 + 2 Round 2 + 2 Round 3"
+              },
+              "sourceIds": [
+                "P01",
+                "P02",
+                "P09"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Knockout Stage",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-02-24",
+              "endDate": "2026-03-08",
+              "participants": 8,
+              "structure": "Standard eight-team double-elimination bracket; Group Ascend direct qualifiers choose upper-quarterfinal opponents in seed order.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "Upper-quarterfinal direct qualifiers receive Game 1 entitlement; later rounds follow event First Selection rules (secondary structured source).",
+              "advancement": [
+                "Top 2 -> First Stand 2026",
+                "Champion -> 80 CP",
+                "Runner-up -> 50 CP"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 14,
+                "status": "DERIVED",
+                "derivation": "Standard eight-team double elimination with no grand-final reset"
+              },
+              "sourceIds": [
+                "P01",
+                "P02"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "FIRST_STAND_2026",
+              "slots": 2,
+              "method": "final placement",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "championshipPoints": {
+            "1": 80,
+            "2": 50,
+            "3": 40,
+            "4": 20,
+            "5-6": 10,
+            "7-8": 5,
+            "9-14": 0
+          },
+          "sourceIds": [
+            "P01",
+            "P02",
+            "P09",
+            "G02"
+          ]
+        },
+        {
+          "eventId": "lpl_split_2_2026",
+          "name": "LPL 2026 Split 2",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "SOURCE_CONFLICT",
+          "startDate": "2026-04-04",
+          "endDate": "2026-06-14",
+          "participantTeams": [
+            "AL",
+            "BLG",
+            "EDG",
+            "IG",
+            "JDG",
+            "LGD",
+            "LNG",
+            "NIP",
+            "OMG",
+            "TT",
+            "TES",
+            "UP",
+            "WE",
+            "WBG"
+          ],
+          "formatSummary": "Top eight from Split 1 form Ascend and play double round robin; remaining six form Nirvana and play single round robin; four direct and four Knights winners enter an eight-team double-elimination playoff.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Group Stage",
+              "status": "SOURCE_CONFLICT",
+              "startDate": "2026-04-04",
+              "endDate": "2026-05-17",
+              "participants": 14,
+              "structure": "Ascend 8 double round robin; Nirvana 6 single round robin.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "First meeting Game 1 coin flip; Ascend return meeting alternates; prior-game loser gets next-game First Selection.",
+              "advancement": [
+                "Ascend top 4 -> Knockout Stage (selected because completed bracket and structured source require four; official overview surface said top two)",
+                "Ascend 5-8 + Nirvana top 4 -> Knights Rivals",
+                "Nirvana bottom 2 -> eliminated from remaining 2026 LPL season"
+              ],
+              "tiebreakers": [
+                "Series wins",
+                "Game difference",
+                "Head-to-head series wins",
+                "Head-to-head game difference",
+                "Conditional Bo3 tiebreaker"
+              ],
+              "seriesCount": {
+                "value": 71,
+                "status": "DERIVED",
+                "derivation": "C(8,2)*2 + C(6,2)"
+              },
+              "sourceIds": [
+                "P03",
+                "P04"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "knights",
+              "name": "Knights Rivals",
+              "status": "SECONDARY_CROSSCHECK",
+              "startDate": "2026-05-23",
+              "endDate": "2026-05-24",
+              "participants": 8,
+              "structure": "Four independent cross-group Bo5 qualification series.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "Ascend team receives Game 1 First Selection; prior-game loser receives later-game entitlement.",
+              "advancement": [
+                "Four winners -> Knockout Stage"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 4,
+                "status": "DERIVED",
+                "derivation": "Eight teams paired into four qualification series"
+              },
+              "sourceIds": [
+                "P03",
+                "P04"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Knockout Stage",
+              "status": "OFFICIAL_PARTIAL",
+              "startDate": "2026-05-29",
+              "endDate": "2026-06-14",
+              "participants": 8,
+              "structure": "Standard eight-team double-elimination bracket, all Bo5.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "Direct qualifiers choose upper-quarterfinal opponents; detailed First Selection follows event rules.",
+              "advancement": [
+                "Top 2 -> MSI 2026",
+                "Placement awards Split 2 Championship Points"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 14,
+                "status": "DERIVED",
+                "derivation": "Standard eight-team double elimination with no reset"
+              },
+              "sourceIds": [
+                "P03",
+                "P04"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "MSI_2026",
+              "slots": 2,
+              "method": "final placement",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "championshipPoints": {
+            "1": 110,
+            "2": 80,
+            "3": 50,
+            "4": 30,
+            "5-6": 15,
+            "7-8": 10,
+            "9-14": 0
+          },
+          "sourceIds": [
+            "P03",
+            "P04",
+            "G05"
+          ]
+        },
+        {
+          "eventId": "lpl_split_3_2026",
+          "name": "LPL 2026 Split 3",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_PARTIAL",
+          "startDate": "2026-07-22",
+          "endDate": "2026-09-13",
+          "participantTeams": [
+            "AL",
+            "BLG",
+            "EDG",
+            "IG",
+            "JDG",
+            "LGD",
+            "LNG",
+            "NIP",
+            "TT",
+            "TES",
+            "WE",
+            "WBG"
+          ],
+          "formatSummary": "Twelve remaining teams split into Ascend 8 and Nirvana 4; both double round robin Bo3; six direct playoff teams and two Knights winners enter a modified double-elimination playoff.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Group Stage",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-07-22",
+              "endDate": "2026-08-23",
+              "participants": 12,
+              "structure": "Ascend 8 and Nirvana 4, each playing double round robin Bo3.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2026 First Selection; exact round entitlement follows LPL event rules.",
+              "advancement": [
+                "Ascend top 6 -> Season Playoffs",
+                "Ascend bottom 2 + Nirvana top 2 -> Knights Rivals",
+                "Nirvana bottom 2 -> eliminated"
+              ],
+              "tiebreakers": [
+                "Series wins",
+                "Game difference",
+                "Head-to-head",
+                "Conditional tiebreaker if required"
+              ],
+              "seriesCount": {
+                "value": 68,
+                "status": "DERIVED",
+                "derivation": "C(8,2)*2 + C(4,2)*2"
+              },
+              "sourceIds": [
+                "P05",
+                "P06"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "knights",
+              "name": "Knights Rivals",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-08-28",
+              "endDate": "2026-08-28",
+              "participants": 4,
+              "structure": "Two direct Bo5 qualification series between Ascend bottom two and Nirvana top two.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Two winners -> lower-bracket entry in Season Playoffs"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 2,
+                "status": "DERIVED",
+                "derivation": "Four entrants paired into two Bo5s"
+              },
+              "sourceIds": [
+                "P05",
+                "P06"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Season Playoffs",
+              "status": "OFFICIAL_PARTIAL",
+              "startDate": "2026-08-29",
+              "endDate": "2026-09-13",
+              "participants": 8,
+              "structure": "Modified double elimination: Ascend top two receive upper-semifinal byes; Ascend 3-6 start upper quarterfinals; Knights winners enter lower round 1.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Champion -> Worlds as LPL #1",
+                "Highest season Championship Points among non-champion -> Worlds as LPL #2",
+                "Up to four next-highest CP teams -> Regional Finals"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 12,
+                "status": "DERIVED",
+                "derivation": "2 UBQF + 2 UBSF + UBF + 2 LBR1 + 2 LBQF + LBSF + LBF + GF"
+              },
+              "sourceIds": [
+                "P05",
+                "P06",
+                "P07"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "WORLDS_2026",
+              "slots": 1,
+              "method": "Split 3 champion",
+              "seed": 1,
+              "status": "OFFICIAL_CONFIRMED"
+            },
+            {
+              "destination": "WORLDS_2026",
+              "slots": 1,
+              "method": "highest season Championship Points excluding champion",
+              "seed": 2,
+              "status": "SECONDARY_CROSSCHECK"
+            },
+            {
+              "destination": "LPL_REGIONAL_FINALS_2026",
+              "slots": 4,
+              "method": "highest CP excluding already-qualified teams",
+              "status": "OFFICIAL_PARTIAL"
+            }
+          ],
+          "championshipPoints": {
+            "1": 300,
+            "2": 110,
+            "3": 80,
+            "4": 50,
+            "5-6": 30,
+            "7-8": 15,
+            "9-12": 0
+          },
+          "sourceIds": [
+            "P05",
+            "P06",
+            "P07",
+            "G06",
+            "P11"
+          ],
+          "notes": [
+            "Official LPL surface expresses 2–3 remaining regional-final Worlds places because the global bonus is conditional.",
+            "As of 2026-09-06 BLG finished MSI runner-up, so Riot's runner-up-region bonus makes the current LPL allocation four Worlds teams; the Regional Finals therefore sends two."
+          ]
+        },
+        {
+          "eventId": "lpl_regional_finals_2026",
+          "name": "LPL 2026 Regional Finals",
+          "eventKind": "REGIONAL_QUALIFIER",
+          "status": "SECONDARY_CROSSCHECK",
+          "startDate": "2026-09-17",
+          "endDate": "2026-09-19",
+          "participantTeams": [],
+          "participantSelection": "Up to four highest Championship Point teams excluding Split 3 champion and highest-CP automatic qualifier; CP ties favor more Split 3 points.",
+          "formatSummary": "Four-team modified double elimination: top two CP teams begin upper, next two begin lower; upper-path winner and surviving lower-path winner qualify.",
+          "stages": [
+            {
+              "stageId": "regional_final",
+              "name": "Regional Final Bracket",
+              "status": "SECONDARY_CROSSCHECK",
+              "startDate": "2026-09-17",
+              "endDate": "2026-09-19",
+              "participants": 4,
+              "structure": "Upper match between CP seeds 1-2; lower elimination between CP seeds 3-4; upper loser meets lower winner.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Upper winner -> Worlds LPL #3",
+                "Lower-path winner -> Worlds LPL #4"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 3,
+                "status": "DERIVED",
+                "derivation": "Upper qualifier + lower elimination + lower qualifier"
+              },
+              "sourceIds": [
+                "P08",
+                "G06",
+                "P11"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "WORLDS_2026",
+              "slots": 2,
+              "method": "upper-path winner and lower-path winner",
+              "seeds": [
+                3,
+                4
+              ],
+              "status": "SECONDARY_CROSSCHECK"
+            }
+          ],
+          "sourceIds": [
+            "P08",
+            "G06",
+            "P11"
+          ]
+        }
+      ],
+      "championshipPointSystem": {
+        "status": "SECONDARY_CROSSCHECK",
+        "sourceIds": [
+          "P07"
+        ],
+        "distributions": {
+          "split1": {
+            "1": 80,
+            "2": 50,
+            "3": 40,
+            "4": 20,
+            "5-6": 10,
+            "7-8": 5,
+            "9-14": 0
+          },
+          "split2": {
+            "1": 110,
+            "2": 80,
+            "3": 50,
+            "4": 30,
+            "5-6": 15,
+            "7-8": 10,
+            "9-14": 0
+          },
+          "split3": {
+            "1": 300,
+            "2": 110,
+            "3": 80,
+            "4": 50,
+            "5-6": 30,
+            "7-8": 15,
+            "9-12": 0
+          }
+        },
+        "worldsRules": [
+          "Split 3 champion is LPL #1.",
+          "Highest total CP team not already champion is LPL #2.",
+          "If tied on total CP, higher Split 3 points rank higher.",
+          "Current 2026 global bonus gives LPL two Regional Finals berths to Worlds (#3 and #4)."
+        ]
+      },
+      "promotionRelegation": {
+        "status": "NOT_APPLICABLE",
+        "rule": "LPL partner-team field; no 2026 sporting promotion/relegation path modeled."
+      },
+      "sourceIds": [
+        "P01",
+        "P03",
+        "P05",
+        "P07",
+        "P08"
+      ]
+    },
+    {
+      "leagueId": "LEC",
+      "officialName": "League of Legends EMEA Championship",
+      "displayNameKo": "유럽·중동·아프리카 LEC",
+      "region": "EMEA",
+      "organizer": "Riot Games",
+      "timezone": "Europe/Berlin",
+      "seasonTeamUniverse": [
+        "FNC",
+        "G2",
+        "GX",
+        "KC",
+        "MKOI",
+        "NAVI",
+        "SHFT",
+        "SK",
+        "TH",
+        "VIT"
+      ],
+      "seasonOrder": [
+        "lec_versus_2026",
+        "lec_spring_2026",
+        "lec_summer_2026"
+      ],
+      "events": [
+        {
+          "eventId": "lec_versus_2026",
+          "name": "LEC Versus 2026",
+          "eventKind": "REGIONAL_INVITATIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-01-17",
+          "endDate": "2026-03-01",
+          "participantTeams": [
+            "FNC",
+            "G2",
+            "GX",
+            "KC",
+            "MKOI",
+            "NAVI",
+            "SHFT",
+            "SK",
+            "TH",
+            "VIT",
+            "LR",
+            "KCB"
+          ],
+          "guestTeams": [
+            "Los Ratones",
+            "Karmine Corp Blue"
+          ],
+          "formatSummary": "Ten LEC teams plus two ERL guests play one 12-team Bo1 round robin; top eight enter double elimination, with rounds 1-2 Bo3 and later rounds Bo5.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Versus Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-01-17",
+              "endDate": "2026-02-08",
+              "participants": 12,
+              "structure": "Single round robin; every team plays each other once; six Bo1 matches per show day over four weeks.",
+              "seriesFormat": "BO1",
+              "draftRule": "STANDARD_SINGLE_GAME",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Top 8 -> Playoffs",
+                "Bottom 4 -> eliminated"
+              ],
+              "tiebreakers": [
+                "Official event tiebreak procedure applies; not fully reproduced in the public primer."
+              ],
+              "seriesCount": {
+                "value": 66,
+                "status": "DERIVED",
+                "derivation": "C(12,2)"
+              },
+              "sourceIds": [
+                "E02",
+                "E03"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Versus Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-02-16",
+              "endDate": "2026-03-01",
+              "participants": 8,
+              "structure": "Eight-team double-elimination bracket.",
+              "seriesFormat": {
+                "rounds1And2": "BO3",
+                "remaining": "BO5"
+              },
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2026 First Selection applies to multi-game series; exact entitlement follows event rules.",
+              "advancement": [
+                "Champion -> First Stand 2026"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 14,
+                "status": "DERIVED",
+                "derivation": "Standard eight-team double elimination with no reset"
+              },
+              "sourceIds": [
+                "E02",
+                "E03"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "FIRST_STAND_2026",
+              "slots": 1,
+              "method": "champion",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "E01",
+            "E02",
+            "E03",
+            "G02"
+          ]
+        },
+        {
+          "eventId": "lec_spring_2026",
+          "name": "LEC 2026 Spring",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-03-28",
+          "endDate": "2026-06-07",
+          "participantTeams": [
+            "FNC",
+            "G2",
+            "GX",
+            "KC",
+            "MKOI",
+            "NAVI",
+            "SHFT",
+            "SK",
+            "TH",
+            "VIT"
+          ],
+          "formatSummary": "Ten-team single-round-robin Bo3; top six to all-Bo5 double elimination; top two qualify to MSI.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Spring Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-03-28",
+              "endDate": "2026-05-10",
+              "participants": 10,
+              "structure": "Single round robin, Bo3.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2026 First Selection applies.",
+              "advancement": [
+                "Top 4 -> upper bracket",
+                "5th-6th -> lower bracket",
+                "7th-10th -> eliminated"
+              ],
+              "tiebreakers": [
+                "Head-to-head wins",
+                "Head-to-head game win percentage",
+                "Strength of Victory",
+                "LEC Versus standing"
+              ],
+              "seriesCount": {
+                "value": 45,
+                "status": "DERIVED",
+                "derivation": "C(10,2)"
+              },
+              "sourceIds": [
+                "E04",
+                "E05"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Spring Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-05-23",
+              "endDate": "2026-06-07",
+              "participants": 6,
+              "structure": "Six-team double elimination: top four begin upper; seeds 5-6 begin lower; all series Bo5.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2026 First Selection applies.",
+              "advancement": [
+                "Finalists -> MSI 2026"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 8,
+                "status": "DERIVED",
+                "derivation": "2 upper semifinals + upper final + 2 lower round 1 + lower semifinal + lower final + grand final"
+              },
+              "sourceIds": [
+                "E04",
+                "E05"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "MSI_2026",
+              "slots": 2,
+              "method": "finalists",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "E04",
+            "E05",
+            "G05"
+          ]
+        },
+        {
+          "eventId": "lec_summer_2026",
+          "name": "LEC 2026 Summer",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-07-24",
+          "endDate": "2026-09-20",
+          "participantTeams": [
+            "FNC",
+            "G2",
+            "GX",
+            "KC",
+            "MKOI",
+            "NAVI",
+            "SHFT",
+            "SK",
+            "TH",
+            "VIT"
+          ],
+          "formatSummary": "Spring format repeated: ten-team single-round-robin Bo3, six-team all-Bo5 double elimination, top three to Worlds.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Summer Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-07-24",
+              "endDate": "2026-08-30",
+              "participants": 10,
+              "structure": "Single round robin, Bo3; usually two series per show day and three on the final regular-season day.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2026 First Selection applies.",
+              "advancement": [
+                "Top 4 -> upper bracket",
+                "5th-6th -> lower bracket"
+              ],
+              "tiebreakers": [
+                "Head-to-head",
+                "Game win percentage/strength criteria",
+                "Spring standing as final published comparator where applicable"
+              ],
+              "seriesCount": {
+                "value": 45,
+                "status": "DERIVED",
+                "derivation": "C(10,2)"
+              },
+              "sourceIds": [
+                "E06",
+                "E07"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Summer Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-09-05",
+              "endDate": "2026-09-20",
+              "participants": 6,
+              "structure": "Six-team double elimination; all series Bo5; finals weekend September 18-20 in Nice.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2026 First Selection applies.",
+              "advancement": [
+                "Top 3 -> Worlds 2026"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 8,
+                "status": "DERIVED",
+                "derivation": "Same six-team bracket as Spring"
+              },
+              "sourceIds": [
+                "E06",
+                "E07"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "WORLDS_2026",
+              "slots": 3,
+              "method": "top three playoff finishers",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "E01",
+            "E06",
+            "E07"
+          ]
+        }
+      ],
+      "promotionRelegation": {
+        "status": "NOT_APPLICABLE_TO_PARTNER_SLOTS",
+        "rule": "No sporting promotion/relegation into the ten LEC partner slots. Two ERL teams are invited to Versus only and do not become LEC partner teams through placement.",
+        "sourceIds": [
+          "E01",
+          "E02"
+        ]
+      },
+      "sourceIds": [
+        "E01",
+        "E02",
+        "E04",
+        "E06"
+      ]
+    },
+    {
+      "leagueId": "LCP",
+      "officialName": "League of Legends Championship Pacific",
+      "displayNameKo": "아시아·태평양 LCP",
+      "region": "Asia-Pacific",
+      "organizer": "Riot Games with regional partners",
+      "timezone": "Asia/Taipei",
+      "seasonTeamUniverse": [
+        "CFO",
+        "DFM",
+        "DCG",
+        "GAM",
+        "GZ",
+        "MVK",
+        "SHG",
+        "TSW"
+      ],
+      "seasonOrder": [
+        "lcp_split_1_2026",
+        "lcp_split_2_2026",
+        "lcp_split_3_2026",
+        "lcp_promotion_series_2026"
+      ],
+      "events": [
+        {
+          "eventId": "lcp_split_1_2026",
+          "name": "LCP 2026 Split 1",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-01-16",
+          "endDate": "2026-03-01",
+          "participantTeams": [
+            "CFO",
+            "DFM",
+            "DCG",
+            "GAM",
+            "GZ",
+            "MVK",
+            "SHG",
+            "TSW"
+          ],
+          "formatSummary": "Eight-team single-round-robin Bo3; top six enter hybrid-elimination all-Bo5 playoffs; champion to First Stand.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Split 1 Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-01-16",
+              "endDate": null,
+              "participants": 8,
+              "structure": "Single round robin, Bo3.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2v2 Side Selection Showdown/2026 First Selection; public primer does not reproduce every operational detail.",
+              "advancement": [
+                "Top 6 -> Playoffs"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 28,
+                "status": "DERIVED",
+                "derivation": "C(8,2)"
+              },
+              "sourceIds": [
+                "C01",
+                "C02"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Split 1 Hybrid Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": null,
+              "endDate": "2026-03-01",
+              "participants": 6,
+              "structure": "Seeds 3-6 play the hybrid entry layer; survivors join top two in a four-team double-elimination bracket; all playoff matches Bo5.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Champion -> First Stand 2026",
+                "Top four receive 20/15/10/5 playoff CP"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 8,
+                "status": "DERIVED",
+                "derivation": "2 hybrid-entry matches + 6-series four-team double elimination"
+              },
+              "sourceIds": [
+                "C01",
+                "C02"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "FIRST_STAND_2026",
+              "slots": 1,
+              "method": "champion",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "C01",
+            "C02",
+            "G02"
+          ]
+        },
+        {
+          "eventId": "lcp_split_2_2026",
+          "name": "LCP 2026 Split 2",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-04-04",
+          "endDate": "2026-06-07",
+          "participantTeams": [
+            "CFO",
+            "DFM",
+            "DCG",
+            "GAM",
+            "GZ",
+            "MVK",
+            "SHG",
+            "TSW"
+          ],
+          "formatSummary": "Split 1 structure retained; champion qualifies to MSI, and the highest Championship Point team excluding champion takes the second MSI slot.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Split 2 Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-04-04",
+              "endDate": null,
+              "participants": 8,
+              "structure": "Single round robin, Bo3.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2v2 Side Selection Showdown/2026 First Selection.",
+              "advancement": [
+                "Top 6 -> Playoffs"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 28,
+                "status": "DERIVED",
+                "derivation": "C(8,2)"
+              },
+              "sourceIds": [
+                "C02",
+                "C03"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Split 2 Hybrid Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": null,
+              "endDate": "2026-06-07",
+              "participants": 6,
+              "structure": "Same six-team hybrid elimination as Split 1; all Bo5.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Champion -> MSI 2026",
+                "Highest cumulative CP team excluding champion -> MSI 2026",
+                "Top four receive 20/15/10/5 playoff CP"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 8,
+                "status": "DERIVED",
+                "derivation": "Same hybrid bracket as Split 1"
+              },
+              "sourceIds": [
+                "C02",
+                "C03"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "MSI_2026",
+              "slots": 1,
+              "method": "champion",
+              "status": "OFFICIAL_CONFIRMED"
+            },
+            {
+              "destination": "MSI_2026",
+              "slots": 1,
+              "method": "highest cumulative CP excluding champion",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "C02",
+            "C03",
+            "G05"
+          ]
+        },
+        {
+          "eventId": "lcp_split_3_2026",
+          "name": "LCP 2026 Split 3",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-07-25",
+          "endDate": "2026-08-30",
+          "participantTeams": [
+            "CFO",
+            "DFM",
+            "DCG",
+            "GAM",
+            "GZ",
+            "MVK",
+            "SHG",
+            "TSW"
+          ],
+          "formatSummary": "Eight-team Swiss to three wins or three losses; qualification/elimination series are Bo5 and other series Bo3; final seeding then four-team double-elimination Bo5 playoffs.",
+          "stages": [
+            {
+              "stageId": "swiss",
+              "name": "Split 3 Swiss Stage",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-07-25",
+              "endDate": null,
+              "participants": 8,
+              "structure": "Record-matched Swiss; opening top four from Split 2 are drawn against bottom four; later rounds pair same records with no rematch unless unavoidable.",
+              "seriesFormat": {
+                "ordinary": "BO3",
+                "qualificationOrElimination": "BO5"
+              },
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2v2 Side Selection Showdown/2026 First Selection.",
+              "advancement": [
+                "First four teams to three wins -> Final Seeding",
+                "Teams reaching three losses -> eliminated"
+              ],
+              "tiebreakers": [
+                "At 2-1/1-2, loser of 2-0 faces winner of 0-2; 1-1 teams are drawn",
+                "Teams tied after three losses play for +5 CP"
+              ],
+              "seriesCount": {
+                "value": null,
+                "status": "OFFICIAL_PARTIAL",
+                "derivation": "Swiss series count varies with records and required 3-loss tie resolution"
+              },
+              "sourceIds": [
+                "C04"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "final_seeding",
+              "name": "Final Seeding Matches",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": null,
+              "endDate": null,
+              "participants": 4,
+              "structure": "Bo5 seeding matches determine playoff ordering; a separate three-loss tie match determines the +5 CP bonus where necessary.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Seeds 1-4 -> Playoffs",
+                "Third-place award +15 CP where specified"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": null,
+                "status": "OFFICIAL_PARTIAL",
+                "derivation": "Public primer describes function but not a single fixed bracket count for every tie state"
+              },
+              "sourceIds": [
+                "C04"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Split 3 Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-08-29",
+              "endDate": "2026-08-30",
+              "participants": 4,
+              "structure": "Four-team double-elimination, all Bo5; finals weekend in Taipei.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Top 2 -> Worlds 2026",
+                "Highest cumulative CP team not already top two -> Worlds 2026"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 6,
+                "status": "DERIVED",
+                "derivation": "Standard four-team double elimination with no reset"
+              },
+              "sourceIds": [
+                "C04"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "WORLDS_2026",
+              "slots": 2,
+              "method": "top two playoffs",
+              "status": "OFFICIAL_CONFIRMED"
+            },
+            {
+              "destination": "WORLDS_2026",
+              "slots": 1,
+              "method": "highest cumulative CP excluding top two",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "C02",
+            "C04"
+          ],
+          "notes": [
+            "Season primer listed July 24; later event-specific Split 3 primer starts July 25, which supersedes the earlier date."
+          ]
+        },
+        {
+          "eventId": "lcp_promotion_series_2026",
+          "name": "LCP 2026 Promotion Series",
+          "eventKind": "PROMOTION_RELEGATION",
+          "status": "OFFICIAL_PENDING",
+          "startDate": "2026-11-10",
+          "endDate": "2026-11-13",
+          "participantTeams": [],
+          "formatSummary": "Domestic-league challengers face selected LCP Guest teams. Dates and selection principles are official; exact bracket/mechanism remained reserved for a later announcement in the checked official sources.",
+          "stages": [],
+          "qualification": [
+            {
+              "destination": "LCP_2027_GUEST_SLOTS",
+              "slots": 2,
+              "method": "Free-for-All and Regional Merit paths",
+              "status": "OFFICIAL_PARTIAL"
+            }
+          ],
+          "sourceIds": [
+            "C02",
+            "C04"
+          ]
+        }
+      ],
+      "championshipPointSystem": {
+        "status": "OFFICIAL_CONFIRMED",
+        "sourceIds": [
+          "C02",
+          "C04",
+          "C05"
+        ],
+        "split1And2Regular": {
+          "gamePoints": {
+            "win": 1,
+            "loss": -1
+          },
+          "split2GamePointMultiplier": 2,
+          "negativeGameComponentFloor": 0,
+          "standingPoints": {
+            "1": 7,
+            "2": 6,
+            "3": 5,
+            "4": 4,
+            "5": 3,
+            "6": 2,
+            "7": 1,
+            "8": 0
+          }
+        },
+        "split1And2Playoffs": {
+          "1": 20,
+          "2": 15,
+          "3": 10,
+          "4": 5
+        },
+        "split3Swiss": {
+          "3-0": 50,
+          "3-1": 40,
+          "3-2": 30,
+          "2-3": 15,
+          "1-3": 3,
+          "0-3": 0
+        },
+        "split3Bonuses": {
+          "thirdPlace": 15,
+          "threeLossTieWinner": 5
+        },
+        "qualificationUses": [
+          "Split 2 second MSI seed: highest cumulative CP excluding champion.",
+          "Split 3 third Worlds seed: highest cumulative CP excluding playoff top two.",
+          "Guest-team Promotion Series selection."
+        ],
+        "finalTieBreak": [
+          "Split 3 playoff placement",
+          "Split 3 Swiss result"
+        ]
+      },
+      "promotionRelegation": {
+        "status": "OFFICIAL_PARTIAL",
+        "dates": {
+          "start": "2026-11-10",
+          "end": "2026-11-13"
+        },
+        "guestSelection": [
+          "Guest team qualified for Worlds is exempt.",
+          "Free-for-All path uses the lowest eligible Guest-team Championship Point result.",
+          "Regional Merit path preserves home-region representation; lower-CP eligible Guest in the same region is selected where applicable."
+        ],
+        "exactBracket": null,
+        "sourceIds": [
+          "C02",
+          "C04"
+        ]
+      },
+      "sourceIds": [
+        "C01",
+        "C02",
+        "C03",
+        "C04"
+      ]
+    },
+    {
+      "leagueId": "CBLOL",
+      "officialName": "Campeonato Brasileiro de League of Legends",
+      "displayNameKo": "브라질·남미 CBLOL",
+      "region": "South America",
+      "organizer": "Riot Games Brazil",
+      "timezone": "America/Sao_Paulo",
+      "seasonTeamUniverse": [
+        "FX",
+        "FUR",
+        "LEV",
+        "LOS",
+        "LOUD",
+        "PAIN",
+        "RED",
+        "VKS"
+      ],
+      "seasonOrder": [
+        "cblol_copa_2026",
+        "cblol_etapa_1_2026",
+        "cblol_etapa_2_2026",
+        "cblol_promotion_2026"
+      ],
+      "events": [
+        {
+          "eventId": "cblol_copa_2026",
+          "name": "Copa CBLOL 2026",
+          "eventKind": "REGIONAL_CUP_SPLIT",
+          "status": "SOURCE_CONFLICT",
+          "startDate": "2026-01-17",
+          "endDate": "2026-03-01",
+          "participantTeams": [
+            "FX",
+            "FUR",
+            "LEV",
+            "LOS",
+            "LOUD",
+            "PAIN",
+            "RED",
+            "VKS"
+          ],
+          "formatSummary": "Eight-team Bo1 round robin; bottom four play for two remaining playoff berths; six-team modified double elimination, with opening upper rounds Bo3 and later elimination/final rounds Bo5 under the event-specific schedule.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Copa Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-01-17",
+              "endDate": "2026-02-01",
+              "participants": 8,
+              "structure": "Single round robin, Bo1.",
+              "seriesFormat": "BO1",
+              "draftRule": "STANDARD_SINGLE_GAME",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Top 4 -> Playoffs",
+                "Bottom 4 -> Play-In"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 28,
+                "status": "DERIVED",
+                "derivation": "C(8,2)"
+              },
+              "sourceIds": [
+                "B02",
+                "B06"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "play_in",
+              "name": "Copa Play-In",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-02-03",
+              "endDate": "2026-02-06",
+              "participants": 4,
+              "structure": "5th vs 6th Bo3: winner qualifies as seed 5. 7th vs 8th Bo3. Loser of first match vs winner of second in Bo5: winner qualifies as seed 6.",
+              "seriesFormat": {
+                "match1": "BO3",
+                "match2": "BO3",
+                "match3": "BO5"
+              },
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Two winners -> Playoffs"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 3,
+                "status": "DERIVED",
+                "derivation": "Three explicitly defined qualification matches"
+              },
+              "sourceIds": [
+                "B02",
+                "B06"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Copa Playoffs",
+              "status": "SOURCE_CONFLICT",
+              "startDate": "2026-02-07",
+              "endDate": "2026-03-01",
+              "participants": 6,
+              "structure": "Modified double elimination: seeds 3-6 play upper quarterfinals; seeds 1-2 enter upper semifinals; event-specific schedule lists upper QF/SF as Bo3 and remaining elimination/final rounds as Bo5.",
+              "seriesFormat": {
+                "upperQuarterfinals": "BO3",
+                "upperSemifinals": "BO3",
+                "remaining": "BO5"
+              },
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Champion -> First Stand 2026",
+                "2nd and 3rd -> Americas Cup"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 10,
+                "status": "DERIVED",
+                "derivation": "2 UBQF + 2 UBSF + UBF + 2 lower elimination + lower semifinal + lower final + grand final"
+              },
+              "sourceIds": [
+                "B01",
+                "B02"
+              ],
+              "notes": [
+                "Later event-specific schedule is used over the earlier broad announcement that described all playoffs as Bo5."
+              ]
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "FIRST_STAND_2026",
+              "slots": 1,
+              "method": "champion",
+              "status": "OFFICIAL_CONFIRMED"
+            },
+            {
+              "destination": "AMERICAS_CUP_2026",
+              "slots": 2,
+              "method": "2nd and 3rd",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "B01",
+            "B02",
+            "B06",
+            "G04"
+          ]
+        },
+        {
+          "eventId": "cblol_etapa_1_2026",
+          "name": "CBLOL 2026 Etapa 1",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-03-28",
+          "endDate": "2026-06-06",
+          "participantTeams": [
+            "FX",
+            "FUR",
+            "LEV",
+            "LOS",
+            "LOUD",
+            "PAIN",
+            "RED",
+            "VKS"
+          ],
+          "formatSummary": "Eight-team single-round-robin Bo3; top six enter a modified double-elimination all-Bo5 playoff; champion qualifies to MSI.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Etapa 1 Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-03-28",
+              "endDate": "2026-05-03",
+              "participants": 8,
+              "structure": "Single round robin, Bo3.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Top 6 -> Playoffs",
+                "Bottom 2 -> eliminated"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 28,
+                "status": "DERIVED",
+                "derivation": "C(8,2)"
+              },
+              "sourceIds": [
+                "B03"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Etapa 1 Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-05-09",
+              "endDate": "2026-06-06",
+              "participants": 6,
+              "structure": "Seeds 1-2 receive upper round-2 byes; seeds 3-6 begin upper round 1; leader chooses one of the round-1 winners; all series Bo5 double elimination.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Champion -> MSI 2026",
+                "2nd and 3rd -> Korea bootcamp; if Americas Cup champion overlaps, entitlement passes per official policy"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 10,
+                "status": "DERIVED",
+                "derivation": "Top-two-bye six-team double elimination"
+              },
+              "sourceIds": [
+                "B03",
+                "G04"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "MSI_2026",
+              "slots": 1,
+              "method": "champion",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "B03",
+            "G05"
+          ]
+        },
+        {
+          "eventId": "cblol_etapa_2_2026",
+          "name": "CBLOL 2026 Etapa 2",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-07-25",
+          "endDate": "2026-10-10",
+          "participantTeams": [
+            "FX",
+            "FUR",
+            "LEV",
+            "LOS",
+            "LOUD",
+            "PAIN",
+            "RED",
+            "VKS"
+          ],
+          "formatSummary": "Etapa 1 format repeated; two Worlds berths awarded through playoff placement.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Etapa 2 Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-07-25",
+              "endDate": "2026-08-30",
+              "participants": 8,
+              "structure": "Single round robin, Bo3 over six weeks.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Top 6 -> Playoffs"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 28,
+                "status": "DERIVED",
+                "derivation": "C(8,2)"
+              },
+              "sourceIds": [
+                "B04"
+              ],
+              "notes": [
+                "Apparent month/weekday typos in the article's internal week list are intentionally not copied into the calendar."
+              ]
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Etapa 2 Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-09-05",
+              "endDate": "2026-10-10",
+              "participants": 6,
+              "structure": "Top-two-bye six-team double-elimination bracket; all Bo5; leader chooses from first-round winners.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Top 2 -> Worlds 2026"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 10,
+                "status": "DERIVED",
+                "derivation": "Same bracket as Etapa 1"
+              },
+              "sourceIds": [
+                "B04"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "WORLDS_2026",
+              "slots": 2,
+              "method": "top two playoff finishers",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "B04"
+          ]
+        },
+        {
+          "eventId": "cblol_promotion_2026",
+          "name": "CBLOL 2027 Guest Slot Promotion Tournament",
+          "eventKind": "PROMOTION_RELEGATION",
+          "status": "OFFICIAL_PARTIAL",
+          "startDate": null,
+          "endDate": null,
+          "participantTeams": [],
+          "participantSelection": "Two Circuito Desafiante finalists, two LRS Tier-2 representatives, and defending CBLOL guest LOS; Academy teams are ineligible and slots pass down.",
+          "formatSummary": "Five organizations in double elimination, all Bo5 Fearless; champion receives the 2027 CBLOL guest slot and operating support.",
+          "stages": [
+            {
+              "stageId": "promotion",
+              "name": "Promotion Tournament",
+              "status": "OFFICIAL_PARTIAL",
+              "startDate": null,
+              "endDate": null,
+              "participants": 5,
+              "structure": "Five-team double-elimination bracket; exact date/seed placement not reproduced in the checked public primer.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Champion -> 2027 CBLOL Guest Slot"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": null,
+                "status": "OFFICIAL_PENDING",
+                "derivation": "Exact bracket seeding and date are pending in this package"
+              },
+              "sourceIds": [
+                "B05"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "CBLOL_2027_GUEST_SLOT",
+              "slots": 1,
+              "method": "promotion champion",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "B05"
+          ]
+        }
+      ],
+      "promotionRelegation": {
+        "status": "OFFICIAL_PARTIAL",
+        "academyEligibility": false,
+        "participants": {
+          "CircuitoDesafiante": 2,
+          "LRS": 2,
+          "defendingGuest": 1
+        },
+        "format": "Five-team double elimination, all Bo5 Fearless",
+        "reward": "2027 CBLOL Guest Slot",
+        "dates": null,
+        "sourceIds": [
+          "B05"
+        ]
+      },
+      "sourceIds": [
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05"
+      ]
+    },
+    {
+      "leagueId": "LCS",
+      "officialName": "League Championship Series",
+      "displayNameKo": "북미·중미 LCS",
+      "region": "North and Central America",
+      "organizer": "Riot Games",
+      "timezone": "America/Los_Angeles",
+      "finalsTimezone": "America/New_York",
+      "seasonTeamUniverse": [
+        "C9",
+        "DIG",
+        "DSG",
+        "FLY",
+        "LYON",
+        "SEN",
+        "SR",
+        "TLAW"
+      ],
+      "seasonOrder": [
+        "lcs_lock_in_2026",
+        "americas_cup_2026",
+        "lcs_spring_2026",
+        "lcs_summer_2026",
+        "lcs_promotion_2026"
+      ],
+      "events": [
+        {
+          "eventId": "lcs_lock_in_2026",
+          "name": "LCS 2026 Lock-In",
+          "eventKind": "REGIONAL_CUP_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-01-24",
+          "endDate": "2026-03-01",
+          "participantTeams": [
+            "C9",
+            "DIG",
+            "DSG",
+            "FLY",
+            "LYON",
+            "SEN",
+            "SR",
+            "TLAW"
+          ],
+          "formatSummary": "Eight-team, three-round Bo3 Swiss; top six enter all-Bo5 double elimination; winner to First Stand and second/third to Americas Cup.",
+          "stages": [
+            {
+              "stageId": "swiss",
+              "name": "Lock-In Swiss",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-01-24",
+              "endDate": null,
+              "participants": 8,
+              "structure": "Three rounds of record-matched Bo3 Swiss. One team ends 3-0; one 0-3; three finish 2-1; three finish 1-2.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "3-0 team chooses one 2-1 upper-bracket opponent",
+                "All three 2-1 teams enter upper bracket",
+                "0-3 eliminated",
+                "Best game record among 1-2 teams auto-advances as lower seed 5",
+                "Other two 1-2 teams play for lower seed 6"
+              ],
+              "tiebreakers": [
+                "1-2 game record determines seed 5",
+                "Remaining two 1-2 teams play a last-chance elimination match"
+              ],
+              "seriesCount": {
+                "value": 12,
+                "status": "DERIVED",
+                "derivation": "Four series per Swiss round x three rounds"
+              },
+              "sourceIds": [
+                "N01",
+                "N02"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "last_chance",
+              "name": "Last-Chance Elimination Match",
+              "status": "OFFICIAL_PARTIAL",
+              "startDate": null,
+              "endDate": null,
+              "participants": 2,
+              "structure": "The two remaining 1-2 teams play for playoff seed 6.",
+              "seriesFormat": null,
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Winner -> lower bracket seed 6",
+                "Loser -> eliminated"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 1,
+                "status": "DERIVED",
+                "derivation": "One explicitly required tiebreak match"
+              },
+              "sourceIds": [
+                "N01",
+                "N02"
+              ],
+              "notes": [
+                "The public format announcement does not explicitly state the best-of length; do not hard-code one without the event rulebook/schedule."
+              ]
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Lock-In Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": null,
+              "endDate": "2026-03-01",
+              "participants": 6,
+              "structure": "Top four begin upper; seeds 5-6 begin lower; double elimination, all Bo5.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Champion -> First Stand 2026",
+                "2nd and 3rd -> Americas Cup"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 8,
+                "status": "DERIVED",
+                "derivation": "Six-team top-four-upper/two-lower double elimination"
+              },
+              "sourceIds": [
+                "N01",
+                "N02",
+                "N03"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "FIRST_STAND_2026",
+              "slots": 1,
+              "method": "champion",
+              "status": "OFFICIAL_CONFIRMED"
+            },
+            {
+              "destination": "AMERICAS_CUP_2026",
+              "slots": 2,
+              "method": "2nd and 3rd",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "N01",
+            "N02",
+            "N03",
+            "G04"
+          ]
+        },
+        {
+          "eventId": "americas_cup_2026",
+          "name": "Americas Cup 2026",
+          "eventKind": "CROSS_REGIONAL_DEVELOPMENT_EVENT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-03-04",
+          "endDate": "2026-03-08",
+          "participantTeams": [],
+          "participantSelection": "LCS 2nd/3rd and CBLOL 2nd/3rd from Lock-In/Copa.",
+          "formatSummary": "Four-team double elimination in São Paulo; upper opening matches Bo3 and all remaining matches Bo5; Fearless throughout. Winner earns a funded Korea bootcamp during MSI, not an international-event qualification slot.",
+          "stages": [
+            {
+              "stageId": "bracket",
+              "name": "Americas Cup Bracket",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-03-04",
+              "endDate": "2026-03-08",
+              "participants": 4,
+              "structure": "Four-team double elimination.",
+              "seriesFormat": {
+                "upperOpening": "BO3",
+                "remaining": "BO5"
+              },
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Champion -> funded Korea bootcamp during MSI"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 6,
+                "status": "DERIVED",
+                "derivation": "Standard four-team double elimination with no reset"
+              },
+              "sourceIds": [
+                "G04",
+                "N02"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "MSI_KOREA_BOOTCAMP_2026",
+              "slots": 1,
+              "method": "champion",
+              "status": "OFFICIAL_CONFIRMED",
+              "notTournamentQualification": true
+            }
+          ],
+          "sourceIds": [
+            "G04",
+            "N02"
+          ]
+        },
+        {
+          "eventId": "lcs_spring_2026",
+          "name": "LCS 2026 Spring",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-04-04",
+          "endDate": "2026-06-14",
+          "participantTeams": [
+            "C9",
+            "DIG",
+            "DSG",
+            "FLY",
+            "LYON",
+            "SEN",
+            "SR",
+            "TLAW"
+          ],
+          "formatSummary": "Eight-team single-round-robin Bo3; top six enter Lock-In-style all-Bo5 double elimination; top two to MSI.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Spring Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-04-04",
+              "endDate": null,
+              "participants": 8,
+              "structure": "Single round robin, Bo3.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": "2026 First Selection applies.",
+              "advancement": [
+                "Top 6 -> Playoffs"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 28,
+                "status": "DERIVED",
+                "derivation": "C(8,2)"
+              },
+              "sourceIds": [
+                "N02",
+                "N04"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Spring Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-05-23",
+              "endDate": "2026-06-14",
+              "participants": 6,
+              "structure": "Mirrors Lock-In: top four start upper, 5-6 lower, double elimination all Bo5.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Top 2 -> MSI 2026",
+                "3rd -> Korea bootcamp; additional regional pass-down applies if entitlements overlap"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 8,
+                "status": "DERIVED",
+                "derivation": "Same six-team bracket as Lock-In"
+              },
+              "sourceIds": [
+                "N02",
+                "N04"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "MSI_2026",
+              "slots": 2,
+              "method": "top two playoff finishers",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "N02",
+            "N04",
+            "G05"
+          ]
+        },
+        {
+          "eventId": "lcs_summer_2026",
+          "name": "LCS 2026 Summer",
+          "eventKind": "REGIONAL_SPLIT",
+          "status": "OFFICIAL_CONFIRMED",
+          "startDate": "2026-07-25",
+          "endDate": "2026-10-04",
+          "participantTeams": [
+            "C9",
+            "DIG",
+            "DSG",
+            "FLY",
+            "LYON",
+            "SEN",
+            "SR",
+            "TLAW"
+          ],
+          "formatSummary": "Eight-team single-round-robin Bo3; top six enter 2024-style modified double elimination with top-two upper byes and expanded lower gauntlet; top three to Worlds.",
+          "stages": [
+            {
+              "stageId": "regular",
+              "name": "Summer Regular Season",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-07-25",
+              "endDate": "2026-09-06",
+              "participants": 8,
+              "structure": "Single round robin, Bo3 over seven weekends.",
+              "seriesFormat": "BO3",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Top 6 -> Playoffs"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 28,
+                "status": "DERIVED",
+                "derivation": "C(8,2)"
+              },
+              "sourceIds": [
+                "N05"
+              ],
+              "notes": []
+            },
+            {
+              "stageId": "playoffs",
+              "name": "Summer Playoffs",
+              "status": "OFFICIAL_CONFIRMED",
+              "startDate": "2026-09-12",
+              "endDate": "2026-10-04",
+              "participants": 6,
+              "structure": "Top two start upper semifinals; seeds 3-6 start upper quarterfinals; expanded lower-bracket gauntlet; all Bo5.",
+              "seriesFormat": "BO5",
+              "draftRule": "FEARLESS_SERIES",
+              "firstSelectionRule": null,
+              "advancement": [
+                "Top 3 -> Worlds 2026"
+              ],
+              "tiebreakers": [],
+              "seriesCount": {
+                "value": 10,
+                "status": "DERIVED",
+                "derivation": "2 UBQF + 2 UBSF + UBF + LBR1 + LBQF + LBSF + LBF + GF"
+              },
+              "sourceIds": [
+                "N05",
+                "N06"
+              ],
+              "notes": []
+            }
+          ],
+          "qualification": [
+            {
+              "destination": "WORLDS_2026",
+              "slots": 3,
+              "method": "top three playoff finishers",
+              "status": "OFFICIAL_CONFIRMED"
+            }
+          ],
+          "sourceIds": [
+            "N05",
+            "N06"
+          ]
+        },
+        {
+          "eventId": "lcs_promotion_2026",
+          "name": "LCS 2027 Guest Slot Promotion Tournament",
+          "eventKind": "PROMOTION_RELEGATION",
+          "status": "OFFICIAL_PENDING",
+          "startDate": null,
+          "endDate": null,
+          "participantTeams": [],
+          "participantSelection": "Top two NACL Summer playoff teams advance to challenge defending Guest Team Disguised.",
+          "formatSummary": "Participants/path are official; exact 2026 promotion bracket and dates were not yet published in the checked official source.",
+          "stages": [],
+          "qualification": [
+            {
+              "destination": "LCS_2027_GUEST_SLOT",
+              "slots": 1,
+              "method": "promotion result",
+              "status": "OFFICIAL_PARTIAL"
+            }
+          ],
+          "sourceIds": [
+            "N07",
+            "N08"
+          ]
+        }
+      ],
+      "promotionRelegation": {
+        "status": "OFFICIAL_PARTIAL",
+        "knownParticipants": [
+          "NACL Summer #1",
+          "NACL Summer #2",
+          "Disguised (defending Guest Team)"
+        ],
+        "exactBracket": null,
+        "dates": null,
+        "reward": "2027 LCS Guest Slot",
+        "sourceIds": [
+          "N07",
+          "N08"
+        ]
+      },
+      "sourceIds": [
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N05",
+        "N08"
+      ]
+    }
+  ],
+  "adoption": {
+    "excludedEvents": [
+      "lcp_promotion_series_2026",
+      "cblol_promotion_2026",
+      "lcs_promotion_2026"
+    ],
+    "lplSplit2Direct": {
+      "value": 4,
+      "status": "SOURCE_CONFLICT_ADOPTED_COMPLETED_BRACKET"
+    },
+    "lcsLastChanceBestOf": {
+      "value": 3,
+      "status": "GAME_POLICY_NOT_OFFICIAL",
+      "basis": "N01/N02 confirm one elimination Series but omit BO length; V1 explicitly adopts BO3"
+    },
+    "lcpThirdPlaceBonus": {
+      "value": 15,
+      "stage": "PLAYOFFS",
+      "source": "https://lolesports.com/en-PH/news/lcp-2026-season-primer"
+    },
+    "lcpFinalSeeding": {
+      "status": "GAME_POLICY_PUBLIC_SHAPE_COMPLETION",
+      "rule": "If two teams finish 3-1, BO5 between them; winner faces 3-0 for seed 1. The other two playoff entrants are third seeds. Three-loss tied pairs play BO5 for +5 CP."
+    },
+    "firstSelection": {
+      "status": "GAME_POLICY_NOT_OFFICIAL",
+      "rule": "Seeded first regular meeting, alternate return, higher actual event seed for knockout; previous game loser receives later choice through common Series. LCP 2v2 is replaced by this policy; no extra simulated showdown."
+    },
+    "ties": {
+      "status": "GAME_POLICY_PUBLIC_COMPARATOR_COMPLETION",
+      "rule": "Use published comparator chain where supplied. Remaining LPL group ties use a seeded BO3 ladder for placement; other unresolved equal records use a stable event draw. Summer LEC adds overall game percentage before strength of victory and Spring placement. CBLOL simultaneous fifth/sixth-place elimination is ordered by regular placement for the distinct published prize slots. LCP elimination ties use the played tiebreak winner for final ordering."
+    },
+    "schedule": {
+      "status": "GAME_POLICY_NOT_OFFICIAL",
+      "rule": "Project reference local month/day into Career year without UTC conversion; distribute RR rounds within regular window, then dependency rounds at least one day apart for same team. Missing LCP/LCS regular boundaries are explicit authored windows. Maximum seven-day local overflow, global collisions deferred within finite event window."
+    },
+    "bootstrap": {
+      "status": "GAME_POLICY_NOT_OFFICIAL",
+      "rule": "First LPL groups use event-seeded partner draw, never real 2026 survivors. Later groups use sealed prior results; all 14 partners re-enter next Split 1."
+    },
+    "growthTravel": "Use existing Career growth and fatigue rules unchanged; no new jet lag, travel or bootcamp ability rewards.",
+    "guestOwnership": {
+      "policy": "OVERSEAS_PARTICIPANT_EXTENSION_V1",
+      "rule": "KCB competes separately with KC employment and finance ownership; played players cannot enter another Series on the same logical day. OMG, UP and LR use regional-median estimated extension accounts; missing positions enter normal FA recruitment with bounded generated-player supply."
+    },
+    "americasReward": {
+      "type": "KOREA_BOOTCAMP_SUPPORT",
+      "recipient": "ACTUAL_CHAMPION",
+      "cash": false,
+      "abilityEffect": false
+    }
+  }
+}

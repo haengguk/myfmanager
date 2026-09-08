@@ -183,6 +183,7 @@ public final class CareerCompetitionRelationalStore {
                     careerRootSeed, cupInitialization);
             new CareerInternationalCompetition(this, internationalParticipants).reconcile(careerId, calendarSeasonYear);
             new CareerClCompetition(this).initialize(careerId, calendarSeasonYear);
+            CareerOverseasStore.initialize(this,careerId,calendarSeasonYear);
             refreshAllInstanceHashes(careerId, calendarSeasonYear);
             refreshCycleHash(careerId, calendarSeasonYear);
             return validateAndView(findCycle(careerId, calendarSeasonYear,
@@ -200,7 +201,9 @@ public final class CareerCompetitionRelationalStore {
     public void reconcileInternational(String careerId, int year) {
         transactions.executeWithoutResult(ignored -> {
             lockCycle(careerId, year); load(careerId, year);
+            CareerOverseasStore.reconcile(this,careerId,year);
             new CareerInternationalCompetition(this, internationalParticipants).reconcile(careerId, year);
+            CareerOverseasStore.alignSchedule(this,careerId,year);
         });
     }
 
@@ -221,10 +224,10 @@ public final class CareerCompetitionRelationalStore {
 
     static List<FixtureRow> orderFixtures(List<FixtureRow> fixtures) {
         List<String> order = List.of("LCK_CUP", "FIRST_STAND", "LCK_REGULAR_R1_R2", "LCK_ROAD_TO_MSI", "MSI", "EWC_LOL", "LCK_REGULAR_R3_R4", "LCK_PLAY_IN", "LCK_PLAYOFFS", "WORLDS");
-        var main = fixtures.stream().filter(f->!CareerClPolicy.isCl(f.competitionId())).sorted(java.util.Comparator.comparingInt((FixtureRow f) -> order.indexOf(f.competitionId()))
+        var main = fixtures.stream().filter(f->!CareerClPolicy.isCl(f.competitionId())&&!CareerOverseasRules.isOverseas(f.competitionId())).sorted(java.util.Comparator.comparingInt((FixtureRow f) -> order.indexOf(f.competitionId()))
                 .thenComparingInt(f -> !"COMPLETED".equals(f.lifecycleStatus()) && f.stageId().endsWith("TIEBREAKER") ? 0 : 1)
                 .thenComparing(FixtureRow::date).thenComparingInt(FixtureRow::matchOrder).thenComparing(FixtureRow::matchId)).toList();
-        var cl=new java.util.ArrayDeque<>(fixtures.stream().filter(f->CareerClPolicy.isCl(f.competitionId())).sorted(java.util.Comparator.comparing(FixtureRow::date).thenComparingInt(FixtureRow::matchOrder)).toList());
+        var cl=new java.util.ArrayDeque<>(fixtures.stream().filter(f->CareerClPolicy.isCl(f.competitionId())||CareerOverseasRules.isOverseas(f.competitionId())).sorted(java.util.Comparator.comparing(FixtureRow::date).thenComparing(FixtureRow::competitionId).thenComparingInt(FixtureRow::matchOrder)).toList());
         var merged=new java.util.ArrayList<FixtureRow>();
         for(var f:main){while(!cl.isEmpty() && !cl.peek().date().isAfter(f.date()))merged.add(cl.remove());merged.add(f);}
         merged.addAll(cl);return List.copyOf(merged);
@@ -871,11 +874,14 @@ public final class CareerCompetitionRelationalStore {
                 var preserved=CareerCompetitionSeriesBindingV1.restoreCanonical(existingBinding.getFirst());
                 preserved.requireProductionAuthority(productionSnapshot,resourceProvenanceHash);return preserved;
             }
-            var carried = international==null && CareerRosterStore.saved(jdbc,careerId,seasonYear)!=null
+            boolean overseas=CareerOverseasRules.isOverseas(competitionId);
+            var carried = !overseas && international==null && CareerRosterStore.saved(jdbc,careerId,seasonYear)!=null
                     ? CareerClPolicy.isCl(competitionId) ? CareerClStore.pair(jdbc,careerId,seasonYear,fixture.firstTeamCode(),fixture.secondTeamCode()) : CareerRosterStore.eligiblePair(jdbc,careerId,seasonYear,"LCK:"+fixture.firstTeamCode(),"LCK:"+fixture.secondTeamCode()) : null;
-            if(international==null && carried==null && cycle.seasonOrdinal()>1)carried=CareerSeasonRosters.load(this,careerId,seasonYear);
-            if (international==null && cycle.seasonOrdinal() > 1 && carried == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
-            CareerCompetitionSeriesBindingV1 candidate = international != null
+            if(!overseas && international==null && carried==null && cycle.seasonOrdinal()>1)carried=CareerSeasonRosters.load(this,careerId,seasonYear);
+            if (!overseas && international==null && cycle.seasonOrdinal() > 1 && carried == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
+            CareerCompetitionSeriesBindingV1 candidate = overseas
+                    ? CareerCompetitionSeriesBindingV1.createInternational(cycle,instance,fixture,CompetitionRosterSnapshot.managedToken(managedTeam),CareerOverseasStore.activation(jdbc,careerId).ruleHash(),productionSnapshot,resourceProvenanceHash,CareerOverseasRoster.pair(jdbc,careerId,seasonYear,fixture.firstTeamCode(),fixture.secondTeamCode()))
+                    : international != null
                     ? CareerCompetitionSeriesBindingV1.createInternational(cycle, instance, fixture,
                     CompetitionRosterSnapshot.managedToken(managedTeam), international.ruleResourceHash(),
                     productionSnapshot, resourceProvenanceHash, CareerRosterStore.registeredPair(jdbc,careerId,seasonYear,competitionId,international.rosters(),fixture.firstTeamCode(), fixture.secondTeamCode()))
@@ -1204,6 +1210,7 @@ public final class CareerCompetitionRelationalStore {
         if (isCurrentRules(careerId, year)) {
             new CareerDomesticCompetition(this).advance(careerId, year, competitionId);
             if(CareerClPolicy.isCl(competitionId))new CareerClCompetition(this).advance(careerId,year);
+            if(CareerOverseasRules.isOverseas(competitionId))CareerOverseasStore.reconcile(this,careerId,year);
         } else if ("LCK_CUP".equals(competitionId)) {
             advanceCupGraph(careerId, year);
         } else if ("LCK_REGULAR_R3_R4".equals(competitionId)) {
@@ -1212,6 +1219,7 @@ public final class CareerCompetitionRelationalStore {
         new CareerInternationalCompetition(this, internationalParticipants).reconcile(careerId, year);
         refreshInstanceHash(careerId, year, competitionId);
         refreshCycleHash(careerId, year);
+        CareerOverseasStore.alignSchedule(this,careerId,year);
         CareerFinanceStore.recognize(this,careerId,year,competitionId);
     }
 
@@ -2125,7 +2133,7 @@ public final class CareerCompetitionRelationalStore {
                   WHEN 'WORLDS' THEN 11 WHEN 'KESPA_CUP' THEN 12 ELSE 99 END
                 """, (result, row) -> instance(result), cycle.careerId(),
                 cycle.seasonYear());
-        if (instances.size() != rules.competitions().size() + (CareerClStore.active(jdbc,cycle.careerId(),cycle.seasonYear())?1:0)) {
+        if (instances.size() != rules.competitions().size() + (CareerClStore.active(jdbc,cycle.careerId(),cycle.seasonYear())?1:0)+(CareerOverseasStore.active(jdbc,cycle.careerId(),cycle.seasonYear())?CareerOverseasRules.Event.values().length:0)) {
             throw new IllegalStateException("COMPETITION_INSTANCE_COUNT_MISMATCH");
         }
         instances.forEach(value -> {

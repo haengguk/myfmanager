@@ -61,6 +61,7 @@ public final class CareerMarketStore {
         lockCareer(jdbc,career);var existing=load(jdbc,career);
         if(existing!=null) {
             if(existing.state().finance()==null){CareerFinanceStore.migrate(jdbc,career,existing);return;}
+            if(CareerFinanceStore.repairClosedLegacy(jdbc,career,existing))return;
             if(existing.state().management()==null)persist(jdbc,career,activeYear(jdbc,career),existing,engine(jdbc,career,activeYear(jdbc,career),existing));
             return;
         }
@@ -80,12 +81,12 @@ public final class CareerMarketStore {
         String r=write(operating);jdbc.update("UPDATE career_roster_state SET state_json=?,state_hash=? WHERE career_id=? AND season_year=?",r,hash(r),career,year);
     }
     public void recover() {
-        var ids=jdbc.query("SELECT s.career_id FROM career_save s LEFT JOIN career_market_state m ON m.career_id=s.career_id WHERE m.career_id IS NULL OR m.state_json NOT LIKE '%\"management\"%' OR m.state_json LIKE '%\"management\":null%' OR m.state_json NOT LIKE '%\"finance\"%' OR m.state_json LIKE '%\"finance\":null%' ORDER BY s.career_id",(r,n)->r.getString(1));
+        var ids=jdbc.query("SELECT s.career_id FROM career_save s LEFT JOIN career_market_state m ON m.career_id=s.career_id WHERE m.career_id IS NULL OR m.state_json NOT LIKE '%\"management\"%' OR m.state_json LIKE '%\"management\":null%' OR m.state_json NOT LIKE '%\"finance\"%' OR m.state_json LIKE '%\"finance\":null%' OR m.state_json LIKE '%\"legacyTransition\":true%' ORDER BY s.career_id",(r,n)->r.getString(1));
         for(String id:ids)transactions.executeWithoutResult(ignored->initialize(jdbc,id));
     }
     static CareerMarketEngine engine(JdbcTemplate jdbc,String career,int year,Saved market) {
         var engine=new CareerMarketEngine(career,managed(jdbc,career),directory(jdbc,career),CareerRosterStore.saved(jdbc,career,year).state(),market.state());
-        var life=CareerLifecycleStore.load(jdbc,career);engine.clEnabled=CareerClStore.active(jdbc,career,year);if(life!=null){engine.lifecycle=new CareerLifecycleEngine(life);engine.lifecycle.clEnabled=engine.clEnabled;}
+        var life=CareerLifecycleStore.load(jdbc,career);engine.clEnabled=CareerClStore.active(jdbc,career,year);engine.overseasEnabled=CareerOverseasStore.active(jdbc,career,year);if(life!=null){engine.lifecycle=new CareerLifecycleEngine(life);engine.lifecycle.clEnabled=engine.clEnabled;engine.lifecycle.overseasEnabled=engine.overseasEnabled;}
         engine.developmentYear=year;engine.developmentFixtures=CareerDevelopmentStore.fixtures(jdbc,career);
         if(engine.clEnabled&&jdbc.queryForObject("SELECT COUNT(*) FROM career_cl_state WHERE career_id=? AND season_year=?",Integer.class,career,year)>0)
             engine.clLineups.putAll(CareerClStore.load(jdbc,career,year).lineups());
@@ -95,7 +96,7 @@ public final class CareerMarketStore {
             if(r.getString(3)==null||!a.date().isBefore(market.state().processedThrough()))for(var o:a.opportunities())if(o.selected())engine.squadRestrictions.add(new CareerSquadPlanner.Restriction(o.playerId(),a.squad(),a.date(),r.getString(3)==null));
         },career);
         jdbc.query("SELECT p.competition_id,p.pool_json,p.pool_hash FROM career_registered_player_pool p JOIN career_competition_instance i ON i.career_id=p.career_id AND i.calendar_season_year=p.season_year AND i.competition_id=p.competition_id WHERE p.career_id=? AND p.season_year=? AND i.lifecycle_status<>'COMPLETED'",(org.springframework.jdbc.core.RowCallbackHandler)r->{
-            String competition=r.getString(1);if(CareerInternationalRules.COMPETITIONS.contains(competition))pool(r.getString(2),r.getString(3)).forEach((team,ids)->engine.internationalPools.put(team+'|'+competition,Set.copyOf(ids)));
+            String competition=r.getString(1);if(CareerInternationalRules.COMPETITIONS.contains(competition))pool(r.getString(2),r.getString(3)).forEach((team,ids)->engine.internationalPools.put(CareerOverseasRoster.owner(team)+'|'+competition,Set.copyOf(ids)));
         },career,year);
         return engine;
     }
@@ -115,6 +116,7 @@ public final class CareerMarketStore {
     }
     public static boolean eligible(JdbcTemplate jdbc,String career,String team,String player) {return eligibility(jdbc,career).allows(team,player);}
     static boolean repairNeeded(JdbcTemplate jdbc,String career,int year,String first,String second,String competition) {
+        if(CareerOverseasRules.isOverseas(competition)){try{CareerOverseasRoster.pair(jdbc,career,year,first,second);return false;}catch(CareerException e){return true;}}
         if(CareerClPolicy.isCl(competition)){try{CareerClStore.pair(jdbc,career,year,first,second);return false;}catch(CareerException e){return true;}}
         var authority=eligibility(jdbc,career);if(!authority.enabled()||first==null||second==null)return false;
         var roster=CareerRosterStore.saved(jdbc,career,year).state();var directory=directory(jdbc,career);
@@ -225,8 +227,9 @@ public final class CareerMarketStore {
                 if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("MARKET_RECEIPT_INTEGRITY");return read(r.getString(2),Receipt.class);
             },career,command);
             if(!prior.isEmpty())return new Change(true,prior.getFirst(),readView(career,activeYear(jdbc,career)));
-            var old=load(jdbc,career);if(old==null||activeYear(jdbc,career)!=request.sourceYear()||old.revision()!=request.expectedRevision())throw CareerException.calendarStaleRevision();
+            var old=load(jdbc,career);if(old==null)throw CareerException.calendarStaleRevision();
             CareerFinanceStore.requirePolicy(old.state(),request.schemaVersion(),true);
+            if(activeYear(jdbc,career)!=request.sourceYear()||old.revision()!=request.expectedRevision())throw CareerException.calendarStaleRevision();
             var engine=engine(jdbc,career,request.sourceYear(),old);String actor=managed(jdbc,career);LocalDate date=date(jdbc,career);CareerManagementState.Trade trade;
             if(Set.of("SUBMIT","COUNTER").contains(request.action())) {
                 if(request.terms()==null||request.replacementPlayerId()!=null||("COUNTER".equals(request.action())!=(request.tradeId()!=null)))throw CareerException.invalid(null,"거래 조건과 원본 거래를 확인해 주세요.");
@@ -252,8 +255,9 @@ public final class CareerMarketStore {
                 if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("MARKET_RECEIPT_INTEGRITY");return read(r.getString(2),Receipt.class);
             },career,command);
             if(!prior.isEmpty())return new Change(true,prior.getFirst(),readView(career,activeYear(jdbc,career)));
-            var old=load(jdbc,career);if(old==null||activeYear(jdbc,career)!=request.sourceYear()||old.revision()!=request.expectedRevision())throw CareerException.calendarStaleRevision();
+            var old=load(jdbc,career);if(old==null)throw CareerException.calendarStaleRevision();
             CareerFinanceStore.requirePolicy(old.state(),request.schemaVersion(),false);
+            if(activeYear(jdbc,career)!=request.sourceYear()||old.revision()!=request.expectedRevision())throw CareerException.calendarStaleRevision();
             var engine=engine(jdbc,career,request.sourceYear(),old);String team=managed(jdbc,career),reference=null;LocalDate date=date(jdbc,career);
             switch(request.action()) {
                 case "SUBMIT","REVISE" -> {
@@ -281,11 +285,12 @@ public final class CareerMarketStore {
         if(international.isEmpty()||!international.getFirst().rosters().teams().containsKey(team)||international.getFirst().plan().complete())throw CareerException.invalid("competitionId","진행 중인 참가 대회만 보충등록할 수 있습니다.");
         var directory=directory(jdbc,career);var definition=directory.players().get(player);if(definition==null)throw CareerException.invalid("playerId","선수 정보가 없습니다.");
         var membership=CareerRosterStore.saved(jdbc,career,year).state().members().get(player);
-        requireEligible(jdbc,career,team,player);
-        if(!team.equals(membership.ownerTeam())||!"FIRST_TEAM".equals(membership.squad()))throw CareerException.invalid("playerId","현재 적법하게 보유한 1군 선수만 보충등록할 수 있습니다.");
+        String employer=CareerOverseasRoster.owner(team),squad=team.equals("LEC:KCB")?"DEVELOPMENT":"FIRST_TEAM";
+        requireEligible(jdbc,career,employer,player);
+        if(!employer.equals(membership.ownerTeam())||!squad.equals(membership.squad()))throw CareerException.invalid("playerId","현재 적법하게 보유한 1군 선수만 보충등록할 수 있습니다.");
         var allowed=registeredIds(jdbc,career,year,competition,team,international.getFirst().rosters());
         var authority=eligibility(jdbc,career);
-        if(allowed.stream().anyMatch(id->directory.players().get(id).position()==definition.position()&&authority.allows(team,id)))throw CareerException.invalid("playerId","같은 포지션의 유효한 등록 선수가 남아 있어 보충등록할 수 없습니다.");
+        if(allowed.stream().anyMatch(id->directory.players().get(id).position()==definition.position()&&authority.allows(employer,id)&&squad.equals(CareerRosterStore.saved(jdbc,career,year).state().members().get(id).squad())))throw CareerException.invalid("playerId","같은 포지션의 유효한 등록 선수가 남아 있어 보충등록할 수 없습니다.");
         long revision=jdbc.queryForObject("SELECT COALESCE(MAX(revision),0)+1 FROM career_registration_supplement WHERE career_id=? AND season_year=? AND competition_id=?",Long.class,career,year,competition);
         jdbc.update("INSERT INTO career_registration_supplement VALUES (?,?,?,?,?,?,?,?,?)",career,year,competition,team,player,definition.position().name(),date,revision,"NO_CURRENTLY_ELIGIBLE_REGISTERED_PLAYER_FOR_POSITION_V1");
     }

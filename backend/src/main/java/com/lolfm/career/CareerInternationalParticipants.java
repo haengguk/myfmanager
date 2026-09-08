@@ -15,7 +15,10 @@ public interface CareerInternationalParticipants {
                 .map(r -> seasonRosters.roster(CompetitionRosterSnapshot.token(r.team()))).toList()));
         return new Selection(selected.policy(),selected.evidence()+";SEASON_ROSTER="+seasonRosters.identity(),rankings);
     }
-    record Selection(String policy, String evidence, Map<String, List<CompetitionRosterSnapshot.Roster>> rankings) {
-        public Selection { rankings = rankings.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, e->List.copyOf(e.getValue()))); }
+    record Qualification(String team,int regionalSeed,String path,String competitionId,String resultHash){}
+    record Selection(String policy, String evidence, Map<String, List<CompetitionRosterSnapshot.Roster>> rankings,
+                     Map<String,List<Qualification>> qualifications,java.util.Set<String> playoffEligible) {
+        public Selection(String policy,String evidence,Map<String,List<CompetitionRosterSnapshot.Roster>> rankings){this(policy,evidence,rankings,Map.of(),java.util.Set.of());}
+        public Selection { rankings = rankings.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(Map.Entry::getKey, e->List.copyOf(e.getValue())));qualifications=qualifications==null?Map.of():Map.copyOf(qualifications);playoffEligible=playoffEligible==null?java.util.Set.of():java.util.Set.copyOf(playoffEligible); }
     }
 }

@@ -16,7 +16,7 @@ class CareerFinancePolicyTest {
         var m=fresh();var root=CareerFinanceReference.json();assertThat(root.path("teams").size()).isEqualTo(56);assertThat(root.path("developmentOrganizations").size()).isEqualTo(24);assertThat(root.path("nonplayableOrganizations").size()).isEqualTo(2);
         assertThat(m.accounts.keySet()).isEqualTo(m.finance.basis.teams().keySet());root.path("teams").forEach(t->t.path("actuals").properties().stream().filter(e->!e.getKey().equals("status")).forEach(e->assertThat(e.getValue().isNull()).isTrue()));
         root.path("developmentOrganizations").forEach(o->{String parent=o.path("parentTeamId").asText(),organization=o.path("organizationId").asText();assertThat(m.accounts).containsKey(parent).doesNotContainKey(organization);assertThat(m.directory.organizations().get(organization).competitiveTeam()).isEqualTo(parent);});
-        assertThat(m.finance.basis.prizeRules()).hasSize(7);assertThat(root.path("prizes").size()).isEqualTo(36);
+        assertThat(m.finance.basis.prizeRules()).hasSize(24);assertThat(root.path("prizes").size()).isEqualTo(36);
         for(var team:m.finance.basis.teams().values()){
             long salary=m.contracts.values().stream().filter(c->team.team().equals(c.team())).mapToLong(c->c.terms().annualSalary()).sum();
             assertThat(salary).isEqualTo(team.allocatedSalary());assertThat(salary+team.unallocatedCompensation()).isEqualTo(team.playerCompensation());

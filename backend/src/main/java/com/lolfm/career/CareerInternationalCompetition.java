@@ -39,6 +39,7 @@ final class CareerInternationalCompetition {
                 String waitingReason="INTERNATIONAL_QUALIFICATION_REQUIRED";
                 try {state=register(career,year,competition);}
                 catch (RegistrationRosterRepair needed) {waitingReason="ROSTER_REPAIR_REQUIRED";}
+                catch (CareerOverseasQualification.Waiting needed) {waitingReason=needed.getMessage();}
                 if(state==null){
                     if(!"WAITING_FOR_QUALIFICATION".equals(instance.lifecycleStatus())||!waitingReason.equals(instance.blockingReason())){
                         store.jdbc.update("UPDATE career_competition_instance SET rule_status = 'GAME_POLICY_DEFINED', lifecycle_status = 'WAITING_FOR_QUALIFICATION', blocking_reason = ?, materialization_policy_id = ?, materialization_receipt_hash = ?, revision = revision + 1 WHERE career_id = ? AND calendar_season_year = ? AND competition_id = ?",waitingReason,CareerInternationalRules.POLICY,CareerInternationalRules.RESOURCE_HASH,career,year,competition);
@@ -161,7 +162,7 @@ final class CareerInternationalCompetition {
         var currentRoster = CareerRosterStore.currentRosters(store.jdbc,career,year);
         final var seasonRosters = currentRoster == null ? CareerSeasonRosters.load(store,career,year) : currentRoster;
         if (future && seasonRosters == null) throw new IllegalStateException("CARRIED_SEASON_ROSTER_REQUIRED");
-        var selection=seasonRosters == null ? participants.overseas(career,year,competition)
+        var selection=CareerOverseasStore.active(store.jdbc,career,year)?CareerOverseasQualification.select(store,career,year,competition):seasonRosters == null ? participants.overseas(career,year,competition)
                 : participants.overseas(career,year,competition,seasonRosters);
         List<String> regions=competition.equals("FIRST_STAND")?(future?previousWorlds.plan().regionalPerformance():CareerInternationalRules.REFERENCE_REGIONS):
                 competition.equals("MSI")?fst.plan().regionalPerformance():msi.plan().regionalPerformance();

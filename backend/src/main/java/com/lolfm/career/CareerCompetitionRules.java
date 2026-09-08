@@ -116,6 +116,7 @@ public final class CareerCompetitionRules {
 
     public CompetitionRule rule(String competitionId) {
         if(CareerClPolicy.isCl(competitionId))return CareerClPolicy.rule();
+        if(CareerOverseasRules.isOverseas(competitionId))return CareerOverseasRules.rule(competitionId);
         CompetitionRule value = indexed.get(competitionId);
         if (value == null) throw new IllegalArgumentException("UNKNOWN_COMPETITION");
         return value;
