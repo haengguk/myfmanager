@@ -40,6 +40,23 @@ class DraftAvailabilityJointPoolTest {
         assertThat(availability.canCompleteBothTeams(fresh())).isTrue();
     }
 
+    @Test
+    void poolCountsFlexChampionOnceAndPreservesSparseAndCompleteBoundaries() {
+        var catalog=catalog(1);
+        var flex=new ChampionDefinition(new ChampionId("flex"),"flex","flex","flex",Position.TOP,
+                Set.of(Position.TOP,Position.MID),"https://example.invalid/flex","pool","data");
+        var definitions=new ArrayList<>(catalog.all());definitions.add(flex);
+        when(catalog.all()).thenReturn(List.copyOf(definitions));when(catalog.get(flex.id())).thenReturn(flex);
+        var availability=new DraftAvailability(catalog,new RoleAssignmentSolver(catalog));
+        assertThat(Double.doubleToLongBits(availability.poolHealth(fresh(),TeamSide.BLUE,null)))
+                .isEqualTo(Double.doubleToLongBits(1 * 1.6 + (7.0 / 5) * 0.35 + 1 * 0.5));
+        assertThat(availability.poolHealth(fresh(),TeamSide.BLUE,flex.id())).isEqualTo(1.6 + 0.35);
+        var missingJungle=new DraftState(DraftRuleSet.professional(),0,List.of(),List.of(),List.of(),List.of(),Set.of(new ChampionId("jungle0")));
+        assertThat(availability.poolHealth(missingJungle,TeamSide.BLUE,null)).isZero();
+        var full=new DraftState(DraftRuleSet.professional(),0,definitions.subList(0,5).stream().map(ChampionDefinition::id).toList(),List.of(),List.of(),List.of(),Set.of());
+        assertThat(availability.poolHealth(full,TeamSide.BLUE,null)).isEqualTo(20);
+    }
+
     private static DraftState fresh() {
         return new DraftState(DraftRuleSet.professional(), 0,
                 List.of(), List.of(), List.of(), List.of(), Set.of());

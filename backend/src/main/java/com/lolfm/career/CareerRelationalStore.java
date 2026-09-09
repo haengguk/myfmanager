@@ -199,6 +199,14 @@ public final class CareerRelationalStore {
         return active;
     }
     CareerSaveCompatibility.View compatibility(CareerRow row,boolean sameReference) {
+        // An established read snapshot already owns a coherent version. Upgrading it to
+        // FOR UPDATE after a date commit causes H2 40001 and needlessly blocks writers.
+        // Keep every compatibility/hash check, but do not acquire a write lock here.
+        var isolation=org.springframework.transaction.support.TransactionSynchronizationManager.getCurrentTransactionIsolationLevel();
+        if(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()
+                &&org.springframework.transaction.support.TransactionSynchronizationManager.isCurrentTransactionReadOnly()
+                &&isolation!=null&&(isolation==java.sql.Connection.TRANSACTION_REPEATABLE_READ||isolation==java.sql.Connection.TRANSACTION_SERIALIZABLE))
+            return CareerSaveCompatibility.inspect(jdbc,row,sameReference);
         return transactions.execute(ignored->{CareerRosterStore.lockCareer(jdbc,row.careerId());return CareerSaveCompatibility.inspect(jdbc,row,sameReference);});
     }
 

@@ -135,22 +135,30 @@ public final class DraftAvailability {
             if (missing.isEmpty()) return 20.0;
             int weakest = Integer.MAX_VALUE;
             double total = 0.0;
-            Set<ChampionId> flexible = new HashSet<>();
-            for (Position position : missing) {
-                int count = 0;
-                for (ChampionId id : pool) {
-                    if (champions.get(id).supportedPositions().contains(position)) {
-                        count++;
-                        if (champions.get(id).supportedPositions().stream().filter(missing::contains).count() > 1) flexible.add(id);
+            // Count each immutable champion definition once per assignment, not once per
+            // missing role. Only integer counts move; the floating-point reduction below
+            // retains the original Position order and operations.
+            var counts = new java.util.EnumMap<Position, Integer>(Position.class);
+            int flexible = 0;
+            for (ChampionId id : pool) {
+                int supportedMissing = 0;
+                for (Position position : champions.get(id).supportedPositions()) {
+                    if (missing.contains(position)) {
+                        counts.merge(position, 1, Integer::sum);
+                        supportedMissing++;
                     }
                 }
+                if (supportedMissing > 1) flexible++;
+            }
+            for (Position position : missing) {
+                int count = counts.getOrDefault(position, 0);
                 weakest = Math.min(weakest, count);
                 total += count;
             }
             if (weakest == 0 || !matchRemaining(List.copyOf(missing), pool, 0,
                     new HashSet<>())) return 0.0;
             double average = total / missing.size();
-            return Math.min(20.0, weakest * 1.6 + average * 0.35 + Math.min(5, flexible.size()) * 0.5);
+            return Math.min(20.0, weakest * 1.6 + average * 0.35 + Math.min(5, flexible) * 0.5);
         }).max().orElse(0.0);
     }
 

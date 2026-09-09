@@ -28,6 +28,31 @@ class CareerContinuousRecoveryTest {
     CareerContinuousApplicationService service(ConfigurableApplicationContext c,CareerContinuousStore s) {
         return new CareerContinuousApplicationService(s,c.getBean(CareerApplicationService.class),c.getBean(CareerCalendarApplicationService.class),c.getBean(CareerCompetitionApplicationService.class),c.getBean(CareerCompetitionExecutionService.class),c.getBean(CareerCompetitionBackgroundExecutionPort.class),c.getBean(CareerCalendarLeaguePort.class));
     }
+    @Test void readSnapshotDoesNotUpgradeCalendarLockAfterAnActualDateCommit() throws Exception {
+        try(var context=open();var writer=java.util.concurrent.Executors.newSingleThreadExecutor()) {
+            var careers=context.getBean(CareerApplicationService.class);
+            var c=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"소식 읽기와 날짜 정산","감독","GEN",UUID.randomUUID().toString())).career().career();
+            var calendar=context.getBean(CareerCalendarApplicationService.class);var before=calendar.view(c);
+            var db=context.getBean(JdbcTemplate.class);
+            var snapshot=new org.springframework.transaction.support.TransactionTemplate(context.getBean(PlatformTransactionManager.class));
+            snapshot.setReadOnly(true);snapshot.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
+            snapshot.executeWithoutResult(t->{
+                assertThat(db.queryForObject("SELECT current_game_date FROM career_calendar_state WHERE career_id=?",LocalDate.class,c.careerId())).isEqualTo(before.state().currentDate());
+                try {
+                    writer.submit(()->calendar.advance(c,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,before.state().calendarRevision(),"ADVANCE_ONE_DAY",UUID.randomUUID().toString())).get(30,java.util.concurrent.TimeUnit.SECONDS);
+                } catch(Exception failure){throw new AssertionError("Actual date commit must not wait for a read snapshot",failure);}
+                // This used to acquire FOR UPDATE against a version older than the committed row.
+                assertThat(context.getBean(CareerInboxService.class).feed(c.careerId(),before.state().seasonYear(),"",false,null,0).careerId()).isEqualTo(c.careerId());
+                assertThat(db.queryForObject("SELECT current_game_date FROM career_calendar_state WHERE career_id=?",LocalDate.class,c.careerId())).isEqualTo(before.state().currentDate());
+            });
+            assertThat(calendar.currentDate(c)).isEqualTo(before.state().currentDate().plusDays(1));
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM career_calendar_advance_command WHERE career_id=?",Integer.class,c.careerId())).isOne();
+            db.update("UPDATE career_player_directory SET directory_hash=? WHERE career_id=?","0".repeat(64),c.careerId());
+            assertThatThrownBy(()->snapshot.execute(t->careers.get(c.careerId())))
+                    .isInstanceOfSatisfying(CareerException.class,e->assertThat(e.type()).isEqualTo(CareerException.Type.RESOURCE_INTEGRITY_FAILURE));
+        }
+    }
+
     @Test void reopenedFileDatabaseReplaysCommittedChildAndPreservesPausedRunAndFences() {
         String career,child;LocalDate date;long staleFence;
         var start=new Command(REQUEST_SCHEMA,"START",UUID.randomUUID().toString(),null,null,Mode.NEXT_MANAGED_MATCH,null);

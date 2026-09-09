@@ -584,3 +584,28 @@ console.log('Career continuous: compact status, malformed boundary and original 
  const selectionSource=source('CareerScoutingPanel.tsx').split(' const cancelComparison=')[1].split(' async function interest')[0];let aborted=false,clearedPending=false,chosen=[];const selectionContext={exports:{},action:{current:{abort:()=>{aborted=true;}}},setPending:v=>{clearedPending=v===false;},setComparison(){},setChosen:f=>{chosen=f(['old']);}};runInNewContext(compile(`const cancelComparison=${selectionSource}; exports.select=select;`),selectionContext);selectionContext.exports.select('new');assert.ok(aborted&&clearedPending);assert.equal(chosen.join(','),'old,new');
  console.log('PASS actual scouting effect rejects late Career/filter responses');
 }
+
+// Preparation and executable calendar work have independent structured targets.
+{
+ const {default:ts}=await import('typescript'),{readFileSync}=await import('node:fs'),{runInNewContext}=await import('node:vm');
+ const read=n=>readFileSync(new URL(`../src/features/career/${n}`,import.meta.url),'utf8');
+ const compile=s=>ts.transpileModule(s,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const jsx=(type,props)=>({type,props});const ctx={exports:{},require:()=>({jsx,jsxs:jsx})};runInNewContext(compile(read('CareerCalendarPanel.tsx')),ctx);
+ const c=hardenedCalendarView();c.competition.allowedCommands=['DISPATCH_AUTO_COMPETITION_FIXTURE'];c.competition.nextFixture={fixtureId:'auto-B',competitionId:'LCK_CUP',matchId:'B',executionMode:'FULL_AUTO',date:c.currentDate,seriesFormat:'BO3'};
+ const flatten=n=>!n?[]:Array.isArray(n)?n.flatMap(flatten):typeof n==='object'?[n,...flatten(n.props?.children)]:[];
+ let executed=0,closed=0;const render=(extra={})=>flatten(ctx.exports.CareerCalendarPanel({calendar:c,loading:false,pending:false,error:null,focusFixture:'managed-A',onCompetitionAction:()=>executed++,onClosePreparation:()=>closed++,...extra}));
+ const button=nodes=>nodes.find(n=>n.type==='button'&&n.props.children==='Auto 경기 실행');
+ assert.equal(button(render()).props.disabled,false);button(render()).props.onClick();assert.equal(executed,1);
+ c.competition.allowedCommands=[];assert.equal(button(render()),undefined);c.competition.allowedCommands=['DISPATCH_AUTO_COMPETITION_FIXTURE'];assert.ok(render({competitionPending:true}).find(n=>n.type==='button'&&n.props.children==='대회 상태 확인 중…').props.disabled);
+ assert.ok(!render().some(n=>n.type==='button'&&String(n.props.children).includes('관리 Series 시작')));
+ render().find(n=>n.type==='button'&&n.props.children==='경기 준비 표시 닫기').props.onClick();assert.equal(closed,1);
+ console.log('PASS actual Calendar permits prior Auto B with preparation A and keeps busy/close boundaries');
+ const nav={exports:{}};runInNewContext(compile(read('careerNavigation.ts')),nav);const a={panel:'MATCH',current:true,sourceId:'A',seasonYear:2027,matchState:'UNSTARTED'};
+ assert.equal(nav.exports.preparationStillCurrent(a,{...a},2027),true);
+ for(const next of [null,{...a,sourceId:'B'},{...a,matchState:'IN_PROGRESS'},{...a,matchState:'COMPLETED'},{...a,matchState:'CANCELLED'}])assert.equal(nav.exports.preparationStillCurrent(a,next,2027),false);
+ assert.equal(nav.exports.preparationStillCurrent(a,a,2028),false);
+ const effect=read('CareerDashboardPage.tsx').match(/useEffect\(\(\) => \{\s*if \(!inboxFocus[\s\S]*?\}, \[inboxFocus, selectedId,[\s\S]*?\]\);/)[0];
+ async function staleEffect(abort,cancelled=false){let finish,focus=a;const e={AbortController,inboxFocus:a,calendar:cancelled?{...c,blockingReason:'SEASON_CANCELLED'}:c,selectedId:careerId,continuousBusy:false,preparationStillCurrent:nav.exports.preparationStillCurrent,scoutingRequest:()=>new Promise(r=>finish=r),setInboxFocus:f=>focus=f(focus),useEffect:f=>e.cleanup=f()};runInNewContext(compile(effect),e);if(cancelled)return focus;if(abort)e.cleanup();finish({careerId,next:null});await new Promise(setImmediate);return focus;}
+ assert.equal(await staleEffect(false),null);assert.equal(await staleEffect(true),a);assert.equal(await staleEffect(false,true),null);
+ console.log('PASS actual preparation effect clears ended/replaced targets and ignores aborted responses');
+}

@@ -7,3 +7,8 @@ export async function currentNavigation(link: InboxLink, refresh: () => Promise<
   if (link.current && await refresh() !== true) return;
   if (valid()) apply();
 }
+
+export function preparationStillCurrent(link: InboxLink, next: InboxLink | null, activeYear: number): boolean {
+  return link.seasonYear === activeYear && !!next && next.sourceId === link.sourceId
+    && next.seasonYear === link.seasonYear && next.matchState === 'UNSTARTED';
+}

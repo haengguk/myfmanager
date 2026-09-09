@@ -1,0 +1,7 @@
+sample,classification,start_date,stop_date,settled_days,series,sets,stop_reason,accepted_observed_to_stop_s,request_to_server_stop_approx_s,request_to_usable_dom_s,click_to_usable_dom_s,auto_wait_to_receipt_observed_s,advance_day_1_observed_s,advance_day_2_observed_s,other_coordinator_observed_s,stop_response_to_dom_s,calendar_get_ms,calendar_utf8_bytes,notes
+before-1,excluded_browser_timeout,2026-08-24,2026-08-26,2,1,3,PLAYER_MATCH,70.026,,,,52.354,1.115,1.525,15.032,,,,
+before-2,baseline,2026-08-24,2026-08-26,2,1,3,PLAYER_MATCH,67.95,69.305,71.687,,50.909,1.432,1.551,14.058,0.987,2218.7,19701,Calendar size derived from identical payload; original collector counted 18480 characters
+before-3,baseline,2026-08-24,2026-08-26,2,1,3,PLAYER_MATCH,56.624,60.354,62.827,62.828,40.515,1.017,1.417,13.675,1.853,2988.1,19701,Original Inbox GET returned H2 40001; Continuous completed
+after-1,intermediate_before_read_lock_fix,2026-08-24,2026-08-26,2,1,3,PLAYER_MATCH,57.301,58.433,60.567,60.568,44.879,1.418,1.826,9.179,1.338,2303.5,19701,
+after-2,final,2026-08-24,2026-08-26,2,1,3,PLAYER_MATCH,73.365,74.558,77.818,77.819,59.268,1.73,2.649,9.717,2.049,2026,19701,
+after-3,final,2026-08-24,2026-08-26,2,1,3,PLAYER_MATCH,67.314,68.633,70.957,70.958,53.03,1.421,2.027,10.836,1.562,2644.2,19701,

@@ -78,10 +78,16 @@ public final class CareerRecordsQuery {
     public List<CareerAwardsStore.Award> matchAwards(String career,String record){return read.execute(t->{require(career);return db.query("SELECT a.award_json,a.award_hash FROM career_record_award a JOIN career_record_award_input i ON a.instance_id=i.instance_id WHERE a.career_id=? AND i.record_id=? ORDER BY a.definition_id,a.instance_id",(r,n)->award(r.getString(1),r.getString(2)),career,record);});}
     public CareerAwardsStore.Award awardDetail(String career,String instance){return read.execute(t->{require(career);var rows=db.query("SELECT award_json,award_hash FROM career_record_award WHERE career_id=? AND instance_id=?",(r,n)->award(r.getString(1),r.getString(2)),career,instance);if(rows.isEmpty())throw CareerException.notFound();return rows.getFirst();});}
     private static CareerAwardsStore.Award award(String json,String digest){if(!hash(json).equals(digest))throw new IllegalStateException("AWARD_INTEGRITY");return read(json,CareerAwardsStore.Award.class);}
+    /** Match awards retain their round scope; period awards cover the integrated regular season. */
+    static String awardScopeFilter(String competition,List<Object> args) {
+        if(competition==null||competition.isBlank())return "";
+        args.add(competition);args.add(CareerAwardPolicy.scope(competition));
+        return " AND (a.scope_id=? OR a.scope_id=?)";
+    }
     private AwardPage awardPage(String career,Integer year,long revision,String kind,String entity,String competition,boolean organization,long cursor) {
         String filter="a.career_id=? AND a.cutoff_revision<=?";var args=new ArrayList<Object>(List.of(career,revision));
         if(year!=null){filter+=" AND a.season_year=?";args.add(year);}
-        if(competition!=null&&!competition.isBlank()){filter+=" AND (a.scope_id=? OR a.scope_id=?)";args.add(competition);args.add(CareerAwardPolicy.scope(competition));}
+        filter+=awardScopeFilter(competition,args);
         String candidate="";var teamIds=teams(entity,organization);
         if(kind.equals("PLAYER")){candidate="c.player_id=?";args.add(entity);}
         else if(kind.equals("TEAM")){candidate="c.team_id IN ("+String.join(",",Collections.nCopies(teamIds.size(),"?"))+")";args.addAll(teamIds);}

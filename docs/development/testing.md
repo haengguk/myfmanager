@@ -1,5 +1,12 @@
 # Testing
 
+## Career 실제 플레이 속도 V1 (2026-09-09)
+
+G1은 기존 `career:verify`에서 실제 Calendar callback·busy·focus 해제와 늦은 응답을 검사한다. G2는 기존 RecordsStorage의 실제 match award writer를 이용한 작은 자료로 라운드/통합 범위를 비교한다. DraftJointPool과 ContinuousRecovery에 각각 역할 계수 경계와 실제 날짜 commit 중 읽기 스냅샷 경계를 추가했다. 신규 backend 테스트 클래스는 없다.
+실제 속도는 기본 test에서 재지 않는다. 명시적 도구 `backend/scripts/CareerPlaySpeedProbe.java`를 별도 출력으로 컴파일하고 **격리된 닫힌 DB의 사본**에서만 실행한다. 준비 구간의 일정 이동과 측정 구간의 실제 Draft·경기·날짜 정산을 구분하며, 브라우저 대표 동선은 같은 측정에 결합한다. 실행 중 Gradle/빌드와 겹치지 않는다.
+최종 `npm --prefix frontend run career:verify`는 123 PASS, `npm --prefix frontend run build`는 성공했다(Vite 15.09초). backend 집중 4회/52건 시도에서 새 fixture cutoff 실패 1건을 교정하고 영향 검사가 통과했다. 전체 회귀는 통합 뒤 계획한 1회만 수행하며 정확한 결과, 명령, 실측 6회 분류 및 성능 목표 미달은 [실행 보고서](career-play-speed-v1.md)와 [작은 기록 CSV](career-play-speed-v1.csv)를 따른다.
+이번 전체는 `JAVA_HOME=/tmp/career-development-jdk /usr/bin/time -p bash backend/scripts/test-linux.sh`로 1회 실행해 284 suites/2,248건 중 2,246 통과·실패/오류 0·기존 선택적 진단 skip 2였다(wall 1,391.76초). 원본 로그/XML은 `/tmp/career-speed/full-original/`에 보존했으며 후속 집중·추가 전체는 0회다.
+
 ## Career 스카우팅·비교·상대 분석 V1 (2026-09-09)
 
 새 CareerScoutingTest 하나에서 현재 디렉터리/성장/생성 선수/은퇴, 필터·asOf, 같은 역할 비교, 관심 revision과 Calendar/Continuous 독립, 원 receipt의 양방향 밴과 부분 분모를 확인한다. RecordsStorage의 작은 17개월 관측과 기존 실제 Auto/Player 완료·복원 검사를 확장했다. 기존 두 번 시즌 전환/파일 복구 검사에 관심 ID 보존 assertion을 추가했다. 프런트는 career:verify의 실제 Dashboard/Seasons/Scouting 경계를 포함한 7개 그룹, build, 격리 브라우저의 관심→reload→비교→협상/상대 분석→준비 동선을 사용한다. 통합 후 전체 backend 1회와 원본 결과 보존, 국소 후속 검증 원칙을 적용한다.

@@ -26,9 +26,20 @@ public final class CareerContinuousWorker {
     @EventListener(ApplicationReadyEvent.class)
     @Order(100)
     public void start() {
-        if(enabled)worker.scheduleWithFixedDelay(this::tick,0,1,TimeUnit.SECONDS);
+        if(enabled)worker.schedule(this::cycle,0,TimeUnit.MILLISECONDS);
+    }
+    private void cycle() {
+        tick();
+        if(worker.isShutdown())return;
+        long delay=1000;
+        try {if(!store.due().isEmpty())delay=0;}
+        catch(RuntimeException failure){org.slf4j.LoggerFactory.getLogger(getClass()).warn("Continuous wake lookup failed",failure);}
+        try {worker.schedule(this::cycle,delay,TimeUnit.MILLISECONDS);}
+        catch(RejectedExecutionException shuttingDown){if(!worker.isShutdown())throw shuttingDown;}
     }
     void tick() {
+        long started=System.nanoTime(); // Operational fairness budget; never a gameplay input.
+
         try {for(String career:store.due()) {
             try {service.step(career,owner);}
             catch(RuntimeException error) {
@@ -38,6 +49,9 @@ public final class CareerContinuousWorker {
                     org.slf4j.LoggerFactory.getLogger(getClass()).warn("Continuous retry scheduling failed",deferFailure);
                 }
             }
+            // Yield the executor after a bounded batch. Due ordering rotates Careers whose
+            // completed step wrote a new wake time; pending external jobs keep their backoff.
+            if(System.nanoTime()-started>=TimeUnit.MILLISECONDS.toNanos(250))break;
         }}
         catch(RuntimeException error){org.slf4j.LoggerFactory.getLogger(getClass()).warn("Continuous coordinator scheduling failed",error);}
     }

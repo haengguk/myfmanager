@@ -70,6 +70,27 @@ class CareerRecordsStorageTest {
         var cutoff=CareerRosterStore.read(db.queryForObject("SELECT award_json FROM career_record_award WHERE definition_id='LCK_ALL_PRO'",String.class),CareerAwardsStore.Award.class);
         assertThat(cutoff.inputRecords()).hasSize(2);assertThat(cutoff.cutoffDate()).isEqualTo(LocalDate.of(2027,9,1));assertThat(cutoff.slots()).hasSize(15).allMatch(slot->slot.playerId()==null);
         assertThat(db.queryForObject("SELECT COUNT(*) FROM career_record_award WHERE definition_id='LCK_ALL_PRO'",Integer.class)).isOne();
+        // Actual match award writer above produced R1/R3 POG/POM. Add one small period winner,
+        // then exercise the exact comparison query without constructing a whole scouting roster.
+        tx.executeWithoutResult(t->CareerAwardsStore.save(db,"career",2027,regular.id(),regular.name(),"LCK_REGULAR","scope-check",2,record.date(),List.of(record),List.of("SEASON"),false,List.of(eligible),true,regular));
+        var awardQueries=new CareerScoutingService(db,new DataSourceTransactionManager(ds),null,null);
+        var recordsQuery=new CareerRecordsQuery(db,new DataSourceTransactionManager(ds));
+        var winners=db.queryForList("SELECT DISTINCT player_id FROM career_record_award_candidate WHERE winner=TRUE",String.class);
+        for(String scope:List.of("LCK_REGULAR_R1_R2","LCK_REGULAR_R3_R4","")) {
+            var compared=awardQueries.awards("career",winners,2027,scope);
+            assertThat(compared).extracting(a->a.get("instanceId")).doesNotHaveDuplicates();
+            if(!scope.isEmpty())assertThat(compared).allMatch(a->Set.of(scope,"LCK_REGULAR").contains(a.get("scope")));
+            assertThat(compared).anyMatch(a->a.get("scope").equals("LCK_REGULAR"));
+            assertThat(compared).anyMatch(a->a.get("scope").equals(scope.isEmpty()?"LCK_REGULAR_R1_R2":scope));
+            for(String winnerId:winners) {
+                var expected=recordsQuery.view("career","PLAYER",winnerId,2027,null,0,scope).awards().stream()
+                        .filter(a->!a.analysisBadge()&&a.status().equals("FINALIZED")&&a.slots().stream().anyMatch(slot->winnerId.equals(slot.playerId())))
+                        .map(CareerAwardsStore.Award::instanceId).toList();
+                assertThat(compared.stream().filter(a->a.get("playerId").equals(winnerId)).map(a->(String)a.get("instanceId"))).containsExactlyInAnyOrderElementsOf(expected);
+            }
+        }
+        assertThat(awardQueries.awards("other",winners,2027,"")).isEmpty();
+        assertThat(awardQueries.awards("career",winners,2028,"")).isEmpty();
         for(int index=0;index<60;index++){String occurrence="synthetic-page-"+index;tx.executeWithoutResult(t->CareerAwardsStore.save(db,"career",2027,"SYNTHETIC_POM","합성 페이지 검증","LCK_REGULAR",occurrence,2,record.date(),List.of(record),List.of(),false,List.of(eligible),true,null));}
         var queries=new CareerRecordsQuery(db,new DataSourceTransactionManager(ds));
         var page=queries.view("career","PLAYER",eligible.playerId(),2027,2L,0,null);
