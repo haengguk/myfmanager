@@ -24,6 +24,7 @@ public final class CareerContinuousProgress {
     }
     /** Mutable only within a locked load/save transaction; serialized as the durable checkpoint. */
     public static final class Run {
+        public int completedAwards,observedAwards;
         public String runId,careerId;
         public int seasonYear;
         public Mode mode;

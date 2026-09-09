@@ -7,6 +7,9 @@ import java.util.Objects;
 
 /** Opaque standings token. No public constructor or caller-authored verified flag exists. */
 public final class VerifiedLeagueFixtureCompletion {
+    private List<com.lolfm.career.CareerGameStatistics> statistics=List.of();
+    List<com.lolfm.career.CareerGameStatistics> statistics(){return statistics;}
+    VerifiedLeagueFixtureCompletion statistics(List<com.lolfm.career.CareerGameStatistics> value){statistics=List.copyOf(value);return this;}
     private final String fixtureId;
     private final String canonicalFixtureReceiptHash;
     private final String winnerTeamCode;

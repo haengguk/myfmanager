@@ -51,6 +51,7 @@ public final class CareerCompetitionAutomatedSeriesKernel {
         score.put(binding.firstTeamCode(), 0);
         score.put(binding.secondTeamCode(), 0);
         ArrayList<LeagueFixtureGameReceiptV1> receipts = new ArrayList<>();
+        var statistics = new ArrayList<com.lolfm.career.CareerGameStatistics>();
         while (score.values().stream().noneMatch(value ->
                 value >= binding.seriesFormat().winsRequired())) {
             if (!games.canComplete(history)) {
@@ -88,6 +89,7 @@ public final class CareerCompetitionAutomatedSeriesKernel {
             score.compute(receipt.winnerTeamCode(),
                     (ignored, value) -> Objects.requireNonNull(value) + 1);
             receipts.add(receipt);
+            if(execution.statistics()!=null)statistics.add(execution.statistics());
         }
         String winner = score.get(binding.firstTeamCode())
                 > score.get(binding.secondTeamCode())
@@ -95,7 +97,7 @@ public final class CareerCompetitionAutomatedSeriesKernel {
         String loser = winner.equals(binding.firstTeamCode())
                 ? binding.secondTeamCode() : binding.firstTeamCode();
         return new CompletedSeriesEvidence(binding.bindingHash(),
-                Map.copyOf(score), winner, loser, receipts);
+                Map.copyOf(score), winner, loser, receipts, statistics);
     }
 
     private void verifyGame(
@@ -136,9 +138,12 @@ public final class CareerCompetitionAutomatedSeriesKernel {
             Map<String, Integer> score,
             String winnerTeamCode,
             String loserTeamCode,
-            List<LeagueFixtureGameReceiptV1> orderedGames
+            List<LeagueFixtureGameReceiptV1> orderedGames,
+            List<com.lolfm.career.CareerGameStatistics> statistics
     ) {
+        public CompletedSeriesEvidence(String binding,Map<String,Integer> score,String winner,String loser,List<LeagueFixtureGameReceiptV1> games){this(binding,score,winner,loser,games,List.of());}
         public CompletedSeriesEvidence {
+            statistics=List.copyOf(statistics);
             score = Map.copyOf(score);
             orderedGames = List.copyOf(orderedGames);
         }

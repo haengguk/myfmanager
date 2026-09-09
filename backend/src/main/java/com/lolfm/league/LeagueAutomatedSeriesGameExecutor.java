@@ -53,8 +53,10 @@ interface LeagueAutomatedSeriesGameExecutor {
 
     record Execution(
             FinalDraftResult completedDraft,
-            LeagueFixtureGameReceiptV1 gameReceipt
+            LeagueFixtureGameReceiptV1 gameReceipt,
+            com.lolfm.career.CareerGameStatistics statistics
     ) {
+        public Execution(FinalDraftResult draft,LeagueFixtureGameReceiptV1 receipt){this(draft,receipt,null);}
         public Execution {
             Objects.requireNonNull(completedDraft, "completedDraft");
             Objects.requireNonNull(gameReceipt, "gameReceipt");
@@ -100,7 +102,7 @@ final class ProductionLeagueAutomatedSeriesGameExecutor
         List<ChampionId> orderedAfter = historyAfter.stream()
                 .sorted(java.util.Comparator.comparing(ChampionId::value)).toList();
         return new Execution(draft, LeagueFixtureGameReceiptV1.from(
-                prepared.input(), prepared.output(), orderedAfter));
+                prepared.input(), prepared.output(), orderedAfter), com.lolfm.career.CareerGameStatistics.from(request.gameNumber(),prepared.output().outputHash(),prepared.output().resultSummary()));
     }
 
     private void validate(

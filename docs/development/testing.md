@@ -1,5 +1,19 @@
 # Testing
 
+## Career 성적·개인상·이력 V1 (2026-09-09)
+
+CareerPerformanceAwardsPolicyTest는 작은 점수·자격·슬롯·scope 경계,
+CareerRecordsStorageTest는 합성 5세트의 원자성·충돌·컷오프·권리·페이지·파일 복구를 검증한다.
+기존 CareerDomesticExecutionTest 실제 Auto/Player 완료, CareerModePersistenceTest 시즌 전환 2회·
+이적/임대·은퇴·stale fence, LeagueBoundSeriesCheckpointRecoveryTest를 직접 영향 범위로 확장/실행했다.
+G1은 Overseas/Planner 기존 테스트, G2는 career:verify의 실제 TSX 경계에서 확인한다.
+프런트는 career:verify/build 및 실제 보존 경기 결과→상→선수/팀→새로고침 흐름을 사용한다.
+전체 회귀는 통합 구현 뒤 1회/282 suites/2,238건/실패4·기존 skip2/wall1,638.02초였다.
+원본 XML을 보존한 뒤 migration 개수3건과 nullable 등록 연도1건을 수정하고,
+순위·조회·성장 보강을 포함한 직접 영향27건이 모두 통과했다(wall153.26초).
+추가 전체0회이며 최종 트리의 clean full 통과로 표기하지 않는다.
+[정확한 실행 결과와 한계](career-records-performance-awards-and-player-team-history-v1.md)를 참고한다.
+
 ## Career 연속 진행·AI 자동 처리 V1 (2026-09-08)
 
 선행 경계는 기존 UpperObjectiveTest, DraftAbilityTest, CareerOverseasExecutionTest의
@@ -20,7 +34,7 @@ JAVA_HOME=/path/to/jdk-21 bash scripts/test-linux.sh --tests '*CareerContinuous*
 통과했다(wall 579.81초). 마지막 제품 보강의 직접 영향 68건 중 66건 통과·새 테스트 준비 오류
 2건이었고(wall 211.55초), ID/준비 순서만 고친 두 메서드가 통과했다(wall 17.23초).
 추가 전체 실행은 0회이며 최종 clean full 통과로 표기하지 않는다. 미해결 실패는 없다.
-정확한 선택자·원인·검증별 증거는 [구현 보고서](career-continuous-progression-and-ai-auto-v1.md)를 따른다.
+정확한 선택자·원인·검증별 증거는 현재 원본 로그를 따른다. 해당 과거 보고서는 사용자가 삭제했으며 복원하지 않는다.
 프런트는 career:verify/build, 공유 Player policy 및 Series 명령 경계 변경에 따른
 player-draft:verify/series:verify를 사용한다. 프런트 최종 Career verifier는 110 PASS 표기, build는 통과했다.
 

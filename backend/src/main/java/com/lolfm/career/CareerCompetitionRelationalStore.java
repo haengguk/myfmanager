@@ -838,6 +838,7 @@ public final class CareerCompetitionRelationalStore {
             if (updated != 1) throw new IllegalStateException(
                     "CAREER_COMPETITION_CYCLE_CAS_FAILED");
             refreshCycleHash(careerId, seasonYear);
+            CareerHistoryStore.regularRanking(jdbc,careerId,seasonYear,"LCK_REGULAR_R1_R2",importHash,ranking);
             return new SealResult(load(careerId, seasonYear), false, importHash);
         });
     }
@@ -1185,6 +1186,8 @@ public final class CareerCompetitionRelationalStore {
                     receipt.secondTeamCode(), receipt.winnerTeamCode(),
                     receipt.receiptHash());
             if (!result.replayed()) {
+                CareerRecordsStore.stage(jdbc,receipt.seriesId(),verification.statistics());
+                CareerRecordsStore.competitionComplete(jdbc,receipt);
                 CareerAppearanceStore.complete(jdbc,receipt.careerId(),"COMP|"+receipt.seasonYear()+'|'+receipt.competitionId()+'|'+receipt.matchId(),receipt.receiptHash(),receipt.orderedGames());
                 jdbc.update("""
                         INSERT INTO career_competition_result_detail(
@@ -1199,6 +1202,8 @@ public final class CareerCompetitionRelationalStore {
                         receipt.totalDurationSeconds(), now());
                 advanceResultGraph(receipt.careerId(), receipt.seasonYear(),
                         receipt.competitionId());
+                CareerHistoryStore.results(this,receipt.careerId(),receipt.seasonYear(),receipt.competitionId());
+                CareerAwardClosure.close(jdbc,receipt.careerId(),receipt.seasonYear(),receipt.competitionId(),receipt.matchId());
             }
             jdbc.update("""
                     UPDATE career_competition_series_binding

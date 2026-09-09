@@ -56,6 +56,7 @@ public final class LeagueAutomatedSeriesRunner {
             score.put(fixture.firstTeamCode(), 0);
             score.put(fixture.secondTeamCode(), 0);
             ArrayList<LeagueFixtureGameReceiptV1> receipts = new ArrayList<>();
+            var statistics=new ArrayList<com.lolfm.career.CareerGameStatistics>();
             while (!clinched(fixture.seriesFormat(), score)) {
                 if (!games.canComplete(history)) {
                     return LeagueAutomatedSeriesRunResult.blocked(
@@ -91,6 +92,7 @@ public final class LeagueAutomatedSeriesRunner {
                 score.compute(game.winnerTeamCode(),
                         (ignored, value) -> Objects.requireNonNull(value) + 1);
                 receipts.add(game);
+                if(execution.statistics()!=null)statistics.add(execution.statistics());
             }
 
             String winner = score.get(fixture.firstTeamCode())
@@ -129,7 +131,7 @@ public final class LeagueAutomatedSeriesRunner {
                             input, current, production.currentResourceProvenanceHash(),
                             receipts, unifiedReceipt);
             return LeagueAutomatedSeriesRunResult.completed(
-                    executions, receipt, unifiedReceipt, completion);
+                    executions, receipt, unifiedReceipt, completion.statistics(statistics));
         } catch (RuntimeException error) {
             String reason = error.getMessage();
             return LeagueAutomatedSeriesRunResult.blocked(

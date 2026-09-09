@@ -9,9 +9,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.*;
 import static org.assertj.core.api.Assertions.*;
 
-@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.NONE,properties={"spring.main.banner-mode=off","logging.level.root=ERROR","spring.main.lazy-initialization=true"})
+@SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.NONE,properties={"spring.main.banner-mode=off","logging.level.root=ERROR","spring.main.lazy-initialization=true","lolfm.career.continuous.background.enabled=false"})
 class CareerOverseasExecutionTest {
     @Autowired CareerApplicationService careers;
+    @Autowired CareerContinuousApplicationService continuous;
     @Autowired CareerOverseasStore overseas;
     @Autowired CareerCompetitionRelationalStore competitions;
     @Autowired CareerMarketStore market;
@@ -91,6 +92,23 @@ class CareerOverseasExecutionTest {
         assertThat(waiting.allowedAdvanceModes()).hasSize(2);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_competition_fixture WHERE career_id=? AND competition_id='FIRST_STAND'",Integer.class,id)).isZero();
         assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(before);
+        transaction().executeWithoutResult(t->{
+            var past=java.time.LocalDate.of(year,3,26);CareerOperatingDateFixture.fresh(jdbc,id,past);
+            jdbc.update("UPDATE career_competition_fixture SET lifecycle_status='COMPLETED' WHERE career_id=? AND scheduled_date<=?",id,past);competitions.refreshAllInstanceHashes(id,year);competitions.refreshCycleHash(id,year);
+            assertThat(calendar.registrationRepairWaits(c,year,past)).anyMatch(w->w.competitionId().equals("FIRST_STAND")&&w.responsibility().equals("AI_CLUB"));
+            assertThat(CareerContinuousPlanner.registrationDecision(calendar.registrationRepairWaits(c,year,past))).isNull();
+            // Restore the overseas squad and leave a real manager-owned registration defect outside the FST window.
+            jdbc.update("UPDATE career_market_state SET state_json=?,state_hash=? WHERE career_id=?",readyMarket.get(),CareerRosterStore.hash(readyMarket.get()),id);
+            jdbc.update("UPDATE career_roster_state SET state_json=?,state_hash=? WHERE career_id=? AND season_year=?",readyRoster.get(),CareerRosterStore.hash(readyRoster.get()),id,year);
+            var old=CareerMarketStore.load(jdbc,id);var m=CareerMarketStore.engine(jdbc,id,year,old);
+            for(String pid:new ArrayList<>(m.members.keySet()))if("LCK:GEN".equals(m.members.get(pid).ownerTeam())&&m.player(pid).position()==com.lolfm.domain.Position.TOP)m.release("LCK:GEN",pid,null,old.state().processedThrough());
+            CareerMarketStore.persist(jdbc,id,year,old,m);
+            assertThat(calendar.registrationRepairWaits(c,year,past)).anyMatch(w->w.responsibility().equals("MANAGER"));
+            continuous.command(id,new CareerContinuousProgress.Command(CareerContinuousProgress.REQUEST_SCHEMA,"START",UUID.randomUUID().toString(),null,null,CareerContinuousProgress.Mode.TARGET_DATE,past.plusDays(1)));
+            continuous.step(id,"overdue-registration-test");var stopped=continuous.view(id);
+            assertThat(stopped.run().status).isEqualTo(CareerContinuousProgress.Status.STOPPED);assertThat(stopped.run().stop.reason()).isEqualTo(CareerContinuousProgress.Reason.ROSTER_DECISION);assertThat(stopped.currentDate()).isEqualTo(past);
+            t.setRollbackOnly();
+        });
         // Another legal due fixture must still be played before repair may advance the day.
         var unrelated=competitions.load(id,year).fixtures().stream().filter(f->f.competitionId().equals("LEC_VERSUS")).findFirst().orElseThrow();
         transaction().executeWithoutResult(t->{jdbc.update("UPDATE career_competition_fixture SET lifecycle_status='READY',scheduled_date=? WHERE career_id=? AND fixture_id=?",date,id,unrelated.fixtureId());competitions.refreshInstanceHash(id,year,"LEC_VERSUS");competitions.refreshCycleHash(id,year);});

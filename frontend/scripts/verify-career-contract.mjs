@@ -466,3 +466,43 @@ for (const change of [v => { v.run.careerId = secondCareerId; }, v => { v.run.co
 const continuousReply = { replayed: true, receipt: { clientCommandId: '00000000-0000-4000-8000-000000000099', runId: 'continuous_test', action: 'START', resultingRevision: 0, status: 'RUNNING' }, progress: continuous };
 assert.deepEqual(validateCareerContinuousResponse(continuousReply), continuousReply);
 console.log('Career continuous: compact status, malformed boundary and original command replay verified.');
+
+// Exercise the real TSX accept/poll boundary; no React renderer or browser-sized harness needed.
+{
+  const { default: ts } = await import('typescript');
+  const { readFileSync } = await import('node:fs');
+  const { runInNewContext } = await import('node:vm');
+  const code = ts.transpileModule(readFileSync(new URL('../src/features/career/CareerContinuousPanel.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  async function probe(status, stamp = null) {
+    const effects = [], busy = []; let timer, calls = 0, finish;
+    let next = { careerId: 'probe', currentDate: '2027-03-25', run: { runId: 'run', revision: 2, status }, allowedCommands: [] };
+    const context = { exports: {}, AbortController, window: { sessionStorage: { getItem: () => null }, setTimeout: f => { timer = f; return 1; }, clearTimeout() {} }, require: name => name === 'react' ? { useState: v => [v, () => {}], useRef: v => ({ current: v }), useEffect: f => effects.push(f) } : name === 'react/jsx-runtime' ? { jsx() {}, jsxs() {} } : { getCareerContinuous: async () => next, CareerApiFailure: class extends Error {} } };
+    runInNewContext(code, context);
+    context.exports.CareerContinuousPanel({ careerId: 'probe', currentDate: '2027-03-25', seasonYear: 2027, busy: false, appliedRun: stamp, onBusy: (_, v) => busy.push(v), onStopped: () => { calls++; return new Promise(resolve => { finish = resolve; }); }, onBegin: () => () => {}, onAction() {} });
+    effects.forEach(f => f()); assert.equal(busy.at(-1), true); await new Promise(setImmediate);
+    if (status === 'RUNNING') { assert.equal(calls, 0); next = { ...next, run: { ...next.run, revision: 3, status: 'STOPPED' } }; timer(); await new Promise(setImmediate); }
+    if (!stamp) { assert.equal(calls, 1); assert.equal(busy.at(-1), true); finish(true); await new Promise(setImmediate); assert.equal(busy.at(-1), false); }
+    else { assert.equal(calls, 0); assert.equal(busy.at(-1), false); }
+    timer(); await new Promise(setImmediate); assert.equal(calls, stamp ? 0 : 1);
+  }
+  await probe('STOPPED'); await probe('COMPLETED'); await probe('RUNNING'); await probe('STOPPED', 'run:2');
+  console.log('PASS actual continuous component initial terminal, same-date, synchronization barrier, repeated response and remount');
+}
+
+{
+  const { default: ts } = await import('typescript');
+  const { readFileSync } = await import('node:fs');
+  const { runInNewContext } = await import('node:vm');
+  const code = ts.transpileModule(readFileSync(new URL('../src/features/career/api/careerRecords.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  const context = { exports: {}, require: () => ({ realMatchConfig: { apiBaseUrl: '' } }) };
+  runInNewContext(code, context);
+  const { restoreRecordSelection, acceptRecordView, recordsSelectionKey } = context.exports;
+  const selection = { kind: 'PLAYER', entity: 'retired-player', year: 2027, competition: '', organization: false };
+  const view = { careerId, kind: 'PLAYER', entity: 'retired-player', seasonYear: 2027, organization: false, competition: '', asOf: 4, matches: [{ careerId }], awards: [] };
+  assert.equal(acceptRecordView(view, careerId, selection), view);
+  for (const patch of [{ careerId: secondCareerId }, { entity: 'another-player' }, { seasonYear: 2028 }, { organization: true }, { matches: [{ careerId: secondCareerId }] }]) assert.throws(() => acceptRecordView({ ...view, ...patch }, careerId, selection));
+  assert.equal(restoreRecordSelection(JSON.stringify(selection), 2029).year, 2027);
+  assert.equal(restoreRecordSelection('{broken', 2029).year, 2029);
+  assert.notEqual(recordsSelectionKey(careerId), recordsSelectionKey(secondCareerId));
+  console.log('PASS records Career/entity/season/organization boundary, historical filter reload and malformed optional storage');
+}

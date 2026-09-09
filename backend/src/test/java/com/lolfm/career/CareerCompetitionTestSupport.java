@@ -105,6 +105,7 @@ public final class CareerCompetitionTestSupport {
             com.lolfm.league.CareerCompetitionAutomatedSeriesKernel.CompletedSeriesEvidence evidence) {
         store.applyVerifiedCompletion(CareerCompetitionFixtureCompletionReceiptV1.verifyAutomated(binding, evidence));
     }
+    public static void applyRealPlayerCompletion(CareerCompetitionRelationalStore store,CareerCompetitionSeriesBindingV1 binding,com.lolfm.league.LeaguePlayerSeriesKernelPort.CompletedSeriesEvidence evidence){store.applyVerifiedCompletion(CareerCompetitionFixtureCompletionReceiptV1.verifyPlayer(binding,evidence));}
     public static CareerCompetitionFixtureCompletionReceiptV1 verifyAuto(CareerCompetitionSeriesBindingV1 binding,
             com.lolfm.league.CareerCompetitionAutomatedSeriesKernel.CompletedSeriesEvidence evidence) {
         return CareerCompetitionFixtureCompletionReceiptV1.verifyAutomated(binding, evidence).receipt();

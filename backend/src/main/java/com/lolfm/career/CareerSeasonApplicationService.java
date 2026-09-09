@@ -130,6 +130,7 @@ public final class CareerSeasonApplicationService {
             jdbc.update("UPDATE career_season SET roster_json=?,roster_hash=? WHERE career_id=? AND season_year=? AND roster_json IS NULL",
                     rosters.encoded(),rosters.identity(),careerId,current.year());
             int nextYear=current.year()+1, ordinal=current.ordinal()+1;
+            CareerRecordsStore.beginSeason(jdbc,careerId,nextYear,java.time.LocalDate.of(nextYear,1,1),true);
             String identity=CareerInternationalRules.hash(careerId+"|SEASON_ROLLOVER_V1|"+nextYear+"|"+ordinal);
             String league="league_"+identity, season="season_"+identity;
             long seed=CareerCompetitionAggregate.deriveSeed(career.rootSeed(),nextYear,"CAREER_SEASON","ORDINAL:"+ordinal);

@@ -261,12 +261,16 @@ public final class CareerCalendarApplicationService {
         var current=competitionView.nextFixture();
         if(current!=null&&!current.date().isAfter(date)&&current.bindingHash()==null
                 &&calendars.marketRepair(career.careerId(),year,current.firstTeamCode(),current.secondTeamCode(),current.competitionId(),null,null))needed=true;
-        // Include overdue registration as well as the current window; no fixture exists before registration.
-        for(var event:projected.events())if(!event.startDate().isAfter(date)&&CareerInternationalRules.COMPETITIONS.contains(event.templateId())) {
-            var waiting=competitions.registrationWait(career,year,event.templateId());
-            if(waiting!=null&&waiting.code().equals("ROSTER_REPAIR_REQUIRED"))needed=true;
-        }
+        if (!registrationRepairWaits(career,year,date).isEmpty()) needed=true;
         return needed;
+    }
+
+    /** Same read-only scope for Calendar and continuous progression, including expired windows. */
+    java.util.List<CareerRegistrationWait> registrationRepairWaits(CareerRelationalStore.CareerRow career,int year,LocalDate date) {
+        return template.project(year).events().stream()
+                .filter(e->!e.startDate().isAfter(date)&&CareerInternationalRules.COMPETITIONS.contains(e.templateId()))
+                .map(e->competitions.registrationWait(career,year,e.templateId()))
+                .filter(java.util.Objects::nonNull).filter(w->"ROSTER_REPAIR_REQUIRED".equals(w.code())).toList();
     }
 
     private static String competitionIdAt(

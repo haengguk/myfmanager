@@ -159,7 +159,7 @@ export interface CareerContinuousCommand {
 export interface CareerContinuousView {
   schemaVersion: 'CAREER_CONTINUOUS_VIEW_V1'; careerId: string; currentDate: string;
   run: null | { runId: string; careerId: string; seasonYear: number; mode: 'NEXT_MANAGED_MATCH' | 'TARGET_DATE'; targetDate: string | null; startDate: string;
-    status: CareerContinuousStatus; revision: number; completedDates: number; completedSeries: number; completedGames: number;
+    status: CareerContinuousStatus; revision: number; completedDates: number; completedSeries: number; completedGames: number; completedAwards?: number;
     intent: null | { action: 'ADVANCE' | 'COMPETITION' | 'REFRESH'; commandId: string; jobId: string | null };
     stop: null | { category: string; reason: string; owner: string | null; referenceId: string | null; nextAction: string | null } };
   allowedCommands: CareerContinuousCommand['action'][];

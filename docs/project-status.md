@@ -1,6 +1,18 @@
 # Project Status
 
-이 문서는 2026-09-08 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+이 문서는 2026-09-09 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
+
+## Career 성적·개인상·커리어 기록 V1 (2026-09-09)
+
+실제 Auto/Player 승인 완료에서 KDA·CS·누적 골드/XP·시간을 V25 부가 원장에 연결했다.
+기존 receipt/hash·Match Random·성장·구단 재정은 바꾸지 않는다. 선수·구단의 현재/과거/통산 성적,
+챔피언·수상 근거·과거 소속·성장/운영 이력과 현실 참고 탭을 Career 기록 화면에서 조회한다.
+1군/CL 및 KC/KCB의 명시적 구단 합산, 경기/시상 pagination, 명시적 옛 완료 증거 복원을 제공한다.
+조사팩 87정의 중 45개를 게임 정책으로 채택했다. LCK 통합 정규·최종 결승·FST/EWC 전체 범위를 구분하고
+근거 부족/미지원 시상을 보류한다. 개인상금은 미지급 권리이며 선수 지갑·구단 수입이 아니다.
+선행 G1은 기한 경과 국제대회 MANAGER 대기의 날짜 진행을 막고, G2는 최초 종료 응답도 부모 동기화 후 명령을 해제한다.
+집중 정책·실제 Auto/Player·파일 복구·두 번 시즌 전환·이적/임대/은퇴 검증이 통과했다.
+계획 전체 1회는 2,238건 중 4실패·기존 skip2(27분18초)였다. migration 개수 3건과 등록 연도 null 처리를 수정한 뒤 직접 영향 27건이 모두 통과했다(2분33초). 추가 전체는 없으며 최종 clean full로 표기하지 않는다. 자세한 결과는 [새 기능 보고서](development/career-records-performance-awards-and-player-team-history-v1.md)에 기록한다.
 
 ## Career 연속 진행·AI 자동 처리 V1 (2026-09-08)
 
@@ -13,7 +25,7 @@ G3 운영 저장의 현재 시즌 고정 명부 누락 복구 격리를 수정�
 새 경기 기본 정책은 `MATCH_ENGINE_REALISM_ABILITY_V2`이며 이미 고정된 V1/이전 입력은 유지한다.
 집중 검증 33건과 미접수 intent의 pause 경합 검사가 통과했다. 대표 실제 Auto BO3와
 Player 진입, 파일 DB 재열기/원본 UUID/PAUSED 복원을 확인했다. 전체 회귀 1회는 2,211건 중 15 실패·기존 skip 2로 완료했다(29분 30초). 원본을 보존한 뒤 실패 15건을 포함한 43건이 통과했다. 마지막 직접 영향 68건의 준비 오류 2건도 해당 메서드 재검증으로 통과하여 미해결 실패는 없다. 추가 전체 실행은 하지 않았다.
-[구현·정지 기준·복구·검증 결과](development/career-continuous-progression-and-ai-auto-v1.md).
+이전 연속 진행 보고서는 사용자가 삭제했다. 현재 유효한 리뷰 G1/G2 교정은 위 기록 V1 보고서를 따른다.
 
 ## 매치 현실성·성능 기반 Draft V1 (2026-09-08)
 

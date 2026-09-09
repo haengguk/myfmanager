@@ -11,6 +11,7 @@ public final class CareerAppearanceStore {
     private CareerAppearanceStore() {}
     public static void capture(JdbcTemplate jdbc,String career,int year,String identity,String series,
             String competition,CompetitionRosterSnapshot frozen) {
+        CareerRecordsStore.capture(jdbc,career,year,identity,series,competition,frozen);
         if(frozen==null||!CareerMarketStore.exists(jdbc,career))return;
         if(jdbc.queryForObject("SELECT COUNT(*) FROM career_appearance_binding WHERE career_id=? AND fixture_identity=?",Integer.class,career,identity)>0)return;
         var saved=CareerMarketStore.load(jdbc,career);var engine=CareerMarketStore.engine(jdbc,career,year,saved);LocalDate date=saved.state().processedThrough();

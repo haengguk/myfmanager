@@ -29,6 +29,18 @@ class CareerContinuousPlannerTest {
         var market=new CareerMarketState(CareerMarketPolicy.VERSION,1,today,java.util.Map.of(),java.util.Map.of(),java.util.Map.of(),java.util.Map.of(),java.util.Set.of(),java.util.List.of(),java.util.Map.of(),java.util.List.of(),management);
         assertThat(CareerContinuousPlanner.marketDecision(market,"LCK:GEN")!=null).isEqualTo(stops);
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"MANAGER,USER_DECISION", "ROSTER_REVIEW,RECOVERABLE_ERROR", "AI_CLUB,AUTO"})
+    void overdueRegistrationResponsibilityNeverDefaultsToAi(String responsibility,String expected) {
+        var wait=new CareerRegistrationWait("ROSTER_REPAIR_REQUIRED","FIRST_STAND",null,"LCK:GEN","LCK:GEN",responsibility,java.util.List.of(),java.util.List.of());
+        var stop=CareerContinuousPlanner.registrationDecision(java.util.List.of(wait));
+        if(expected.equals("AUTO"))assertThat(stop).isNull();
+        else {assertThat(stop.category().name()).isEqualTo(expected);assertThat(stop.reason()).isEqualTo(Reason.ROSTER_DECISION);}
+        var r=run();r.targetDate=today.plusDays(5);
+        var next=CareerContinuousPlanner.next(r,new CareerContinuousPlanner.Situation(today,true,true,false,stop,null,false,true,"ROSTER_REPAIR_REQUIRED"));
+        if(stop==null)assertThat(next.action()).isEqualTo(Action.ADVANCE);
+        else {assertThat(next.action()).isNull();assertThat(next.stop()).isEqualTo(stop);}
+    }
     @Test void yearEndAllowsDueWorkButNeverAdvancesIntoAnotherSeason() {
         var r=run();r.mode=Mode.NEXT_MANAGED_MATCH;
         var last=LocalDate.of(2027,12,31);

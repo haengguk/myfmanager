@@ -203,7 +203,10 @@ public final class LeagueRelationalStore {
                 verification.canonicalFixtureReceiptHash())) {
             throw new IllegalArgumentException("VERIFIED_RECEIPT_TOKEN_MISMATCH");
         }
-        storeReceiptAndOutbox(receipt);
+        transactions.executeWithoutResult(t->{
+            com.lolfm.career.CareerRecordsStore.stage(jdbc,receipt.boundSeriesId(),verification.statistics());
+            storeReceiptAndOutbox(receipt);
+        });
     }
 
     /** Internal binding adapter entry; caller owns cryptographic verification. */
@@ -289,6 +292,7 @@ public final class LeagueRelationalStore {
                     VerifiedLeagueFixtureCompletion.verifyPersisted(
                             current, receipt, binding, fixtureRoster(current.seasonId(),receipt.fixtureId()));
             LeagueSeasonAggregate next = current.applyVerifiedCompletion(verified);
+            com.lolfm.career.CareerRecordsStore.leagueComplete(jdbc,outbox.seasonId(),outbox.fixtureId(),outbox.receiptHash(),receipt);
             com.lolfm.career.CareerAppearanceStore.leagueCompleted(jdbc,outbox.seasonId(),outbox.fixtureId(),outbox.receiptHash(),receipt.orderedGameReceipts());
             OffsetDateTime now = now();
             jdbc.update("""

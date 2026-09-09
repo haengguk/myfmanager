@@ -33,7 +33,7 @@ import org.springframework.stereotype.Component;
 
 /** Compact immutable-aggregate checkpoint for League and Career-owned Series. */
 @Component
-final class JdbcLeagueBoundSeriesCheckpointAdapter
+public final class JdbcLeagueBoundSeriesCheckpointAdapter
         implements LeagueBoundSeriesPersistencePort {
     static final String SCHEMA = "AI_LEAGUE_BOUND_SERIES_CHECKPOINT_V1";
 
@@ -79,10 +79,24 @@ final class JdbcLeagueBoundSeriesCheckpointAdapter
             return action.get();
         });
     }
+    /** Explicit recovery projection of the original committed, hash-verified checkpoint; never re-simulates. */
+    public java.util.List<com.lolfm.career.CareerGameStatistics> recoverStatistics(String series) {
+        if(jdbc.queryForObject("SELECT COUNT(*) FROM (SELECT series_id,series_status FROM league_player_series_checkpoint UNION ALL SELECT series_id,series_status FROM career_competition_series_checkpoint) c WHERE series_id=? AND series_status='COMPLETED'",Integer.class,series)==0)return java.util.List.of();
+        var saved=load(series);if(saved.isEmpty()||saved.get().status()!=SeriesStatus.COMPLETED)return java.util.List.of();
+        return saved.get().games().stream().filter(g->g.resultSummary()!=null&&g.receipt()!=null)
+                .map(g->com.lolfm.career.CareerGameStatistics.from(g.gameNumber(),g.receipt().outputHash(),g.resultSummary())).toList();
+    }
     @Override
     public void save(SeriesAggregate aggregate) {
+        var manager=transactions!=null?transactions:new org.springframework.jdbc.datasource.DataSourceTransactionManager(java.util.Objects.requireNonNull(jdbc.getDataSource()));
+        new org.springframework.transaction.support.TransactionTemplate(manager).executeWithoutResult(t->saveInTransaction(aggregate));
+    }
+    private void saveInTransaction(SeriesAggregate aggregate) {
         if (!aggregate.origin().durableBound()) return;
         SeriesAggregate durable = sanitize(aggregate);
+        com.lolfm.career.CareerRecordsStore.stage(jdbc,durable.seriesId(),durable.games().stream()
+                .filter(g->g.status()==SeriesGameStatus.COMMITTED&&g.resultSummary()!=null&&g.receipt()!=null)
+                .map(g->com.lolfm.career.CareerGameStatistics.from(g.gameNumber(),g.receipt().outputHash(),g.resultSummary())).toList());
         String value = write(durable);
         String hash = LeagueIdentity.sha256(
                 "checkpointSchema=" + SCHEMA + '\n' + "checkpointJson=" + value + '\n');

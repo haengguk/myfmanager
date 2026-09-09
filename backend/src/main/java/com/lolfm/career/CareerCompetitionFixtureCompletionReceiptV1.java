@@ -70,7 +70,7 @@ public record CareerCompetitionFixtureCompletionReceiptV1(
             throw new IllegalArgumentException("COMPETITION_BINDING_EVIDENCE_MISMATCH");
         }
         return verify(binding, evidence.score(), evidence.winnerTeamCode(),
-                evidence.orderedGames());
+                evidence.orderedGames()).statistics(evidence.statistics());
     }
 
     static VerifiedCompetitionFixtureCompletion verifyPlayer(
@@ -91,7 +91,7 @@ public record CareerCompetitionFixtureCompletionReceiptV1(
                                 value.completedDraft().bluePicks(),
                                 value.completedDraft().redPicks())))
                 .toList();
-        return verify(binding, evidence.score(), evidence.winnerTeamCode(), games);
+        return verify(binding, evidence.score(), evidence.winnerTeamCode(), games).statistics(evidence.orderedGames().stream().map(g->CareerGameStatistics.from(g.gameNumber(),g.verifiedOutput().outputHash(),g.verifiedOutput().resultSummary())).toList());
     }
 
     private static VerifiedCompetitionFixtureCompletion verify(

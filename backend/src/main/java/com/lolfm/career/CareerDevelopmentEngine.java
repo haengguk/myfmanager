@@ -66,6 +66,7 @@ public final class CareerDevelopmentEngine {
         if(!team.equals(managed))return ai(base.players().get(id),metadata.get(id),p,date,fixtures.stream().filter(d->!d.isBefore(date)).mapToInt(d->(int)ChronoUnit.DAYS.between(date,d)).min().orElse(365));
         var schedule=activate(teams.get(trainingTeam(member)),date,team);return schedule==null||schedule.current()==null?DEFAULT:schedule.current();
     }
+    java.util.function.Consumer<CareerDevelopmentState> monthObservation = ignored -> {};
     public void closeDay(LocalDate date,String managed,Map<String,CareerRosterStore.Membership> members,Map<String,List<LocalDate>> fixtures,int year) {
         if(!date.equals(next))throw new IllegalStateException("DEVELOPMENT_SETTLEMENT_ORDER");
         teams.replaceAll((team,s)->activate(s,date,s.team()));
@@ -77,6 +78,7 @@ public final class CareerDevelopmentEngine {
             var result=day(current,base.players().get(id),metadata.get(id),date,plan,team==null);record(id,date,old,result,year);players.put(id,result);
         }
         next=date.plusDays(1);gains.values().removeIf(g->g.date().isBefore(next.minusDays(30)));
+        if(date.getDayOfMonth()==date.lengthOfMonth())monthObservation.accept(state());
     }
     public void game(String id,String champion,com.lolfm.domain.Position role,LocalDate date,int year) {
         if(retired.contains(id)||!date.equals(next)||!players.containsKey(id)||base.players().get(id).position()!=role)throw new IllegalStateException("DEVELOPMENT_COMPLETION_SCOPE");

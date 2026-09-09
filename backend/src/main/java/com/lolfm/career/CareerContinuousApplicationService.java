@@ -139,9 +139,8 @@ public final class CareerContinuousApplicationService {
             pending=new Intent(Action.COMPETITION,c.activePendingCommand().clientCommandId(),null,null,fixture.fixtureId(),fixture.jobId(),day.currentDate());
         }
         boolean repair="ROSTER_REPAIR_REQUIRED".equals(view.blockingReason());
-        var current=c.currentCompetition();
-        if(repair&&current!=null&&current.registrationWait()!=null&&"MANAGER".equals(current.registrationWait().responsibility())&&decision==null)
-            decision=new Stop(Category.USER_DECISION,Reason.ROSTER_DECISION,career.managedTeamCode(),current.competitionId(),"ROSTER");
+        var registrationDecision=CareerContinuousPlanner.registrationDecision(calendar.registrationRepairWaits(career,day.seasonYear(),day.currentDate()));
+        if(decision==null&&registrationDecision!=null)decision=registrationDecision;
         boolean auto=due&&c.allowedCommands().contains("DISPATCH_AUTO_COMPETITION_FIXTURE");
         var next=CareerContinuousPlanner.next(run,new CareerContinuousPlanner.Situation(day.currentDate(),day.seasonYear()==run.seasonYear,
                 view.allowedAdvanceModes().contains(CareerCalendarApplicationService.ADVANCE_ONE_DAY),run.refreshNeeded,decision,pending,auto,repair,view.blockingReason()));
@@ -190,6 +189,7 @@ public final class CareerContinuousApplicationService {
                 int[] totals=store.totals(run.careerId,run.seasonYear);
                 run.completedSeries+=totals[0]-run.observedSeries;run.completedGames+=totals[1]-run.observedGames;
                 run.observedSeries=totals[0];run.observedGames=totals[1];
+                int awards=awardCount(run);run.completedAwards+=awards-run.observedAwards;run.observedAwards=awards;
                 run.refreshNeeded=run.intent.action()!=Action.REFRESH;run.intent=null;run.steps++;
                 if(run.status==Status.PAUSE_REQUESTED)stop(run,new Stop(Category.BOUNDARY,Reason.USER_PAUSED,null,null,"RESUME"));
                 else {run.status=Status.RUNNING;run.stop=null;}
@@ -197,7 +197,9 @@ public final class CareerContinuousApplicationService {
             run.revision++;store.save(run);store.release(run.careerId,claim.owner(),claim.fence(),child.pending()?2:0);
         });
     }
+    private int awardCount(Run run){return store.jdbc.queryForObject("SELECT COUNT(*) FROM career_record_award WHERE career_id=? AND season_year=? AND status='FINALIZED' AND definition_id<>'TEAM_STANDOUT'",Integer.class,run.careerId,run.seasonYear);}
     private void baseline(Run run) {
+        run.observedAwards=awardCount(run);
         int[] counts=store.totals(run.careerId,run.seasonYear);run.observedSeries=counts[0];run.observedGames=counts[1];
     }
     private static void stop(Run run,Stop reason) {

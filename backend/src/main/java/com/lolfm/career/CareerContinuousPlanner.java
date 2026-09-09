@@ -30,6 +30,12 @@ final class CareerContinuousPlanner {
         if("SEASON_ROLLOVER_REQUIRED".equals(s.blocker()))return Next.stop(Category.BOUNDARY,Reason.SEASON_TRANSITION,"SEASONS");
         return Next.stop(Category.RECOVERABLE_ERROR,Reason.NO_PROGRESS,"CALENDAR");
     }
+    static Stop registrationDecision(java.util.List<CareerRegistrationWait> waits) {
+        var manager=waits.stream().filter(w->"MANAGER".equals(w.responsibility())).findFirst();
+        if(manager.isPresent())return new Stop(Category.USER_DECISION,Reason.ROSTER_DECISION,manager.get().teamId(),manager.get().competitionId(),"ROSTER");
+        var unknown=waits.stream().filter(w->!"AI_CLUB".equals(w.responsibility())).findFirst();
+        return unknown.map(w->new Stop(Category.RECOVERABLE_ERROR,Reason.ROSTER_DECISION,w.teamId(),w.competitionId(),"ROSTER")).orElse(null);
+    }
     static Stop marketDecision(CareerMarketState market,String managed) {
         if(market==null)return null;
         for(var o:market.offers().values().stream().sorted(java.util.Comparator.comparing(CareerMarketState.Offer::offerId)).toList())

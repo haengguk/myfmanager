@@ -273,3 +273,23 @@ V19의 `career_development_state`는 기존 directory JSON/hash와 분리된 Car
 시장·운영 명부가 이미 존재한 뒤 유실된 고정 입력을 새 카탈로그로 재생성하는 예외는 아니다.
 V24의 nullable league_job.match_policy_id가 없는 기존 job은 기준 V1 정책으로 실행하고,
 새 job의 정책 ID는 frozen input hash에도 포함한다. 이전 결과·원본 job ID는 유지한다.
+
+## 경기 성적·수상 부가 저장 (V25)
+
+검증된 League outbox/competition completion transaction과 기존 lease/fence 안에서
+CareerRecordsStore가 canonical 원본 경기와 선수 성적을, CareerAwardsStore가 단일 경기 시상을 저장한다.
+Auto의 검증 출력 요약과 Player의 완료 checkpoint는 동일 CareerGameStatistics 계약을 전달한다.
+새 통계는 기존 receipt/output canonical/hash를 재정의하지 않는다. 통계 수집은 성장 적용 자격과 독립이다.
+R1/R2 import는 League 원본 identity를 유지한다. 같은 증거 no-op/다른 증거 충돌이며 실패 시 함께 롤백한다.
+기간상은 실제 종료 그래프 뒤에 해당 scope만 평가하고 입력 목록/hash와 후보·정책·cutoff를 봉인한다.
+
+기록 API는 /api/v1/careers/{careerId}/records 아래 추가 계약이다.
+짧은 read-only REPEATABLE_READ와 asOf 사실 revision으로 합계/상세를 읽고 경기25/시상50 단위로 페이지 조회한다.
+개인/팀 시상 projection 인덱스로 대상 조건을 LIMIT 전에 적용한다. 팀 합산은 명시적으로 선택할 때만 한다.
+개인 포상금 UNPAID 권리, 현실 authored 이력, 구단 순위 상금은 분리한다.
+POST restore만 작은 완료 증거 복원 배치를 실행하며 GET/startup에는 새 전 시즌 복원을 추가하지 않는다.
+
+시즌 OPENING/새 관측 월말/CLOSING_FINAL과 유효 운영 사건을 보존한다.
+closeSeason의 임시 종료는 최종 성장 이력이 아니다. 마지막 시장·생애주기 정산 후 finishSeason이
+최종 closing을 갱신하고 같은 경계의 다음 opening을 남긴다.
+상세 채택/정책/제한은 [기록 V1](../development/career-records-performance-awards-and-player-team-history-v1.md)을 따른다.

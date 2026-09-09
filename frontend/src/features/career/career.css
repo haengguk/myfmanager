@@ -1,0 +1,11 @@
+
+.ca-records { margin-top: 1rem; }
+.ca-records nav { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; }
+.ca-records nav [aria-current="page"] { border-color: #c99b48; color: #e6c990; }
+.ca-records table { width: 100%; border-collapse: collapse; font-size: .82rem; margin: 1rem 0; }
+.ca-records th, .ca-records td { text-align: left; padding: .65rem .5rem; border-bottom: 1px solid #303743; vertical-align: top; }
+.ca-records th { color: #b8c2d2; }
+.ca-records button { cursor: pointer; }
+.ca-records-scroll { overflow-x: auto; }
+.ca-records-scroll table { min-width: 700px; }
+.ca-records section { margin-top: 1.5rem; border-top: 1px solid #424652; }

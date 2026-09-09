@@ -46,6 +46,7 @@ public final class CareerDevelopmentStore {
         String json=write(CareerDevelopmentEngine.initial(baseDirectory(jdbc,career),CareerMarketStore.date(jdbc,career)));
         if(jdbc.queryForObject("SELECT COUNT(*) FROM career_development_state WHERE career_id=?",Integer.class,career)>0)throw new IllegalStateException("DEVELOPMENT_INITIALIZATION_CONFLICT");
         jdbc.update("INSERT INTO career_development_state VALUES (?,0,?,?)",career,json,hash(json));
+        CareerHistoryStore.growth(jdbc,career,activeYear(jdbc,career),"OPENING",CareerMarketStore.date(jdbc,career),read(json,CareerDevelopmentState.class));
         jdbc.update("UPDATE career_player_directory SET development_version=? WHERE career_id=?",CareerDevelopmentPolicy.VERSION,career);
     }
     public void recover(){for(String id:jdbc.query("SELECT career_id FROM career_player_directory WHERE directory_version=? ORDER BY career_id",(r,n)->r.getString(1),com.lolfm.player.ExpandedPlayerCatalog.VERSION))tx.executeWithoutResult(status->{lockCareer(jdbc,id);if(CareerSaveCompatibility.recoverySupported(jdbc,id))initialize(jdbc,id);});}
@@ -88,6 +89,8 @@ public final class CareerDevelopmentStore {
         if(activeYear(jdbc,career)!=year)throw new IllegalStateException("DEVELOPMENT_SEASON_ALREADY_CLOSED");
         closeSeason(jdbc,career,year,saved.state().nextSettlement());String json=write(saved.state());
         jdbc.update("UPDATE career_development_season_close SET closed_date=?,state_json=?,state_hash=? WHERE career_id=? AND season_year=?",saved.state().nextSettlement(),json,hash(json),career,year);
+        CareerHistoryStore.growth(jdbc,career,year,"CLOSING_FINAL",saved.state().nextSettlement(),saved.state());
+        CareerHistoryStore.growth(jdbc,career,year+1,"OPENING",saved.state().nextSettlement(),saved.state());
         var life=CareerLifecycleStore.load(jdbc,career);if(life!=null){String lifecycle=write(life);jdbc.update("UPDATE career_development_season_close SET lifecycle_json=?,lifecycle_hash=? WHERE career_id=? AND season_year=?",lifecycle,hash(lifecycle),career,year);}
     }
     static Map<String,List<LocalDate>> fixtures(JdbcTemplate jdbc,String career) {

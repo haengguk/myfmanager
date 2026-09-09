@@ -225,6 +225,10 @@ public final class CareerRosterStore {
             String json=write(next);long revision=saved.revision()+1;
             if(jdbc.update("UPDATE career_roster_state SET revision=?,state_json=?,state_hash=? WHERE career_id=? AND season_year=? AND revision=?",
                     revision,json,hash(json),careerId,request.sourceYear(),saved.revision())!=1)throw CareerException.calendarStaleRevision();
+            var observedOn=CareerMarketStore.executionDate(jdbc,careerId);
+            CareerHistoryStore.observe(jdbc,careerId,request.sourceYear(),"EVENT:"+hash(command),observedOn,
+                    new CareerHistoryStore.Operating(command,observedOn,request.action(),member.playerId(),directory.players().get(member.playerId()).nickname(),managed,command,members.get(member.playerId()).squad()),false);
+            if("MOVE_SQUAD".equals(request.action()))CareerHistoryStore.directRegistration(jdbc,careerId,request.sourceYear(),members.get(member.playerId()),observedOn);
             var receipt=new Receipt(command,careerId,request.sourceYear(),revision,hash(json),"EXISTING_SERIES_UNCHANGED; NEXT_ELIGIBLE_SERIES_OR_NEXT_REGISTRATION");
             jdbc.update("UPDATE career_save SET updated_at=CURRENT_TIMESTAMP WHERE career_id=?",careerId);
             String encoded=write(receipt);jdbc.update("INSERT INTO career_roster_command VALUES (?,?,?,?,?,?)",command,careerId,request.sourceYear(),payload,encoded,hash(encoded));

@@ -21,6 +21,8 @@ class CareerDomesticExecutionTest {
     @Autowired SeriesApiV1Facade series;
     @Autowired JdbcLeagueBoundSeriesCheckpointAdapter checkpoints;
     @Autowired CareerInternationalParticipants international;
+    @Autowired CareerRecordsQuery records;
+    @Autowired CareerRecordsRestoration restoreRecords;
 
     @Autowired CareerRosterStore rosters;
     @Autowired CareerMarketStore market;
@@ -53,7 +55,7 @@ class CareerDomesticExecutionTest {
     }
 
     @Test
-    void actualAutoLoserSelectionAndPlayerBo1ReuseParentFearlessAndCheckpoint() {
+    void actualAutoLoserSelectionAndPlayerBo1ReuseParentFearlessAndCheckpoint() throws Exception {
         var career = careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,
                 "국내 실행 검증", "감독", "HLE", UUID.randomUUID().toString())).career().career();
         var fixtures = store.load(career.careerId(), 2027).fixtures().stream()
@@ -64,6 +66,7 @@ class CareerDomesticExecutionTest {
         var evidence = auto.run(binding);
         var verified = CareerCompetitionTestSupport.verifyAuto(binding, evidence);
         assertThat(verified.orderedGames()).hasSizeBetween(2, 3);
+        CareerCompetitionTestSupport.applyRealAutoCompletion(store,binding,evidence);
         var games = evidence.orderedGames();
         for (int i = 1; i < games.size(); i++) assertThat(games.get(i).redTeamCode()).isEqualTo(games.get(i - 1).winnerTeamCode());
         var inherited = Set.copyOf(games.getLast().historyAfterPicks());
@@ -93,6 +96,33 @@ class CareerDomesticExecutionTest {
         assertThat(CareerCompetitionTestSupport.verifyPlayer(player, completed).orderedGames()).hasSize(1);
         assertThat(checkpoints.load(player.boundSeriesId()).orElseThrow().competitionSidePolicy()).isEqualTo(player.sideSelectionPolicy());
         assertThat(lifecycle.resumeCompetitionBound(player).status()).isEqualTo(SeriesStatus.COMPLETED);
+        CareerCompetitionTestSupport.applyRealPlayerCompletion(store,player,completed);
+        String id=career.careerId();var report=records.view(id,"ALL","",2027,null,0,null);
+        assertThat(report.matches()).hasSize(2).allMatch(m->m.coverage().equals("COMPLETE"));
+        assertThat(report.matches().stream().flatMap(m->m.games().stream()).flatMap(g->g.players().stream())).allMatch(p->p.evaluation().rating()!=null);
+        var bo1=report.matches().stream().filter(m->m.seriesId().equals(player.boundSeriesId())).findFirst().orElseThrow();
+        var bo1Awards=report.awards().stream().filter(a->a.inputRecords().stream().anyMatch(v->v.startsWith(bo1.recordId()))).toList();
+        assertThat(bo1Awards).hasSize(3);assertThat(bo1Awards.stream().filter(a->!a.analysisBadge())).singleElement().satisfies(a->assertThat(a.aliases()).contains("GAME","SERIES"));
+        String before=CareerRosterStore.write(report);var growth=CareerDevelopmentStore.load(jdbc,id);var finance=CareerMarketStore.load(jdbc,id);
+        CareerCompetitionTestSupport.applyRealAutoCompletion(store,binding,evidence);CareerCompetitionTestSupport.applyRealPlayerCompletion(store,player,completed);
+        assertThat(CareerRosterStore.write(records.view(id,"ALL","",2027,report.asOf(),0,null))).isEqualTo(before);
+        assertThat(CareerDevelopmentStore.load(jdbc,id)).isEqualTo(growth);assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(finance);
+        assertThat(records.directory(id).players()).isNotEmpty();
+        var firstPlayer=bo1.games().getFirst().players().getFirst();assertThat(records.view(id,"PLAYER",firstPlayer.playerId(),2027,null,0,null).totals()).isNotEmpty();
+        // Explicit restoration of the original trusted Player checkpoint: no new match and no retroactive award.
+        var transaction=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
+        transaction.executeWithoutResult(t->{
+            jdbc.update("DELETE FROM career_record_player WHERE record_id=?",bo1.recordId());jdbc.update("DELETE FROM career_record_series WHERE record_id=?",bo1.recordId());jdbc.update("DELETE FROM career_game_statistics WHERE series_id=?",player.boundSeriesId());
+            int awards=jdbc.queryForObject("SELECT COUNT(*) FROM career_record_award WHERE career_id=?",Integer.class,id);
+            assertThat(restoreRecords.restore(id).restored()).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_record_award WHERE career_id=?",Integer.class,id)).isEqualTo(awards);
+            assertThat(records.match(id,bo1.recordId()).games()).isEqualTo(bo1.games());t.setRollbackOnly();
+        });
+        java.nio.file.Files.createDirectories(java.nio.file.Path.of("build/reports/career-records"));
+        java.nio.file.Files.writeString(java.nio.file.Path.of("build/reports/career-records/actual.json"),before);
+        java.nio.file.Files.writeString(java.nio.file.Path.of("build/reports/career-records/browser-info.txt"),id);
+        jdbc.execute("SCRIPT TO 'build/reports/career-records/browser-fixture.sql'");
+
     }
     @Test
     void foreignRostersRunThroughExistingAutoPlayerReceiptsAndDurableCheckpoint() {

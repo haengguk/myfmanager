@@ -56,7 +56,7 @@ public final class CareerMarketStore {
     }
     private static String managed(JdbcTemplate jdbc,String career) {return "LCK:"+jdbc.queryForObject("SELECT managed_team_code FROM career_save WHERE career_id=?",String.class,career);}
     public static void initialize(JdbcTemplate jdbc,String career) {initialize(jdbc,career,false);}
-    static void initializeNew(JdbcTemplate jdbc,String career) {initialize(jdbc,career,true);}
+    static void initializeNew(JdbcTemplate jdbc,String career) {initialize(jdbc,career,true);CareerRecordsStore.beginSeason(jdbc,career,activeYear(jdbc,career),date(jdbc,career),true);}
     private static void initialize(JdbcTemplate jdbc,String career,boolean newCareer) {
         lockCareer(jdbc,career);var existing=load(jdbc,career);
         if(existing!=null) {
@@ -147,6 +147,7 @@ public final class CareerMarketStore {
         int year=activeYear(jdbc,career);var engine=engine(jdbc,career,year,old);
         var development=CareerDevelopmentStore.load(jdbc,career);
         if(development!=null){engine.development=new CareerDevelopmentEngine(baseDirectory(jdbc,career),development.state());engine.developmentFixtures=CareerDevelopmentStore.fixtures(jdbc,career);engine.developmentYear=year;}
+        if(engine.development!=null)engine.development.monthObservation=s->CareerHistoryStore.growth(jdbc,career,year,"MONTH:"+s.nextSettlement().minusDays(1),s.nextSettlement().minusDays(1),s);
         engine.advance(target);
         if(development!=null)CareerDevelopmentStore.persist(jdbc,career,development,engine.development);
         persist(jdbc,career,year,old,engine);touch(jdbc,career);
@@ -158,6 +159,7 @@ public final class CareerMarketStore {
         if(jdbc.update("UPDATE career_market_state SET revision=?,state_json=?,state_hash=? WHERE career_id=? AND revision=?",
                 old.revision()+1,json,hash(json),career,old.revision())!=1)throw CareerException.calendarStaleRevision();
         var previous=CareerRosterStore.saved(jdbc,career,year);String next=write(engine.roster());
+        CareerHistoryStore.operating(jdbc,career,year,old.state(),engine,previous.state());
         if(!next.equals(write(previous.state())))jdbc.update("UPDATE career_roster_state SET revision=revision+1,state_json=?,state_hash=? WHERE career_id=? AND season_year=?",next,hash(next),career,year);
     }
     private static void touch(JdbcTemplate jdbc,String career) {jdbc.update("UPDATE career_save SET updated_at=CURRENT_TIMESTAMP WHERE career_id=?",career);}

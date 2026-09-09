@@ -10,32 +10,50 @@ const REASON: Record<string, string> = {
   SEASON_TRANSITION: '시즌 마감 조건을 확인한 뒤 다음 시즌을 직접 시작하세요.', TARGET_REACHED: '목표 날짜의 필수 처리를 마쳤습니다.', USER_PAUSED: '원하는 작업을 마친 뒤 재개할 수 있습니다.', JOB_PENDING: '서버가 기존 경기의 완료와 결과 반영을 기다립니다.',
   NO_PROGRESS: '캘린더의 중단 사유를 확인한 뒤 재개하세요.', UNSUPPORTED_SAVE: '필수 저장 자료가 없어 진행할 수 없습니다.', EXECUTION_ERROR: '실행 오류로 중단되었습니다. 캘린더와 저장 상태를 확인하세요.', SAFETY_LIMIT: '안전 실행 한도에 도달했습니다. 재개하면 이어갑니다.', TARGET_REPAIR_BOUNDARY: 'AI 명부 복구에 다음 날짜가 필요합니다. 목표 날짜를 늘려 새로 시작하세요.', AI_ROSTER_REPAIR: 'AI 선수단 복구 상태를 계약 시장에서 확인하세요.',
 };
-export function CareerContinuousPanel({ careerId, currentDate, seasonYear, busy, onBusy, onStopped, onBegin, onAction }: {
-  careerId: string; currentDate: string; seasonYear: number; busy: boolean; onBusy: (career: string, active: boolean) => void; onStopped: () => void; onBegin: () => (() => void) | null; onAction: (action: string) => void;
+export function CareerContinuousPanel({ careerId, currentDate, seasonYear, busy, onBusy, onStopped, appliedRun, onBegin, onAction }: {
+  careerId: string; currentDate: string; seasonYear: number; busy: boolean; onBusy: (career: string, active: boolean) => void; appliedRun: string | null; onStopped: (stamp: string) => Promise<boolean>; onBegin: () => (() => void) | null; onAction: (action: string) => void;
 }) {
   const [view, setView] = useState<CareerContinuousView | null>(null);
   const [mode, setMode] = useState<'NEXT_MANAGED_MATCH' | 'TARGET_DATE'>('NEXT_MANAGED_MATCH');
   const [target, setTarget] = useState(currentDate); const [error, setError] = useState<string | null>(null);
+  const [synchronizing, setSynchronizing] = useState(true);
   const [pending, setPending] = useState(false); const [retry, setRetry] = useState(false);
   const readEpoch = useRef(0); const commandLock = useRef(false); const generation = useRef(0); const request = useRef<AbortController | null>(null);
   const latest = useRef(view); const callbacks = useRef({ onBusy, onStopped, onBegin }); callbacks.current = { onBusy, onStopped, onBegin };
   const operation = useRef<CareerContinuousCommand | null>(null);
   const storageKey = `career-continuous:${careerId}`;
-  function accept(next: CareerContinuousView) {
+  const applied = useRef(appliedRun); if (appliedRun) applied.current = appliedRun;
+  const syncing = useRef<string | null>(null);
+  async function accept(next: CareerContinuousView) {
     if (next.careerId !== careerId) throw new Error('Career 응답이 현재 저장과 다릅니다.');
     const previous = latest.current;
     if (previous?.run?.runId === next.run?.runId && (previous?.run?.revision ?? -1) > (next.run?.revision ?? -1)) return;
-    latest.current = next; setView(next); callbacks.current.onBusy(careerId, !!next.run && ACTIVE.includes(next.run.status));
-    if (previous?.run && ACTIVE.includes(previous.run.status) && next.run && !ACTIVE.includes(next.run.status)) callbacks.current.onStopped();
+    latest.current = next; setView(next);
+    const active = !!next.run && ACTIVE.includes(next.run.status);
+    const stamp = next.run ? `${next.run.runId}:${next.run.revision}` : null;
+    if (!active && stamp && stamp !== applied.current) {
+      setSynchronizing(true); callbacks.current.onBusy(careerId, true);
+      if (syncing.current === stamp) return;
+      syncing.current = stamp;
+      const token = generation.current;
+      try {
+        const synchronized = await callbacks.current.onStopped(stamp);
+        if (synchronized) { applied.current = stamp; setSynchronizing(false); }
+        if (synchronized && token === generation.current && latest.current === next) callbacks.current.onBusy(careerId, false);
+      } finally { syncing.current = null; }
+      return;
+    }
+    setSynchronizing(false); callbacks.current.onBusy(careerId, active);
   }
   useEffect(() => {
     const token = ++generation.current; const controller = new AbortController(); let timer = 0;
     try { const stored = window.sessionStorage.getItem(storageKey); if (stored) { operation.current = JSON.parse(stored) as CareerContinuousCommand; setRetry(true); } } catch { setError('이전 요청을 읽지 못했습니다. 서버 상태를 먼저 확인하세요.'); }
     const poll = async () => {
-      try { if (!commandLock.current) { const epoch = readEpoch.current; const next = await getCareerContinuous(careerId, controller.signal); if (epoch === readEpoch.current && token === generation.current && !controller.signal.aborted && !commandLock.current) { accept(next); if (!operation.current) setError(null); } } }
+      try { if (!commandLock.current) { const epoch = readEpoch.current; const next = await getCareerContinuous(careerId, controller.signal); if (epoch === readEpoch.current && token === generation.current && !controller.signal.aborted && !commandLock.current) { await accept(next); if (!operation.current) setError(null); } } }
       catch (e) { if (!controller.signal.aborted) setError(e instanceof CareerApiFailure ? e.userMessage : '진행 상태를 확인하지 못했습니다.'); }
       finally { if (!controller.signal.aborted) timer = window.setTimeout(() => { void poll(); }, 2500); }
     };
+    callbacks.current.onBusy(careerId, true);
     void poll(); return () => { ++generation.current; controller.abort(); request.current?.abort(); window.clearTimeout(timer); };
     // Mounted with a Career key. Callbacks are read through refs so polling is stable.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,7 +67,7 @@ export function CareerContinuousPanel({ careerId, currentDate, seasonYear, busy,
       const response = await commandCareerContinuous(careerId, body, controller.signal);
       if (token !== generation.current || controller.signal.aborted) return;
       if (response.receipt.clientCommandId !== body.clientCommandId) throw new Error('요청 결과의 원본 명령이 다릅니다.');
-      operation.current = null; window.sessionStorage.removeItem(storageKey); setRetry(false); accept(response.progress);
+      operation.current = null; window.sessionStorage.removeItem(storageKey); setRetry(false); await accept(response.progress);
     } catch (e) {
       if (token !== generation.current || controller.signal.aborted) return;
       setError(e instanceof CareerApiFailure ? e.userMessage : e instanceof Error ? e.message : '요청 결과를 확인하지 못했습니다.');
@@ -61,14 +79,14 @@ export function CareerContinuousPanel({ careerId, currentDate, seasonYear, busy,
   return <section className="ca-calendar ca-continuous" aria-label="Career 연속 진행">
     <header><div><span>연속 진행</span><strong>{view?.currentDate ?? currentDate}</strong></div><b role="status">{run ? STATUS[run.status] : '진행 대기'}</b></header>
     <p>AI 경기와 일별 정산을 자동 처리합니다. 내 경기·계약 응답·선발 결정·시즌 전환 전에 멈춥니다. 창을 닫아도 서버는 계속 진행합니다.</p>
-    {run ? <p>목표: {run.mode === 'NEXT_MANAGED_MATCH' ? '다음 내 경기' : run.targetDate} · {run.completedDates}일 진행 · {run.completedSeries}경기 / {run.completedGames}세트 완료</p> : null}
+    {run ? <p>목표: {run.mode === 'NEXT_MANAGED_MATCH' ? '다음 내 경기' : run.targetDate} · {run.completedDates}일 진행 · {run.completedSeries}경기 / {run.completedGames}세트 완료 · 새 개인상 {run.completedAwards ?? 0}건</p> : null}
     {run?.stop ? <p role="status">{REASON[run.stop.reason] ?? '캘린더에서 필요한 다음 행동을 확인하세요.'}</p> : null}
-    {run?.stop?.nextAction && ['MATCH', 'MARKET', 'ROSTER', 'SEASONS'].includes(run.stop.nextAction) ? <p><button type="button" className="lm-secondary-button" disabled={pending || busy} onClick={() => onAction(run.stop!.nextAction!)}>{NEXT_ACTION[run.stop.nextAction]}</button></p> : null}
+    {run?.stop?.nextAction && ['MATCH', 'MARKET', 'ROSTER', 'SEASONS'].includes(run.stop.nextAction) ? <p><button type="button" className="lm-secondary-button" disabled={synchronizing || pending || busy} onClick={() => onAction(run.stop!.nextAction!)}>{NEXT_ACTION[run.stop.nextAction]}</button></p> : null}
     {error ? <p role="alert">{error}</p> : null}
     <div className="ca-calendar__controls">
-      <label>진행 모드 <select value={mode} disabled={pending || busy || !!run && ACTIVE.includes(run.status)} onChange={e => setMode(e.target.value as typeof mode)}><option value="NEXT_MANAGED_MATCH">다음 내 경기까지</option><option value="TARGET_DATE">지정 날짜까지</option></select></label>
-      {mode === 'TARGET_DATE' ? <label>목표 날짜 <input type="date" value={target} min={view?.currentDate ?? currentDate} max={`${seasonYear}-12-31`} disabled={pending || busy || !!run && ACTIVE.includes(run.status)} onChange={e => setTarget(e.target.value)} /></label> : null}
-      {retry ? <button type="button" className="lm-primary-button" disabled={pending || busy} onClick={() => { void send(operation.current?.action ?? 'START'); }}>원래 요청 결과 확인</button> : view?.allowedCommands.map(action => <button type="button" className="lm-primary-button" key={action} disabled={pending || busy || action === 'PAUSE' && run?.status === 'PAUSE_REQUESTED'} onClick={() => { void send(action); }}>{action === 'START' ? '연속 진행 시작' : action === 'PAUSE' ? '일시정지' : '재개'}</button>)}
+      <label>진행 모드 <select value={mode} disabled={synchronizing || pending || busy || !!run && ACTIVE.includes(run.status)} onChange={e => setMode(e.target.value as typeof mode)}><option value="NEXT_MANAGED_MATCH">다음 내 경기까지</option><option value="TARGET_DATE">지정 날짜까지</option></select></label>
+      {mode === 'TARGET_DATE' ? <label>목표 날짜 <input type="date" value={target} min={view?.currentDate ?? currentDate} max={`${seasonYear}-12-31`} disabled={synchronizing || pending || busy || !!run && ACTIVE.includes(run.status)} onChange={e => setTarget(e.target.value)} /></label> : null}
+      {retry ? <button type="button" className="lm-primary-button" disabled={synchronizing || pending || busy} onClick={() => { void send(operation.current?.action ?? 'START'); }}>원래 요청 결과 확인</button> : view?.allowedCommands.map(action => <button type="button" className="lm-primary-button" key={action} disabled={synchronizing || pending || busy || action === 'PAUSE' && run?.status === 'PAUSE_REQUESTED'} onClick={() => { void send(action); }}>{action === 'START' ? '연속 진행 시작' : action === 'PAUSE' ? '일시정지' : '재개'}</button>)}
     </div>
   </section>;
 }
