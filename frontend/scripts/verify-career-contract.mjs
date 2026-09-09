@@ -506,3 +506,51 @@ console.log('Career continuous: compact status, malformed boundary and original 
   assert.notEqual(recordsSelectionKey(careerId), recordsSelectionKey(secondCareerId));
   console.log('PASS records Career/entity/season/organization boundary, historical filter reload and malformed optional storage');
 }
+
+// Inbox: six groups, including the actual component's asynchronous boundaries.
+{
+  const { default: ts } = await import('typescript');
+  const { readFileSync } = await import('node:fs');
+  const { runInNewContext } = await import('node:vm');
+  const compile = path => ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const api = { exports: {}, require: () => ({ realMatchConfig: { apiBaseUrl: '' } }), fetch: async (...args) => { api.calls.push(args); return { ok: true, json: async () => ({}) }; }, calls: [] };
+  runInNewContext(compile('../src/features/career/api/careerInbox.ts'), api);
+  const link = { panel: 'MARKET', playerId: 'player', sourceId: 'offer', seasonYear: 2027, competition: null, positions: [] };
+  const decision = { id: 'OFFER:offer', revision: '1', status: 'OPEN', responsibility: 'MANAGER', link };
+  const entry = { sequence: 5, read: false, item: { title: '역제안', kind: 'CONTRACT_RESPONSE', link, facts: {}, date: '2027-01-04' } };
+  const feed = { careerId, seasonYear: 2027, kind: '', includeDevelopment: false, asOf: 5, nextCursor: -1, unread: 1, items: [entry], decisions: [decision] };
+  assert.equal(api.exports.acceptInbox(feed, careerId, 2027, '', false), feed);
+  for (const patch of [{ careerId: secondCareerId }, { seasonYear: 2028 }, { kind: 'AWARD' }, { includeDevelopment: true }, { asOf: 4 }]) assert.throws(() => api.exports.acceptInbox({ ...feed, ...patch }, careerId, 2027, '', false));
+  console.log('PASS inbox scope and stable page upper bound');
+  assert.equal(api.exports.currentDecision(decision, feed), decision);
+  assert.equal(api.exports.currentDecision(decision, { ...feed, decisions: [{ ...decision, revision: '2' }] }), null);
+  assert.equal(api.exports.currentDecision(decision, { ...feed, decisions: [] }), null);
+  console.log('PASS changed counter revision and resolved source invalidate stale action');
+  await api.exports.inboxRequest(careerId, '/read', new AbortController().signal, { through: 5, seasonYear: 2027, kind: '', includeDevelopment: false });
+  const [, options] = api.calls.at(-1); assert.equal(options.method, 'POST'); assert.equal(JSON.parse(options.body).through, 5); assert.equal(options.body.includes('expectedRevision'), false);
+  console.log('PASS read watermark metadata excludes gameplay revision and commands');
+  async function componentProbe(mode) {
+    const calls = [], effects = [], states = [], navigation = []; let hook = 0;
+    const seed = [feed, null, '', '', false, 2027, { cursor: 0, asOf: null }, 0, false];
+    const ctx = { exports: {}, AbortController, URLSearchParams, window: { setInterval() {}, clearInterval() {} }, require: name => {
+      if (name === 'react') return { useState: value => { const i = hook++; return [i < seed.length ? seed[i] : typeof value === 'function' ? value() : value, next => states.push([i, next])]; }, useRef: value => ({ current: value }), useEffect: f => effects.push(f) };
+      if (name === 'react/jsx-runtime') return { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) };
+      return { ...api.exports, inboxRequest: async (_, path, signal, body) => { calls.push({ path, body }); if (mode === 'late') await new Promise(resolve => { ctx.finish = resolve; }); return path.startsWith('?') ? mode === 'changed' ? { ...feed, decisions: [] } : feed : path === '/read' ? {} : entry; } };
+    } };
+    runInNewContext(compile('../src/features/career/CareerInboxPanel.tsx'), ctx);
+    const tree = ctx.exports.CareerInboxPanel({ careerId, year: 2027, revision: 0, running: false, busy: false, onNavigate: l => navigation.push(l) });
+    const nodes = []; function walk(n) { if (!n || typeof n !== 'object') return; if (Array.isArray(n)) return n.forEach(walk); nodes.push(n); walk(n.props?.children); } walk(tree);
+    assert.equal(calls.length, 0);
+    const button = nodes.find(n => n.type === 'button' && JSON.stringify(n.props?.children)?.includes(mode === 'changed' ? '해당 업무로 이동' : '새 소식'));
+    assert.ok(button);
+    if (mode === 'late') { const cleanup = effects[0](); await new Promise(setImmediate); ctx.finish(); await new Promise(setImmediate); button.props.onClick(); await new Promise(setImmediate); cleanup(); ctx.finish(); await new Promise(setImmediate); assert.equal(calls.some(c => c.path === '/read'), false); }
+    else { button.props.onClick(); await new Promise(setImmediate); }
+    return { calls, navigation, states };
+  }
+  const opened = await componentProbe('open'); assert.deepEqual(opened.calls.map(c => c.path), ['/5', '/read']); assert.equal(opened.calls[1].body.sequence, 5); assert.equal(opened.navigation.length, 0);
+  console.log('PASS actual inbox detail marks only selected item and never executes work');
+  const changed = await componentProbe('changed'); assert.equal(changed.navigation.length, 0); assert.equal(changed.calls.length, 1);
+  console.log('PASS actual inbox navigation revalidates original target before opening');
+  await componentProbe('late');
+  console.log('PASS actual inbox invalidates late response on Career or filter cleanup');
+}

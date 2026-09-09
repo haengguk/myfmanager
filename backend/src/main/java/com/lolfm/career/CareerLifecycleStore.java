@@ -130,7 +130,11 @@ public final class CareerLifecycleStore {
         CareerMarketStore.persist(jdbc,career,year,oldMarket,m);
         var generated=new TreeMap<String,Integer>();var unavailable=new TreeMap<String,Integer>();for(var role:Position.values()){generated.put(role.name(),normalRoles.get(role)+urgentRoles.get(role));unavailable.put(role.name(),Math.max(0,shortfall.get(role)-urgentRoles.get(role)));}
         var review=new Review(year,date,CareerLifecyclePolicy.VERSION,"SEASON_REVIEW",changes,rookies.stream().map(r->r.definition().playerId()).toList(),new Supply(projected,normal,urgent,stringKeys(available),stringKeys(missing),generated,unavailable));
-        saveReview(jdbc,career,review);return review;
+        saveReview(jdbc,career,review);
+        String managed=CareerInboxStore.managed(jdbc,career);
+        for(var change:changes)if(change.outcome().equals("RETIREMENT_ANNOUNCED")&&m.members.get(change.playerId())!=null&&managed.equals(m.members.get(change.playerId()).ownerTeam()))CareerInboxStore.add(jdbc,career,year,new CareerInboxStore.Item("RETIREMENT:"+year+":"+change.playerId(),"RETIREMENT",date,m.directory.players().get(change.playerId()).nickname()+" 은퇴 결정",change.reason(),managed,change.playerId(),null,false,CareerInboxStore.Link.of("LIFECYCLE",change.playerId(),null,null,year),CareerInboxStore.facts(change)));
+        if(!rookies.isEmpty())CareerInboxStore.add(jdbc,career,year,new CareerInboxStore.Item("ROOKIES:"+(year+1),"ROOKIE_SUPPLY",date,(year+1)+" 신인 공급",rookies.size()+"명의 게임 생성 신인이 시장에 추가되었습니다.",managed,null,null,false,CareerInboxStore.Link.of("MARKET",null,null,null,year),CareerInboxStore.facts(review.supply())));
+        return review;
     }
     public void prepareClSupply(String career,int year){
         if(!CareerClStore.active(jdbc,career,year))return;var cl=CareerClStore.load(jdbc,career,year);if(cl.supplyIssued())return;

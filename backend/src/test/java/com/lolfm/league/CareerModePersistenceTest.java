@@ -173,7 +173,7 @@ class CareerModePersistenceTest {
     @Test
     void lifecycleReviewIsAtomicGeneratedPopulationSurvivesLateRolloverAndFileRestart() throws Exception {
         String url="jdbc:h2:file:"+temporary.resolve("lifecycle")+";DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=30000";
-        String id,sourceJson,lifeJson,oldHistory;java.util.List<java.util.Map<String,Object>> originalPlayerRecords;int initialCount;com.lolfm.career.CareerMarketStore.Request stove;
+        String id,sourceJson,lifeJson,oldHistory,recapJson;java.util.List<java.util.Map<String,Object>> originalPlayerRecords;int initialCount;com.lolfm.career.CareerMarketStore.Request stove;
         try(var ds=dataSource(url)) {
             Flyway.configure().dataSource(ds).load().migrate();var h=harness(ds,CareerRelationalStore.MAX_CAREERS,lifecycleProductionSnapshot());var manager=new DataSourceTransactionManager(ds);var tx=new org.springframework.transaction.support.TransactionTemplate(manager);
             var c=h.careers().create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"생애주기 지연 시즌","감독","KT","90909090-1234-4567-8901-123456789abc")).career().career();id=c.careerId();
@@ -199,6 +199,8 @@ class CareerModePersistenceTest {
             String rookie=review.rookieIds().getFirst();var v=market.view(id,2027);var free=v.players().stream().filter(p->p.playerId().equals(rookie)).findFirst().orElseThrow();
             market.command(id,marketCommand(v,"SUBMIT",rookie,new com.lolfm.career.CareerMarketState.Terms(free.availableStart(),free.availableStart().plusYears(2).minusDays(1),free.askingSalary()*2,0,com.lolfm.career.CareerMarketState.Role.RESERVE)));
             var transition=new com.lolfm.career.CareerSeasonApplicationService.Request("CAREER_SEASON_TRANSITION_REQUEST_V1",2027,seasons.list(id).calendarRevision(),UUID.randomUUID().toString());seasons.transition(id,transition);assertThat(seasons.transition(id,transition).replayed()).isTrue();
+            recapJson=h.jdbc().queryForObject("SELECT item_json FROM career_inbox_item WHERE career_id=? AND season_year=2027 AND kind='SEASON_RECAP'",String.class,id);
+            assertThat(com.lolfm.career.CareerRosterStore.read(recapJson,com.fasterxml.jackson.databind.JsonNode.class).path("facts").path("final").asBoolean()).isTrue();
             assertThat(clStore.view(id,2028).fixtures()).hasSize(90);assertThat(clStore.view(id,2028).clubs().stream().filter(club->club.team().equals("LCK:KT")).findFirst().orElseThrow().lineup()).isEmpty();
             var after=calendars.find(id).orElseThrow();assertThat(after.currentDate()).isAfterOrEqualTo(date);assertThat(com.lolfm.career.CareerMarketStore.load(h.jdbc(),id).state().processedThrough()).isEqualTo(after.currentDate());assertThat(com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id).state().nextSettlement()).isEqualTo(after.currentDate());
             var retiredGrowth=new java.util.TreeMap<String,com.lolfm.career.CareerDevelopmentState.Player>();com.lolfm.career.CareerLifecycleStore.load(h.jdbc(),id).players().forEach((player,life)->{if(life.status()==com.lolfm.career.CareerLifecycleState.Status.RETIRED)retiredGrowth.put(player,com.lolfm.career.CareerDevelopmentStore.load(h.jdbc(),id).state().players().get(player));});assertThat(retiredGrowth).isNotEmpty();
@@ -231,7 +233,7 @@ class CareerModePersistenceTest {
             lifecycle.recover();lifeJson=h.jdbc().queryForObject("SELECT state_json FROM career_lifecycle_state WHERE career_id=?",String.class,id);
             System.out.println("LIFECYCLE_STORAGE_REVIEW "+com.lolfm.career.CareerRosterStore.write(review.supply())+" rookie="+rookie+" lateDate="+after.currentDate()+" population="+current.players().size());
         }
-        try(var ds=dataSource(url)) {Flyway.configure().dataSource(ds).load().migrate();var jdbc=new JdbcTemplate(ds);var lifecycle=new com.lolfm.career.CareerLifecycleStore(jdbc,new DataSourceTransactionManager(ds),new com.lolfm.champion.ChampionCatalog(new ObjectMapper()));lifecycle.recover();assertThat(jdbc.queryForObject("SELECT state_json FROM career_lifecycle_state WHERE career_id=?",String.class,id)).isEqualTo(lifeJson);assertThat(com.lolfm.career.CareerRosterStore.write(lifecycle.view(id,2027))).isEqualTo(oldHistory);assertThat(jdbc.queryForObject("SELECT directory_json FROM career_player_directory WHERE career_id=?",String.class,id)).isEqualTo(sourceJson);assertThat(com.lolfm.career.CareerRosterStore.baseDirectory(jdbc,id).players()).hasSizeGreaterThan(initialCount);}
+        try(var ds=dataSource(url)) {Flyway.configure().dataSource(ds).load().migrate();var jdbc=new JdbcTemplate(ds);var lifecycle=new com.lolfm.career.CareerLifecycleStore(jdbc,new DataSourceTransactionManager(ds),new com.lolfm.champion.ChampionCatalog(new ObjectMapper()));lifecycle.recover();assertThat(jdbc.queryForObject("SELECT state_json FROM career_lifecycle_state WHERE career_id=?",String.class,id)).isEqualTo(lifeJson);assertThat(jdbc.queryForObject("SELECT item_json FROM career_inbox_item WHERE career_id=? AND season_year=2027 AND kind='SEASON_RECAP'",String.class,id)).isEqualTo(recapJson);assertThat(com.lolfm.career.CareerRosterStore.write(lifecycle.view(id,2027))).isEqualTo(oldHistory);assertThat(jdbc.queryForObject("SELECT directory_json FROM career_player_directory WHERE career_id=?",String.class,id)).isEqualTo(sourceJson);assertThat(com.lolfm.career.CareerRosterStore.baseDirectory(jdbc,id).players()).hasSizeGreaterThan(initialCount);}
     }
 
     @Test
@@ -764,7 +766,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(25);
+                    .migrationsExecuted).isEqualTo(27);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -1218,7 +1220,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(21);
+                    .migrationsExecuted).isEqualTo(23);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);

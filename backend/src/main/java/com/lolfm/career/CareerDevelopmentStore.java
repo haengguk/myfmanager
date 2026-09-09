@@ -51,6 +51,7 @@ public final class CareerDevelopmentStore {
     }
     public void recover(){for(String id:jdbc.query("SELECT career_id FROM career_player_directory WHERE directory_version=? ORDER BY career_id",(r,n)->r.getString(1),com.lolfm.player.ExpandedPlayerCatalog.VERSION))tx.executeWithoutResult(status->{lockCareer(jdbc,id);if(CareerSaveCompatibility.recoverySupported(jdbc,id))initialize(jdbc,id);});}
     static void persist(JdbcTemplate jdbc,String career,Saved old,CareerDevelopmentEngine engine) {
+        CareerInboxStore.training(jdbc,career,old.state(),engine.state());
         String json=write(engine.state());
         if(jdbc.update("UPDATE career_development_state SET revision=revision+1,state_json=?,state_hash=? WHERE career_id=? AND revision=?",json,hash(json),career,old.revision())!=1)throw CareerException.calendarStaleRevision();
         var life=CareerLifecycleStore.load(jdbc,career);if(life!=null){var lifecycle=new CareerLifecycleEngine(life);engine.players.forEach((id,p)->{var person=lifecycle.people.get(id);if(person==null)throw new IllegalStateException("LIFECYCLE_PLAYER_REFERENCE");lifecycle.people.put(id,person.peak(CareerLifecyclePolicy.ca(p)));});CareerLifecycleStore.persist(jdbc,career,lifecycle);}
@@ -90,6 +91,7 @@ public final class CareerDevelopmentStore {
         closeSeason(jdbc,career,year,saved.state().nextSettlement());String json=write(saved.state());
         jdbc.update("UPDATE career_development_season_close SET closed_date=?,state_json=?,state_hash=? WHERE career_id=? AND season_year=?",saved.state().nextSettlement(),json,hash(json),career,year);
         CareerHistoryStore.growth(jdbc,career,year,"CLOSING_FINAL",saved.state().nextSettlement(),saved.state());
+        CareerInboxStore.growth(jdbc,career,year,"CLOSING_FINAL",saved.state().nextSettlement(),saved.state(),CareerRosterStore.saved(jdbc,career,year).state());
         CareerHistoryStore.growth(jdbc,career,year+1,"OPENING",saved.state().nextSettlement(),saved.state());
         var life=CareerLifecycleStore.load(jdbc,career);if(life!=null){String lifecycle=write(life);jdbc.update("UPDATE career_development_season_close SET lifecycle_json=?,lifecycle_hash=? WHERE career_id=? AND season_year=?",lifecycle,hash(lifecycle),career,year);}
     }

@@ -1,3 +1,4 @@
+import type { InboxLink } from './api/careerInbox';
 import { careerMoney } from './careerMoney';
 import { useEffect, useRef, useState } from 'react';
 import { CareerApiFailure, changeCareerTrade, getCareerMarket } from './api/careerApi.client';
@@ -7,7 +8,7 @@ import { readTradeOperation, tradeOperationKey, validateTradeCommand } from './a
 import type { Negotiation, TradeCommand, TradeTerms } from './api/careerManagement.contract';
 const names: Record<string, string> = { CLUB_PENDING: '상대 구단 검토', CLUB_COUNTER: '구단 역제안', PLAYER_PENDING: '선수 결정 대기', AGREED: '합의 완료·적용일 대기', COMPLETED: '거래 완료', REJECTED: '거절', WITHDRAWN: '철회', EXPIRED: '만료', SUPERSEDED: '수정안으로 대체', CANCELLED_RETIREMENT: '은퇴 발표로 취소' };
 const addDays = (date: string, days: number) => { const d = new Date(`${date}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); };
-export function CareerTransferPanel({ view, roster, selected, disabled, onBegin, onResult }: { view: CareerMarket; roster: CareerRoster; selected: string | null; disabled: boolean; onBegin: () => (() => void) | null; onResult: (view: CareerMarket) => void }) {
+export function CareerTransferPanel({ view, roster, selected, disabled, focus, onBegin, onResult }: { focus?: InboxLink | null; view: CareerMarket; roster: CareerRoster; selected: string | null; disabled: boolean; onBegin: () => (() => void) | null; onResult: (view: CareerMarket) => void | Promise<unknown> }) {
   const [legacyRefresh, setLegacyRefresh] = useState(false);
   const [kind, setKind] = useState<TradeTerms['kind']>('TRANSFER'), [buyer, setBuyer] = useState(''), [start, setStart] = useState(''), [end, setEnd] = useState('');
   const [fee, setFee] = useState(0), [salary, setSalary] = useState(0), [bonus, setBonus] = useState(0), [share, setShare] = useState(50), [role, setRole] = useState<MarketRole>('RESERVE');
@@ -29,6 +30,12 @@ export function CareerTransferPanel({ view, roster, selected, disabled, onBegin,
     setFee(quote?.suggestedTransferFee ?? 0); setSalary(Math.floor((quote?.referenceSalary ?? 0) * 1.25)); setBonus(0); setRole('RESERVE');
   }, [selected, view.careerId, view.seasonYear, view.currentDate, contract?.contractId]);
   const fill = (t: Negotiation) => { setEditing(t); setKind(t.terms.kind); setBuyer(t.terms.buyer); setStart(t.terms.startDate); setEnd(t.terms.endDate); setFee(t.terms.fee); setSalary(t.terms.playerTerms.annualSalary); setBonus(t.terms.playerTerms.signingBonus); setRole(t.terms.playerTerms.role); setShare(t.terms.borrowerSalaryPercent); setReplacement(t.terms.replacementPlayerId ?? ''); };
+  useEffect(() => {
+    if (!focus || focus.panel !== 'TRADE' || focus.seasonYear !== view.seasonYear) return;
+    const trade = view.management?.trades.find(t => t.tradeId === focus.sourceId);
+    if (trade && ['CLUB_PENDING', 'CLUB_COUNTER', 'PLAYER_PENDING'].includes(trade.status)) fill(trade);
+    else { setEditing(null); setError('이 거래는 이미 종료되었거나 합의되어 새 응답이 필요하지 않습니다.'); }
+  }, [focus, view.revision]);
   const execute = async (action?: TradeCommand['action'], trade?: Negotiation) => {
     if (disabled || pending || corrupt || view.readOnly || mutation.current) return;
     const release = onBegin(); if (!release) return;
@@ -52,7 +59,7 @@ export function CareerTransferPanel({ view, roster, selected, disabled, onBegin,
       const result = await changeCareerTrade(view.careerId, body, owned.controller.signal);
       if (owned.controller.signal.aborted || mutation.current !== owned) return;
       if (result.market.careerId !== view.careerId || result.receipt.clientCommandId !== body.clientCommandId || result.receipt.sourceYear !== body.sourceYear || result.receipt.action !== `TRADE_${body.action}`) throw new Error('거래 응답의 원본 요청 범위가 다릅니다.');
-      window.sessionStorage.removeItem(tradeOperationKey(view.careerId)); setOperation(null); setEditing(null); onResult(result.market);
+      window.sessionStorage.removeItem(tradeOperationKey(view.careerId)); setOperation(null); setEditing(null); await onResult(result.market);
     } catch (e) {
       if (!owned.controller.signal.aborted && mutation.current === owned) {
         if (e instanceof CareerApiFailure && e.code === 'CAREER_MONEY_POLICY_REFRESH_REQUIRED') {

@@ -1,5 +1,20 @@
 # Testing
 
+## Career 소식함·기록 조회 교정 V1 (2026-09-09)
+
+G1/G2는 기존 CareerRecordsStorageTest의 500개 무관 사건과 부분/미수집 CS 준비로 검증한다.
+신규 CareerInboxStorageTest 하나에서 페이지 상한·읽음 반복·파일 재열기·Career/시즌 범위를
+확인한다. 기존 ContinuousExecution/Planner와 CareerModePersistenceTest의 lifecycle 파일
+복구 흐름으로 실제 계약 철회, 정보성 소식의 진행 독립, 새 조건, 최종 결산 보존을 확인한다.
+프런트는 career:verify의 6개 소식함 시나리오 그룹과 build, 격리 브라우저의 읽음→원래 계약
+철회→부모 갱신→reload 흐름을 사용한다. 새 경기를 돌려 뉴스 fixture를 만들지 않는다.
+통합 후 전체 backend test는 1회, 283 suites/2,243건, 통과 2,241·실패/오류 0·기존 skip 2,
+wall 1,923.33초로 통과했다. 프런트는 114 PASS와 build(Vite 7.97초)다.
+전체 후 선수 이름 표시 보완은 기존 계약 통합 1건이 28.16초에 통과했다. 추가 전체는 0회다.
+상세 명령·원본 결과는
+[구현·검증 보고서](career-inbox-and-decisions-v1.md)에 구분해 기록한다.
+
+
 ## Career 성적·개인상·이력 V1 (2026-09-09)
 
 CareerPerformanceAwardsPolicyTest는 작은 점수·자격·슬롯·scope 경계,

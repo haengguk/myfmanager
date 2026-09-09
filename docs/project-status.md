@@ -1,5 +1,19 @@
 # Project Status
 
+## Career 소식함·현재 의사결정 V1 (2026-09-09)
+
+G1 대상별 이력 검색을 페이지 제한보다 먼저 적용하고 성장 관측을 시즌별로 분리했다.
+G2는 총 출전 시간과 CS 관측 시간/세트를 분리해 부분 자료의 CSPM 희석을 교정했다.
+소식함은 원본 사건 transaction의 작은 소식과 읽음을 저장하고, 현재 처리 목록은
+Continuous와 공유하는 계약·등록·경기·시즌 판단으로 구성한다. 읽음과 실제 응답은 독립이며
+원래 선수/offer/trade/기록 화면으로 이동한다. 최종 마감의 간단한 시즌 결산도 보존한다.
+기존 Career 현재 업무는 첫 조회부터 지원하며 도입 이전 일반 소식 전수 복원은 하지 않는다.
+계획 전체 1회는 283 suites/2,243건 중 2,241 통과·실패/오류 0·기존 skip 2로 통과했다
+(32분 3.33초). 프런트 114 PASS/build와 실제 브라우저의 역제안 읽음→철회→reload를 확인했다.
+전체 후 선수 이름 표시 보완도 기존 계약 통합 1건에서 통과했다(28.16초). 추가 전체는 0회다.
+정확한 적용 범위는 [구현 보고서](development/career-inbox-and-decisions-v1.md)를 따른다.
+
+
 이 문서는 2026-09-09 working tree의 production source, active resources, 실제 verification 결과와 직접 생성한 structured evidence를 기준으로 한 현재 snapshot이다. 과거 build output이나 현재 HEAD보다 앞선 report는 baseline으로 간주하지 않는다.
 
 ## Career 성적·개인상·커리어 기록 V1 (2026-09-09)

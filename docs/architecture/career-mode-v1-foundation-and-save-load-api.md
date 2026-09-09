@@ -293,3 +293,21 @@ POST restore만 작은 완료 증거 복원 배치를 실행하며 GET/startup�
 closeSeason의 임시 종료는 최종 성장 이력이 아니다. 마지막 시장·생애주기 정산 후 finishSeason이
 최종 closing을 갱신하고 같은 경계의 다음 opening을 남긴다.
 상세 채택/정책/제한은 [기록 V1](../development/career-records-performance-awards-and-player-team-history-v1.md)을 따른다.
+
+
+## Career Inbox V1 adjunct
+
+`CareerInboxStore`는 기존 원본 transaction 안에서 작은 사실 요약과 source identity를 기록한다.
+`career_inbox_item.read_flag`는 감독 확인 메타데이터이며 Calendar/gameplay revision이나
+Continuous 실행 lease를 갱신하지 않는다. GET은 read-only projection이다.
+`CareerDecisions`는 기존 Planner의 시장·등록 자격과 Calendar/League의 현재 경기 경계를
+공유하며 처리 목록만 도출한다. 소식의 중요도/읽음과 실제 응답 의무는 별개다.
+
+Feed는 Career/year/kind/development를 먼저 필터한 sequence keyset page와 asOf 상한을
+사용한다. 모두 읽음도 그 상한/필터까지만 적용한다. 상세는 발생 당시 사실과 현재 원본 상태를
+분리한다. 실제 해결은 기존 계약/명부/Series/시즌 명령의 책임이다.
+
+V26/V27은 조회 subject와 소식 메타데이터를 추가한다. 과거 JSON/hash는 유지하며
+기존 이적·임대 terms의 양 당사자를 검색에 포함한다. 기록 API의 seconds는 총 시간으로
+유지하고 observedcspm/csobservedseconds/csobservedunits와 성장 별도 페이지를 추가했다.
+[실제 소스 매핑·저장·복구·한계](../development/career-inbox-and-decisions-v1.md).

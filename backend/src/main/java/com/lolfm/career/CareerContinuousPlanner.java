@@ -36,16 +36,17 @@ final class CareerContinuousPlanner {
         var unknown=waits.stream().filter(w->!"AI_CLUB".equals(w.responsibility())).findFirst();
         return unknown.map(w->new Stop(Category.RECOVERABLE_ERROR,Reason.ROSTER_DECISION,w.teamId(),w.competitionId(),"ROSTER")).orElse(null);
     }
-    static Stop marketDecision(CareerMarketState market,String managed) {
-        if(market==null)return null;
+    static Stop marketDecision(CareerMarketState market,String managed) {return marketDecisions(market,managed).stream().findFirst().orElse(null);}
+    static java.util.List<Stop> marketDecisions(CareerMarketState market,String managed) {
+        var result=new java.util.ArrayList<Stop>();if(market==null)return result;
         for(var o:market.offers().values().stream().sorted(java.util.Comparator.comparing(CareerMarketState.Offer::offerId)).toList())
             if(managed.equals(o.team())&&o.status()==CareerMarketState.OfferStatus.COUNTER)
-                return new Stop(Category.USER_DECISION,Reason.CONTRACT_RESPONSE,managed,o.offerId(),"MARKET");
+                result.add(new Stop(Category.USER_DECISION,Reason.CONTRACT_RESPONSE,managed,o.offerId(),"MARKET"));
         if(market.management()!=null)for(var t:market.management().trades().values().stream().sorted(java.util.Comparator.comparing(CareerManagementState.Trade::tradeId)).toList())
             if(t.open()&&t.status()!=CareerManagementState.TradeStatus.AGREED
                     &&(managed.equals(t.terms().seller())&&!t.sellerAgreed()||managed.equals(t.terms().buyer())&&!t.buyerAgreed()))
-                return new Stop(Category.USER_DECISION,Reason.TRADE_RESPONSE,managed,t.tradeId(),"MARKET");
-        return null;
+                result.add(new Stop(Category.USER_DECISION,Reason.TRADE_RESPONSE,managed,t.tradeId(),"MARKET"));
+        return java.util.List.copyOf(result);
     }
     private CareerContinuousPlanner() {}
 }

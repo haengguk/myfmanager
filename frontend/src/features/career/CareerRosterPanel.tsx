@@ -1,3 +1,4 @@
+import type { InboxLink } from './api/careerInbox';
 import { currentAbility, potentialAbility, SKILL_LABELS } from '../player-data/playerAbility';
 import { CareerPlayerAppearances } from './CareerPlayerAppearances';
 import { CareerPlayerPromises } from './CareerPlayerPromises';
@@ -25,13 +26,14 @@ function PlayerDetails({ player }: { player: RosterPlayer }) {
     <details><summary>출처와 미확인·충돌 사항</summary><p>실제 실력의 정확성과 밸런스를 검증한 자료가 아닙니다.</p><p>{show((d.dataQuality as Record<string, unknown> | undefined)?.issues)}</p><p>{show(d.normalizationIssues)}</p><p>{show((d.roster as Record<string, unknown> | undefined)?.verificationNote)}</p><p>{show(d.contractAuthoringDetail)}</p><p>{show((d.ratingEvidence as Record<string, unknown> | undefined)?.classification)}</p>{Array.isArray(d.sources) ? <ul>{(d.sources as Record<string, unknown>[]).map((s, i) => <li key={i}>{typeof s.url === 'string' && /^https?:\/\//.test(s.url) ? <a href={s.url} target="_blank" rel="noreferrer">{show(s.type)} · {show(s.checkedAt)}</a> : show(s.type)}</li>)}</ul> : <p>추가 출처 미확인</p>}</details>
   </div>;
 }
-export function CareerRosterPanel({ careerId, year, revision, historical, busy, onBegin, onChanged, onManageContract }: {
-  careerId: string; year: number; revision: number; historical: boolean; busy: boolean; onBegin: () => (() => void) | null; onChanged: () => void; onManageContract?: (playerId: string) => void;
+export function CareerRosterPanel({ careerId, year, revision, historical, busy, onBegin, onChanged, onManageContract, focus }: {
+  focus?: InboxLink | null; careerId: string; year: number; revision: number; historical: boolean; busy: boolean; onBegin: () => (() => void) | null; onChanged: () => void; onManageContract?: (playerId: string) => void;
 }) {
   const [view, setView] = useState<CareerRoster | null>(null), [error, setError] = useState<string | null>(null), [pending, setPending] = useState(false);
   const [market, setMarket] = useState<CareerMarket | null>(null);
   const [operation, setOperation] = useState<RosterCommand | null>(null), [corrupt, setCorrupt] = useState(false);
   const [filter, setFilter] = useState('managed'), [search, setSearch] = useState(''), [selected, setSelected] = useState<string | null>(null);
+  useEffect(() => { if (focus?.panel === 'ROSTER') { setFilter('managed'); setSearch(focus.positions[0] ?? ''); setSelected(null); } }, [focus]);
   const [sort, setSort] = useState('position');
   const [destination, setDestination] = useState(''), [replacement, setReplacement] = useState('');
   const generation = useRef(0), mutation = useRef<{ controller: AbortController; release: () => void } | null>(null);
@@ -41,7 +43,7 @@ export function CareerRosterPanel({ careerId, year, revision, historical, busy, 
     void getCareerRoster(careerId, year, controller.signal).then(v => { if (!controller.signal.aborted && generation.current === token) { setView(v); } }).catch(e => { if (!controller.signal.aborted && generation.current === token) setError(message(e)); });
     void getCareerMarket(careerId, year, controller.signal).then(v => { if (!controller.signal.aborted && generation.current === token) setMarket(v); }).catch(() => { if (!controller.signal.aborted && generation.current === token) setMarket(null); });
     return () => { ++generation.current; controller.abort(); };
-  }, [careerId, year, revision]);
+  }, [careerId, year, revision, focus]);
   useEffect(() => { setView(null); setMarket(null); setSelected(null); setPending(false); return () => { mutation.current?.controller.abort(); mutation.current?.release(); mutation.current = null; }; }, [careerId, year]);
   const change = async (action?: RosterCommand['action']) => {
     if (!view || historical || view.readOnly || busy || mutation.current || corrupt) return;
@@ -81,7 +83,7 @@ export function CareerRosterPanel({ careerId, year, revision, historical, busy, 
   const player = selected ? players[selected] : null, member = selected ? members[selected] : null;
   const disabled = busy || pending || historical || view.readOnly || !!operation || corrupt;
   const editable = member?.ownerTeam === view.managedTeam && member.eligibilityReason === null;
-  return <section className="ca-calendar ca-roster" id="career-roster" aria-label="선수 명부" aria-busy={pending}><header><div><span>ROSTER</span><strong>{view.seasonYear} 선수 명부 · 전체 {Object.keys(players).length}명</strong></div><span>명단 revision {view.revision}{historical || view.readOnly ? ' · 읽기 전용' : ''}</span></header>
+  return <section className="ca-calendar ca-roster" id="career-roster" aria-label="선수 명부" aria-busy={pending}>{focus?.panel === 'ROSTER' ? <p role="status">등록 대상 {focus.competition} · 필요한 포지션 {focus.positions.join(', ') || '선발·자격 확인'}</p> : null}<header><div><span>ROSTER</span><strong>{view.seasonYear} 선수 명부 · 전체 {Object.keys(players).length}명</strong></div><span>명단 revision {view.revision}{historical || view.readOnly ? ' · 읽기 전용' : ''}</span></header>
     <h3>현재 구단 선발 {lineup.length}/5명</h3><p data-testid="career-lineup">{names(lineup)}</p><p>선발 변경은 아직 시작하지 않은 다음 Series부터 적용됩니다. 시작한 Series는 고정된 5명으로 끝납니다. 국제대회는 등록된 선수만 기용하며, 등록 밖의 선수는 다음 대회 등록부터 적용됩니다.</p>
     <details><summary>현재 대회 등록 선수 · 진행 중 경기 출전 선수</summary>{Object.keys(view.registeredPlayers).length ? Object.entries(view.registeredPlayers).map(([c, ids]) => <p key={c}><strong>{c} 등록:</strong> {names(ids)}{ids.some(id => members[id].ownerTeam !== view.managedTeam || members[id].eligibilityReason) ? ' · 소속을 떠났거나 현재 출전 자격이 없는 등록 선수 포함' : ''}{lineup.some(id => !ids.includes(id)) ? ' · 현재 선발 중 등록 밖의 선수는 이 대회에 적용되지 않습니다. 현재 유효한 등록 대체 선수가 필요하며, 모두 떠난 포지션은 보충등록을 확인하세요.' : ' · 현재 선발 모두 등록 범위 내'}</p>) : <p>관리 구단의 확정 국제 등록 없음</p>}{Object.keys(view.activeSeriesPlayers).length ? Object.entries(view.activeSeriesPlayers).map(([s, ids]) => <p key={s}><strong>진행 중 경기:</strong> {names(ids)} <small>{s}</small></p>) : <p>진행 중인 고정 Series 없음</p>}</details>
     {error ? <p role="alert">{error}</p> : null}{operation ? <button className="lm-secondary-button" disabled={busy || historical || pending} onClick={() => { void change(); }}>{pending ? '명단 변경 확인 중…' : `${operation.sourceYear} 명단 변경 다시 확인`}</button> : null}

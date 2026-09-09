@@ -84,6 +84,7 @@ public final class CareerAwardsStore {
         var winners=new HashSet<String>();slots.forEach(slot->{if(slot.playerId()!=null)winners.add(slot.playerId());});
         for(var candidate:ordered)db.update("INSERT INTO career_record_award_candidate VALUES (?,?,?,?)",id,candidate.playerId(),candidate.team(),winners.contains(candidate.playerId()));
         for(String record:input.stream().map(CareerRecordsStore.Series::recordId).distinct().toList())db.update("INSERT INTO career_record_award_input VALUES (?,?)",id,record);
+        CareerInboxStore.award(db,career,year,award);
     }
     private CareerAwardsStore() {}
 }

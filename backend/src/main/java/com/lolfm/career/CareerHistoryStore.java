@@ -17,6 +17,8 @@ final class CareerHistoryStore {
         var prior=db.query("SELECT observation_hash FROM career_record_observation WHERE career_id=? AND season_year=? AND observation_key=?",(r,n)->r.getString(1),career,year,key);
         if(prior.isEmpty())db.update("INSERT INTO career_record_observation VALUES (?,?,?,?,?,?)",career,year,key,date,json,digest);
         else if(replace&&!prior.getFirst().equals(digest))db.update("UPDATE career_record_observation SET observed_date=?,observation_json=?,observation_hash=? WHERE career_id=? AND season_year=? AND observation_key=?",date,json,digest,career,year,key);
+        if(prior.isEmpty()||replace)CareerObservationIndex.index(db,career,year,key,json,digest);
+        if(prior.isEmpty())CareerInboxStore.observation(db,career,year,key,date,read(json,com.fasterxml.jackson.databind.JsonNode.class));
     }
     static void growth(JdbcTemplate db,String career,int year,String kind,LocalDate date,CareerDevelopmentState state){if(state==null)return;var observed=new TreeMap<String,GrowthPlayer>();state.players().forEach((id,p)->observed.put(id,new GrowthPlayer(p.internalRatings(),p.internalProficiencies(),p.fatigue())));observe(db,career,year,kind,date,new Growth(kind,date,observed),kind.equals("CLOSING_FINAL"));}
     static void operating(JdbcTemplate db,String career,int year,CareerMarketState before,CareerMarketEngine engine,State oldRoster) {
@@ -24,6 +26,10 @@ final class CareerHistoryStore {
         for(var e:engine.state().events())if(!previous.contains(e.eventId())) {
             var p=e.playerId()==null?null:engine.directory.players().get(e.playerId());
             observe(db,career,year,"EVENT:"+hash(e.eventId()),e.date(),new Operating(e.eventId(),e.date(),e.kind(),e.playerId(),p==null?e.playerId():p.nickname(),e.team(),e.referenceId(),e.reason()),false);
+            if(e.referenceId()!=null&&engine.state().management()!=null){var management=engine.state().management();var trade=management.trades().get(e.referenceId());var loan=management.loans().get(e.referenceId());
+                if(trade!=null)CareerObservationIndex.related(db,career,year,"EVENT:"+hash(e.eventId()),List.of(trade.terms().seller(),trade.terms().buyer()));
+                if(loan!=null)CareerObservationIndex.related(db,career,year,"EVENT:"+hash(e.eventId()),List.of(loan.parentTeam(),loan.borrowingTeam()));}
+
         }
         if(!oldRoster.members().equals(engine.members))registrations(db,career,year,engine);
     }

@@ -80,7 +80,7 @@ export function CareerContinuousPanel({ careerId, currentDate, seasonYear, busy,
     <header><div><span>연속 진행</span><strong>{view?.currentDate ?? currentDate}</strong></div><b role="status">{run ? STATUS[run.status] : '진행 대기'}</b></header>
     <p>AI 경기와 일별 정산을 자동 처리합니다. 내 경기·계약 응답·선발 결정·시즌 전환 전에 멈춥니다. 창을 닫아도 서버는 계속 진행합니다.</p>
     {run ? <p>목표: {run.mode === 'NEXT_MANAGED_MATCH' ? '다음 내 경기' : run.targetDate} · {run.completedDates}일 진행 · {run.completedSeries}경기 / {run.completedGames}세트 완료 · 새 개인상 {run.completedAwards ?? 0}건</p> : null}
-    {run?.stop ? <p role="status">{REASON[run.stop.reason] ?? '캘린더에서 필요한 다음 행동을 확인하세요.'}</p> : null}
+    {run?.stop ? <p role="status">마지막 중단 사유: {REASON[run.stop.reason] ?? '캘린더에서 필요한 다음 행동을 확인하세요.'} 현재 처리 상태는 소식함에서 확인하고, 처리 후 재개를 직접 선택하세요.</p> : null}
     {run?.stop?.nextAction && ['MATCH', 'MARKET', 'ROSTER', 'SEASONS'].includes(run.stop.nextAction) ? <p><button type="button" className="lm-secondary-button" disabled={synchronizing || pending || busy} onClick={() => onAction(run.stop!.nextAction!)}>{NEXT_ACTION[run.stop.nextAction]}</button></p> : null}
     {error ? <p role="alert">{error}</p> : null}
     <div className="ca-calendar__controls">

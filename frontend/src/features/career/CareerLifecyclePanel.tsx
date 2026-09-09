@@ -4,11 +4,12 @@ import { filterLifecycle, lifecycleStatusName } from './api/careerLifecycle.cont
 import type { CareerLifecycle } from './api/careerLifecycle.contract';
 const positionNames: Record<string, string> = { TOP: '탑', JUNGLE: '정글', MID: '미드', ADC: '원딜', SUPPORT: '서포터' };
 const supplyText = (v: Record<string, number>) => Object.entries(v).map(([p, n]) => `${positionNames[p] ?? p} ${n}`).join(' · ');
-export function CareerLifecyclePanel({ careerId, year, revision, historical, busy, onMarket }: { careerId: string; year: number; revision: number; historical: boolean; busy: boolean; onMarket: (id: string) => void }) {
+export function CareerLifecyclePanel({ careerId, year, revision, historical, busy, onMarket, focusPlayer }: { focusPlayer?: string | null; careerId: string; year: number; revision: number; historical: boolean; busy: boolean; onMarket: (id: string) => void }) {
   const [view, setView] = useState<CareerLifecycle | null>(null), [error, setError] = useState(''), [filter, setFilter] = useState('announced'), [search, setSearch] = useState(''), [selected, setSelected] = useState('');
   const generation = useRef(0);
   useEffect(() => { setView(null); setSelected(''); setFilter('announced'); setSearch(''); }, [careerId, year]);
   useEffect(() => { const controller = new AbortController(), token = ++generation.current; setError(''); void getCareerLifecycle(careerId, year, controller.signal).then(v => { if (!controller.signal.aborted && token === generation.current) { if (v.careerId !== careerId || v.seasonYear !== year) throw new Error('생애주기 조회 범위가 다릅니다.'); setView(v); } }).catch(e => { if (!controller.signal.aborted && token === generation.current) setError(e instanceof CareerApiFailure ? e.userMessage : String(e)); }); return () => { controller.abort(); ++generation.current; }; }, [careerId, year, revision]);
+  useEffect(() => { if (focusPlayer) { setSelected(focusPlayer); setFilter('all'); } }, [focusPlayer]);
   const visible = filterLifecycle(view?.players ?? [], filter).filter(p => `${p.nickname} ${p.playerId}`.toLowerCase().includes(search.toLowerCase()));
   const player = view?.players.find(p => p.playerId === selected), life = player?.lifecycle;
   return <details className="ca-training" id="career-lifecycle"><summary>시즌 성장·은퇴·신인</summary>

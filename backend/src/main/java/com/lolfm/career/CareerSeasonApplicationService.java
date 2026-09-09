@@ -174,6 +174,7 @@ public final class CareerSeasonApplicationService {
         if(roster==null||market==null)throw CareerException.invalid("market","계약 초기화가 필요합니다.");
         CareerDevelopmentStore.closeSeason(jdbc,careerId,calendar.seasonYear(),calendar.currentDate());
         jdbc.update("INSERT INTO career_market_season_close VALUES (?,?,?,?,?,?)",careerId,calendar.seasonYear(),calendar.currentDate(),CareerRosterStore.write(roster.state()),CareerRosterStore.write(market.state()),resultHash(competitions.finalRanking(careerId,calendar.seasonYear()),competitions.internationalViews(careerId,calendar.seasonYear())));
+        CareerInboxStore.add(jdbc,careerId,calendar.seasonYear(),new CareerInboxStore.Item("STOVE:"+calendar.seasonYear(),"STOVE",calendar.currentDate(),"스토브 운영 시작","대회 종료 결산 이후 계약·재정·성장은 계속 진행됩니다. 최종 결산은 연말 마감에서 확정됩니다.",CareerInboxStore.managed(jdbc,careerId),null,null,false,CareerInboxStore.Link.of("SEASONS",null,null,null,calendar.seasonYear()),CareerInboxStore.facts(java.util.Map.of("seasonYear",calendar.seasonYear(),"final",false))));
     }
     private List<String> blockers(CareerRelationalStore.CareerRow career,int year) {
         String id=career.careerId();var active=careers.activeSeason(career);

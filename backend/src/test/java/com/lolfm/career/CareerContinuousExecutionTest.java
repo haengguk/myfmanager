@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.NONE,properties={"spring.main.banner-mode=off","logging.level.root=ERROR","spring.main.lazy-initialization=true","lolfm.career.continuous.background.enabled=false","lolfm.career.competition.background.enabled=false"})
 class CareerContinuousExecutionTest {
+    @Autowired CareerInboxService inbox;@Autowired CareerMarketStore market;
     @Autowired CareerApplicationService careers;@Autowired CareerCalendarApplicationService calendar;
     @Autowired CareerContinuousApplicationService service;@Autowired CareerContinuousStore store;@Autowired JdbcTemplate jdbc;
     @Autowired com.lolfm.application.SeriesApiV1Facade series;
@@ -18,7 +19,7 @@ class CareerContinuousExecutionTest {
     static Command start(Mode mode,LocalDate date){return new Command(REQUEST_SCHEMA,"START",UUID.randomUUID().toString(),null,null,mode,date);}
     Command action(String career,String action){var r=service.view(career).run();return new Command(REQUEST_SCHEMA,action,UUID.randomUUID().toString(),r.runId,r.revision,null,null);}
     @Test void dailyTargetReplayConflictPauseAndManualBusy() {
-        var c=create("연속 날짜 경계");var date=calendar.currentDate(c);var request=start(Mode.TARGET_DATE,date.plusDays(1));
+        var c=create("연속 날짜 경계");var date=calendar.currentDate(c);CareerInboxStore.add(jdbc,c.careerId(),date.getYear(),CareerInboxStorageTest.item("information",date));var request=start(Mode.TARGET_DATE,date.plusDays(1));
         assertThatThrownBy(()->service.command(c.careerId(),start(Mode.TARGET_DATE,date.minusDays(1)))).isInstanceOf(CareerException.class);
         var accepted=service.command(c.careerId(),request);
         assertThat(service.command(c.careerId(),new Command(REQUEST_SCHEMA,"START",request.clientCommandId().toUpperCase(java.util.Locale.ROOT),null,null,request.mode(),request.targetDate())).receipt()).isEqualTo(accepted.receipt());
@@ -33,8 +34,38 @@ class CareerContinuousExecutionTest {
         service.command(c.careerId(),action(c.careerId(),"RESUME"));
         for(int i=0;i<8&&active(service.view(c.careerId()).run().status);i++)service.step(c.careerId(),"test");
         var done=service.view(c.careerId());assertThat(done.run().status).isEqualTo(Status.COMPLETED);assertThat(done.currentDate()).isEqualTo(date.plusDays(1));assertThat(done.run().completedDates).isEqualTo(1);
+        assertThat(inbox.feed(c.careerId(),date.getYear(),"",false,null,0).unread()).isGreaterThanOrEqualTo(1);
         assertThat(service.command(c.careerId(),request).receipt()).isEqualTo(accepted.receipt());
         assertThat(CareerMarketStore.load(jdbc,c.careerId()).state().processedThrough()).isEqualTo(done.currentDate());
+    }
+    @Test void inboxReadsDoNotResolveCounteroffersOrAlterTheContinuousLease() throws Exception {
+        var c=create("소식함 응답 경계");String id=c.careerId();var day=calendar.view(c).state();var old=CareerMarketStore.load(jdbc,id);
+        String player=old.state().contracts().values().stream().filter(v->v.team().equals("LCK:GEN")&&v.status()==CareerMarketState.ContractStatus.ACTIVE).findFirst().orElseThrow().playerId();
+        var contract=old.state().contracts().values().stream().filter(v->v.playerId().equals(player)&&v.status()==CareerMarketState.ContractStatus.ACTIVE).findFirst().orElseThrow();
+        // Small source fixture, then the actual existing WITHDRAW command below.
+        store.tx.executeWithoutResult(t->{store.lock(id);var engine=CareerMarketStore.engine(jdbc,id,day.seasonYear(),old);
+            var offer=new CareerMarketState.Offer("inbox-offer",player,"LCK:GEN",contract.terms(),day.currentDate(),day.currentDate(),day.currentDate(),day.currentDate().plusDays(5),7,CareerMarketState.OfferStatus.COUNTER,null,1,contract.terms().annualSalary(),"합성 준비 역제안");
+            engine.offers.put(offer.offerId(),offer);CareerMarketStore.persist(jdbc,id,day.seasonYear(),old,engine);
+        });
+        var first=inbox.feed(id,day.seasonYear(),"",false,null,0);assertThat(first.decisions()).filteredOn(d->d.type()==Reason.CONTRACT_RESPONSE).hasSize(1);
+        var counter=first.items().stream().filter(e->e.item().kind().equals("CONTRACT_RESPONSE")).findFirst().orElseThrow();
+        assertThat(first.decisions()).filteredOn(d->d.type()==Reason.CONTRACT_RESPONSE).allSatisfy(d->{assertThat(d.title()).contains(CareerRosterStore.baseDirectory(jdbc,id).players().get(player).nickname());assertThat(d.link().sourceId()).isEqualTo("inbox-offer");});
+        service.command(id,start(Mode.NEXT_MANAGED_MATCH,null));var lease=jdbc.queryForList("SELECT * FROM career_continuous_run WHERE career_id=?",id);
+        inbox.markRead(id,new CareerInboxService.ReadRequest(counter.sequence(),null,null,null,false));inbox.markRead(id,new CareerInboxService.ReadRequest(counter.sequence(),null,null,null,false));
+        assertThat(jdbc.queryForList("SELECT * FROM career_continuous_run WHERE career_id=?",id)).isEqualTo(lease);assertThat(calendar.view(c).state().calendarRevision()).isEqualTo(day.calendarRevision());
+        service.step(id,"inbox-test");assertThat(service.view(id).run().stop.reason()).isEqualTo(Reason.CONTRACT_RESPONSE);
+        assertThat(inbox.feed(id,day.seasonYear(),"",false,null,0).decisions()).anyMatch(d->d.type()==Reason.CONTRACT_RESPONSE);
+        java.nio.file.Files.createDirectories(java.nio.file.Path.of("build/reports/career-inbox"));
+        jdbc.update("UPDATE career_inbox_item SET read_flag=FALSE WHERE career_id=?",id);
+        jdbc.execute("SCRIPT TO 'build/reports/career-inbox/browser.sql'");
+        java.nio.file.Files.writeString(java.nio.file.Path.of("build/reports/career-inbox/browser-career.txt"),id);
+        var current=market.view(id,day.seasonYear());
+        market.command(id,new CareerMarketStore.Request(CareerFinanceStore.MARKET_COMMAND,day.seasonYear(),current.revision(),"WITHDRAW",null,"inbox-offer",null,null,null,UUID.randomUUID().toString()));
+        assertThat(inbox.feed(id,day.seasonYear(),"",false,null,0).decisions()).noneMatch(d->d.type()==Reason.CONTRACT_RESPONSE);
+        assertThat(inbox.detail(id,counter.sequence()).currentStatus()).isEqualTo("WITHDRAWN");assertThat(service.view(id).run().status).isEqualTo(Status.STOPPED);
+        store.tx.executeWithoutResult(t->{store.lock(id);var saved=CareerMarketStore.load(jdbc,id);var engine=CareerMarketStore.engine(jdbc,id,day.seasonYear(),saved);var previous=engine.offers.get("inbox-offer");engine.offers.put("inbox-offer",new CareerMarketState.Offer(previous.offerId(),previous.playerId(),previous.team(),previous.terms(),previous.submittedDate(),previous.responseDate(),previous.decisionDate(),previous.expiresDate(),8,CareerMarketState.OfferStatus.COUNTER,null,2,previous.terms().annualSalary()+1,"새 조건"));CareerMarketStore.persist(jdbc,id,day.seasonYear(),saved,engine);});
+        var changed=inbox.feed(id,day.seasonYear(),"CONTRACT_RESPONSE",false,null,0);assertThat(changed.items()).hasSize(2);assertThat(changed.items().getFirst().read()).isFalse();assertThat(changed.decisions()).anyMatch(d->d.id().equals("OFFER:inbox-offer")&&d.revision().equals("8"));
+
     }
     @Test void realAutoBo3PausesAfterAppliedReceiptThenStopsAtPlayerAndAllowsEntry() throws Exception {
         long begin=System.nanoTime();var c=create("연속 실제 BO3");String id=c.careerId();int year=calendar.view(c).state().seasonYear();var date=calendar.currentDate(c);

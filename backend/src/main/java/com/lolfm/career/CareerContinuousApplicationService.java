@@ -120,18 +120,15 @@ public final class CareerContinuousApplicationService {
     }
     private void prepare(Run run) {
         var career=careers.get(run.careerId).career();var view=calendar.view(career);var day=view.state();
-        Stop decision=CareerContinuousPlanner.marketDecision(Optional.ofNullable(CareerMarketStore.load(store.jdbc,run.careerId)).map(CareerMarketStore.Saved::state).orElse(null),"LCK:"+career.managedTeamCode());
+        var market=Optional.ofNullable(CareerMarketStore.load(store.jdbc,run.careerId)).map(CareerMarketStore.Saved::state).orElse(null);
         var league=leagues.load(view.fixtureOverlay().provenanceV2().leagueId(),view.fixtureOverlay().provenanceV2().seasonId());
         var indexed=new HashMap<String,LocalDate>();view.fixtureOverlay().fixtures().forEach(f->indexed.put(f.fixtureId(),f.date()));
         boolean leagueDue=false;
         for(var f:league.fixtures())if(!"COMPLETED".equals(f.fixtureStatus())&&!indexed.get(f.fixtureId()).isAfter(day.currentDate())) {
-            if("PLAYER_CONTROLLED".equals(f.executionMode())&&decision==null)
-                decision=new Stop(Category.USER_DECISION,Reason.PLAYER_MATCH,career.managedTeamCode(),f.boundSeriesId(),"MATCH");
-            else if("FULL_AUTO".equals(f.executionMode()))leagueDue=true;
+            if("FULL_AUTO".equals(f.executionMode()))leagueDue=true;
         }
         var c=view.competition();var fixture=c.nextFixture();boolean due=fixture!=null&&!fixture.date().isAfter(day.currentDate());
-        if(due&&"PLAYER_CONTROLLED".equals(fixture.executionMode())&&decision==null)
-            decision=new Stop(Category.USER_DECISION,fixture.bindingHash()==null?Reason.PLAYER_MATCH:Reason.PLAYER_SERIES,career.managedTeamCode(),fixture.seriesId(),"MATCH");
+
         Intent pending=null;
         if(view.activePendingAdvance()!=null) {
             var p=view.activePendingAdvance();pending=new Intent(Action.ADVANCE,p.clientCommandId(),p.expectedRevision(),p.mode(),null,null,day.currentDate());
@@ -139,8 +136,7 @@ public final class CareerContinuousApplicationService {
             pending=new Intent(Action.COMPETITION,c.activePendingCommand().clientCommandId(),null,null,fixture.fixtureId(),fixture.jobId(),day.currentDate());
         }
         boolean repair="ROSTER_REPAIR_REQUIRED".equals(view.blockingReason());
-        var registrationDecision=CareerContinuousPlanner.registrationDecision(calendar.registrationRepairWaits(career,day.seasonYear(),day.currentDate()));
-        if(decision==null&&registrationDecision!=null)decision=registrationDecision;
+        Stop decision=CareerDecisions.current(market,"LCK:"+career.managedTeamCode(),view,league,calendar.registrationRepairWaits(career,day.seasonYear(),day.currentDate())).stream().map(CareerDecisions.Decision::stop).findFirst().orElse(null);
         boolean auto=due&&c.allowedCommands().contains("DISPATCH_AUTO_COMPETITION_FIXTURE");
         var next=CareerContinuousPlanner.next(run,new CareerContinuousPlanner.Situation(day.currentDate(),day.seasonYear()==run.seasonYear,
                 view.allowedAdvanceModes().contains(CareerCalendarApplicationService.ADVANCE_ONE_DAY),run.refreshNeeded,decision,pending,auto,repair,view.blockingReason()));

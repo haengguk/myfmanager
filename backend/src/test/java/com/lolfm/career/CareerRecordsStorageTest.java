@@ -15,11 +15,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 class CareerRecordsStorageTest {
     @TempDir java.nio.file.Path temporary;
     @Test void canonicalFactsAwardsAndFiveSetTotalsAreAtomicImmutableAndSurviveFileReopen() {
-        String url="jdbc:h2:file:"+temporary.resolve("records")+";DB_CLOSE_ON_EXIT=FALSE";
+        String url="jdbc:h2:file:"+temporary.resolve("records")+";DB_CLOSE_ON_EXIT=FALSE;DB_CLOSE_DELAY=-1";
         var ds=new DriverManagerDataSource(url,"sa","");var db=new JdbcTemplate(ds);var tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
-        db.execute("CREATE TABLE career_save(career_id VARCHAR(80) PRIMARY KEY,career_root_seed BIGINT)");db.update("INSERT INTO career_save VALUES ('career',17),('other',17)");
+        db.execute("CREATE TABLE career_save(career_id VARCHAR(80) PRIMARY KEY,career_root_seed BIGINT,managed_team_code VARCHAR(16))");db.update("INSERT INTO career_save VALUES ('career',17,'T1'),('other',17,'GEN')");
         db.execute("CREATE TABLE career_calendar_state(career_id VARCHAR(80),current_game_date DATE)");db.update("INSERT INTO career_calendar_state VALUES ('career',DATE '2027-10-01')");
-        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V25__career_records_and_awards.sql")).execute(ds);
+        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V25__career_records_and_awards.sql"),new ClassPathResource("db/migration/V26__career_inbox_and_observation_index.sql")).execute(ds);
         var games=new ArrayList<com.lolfm.league.LeagueFixtureGameReceiptV1>();var stats=new ArrayList<CareerGameStatistics>();var history=new com.lolfm.draft.SeriesDraftHistory();
         for(int number=1;number<=5;number++) {
             var game=com.lolfm.league.LeagueAutomatedSeriesRunnerTest.syntheticGame("SYNTHETIC_RECORDS_"+number,number,"GEN","T1",100+number,history,number<=3?"GEN":"T1",null);games.add(game);
@@ -77,8 +77,61 @@ class CareerRecordsStorageTest {
         var nextPage=queries.view("career","PLAYER",eligible.playerId(),2027,2L,0,null,false,50);
         assertThat(nextPage.awards()).isNotEmpty();assertThat(nextPage.awards()).extracting(CareerAwardsStore.Award::instanceId).doesNotContainAnyElementsOf(page.awards().stream().map(CareerAwardsStore.Award::instanceId).toList());
         assertThat(queries.matchAwards("career",record.recordId())).hasSizeGreaterThan(60);
+        assertThat(queries.awardDetail("career",nextPage.awards().getFirst().instanceId())).isEqualTo(nextPage.awards().getFirst());
+        assertThatThrownBy(()->queries.awardDetail("other",nextPage.awards().getFirst().instanceId())).isInstanceOf(CareerException.class);
+        tx.executeWithoutResult(t->{CareerRecordsStore.stage(db,"bo1",stats.subList(0,1));for(int retry=0;retry<2;retry++)CareerRecordsStore.complete(db,"career",2027,"BO1","LCK_CUP","GROUP","bo1","bo1",LocalDate.of(2027,5,1),"b".repeat(64),"GEN","GEN","T1",games.subList(0,1));});
+        String bo1=db.queryForObject("SELECT record_id FROM career_record_series WHERE series_id='bo1'",String.class);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM career_inbox_item WHERE source_key=?",Integer.class,"SERIES:"+bo1)).isOne();
+        assertThat(queries.matchAwards("career",bo1)).filteredOn(a->!a.analysisBadge()).singleElement().satisfies(a->assertThat(a.aliases()).contains("GAME","SERIES"));
         original=db.queryForList("SELECT record_id,record_hash FROM career_record_series");
         awards=db.queryForList("SELECT instance_id,award_hash FROM career_record_award ORDER BY instance_id");
         db.execute("SHUTDOWN");var reopened=new JdbcTemplate(new DriverManagerDataSource(url,"sa",""));assertThat(reopened.queryForList("SELECT record_id,record_hash FROM career_record_series")).isEqualTo(original);assertThat(reopened.queryForList("SELECT instance_id,award_hash FROM career_record_award ORDER BY instance_id")).isEqualTo(awards);reopened.execute("SHUTDOWN");
     }
+    @Test void subjectsAreFilteredBeforePagingAndGrowthBoundariesAreIndependent() {
+        var ds=new DriverManagerDataSource("jdbc:h2:mem:subjects;DB_CLOSE_DELAY=-1","sa","");var db=new JdbcTemplate(ds);
+        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V25__career_records_and_awards.sql"),new ClassPathResource("db/migration/V26__career_inbox_and_observation_index.sql")).execute(ds);
+        db.execute("CREATE TABLE career_save(career_id VARCHAR(80),managed_team_code VARCHAR(16))");db.update("INSERT INTO career_save VALUES ('career','T1')");
+        db.execute("CREATE TABLE career_season(career_id VARCHAR(80),season_year INTEGER,lifecycle_status VARCHAR(32))");db.update("INSERT INTO career_season VALUES ('career',2027,'ACTIVE')");
+        var query=new CareerRecordsQuery(db,new DataSourceTransactionManager(ds));var date=LocalDate.of(2027,1,1);
+        // Legacy rows have no search subjects yet. Migration indexes them without changing evidence.
+        String opening=CareerRosterStore.write(Map.of("players",Map.of("target",Map.of("internalRatings",Map.of("LANING",1000)))));
+        db.update("INSERT INTO career_record_observation VALUES (?,?,?,?,?,?)","career",2027,"OPENING",date,opening,CareerRosterStore.hash(opening));
+        CareerHistoryStore.observe(db,"career",2027,"EVENT:target",date,new CareerHistoryStore.Operating("target",date,"TRANSFERRED","target","당시 이름","LCK:T1","offer","이적"),false);
+        CareerObservationIndex.backfill(db);
+        var before=query.view("career","PLAYER","target",2027,null,0,null);
+        assertThat(before.observations()).hasSize(2);assertThat(before.growthObservations()).hasSize(1);
+        for(int i=0;i<500;i++)CareerHistoryStore.observe(db,"career",2027,"EVENT:other"+i,date.plusDays(1),new CareerHistoryStore.Operating("other"+i,date.plusDays(1),"CONTRACT_SIGNED","other","다른 선수","LCK:GEN","other","체결"),false);
+        var legacyLatest=db.query("SELECT observation_json FROM career_record_observation WHERE career_id='career' AND season_year=2027 ORDER BY observed_date DESC,observation_key LIMIT 500",(r,n)->CareerRosterStore.read(r.getString(1),com.fasterxml.jackson.databind.JsonNode.class));
+        assertThat(legacyLatest.stream().filter(v->"target".equals(v.path("playerId").asText())||v.path("players").has("target")).count()).isZero();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM career_record_observation WHERE observation_key IN ('OPENING','EVENT:target')",Integer.class)).isEqualTo(2);
+        CareerHistoryStore.observe(db,"career",2027,"CLOSING_FINAL",date.plusMonths(11),CareerRosterStore.read(opening,com.fasterxml.jackson.databind.JsonNode.class),false);
+        var after=query.view("career","PLAYER","target",2027,null,0,null);
+        assertThat(after.observations()).hasSize(3);assertThat(after.growthObservations()).hasSize(2);
+        assertThat(query.view("career","TEAM","LCK:T1",2027,null,0,null).observations()).hasSize(1);
+        var team=query.view("career","TEAM","LCK:GEN",2027,null,0,null);assertThat(team.observations()).hasSize(50);
+        CareerHistoryStore.observe(db,"career",2027,"EVENT:new",date.plusDays(2),new CareerHistoryStore.Operating("new",date,"CONTRACT_SIGNED","other","새 선수","LCK:GEN","new","체결"),false);
+        var next=query.view("career","TEAM","LCK:GEN",2027,null,0,null,false,0,team.observationAsOf(),team.nextObservationCursor());
+        assertThat(next.observations()).hasSize(50).doesNotContainAnyElementsOf(team.observations());
+        CareerObservationIndex.backfill(db);assertThat(db.queryForObject("SELECT observation_json FROM career_record_observation WHERE observation_key='OPENING'",String.class)).isEqualTo(opening);
+        db.execute("SHUTDOWN");
+    }
+
+    @Test void csCoverageSeparatesPlayedTimeFromObservedTime() {
+        var ds=new DriverManagerDataSource("jdbc:h2:mem:coverage;DB_CLOSE_DELAY=-1","sa","");var db=new JdbcTemplate(ds);
+        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V25__career_records_and_awards.sql"),new ClassPathResource("db/migration/V26__career_inbox_and_observation_index.sql")).execute(ds);
+        db.execute("CREATE TABLE career_save(career_id VARCHAR(80),managed_team_code VARCHAR(16))");db.update("INSERT INTO career_save VALUES ('career','T1')");
+        db.execute("CREATE TABLE career_season(career_id VARCHAR(80),season_year INTEGER,lifecycle_status VARCHAR(32))");db.update("INSERT INTO career_season VALUES ('career',2027,'ACTIVE')");
+        String json=CareerRosterStore.write(new CareerRecordsStore.Series("record","career",2027,"origin","LCK_CUP","GROUP","fixture","series",LocalDate.of(2027,1,1),"h","LCK:T1","LCK:T1","LCK:GEN","PARTIAL",List.of()));
+        db.update("INSERT INTO career_record_series(record_id,career_id,season_year,origin_identity,competition_id,stage_id,fixture_id,series_id,played_date,receipt_hash,winner_team,first_team,second_team,game_count,coverage,record_json,record_hash) VALUES ('record','career',2027,'origin','LCK_CUP','GROUP','fixture','series',DATE '2027-01-01','h','LCK:T1','LCK:T1','LCK:GEN',2,'PARTIAL',?,?)",json,CareerRosterStore.hash(json));
+        for(int game=1;game<=2;game++)for(var position:com.lolfm.domain.Position.values())db.update("INSERT INTO career_record_player VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)","record",game,position.name(),"career",2027,"LCK:T1",position.name(),"{}","champion",position.name(),game==1?2:null,game==1?1:null,game==1?3:null,game==1?300:null,null,null,1800,true,null);
+        var query=new CareerRecordsQuery(db,new DataSourceTransactionManager(ds));
+        var mixed=query.view("career","PLAYER","TOP",2027,null,0,null).totals().getFirst();
+        assertThat(((Number)mixed.get("seconds")).longValue()).isEqualTo(3600);assertThat(((Number)mixed.get("csobservedseconds")).longValue()).isEqualTo(1800);assertThat(mixed.get("observedcspm")).isEqualTo(10.0);
+        assertThat(((Number)mixed.get("cs")).doubleValue()*60/((Number)mixed.get("seconds")).doubleValue()).isEqualTo(5.0);
+        var team=query.view("career","TEAM","LCK:T1",2027,null,0,null).totals().getFirst();assertThat(team.get("observedcspm")).isEqualTo(50.0);assertThat(((Number)team.get("csobservedunits")).intValue()).isOne();
+        db.update("UPDATE career_record_player SET cs=NULL");assertThat(query.view("career","PLAYER","TOP",2027,null,0,null).totals().getFirst().get("observedcspm")).isNull();
+        db.update("UPDATE career_record_player SET cs=300");var complete=query.view("career","PLAYER","TOP",2027,null,0,null).totals().getFirst();assertThat(complete.get("observedcspm")).isEqualTo(10.0);assertThat(((Number)complete.get("csobservedseconds")).intValue()).isEqualTo(3600);
+        db.execute("SHUTDOWN");
+    }
+
 }

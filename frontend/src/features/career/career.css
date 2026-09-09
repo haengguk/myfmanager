@@ -9,3 +9,24 @@
 .ca-records-scroll { overflow-x: auto; }
 .ca-records-scroll table { min-width: 700px; }
 .ca-records section { margin-top: 1.5rem; border-top: 1px solid #424652; }
+
+.ca-inbox { margin-block: 20px; }
+.ca-inbox article { padding: 12px 0; border-bottom: 1px solid var(--border-subtle, #dedbd3); }
+.ca-inbox article p { margin: 5px 0; }
+.ca-inbox header strong { display: block; font-size: 18px; }
+.ca-inbox [aria-label="소식 상세"] { margin-top: 20px; border-top: 2px solid currentColor; padding-top: 14px; }
+.ca-calendar.ca-inbox > header strong { font: 650 17px/1.5 var(--lm-font-body); letter-spacing: normal; }
+.ca-inbox > p, .ca-inbox > h3, .ca-inbox > article, .ca-inbox > section { margin-inline: 15px; }
+.ca-inbox > h3 { margin-top: 22px; margin-bottom: 8px; font-size: 14px; }
+.ca-inbox p { line-height: 1.65; overflow-wrap: anywhere; }
+.ca-inbox button, .ca-inbox input, .ca-inbox select { font: inherit; color: var(--lm-fg, #eef1f8); background: var(--lm-surface-2, #172235); border: 1px solid var(--lm-border-strong, #40506a); border-radius: 4px; padding: 7px 10px; }
+.ca-inbox button { cursor: pointer; text-align: left; }
+.ca-inbox button:hover:not(:disabled) { border-color: var(--lm-accent, #a8a0fa); }
+.ca-inbox button:disabled { opacity: .5; cursor: default; }
+.ca-inbox button:focus-visible { outline: 2px solid var(--lm-accent, #a8a0fa); outline-offset: 2px; }
+.ca-inbox .ca-calendar__controls { flex-wrap: wrap; align-items: end; gap: 10px; }
+.ca-inbox .ca-calendar__controls label { display: flex; align-items: center; gap: 6px; }
+.ca-inbox input[type="number"] { width: 90px; }
+.ca-inbox input[type="checkbox"] { accent-color: var(--lm-accent, #a8a0fa); }
+.ca-inbox article { border-color: var(--lm-border, #303743); }
+.ca-inbox [aria-label="소식 상세"] { padding-bottom: 18px; }

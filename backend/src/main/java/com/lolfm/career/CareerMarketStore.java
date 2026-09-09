@@ -147,7 +147,7 @@ public final class CareerMarketStore {
         int year=activeYear(jdbc,career);var engine=engine(jdbc,career,year,old);
         var development=CareerDevelopmentStore.load(jdbc,career);
         if(development!=null){engine.development=new CareerDevelopmentEngine(baseDirectory(jdbc,career),development.state());engine.developmentFixtures=CareerDevelopmentStore.fixtures(jdbc,career);engine.developmentYear=year;}
-        if(engine.development!=null)engine.development.monthObservation=s->CareerHistoryStore.growth(jdbc,career,year,"MONTH:"+s.nextSettlement().minusDays(1),s.nextSettlement().minusDays(1),s);
+        if(engine.development!=null)engine.development.monthObservation=s->{CareerHistoryStore.growth(jdbc,career,year,"MONTH:"+s.nextSettlement().minusDays(1),s.nextSettlement().minusDays(1),s);CareerInboxStore.growth(jdbc,career,year,"MONTH:"+s.nextSettlement().minusDays(1),s.nextSettlement().minusDays(1),s,engine.roster());};
         engine.advance(target);
         if(development!=null)CareerDevelopmentStore.persist(jdbc,career,development,engine.development);
         persist(jdbc,career,year,old,engine);touch(jdbc,career);
@@ -160,6 +160,7 @@ public final class CareerMarketStore {
                 old.revision()+1,json,hash(json),career,old.revision())!=1)throw CareerException.calendarStaleRevision();
         var previous=CareerRosterStore.saved(jdbc,career,year);String next=write(engine.roster());
         CareerHistoryStore.operating(jdbc,career,year,old.state(),engine,previous.state());
+        CareerInboxStore.market(jdbc,career,year,old.state(),engine,previous.state());
         if(!next.equals(write(previous.state())))jdbc.update("UPDATE career_roster_state SET revision=revision+1,state_json=?,state_hash=? WHERE career_id=? AND season_year=?",next,hash(next),career,year);
     }
     private static void touch(JdbcTemplate jdbc,String career) {jdbc.update("UPDATE career_save SET updated_at=CURRENT_TIMESTAMP WHERE career_id=?",career);}

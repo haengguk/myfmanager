@@ -83,6 +83,7 @@ public final class CareerRecordsStore {
             db.update("INSERT INTO career_record_player VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",id,g.gameNumber(),p.playerId(),career,year,p.team(),p.name(),write(p),assignment.championId().value(),assignment.position().name(),stat==null?null:stat.kills(),stat==null?null:stat.deaths(),stat==null?null:stat.assists(),stat==null?null:stat.cs(),stat==null?null:stat.gold(),stat==null?null:stat.experience(),g.seconds(),p.won(),p.evaluation().rating());
         }
         if(award)CareerAwardsStore.match(db,record);
+        CareerInboxStore.series(db,record);
     }
     public static void leagueComplete(JdbcTemplate db,String season,String fixture,String hash,com.lolfm.league.LeagueFixtureCompletionReceiptV2 receipt) {
         db.query("SELECT career_id,season_year FROM career_season WHERE season_id=?",(org.springframework.jdbc.core.RowCallbackHandler)r->{
