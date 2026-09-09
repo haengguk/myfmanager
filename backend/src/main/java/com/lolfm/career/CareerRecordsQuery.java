@@ -93,7 +93,7 @@ public final class CareerRecordsQuery {
         return new AwardPage(rows.stream().limit(50).toList(),rows.size()>50?cursor+50:-1,counts);
     }
     record ObservationPage(List<Map<String,Object>> rows,long asOf,long nextCursor,List<Map<String,Object>> growth,int growthYear) {}
-    private ObservationPage observations(String career,Integer year,String kind,String entity,long revision,boolean organization,Long asOf,long cursor){
+    ObservationPage observations(String career,Integer year,String kind,String entity,long revision,boolean organization,Long asOf,long cursor){
         long maximum=db.queryForObject("SELECT COALESCE(MAX(sequence),0) FROM career_observation_index WHERE career_id=?",Long.class,career);
         long upper=asOf==null?maximum:Math.min(asOf,maximum);if(upper<0)throw CareerException.invalid("observationAsOf","조회 기준이 올바르지 않습니다.");
         String filter="i.career_id=? AND i.sequence<=? AND i.fact_revision<=?";var args=new ArrayList<Object>(List.of(career,upper,revision));
@@ -101,7 +101,7 @@ public final class CareerRecordsQuery {
         String join=" FROM career_observation_index i JOIN career_record_observation o ON o.career_id=i.career_id AND o.season_year=i.season_year AND o.observation_key=i.observation_key WHERE ";
         int growthYear=year==null?db.queryForObject("SELECT COALESCE(MAX(season_year),0) FROM career_season WHERE career_id=?",Integer.class,career):year;
         var growthArgs=new ArrayList<>(args);growthArgs.add(growthYear);
-        var growth=kind.equals("PLAYER")?db.query("SELECT o.season_year,o.observation_key,o.observation_json,o.observation_hash,i.sequence"+join+filter+" AND i.category='GROWTH' AND i.season_year=? ORDER BY o.observed_date,i.sequence LIMIT 14",(r,n)->observation(r,entity),growthArgs.toArray()):List.<Map<String,Object>>of();
+        var growth=kind.equals("PLAYER")?db.query("SELECT o.season_year,o.observation_key,o.observation_json,o.observation_hash,i.sequence"+join+filter+" AND i.category='GROWTH' AND i.season_year=? AND (i.observation_key IN ('OPENING','CLOSING_FINAL') OR (o.observed_date>=COALESCE((SELECT MIN(b.observed_date) FROM career_record_observation b WHERE b.career_id=i.career_id AND b.season_year=i.season_year AND b.observation_key='OPENING'),CAST(CONCAT(i.season_year,'-01-01') AS DATE)) AND o.observed_date<=CAST(CONCAT(i.season_year,'-12-31') AS DATE))) ORDER BY o.observed_date,i.sequence",(r,n)->observation(r,entity),growthArgs.toArray()):List.<Map<String,Object>>of();
         if(year!=null){filter+=" AND i.season_year=?";args.add(year);}args.add(cursor);
         var rows=db.query("SELECT o.season_year,o.observation_key,o.observation_json,o.observation_hash,i.sequence"+join+filter+" AND i.category='HISTORY' AND i.sequence>? ORDER BY i.sequence LIMIT 51",(r,n)->observation(r,null),args.toArray());
         return new ObservationPage(rows.stream().limit(50).toList(),upper,rows.size()>50?((Number)rows.get(49).get("sequence")).longValue():-1,growth,growthYear);

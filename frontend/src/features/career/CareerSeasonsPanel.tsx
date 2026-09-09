@@ -12,8 +12,8 @@ export function readSeasonTransition(storage: Pick<Storage, 'getItem'>, career: 
 }
 function failure(cause: unknown): string { return cause instanceof CareerApiFailure ? cause.userMessage : '시즌 기록을 확인하지 못했습니다. 저장된 전환 요청으로 다시 확인해 주세요.'; }
 
-export function CareerSeasonsPanel({ careerId, revision, busy, onBegin, onChanged, onHistory, onReplay }: {
-  careerId: string; revision: number; busy: boolean; onBegin: () => (() => void) | null; onChanged: () => void;
+export function CareerSeasonsPanel({ careerId, revision, busy, onBegin, onChanged, onHistory, onReplay, selectedYear }: {
+  selectedYear?: number | null; careerId: string; revision: number; busy: boolean; onBegin: () => (() => void) | null; onChanged: () => void;
   onHistory: (historical: boolean, year?: number) => void; onReplay: (series: string, matchup: string) => void;
 }) {
   const [seasons, setSeasons] = useState<CareerSeasonsDto | null>(null);
@@ -34,6 +34,7 @@ export function CareerSeasonsPanel({ careerId, revision, busy, onBegin, onChange
     return () => { ++generation.current; controller.abort(); };
   }, [careerId, revision]);
   useEffect(() => () => { request.current?.abort(); transitionRequest.current?.controller.abort(); transitionRequest.current?.release(); transitionRequest.current = null; }, []);
+  useEffect(() => { if (selectedYear == null && historyYear !== null) { request.current?.abort(); ++generation.current; setHistoryYear(null); setDetail(null); } }, [selectedYear]);
   const history = async (year: number) => {
     request.current?.abort(); const controller = new AbortController(); request.current = controller; const token = ++generation.current;
     setError(null); setHistoryYear(year); setDetail(null); onHistory(year !== seasons?.activeYear, year);

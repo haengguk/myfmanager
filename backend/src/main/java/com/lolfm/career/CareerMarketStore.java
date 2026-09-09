@@ -167,7 +167,7 @@ public final class CareerMarketStore {
     public View view(String career,int year) {
         return transactions.execute(ignored->{lockCareer(jdbc,career);return readView(career,year);});
     }
-    private View readView(String career,int year) {
+    View readView(String career,int year) {
         int active=activeYear(jdbc,career);Saved saved=load(jdbc,career);if(saved==null)throw CareerException.invalid("market","서버 시작 시 계약 이주가 필요합니다.");
         boolean historical=year!=active;CareerMarketState state=saved.state();LocalDate date=date(jdbc,career);
         var roster=CareerRosterStore.saved(jdbc,career,year);if(roster==null)throw CareerException.notFound();

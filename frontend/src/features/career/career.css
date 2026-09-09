@@ -30,3 +30,12 @@
 .ca-inbox input[type="checkbox"] { accent-color: var(--lm-accent, #a8a0fa); }
 .ca-inbox article { border-color: var(--lm-border, #303743); }
 .ca-inbox [aria-label="소식 상세"] { padding-bottom: 18px; }
+
+.ca-scouting button,.ca-scouting input,.ca-scouting select { color: var(--text-primary, #e5ecf7); background: #182638; border: 1px solid #415b76; border-radius: 4px; padding: 7px 10px; font: inherit; }
+.ca-scouting button { cursor: pointer; }.ca-scouting button:disabled { opacity: .45; cursor: default; }
+.ca-scouting header { flex-wrap: wrap; gap: 12px; }.ca-scouting header strong { font-family: inherit; }
+.ca-scouting__filters { display: grid; grid-template-columns: repeat(auto-fit,minmax(165px,1fr)); gap: 12px; margin: 18px 0; }
+.ca-scouting__filters label { display: flex; flex-direction: column; gap: 5px; }.ca-scouting__filters input { min-width: 0; }
+.ca-scouting__table { overflow: auto; max-height: 650px; margin: 14px 0; }.ca-scouting table { width: 100%; border-collapse: collapse; }
+.ca-scouting th,.ca-scouting td { text-align: left; padding: 10px; border-bottom: 1px solid #304459; vertical-align: top; }
+.ca-scouting article { padding: 12px 0; border-bottom: 1px solid #304459; }.ca-scouting p { line-height: 1.7; }

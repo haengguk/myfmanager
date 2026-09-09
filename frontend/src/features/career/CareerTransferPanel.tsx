@@ -31,7 +31,7 @@ export function CareerTransferPanel({ view, roster, selected, disabled, focus, o
   }, [selected, view.careerId, view.seasonYear, view.currentDate, contract?.contractId]);
   const fill = (t: Negotiation) => { setEditing(t); setKind(t.terms.kind); setBuyer(t.terms.buyer); setStart(t.terms.startDate); setEnd(t.terms.endDate); setFee(t.terms.fee); setSalary(t.terms.playerTerms.annualSalary); setBonus(t.terms.playerTerms.signingBonus); setRole(t.terms.playerTerms.role); setShare(t.terms.borrowerSalaryPercent); setReplacement(t.terms.replacementPlayerId ?? ''); };
   useEffect(() => {
-    if (!focus || focus.panel !== 'TRADE' || focus.seasonYear !== view.seasonYear) return;
+    if (!focus || focus.panel !== 'TRADE' || !focus.sourceId || focus.seasonYear !== view.seasonYear) return;
     const trade = view.management?.trades.find(t => t.tradeId === focus.sourceId);
     if (trade && ['CLUB_PENDING', 'CLUB_COUNTER', 'PLAYER_PENDING'].includes(trade.status)) fill(trade);
     else { setEditing(null); setError('이 거래는 이미 종료되었거나 합의되어 새 응답이 필요하지 않습니다.'); }

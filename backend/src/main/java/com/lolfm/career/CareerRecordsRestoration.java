@@ -25,7 +25,8 @@ public final class CareerRecordsRestoration {
             var date=CareerRecordsStore.roundDates(year).get((int)row[2]);
             CareerRecordsStore.complete(db,career,year,"LEAGUE|"+old.seasonId()+'|'+old.fixtureId(),"LCK_REGULAR_R1_R2","R1_R2",old.fixtureId(),old.boundSeriesId(),date,receipt.canonicalFixtureReceiptHash(),old.winnerTeamCode(),old.firstTeamCode(),old.secondTeamCode(),old.orderedGameReceipts(),false);count++;
         }
-        boolean remaining=pending.size()==10||league.size()==10;
+        int drafts=CareerDraftEvidence.restore(db,career);count+=drafts;
+        boolean remaining=pending.size()==10||league.size()==10||drafts==10;
         db.update("MERGE INTO career_record_restore(career_id,cursor_key,completed) KEY(career_id) VALUES (?,?,?)",career,pending.isEmpty()?league.isEmpty()?null:((com.lolfm.league.LeagueFixtureCompletionReceiptV2)league.getLast()[0]).boundSeriesId():pending.getLast().getKey(),!remaining);
         return new Result(career,count,remaining,"보존된 승인 증거만 복원했습니다. 과거 개인상·성장·계약·상금은 다시 적용하지 않습니다. 성적 없는 Auto 기록은 승패만 표시합니다.");
     });}

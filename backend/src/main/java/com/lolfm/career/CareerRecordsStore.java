@@ -76,12 +76,13 @@ public final class CareerRecordsStore {
         var record=new Series(id,career,year,origin,competition,stage,fixture,series,binding==null?date:binding.date(),receipt,team(winner,competition),team(first,competition),team(second,competition),coverage,games);
         String json=write(record),digest=hash(json);
         var prior=db.query("SELECT record_hash FROM career_record_series WHERE record_id=?",(r,n)->r.getString(1),id);
-        if(!prior.isEmpty()){if(!prior.getFirst().equals(digest))throw new IllegalStateException("CAREER_RECORD_CONFLICT");return;}
+        if(!prior.isEmpty()){if(!prior.getFirst().equals(digest))throw new IllegalStateException("CAREER_RECORD_CONFLICT");CareerDraftEvidence.save(db,id,competition,receipts);return;}
         db.update("INSERT INTO career_record_series(record_id,career_id,season_year,origin_identity,competition_id,stage_id,fixture_id,series_id,played_date,receipt_hash,winner_team,first_team,second_team,game_count,coverage,record_json,record_hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",id,career,year,origin,competition,stage,fixture,series,record.date(),receipt,record.winner(),record.firstTeam(),record.secondTeam(),games.size(),coverage,json,digest);
         for(var g:games)for(var p:g.players()) {
             var stat=p.statistics();var assignment=receipts.get(g.gameNumber()-1).orderedFinalAssignments().stream().filter(v->v.playerId().value().equals(p.playerId())).findFirst().orElseThrow();
             db.update("INSERT INTO career_record_player VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",id,g.gameNumber(),p.playerId(),career,year,p.team(),p.name(),write(p),assignment.championId().value(),assignment.position().name(),stat==null?null:stat.kills(),stat==null?null:stat.deaths(),stat==null?null:stat.assists(),stat==null?null:stat.cs(),stat==null?null:stat.gold(),stat==null?null:stat.experience(),g.seconds(),p.won(),p.evaluation().rating());
         }
+        CareerDraftEvidence.save(db,id,competition,receipts);
         if(award)CareerAwardsStore.match(db,record);
         CareerInboxStore.series(db,record);
     }

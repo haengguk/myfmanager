@@ -1,5 +1,12 @@
 # Testing
 
+## Career 스카우팅·비교·상대 분석 V1 (2026-09-09)
+
+새 CareerScoutingTest 하나에서 현재 디렉터리/성장/생성 선수/은퇴, 필터·asOf, 같은 역할 비교, 관심 revision과 Calendar/Continuous 독립, 원 receipt의 양방향 밴과 부분 분모를 확인한다. RecordsStorage의 작은 17개월 관측과 기존 실제 Auto/Player 완료·복원 검사를 확장했다. 기존 두 번 시즌 전환/파일 복구 검사에 관심 ID 보존 assertion을 추가했다. 프런트는 career:verify의 실제 Dashboard/Seasons/Scouting 경계를 포함한 7개 그룹, build, 격리 브라우저의 관심→reload→비교→협상/상대 분석→준비 동선을 사용한다. 통합 후 전체 backend 1회와 원본 결과 보존, 국소 후속 검증 원칙을 적용한다.
+계획 전체 1회는 284 suites/2,246건 중 2,244 통과·실패/오류 0·기존 skip 2, wall 25분 39.89초로 통과했다. 최종 프런트 121 PASS/build(Vite 12.11초), 격리 브라우저의 관심 저장·동일 파일 DB 재시작·협상/경기 준비 이동도 확인했다. 추가 전체는 0회다.
+[이번 실행의 결과](career-scouting-comparison-and-opponent-analysis-v1.md)를 이전 소식함 실행과 구분한다.
+
+
 ## Career 소식함·기록 조회 교정 V1 (2026-09-09)
 
 G1/G2는 기존 CareerRecordsStorageTest의 500개 무관 사건과 부분/미수집 CS 준비로 검증한다.

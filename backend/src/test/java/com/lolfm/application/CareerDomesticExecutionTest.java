@@ -98,6 +98,7 @@ class CareerDomesticExecutionTest {
         assertThat(lifecycle.resumeCompetitionBound(player).status()).isEqualTo(SeriesStatus.COMPLETED);
         CareerCompetitionTestSupport.applyRealPlayerCompletion(store,player,completed);
         String id=career.careerId();var report=records.view(id,"ALL","",2027,null,0,null);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_record_draft d JOIN career_record_series s ON s.record_id=d.record_id WHERE s.career_id=?",Integer.class,id)).isEqualTo(report.matches().stream().mapToInt(m->m.games().size()).sum());
         assertThat(report.matches()).hasSize(2).allMatch(m->m.coverage().equals("COMPLETE"));
         assertThat(report.matches().stream().flatMap(m->m.games().stream()).flatMap(g->g.players().stream())).allMatch(p->p.evaluation().rating()!=null);
         var bo1=report.matches().stream().filter(m->m.seriesId().equals(player.boundSeriesId())).findFirst().orElseThrow();
@@ -112,11 +113,18 @@ class CareerDomesticExecutionTest {
         // Explicit restoration of the original trusted Player checkpoint: no new match and no retroactive award.
         var transaction=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));
         transaction.executeWithoutResult(t->{
-            jdbc.update("DELETE FROM career_record_player WHERE record_id=?",bo1.recordId());jdbc.update("DELETE FROM career_record_series WHERE record_id=?",bo1.recordId());jdbc.update("DELETE FROM career_game_statistics WHERE series_id=?",player.boundSeriesId());
+            var canonical=jdbc.queryForMap("SELECT record_json,record_hash FROM career_record_series WHERE record_id=?",bo1.recordId());
+            jdbc.update("DELETE FROM career_record_draft WHERE record_id=?",bo1.recordId());
+            assertThat(restoreRecords.restore(id).restored()).isEqualTo(1);assertThat(restoreRecords.restore(id).restored()).isZero();
+            assertThat(jdbc.queryForMap("SELECT record_json,record_hash FROM career_record_series WHERE record_id=?",bo1.recordId())).isEqualTo(canonical);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_record_draft WHERE record_id=?",Integer.class,bo1.recordId())).isOne();t.setRollbackOnly();
+        });
+        transaction.executeWithoutResult(t->{
+            jdbc.update("DELETE FROM career_record_draft WHERE record_id=?",bo1.recordId());jdbc.update("DELETE FROM career_record_player WHERE record_id=?",bo1.recordId());jdbc.update("DELETE FROM career_record_series WHERE record_id=?",bo1.recordId());jdbc.update("DELETE FROM career_game_statistics WHERE series_id=?",player.boundSeriesId());
             int awards=jdbc.queryForObject("SELECT COUNT(*) FROM career_record_award WHERE career_id=?",Integer.class,id);
             assertThat(restoreRecords.restore(id).restored()).isEqualTo(1);
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_record_award WHERE career_id=?",Integer.class,id)).isEqualTo(awards);
-            assertThat(records.match(id,bo1.recordId()).games()).isEqualTo(bo1.games());t.setRollbackOnly();
+            assertThat(records.match(id,bo1.recordId()).games()).isEqualTo(bo1.games());assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_record_draft WHERE record_id=?",Integer.class,bo1.recordId())).isEqualTo(1);t.setRollbackOnly();
         });
         java.nio.file.Files.createDirectories(java.nio.file.Path.of("build/reports/career-records"));
         java.nio.file.Files.writeString(java.nio.file.Path.of("build/reports/career-records/actual.json"),before);

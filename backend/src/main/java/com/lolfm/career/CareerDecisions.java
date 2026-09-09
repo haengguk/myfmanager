@@ -13,12 +13,12 @@ final class CareerDecisions {
         var dates=new HashMap<String,LocalDate>();view.fixtureOverlay().fixtures().forEach(f->dates.put(f.fixtureId(),f.date()));
         for(var f:league.fixtures())if(!"COMPLETED".equals(f.fixtureStatus())&&"PLAYER_CONTROLLED".equals(f.executionMode())&&dates.containsKey(f.fixtureId())&&!dates.get(f.fixtureId()).isAfter(date)) {
             Reason reason=f.boundSeriesId()==null?Reason.PLAYER_MATCH:Reason.PLAYER_SERIES;
-            result.add(decision("LEAGUE:"+f.fixtureId(),Objects.toString(f.boundSeriesId(),"UNSTARTED"),reason,date,null,"관리 경기 진행",f.firstTeamCode()+" vs "+f.secondTeamCode(),new CareerInboxStore.Link("MATCH",null,f.fixtureId(),"LCK_REGULAR_R1_R2",year,f.boundSeriesId(),List.of()),new Stop(Category.USER_DECISION,reason,managed,f.boundSeriesId(),"MATCH")));
+            result.add(decision("LEAGUE:"+f.fixtureId(),Objects.toString(f.boundSeriesId(),"UNSTARTED"),reason,date,null,"관리 경기 진행",f.firstTeamCode()+" vs "+f.secondTeamCode(),new CareerInboxStore.Link("MATCH",null,f.fixtureId(),"LCK_REGULAR_R1_R2",year,f.boundSeriesId(),List.of(),f.boundSeriesId()==null?"UNSTARTED":"IN_PROGRESS"),new Stop(Category.USER_DECISION,reason,managed,f.boundSeriesId(),"MATCH")));
         }
         var f=view.competition().nextFixture();
         if(f!=null&&!f.date().isAfter(date)&&"PLAYER_CONTROLLED".equals(f.executionMode())) {
             Reason reason=f.bindingHash()==null?Reason.PLAYER_MATCH:Reason.PLAYER_SERIES;
-            result.add(decision("COMP:"+f.fixtureId(),Objects.toString(f.bindingHash(),"UNSTARTED"),reason,date,null,"관리 대회 경기 진행",f.competitionId(),new CareerInboxStore.Link("MATCH",null,f.fixtureId(),f.competitionId(),year,f.seriesId(),List.of()),new Stop(Category.USER_DECISION,reason,managed,f.seriesId(),"MATCH")));
+            result.add(decision("COMP:"+f.fixtureId(),Objects.toString(f.bindingHash(),"UNSTARTED"),reason,date,null,"관리 대회 경기 진행",f.competitionId(),new CareerInboxStore.Link("MATCH",null,f.fixtureId(),f.competitionId(),year,f.seriesId(),List.of(),f.bindingHash()==null?"UNSTARTED":"IN_PROGRESS"),new Stop(Category.USER_DECISION,reason,managed,f.seriesId(),"MATCH")));
         }
         for(var w:waits.stream().filter(w->!"AI_CLUB".equals(w.responsibility())).sorted(Comparator.comparingInt(w->"MANAGER".equals(w.responsibility())?0:1)).toList()) {
             var stop=CareerContinuousPlanner.registrationDecision(List.of(w));

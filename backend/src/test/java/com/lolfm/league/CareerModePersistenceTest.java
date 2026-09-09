@@ -766,7 +766,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(27);
+                    .migrationsExecuted).isEqualTo(28);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -1220,7 +1220,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(23);
+                    .migrationsExecuted).isEqualTo(24);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);
@@ -1855,6 +1855,7 @@ class CareerModePersistenceTest {
             assertThat(h.jdbc().queryForObject("SELECT COUNT(*) FROM career_record_observation WHERE career_id=? AND season_year=2027 AND observation_key LIKE 'PLACEMENT:LCK_CUP:FINAL:%'",Integer.class,careerId)).isEqualTo(10);
             assertThat(originalRecords).isNotEmpty();
             var rosters=rosterStore(ds);rosters.recover();rosters.change(careerId,select("player-jiwoo",0));
+            new com.lolfm.career.CareerScoutingService(h.jdbc(),new DataSourceTransactionManager(ds),null,null).interest(careerId,new com.lolfm.career.CareerScoutingService.InterestRequest("player-jiwoo",0,true));
             var initialSave=rows(h.jdbc(),"career_save","career_id");
             var bindings=rows(h.jdbc(),"career_competition_series_binding","binding_hash");
             firstRequest=new com.lolfm.career.CareerSeasonApplicationService.Request(com.lolfm.career.CareerSeasonApplicationService.REQUEST_SCHEMA,2027,service.list(careerId).calendarRevision(),command);
@@ -1927,6 +1928,7 @@ class CareerModePersistenceTest {
             assertThat(snapshots.getFirst()).isNotNull();
             assertThat(snapshots.get(1)).isEqualTo(snapshots.get(2));
             assertThat(rosterStore(ds).view(careerId,2029).state().lineups().get("LCK:KT")).contains("player-jiwoo");
+            assertThat(h.jdbc().queryForObject("SELECT selected FROM career_scout_interest WHERE career_id=? AND player_id=?",Boolean.class,careerId,"player-jiwoo")).isTrue();
             assertThat(h.careers().get(careerId).career().seasonId()).isEqualTo(originalSeason);
             assertThat(service.detail(careerId,2027).international()).hasSize(4);
             assertThat(h.jdbc().queryForList("SELECT record_id,record_hash FROM career_record_series WHERE career_id=? AND season_year=2027 ORDER BY record_id",careerId)).isEqualTo(originalRecords);

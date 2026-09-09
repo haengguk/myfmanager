@@ -8,7 +8,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Small factual adjunct written in the source transaction. Reading never invokes this writer. */
 public final class CareerInboxStore {
-    public record Link(String panel,String playerId,String sourceId,String competition,Integer seasonYear,String seriesId,List<String> positions) {
+    public record Link(String panel,String playerId,String sourceId,String competition,Integer seasonYear,String seriesId,List<String> positions,String matchState) {
+        public Link(String panel,String playerId,String sourceId,String competition,Integer seasonYear,String seriesId,List<String> positions){this(panel,playerId,sourceId,competition,seasonYear,seriesId,positions,null);}
         static Link of(String panel,String player,String source,String competition,int year){return new Link(panel,player,source,competition,year,null,List.of());}
     }
     public record Item(String sourceKey,String kind,LocalDate date,String title,String summary,String team,String playerId,String competition,boolean development,Link link,JsonNode facts) {}

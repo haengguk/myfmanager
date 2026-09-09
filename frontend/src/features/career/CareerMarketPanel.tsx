@@ -17,6 +17,7 @@ function contractEnd(start: string, years: number) { const d = new Date(`${start
 export function CareerMarketPanel({ careerId, year, revision, historical, busy, focusPlayer, focus, onBegin, onChanged }: {
   careerId: string; year: number; revision: number; historical: boolean; busy: boolean; focusPlayer: string | null; focus?: InboxLink | null; onBegin: () => (() => void) | null; onChanged: () => void | Promise<unknown>;
 }) {
+  const loadedFocus = useRef<InboxLink | null | undefined>(undefined);
   const [legacyRefresh, setLegacyRefresh] = useState(false);
   const [operationTeam, setOperationTeam] = useState('LCK:BRO');
   const [view, setView] = useState<CareerMarket | null>(null), [roster, setRoster] = useState<CareerRoster | null>(null);
@@ -27,9 +28,9 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
   const [releaseReview, setReleaseReview] = useState(false), [replacement, setReplacement] = useState(''), [competition, setCompetition] = useState('');
   const generation = useRef(0), mutation = useRef<{ controller: AbortController; release: () => void } | null>(null);
   useEffect(() => {
-    const controller = new AbortController(), token = ++generation.current;
+    const controller = new AbortController(), token = ++generation.current; loadedFocus.current = undefined; setView(null);
     try { setOperation(readMarketOperation(window.sessionStorage, careerId)); } catch { setCorrupt(true); setError('보관된 계약 요청이 손상되었습니다. 원본 요청을 확인해야 합니다.'); }
-    void Promise.all([getCareerMarket(careerId, year, controller.signal), getCareerRoster(careerId, year, controller.signal)]).then(([m, r]) => { if (!controller.signal.aborted && token === generation.current) { setView(old => newerMarket(old, m)); setRoster(r); setError(null); } }).catch(e => { if (!controller.signal.aborted && token === generation.current) setError(failure(e)); });
+    void Promise.all([getCareerMarket(careerId, year, controller.signal), getCareerRoster(careerId, year, controller.signal)]).then(([m, r]) => { if (!controller.signal.aborted && token === generation.current) { loadedFocus.current = focus; setView(old => newerMarket(old, m)); setRoster(r); setError(null); } }).catch(e => { if (!controller.signal.aborted && token === generation.current) setError(failure(e)); });
     return () => { ++generation.current; controller.abort(); };
   }, [careerId, year, revision, focus]);
   useEffect(() => { setLegacyRefresh(false); setPending(false); setSelected(null); setEditing(null); setReleaseReview(false); setView(null); setRoster(null); return () => { mutation.current?.controller.abort(); mutation.current?.release(); mutation.current = null; }; }, [careerId, year]);
@@ -40,9 +41,9 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
   };
   useEffect(() => { if (focusPlayer && view) { pick(focusPlayer); setFilter('all'); } }, [focusPlayer, view?.careerId]); // Selection does not submit or draw a new decision.
   useEffect(() => {
-    if (!focus?.playerId || !view || focus.seasonYear !== view.seasonYear) return;
+    if (loadedFocus.current !== focus || !focus?.playerId || !view || focus.seasonYear !== view.seasonYear) return;
     const offer = view.offers.find(o => o.offerId === focus.sourceId && o.playerId === focus.playerId);
-    pick(focus.playerId, offer?.status === 'COUNTER' ? offer : undefined); setFilter('all');
+    pick(focus.playerId, offer?.status === 'COUNTER' ? offer : undefined); setFilter('all'); document.getElementById('career-contract-market')?.scrollIntoView({ behavior: 'smooth' });
     if (focus.panel === 'MARKET' && focus.sourceId && !offer) setError('원래 협상은 현재 계약 제안에서 찾을 수 없습니다. 보존 소식과 현재 선수 상태를 확인하세요.');
   }, [focus, view?.careerId, view?.revision]);
   const execute = async (action?: MarketCommand['action'], offerId?: string) => {

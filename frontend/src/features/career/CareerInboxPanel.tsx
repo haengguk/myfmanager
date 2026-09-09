@@ -29,7 +29,7 @@ export function CareerInboxPanel({ careerId, year, revision, running, busy, onNa
     const latest = acceptInbox(await inboxRequest<InboxFeed>(careerId, query(true), signal), careerId, season, kind, development); if (!valid()) return;
     setFeed(latest); const current = currentDecision(decision, latest);
     if (!current) { setError('이미 종료되었거나 조건이 변경된 업무입니다. 최신 처리 목록을 확인하세요.'); return; }
-    onNavigate(current.link);
+    onNavigate({ ...current.link, current: true });
   }); }
   const decisions = feed?.decisions.filter(d => d.responsibility === 'MANAGER') ?? [], errors = feed?.decisions.filter(d => d.responsibility !== 'MANAGER') ?? [];
   return <section className="ca-calendar ca-inbox" aria-label="Career 소식함">

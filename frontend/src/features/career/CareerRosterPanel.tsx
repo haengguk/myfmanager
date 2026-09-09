@@ -12,7 +12,7 @@ const squadName = (s: string) => ({ FIRST_TEAM: '1군', DEVELOPMENT: '육성팀'
 const reasonName = (s: string | null) => s ? ({ RETIRED: '은퇴 · 기록 보존', AFFILIATION_UNCONFIRMED: '소속 미확인', V4_REGISTERED_ROLE_REVIEW_REQUIRED: '작성 포지션과 현재 등록 역할 검토 필요', NO_COMPETITIVE_TEAM: '실행 대상 경쟁 팀 없음', UNAFFILIATED_SIGNING_NOT_IMPLEMENTED: '무소속 · 게임 계약 시장에서 확인' }[s] ?? '현재 소속으로 출전할 수 없음') : null;
 function message(cause: unknown): string { return cause instanceof CareerApiFailure ? cause.userMessage : '선수단 요청을 확인하지 못했습니다. 저장된 원본 요청으로 다시 확인해 주세요.'; }
 function show(v: unknown): string { return v === null || v === undefined || v === '' ? '미확인' : Array.isArray(v) ? v.length ? v.map(show).join(' · ') : '미확인' : typeof v === 'object' ? Object.entries(v as Record<string, unknown>).map(([k, x]) => `${k}: ${show(x)}`).join(' · ') : String(v); }
-function PlayerDetails({ player }: { player: RosterPlayer }) {
+export function PlayerDetails({ player }: { player: RosterPlayer }) {
   const d = JSON.parse(player.detailsJson) as Record<string, unknown>;
   const personal = (d.personal ?? {}) as Record<string, unknown>, contract = (d.contract ?? {}) as Record<string, unknown>, career = (d.career ?? {}) as Record<string, unknown>, honors = (d.honors ?? {}) as Record<string, unknown>;
   const generated = d.generated as Record<string, unknown> | undefined;

@@ -311,3 +311,20 @@ V26/V27은 조회 subject와 소식 메타데이터를 추가한다. 과거 JSON
 기존 이적·임대 terms의 양 당사자를 검색에 포함한다. 기록 API의 seconds는 총 시간으로
 유지하고 observedcspm/csobservedseconds/csobservedunits와 성장 별도 페이지를 추가했다.
 [실제 소스 매핑·저장·복구·한계](../development/career-inbox-and-decisions-v1.md).
+
+
+## 공개 스카우팅과 감독 관심 메타데이터 (2026-09-09)
+
+`/api/v1/careers/{careerId}/scouting`은 현재 저장 디렉터리와 시장 투영을 요청당 재사용한다.
+검색은 필터 후 20명/asOf 페이지, `/compare`는 2~4명의 선택 시즌·대회/당시 구단 집계,
+`/opponent`는 다음 관리 fixture 및 승인 완료 Series 최근 5/10개다. 모두 읽기 transaction이며
+시장 날짜, AI 정책, Random과 gameplay revision을 변경하지 않는다.
+`POST /interest`만 V28의 `(career_id,player_id,revision,selected)`를 갱신한다. 삭제 행의 revision은
+보존해 늦은 추가가 삭제를 되돌리지 않는다. Calendar/Continuous lease와 분리된다.
+
+승인 완료 transaction의 `CareerRecordsStore.complete`에서 원 receipt의 작은 드래프트 근거를
+`career_record_draft`에 idempotent하게 저장한다. 기존 canonical JSON/hash는 변경하지 않는다.
+도입 이전 자료는 기존 명시적 restore에서 한 번에 10 Series까지 복원하며 GET/startup scan을
+추가하지 않는다. 수집되지 않은 세트는 분석 분모에서 구분한다.
+현재 업무/스카우팅 링크는 부모 최신 조회 완료 뒤 활성 시즌 selector와 정확한 원본 대상에
+focus한다. UNSTARTED 예약 ID는 준비 화면, IN_PROGRESS만 원래 Series 이동이며 클릭은 명령이 아니다.

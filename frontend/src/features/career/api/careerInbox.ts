@@ -1,5 +1,5 @@
 import { realMatchConfig } from '../../real-match/realMatch.config';
-export interface InboxLink { panel: string; playerId: string | null; sourceId: string | null; competition: string | null; seasonYear: number; seriesId: string | null; positions: string[]; teamId?: string | null }
+export interface InboxLink { panel: string; playerId: string | null; sourceId: string | null; competition: string | null; seasonYear: number; seriesId: string | null; positions: string[]; teamId?: string | null; current?: boolean; matchState?: string | null }
 export interface InboxDecision { id: string; revision: string; type: string; status: string; responsibility: string; blocksProgress: boolean; date: string; deadline: string | null; title: string; summary: string; link: InboxLink }
 export interface InboxEntry { sequence: number; read: boolean; currentStatus: string; item: { sourceKey: string; kind: string; date: string; title: string; summary: string; team: string | null; playerId: string | null; competition: string | null; development: boolean; link: InboxLink; facts: Record<string, unknown> } }
 export interface InboxFeed { careerId: string; seasonYear: number | null; kind: string; includeDevelopment: boolean; asOf: number; nextCursor: number; unread: number; items: InboxEntry[]; decisions: InboxDecision[]; collectionNote: string }

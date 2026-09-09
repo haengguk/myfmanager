@@ -24,7 +24,7 @@ const REPAIR_OBSTACLES: Readonly<Record<string, string>> = {
 
 function range(start: string, end: string): string { return start === end ? start : `${start} — ${end}`; }
 
-export function CareerCalendarPanel({ calendar, loading, pending, competitionPending = false, error, onAdvance, onRefresh, onCompetitionAction, onReconcilePending = onRefresh }: {
+export function CareerCalendarPanel({ calendar, loading, pending, competitionPending = false, error, onAdvance, onRefresh, onCompetitionAction, onReconcilePending = onRefresh, onAnalyzeOpponent, focusFixture }: {
   calendar: CareerCalendarViewDto | null;
   loading: boolean;
   pending: boolean;
@@ -32,6 +32,8 @@ export function CareerCalendarPanel({ calendar, loading, pending, competitionPen
   error: string | null;
   onAdvance: (mode: CareerAdvanceMode) => void;
   onRefresh: () => void;
+  onAnalyzeOpponent?: () => void;
+  focusFixture?: string | null;
   onCompetitionAction?: () => void;
   onReconcilePending?: () => void;
 }) {
@@ -46,6 +48,8 @@ export function CareerCalendarPanel({ calendar, loading, pending, competitionPen
       : competitionCommand === 'DISPATCH_AUTO_COMPETITION_FIXTURE' ? 'Auto 경기 실행'
         : competitionCommand === 'RECONCILE_COMPETITION_FIXTURE' ? '대회 결과 확인' : null;
   return <section className="ca-calendar" aria-label="Career 캘린더">
+    {onAnalyzeOpponent ? <button onClick={onAnalyzeOpponent}>다음 관리 경기 상대 분석</button> : null}
+    {focusFixture ? <p role="status">{calendar.competition.nextFixture?.fixtureId === focusFixture ? "선택한 관리 경기의 준비 화면입니다. 기존 시작 버튼으로 직접 진행하세요." : "선택한 경기와 현재 실행 가능한 경기가 다릅니다. 날짜와 대진을 확인하세요."}</p> : null}
     <header>
       <div><span>CAREER TIME / {calendar.activeCalendarSeasonYear}</span><strong><time dateTime={calendar.currentDate}>{calendar.currentDate}</time></strong><small>{current ? current.displayNameKo : '첫 공식 일정 이전'}{calendar.currentStage ? ` · ${calendar.currentStage.displayNameKo}` : calendar.nextStage ? ` · 다음 단계 ${calendar.nextStage.displayNameKo}` : ''}</small></div>
       <div className="ca-calendar__revision"><span>REV</span><strong>{calendar.calendarRevision}</strong><small>{calendar.projectionStatus === 'GAME_PROJECTED_FROM_2026_TEMPLATE' ? '2026 기준 투영' : '기준 연도'}</small></div>
@@ -61,7 +65,7 @@ export function CareerCalendarPanel({ calendar, loading, pending, competitionPen
         {competition.registrationWait.obstacles.map(reason => <p key={reason}>{REPAIR_OBSTACLES[reason] ?? '추가 명부 복구 조건을 확인하세요.'}</p>)}
       </div> : null}
       {calendar.competition.nextFixture ? <p><time>{calendar.competition.nextFixture.date}</time><b>{COMPETITION_COPY[calendar.competition.nextFixture.competitionId] ?? calendar.competition.nextFixture.competitionId} {calendar.competition.nextFixture.matchId}</b><em>{calendar.competition.nextFixture.firstTeamCode ?? 'TBD'} vs {calendar.competition.nextFixture.secondTeamCode ?? 'TBD'} · {calendar.competition.nextFixture.seriesFormat} · {calendar.competition.nextFixture.executionMode === 'PLAYER_CONTROLLED' ? '관리 경기' : 'Auto'}{calendar.competition.nextFixture.jobStatus ? ` · ${calendar.competition.nextFixture.jobStatus}` : ''}{calendar.competition.nextFixture.blockingReason ? ` · ${calendar.competition.nextFixture.blockingReason}` : ''}</em></p> : null}
-      {competitionActionLabel && onCompetitionAction ? <button type="button" className="lm-primary-button" disabled={competitionPending} onClick={onCompetitionAction}>{competitionPending ? '대회 상태 확인 중…' : competitionActionLabel}</button> : null}
+      {competitionActionLabel && onCompetitionAction ? <button type="button" className="lm-primary-button" disabled={competitionPending || !!focusFixture && calendar.competition.nextFixture?.fixtureId !== focusFixture} onClick={onCompetitionAction}>{competitionPending ? '대회 상태 확인 중…' : competitionActionLabel}</button> : null}
       {calendar.competition.internationalCompetitions?.map(international => <details key={international.competitionId} className="ca-calendar__competition-data">
         <summary>{COMPETITION_COPY[international.competitionId]} · {international.bracket.complete ? `우승 ${international.bracket.champion}` : `${international.entries.length}팀 참가 확정`}</summary>
         <p>해외 대표는 임시 능력치 순위로 선정됩니다. 대회 경기는 실제 Draft와 시뮬레이션으로 진행합니다.</p>
