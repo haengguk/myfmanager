@@ -23,7 +23,14 @@ public record CareerManagementState(String policyVersion,LocalDate observationSt
     public record Trade(String tradeId,String contractId,String proposer,TradeTerms terms,LocalDate submittedDate,
             LocalDate responseDate,LocalDate decisionDate,LocalDate expiresDate,int round,String previousTradeId,
             TradeStatus status,boolean sellerAgreed,boolean buyerAgreed,long referenceValue,long sellerDemand,
+            long buyerLimit,Long playerScore,String reason,String policyVersion,Evaluation playerEvaluation,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) CareerNegotiationPolicy.Quote pricing) {
+        public Trade(String tradeId,String contractId,String proposer,TradeTerms terms,LocalDate submittedDate,
+            LocalDate responseDate,LocalDate decisionDate,LocalDate expiresDate,int round,String previousTradeId,
+            TradeStatus status,boolean sellerAgreed,boolean buyerAgreed,long referenceValue,long sellerDemand,
             long buyerLimit,Long playerScore,String reason,String policyVersion,Evaluation playerEvaluation) {
+            this(tradeId,contractId,proposer,terms,submittedDate,responseDate,decisionDate,expiresDate,round,previousTradeId,status,sellerAgreed,buyerAgreed,referenceValue,sellerDemand,buyerLimit,playerScore,reason,policyVersion,playerEvaluation,null);
+        }
         public boolean open() {return status==TradeStatus.CLUB_PENDING||status==TradeStatus.CLUB_COUNTER||status==TradeStatus.PLAYER_PENDING||status==TradeStatus.AGREED;}
     }
     public record Loan(String loanId,String tradeId,String contractId,String playerId,String parentTeam,String borrowingTeam,

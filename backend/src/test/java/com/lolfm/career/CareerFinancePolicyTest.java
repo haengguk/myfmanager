@@ -57,6 +57,22 @@ class CareerFinancePolicyTest {
         assertThatThrownBy(()->f.recognize(2027,"EWC_LOL",ranks,date,"edited-result")).hasMessage("PRIZE_RESULT_CONFLICT");
         f.recognize(2027,"MSI",Map.of(m.managed,new CareerFinanceEngine.Rank(9,11)),date,"incomplete");assertThat(f.held).containsKey("2027|MSI");
     }
+    @ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"LCK:T1","LCK:BRO"})
+    void actualMonthlyFundingRepaysLowCashWagesBeforeNewCommitments(String team){
+        var m=fresh();var start=CareerMarketEngineTest.DATE;var end=start.withDayOfMonth(31);var a=m.accounts.get(team);
+        m.accounts.put(team,new Account(team,a.annualBudget(),0,a.rosterLimit()));
+        var contracts=m.contracts.values().stream().filter(c->c.team().equals(team)).toList();
+        for(var c:contracts)m.pay(c,end);
+        long unpaid=m.salaryArrears(team);assertThat(unpaid).isPositive();assertThat(m.accounts.get(team).cash()).isZero();
+        m.finance.date(end);var approval=m.finance.approval(team,end);
+        long net=CareerMarketPolicy.wages(approval.annualSupport(),start,end)+CareerMarketPolicy.wages(approval.annualSponsor(),start,end)-CareerMarketPolicy.wages(approval.annualNonWage(),start,end);
+        assertThat(m.salaryArrears(team)).isEqualTo(Math.max(0,unpaid-net));assertThat(m.accounts.get(team).cash()).isEqualTo(Math.max(0,net-unpaid));
+        var saved=m.state();m.finance.date(end);for(var c:contracts)m.pay(c,end);assertThat(m.state()).isEqualTo(saved);
+        for(var c:contracts)assertThat(m.contracts.get(c.contractId()).terms()).isEqualTo(c.terms());
+        System.out.println("V2_CASH_RECOVERY team="+team+" wagesDue="+unpaid+" finalCash="+m.accounts.get(team).cash()+" arrears="+m.salaryArrears(team)+" approval="+CareerRosterStore.write(m.finance.approval(team,end)));
+        // Separate per-source/contract rounding can leave one won; preserve it until real income arrives.
+        m.finance.date(end.plusMonths(1));assertThat(m.salaryArrears(team)).isZero();
+    }
     @Test void legacyProjectionPreservesAgreedSalaryAndNextCapDoesNotCreditCash(){
         var old=CareerMarketEngineTest.engine("LCK:T1");var start=old.availableStart("player-bo",CareerMarketEngineTest.DATE);old.submit(old.managed,"player-bo",new Terms(start,start.plusYears(1).minusDays(1),200_000,10_000,Role.RESERVE),null,CareerMarketEngineTest.DATE);
         var pending=old.offers.values().iterator().next();old.offers.put(pending.offerId(),new Offer(pending.offerId(),pending.playerId(),pending.team(),pending.terms(),pending.submittedDate(),pending.responseDate(),pending.decisionDate(),pending.expiresDate(),pending.revision(),OfferStatus.COUNTER,pending.previousOfferId(),pending.round(),220_000L,"저장된 원본 역제안"));
@@ -87,6 +103,32 @@ class CareerFinancePolicyTest {
         f.recognize(2027,"WORLDS",Map.of(m.managed,new CareerFinanceEngine.Rank(1,1)),LocalDate.of(2027,12,29),"late-worlds");var award=f.awards.values().iterator().next();assertThat(award.dueOn()).isEqualTo(LocalDate.of(2028,1,5));
         long before=m.accounts.get(m.managed).cash();f.date(LocalDate.of(2028,1,1));assertThat(m.accounts.get(m.managed).cash()).isEqualTo(before);f.date(award.dueOn());assertThat(m.accounts.get(m.managed).cash()).isEqualTo(before+1_400_000_000L);
         System.out.println("FINANCE_TARGET "+CareerRosterStore.write(closed)+" NEXT "+CareerRosterStore.write(approved));
+    }
+
+    @ParameterizedTest @CsvSource({"LPL,14,4,9","LEC,10,3,6","LCS,8,2,5","LCP,8,2,5","CBLOL,8,2,5"})
+    void regionalTargetsUseFixedRelativeTiersSharedRanksAndActualOutcome(String region,int participants,int top,int middle) {
+        var scope=CareerSportingFinancePolicy.scope(region);assertThat(scope.participants()).isEqualTo(participants);
+        assertThat(CareerSportingFinancePolicy.required(scope,1)).isEqualTo(top);assertThat(CareerSportingFinancePolicy.required(scope,top+1)).isEqualTo(middle);assertThat(CareerSportingFinancePolicy.required(scope,participants)).isEqualTo(participants);
+        assertThat(CareerSportingFinancePolicy.evaluate(top,new CareerFinanceEngine.Rank(top,top+1),null,null,"NOT_QUALIFIED")).isEqualTo("MET");
+        assertThat(CareerSportingFinancePolicy.evaluate(top,new CareerFinanceEngine.Rank(top+1,top+1),null,null,"NOT_QUALIFIED")).isEqualTo("MISSED");
+        assertThat(CareerSportingFinancePolicy.evaluate(top,new CareerFinanceEngine.Rank(1,1),null,null,"NOT_COLLECTED")).isEqualTo("EXCEEDED");
+        var m=fresh();var f=m.finance;String team=f.targets.values().stream().filter(t->t.team().startsWith(region+":")).sorted(Comparator.comparingInt(CareerFinanceState.Target::maximumDomesticRank).thenComparing(CareerFinanceState.Target::team)).map(CareerFinanceState.Target::team).findFirst().orElseThrow();
+        var target=f.targets.get(team+"|2027");long before=f.approval(team,CareerMarketEngineTest.DATE).annualIncome();
+        f.closeRanks(2027,CareerMarketEngineTest.DATE,Map.of(team,new CareerFinanceEngine.Rank(1,1)),Map.of(),Set.of(),false);
+        var closed=f.targets.get(team+"|2027");assertThat(closed.sportingStatus()).isEqualTo("EXCEEDED");assertThat(closed.bonus()).isEqualTo(pct(target.fixedSponsor(),10));assertThat(f.approvals.get(team+"|2028").annualIncome()).isEqualTo(pct(before,105));
+        var saved=m.state();f.closeRanks(2027,CareerMarketEngineTest.DATE,Map.of(),Map.of(),Set.of(),false);assertThat(m.state()).isEqualTo(saved);
+        System.out.println("REGIONAL_TARGET "+CareerRosterStore.write(closed)+" NEXT "+CareerRosterStore.write(f.approvals.get(team+"|2028")));
+    }
+    @Test void legacyNeutralTargetWaitsForNextFullSeasonAndWorldsMissingIsNotQualificationFailure(){
+        var m=fresh();var f=m.finance;var date=CareerMarketEngineTest.DATE;String team="LEC:KC";var t=f.targets.get(team+"|2027");
+        var old=new CareerFinanceState.Target(team,2027,t.setOn(),false,0,null,t.fixedSponsor(),t.initialWageLimit(),"PENDING","PENDING",null,null,0,0,0,0,null,"기존 해외 중립 목표");
+        f.targets.put(team+"|2027",old);String raw=CareerRosterStore.write(old);assertThat(raw).doesNotContain("sportingScope");f.initializeTargets(2027,date,false);assertThat(CareerRosterStore.write(f.targets.get(team+"|2027"))).isEqualTo(raw);
+        f.closeRanks(2027,date,Map.of(team,new CareerFinanceEngine.Rank(10,10)),Map.of(m.managed,new CareerFinanceEngine.Rank(5,8)),Set.of(m.managed),true);
+        assertThat(f.targets.get(team+"|2027").sportingStatus()).isEqualTo("NOT_EVALUABLE");assertThat(f.targets.get(team+"|2027").bonus()).isZero();assertThat(f.targets.get(team+"|2027").sportingResult().worldsStatus()).isEqualTo("NOT_QUALIFIED");
+        assertThat(f.targets.get(m.managed+"|2027").actualWorldsRank()).isEqualTo(5);assertThat(f.targets.get(m.managed+"|2027").sportingResult().worldsRankThrough()).isEqualTo(8);assertThat(f.awards).isEmpty();
+        f.initializeTargets(2028,LocalDate.of(2028,1,1),false);assertThat(f.targets.get(team+"|2028").maximumDomesticRank()).isPositive();assertThat(f.targets.get(team+"|2028").sportingScope().policyVersion()).isEqualTo(CareerSportingFinancePolicy.VERSION);
+        assertThat(CareerSportingFinancePolicy.evaluate(3,new CareerFinanceEngine.Rank(1,1),8,null,"NOT_COLLECTED")).isEqualTo("NOT_EVALUABLE");
+        assertThat(CareerSportingFinancePolicy.evaluate(3,new CareerFinanceEngine.Rank(1,1),8,null,"NOT_QUALIFIED")).isEqualTo("MISSED");
     }
 
 }

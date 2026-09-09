@@ -20,10 +20,18 @@ public final class CareerMarketStore {
     }
     public record TradeRequest(String schemaVersion,int sourceYear,long expectedRevision,String action,String tradeId,
             CareerManagementState.TradeTerms terms,String replacementPlayerId,String clientCommandId) {}
-    public record TradeQuote(String playerId,long referenceSalary,long estimatedValue,long suggestedTransferFee,LocalDate earliestStart,String unavailableReason) {}
+    public record TradeQuote(String playerId,long referenceSalary,long estimatedValue,long suggestedTransferFee,LocalDate earliestStart,String unavailableReason,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) CareerNegotiationPolicy.Quote pricing) {
+        public TradeQuote(String playerId,long referenceSalary,long estimatedValue,long suggestedTransferFee,LocalDate earliestStart,String unavailableReason){this(playerId,referenceSalary,estimatedValue,suggestedTransferFee,earliestStart,unavailableReason,null);}
+    }
     public record Negotiation(String tradeId,String contractId,String proposer,CareerManagementState.TradeTerms terms,
             LocalDate submittedDate,LocalDate responseDate,LocalDate decisionDate,LocalDate expiresDate,int round,String previousTradeId,
-            CareerManagementState.TradeStatus status,boolean sellerAgreed,boolean buyerAgreed,long referenceValue,long sellerDemand,String reason,String policyVersion) {}
+            CareerManagementState.TradeStatus status,boolean sellerAgreed,boolean buyerAgreed,long referenceValue,long sellerDemand,String reason,String policyVersion,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) CareerNegotiationPolicy.Quote pricing) {
+        public Negotiation(String tradeId,String contractId,String proposer,CareerManagementState.TradeTerms terms,
+            LocalDate submittedDate,LocalDate responseDate,LocalDate decisionDate,LocalDate expiresDate,int round,String previousTradeId,
+            CareerManagementState.TradeStatus status,boolean sellerAgreed,boolean buyerAgreed,long referenceValue,long sellerDemand,String reason,String policyVersion){this(tradeId,contractId,proposer,terms,submittedDate,responseDate,decisionDate,expiresDate,round,previousTradeId,status,sellerAgreed,buyerAgreed,referenceValue,sellerDemand,reason,policyVersion,null);}
+    }
     public record ManagementView(String policyVersion,LocalDate observationStarted,List<CareerManagementState.Promise> promises,
             List<Negotiation> trades,List<CareerManagementState.Loan> loans,List<CareerManagementState.Appearance> appearances,List<TradeQuote> quotes) {}
     public record Saved(long revision,CareerMarketState state) {}
@@ -33,7 +41,11 @@ public final class CareerMarketStore {
             String referenceId,LocalDate appliedDate,String reason) {}
     public record Change(boolean replayed,Receipt receipt,View market) {}
     public record PlayerMarket(String playerId,String status,String currentContractId,String scheduledContractId,
-            LocalDate availableStart,long askingSalary,long releaseCost,String eligibilityReason,Preference preference) {}
+            LocalDate availableStart,long askingSalary,long releaseCost,String eligibilityReason,Preference preference,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) CareerNegotiationPolicy.Quote pricing) {
+        public PlayerMarket(String playerId,String status,String currentContractId,String scheduledContractId,
+            LocalDate availableStart,long askingSalary,long releaseCost,String eligibilityReason,Preference preference){this(playerId,status,currentContractId,scheduledContractId,availableStart,askingSalary,releaseCost,eligibilityReason,preference,null);}
+    }
     public record Finance(String team,long annualBudget,long cash,long reservedCash,long currentAnnualSalary,long committedPeakSalary,int rosterLimit,String fundingPolicy,long salaryArrears,long paymentHeadroom) {}
     public record Supplement(String competitionId,String team,String playerId,String position,LocalDate date,long revision,String reason) {}
     public record View(String schemaVersion,String policyVersion,String currency,String careerId,int seasonYear,
@@ -184,7 +196,7 @@ public final class CareerMarketStore {
             var c=engine.active(id,date);var future=engine.scheduled(id);LocalDate start=engine.availableStart(id,date);
             String status=engine.lifecycle!=null&&engine.lifecycle.retired(id)?"RETIRED":c!=null?"CONTRACTED":state.freeAgents().contains(id)?"FREE_AGENT":"UNAVAILABLE";
             String reason=engine.lifecycle!=null&&engine.lifecycle.announced(id)?"은퇴 상태와 효력일은 시즌 성장·은퇴·신인에서 확인하세요.":"V4_REGISTERED_ROLE_REVIEW_REQUIRED".equals(directory.players().get(id).eligibilityReason())?"작성 포지션과 현재 등록 역할이 달라 검토가 필요합니다.":future!=null?"이미 미래 계약이 확정되어 있습니다.":c!=null&&c.team()==null?"현재 소속은 경쟁 팀이 없는 조직이므로 이 시장에서 이적을 제안할 수 없습니다.":start==null?(c==null?"소속 또는 영입 자격 미확인":"계약 만료 60일 전부터 협상할 수 있습니다."):null;
-            players.add(new PlayerMarket(id,status,c==null?null:c.contractId(),future==null?null:future.contractId(),start,engine.demand(id),c==null?0:CareerMarketPolicy.releaseCost(c,date),reason,state.preferences().get(id)));
+            players.add(new PlayerMarket(id,status,c==null?null:c.contractId(),future==null?null:future.contractId(),start,engine.demand(id,date),c==null?0:CareerMarketPolicy.releaseCost(c,date),reason,state.preferences().get(id),engine.quote(id,date)));
         }
         var finances=new ArrayList<Finance>();for(var a:state.accounts().values().stream().sorted(Comparator.comparing(Account::team)).toList())finances.add(new Finance(a.team(),a.annualBudget(),a.cash(),engine.reservedCash(a.team()),engine.salaryAt(a.team(),date,false),engine.peakSalary(a.team()),a.rosterLimit(),engine.finance==null?CareerMarketPolicy.FUNDING_POLICY:engine.finance.approval(a.team(),date).policy(),engine.salaryArrears(a.team()),Math.max(0,engine.paymentHeadroom(a.team(),date))));
         Map<String,List<String>> gaps=new TreeMap<>();
@@ -211,11 +223,11 @@ public final class CareerMarketStore {
                 String buyer=engine.accounts.keySet().stream().filter(t->!t.equals(c.team())).findFirst().orElseThrow();
                 fee=engine.tradeEngine.demandFee(new CareerManagementState.TradeTerms(CareerManagementState.Kind.TRANSFER,p.playerId(),c.team(),buyer,date,date,0,0,null,null),date);
             }
-            quotes.add(new TradeQuote(p.playerId(),engine.demand(p.playerId()),engine.tradeEngine.estimate(p.playerId(),date),fee,engine.tradeEngine.decision(p.playerId(),date).plusDays(1),engine.tradeEngine.unavailable(p.playerId(),date)));
+            quotes.add(new TradeQuote(p.playerId(),engine.demand(p.playerId(),date),engine.tradeEngine.estimate(p.playerId(),date),fee,engine.tradeEngine.decision(p.playerId(),date).plusDays(1),engine.tradeEngine.unavailable(p.playerId(),date),engine.quote(p.playerId(),date)));
         }
         return new ManagementView(state.policyVersion(),state.observationStarted(),state.promises().values().stream().sorted(Comparator.comparing(CareerManagementState.Promise::playerId).thenComparing(CareerManagementState.Promise::startDate)).toList(),
                 state.trades().values().stream().filter(t->managed.equals(t.terms().seller())||managed.equals(t.terms().buyer())).sorted(Comparator.comparing(CareerManagementState.Trade::submittedDate).reversed().thenComparing(CareerManagementState.Trade::tradeId))
-                    .map(t->new Negotiation(t.tradeId(),t.contractId(),t.proposer(),t.terms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),t.round(),t.previousTradeId(),t.status(),t.sellerAgreed(),t.buyerAgreed(),t.referenceValue(),t.sellerDemand(),t.reason(),t.policyVersion())).toList(),
+                    .map(t->new Negotiation(t.tradeId(),t.contractId(),t.proposer(),t.terms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),t.round(),t.previousTradeId(),t.status(),t.sellerAgreed(),t.buyerAgreed(),t.referenceValue(),t.sellerDemand(),t.reason(),t.policyVersion(),t.pricing())).toList(),
                 state.loans().values().stream().sorted(Comparator.comparing(CareerManagementState.Loan::startDate).thenComparing(CareerManagementState.Loan::loanId)).toList(),
                 state.appearances().values().stream().filter(a->a.seasonYear()==year).sorted(Comparator.comparing(CareerManagementState.Appearance::date).thenComparing(CareerManagementState.Appearance::completionId)).toList(),quotes);
     }

@@ -38,7 +38,13 @@ public record CareerMarketState(String policyVersion, long seed, LocalDate proce
             String origin, String terminationPolicy, LocalDate endedDate, LocalDate paidThrough) {}
     public record Offer(String offerId, String playerId, String team, Terms terms, LocalDate submittedDate,
             LocalDate responseDate, LocalDate decisionDate, LocalDate expiresDate, long revision,
+            OfferStatus status, String previousOfferId, int round, Long requestedSalary, String reason,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) CareerNegotiationPolicy.Quote pricing) {
+        public Offer(String offerId, String playerId, String team, Terms terms, LocalDate submittedDate,
+            LocalDate responseDate, LocalDate decisionDate, LocalDate expiresDate, long revision,
             OfferStatus status, String previousOfferId, int round, Long requestedSalary, String reason) {
+            this(offerId,playerId,team,terms,submittedDate,responseDate,decisionDate,expiresDate,revision,status,previousOfferId,round,requestedSalary,reason,null);
+        }
         public boolean open() { return status==OfferStatus.SUBMITTED || status==OfferStatus.COUNTER; }
     }
     public record Account(String team, long annualBudget, long cash, int rosterLimit) {}

@@ -25,7 +25,8 @@ final class CareerFinanceEngine {
         m.tradeEngine.obligations(team).forEach(t->{dates.add(t.terms().startDate());dates.add(t.terms().endDate().plusDays(1));});
         return dates.stream().filter(d->!d.isBefore(from)).anyMatch(d->m.salaryAt(team,d,true)>approval(team,d).wageLimit());
     }
-    long demand(String id){var p=basis.prices().get(id);if(p==null){var definition=m.player(id);String region=definition.initialOwnerTeam()==null?"LCK":CareerMarketPolicy.region(definition.initialOwnerTeam());
+    long demand(String id){return CareerNegotiationPolicy.quote(m,id,m.processedThrough()).annualDemand();}
+    long legacyDemand(String id){var p=basis.prices().get(id);if(p==null){var definition=m.player(id);String region=definition.initialOwnerTeam()==null?"LCK":CareerMarketPolicy.region(definition.initialOwnerTeam());
         p=basis.prices().values().stream().filter(x->x.region().equals(region)&&x.role().equals("DEVELOPMENT")).sorted(Comparator.comparingLong(Price::referenceSalary)).skip(basis.prices().values().stream().filter(x->x.region().equals(region)&&x.role().equals("DEVELOPMENT")).count()/2).findFirst().orElse(new Price(DEFAULT_DEVELOPMENT_REFERENCE,REFERENCE_STRENGTH,"LCK","DEVELOPMENT","REGIONAL_ROLE_REFERENCE"));}
         return Math.max(1,ratio(p.referenceSalary(),CareerMarketPolicy.strength(m.player(id)),p.referenceStrength()));
     }
@@ -79,25 +80,36 @@ final class CareerFinanceEngine {
         planned.forEach(a->awards.put(a.id(),a));held.remove(instance);
     }
     void initializeTargets(int year,LocalDate date,boolean partial){
-        var lck=m.accounts.keySet().stream().filter(t->t.startsWith("LCK:")).sorted(Comparator.comparingInt((String t)->m.lineups.get(t).stream().mapToInt(id->CareerMarketPolicy.strength(m.player(id))).sum()).reversed().thenComparing(t->t)).toList();
-        var budgetOrder=lck.stream().sorted(Comparator.comparingLong((String t)->m.accounts.get(t).annualBudget()).reversed().thenComparing(t->t)).toList();
+        var strengthOrders=new HashMap<String,List<String>>();var budgetOrders=new HashMap<String,List<String>>();
+        for(String region:CareerSportingFinancePolicy.COMPETITIONS.keySet()){
+            var teams=m.accounts.keySet().stream().filter(t->t.startsWith(region+":"))
+                .sorted(Comparator.comparingInt((String t)->m.lineups.getOrDefault(t,List.of()).stream().mapToInt(id->CareerMarketPolicy.strength(m.player(id))).sum()).reversed().thenComparing(t->t)).toList();
+            strengthOrders.put(region,teams);budgetOrders.put(region,teams.stream().sorted(Comparator.comparingLong((String t)->approval(t,date).wageLimit()).reversed().thenComparing(t->t)).toList());
+        }
         for(String team:m.accounts.keySet()){
-            String key=team+"|"+year;if(targets.containsKey(key))continue;var a=approval(team,date);int rank=team.startsWith("LCK:")?(lck.indexOf(team)+budgetOrder.indexOf(team))/2+1:0;
-            int required=rank==0||partial?0:rank<=TOP_TARGET?TOP_TARGET:rank<=MID_TARGET?MID_TARGET:LOW_TARGET;
-            targets.put(key,new Target(team,year,date,partial,required,required==TOP_TARGET?WORLDS_TARGET:null,wages(a.annualSponsor(),date,LocalDate.of(year,12,31)),a.wageLimit(),"PENDING","PENDING",null,null,0,0,0,0,null,partial?"도입 이후 재정만 평가 · 경기/완전 시즌 보너스 중립":"현재 전력과 승인 예산의 순위 구간으로 고정"));
+            String key=team+"|"+year;if(targets.containsKey(key))continue;var a=approval(team,date);String region=CareerMarketPolicy.region(team);var scope=CareerSportingFinancePolicy.scope(region);
+            int rank=(strengthOrders.get(region).indexOf(team)+budgetOrders.get(region).indexOf(team))/2+1;
+            int required=partial?0:CareerSportingFinancePolicy.required(scope,rank);
+            targets.put(key,new Target(team,year,date,partial,required,region.equals("LCK")&&required==TOP_TARGET?WORLDS_TARGET:null,wages(a.annualSponsor(),date,LocalDate.of(year,12,31)),a.wageLimit(),"PENDING","PENDING",null,null,0,0,0,0,null,partial?"도입 이후 재정만 평가 · 경기/완전 시즌 보너스 중립":"현재 전력과 승인 예산의 지역 내 순위 구간으로 고정",scope,null));
         }
     }
     void close(int year,LocalDate date,Map<String,Integer> domestic,Map<String,Integer> worlds){
+        closeRanks(year,date,CareerFinanceStore.ranks(domestic),CareerFinanceStore.ranks(worlds),worlds.keySet(),!worlds.isEmpty());
+    }
+    void closeRanks(int year,LocalDate date,Map<String,Rank> domestic,Map<String,Rank> worlds,Set<String> worldsEntrants,boolean worldsBound){
         for(String team:m.accounts.keySet()){
             var t=targets.get(team+"|"+year);if(t==null)continue;
             if(t.evaluatedOn()!=null){approveNext(team,year,date,t.financeStatus(),t.sportingStatus());continue;}
-            Integer rank=domestic.get(team),world=worlds.get(team);String sport="NOT_EVALUABLE";
+            var placement=domestic.get(team);var worldPlacement=worlds.get(team);
+            Integer rank=placement==null?null:placement.from(),world=worldPlacement==null?null:worldPlacement.from();
+            String worldStatus=world!=null?"COLLECTED":worldsBound&&!worldsEntrants.contains(team)?"NOT_QUALIFIED":"NOT_COLLECTED";String sport="NOT_EVALUABLE";
             if(!t.partial()&&t.maximumDomesticRank()>0&&rank!=null){boolean met=rank<=t.maximumDomesticRank()&&(t.worldsMaximumRank()==null||world!=null&&world<=t.worldsMaximumRank());sport=met?(rank==1||rank<t.maximumDomesticRank()&&(t.worldsMaximumRank()==null||world<=WORLDS_EXCEEDED)?"EXCEEDED":"MET"):"MISSED";}
+            if(t.sportingScope()!=null&&!t.partial())sport=CareerSportingFinancePolicy.evaluate(t.maximumDomesticRank(),placement,t.worldsMaximumRank(),worldPlacement,worldStatus);
             long arrears=m.salaryArrears(team)+debt.getOrDefault(team,0L),headroom=m.paymentHeadroom(team,date);boolean newCommitment=m.contracts.values().stream().anyMatch(c->team.equals(c.team())&&!c.signedDate().isBefore(t.setOn())&&Set.of("NEGOTIATED_RENEWAL","NEGOTIATED_FREE_AGENT","PAID_TRANSFER_AGREEMENT").contains(c.origin()));
             String financial=arrears==0&&headroom>=0&&(!newCommitment||!wageLimitBreached(team,date))?"MET":"MISSED";
             long bonus=t.partial()?0:pct(t.fixedSponsor(),sport.equals("EXCEEDED")?TARGET_BONUS_EXCEEDED:sport.equals("MET")?TARGET_BONUS_MET:0);
             entry(team,date,"TARGET_BONUS|"+year,"GAME_SPONSOR_PERFORMANCE_BONUS",bonus);
-            targets.put(team+"|"+year,new Target(team,year,t.setOn(),t.partial(),t.maximumDomesticRank(),t.worldsMaximumRank(),t.fixedSponsor(),t.initialWageLimit(),sport,financial,rank,world,m.accounts.get(team).cash(),headroom,arrears,bonus,date,"봉인 최종 순위·현재 현금·확정 의무·체불"));
+            targets.put(team+"|"+year,new Target(team,year,t.setOn(),t.partial(),t.maximumDomesticRank(),t.worldsMaximumRank(),t.fixedSponsor(),t.initialWageLimit(),sport,financial,rank,world,m.accounts.get(team).cash(),headroom,arrears,bonus,date,"봉인 최종 순위·현재 현금·확정 의무·체불 · Worlds 성적은 상금과 독립",t.sportingScope(),new CareerSportingFinancePolicy.Result(placement==null?null:placement.through(),worldPlacement==null?null:worldPlacement.through(),worldStatus)));
             approveNext(team,year,date,financial,sport);
         }
     }

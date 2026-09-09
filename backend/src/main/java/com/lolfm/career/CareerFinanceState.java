@@ -26,7 +26,13 @@ public record CareerFinanceState(String policyVersion,String currency,int refere
             long annualNonWage,long wageLimit,long inheritedCommitments,long overCommitted,String evaluation,String policy){}
     public record Target(String team,int seasonYear,LocalDate setOn,boolean partial,int maximumDomesticRank,Integer worldsMaximumRank,
             long fixedSponsor,long initialWageLimit,String sportingStatus,String financeStatus,Integer actualDomesticRank,Integer actualWorldsRank,
-            long closingCash,long closingHeadroom,long arrears,long bonus,LocalDate evaluatedOn,String evidence){}
+            long closingCash,long closingHeadroom,long arrears,long bonus,LocalDate evaluatedOn,String evidence,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) CareerSportingFinancePolicy.Scope sportingScope,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) CareerSportingFinancePolicy.Result sportingResult) {
+        public Target(String team,int seasonYear,LocalDate setOn,boolean partial,int maximumDomesticRank,Integer worldsMaximumRank,
+            long fixedSponsor,long initialWageLimit,String sportingStatus,String financeStatus,Integer actualDomesticRank,Integer actualWorldsRank,
+            long closingCash,long closingHeadroom,long arrears,long bonus,LocalDate evaluatedOn,String evidence){this(team,seasonYear,setOn,partial,maximumDomesticRank,worldsMaximumRank,fixedSponsor,initialWageLimit,sportingStatus,financeStatus,actualDomesticRank,actualWorldsRank,closingCash,closingHeadroom,arrears,bonus,evaluatedOn,evidence,null,null);}
+    }
     public record Award(String id,int seasonYear,String competition,String eventId,String team,String awardType,int placementFrom,int placementThrough,
             String originalCurrency,long originalAmount,String evidenceStatus,String allocationPolicy,String fxPolicy,String rate,long krw,
             LocalDate recognizedOn,LocalDate dueOn,LocalDate paidOn,String resultHash,String referenceHash){}

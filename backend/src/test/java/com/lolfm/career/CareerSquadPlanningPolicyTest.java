@@ -126,4 +126,52 @@ class CareerSquadPlanningPolicyTest {
         a.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,false));assertThat(a.planner.movable(id,"DEVELOPMENT",MONDAY)).isFalse();assertThat(a.planner.movable(id,"DEVELOPMENT",MONDAY.plusDays(1))).isTrue();
         a.internationalPools.put("LCK:BRO|MSI",Set.of(id));assertThat(a.planner.canDepart("LCK:BRO",id,MONDAY.plusDays(1))).isFalse();
     }
+    @ParameterizedTest @ValueSource(booleans={true,false})
+    void coverageSearchReachesFourthAffordableCandidateThroughCommonApproval(boolean affordable) {
+        var m=setup();String team="LCK:BRO";m.clEnabled=false;
+        var candidates=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.TOP&&!team.equals(m.members.get(id).ownerTeam())).sorted().limit(4).toList();
+        for(String id:m.directory.players().keySet())if(m.player(id).position()==Position.TOP){
+            if(team.equals(m.members.get(id).ownerTeam())){m.contracts.values().removeIf(c->c.playerId().equals(id));m.freeAgents.remove(id);}
+            else if(candidates.contains(id)){m.contracts.values().removeIf(c->c.playerId().equals(id));m.freeAgents.add(id);m.members.put(id,new CareerRosterStore.Membership(id,null,"FREE_AGENT","FREE_AGENT",null));rating(m,id,id.equals(candidates.getLast())?10:20,200);}
+            else m.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,true));
+        }
+        m.lineups.values().forEach(ids->ids.removeIf(candidates::contains));
+        m.lineups.get(team).removeIf(id->m.player(id).position()==Position.TOP);
+        var a=m.accounts.get(team);long budget=m.peakSalary(team)+(affordable?160_000:0);m.accounts.put(team,new Account(team,budget,a.cash(),a.rosterLimit()));
+        m.planner.review(MONDAY);
+        var offers=m.offers.values().stream().filter(o->o.team().equals(team)&&m.player(o.playerId()).position()==Position.TOP).toList();
+        if(!affordable){assertThat(offers).isEmpty();assertThat(m.state().squadPlanning().decisions()).anyMatch(d->d.team().equals(team)&&d.position()==Position.TOP&&d.reason().startsWith("FINANCE_BLOCKED"));return;}
+        assertThat(offers).singleElement().satisfies(o->assertThat(o.playerId()).isEqualTo(candidates.getLast()));
+        var offer=offers.getFirst();assertThat(offer.terms().role()).isEqualTo(Role.STARTER);
+        m.advance(offer.decisionDate());
+        assertThat(m.offers.get(offer.offerId()).status()).isEqualTo(OfferStatus.ACCEPTED);
+        assertThat(m.active(offer.playerId(),offer.terms().startDate())).isNotNull();
+        System.out.println("FOURTH_CANDIDATE team="+team+" candidates="+candidates+" budget="+budget+" offer="+CareerRosterStore.write(offer));
+    }
+
+    @Test void laterCoverageCandidateAccountsForEarlierProposalsInTheSameReview(){
+        var m=setup();String team="LCK:BRO";m.clEnabled=false;var review=java.time.LocalDate.of(2027,12,27);
+        // Current-year salaries are already paid; the FA start is Jan 1, covered by the ordinary
+        // next annual allocation. The small remaining cash therefore constrains signing bonuses.
+        for(var c:new ArrayList<>(m.contracts.values())){
+            var end=java.time.LocalDate.of(2027,12,31);var t=c.terms();
+            m.contracts.put(c.contractId(),new Contract(c.contractId(),c.careerId(),c.playerId(),c.team(),c.organizationId(),c.signedDate(),new Terms(t.startDate(),end,t.annualSalary(),t.signingBonus(),t.role()),c.status(),c.revision(),c.policyVersion(),c.origin(),c.terminationPolicy(),c.endedDate(),end));
+        }
+        var tops=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.TOP&&!team.equals(m.members.get(id).ownerTeam())).sorted().toList();
+        var junglers=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.JUNGLE&&!team.equals(m.members.get(id).ownerTeam())).sorted().limit(2).toList();
+        String top=tops.getFirst(),expensive=junglers.getFirst(),cheap=junglers.getLast();var chosen=Set.of(top,expensive,cheap);
+        for(String id:m.directory.players().keySet())if(Set.of(Position.TOP,Position.JUNGLE).contains(m.player(id).position())){
+            m.contracts.values().removeIf(c->c.playerId().equals(id));
+            m.freeAgents.remove(id);
+            if(chosen.contains(id)){m.freeAgents.add(id);m.members.put(id,new CareerRosterStore.Membership(id,null,"FREE_AGENT","FREE_AGENT",null));rating(m,id,id.equals(cheap)?1:20,200);}
+            else m.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,true));
+        }
+        m.lineups.values().forEach(ids->ids.removeIf(chosen::contains));m.lineups.get(team).removeIf(id->Set.of(Position.TOP,Position.JUNGLE).contains(m.player(id).position()));
+        var a=m.accounts.get(team);m.accounts.put(team,new Account(team,a.annualBudget(),26_000,a.rosterLimit()));
+        m.planner.review(review);
+        var offers=m.offers.values().stream().filter(o->o.team().equals(team)).toList();
+        assertThat(offers).extracting(Offer::playerId).contains(top,cheap).doesNotContain(expensive);
+        assertThat(m.reservedCash(team)).isLessThanOrEqualTo(26_000);
+    }
+
 }

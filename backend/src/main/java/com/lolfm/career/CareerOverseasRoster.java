@@ -36,7 +36,8 @@ final class CareerOverseasRoster {
             else{
                 String id=CareerMarketEngine.id(career,"OVERSEAS_INITIAL|"+p.playerId());LocalDate end=date.withMonth(11).withDayOfMonth(30);String publicEnd=details.path("contract").path("endDate").asText();if(!publicEnd.isBlank())end=LocalDate.parse(publicEnd).plusYears(year-2026);if(end.isBefore(date))throw new IllegalStateException("OVERSEAS_INITIAL_CONTRACT_DATE");
                 Role role=p.initialSquad().equals("DEVELOPMENT")?Role.DEVELOPMENT:Role.STARTER;
-                m.contracts.put(id,new Contract(id,career,p.playerId(),club,p.initialOrganizationId(),date,new Terms(date,end,m.demand(p.playerId()),0,role),ContractStatus.ACTIVE,0,CareerMarketPolicy.VERSION,EXTENSION,"REMAINING_SALARY_25_PERCENT_V1",null,date.minusDays(1)));
+                // Initial source adoption preserves V1 reference pay; V2 applies to new negotiations only.
+                m.contracts.put(id,new Contract(id,career,p.playerId(),club,p.initialOrganizationId(),date,new Terms(date,end,m.finance.legacyDemand(p.playerId()),0,role),ContractStatus.ACTIVE,0,CareerMarketPolicy.VERSION,EXTENSION,"REMAINING_SALARY_25_PERCENT_V1",null,date.minusDays(1)));
             }
         }
         String json=write(new Directory(definitions,organizations));db.update("UPDATE career_player_directory SET directory_json=?,directory_hash=? WHERE career_id=?",json,hash(json),career);

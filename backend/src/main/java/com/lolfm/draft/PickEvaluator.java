@@ -48,7 +48,7 @@ public final class PickEvaluator {
                             DraftPlanPortfolio ownPortfolio,
                             DraftPlanPortfolio enemyPortfolio,
                             DraftComputationContext context) {
-        if (state.unavailableChampions().contains(candidate)) return illegal(candidate);
+        if (context.unavailable(state).contains(candidate)) return illegal(candidate);
         ArrayList<ChampionId> next = new ArrayList<>(state.picks(side)); next.add(candidate);
         List<RoleAssignmentSolver.RoleAssignment> feasible =
                 assignments.feasibleAssignments(next, context);

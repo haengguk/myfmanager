@@ -1,0 +1,6 @@
+efficiency,completed_tick,worked_seconds,discarded_work,tempo_credit_at_completion,credit_after_gap
+0.99,4,40,9.600000000000001,39.6,9.9
+1.0,3,30,0.0,30.0,10.0
+1.2,3,30,6.0,34.5,11.5
+1.49,3,30,14.700000000000003,34.5,11.5
+1.5,2,20,0.0,23.0,11.5

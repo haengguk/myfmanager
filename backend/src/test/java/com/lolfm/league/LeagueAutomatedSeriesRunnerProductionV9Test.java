@@ -100,15 +100,17 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
         String id=career.careerId();var view=market.view(id,2027);
         market.command(id,new com.lolfm.career.CareerMarketStore.Request("CAREER_MARKET_COMMAND_KRW_V1",2027,view.revision(),"RELEASE","player-cuzz",null,null,null,null,java.util.UUID.randomUUID().toString()));
         view=market.view(id,2027);var bo=view.players().stream().filter(p->p.playerId().equals("player-bo")).findFirst().orElseThrow();
-        var terms=new com.lolfm.career.CareerMarketState.Terms(bo.availableStart(),bo.availableStart().plusYears(2).minusDays(1),bo.askingSalary()*150/100,10_000,com.lolfm.career.CareerMarketState.Role.STARTER);
+        var terms=new com.lolfm.career.CareerMarketState.Terms(bo.availableStart(),bo.availableStart().plusYears(2).minusDays(1),bo.askingSalary()*125/100,10_000,com.lolfm.career.CareerMarketState.Role.STARTER);
         market.command(id,new com.lolfm.career.CareerMarketStore.Request("CAREER_MARKET_COMMAND_KRW_V1",2027,view.revision(),"SUBMIT","player-bo",null,terms,null,null,java.util.UUID.randomUUID().toString()));
         while(calendar.view(career).state().currentDate().isBefore(bo.availableStart()))calendar.advance(career,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,calendar.view(career).state().calendarRevision(),"ADVANCE_ONE_DAY",java.util.UUID.randomUUID().toString());
         var current=rosters.view(id,2027);rosters.change(id,new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-bo","SELECT_STARTER",null,null,current.revision(),java.util.UUID.randomUUID().toString()));
+        // The fixture funds its new support through a common release, keeping V2 market approval intact.
+        view=market.view(id,2027);market.command(id,new com.lolfm.career.CareerMarketStore.Request("CAREER_MARKET_COMMAND_KRW_V1",2027,view.revision(),"RELEASE","player-effort",null,null,null,null,java.util.UUID.randomUUID().toString()));
         view=market.view(id,2027);var price=view.management().quotes().stream().filter(q->q.playerId().equals("player-life")).findFirst().orElseThrow();
         var selling=view.contracts().stream().filter(c->c.playerId().equals("player-life")&&c.status()==com.lolfm.career.CareerMarketState.ContractStatus.ACTIVE).findFirst().orElseThrow();
         var moveStart=price.earliestStart();var moveEnd=moveStart.plusYears(2).minusDays(1);
         var transfer=new com.lolfm.career.CareerManagementState.TradeTerms(com.lolfm.career.CareerManagementState.Kind.TRANSFER,"player-life",selling.team(),"LCK:KT",moveStart,moveEnd,price.suggestedTransferFee(),0,
-                new com.lolfm.career.CareerMarketState.Terms(moveStart,moveEnd,price.referenceSalary()*150/100,0,com.lolfm.career.CareerMarketState.Role.RESERVE),null);
+                new com.lolfm.career.CareerMarketState.Terms(moveStart,moveEnd,price.referenceSalary()*125/100,0,com.lolfm.career.CareerMarketState.Role.RESERVE),null);
         market.tradeCommand(id,new com.lolfm.career.CareerMarketStore.TradeRequest("CAREER_TRADE_COMMAND_KRW_V1",2027,view.revision(),"SUBMIT",null,transfer,null,java.util.UUID.randomUUID().toString()));
         while(calendar.view(career).state().currentDate().isBefore(moveStart))calendar.advance(career,com.lolfm.dto.CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,calendar.view(career).state().calendarRevision(),"ADVANCE_ONE_DAY",java.util.UUID.randomUUID().toString());
         current=rosters.view(id,2027);rosters.change(id,new com.lolfm.career.CareerRosterStore.Request("CAREER_ROSTER_COMMAND_V1",2027,"LCK:KT","player-life","SELECT_STARTER",null,null,current.revision(),java.util.UUID.randomUUID().toString()));
@@ -123,9 +125,10 @@ class LeagueAutomatedSeriesRunnerProductionV9Test {
         var frozen=com.lolfm.career.CareerRosterStore.eligiblePair(jdbc,id,2027,"LCK:KT","LCK:T1").domesticPair("KT","T1");
         assertThat(frozen.roster("KT").players().stream().filter(p->p.playerId().equals("player-life")).findFirst().orElseThrow().ratings()).isNotEqualTo(life.gameplay().ratings());
         var currentPrice=market.view(id,2027).management().quotes().stream().filter(q->q.playerId().equals("player-life")).findFirst().orElseThrow();
-        var priceBasis=com.lolfm.career.CareerRosterStore.read(jdbc.queryForObject("SELECT state_json FROM career_market_state WHERE career_id=?",String.class,id),com.lolfm.career.CareerMarketState.class).finance().prices().get("player-life");
         long currentStrength=frozen.roster("KT").players().stream().filter(p->p.playerId().equals("player-life")).findFirst().orElseThrow().ratings().values().stream().mapToLong(Integer::longValue).sum();
-        assertThat(currentPrice.referenceSalary()).isEqualTo(com.lolfm.career.CareerFinancePolicy.ratio(priceBasis.referenceSalary(),currentStrength,priceBasis.referenceStrength()));
+        assertThat(currentPrice.pricing().policyVersion()).isEqualTo(com.lolfm.career.CareerNegotiationPolicy.VERSION);
+        assertThat(currentPrice.pricing().strength()).isEqualTo((int)currentStrength);
+        assertThat(currentPrice.referenceSalary()).isEqualTo(currentPrice.pricing().annualDemand());
         assertThat(market.view(id,2027).management().trades().stream().filter(t->t.terms().playerId().equals("player-life")).findFirst().orElseThrow().terms().fee()).isEqualTo(transfer.fee());
         var season=productionSeason(snapshots);var fixture=LeagueDomainTestFixtures.fixture(season.schedule(),"KT","T1");
         var tx=new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));

@@ -39,7 +39,7 @@ public final class DraftAvailability {
             DraftState state, TeamSide side, ChampionId excludedChampion,
             DraftComputationContext context
     ) {
-        Set<ChampionId> unavailable = new HashSet<>(state.unavailableChampions());
+        Set<ChampionId> unavailable = new HashSet<>(context == null ? state.unavailableChampions() : context.unavailable(state));
         if (excludedChampion != null) unavailable.add(excludedChampion);
         List<ChampionId> pool = available(unavailable);
         return feasibleAssignments(state.picks(side), context).stream()
@@ -78,7 +78,7 @@ public final class DraftAvailability {
                                        ChampionId candidate, Position targetPosition,
                                        DraftComputationContext context) {
         List<ChampionId> picks = append(state.picks(side), candidate);
-        Set<ChampionId> unavailable = new HashSet<>(state.unavailableChampions());
+        Set<ChampionId> unavailable = new HashSet<>(context == null ? state.unavailableChampions() : context.unavailable(state));
         unavailable.add(candidate);
         List<ChampionId> pool = available(unavailable);
         return feasibleAssignments(picks, context).stream()
@@ -127,7 +127,7 @@ public final class DraftAvailability {
                                      ChampionId candidate,
                                      DraftComputationContext context) {
         List<ChampionId> picks = candidate == null ? state.picks(side) : append(state.picks(side), candidate);
-        Set<ChampionId> unavailable = new HashSet<>(state.unavailableChampions());
+        Set<ChampionId> unavailable = new HashSet<>(context == null ? state.unavailableChampions() : context.unavailable(state));
         if (candidate != null) unavailable.add(candidate);
         List<ChampionId> pool = available(unavailable);
         return feasibleAssignments(picks, context).stream().mapToDouble(assignment -> {

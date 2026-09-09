@@ -1,0 +1,388 @@
+{
+  "preparation": "Early lifecycle review produced 2028 intake; common releases created an NS TOP gap. One scripted new-price offer, then seven actual calendar day commands with product consent/AI selection. No synthetic match results or forced acceptance.",
+  "negotiation": {
+    "contract": {
+      "contractId": "market_237a1eeb0ac750f92c559ccb82dfb839bdf1d6602553b54218654373547def05",
+      "careerId": "career_4ae6de38073aa8a2e266153e2bc3c38e32c3ce447ca615ed1933d28ef1a325f6",
+      "playerId": "player-ng-ac3a73bfa57f-2028-001",
+      "team": "LCK:NS",
+      "organizationId": "LCK:NS",
+      "signedDate": [
+        2026,
+        8,
+        29
+      ],
+      "terms": {
+        "startDate": [
+          2026,
+          8,
+          29
+        ],
+        "endDate": [
+          2028,
+          8,
+          28
+        ],
+        "annualSalary": 613407250,
+        "signingBonus": 0,
+        "role": "STARTER"
+      },
+      "status": "ACTIVE",
+      "revision": 2,
+      "policyVersion": "CAREER_CONTRACT_MARKET_GAME_POLICY_V1",
+      "origin": "NEGOTIATED_FREE_AGENT",
+      "terminationPolicy": "REMAINING_SALARY_25_PERCENT_V1",
+      "endedDate": null,
+      "paidThrough": [
+        2026,
+        8,
+        31
+      ]
+    },
+    "date": [
+      2026,
+      8,
+      31
+    ],
+    "lineup": [
+      "player-ng-ac3a73bfa57f-2028-001",
+      "player-sponge",
+      "player-scout",
+      "player-diable",
+      "player-lehends"
+    ],
+    "offer": {
+      "offerId": "market_c825a5a10f213f8d39f2a145e8ec083ce897c26ba0a818cc15894134bf941fd6",
+      "playerId": "player-ng-ac3a73bfa57f-2028-001",
+      "team": "LCK:NS",
+      "terms": {
+        "startDate": [
+          2026,
+          8,
+          29
+        ],
+        "endDate": [
+          2028,
+          8,
+          28
+        ],
+        "annualSalary": 613407250,
+        "signingBonus": 0,
+        "role": "STARTER"
+      },
+      "submittedDate": [
+        2026,
+        8,
+        24
+      ],
+      "responseDate": [
+        2026,
+        8,
+        26
+      ],
+      "decisionDate": [
+        2026,
+        8,
+        29
+      ],
+      "expiresDate": [
+        2026,
+        8,
+        30
+      ],
+      "revision": 1,
+      "status": "ACCEPTED",
+      "previousOfferId": null,
+      "round": 1,
+      "requestedSalary": null,
+      "reason": "선수가 제안을 수락했습니다.",
+      "pricing": {
+        "policyVersion": "CAREER_NEGOTIATION_PRICE_V2",
+        "pricedOn": [
+          2026,
+          8,
+          24
+        ],
+        "region": "LPL",
+        "marketBasis": "STRUCTURED_ORIGIN_MARKET",
+        "strength": 182,
+        "abilityBand": "STARTER_REFERENCE",
+        "annualDemand": 490725800,
+        "referenceHash": "8836859b202e78109e24b66ab8a08d5611bcbc796dc7eac3cb60e4bfd5245779",
+        "fxPolicyVersion": "GAME_FIXED_FX_V1"
+      }
+    },
+    "player": "player-ng-ac3a73bfa57f-2028-001",
+    "team": "LCK:NS"
+  },
+  "continuous": {
+    "schemaVersion": "CAREER_CONTINUOUS_VIEW_V1",
+    "careerId": "career_4ae6de38073aa8a2e266153e2bc3c38e32c3ce447ca615ed1933d28ef1a325f6",
+    "currentDate": [
+      2026,
+      9,
+      2
+    ],
+    "run": {
+      "completedAwards": 3,
+      "observedAwards": 3,
+      "runId": "continuous_585eb745-a809-4cf7-b13a-419de579de94",
+      "careerId": "career_4ae6de38073aa8a2e266153e2bc3c38e32c3ce447ca615ed1933d28ef1a325f6",
+      "seasonYear": 2027,
+      "mode": "NEXT_MANAGED_MATCH",
+      "targetDate": null,
+      "startDate": [
+        2026,
+        8,
+        31
+      ],
+      "status": "STOPPED",
+      "revision": 21,
+      "completedDates": 2,
+      "completedSeries": 1,
+      "completedGames": 2,
+      "steps": 6,
+      "stalls": 1,
+      "observedSeries": 1,
+      "observedGames": 2,
+      "resumeStep": 0,
+      "previousFingerprint": "2026-09-01|8|1|0|null",
+      "refreshNeeded": true,
+      "intent": null,
+      "stop": {
+        "category": "USER_DECISION",
+        "reason": "PLAYER_MATCH",
+        "owner": "LCK:GEN",
+        "referenceId": "series_1322b29f466527d54f13a8d7a5a0426429e8d7e3916d9c82eea36bd4af309e4c",
+        "nextAction": "MATCH"
+      }
+    },
+    "allowedCommands": [
+      "RESUME",
+      "START"
+    ]
+  },
+  "screenSeconds": 37.397,
+  "receipt": {
+    "schemaVersion": "CAREER_COMPETITION_FIXTURE_COMPLETION_RECEIPT_V1",
+    "bindingHash": "ecb8eb0cedee36015dfe0a92073d6b5442765906d09eaedd15555dc3062a5a75",
+    "careerId": "career_4ae6de38073aa8a2e266153e2bc3c38e32c3ce447ca615ed1933d28ef1a325f6",
+    "seasonYear": 2027,
+    "competitionId": "LCK_CUP",
+    "fixtureId": "competition_fixture_2f6e5de411ee821157ccb3e92238e909fb0ea6a2a7bc3456d9fad60b559a1784",
+    "matchId": "GB_B3_E4",
+    "seriesId": "series_fae8e3ff9268f18048eafef7d9bc6a3a6d3a24da9dc80f75164826c4596d7abd",
+    "firstTeamCode": "NS",
+    "secondTeamCode": "BFX",
+    "firstScore": 2,
+    "secondScore": 0,
+    "winnerTeamCode": "NS",
+    "loserTeamCode": "BFX",
+    "totalDurationSeconds": 3440,
+    "receiptHash": "b21ab3b9be3f160c7ae03032a86b22fe6f013b0bf35c4cbfb4e6d28be5d2a35c"
+  },
+  "cashNS": {
+    "team": "LCK:NS",
+    "annualBudget": 4757500000,
+    "cash": 2227682123,
+    "rosterLimit": 13
+  },
+  "salaryEntries": [
+    {
+      "entryId": "market_3369fcd6e4cbfc88fbb6263e735f6ae86ce8eeb336b7559a3239aa4937436b38",
+      "date": [
+        2026,
+        8,
+        29
+      ],
+      "team": "LCK:NS",
+      "contractId": "market_237a1eeb0ac750f92c559ccb82dfb839bdf1d6602553b54218654373547def05",
+      "kind": "SIGNING_BONUS",
+      "amount": 0
+    },
+    {
+      "entryId": "market_d62d7c0f080900b7dc3677fd9050ad4dece752007799490337f54c442c9030b6",
+      "date": [
+        2026,
+        8,
+        31
+      ],
+      "team": "LCK:NS",
+      "contractId": "market_237a1eeb0ac750f92c559ccb82dfb839bdf1d6602553b54218654373547def05",
+      "kind": "SALARY",
+      "amount": -5041704
+    }
+  ],
+  "salaryArrearsNS": 0,
+  "aiSelection": [
+    {
+      "id": "market_8a3c874c57283c517ff3adb1299cbc939676b6fd2d06c5144c6b6848387131ef",
+      "seasonYear": 2027,
+      "date": [
+        2026,
+        8,
+        29
+      ],
+      "team": "LCK:NS",
+      "position": "TOP",
+      "squad": "FIRST_TEAM",
+      "action": "SELECT",
+      "status": "APPLIED",
+      "playerId": "player-ng-ac3a73bfa57f-2028-001",
+      "previousPlayerId": null,
+      "effectiveDate": [
+        2026,
+        8,
+        29
+      ],
+      "referenceId": null,
+      "reason": "실제 선발 공백 보완"
+    }
+  ],
+  "games": [
+    {
+      "gameNumber": 1,
+      "gameSeed": 2591802464200888061,
+      "durationSeconds": 1570,
+      "orderedFinalAssignments": [
+        {
+          "teamSide": "BLUE",
+          "position": "TOP",
+          "playerId": "player-ng-ac3a73bfa57f-2028-001",
+          "championId": "sett"
+        },
+        {
+          "teamSide": "BLUE",
+          "position": "JUNGLE",
+          "playerId": "player-sponge",
+          "championId": "morgana"
+        },
+        {
+          "teamSide": "BLUE",
+          "position": "MID",
+          "playerId": "player-scout",
+          "championId": "lissandra"
+        },
+        {
+          "teamSide": "BLUE",
+          "position": "ADC",
+          "playerId": "player-diable",
+          "championId": "kalista"
+        },
+        {
+          "teamSide": "BLUE",
+          "position": "SUPPORT",
+          "playerId": "player-lehends",
+          "championId": "alistar"
+        },
+        {
+          "teamSide": "RED",
+          "position": "TOP",
+          "playerId": "player-clear",
+          "championId": "varus"
+        },
+        {
+          "teamSide": "RED",
+          "position": "JUNGLE",
+          "playerId": "player-raptor",
+          "championId": "zyra"
+        },
+        {
+          "teamSide": "RED",
+          "position": "MID",
+          "playerId": "player-vicla",
+          "championId": "azir"
+        },
+        {
+          "teamSide": "RED",
+          "position": "ADC",
+          "playerId": "player-taeyoon",
+          "championId": "caitlyn"
+        },
+        {
+          "teamSide": "RED",
+          "position": "SUPPORT",
+          "playerId": "player-kellin",
+          "championId": "rell"
+        }
+      ],
+      "inputHash": "0a4c227d2fcf80cc996e670782cadb47dec6dd946ccf5d06834b6a6cd80553a5",
+      "outputHash": "4e0ce6b32928fd3a33e07a675936e4147ccec64d6b5edd1cf3a89ff94ff24663",
+      "structuredTimelineHash": "84c4779308f6a9b9a9223b0ed7d82f086dc9eb87f0564ddbfc98fce8c81bf079",
+      "randomDrawCount": 2757,
+      "randomTraceHash": "a2b0e4eea53739e3be3cbcc9c9d44864613b93d43f67d7df36c3c4515ab98b21"
+    },
+    {
+      "gameNumber": 2,
+      "gameSeed": -2477786954334169557,
+      "durationSeconds": 1870,
+      "orderedFinalAssignments": [
+        {
+          "teamSide": "BLUE",
+          "position": "TOP",
+          "playerId": "player-clear",
+          "championId": "sion"
+        },
+        {
+          "teamSide": "BLUE",
+          "position": "JUNGLE",
+          "playerId": "player-raptor",
+          "championId": "poppy"
+        },
+        {
+          "teamSide": "BLUE",
+          "position": "MID",
+          "playerId": "player-vicla",
+          "championId": "orianna"
+        },
+        {
+          "teamSide": "BLUE",
+          "position": "ADC",
+          "playerId": "player-taeyoon",
+          "championId": "corki"
+        },
+        {
+          "teamSide": "BLUE",
+          "position": "SUPPORT",
+          "playerId": "player-kellin",
+          "championId": "leona"
+        },
+        {
+          "teamSide": "RED",
+          "position": "TOP",
+          "playerId": "player-ng-ac3a73bfa57f-2028-001",
+          "championId": "gnar"
+        },
+        {
+          "teamSide": "RED",
+          "position": "JUNGLE",
+          "playerId": "player-sponge",
+          "championId": "taliyah"
+        },
+        {
+          "teamSide": "RED",
+          "position": "MID",
+          "playerId": "player-scout",
+          "championId": "annie"
+        },
+        {
+          "teamSide": "RED",
+          "position": "ADC",
+          "playerId": "player-diable",
+          "championId": "jhin"
+        },
+        {
+          "teamSide": "RED",
+          "position": "SUPPORT",
+          "playerId": "player-lehends",
+          "championId": "neeko"
+        }
+      ],
+      "inputHash": "beb76534cb6f088ec8ef98fc54b0f237562503ec10d2e9d5f52e16fb139372f8",
+      "outputHash": "caf7d529d8bec12bf6a1b2e9ec3bef654d7ea2fc3f0b74198920eda95912d6e3",
+      "structuredTimelineHash": "ffc5c7fdfb3a6dcc9e5e5ff9029d148e3f9ea0b345522ada78666520c8e90b17",
+      "randomDrawCount": 3290,
+      "randomTraceHash": "e92e120cb48dd872ea538cdd5055c607c4e27d130eb89aabaf5a3b4f613cdd6c"
+    }
+  ]
+}

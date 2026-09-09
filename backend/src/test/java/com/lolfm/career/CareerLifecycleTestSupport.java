@@ -12,8 +12,9 @@ public final class CareerLifecycleTestSupport {
         var manager=new DataSourceTransactionManager(jdbc.getDataSource());var store=new CareerLifecycleStore(jdbc,manager,new ChampionCatalog(new com.fasterxml.jackson.databind.ObjectMapper()));
         var date=CareerMarketStore.executionDate(jdbc,career);int year=CareerRosterStore.activeYear(jdbc,career);var review=store.review(career,year,date);
         String id=review.rookieIds().getFirst();var old=CareerMarketStore.load(jdbc,career);var market=CareerMarketStore.engine(jdbc,career,year,old);var start=market.availableStart(id,date);
-        var offer=market.submit(team,id,new CareerMarketState.Terms(start,start.plusYears(2).minusDays(1),market.demand(id)*3,0,CareerMarketState.Role.RESERVE),null,date);
-        // Fixture setup establishes employment through the normal acceptance path.
+        var offer=market.submit(team,id,new CareerMarketState.Terms(start,start.plusYears(2).minusDays(1),market.demand(id)*125/100,0,CareerMarketState.Role.RESERVE),null,date);
+        // Fixture setup uses the V2 fully compensated bid, within the chosen club's real wage headroom.
+        // It establishes employment through the normal acceptance path.
         // This test covers Calendar/Auto appearances, not winning a 56-club auction.
         try {
             var accept=CareerMarketEngine.class.getDeclaredMethod("accept",CareerMarketState.Offer.class,java.time.LocalDate.class);

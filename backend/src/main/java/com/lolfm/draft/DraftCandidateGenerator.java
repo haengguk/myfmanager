@@ -48,8 +48,9 @@ public final class DraftCandidateGenerator {
                               DraftPlanPortfolio enemyPortfolio,
                               DraftComputationContext context) {
         TeamSide side = state.currentTurn().side();
+        var unavailable = context.unavailable(state);
         List<ChampionId> legal = champions.all().stream().map(value -> value.id())
-                .filter(id -> !state.unavailableChampions().contains(id))
+                .filter(id -> !unavailable.contains(id))
                 .filter(id -> state.currentTurn().actionType() == DraftActionType.BAN
                         || feasiblePick(state, side, id, context))
                 .toList();

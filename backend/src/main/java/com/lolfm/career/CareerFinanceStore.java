@@ -104,10 +104,36 @@ final class CareerFinanceStore {
     }
     static void close(CareerCompetitionRelationalStore store,String career,int year,LocalDate date){
         recognize(store,career,year);var old=CareerMarketStore.load(store.jdbc,career);if(old==null||old.state().finance()==null)return;
-        var m=CareerMarketStore.engine(store.jdbc,career,year,old);var domestic=new TreeMap<String,Integer>();var worlds=new TreeMap<String,Integer>();
-        var finalRank=store.finalRanking(career,year);if(finalRank!=null)finalRank.ranking().forEach(r->domestic.put("LCK:"+r.teamCode(),r.seed()));
-        m.finance.awards.values().stream().filter(a->a.seasonYear()==year&&a.competition().equals("WORLDS")).forEach(a->worlds.put(a.team(),a.placementFrom()));
-        m.finance.close(year,date,domestic,worlds);CareerMarketStore.persist(store.jdbc,career,year,old,m);
+        var m=CareerMarketStore.engine(store.jdbc,career,year,old);var results=sportingResults(store,career,year);
+        m.finance.closeRanks(year,date,results.domestic(),results.worlds(),results.worldsEntrants(),results.worldsBound());CareerMarketStore.persist(store.jdbc,career,year,old,m);
     }
+    record SportingResults(Map<String,CareerFinanceEngine.Rank> domestic,Map<String,CareerFinanceEngine.Rank> worlds,Set<String> worldsEntrants,boolean worldsBound){}
+    static SportingResults sportingResults(CareerCompetitionRelationalStore store,String career,int year){
+        var domestic=new TreeMap<String,CareerFinanceEngine.Rank>();var worlds=new TreeMap<String,CareerFinanceEngine.Rank>();var entrants=new TreeSet<String>();
+        var finalRank=store.finalRanking(career,year);if(finalRank!=null)finalRank.ranking().forEach(r->domestic.put("LCK:"+r.teamCode(),new CareerFinanceEngine.Rank(r.seed(),r.seed())));
+        for(String region:List.of("LPL","LEC","LCS","LCP","CBLOL")){
+            var event=CareerOverseasRules.Event.valueOf(CareerSportingFinancePolicy.COMPETITIONS.get(region));
+            var state=CareerOverseasStore.load(store.jdbc,career,year,event);if(state==null||!state.plan().complete())continue;
+            var result=ranks(state.plan().placements());
+            if(!result.keySet().equals(new HashSet<>(state.input().entrants())))continue;
+            if(region.equals("LPL")){
+                var split2=CareerOverseasStore.load(store.jdbc,career,year,CareerOverseasRules.Event.LPL_SPLIT_2);
+                if(split2==null||!split2.plan().complete()||split2.plan().seasonEliminated().size()!=2)continue;
+                // Split-2 exits did not play Split 3; retain a shared season-ending 13–14 band.
+                for(String team:split2.plan().seasonEliminated())result.put(team,new CareerFinanceEngine.Rank(13,14));
+            }
+            if(result.keySet().equals(new HashSet<>(CareerOverseasRules.partners(region))))domestic.putAll(result);
+        }
+        var states=store.jdbc.query("SELECT state_json,state_hash FROM career_international_state WHERE career_id=? AND calendar_season_year=? AND competition_id='WORLDS'",(r,n)->{
+            if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("INTERNATIONAL_FINANCE_INTEGRITY");
+            var state=read(r.getString(1),CareerInternationalState.class);if(!state.careerId().equals(career)||state.year()!=year||!state.competitionId().equals("WORLDS"))throw new IllegalStateException("INTERNATIONAL_FINANCE_SCOPE");return state;
+        },career,year);
+        if(!states.isEmpty()){
+            var state=states.getFirst();state.entries().forEach(e->entrants.add(e.team()));
+            if(state.plan().complete()&&state.plan().placements().keySet().equals(entrants))worlds.putAll(ranks(state.plan().placements()));
+        }
+        return new SportingResults(domestic,worlds,entrants,!states.isEmpty());
+    }
+
     static void startSeason(JdbcTemplate jdbc,String career,int year){var old=CareerMarketStore.load(jdbc,career);if(old==null||old.state().finance()==null)return;var m=CareerMarketStore.engine(jdbc,career,year,old);m.finance.initializeTargets(year,m.state().processedThrough(),false);CareerMarketStore.persist(jdbc,career,year,old,m);}
 }

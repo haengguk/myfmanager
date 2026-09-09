@@ -192,6 +192,8 @@ class CareerOverseasExecutionTest {
         assertThat(v.events()).hasSize(1);assertThat(v.events().getFirst().result().regularRanking()).isEmpty();
         assertThat(v.events().getFirst().fixtures()).hasSize(66);
         var engine=CareerMarketStore.engine(jdbc,id,year,saved);
+        var adopted=engine.contracts.values().stream().filter(contract->contract.origin().equals(CareerOverseasRoster.EXTENSION)).toList();
+        assertThat(adopted).isNotEmpty().allSatisfy(contract->assertThat(contract.terms().annualSalary()).isEqualTo(engine.finance.legacyDemand(contract.playerId())));
         var guest=CareerOverseasRoster.roster(engine,"LEC:KCB");
         assertThat(guest.players()).hasSize(5).allSatisfy(p->assertThat(engine.members.get(p.playerId()).ownerTeam()).isEqualTo("LEC:KC"));
         assertThat(guest.players().stream().map(CompetitionRosterSnapshot.Starter::playerId)).doesNotContainAnyElementsOf(engine.lineups.get("LEC:KC"));
@@ -220,6 +222,8 @@ class CareerOverseasExecutionTest {
         var recruitment=CareerMarketStore.engine(jdbc,id,year,CareerMarketStore.load(jdbc,id));
         recruitment.advance(CareerMarketStore.date(jdbc,id).plusDays(42));
         for(String team:List.of("LPL:OMG","LPL:UP","LEC:LR")){
+            if(CareerOverseasRoster.candidates(recruitment,team).stream().map(pid->recruitment.player(pid).position()).distinct().count()<5)
+                System.out.println("OVERSEAS_COVERAGE_FAILURE "+team+" account="+CareerRosterStore.write(recruitment.accounts.get(team))+" salary="+recruitment.salaryAt(team,recruitment.processedThrough(),true)+" decisions="+CareerRosterStore.write(recruitment.state().squadPlanning().decisions().stream().filter(d->d.team().equals(team)).toList()));
             assertThat(CareerOverseasRoster.roster(recruitment,team).players()).hasSize(5);
             int initialRoles=(int)CareerOverseasRoster.candidates(engine,team).stream().map(pid->engine.player(pid).position()).distinct().count();
             long negotiated=recruitment.contracts.values().stream().filter(cn->team.equals(cn.team())&&Set.of("NEGOTIATED_FREE_AGENT","PAID_TRANSFER_AGREEMENT").contains(cn.origin())).count()

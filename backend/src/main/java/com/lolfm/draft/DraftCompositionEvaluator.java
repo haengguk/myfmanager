@@ -35,7 +35,7 @@ public final class DraftCompositionEvaluator {
                           DraftComputationContext context) {
         List<ChampionId> next = append(ownPicks, candidate);
         return assignments.feasibleAssignments(next, context).stream().mapToDouble(assignment -> {
-            TeamShape shape = shape(assignment);
+            TeamShape shape = shape(assignment, context);
             double desired = portfolio.preferred().desiredCapabilities().stream()
                     .mapToDouble(capability -> boundedCoverage(shape.capabilities().get(capability))).average().orElse(10.0);
             double fundamentals = (boundedCoverage(shape.capabilities().get(CompositionCapability.ENGAGE))
@@ -46,17 +46,17 @@ public final class DraftCompositionEvaluator {
     }
 
     double marginalFit(List<ChampionId> picks,ChampionId candidate,DraftPlanPortfolio plan,DraftComputationContext context) {
-        double before=assignments.feasibleAssignments(picks,context).stream().mapToDouble(a->qualityForPlan(a,plan)).max().orElse(0);
+        double before=assignments.feasibleAssignments(picks,context).stream().mapToDouble(a->qualityForPlan(a,plan,context)).max().orElse(0);
         var next=append(picks,candidate);
-        double after=assignments.feasibleAssignments(next,context).stream().mapToDouble(a->qualityForPlan(a,plan)).max().orElse(0);
+        double after=assignments.feasibleAssignments(next,context).stream().mapToDouble(a->qualityForPlan(a,plan,context)).max().orElse(0);
         // Average team quality changes are scaled by roster size; never compare team totals with different counts.
         return Math.clamp(after*(picks.size()+1)-before*picks.size()-10,-10,10);
     }
-    private double qualityForPlan(RoleAssignmentSolver.RoleAssignment a,DraftPlanPortfolio plan) {
+    private double qualityForPlan(RoleAssignmentSolver.RoleAssignment a,DraftPlanPortfolio plan,DraftComputationContext context) {
         if(a.positions().isEmpty())return 0;
-        TeamShape s=shape(a);
+        TeamShape s=shape(a,context);
         double desired=plan.preferred().desiredCapabilities().stream().mapToDouble(c->s.capabilities().get(c)).average().orElse(0);
-        return desired*0.55+assignmentQuality(a)*0.45;
+        return desired*0.55+shapeQuality(s)*0.45;
     }
 
     public double compositionResponse(List<ChampionId> ownPicks, List<ChampionId> enemyPicks,
@@ -138,7 +138,7 @@ public final class DraftCompositionEvaluator {
                                DraftComputationContext context) {
         return assignments.feasibleAssignments(picks, context).stream()
                 .max(java.util.Comparator.comparingDouble(value -> assignments.proficiencyScore(value, team)))
-                .map(this::shape).orElse(TeamShape.empty());
+                .map(a->shape(a,context)).orElseGet(TeamShape::empty);
     }
 
     public TeamShape threateningPartialShape(List<ChampionId> picks) {
@@ -147,11 +147,11 @@ public final class DraftCompositionEvaluator {
 
     TeamShape threateningPartialShape(List<ChampionId> picks,
                                       DraftComputationContext context) {
-        return assignments.feasibleAssignments(picks, context).stream().map(this::shape)
+        return assignments.feasibleAssignments(picks, context).stream().map(a->shape(a,context))
                 .max(java.util.Comparator.comparingDouble(value -> average(value,
                         CompositionCapability.ENGAGE, CompositionCapability.BACKLINE_ACCESS,
                         CompositionCapability.POKE, CompositionCapability.BURST_DAMAGE)))
-                .orElse(TeamShape.empty());
+                .orElseGet(TeamShape::empty);
     }
 
     public java.util.Set<Position> feasibleCandidatePositions(List<ChampionId> ownPicks, ChampionId candidate) {
@@ -165,13 +165,18 @@ public final class DraftCompositionEvaluator {
     }
 
     public double assignmentQuality(RoleAssignmentSolver.RoleAssignment assignment) {
-        TeamShape value = shape(assignment);
+        return shapeQuality(shape(assignment));
+    }
+    private double shapeQuality(TeamShape value) {
         double fundamentals = average(value, CompositionCapability.ENGAGE, CompositionCapability.FRONTLINE,
                 CompositionCapability.PEEL, CompositionCapability.WAVE_CLEAR,
                 CompositionCapability.SUSTAINED_DAMAGE);
         return fundamentals * 0.75 + damageBalance(value.damage()) * 0.25;
     }
 
+    private TeamShape shape(RoleAssignmentSolver.RoleAssignment assignment,DraftComputationContext context) {
+        return context.shape(this,assignment,()->shape(assignment));
+    }
     private TeamShape shape(RoleAssignmentSolver.RoleAssignment assignment) {
         EnumMap<CompositionCapability, Double> caps = new EnumMap<>(CompositionCapability.class);
         for (CompositionCapability capability : CompositionCapability.values()) caps.put(capability, 0.0);

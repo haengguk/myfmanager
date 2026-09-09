@@ -412,7 +412,9 @@ class CareerModePersistenceTest {
             assertThat(com.lolfm.career.CareerRosterStore.write(market.view(careerId,2027))).isEqualTo(before);assertThat(rosters.view(careerId,2027)).isEqualTo(rosterBefore);
             h.jdbc().execute("ALTER TABLE career_market_command DROP CONSTRAINT market_test_failure");
             var current=market.view(careerId,2027);var player=current.players().stream().filter(p->p.playerId().equals("player-fate")).findFirst().orElseThrow();
-            var proposal=new com.lolfm.career.CareerMarketState.Terms(player.availableStart(),player.availableStart().plusYears(1).minusDays(1),player.askingSalary(),0,com.lolfm.career.CareerMarketState.Role.RESERVE);
+            // This race checks one revision/receipt, not player acceptance. A budgeted low offer may
+            // be submitted and then rejected by the ordinary response policy on its response date.
+            var proposal=new com.lolfm.career.CareerMarketState.Terms(player.availableStart(),player.availableStart().plusYears(1).minusDays(1),100_000,0,com.lolfm.career.CareerMarketState.Role.RESERVE);
             var one=marketCommand(current,"SUBMIT","player-fate",proposal);var two=marketCommand(current,"SUBMIT","player-fate",proposal);
             try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)) {
                 var outcomes=executor.invokeAll(List.<java.util.concurrent.Callable<Boolean>>of(()->{try{market.command(careerId,one);return true;}catch(CareerException stale){return false;}},()->{try{market.command(careerId,two);return true;}catch(CareerException stale){return false;}}));

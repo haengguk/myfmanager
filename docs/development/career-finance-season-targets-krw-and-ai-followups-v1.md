@@ -1,5 +1,10 @@
 # Career 원화·구단 재정·시즌 목표 V1 구현 기록
 
+> 후속 정책(2026-09-09): 아래 내용은 V1 도입 당시의 결과다. 새 협상/견적의 가격과 해외
+> 성적 평가 범위는 [Career 통합 V2](career-auto-speed-market-economy-and-balance-v2.md)를 따른다.
+> 초기 참고 배분·현재 계약·기존 접수 제안·확정 평가/승인·상금 원장은 소급 변경하지 않는다.
+
+
 2026-09-08. 시작 HEAD `086f13c9a854ce0d8efeed16038589be37d4bc9b`, 브랜치 `main`.
 원본 `prompts/`, `상금,예산/`, `선수정보.zip` 및 작성 선수 자료를 보존한다.
 커밋·push·배포를 실행하지 않는다. 현재 요청과 AGENTS.md 및 `lolmanager-verification`을 적용했다.

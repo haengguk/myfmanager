@@ -19,6 +19,25 @@ final class DraftComputationContext {
             Comparator.comparing(ChampionId::value);
 
     private final boolean cacheEnabled;
+    // DraftState is immutable. Identity reuse is confined to this execution and cleared below.
+    private final Map<DraftState, StateKey> stateKeys = new java.util.IdentityHashMap<>();
+    private final Map<DraftState, Set<ChampionId>> unavailable = new java.util.IdentityHashMap<>();
+    private final Map<DraftCompositionEvaluator, Map<RoleAssignmentSolver.RoleAssignment,
+            DraftCompositionEvaluator.TeamShape>> shapes = new java.util.IdentityHashMap<>();
+    DraftCompositionEvaluator.TeamShape shape(DraftCompositionEvaluator evaluator,
+            RoleAssignmentSolver.RoleAssignment assignment,
+            Supplier<DraftCompositionEvaluator.TeamShape> computation) {
+        if(!cacheEnabled)return computation.get();
+        return shapes.computeIfAbsent(evaluator,ignored->new java.util.IdentityHashMap<>())
+                .computeIfAbsent(assignment,ignored->computation.get());
+    }
+    Set<ChampionId> unavailable(DraftState state) {
+        return cacheEnabled ? unavailable.computeIfAbsent(state, DraftState::unavailableChampions)
+                : state.unavailableChampions();
+    }
+    private StateKey stateKey(DraftState state) {
+        return cacheEnabled ? stateKeys.computeIfAbsent(state, StateKey::of) : StateKey.of(state);
+    }
     private final Map<ChampionCombinationKey, List<RoleAssignmentSolver.RoleAssignment>>
             roleAssignments = new HashMap<>();
     private final Map<CandidateRoleKey, Set<Position>> candidatePositions = new HashMap<>();
@@ -145,7 +164,7 @@ final class DraftComputationContext {
     boolean completion(DraftState state, TeamSide side, ChampionId candidate,
                        Position targetPosition, BooleanSupplier computation) {
         completionRequests++;
-        CompletionKey key = new CompletionKey(StateKey.of(state), side, candidate,
+        CompletionKey key = new CompletionKey(stateKey(state), side, candidate,
                 targetPosition);
         if (cacheEnabled && completion.containsKey(key)) {
             completionHits++;
@@ -164,7 +183,7 @@ final class DraftComputationContext {
     double poolHealth(DraftState state, TeamSide side, ChampionId candidate,
                       DoubleSupplier computation) {
         poolHealthRequests++;
-        PoolHealthKey key = new PoolHealthKey(StateKey.of(state), side, candidate);
+        PoolHealthKey key = new PoolHealthKey(stateKey(state), side, candidate);
         if (cacheEnabled && poolHealth.containsKey(key)) {
             poolHealthHits++;
             return poolHealth.get(key);
@@ -200,6 +219,9 @@ final class DraftComputationContext {
     }
 
     void clear() {
+        stateKeys.clear();
+        unavailable.clear();
+        shapes.clear();
         forecasts.clear();
         roleAssignments.clear();
         candidatePositions.clear();
@@ -232,12 +254,16 @@ final class DraftComputationContext {
     private record StateKey(int nextTurnIndex, List<ChampionId> bluePicks,
                             List<ChampionId> redPicks, List<ChampionId> blueBans,
                             List<ChampionId> redBans,
-                            List<ChampionId> fearlessExclusions) {
+                            List<ChampionId> fearlessExclusions, int cachedHash) {
+        @Override public int hashCode() { return cachedHash; }
         private static StateKey of(DraftState state) {
             ArrayList<ChampionId> exclusions = new ArrayList<>(state.fearlessExclusions());
             exclusions.sort(CHAMPION_ORDER);
+            List<ChampionId> stableExclusions=List.copyOf(exclusions);
             return new StateKey(state.nextTurnIndex(), state.bluePicks(), state.redPicks(),
-                    state.blueBans(), state.redBans(), List.copyOf(exclusions));
+                    state.blueBans(), state.redBans(), stableExclusions,
+                    java.util.Objects.hash(state.nextTurnIndex(),state.bluePicks(),state.redPicks(),
+                            state.blueBans(),state.redBans(),stableExclusions));
         }
     }
 

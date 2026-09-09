@@ -14,6 +14,26 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 class CareerContinuousRecoveryTest {
+    @Test void schedulerKeepsImmediateProgressButBacksOffWhenRetryWritesFail() {
+        var store=org.mockito.Mockito.mock(CareerContinuousStore.class);
+        var service=org.mockito.Mockito.mock(CareerContinuousApplicationService.class);
+        var worker=new CareerContinuousWorker(store,service,false);
+        try {
+            org.mockito.Mockito.when(store.due()).thenReturn(java.util.List.of("broken","healthy"));
+            assertThat(worker.cycleDelayMillis()).isZero();
+            org.mockito.Mockito.when(store.due()).thenReturn(java.util.List.of("healthy"),java.util.List.of());
+            assertThat(worker.cycleDelayMillis()).isEqualTo(1000); // External job released with its existing future wake.
+            org.mockito.Mockito.when(store.due()).thenReturn(java.util.List.of("broken","healthy"));
+            org.mockito.Mockito.doThrow(new IllegalStateException("claim failed")).when(service).step(org.mockito.Mockito.eq("broken"),org.mockito.Mockito.anyString());
+            org.mockito.Mockito.doThrow(new IllegalStateException("defer failed")).when(store).defer("broken");
+            org.mockito.Mockito.clearInvocations(service);
+            for(int attempt=0;attempt<3;attempt++)assertThat(worker.cycleDelayMillis()).isEqualTo(1000);
+            org.mockito.Mockito.verify(service,org.mockito.Mockito.atLeastOnce()).step(org.mockito.Mockito.eq("healthy"),org.mockito.Mockito.anyString());
+            org.mockito.Mockito.doNothing().when(store).defer("broken");
+            org.mockito.Mockito.when(store.due()).thenReturn(java.util.List.of("broken"),java.util.List.of());
+            assertThat(worker.cycleDelayMillis()).isEqualTo(1000);
+        } finally {worker.close();}
+    }
     @TempDir Path temporary;
     ConfigurableApplicationContext open(){return new SpringApplicationBuilder(LolfmApplication.class).web(WebApplicationType.NONE).run(
             "--spring.datasource.url=jdbc:h2:file:"+temporary.resolve("continuous")+";DB_CLOSE_ON_EXIT=FALSE;LOCK_TIMEOUT=30000",

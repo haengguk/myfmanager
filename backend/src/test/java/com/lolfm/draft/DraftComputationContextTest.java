@@ -16,9 +16,36 @@ import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 
 class DraftComputationContextTest {
+    @Test void immutableStateReadsAreReusedOnlyWithinTheirDraftLifetime() {
+        var context=DraftComputationContext.cached();
+        var state=DraftState.fresh(DraftRuleSet.professional(),new SeriesDraftHistory());
+        var first=context.unavailable(state);
+        assertThat(context.unavailable(state)).isSameAs(first).isEmpty();
+        var banned=new DraftState(state.ruleSet(),1,List.of(),List.of(),List.of(id("poppy")),List.of(),Set.of());
+        assertThat(context.unavailable(banned)).containsExactly(id("poppy"));
+        assertThat(context.unavailable(state)).isEmpty();
+        assertThatThrownBy(()->context.unavailable(banned).clear()).isInstanceOf(UnsupportedOperationException.class);
+        context.clear();
+        assertThat(context.unavailable(banned)).isEqualTo(banned.unavailableChampions());
+        assertThat(DraftComputationContext.cached().unavailable(state)).isEmpty();
+    }
     private final DraftResourceSet resources = DraftTestSupport.RESOURCES;
     private final RoleAssignmentSolver assignments =
             new RoleAssignmentSolver(resources.champions().catalog());
+
+    @Test void compositionReuseKeepsImmutableInputsAndEndsWithTheDraft() {
+        var context=DraftComputationContext.cached();
+        var composition=new DraftCompositionEvaluator(resources.champions().catalog(),resources.champions().composition(),assignments);
+        var picks=List.of(id("poppy"));
+        var first=composition.bestPartialShape(picks,DraftTestSupport.NEUTRAL,context);
+        assertThat(composition.bestPartialShape(picks,DraftTestSupport.NEUTRAL,context)).isSameAs(first);
+        assertThat(first).isEqualTo(composition.bestPartialShape(picks,DraftTestSupport.NEUTRAL));
+        assertThatThrownBy(()->first.capabilities().clear()).isInstanceOf(UnsupportedOperationException.class);
+        var other=new DraftCompositionEvaluator(resources.champions().catalog(),resources.champions().composition(),assignments);
+        assertThat(other.bestPartialShape(picks,DraftTestSupport.NEUTRAL,context)).isNotSameAs(first).isEqualTo(first);
+        context.clear();
+        assertThat(composition.bestPartialShape(picks,DraftTestSupport.NEUTRAL,context)).isNotSameAs(first).isEqualTo(first);
+    }
 
     @Test
     void canonicalChampionCombinationReusesExactImmutableAssignments() {

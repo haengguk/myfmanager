@@ -29,23 +29,28 @@ public final class CareerContinuousWorker {
         if(enabled)worker.schedule(this::cycle,0,TimeUnit.MILLISECONDS);
     }
     private void cycle() {
-        tick();
+        long delay=cycleDelayMillis();
         if(worker.isShutdown())return;
-        long delay=1000;
-        try {if(!store.due().isEmpty())delay=0;}
-        catch(RuntimeException failure){org.slf4j.LoggerFactory.getLogger(getClass()).warn("Continuous wake lookup failed",failure);}
         try {worker.schedule(this::cycle,delay,TimeUnit.MILLISECONDS);}
         catch(RejectedExecutionException shuttingDown){if(!worker.isShutdown())throw shuttingDown;}
     }
-    void tick() {
+    long cycleDelayMillis() {
+        // A readable due row cannot prove progress when its retry write failed.
+        // This operational backoff survives failure of the persistent defer itself.
+        if(tick())return 1000;
+        try {return store.due().isEmpty()?1000:0;}
+        catch(RuntimeException failure){org.slf4j.LoggerFactory.getLogger(getClass()).warn("Continuous wake lookup failed",failure);return 1000;}
+    }
+    boolean tick() {
         long started=System.nanoTime(); // Operational fairness budget; never a gameplay input.
-
+        boolean retryWriteFailed=false;
         try {for(String career:store.due()) {
             try {service.step(career,owner);}
             catch(RuntimeException error) {
                 org.slf4j.LoggerFactory.getLogger(getClass()).warn("Continuous run {} could not be read or scheduled",career,error);
                 // Preserve corrupt payloads. A broken save must not starve other Careers.
                 try {store.defer(career);} catch(RuntimeException deferFailure) {
+                    retryWriteFailed=true;
                     org.slf4j.LoggerFactory.getLogger(getClass()).warn("Continuous retry scheduling failed",deferFailure);
                 }
             }
@@ -53,7 +58,8 @@ public final class CareerContinuousWorker {
             // completed step wrote a new wake time; pending external jobs keep their backoff.
             if(System.nanoTime()-started>=TimeUnit.MILLISECONDS.toNanos(250))break;
         }}
-        catch(RuntimeException error){org.slf4j.LoggerFactory.getLogger(getClass()).warn("Continuous coordinator scheduling failed",error);}
+        catch(RuntimeException error){org.slf4j.LoggerFactory.getLogger(getClass()).warn("Continuous coordinator scheduling failed",error);return true;}
+        return retryWriteFailed;
     }
     @PreDestroy public void close(){worker.shutdownNow();}
 }

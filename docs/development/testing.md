@@ -1,5 +1,13 @@
 # Testing
 
+## Career Auto·시장·재정·밸런스 V2 (2026-09-09)
+
+Continuous의 step/defer 동시 실패에 운영 backoff를 적용했다. Draft 수명의 불변 계산 재사용으로 동일 입력 Auto 화면 대기는 평균50.098→45.831초(8.52% 감소), 권장30% 목표는 미달이다. 차순위 예산 탐색, 현재 능력치·실제 시장 기반 새 협상 가격과 해외5리그 고정 목표/실제 성적/다음 시즌 승인을 연결했다. 기존 계약·접수 제안·중립 해외 시즌·경기 binding·과거 수상은 보존한다.
+2seed의49 profile-years와 실제4세트의 정글/Draft/평점을 관측했으며 성장·경기·개인상 수치를 임의 변경하지 않았다. 긴 시상 경로의 신뢰 보정과 지원 역할의 미계측 기여는 남은 제한이다.
+같은 AI 검토에서 먼저 선택한 제안의 예약 비용 누락도 수정해 해외42일의 선발 복구와 마지막 시장·planner57건이 통과했다. 계획 전체1회는286 suites/2,265건 중2,259통과·4실패·기존skip2, wall1,406.06초였다. 원본 결과를 보존한 뒤 실패와 직접 영향 범위를 집중 검증했다. 후속4회/141건 시도(wall312.06초)의 LR 및 새 fixture 실패는 수정 후 해소했다. 전체 전후 집중은13회/300건 시도다. 프런트126 PASS/build성공, 대표 실제 브라우저 동선도 확인했다. 추가 전체0회이며 최종 clean full 통과로 표기하지 않는다.
+정확한 적용 경계, A의12세트와 최종 통합을 구분한 비용 및 검증 결과는 [통합 보고서](career-auto-speed-market-economy-and-balance-v2.md)를 따른다.
+
+
 ## Career 실제 플레이 속도 V1 (2026-09-09)
 
 G1은 기존 `career:verify`에서 실제 Calendar callback·busy·focus 해제와 늦은 응답을 검사한다. G2는 기존 RecordsStorage의 실제 match award writer를 이용한 작은 자료로 라운드/통합 범위를 비교한다. DraftJointPool과 ContinuousRecovery에 각각 역할 계수 경계와 실제 날짜 commit 중 읽기 스냅샷 경계를 추가했다. 신규 backend 테스트 클래스는 없다.

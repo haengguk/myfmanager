@@ -102,7 +102,7 @@ public final class BanEvaluator {
         if(bestRole!=null && availability.canComplete(state,side.opposite(),id,context)) {
             var role=bestRole;
             var replacementState=policy.completeRoleRequired()?availability.syntheticUnavailable(state,id):state;
-            replacement=champions.all().stream().map(c->c.id()).filter(c->!c.equals(id)&&!state.unavailableChampions().contains(c))
+            replacement=champions.all().stream().map(c->c.id()).filter(c->!c.equals(id)&&!context.unavailable(state).contains(c))
                     .filter(c->availability.evaluationPositions(replacementState,side.opposite(),c,policy,context).contains(role))
                     .filter(c->availability.canComplete(state,side.opposite(),c,context))
                     .mapToDouble(c->context.forecast(ability,enemy,new ChampionRoleKey(c,role),enemyPlan.preferred().archetype()).value()).max().orElse(0);
@@ -163,7 +163,7 @@ public final class BanEvaluator {
                         state.picks(side), core, context))).max().orElse(0.0);
         double futureProtection = ownPortfolio.plans().stream()
                 .flatMap(plan -> plan.coreCandidates().stream().limit(5))
-                .filter(core -> !state.unavailableChampions().contains(core))
+                .filter(core -> !context.unavailable(state).contains(core))
                 .filter(core -> availability.canComplete(state, side, core, context))
                 .mapToDouble(core -> directCoreThreat(threat, core, threatPositions,
                         assignments.feasibleCandidatePositions(

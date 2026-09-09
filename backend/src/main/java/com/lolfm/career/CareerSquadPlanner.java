@@ -26,7 +26,7 @@ final class CareerSquadPlanner {
                 if(offer!=null){status=offer.status()==OfferStatus.ACCEPTED?(m.state().processedThrough().isBefore(offer.terms().startDate())?"AGREED":"APPLIED"):offer.open()?"PROPOSED":"CLOSED";disclosed=offer.status()==OfferStatus.ACCEPTED||offer.team().equals(m.managed);}
                 if(trade!=null){status=trade.status()==TradeStatus.COMPLETED?"APPLIED":trade.status()==TradeStatus.AGREED?"AGREED":trade.open()?"AWAITING_CONSENT":"CLOSED";disclosed=trade.status()==TradeStatus.COMPLETED||trade.terms().buyer().equals(m.managed)||trade.terms().seller().equals(m.managed);}
             }
-            if(!disclosed)reason=status.equals("DEFERRED")?"선수단 자격·대체자·재정 조건을 충족하지 못해 보류":status.equals("CLOSED")?"협상 종료 · 선수단 변경 없음":"선수단 운영 검토 · 조건과 후보는 비공개";
+            if(!disclosed)reason=status.equals("DEFERRED")?(d.action().equals("COVERAGE")?reason:"선수단 자격·대체자·재정 조건을 충족하지 못해 보류"):status.equals("CLOSED")?"협상 종료 · 선수단 변경 없음":"선수단 운영 검토 · 조건과 후보는 비공개";
             result.add(new CareerSquadPlanningPolicy.Decision(d.id(),d.seasonYear(),d.date(),d.team(),d.position(),d.squad(),d.action(),status,disclosed?d.playerId():null,disclosed?d.previousPlayerId():null,disclosed?d.effectiveDate():null,null,reason));
         }
         return result.reversed();
@@ -148,11 +148,40 @@ final class CareerSquadPlanner {
                 &&availableOn(team,l.playerId(),through,squad));
         return scheduled||returning;
     }
-    private boolean affordable(Proposal p,LocalDate date){
+    private boolean affordable(Proposal p,LocalDate date,List<Proposal> earlier){
         // Reuse the existing obligation validator on an isolated workspace; no proposal/receipt is persisted here.
         var trial=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),m.state());
-        try {if(p.trade()==null)trial.submit(p.team(),p.player(),p.terms(),null,date);else trial.tradeEngine.submit(p.team(),p.trade(),null,date);return true;}
+        try {
+            for(var chosen:earlier)if(chosen.team().equals(p.team())){
+                if(chosen.trade()==null)trial.submit(chosen.team(),chosen.player(),chosen.terms(),null,date);
+                else trial.tradeEngine.submit(chosen.team(),chosen.trade(),null,date);
+            }
+            if(p.trade()==null)trial.submit(p.team(),p.player(),p.terms(),null,date);else trial.tradeEngine.submit(p.team(),p.trade(),null,date);return true;
+        }
         catch(CareerException insufficient){return false;}
+    }
+    /** Necessary upper bounds only; the common submit validator remains the authority. */
+    private final class Search {
+        int checks,financeRejected,approvalRejected;boolean limited;
+        final Map<LocalDate,Long> existingSalary=new HashMap<>();
+        final List<Proposal> earlier;
+        Search(List<Proposal> earlier){this.earlier=earlier;}
+        boolean accepts(Proposal p,LocalDate date){
+            var account=m.accounts.get(p.team());var trade=p.trade();
+            long upfront=trade==null?p.terms().signingBonus():trade.fee()+(trade.kind()==Kind.TRANSFER?p.terms().signingBonus():0);
+            long salary=trade!=null&&trade.kind()==Kind.LOAN?CareerFinancePolicy.pct(p.terms().annualSalary(),trade.borrowerSalaryPercent()):p.terms().annualSalary();
+            long cap=m.finance==null?account.annualBudget():m.finance.approval(p.team(),p.terms().startDate()).wageLimit();
+            long plannedCash=0,plannedSalary=0;
+            for(var chosen:earlier)if(chosen.team().equals(p.team())){
+                var t=chosen.trade();plannedCash+=t==null?chosen.terms().signingBonus():t.fee()+(t.kind()==Kind.TRANSFER?chosen.terms().signingBonus():0);
+                if(!p.terms().startDate().isBefore(chosen.terms().startDate())&&!p.terms().startDate().isAfter(chosen.terms().endDate()))
+                    plannedSalary+=t!=null&&t.kind()==Kind.LOAN?CareerFinancePolicy.pct(chosen.terms().annualSalary(),t.borrowerSalaryPercent()):chosen.terms().annualSalary();
+            }
+            if(account.cash()-m.reservedCash(p.team())-plannedCash<upfront||salary+plannedSalary+existingSalary.computeIfAbsent(p.terms().startDate(),d->m.salaryAt(p.team(),d,true))>cap||m.salaryArrears(p.team())>0||m.finance!=null&&m.finance.debt.getOrDefault(p.team(),0L)>0){financeRejected++;return false;}
+            if(checks>=COMMON_CHECKS){limited=true;return false;}
+            checks++;if(affordable(p,date,earlier))return true;approvalRejected++;return false;
+        }
+        String reason(boolean empty){return empty?"NO_CANDIDATE · 출전·기간·대체자 조건에 맞는 선수 없음":limited?"SEARCH_LIMIT · 제한된 보완 탐색 소진":approvalRejected>0?"COMMON_APPROVAL_REJECTED · 지급·동의·기간·명부 공통 검사 불충족":financeRejected>0?"FINANCE_BLOCKED · 현금·체불·승인 연봉 한도 불충족":"NEGOTIATION_WAIT · 재접촉·거래 한도 대기";}
     }
     void review(LocalDate date){
         if(date.getDayOfWeek()!=DayOfWeek.MONDAY||date.equals(lastReview))return;
@@ -190,21 +219,24 @@ final class CareerSquadPlanner {
                 Proposal chosen=null;
                 var bounded=new ArrayList<>(pool.stream().limit(CANDIDATES).toList());
                 if(renewalDue&&!bounded.contains(incumbent)){if(bounded.size()==CANDIDATES)bounded.removeLast();bounded.add(incumbent);}
+                if(!safe)for(String id:pool){if(bounded.size()>=COVERAGE_CANDIDATES)break;if(!bounded.contains(id))bounded.add(id);}
+                var search=new Search(proposed);search.limited=!safe&&pool.size()>bounded.size();
                 for(String id:bounded){
+                    if(search.checks>=COMMON_CHECKS){search.limited=true;break;}
                     if(m.offers.values().stream().anyMatch(o->o.team().equals(team)&&o.playerId().equals(id)&&date.isBefore(o.decisionDate().plusDays(REVIEW_WAIT_DAYS))))continue;
                     Role promise=target.equals("DEVELOPMENT")?Role.DEVELOPMENT:!safe||incumbent==null||id.equals(incumbent)||strength(m.player(id))>strength(m.player(incumbent))+IMPROVEMENT?Role.STARTER:Role.RESERVE;
                     LocalDate start=m.availableStart(id,date);
                     String reason=own.contains(id)?"만료 60일 이내 · 현재 역할 유지 재계약":safe?"명확한 현재 기량 차이에 따른 보강":"확인된 계약 만료·복귀 또는 선수단 공백 대비";
-                    if(start!=null){long salary=m.demand(id)*(AI_MIN_BID_PERCENT+variation(m.seed,"AI_BID|"+team+'|'+id+'|'+date,AI_BID_VARIANTS))/100;
-                        var candidate=new Proposal(team,role,target,id,new Terms(start,start.plusYears(AI_CONTRACT_YEARS).minusDays(1),salary,m.demand(id)/AI_BONUS_DIVISOR,promise),null,reason);
-                        if(affordable(candidate,date)){chosen=candidate;break;}continue;}
+                    if(start!=null){long salary=m.demand(id,date)*(AI_MIN_BID_PERCENT+variation(m.seed,"AI_BID|"+team+'|'+id+'|'+date,AI_BID_VARIANTS))/100;
+                        var candidate=new Proposal(team,role,target,id,new Terms(start,start.plusYears(AI_CONTRACT_YEARS).minusDays(1),salary,m.demand(id,date)/AI_BONUS_DIVISOR,promise),null,reason);
+                        if(search.accepts(candidate,date)){chosen=candidate;break;}continue;}
                     if(trades>=TRADES_PER_CLUB)continue;
                     var c=m.active(id,date);if(c==null||!canDepart(c.team(),id,date))continue;
-                    var t=m.tradeEngine.plannedTerms(team,id,promise,date);if(t!=null){var candidate=new Proposal(team,role,target,id,t.playerTerms(),t,reason);if(affordable(candidate,date)){chosen=candidate;break;}
-                        if(t.kind()==Kind.TRANSFER){var loan=m.tradeEngine.plannedLoanTerms(team,id,promise,date);if(loan!=null){candidate=new Proposal(team,role,target,id,loan.playerTerms(),loan,reason);if(affordable(candidate,date)){chosen=candidate;break;}}}}
+                    var t=m.tradeEngine.plannedTerms(team,id,promise,date);if(t!=null){var candidate=new Proposal(team,role,target,id,t.playerTerms(),t,reason);if(search.accepts(candidate,date)){chosen=candidate;break;}
+                        if(t.kind()==Kind.TRANSFER){var loan=m.tradeEngine.plannedLoanTerms(team,id,promise,date);if(loan!=null){candidate=new Proposal(team,role,target,id,loan.playerTerms(),loan,reason);if(search.accepts(candidate,date)){chosen=candidate;break;}}}}
                 }
                 if(chosen!=null){proposed.add(chosen);count++;if(chosen.trade()!=null)trades++;}
-                else if(!safe)record(team,role,target,"COVERAGE","DEFERRED",own.isEmpty()?null:own.getFirst(),null,date,null,null,"합법적인 후보·대체자·예산 또는 동의 대기 · 강제 계약 없음");
+                else if(!safe)record(team,role,target,"COVERAGE","DEFERRED",own.isEmpty()?null:own.getFirst(),null,date,null,null,search.reason(pool.isEmpty())+" · 강제 계약 없음");
                 // Surplus contracts expire naturally; no premature termination or invented proceeds.
                 for(String id:own)if(own.size()>1&&!id.equals(own.getFirst())&&m.availableStart(id,date)!=null)
                     record(team,role,target,"EXPIRY_REVIEW","PLANNED",id,null,date,m.active(id,date).terms().endDate().plusDays(1),null,"현재 대체 자원 보유 · 거래는 별도 합의, 미갱신 시 자연 만료");

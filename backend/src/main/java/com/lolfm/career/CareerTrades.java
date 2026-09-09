@@ -28,22 +28,24 @@ final class CareerTrades {
         if(trades.values().stream().anyMatch(t->t.terms().playerId().equals(player)&&t.status()==TradeStatus.COMPLETED&&date.isBefore(t.terms().startDate().plusDays(RECONTACT_DAYS))))return "이동 직후 재거래 유예 기간입니다.";
         return null;
     }
-    long estimate(String player,LocalDate date) {var c=m.active(player,date);return c==null?0:value(m.demand(player),date,c.terms().endDate());}
+    long estimate(String player,LocalDate date) {var c=m.active(player,date);return c==null?0:value(m.demand(player,date),date,c.terms().endDate());}
     String replacement(String team,String player,LocalDate date) {
         return m.members.values().stream().filter(p->!p.playerId().equals(player)&&team.equals(p.ownerTeam())&&"FIRST_TEAM".equals(p.squad())
                 &&m.player(p.playerId()).position()==m.player(player).position()&&m.eligible(p.playerId(),team,date))
                 .map(CareerRosterStore.Membership::playerId).sorted(Comparator.comparingInt((String p)->strength(m.player(p))).reversed().thenComparing(p->p)).findFirst().orElse(null);
     }
-    long demandFee(TradeTerms t,LocalDate date) {
-        long base=t.kind()==Kind.TRANSFER?estimate(t.playerId(),date):loanFee(m.demand(t.playerId()),t.startDate(),t.endDate());
+    long demandFee(TradeTerms t,LocalDate date) {return demandFee(t,date,m.demand(t.playerId(),date));}
+    private long demandFee(TradeTerms t,LocalDate date,long salary) {
+        long base=t.kind()==Kind.TRANSFER?value(salary,date,m.active(t.playerId(),date).terms().endDate()):loanFee(salary,t.startDate(),t.endDate());
         int percent=SELL_BASE_PERCENT+(m.lineups.get(t.seller()).contains(t.playerId())?SELL_STARTER_PREMIUM:0)
                 -(m.promiseEngine.mood(t.playerId(),date)<=MOVE_INTEREST?SELL_UNHAPPY_DISCOUNT:0)-(m.salaryArrears(t.seller())>0?SELL_ARREARS_DISCOUNT:0);
         return Math.multiplyExact(base,percent)/100;
     }
-    long buyerLimit(TradeTerms t,LocalDate date) {
+    long buyerLimit(TradeTerms t,LocalDate date) {return buyerLimit(t,date,m.demand(t.playerId(),date));}
+    private long buyerLimit(TradeTerms t,LocalDate date,long salary) {
         var held=m.lineups.get(t.buyer()).stream().filter(p->m.player(p).position()==m.player(t.playerId()).position()).findFirst();
         int percent=held.isEmpty()?BUY_URGENT_PERCENT:strength(m.player(t.playerId()))>strength(m.player(held.get()))?BUY_IMPROVEMENT_PERCENT:BUY_BASE_PERCENT;
-        long base=t.kind()==Kind.TRANSFER?estimate(t.playerId(),date):loanFee(m.demand(t.playerId()),t.startDate(),t.endDate());
+        long base=t.kind()==Kind.TRANSFER?value(salary,date,m.active(t.playerId(),date).terms().endDate()):loanFee(salary,t.startDate(),t.endDate());
         return Math.min(Math.multiplyExact(base,percent)/100,Math.max(0,m.paymentHeadroom(t.buyer(),date)));
     }
     long reserved(String team) {return trades.values().stream().filter(t->t.open()&&t.buyerAgreed()&&t.terms().buyer().equals(team))
@@ -75,12 +77,14 @@ final class CareerTrades {
         if(previous==null&&trades.values().stream().anyMatch(t->t.terms().playerId().equals(terms.playerId())&&t.terms().buyer().equals(terms.buyer())
                 &&(t.open()||date.isBefore(t.decisionDate().plusDays(RECONTACT_DAYS)))))throw invalid("기존 거래를 수정하거나 재접촉 유예 기간을 기다려 주세요.");
         validate(terms,date,decision);
-        long wanted=demandFee(terms,date),limit=buyerLimit(terms,date);
+        var pricing=previous==null?m.quote(terms.playerId(),date):previous.pricing();
+        long salary=m.negotiationDemand(terms.playerId(),pricing);
+        long wanted=demandFee(terms,date,salary),limit=buyerLimit(terms,date,salary);
         String id=CareerMarketEngine.id(m.career,"TRADE|"+actor+'|'+terms.playerId()+'|'+terms.buyer()+'|'+decision+'|'+round);
         LocalDate response=date.plusDays(TRADE_RESPONSE_DAYS);
         if(response.isAfter(decision))response=decision;
         var t=new Trade(id,m.active(terms.playerId(),date).contractId(),actor,terms,date,response,decision,decision.plusDays(1),round,previousId,
-                previous==null?TradeStatus.CLUB_PENDING:TradeStatus.CLUB_COUNTER,actor.equals(terms.seller()),actor.equals(terms.buyer()),estimate(terms.playerId(),date),wanted,limit,null,"상대 구단 조건 검토 대기",CareerManagementPolicy.VERSION,null);
+                previous==null?TradeStatus.CLUB_PENDING:TradeStatus.CLUB_COUNTER,actor.equals(terms.seller()),actor.equals(terms.buyer()),value(salary,date,m.active(terms.playerId(),date).terms().endDate()),wanted,limit,null,"상대 구단 조건 검토 대기",CareerManagementPolicy.VERSION,null,pricing);
         if(previous!=null)trades.put(previousId,status(previous,TradeStatus.SUPERSEDED,"새 조건으로 대체",null));trades.put(id,t);
         try {if(t.sellerAgreed())requireSeller(t,date);if(t.buyerAgreed())requireBuyer(t,date);}
         catch(RuntimeException e){trades.remove(id);if(previous!=null)trades.put(previousId,previous);throw e;}
@@ -94,7 +98,7 @@ final class CareerTrades {
         Trade prior=t;TradeTerms terms=t.terms();
         if(actor.equals(terms.seller())&&replacement!=null)terms=new TradeTerms(terms.kind(),terms.playerId(),terms.seller(),terms.buyer(),terms.startDate(),terms.endDate(),terms.fee(),terms.borrowerSalaryPercent(),terms.playerTerms(),replacement);
         boolean seller=t.sellerAgreed()||actor.equals(terms.seller()),buyer=t.buyerAgreed()||actor.equals(terms.buyer());
-        t=new Trade(t.tradeId(),t.contractId(),t.proposer(),terms,t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),t.round(),t.previousTradeId(),seller&&buyer?TradeStatus.PLAYER_PENDING:t.status(),seller,buyer,t.referenceValue(),t.sellerDemand(),t.buyerLimit(),null,"구단 동의 기록 · 선수 동의는 공통 결정일에 별도 평가",t.policyVersion(),null);
+        t=new Trade(t.tradeId(),t.contractId(),t.proposer(),terms,t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),t.round(),t.previousTradeId(),seller&&buyer?TradeStatus.PLAYER_PENDING:t.status(),seller,buyer,t.referenceValue(),t.sellerDemand(),t.buyerLimit(),null,"구단 동의 기록 · 선수 동의는 공통 결정일에 별도 평가",t.policyVersion(),null,t.pricing());
         trades.put(id,t);try{if(seller)requireSeller(t,date);if(buyer)requireBuyer(t,date);}catch(RuntimeException e){trades.put(id,prior);throw e;}return t;
     }
     private void requireSeller(Trade t,LocalDate date) {
@@ -114,9 +118,9 @@ final class CareerTrades {
             m.event(date,"RETIREMENT_TRADE_CANCELLED",player,t.terms().buyer(),t.tradeId(),"거래 효력 전 예약 해제 · 아직 지급되지 않은 비용은 환불 장부를 만들지 않음");
         }
     }
-    private Trade status(Trade t,TradeStatus status,String reason,Long score) {return new Trade(t.tradeId(),t.contractId(),t.proposer(),t.terms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),t.round(),t.previousTradeId(),status,t.sellerAgreed(),t.buyerAgreed(),t.referenceValue(),t.sellerDemand(),t.buyerLimit(),score,reason,t.policyVersion(),t.playerEvaluation()!=null?t.playerEvaluation():score==null?null:evaluation(t,t.decisionDate()));}
+    private Trade status(Trade t,TradeStatus status,String reason,Long score) {return new Trade(t.tradeId(),t.contractId(),t.proposer(),t.terms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),t.round(),t.previousTradeId(),status,t.sellerAgreed(),t.buyerAgreed(),t.referenceValue(),t.sellerDemand(),t.buyerLimit(),score,reason,t.policyVersion(),t.playerEvaluation()!=null?t.playerEvaluation():score==null?null:evaluation(t,t.decisionDate()),t.pricing());}
     private Evaluation evaluation(Trade t,LocalDate date) {
-        var terms=t.terms();var offer=new Offer(t.tradeId(),terms.playerId(),terms.buyer(),terms.playerTerms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),0,OfferStatus.SUBMITTED,null,1,null,"");
+        var terms=t.terms();var offer=new Offer(t.tradeId(),terms.playerId(),terms.buyer(),terms.playerTerms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),0,OfferStatus.SUBMITTED,null,1,null,"",t.pricing());
         return m.evaluate(offer,date);
     }
     void process(LocalDate date) {
@@ -138,7 +142,7 @@ final class CareerTrades {
                     .thenComparing(t->t.terms().buyer())).toList();String winner=null;
             for(var t:ranked) {
                 var e=evaluation(t,date);long threshold=t.terms().kind()==Kind.LOAN?LOAN_ACCEPT_SCORE:MIN_ACCEPT_SCORE;
-                if(e.score()<threshold||t.terms().playerTerms().annualSalary()*100<m.demand(player)*MIN_SALARY_PERCENT){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,"선수가 보수·역할·기회·약속 신뢰·이동 부담을 비교해 거절: "+e.reason(),e.score()));continue;}
+                if(e.score()<threshold||t.terms().playerTerms().annualSalary()*100<m.negotiationDemand(player,t.pricing())*MIN_SALARY_PERCENT){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,"선수가 보수·역할·기회·약속 신뢰·이동 부담을 비교해 거절: "+e.reason(),e.score()));continue;}
                 try{requireSeller(t,date);requireBuyer(t,date);winner=t.tradeId();trades.put(winner,status(t,TradeStatus.AGREED,"구단과 선수 동의 완료 · 적용일 최종 검사 대기: "+e.reason(),e.score()));break;}
                 catch(CareerException rejected){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,rejected.clientMessage(),e.score()));}
             }
@@ -197,7 +201,7 @@ final class CareerTrades {
         var c=m.active(player,date);if(c==null||unavailable(player,date)!=null)return null;
         LocalDate start=decision(player,date).plusDays(1),end=start.plusYears(AI_CONTRACT_YEARS).minusDays(1);
         String replacement=m.lineups.get(c.team()).contains(player)?replacement(c.team(),player,date):null;
-        var personal=new Terms(start,end,m.demand(player)*AI_MAX_BID_PERCENT/100,m.demand(player)/AI_BONUS_DIVISOR,role);
+        var personal=new Terms(start,end,m.demand(player,date)*AI_MAX_BID_PERCENT/100,m.demand(player,date)/AI_BONUS_DIVISOR,role);
         var terms=new TradeTerms(Kind.TRANSFER,player,c.team(),buyer,start,end,0,0,personal,replacement);
         long fee=demandFee(terms,date);
         if(fee>buyerLimit(terms,date)||m.paymentHeadroom(buyer,date)<fee+personal.signingBonus()) {

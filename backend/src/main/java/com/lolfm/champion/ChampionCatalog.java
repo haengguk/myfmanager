@@ -67,7 +67,8 @@ public final class ChampionCatalog {
             grouped.put(position, List.copyOf(grouped.get(position)));
         }
         champions = List.copyOf(ordered);
-        byId = Map.copyOf(indexed);
+        // Lookup-only immutable index. Avoid repeated collision probing in MapN for hot ID reads.
+        byId = java.util.Collections.unmodifiableMap(new java.util.HashMap<>(indexed));
         byPosition = Map.copyOf(grouped);
         if (defaultSelection != null) new ChampionSelectionValidator(this).validate(defaultSelection, ChampionSelectionMode.DEFAULT_FIXED);
     }
@@ -88,8 +89,12 @@ public final class ChampionCatalog {
     public String riotDataVersion() { return riotDataVersion; }
     public List<ChampionDefinition> all() { return champions; }
     public List<ChampionDefinition> forPosition(Position position) { return byPosition.getOrDefault(position, List.of()); }
-    public Optional<ChampionDefinition> find(ChampionId id) { return Optional.ofNullable(byId.get(id)); }
-    public ChampionDefinition get(ChampionId id) { return find(id).orElseThrow(() -> new IllegalArgumentException("Unknown ChampionId: " + id)); }
+    public Optional<ChampionDefinition> find(ChampionId id) { return Optional.ofNullable(byId.get(java.util.Objects.requireNonNull(id))); }
+    public ChampionDefinition get(ChampionId id) {
+        ChampionDefinition value=byId.get(java.util.Objects.requireNonNull(id));
+        if(value==null)throw new IllegalArgumentException("Unknown ChampionId: " + id);
+        return value;
+    }
     public ChampionSelectionRequest defaultSelection() { return defaultSelection; }
     public Set<ChampionRoleKey> legalRoleKeys() {
         java.util.LinkedHashSet<ChampionRoleKey> keys = new java.util.LinkedHashSet<>();

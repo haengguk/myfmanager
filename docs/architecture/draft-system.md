@@ -1,5 +1,16 @@
 # Draft System
 
+## 2026-09-09 실행 수명 내 계산 재사용
+
+현재 Career 신규 입력의 `AUTO_DRAFT_ABILITY_V2` 정책과 기존 고정 입력 버전은 유지한다.
+`DraftComputationContext`는 immutable DraftState별 unavailable 집합/상태 키 hash 및
+동일 composition evaluator·역할 배정의 불변 shape를 해당 Draft 수명에서만 재사용한다.
+clear는 이 자료도 해제한다. 전역 경기 캐시·후보/beam 축소·점수/동률/Random 변경은 없다.
+기준 HEAD와 ordered Draft/배정/timeline/output/Random receipt binding을 비교한 결과와
+실제 Auto 관측의 한계는 [Career V2 보고서](../development/career-auto-speed-market-economy-and-balance-v2.md)를 따른다.
+아래 V1 설명은 도입 당시 정책의 배경이며 현재 입력 버전 선택은 저장된 binding이 소유한다.
+
+
 ## 현재 신규 실행: 성능 기반 V1
 
 신규 runtime은 `AUTO_DRAFT_ABILITY_V1`을 사용한다. `DraftAbilityEvaluator`는 공개된
