@@ -1,5 +1,12 @@
 # Project Status
 
+## Career AI 필수 명부 예산 배분·실제 일정 복구 V1 (2026-09-13)
+
+planner V4는 incumbent 재계약의 공통 검사 기회를 확보하고, 필수 1군·예정 육성 명부의 저비용 공동안을 마련한 뒤 보강한다. 후보24명 절단을 되살리지 않으며 공통8회/정상3후보/주간4제안·2거래/재접촉28일을 유지한다. 저장 V1/V2/V3의 기존 판단·대기·계약은 보존한다.
+고정 seed의 실제28일 Calendar/시장/급여/성장 뒤 Effort가 OMG의 실제 첫 Auto BO3 세 세트에 출전하고 receipt1건 적용/replay를 확인했다. 같은 입력 V3도 복구했다. 초기 V4의 동일 선수 완전 이적 우선 선택을 비용 순서로 교정해 최종 V4도 원급여 유지 임대로 회복했고 종료 현금은V3와 같은1,655,160,210원이다. 회복률 개선으로 해석하지 않는다. BRO는 기존 의무가 미래 승인보다1,000,000원 많아4역할·신규 제안0·시작 입력 차단을 유지했다.
+시장·재정·planner·연결89건과 planner27건 후 계획 전체1회는286 suites/2,282건 중2,280통과·실패/오류0·기존skip2(wall1,217.918초)였다. 전체 컴파일본 이후 조건 순서 보완은 후속98건 전부 통과(142.035초)로 확인했다. 원본 결과를 보존했으며 최종 트리 추가 전체0회다. 프런트 변경/검증0회, 다년 추가0회다. 이전 상세 보고서는 미추적으로 보존했고 다음 커밋 포함 대상으로 인계한다.
+[상세 결과·실패·한계](development/career-ai-roster-coverage-budget-and-scheduled-recovery-v1.md)와 [이번 비교 CSV](development/career-ai-roster-coverage-budget-and-scheduled-recovery-v1.csv)를 따른다.
+
 ## Career 저장 선택 경합·장기 운영 점검 V1 (2026-09-13)
 
 다른 Career 선택을 RootApp의 Series 조회 취소에 연결해 A→B→A의 늦은 성공/실패·toast/fallback 적용을 막았다. 동일 저장의 열기·새로고침·복귀는 유지한다. 서버 경기 취소나 binding/receipt/UUID 변경은 없다.

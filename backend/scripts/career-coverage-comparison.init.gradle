@@ -1,0 +1,22 @@
+// Opt-in identical scheduled fixture with isolated historical planner classes, never a checkout.
+allprojects { afterEvaluate {
+    tasks.register('compileCoverageBaseline', JavaCompile) {
+        source = files('build/career-coverage-baseline/CareerSquadPlanner.java', 'build/career-coverage-baseline/CareerSquadPlanningPolicy.java')
+        classpath = sourceSets.main.runtimeClasspath
+        destinationDirectory = layout.buildDirectory.dir('career-coverage-baseline/classes')
+        javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(21) }
+        options.encoding = 'UTF-8'
+        dependsOn tasks.named('classes')
+    }
+    tasks.register('compareCoverageBaseline', Test) {
+        dependsOn tasks.named('testClasses'), tasks.named('compileCoverageBaseline')
+        testClassesDirs = sourceSets.test.output.classesDirs
+        classpath = files(layout.buildDirectory.dir('career-coverage-baseline/classes')) + sourceSets.test.runtimeClasspath
+        useJUnitPlatform()
+        filter { includeTestsMatching 'com.lolfm.career.CareerOverseasExecutionTest.scheduledAiRecoveryFeedsTheActualFirstAutoAndPreservesAnInsolventClub' }
+        systemProperty 'coverage.output', 'baseline-v3'
+        maxHeapSize = '1536m'; maxParallelForks = 1
+        reports.junitXml.outputLocation = layout.buildDirectory.dir('test-results/coverageBaseline')
+        reports.html.outputLocation = layout.buildDirectory.dir('reports/tests/coverageBaseline')
+    }
+} }

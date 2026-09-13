@@ -1,5 +1,12 @@
 # Testing
 
+## Career AI 필수 명부 예산 배분·실제 일정 복구 V1 (2026-09-13)
+
+CareerSquadPlanningPolicyTest에 가능한/불가능한 incumbent, TOP+SUPPORT 공동 예산, 철회 예약 해제와 재접촉, V1/V2/V3 호환, 합의 이적·임대의 효력/등록/Series 제한, 예정 육성 필요를 묶었다. 기존25번째 후보·정상 보강 검사를 유지한다. 새 정상 테스트 클래스0개다.
+CareerOverseasExecutionTest의 scheduledAiRecoveryFeedsTheActualFirstAutoAndPreservesAnInsolventClub은 고정 Career/seed, 원래 경기 일정에서28개 일일 명령을 처리하고 복구 선수 Effort의 binding/picks/출전/receipt/replay를 확인한다. BRO의 합성 미래 승인 부족은 실제 지급과 원계약 조건 보존·시작 입력 차단으로 검증한다. 미사용 운영 창 이동과 BRO 해지/미래 승인은 초기 준비이며 관측 중 강제 충원은 없다.
+분리된 scripts/career-coverage-comparison.init.gradle의 compareCoverageBaseline은 build에 추출한60baf0b planner만 테스트 classpath에 올린다. 기본 test에 다년 통계를 추가하지 않았다. V3/V4 초기 관측·fixture는 같고 실제 Auto도 동일하게 완료됐다.
+89건 집중과 planner27건 후 계획 전체1회는286 suites/2,282건 중2,280통과·실패/오류0·기존skip2(wall1,217.918초)였다. 원본은 build/reports/career-coverage-budget-full-original에 보존한다. 전체 컴파일본 이후 동일 선수 거래 조건을 비용 순서로 비교하는 보완은 후속98건(142.035초)으로 통과했다. 최종 Effort 원급여 유지 임대·Auto3세트·receipt1과 기존 해외42일 복구도 확인했다. 최종 트리의 추가 전체는0회이며 원본 전체와 후속 결과를 구분한다. 프런트 변경이 없어서 verifier/build/브라우저는0회다. 새 assertion/수집 SQL 오류와 비용, 정확한 명령은 [상세 보고서](career-ai-roster-coverage-budget-and-scheduled-recovery-v1.md), 핵심 수치는 [CSV](career-ai-roster-coverage-budget-and-scheduled-recovery-v1.csv)를 따른다.
+
 ## Career 저장 선택 경합·장기 운영 점검 V1 (2026-09-13)
 
 다른 Career 선택을 RootApp의 Series 조회 취소에 연결해 A→B→A의 늦은 성공/실패·toast/fallback 적용을 막았다. 동일 저장의 열기·새로고침·복귀는 유지한다. 서버 경기 취소나 binding/receipt/UUID 변경은 없다.

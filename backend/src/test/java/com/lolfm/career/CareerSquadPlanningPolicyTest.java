@@ -21,15 +21,15 @@ class CareerSquadPlanningPolicyTest {
         var definitions=new TreeMap<>(m.directory.players());definitions.put(id,new Definition(id,d.nickname(),d.position(),new CompetitionRosterSnapshot.Starter(id,d.nickname(),d.position(),ratings,old.proficiencies()),d.provisional(),d.initialOrganizationId(),d.initialOwnerTeam(),d.initialSquad(),d.eligibilityReason(),details.toString()));
         m.directory=new CareerRosterStore.Directory(definitions,m.directory.organizations());
     }
-    @ParameterizedTest @ValueSource(ints={175,190})
-    void promotionAndLegalClSwapUseCurrentAbilityAndPreservePromises(int pa){
+    @ParameterizedTest @org.junit.jupiter.params.provider.CsvSource({"175,CAREER_SQUAD_PLANNING_V1","190,CAREER_SQUAD_PLANNING_V2","190,CAREER_SQUAD_PLANNING_V3"})
+    void promotionAndLegalClSwapUseCurrentAbilityAndPreservePromises(int pa,String savedVersion){
         var m=setup();String first=top(m,"FIRST_TEAM"),cl=top(m,"DEVELOPMENT");rating(m,first,12,200);rating(m,cl,16,pa);
         assertThat(CareerDevelopmentPolicy.metadata(m.player(cl)).potential()).isEqualTo(pa);
         var promises=m.management().promises();var user=m.lineups.get(m.managed);m.planner.review(MONDAY);
         assertThat(m.lineups.get("LCK:BRO")).contains(cl).doesNotContain(first);assertThat(m.clLineups.get("LCK:BRO")).contains(first).doesNotContain(cl);
         assertThat(m.management().promises()).isEqualTo(promises);assertThat(m.lineups.get(m.managed)).isEqualTo(user);
         var once=m.state();m.planner.review(MONDAY);assertThat(m.state()).isEqualTo(once);
-        var restored=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),CareerRosterStore.read(CareerRosterStore.write(once).replace(CareerSquadPlanningPolicy.VERSION,CareerSquadPlanningPolicy.BOUNDED_COVERAGE),CareerMarketState.class));
+        var restored=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),CareerRosterStore.read(CareerRosterStore.write(once).replace(CareerSquadPlanningPolicy.VERSION,savedVersion),CareerMarketState.class));
         restored.clEnabled=true;restored.clLineups.putAll(m.clLineups);rating(restored,first,20,200);restored.planner.review(MONDAY.plusWeeks(1));
         assertThat(restored.lineups.get("LCK:BRO")).contains(cl);assertThat(restored.state().squadPlanning().cooldowns()).containsEntry("LCK:BRO|TOP|FIRST_TEAM",MONDAY.plusDays(28));
     }
@@ -118,6 +118,21 @@ class CareerSquadPlanningPolicyTest {
         m.developmentFixtures=Map.of(parent,List.of(MONDAY.minusDays(1)));
         assertThat(m.planner.committedCover(parent,Position.TOP,"FIRST_TEAM",MONDAY)).isFalse();
     }
+    @ParameterizedTest @org.junit.jupiter.params.provider.EnumSource(CareerManagementState.Kind.class)
+    void agreedIncomingCoverRespectsEffectDatesRegistrationAndUnconfirmedConsent(CareerManagementState.Kind kind){
+        var m=setup();String pid=top(m,"FIRST_TEAM"),buyer="LCK:BFX";var c=m.active(pid,MONDAY);var start=MONDAY.plusDays(10);
+        var terms=new CareerManagementState.TradeTerms(kind,pid,c.team(),buyer,start,start.plusDays(100),0,50,new Terms(start,start.plusDays(100),c.terms().annualSalary(),0,Role.STARTER),null);
+        var agreed=new CareerManagementState.Trade("future-cover",c.contractId(),buyer,terms,MONDAY,MONDAY,MONDAY,start,0,null,CareerManagementState.TradeStatus.AGREED,true,true,0,0,0,100L,"fixture",CareerManagementPolicy.VERSION,null);
+        m.tradeEngine.trades.put(agreed.tradeId(),agreed);m.developmentFixtures=Map.of(buyer,List.of(start.minusDays(1)));
+        assertThat(m.planner.committedCover(buyer,Position.TOP,"FIRST_TEAM",MONDAY)).isFalse();
+        m.developmentFixtures=Map.of(buyer,List.of(start));assertThat(m.planner.committedCover(buyer,Position.TOP,"FIRST_TEAM",MONDAY)).isTrue();
+        m.internationalPools.put(buyer+"|MSI",Set.of("other"));assertThat(m.planner.committedCover(buyer,Position.TOP,"FIRST_TEAM",MONDAY)).isFalse();
+        m.internationalPools.put(buyer+"|MSI",Set.of(pid));assertThat(m.planner.committedCover(buyer,Position.TOP,"FIRST_TEAM",MONDAY)).isTrue();
+        m.squadRestrictions.add(new CareerSquadPlanner.Restriction(pid,"DEVELOPMENT",MONDAY,true));assertThat(m.planner.committedCover(buyer,Position.TOP,"FIRST_TEAM",MONDAY)).isFalse();
+        m.squadRestrictions.clear();m.squadRestrictions.add(new CareerSquadPlanner.Restriction(pid,"FIRST_TEAM",MONDAY,true));assertThat(m.planner.committedCover(buyer,Position.TOP,"FIRST_TEAM",MONDAY)).isTrue();
+        m.tradeEngine.trades.put(agreed.tradeId(),new CareerManagementState.Trade(agreed.tradeId(),c.contractId(),buyer,terms,MONDAY,MONDAY,MONDAY,start,0,null,CareerManagementState.TradeStatus.PLAYER_PENDING,true,true,0,0,0,null,"fixture",CareerManagementPolicy.VERSION,null));
+        assertThat(m.planner.committedCover(buyer,Position.TOP,"FIRST_TEAM",MONDAY)).isFalse();
+    }
     @Test void fatigueDoesNotChangeSelectionAndCrossSquadOrInternationalRegistrationBlocksMove(){
         var a=setup();var b=setup();String id=top(a,"DEVELOPMENT"),first=top(a,"FIRST_TEAM");
         for(var m:List.of(a,b)){rating(m,id,18,190);rating(m,first,12,190);m.development=new CareerDevelopmentEngine(m.directory,CareerDevelopmentEngine.initial(m.directory,CareerMarketEngineTest.DATE));}
@@ -126,6 +141,73 @@ class CareerSquadPlanningPolicyTest {
         a.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,false));assertThat(a.planner.movable(id,"DEVELOPMENT",MONDAY)).isFalse();assertThat(a.planner.movable(id,"DEVELOPMENT",MONDAY.plusDays(1))).isTrue();
         a.internationalPools.put("LCK:BRO|MSI",Set.of(id));assertThat(a.planner.canDepart("LCK:BRO",id,MONDAY.plusDays(1))).isFalse();
     }
+    @Test void scheduledDevelopmentNeedIsStillPlannedWhileTheFirstTeamRoleIsMissing(){
+        var m=setup();String team="LCK:BRO";
+        for(var member:new ArrayList<>(m.members.values()))if(team.equals(member.ownerTeam())&&m.player(member.playerId()).position()==Position.TOP){m.contracts.values().removeIf(c->c.playerId().equals(member.playerId()));m.freeAgents.remove(member.playerId());}
+        var account=m.accounts.get(team);m.accounts.put(team,new Account(team,1,account.cash(),account.rosterLimit()));
+        m.developmentFixtures=Map.of(team,List.of(MONDAY.plusDays(7)),team+"|DEVELOPMENT",List.of(MONDAY.plusDays(8)));
+        m.planner.review(MONDAY);
+        assertThat(m.planner.inspections.stream().filter(i->i.team().equals(team)&&i.position()==Position.TOP).map(CareerSquadPlanner.Inspection::squad)).containsExactly("FIRST_TEAM","DEVELOPMENT");
+        assertThat(m.offers.values()).noneMatch(o->o.team().equals(team));
+        assertThat(m.planner.state().decisions()).anyMatch(d->d.team().equals(team)&&d.position()==Position.TOP&&d.squad().equals("DEVELOPMENT")&&d.action().equals("COVERAGE")&&d.status().equals("DEFERRED"));
+    }
+    @ParameterizedTest @ValueSource(booleans={true,false})
+    void incumbentRenewalGetsAnInspectionBeforeExternalRosterFailures(boolean affordable) {
+        var m=setup();m.clEnabled=false;String team="LCK:BRO";
+        String incumbent=m.lineups.get(team).stream().filter(id->m.player(id).position()==Position.TOP).findFirst().orElseThrow();
+        var c=m.active(incumbent,MONDAY);var end=MONDAY.plusDays(40);
+        m.contracts.put(c.contractId(),new Contract(c.contractId(),c.careerId(),c.playerId(),c.team(),c.organizationId(),c.signedDate(),new Terms(c.terms().startDate(),end,c.terms().annualSalary(),0,c.terms().role()),c.status(),c.revision(),c.policyVersion(),c.origin(),c.terminationPolicy(),c.endedDate(),c.paidThrough()));
+        var external=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.TOP&&!team.equals(m.members.get(id).ownerTeam())).sorted().limit(CareerSquadPlanningPolicy.COMMON_CHECKS).toList();
+        for(String id:m.directory.players().keySet())if(m.player(id).position()==Position.TOP){
+            if(team.equals(m.members.get(id).ownerTeam()))rating(m,id,10,200);
+            else if(external.contains(id)){m.contracts.values().removeIf(k->k.playerId().equals(id));m.freeAgents.add(id);m.members.put(id,new CareerRosterStore.Membership(id,null,"FREE_AGENT","FREE_AGENT",null));rating(m,id,20,200);}
+            else {m.freeAgents.remove(id);m.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,true));}
+        }
+        int held=(int)m.contracts.values().stream().filter(k->team.equals(k.team())&&k.status()==ContractStatus.ACTIVE&&!MONDAY.isBefore(k.terms().startDate())&&!MONDAY.isAfter(k.terms().endDate())).map(Contract::playerId).distinct().count();
+        m.accounts.put(team,new Account(team,affordable?1_000_000_000L:1,1_000_000_000L,held));
+        var original=m.active(incumbent,MONDAY);var user=List.copyOf(m.lineups.get(m.managed));
+        m.planner.review(MONDAY);var once=m.state();m.planner.review(MONDAY);assertThat(m.state()).isEqualTo(once);
+        var offers=m.offers.values().stream().filter(o->o.team().equals(team)&&m.player(o.playerId()).position()==Position.TOP).toList();
+        assertThat(m.planner.inspections).allMatch(i->i.commonChecks()<=CareerSquadPlanningPolicy.COMMON_CHECKS);
+        System.out.println("RENEWAL_INSPECTIONS "+m.planner.inspections.stream().filter(i->i.team().equals(team)&&i.position()==Position.TOP).toList());
+        System.out.println("RENEWAL_BOUNDARY affordable="+affordable+" incumbent="+incumbent+" cap="+held+" offers="+CareerRosterStore.write(offers));
+        if(affordable)assertThat(offers).singleElement().satisfies(o->{assertThat(o.playerId()).isEqualTo(incumbent);assertThat(o.terms().startDate()).isEqualTo(end.plusDays(1));});
+        else assertThat(offers).isEmpty();
+        assertThat(m.active(incumbent,MONDAY)).isEqualTo(original);assertThat(m.scheduled(incumbent)).isNull();assertThat(m.lineups.get(m.managed)).isEqualTo(user);
+    }
+
+    @ParameterizedTest @ValueSource(booleans={true,false})
+    void essentialPositionsKeepRoomForEachOtherBeforeAnExpensiveTop(boolean affordable) {
+        var m=setup();String team="LCK:BRO";m.clEnabled=false;
+        var tops=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.TOP&&!team.equals(m.members.get(id).ownerTeam())).sorted().limit(2).toList();
+        String support=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.SUPPORT&&!team.equals(m.members.get(id).ownerTeam())).sorted().findFirst().orElseThrow();
+        var chosen=Set.of(tops.getFirst(),tops.getLast(),support);
+        for(String id:m.directory.players().keySet())if(Set.of(Position.TOP,Position.SUPPORT).contains(m.player(id).position())){
+            if(team.equals(m.members.get(id).ownerTeam())){m.contracts.values().removeIf(c->c.playerId().equals(id));m.freeAgents.remove(id);}
+            else if(chosen.contains(id)){m.contracts.values().removeIf(c->c.playerId().equals(id));m.freeAgents.add(id);m.members.put(id,new CareerRosterStore.Membership(id,null,"FREE_AGENT","FREE_AGENT",null));rating(m,id,id.equals(tops.getFirst())?20:10,200);}
+            else m.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,true));
+        }
+        m.lineups.values().forEach(ids->ids.removeIf(chosen::contains));m.lineups.get(team).removeIf(id->Set.of(Position.TOP,Position.SUPPORT).contains(m.player(id).position()));
+        var a=m.accounts.get(team);long held=m.peakSalary(team);m.accounts.put(team,new Account(team,held+(affordable?310_000:1),a.cash(),a.rosterLimit()));
+        m.developmentFixtures=Map.of(team,List.of(MONDAY.plusDays(28)));
+        m.planner.review(MONDAY);var offers=m.offers.values().stream().filter(o->o.team().equals(team)).toList();
+        assertThat(m.planner.inspections).allMatch(i->i.commonChecks()<=CareerSquadPlanningPolicy.COMMON_CHECKS);
+        System.out.println("JOINT_INSPECTIONS "+m.planner.inspections.stream().filter(i->i.team().equals(team)).toList());
+        System.out.println("JOINT_COVERAGE affordable="+affordable+" existingSalary="+held+" cap="+m.accounts.get(team).annualBudget()+" offers="+CareerRosterStore.write(offers));
+        if(affordable)assertThat(offers).extracting(Offer::playerId).contains(tops.getLast(),support).doesNotContain(tops.getFirst());else assertThat(offers).isEmpty();
+        var once=m.state();m.planner.review(MONDAY);assertThat(m.state()).isEqualTo(once);
+        assertThat(m.peakSalary(team)).isLessThanOrEqualTo(m.accounts.get(team).annualBudget());
+        if(affordable){
+            var top=offers.stream().filter(o->o.playerId().equals(tops.getLast())).findFirst().orElseThrow();long reserved=m.reservedCash(team);
+            m.withdraw(team,top.offerId(),MONDAY);assertThat(m.reservedCash(team)).isEqualTo(reserved-top.terms().signingBonus());
+            m.planner.review(MONDAY.plusWeeks(1));assertThat(m.offers.values().stream().filter(o->o.team().equals(team)&&o.playerId().equals(top.playerId()))).hasSize(1);
+            assertThat(m.offers.get(top.offerId()).status()).isEqualTo(OfferStatus.WITHDRAWN);
+            assertThat(m.planner.state().lastReview()).isEqualTo(MONDAY.plusWeeks(1));
+            assertThat(m.planner.state().decisions()).anyMatch(d->d.team().equals(team)&&d.position()==Position.TOP&&d.date().equals(MONDAY.plusWeeks(1))&&d.status().equals("DEFERRED"));
+            var replanned=m.state();m.planner.review(MONDAY.plusWeeks(1));assertThat(m.state()).isEqualTo(replanned);
+        }
+    }
+
     @ParameterizedTest @org.junit.jupiter.params.provider.CsvSource({"4,true","4,false","25,true","25,false"})
     void coverageSearchReachesAffordableCandidateThroughCommonApproval(int candidateCount,boolean affordable) {
         var m=setup();String team="LCK:BRO";m.clEnabled=false;

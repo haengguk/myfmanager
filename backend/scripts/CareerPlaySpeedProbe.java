@@ -16,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 /** Opt-in local measurement helper. Compile outside production/test output; use only a disposable DB. */
 public class CareerPlaySpeedProbe {
     public static void main(String[] args) throws Exception {
+        if(args[0].equals("coverage-preview")){coveragePreview();return;}
         if(args[0].startsWith("long-term")){longTerm(Path.of(args[1]),args[0].equals("long-term-smoke"),args[0].equals("long-term-first")?1:2);return;}
         if(args[0].equals("policies")){policies(Path.of(args[1]));return;}
         if(args[0].equals("evidence")) {
@@ -158,6 +159,23 @@ public class CareerPlaySpeedProbe {
         Files.writeString(out.resolve("observation-time.txt"),Double.toString((System.nanoTime()-begin)/1e9));
     }
 
+
+    /** Read-only schedule/account smoke in a disposable Career; no date or fixture edits. */
+    static void coveragePreview() {
+        var app=new SpringApplication(LolfmApplication.class);long begin=System.nanoTime();
+        try(var ctx=app.run("--spring.main.web-application-type=none","--spring.datasource.url=jdbc:h2:mem:coverage-preview;DB_CLOSE_DELAY=-1","--lolfm.career.continuous.background.enabled=false","--lolfm.career.competition.background.enabled=false")){
+            var c=ctx.getBean(CareerApplicationService.class).create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"필수 명부 일정 진단","관측 감독","GEN","5c9d7f21-69be-4459-8fe4-2671ca81e421")).career().career();
+            var db=ctx.getBean(JdbcTemplate.class);var m=CareerMarketStore.engine(db,c.careerId(),2027,CareerMarketStore.load(db,c.careerId()));
+            System.out.println("COVERAGE_PREVIEW seed="+c.rootSeed()+" career="+c.careerId()+" date="+m.processedThrough());
+            ctx.getBean(CareerCompetitionRelationalStore.class).load(c.careerId(),2027).fixtures().stream().limit(5).forEach(f->System.out.println("COVERAGE_FIRST "+f.fixtureId()+" "+f.competitionId()+" "+f.date()+" "+f.firstTeamCode()+" "+f.secondTeamCode()+" "+f.executionMode()));
+            for(String team:List.of("LCK:BRO","CBLOL:LEV")){
+                System.out.println("COVERAGE_ACCOUNT team="+team+" account="+m.accounts.get(team)+" salary="+m.salaryAt(team,m.processedThrough(),true));
+                String code=team.startsWith("LCK:")?team.substring(4):team;
+                ctx.getBean(CareerCompetitionRelationalStore.class).load(c.careerId(),2027).fixtures().stream().filter(f->code.equals(f.firstTeamCode())||code.equals(f.secondTeamCode())).limit(12).forEach(f->System.out.println("COVERAGE_FIXTURE "+f.fixtureId()+" "+f.competitionId()+" "+f.date()+" "+f.firstTeamCode()+" "+f.secondTeamCode()+" "+f.lifecycleStatus()+" "+f.seriesFormat()));
+            }
+        }
+        System.out.println("COVERAGE_PREVIEW_SECONDS="+(System.nanoTime()-begin)/1e9);
+    }
 
     /** Explicit no-match projection: daily runtime settlement, actual lifecycle review, modeled season scopes.
      * No fixture results, appearances, user acceptance, or production rollover receipts are manufactured.
