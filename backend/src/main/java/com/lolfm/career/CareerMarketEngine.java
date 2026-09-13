@@ -369,6 +369,7 @@ public final class CareerMarketEngine {
             }
             LocalDate date=processed.plusDays(1);
             int eventStart=events.size();
+            var openOffers=offers.values().stream().filter(Offer::open).toList();
             // Same-date order: allocation/debt, loan return, expiry/settlement, activation, trade application, salary, promise evaluation, FA responses/proposals/decisions, AI lineup.
             if(finance!=null)finance.date(date);
             if(date.getDayOfYear()==1)for(var a:new ArrayList<>(accounts.values()))if(finance==null||!finance.recurring(a.team(),date))credit(a.team(),date);
@@ -390,6 +391,9 @@ public final class CareerMarketEngine {
             promiseEngine.evaluate(date);
             responses(date);
             var changed=new TreeSet<String>();
+            // Durable prior-day closures survive reload/replay without a second same-day review.
+            for(var e:events)if(e.date().equals(processed)&&e.kind().equals("OFFER_PLAN_CHANGED")&&e.team()!=null)changed.add(e.team());
+            for(var o:openOffers)if(!offers.get(o.offerId()).open())changed.add(o.team());
             for(var prior:pendingTrades)if(!tradeEngine.trades.get(prior.tradeId()).open()){changed.add(prior.terms().buyer());changed.add(prior.terms().seller());}
             if(date.getDayOfMonth()==date.lengthOfMonth())changed.addAll(accounts.keySet());
             if(finance!=null)finance.approvals.values().stream().filter(a->a.effectiveOn().equals(date)).forEach(a->changed.add(a.team()));
@@ -402,6 +406,7 @@ public final class CareerMarketEngine {
             planner.review(date,changed);
             decide(date);
             for(var o:new ArrayList<>(offers.values()))if(o.open()&&!date.isBefore(o.expiresDate()))offers.put(o.offerId(),offerStatus(o,OfferStatus.EXPIRED,"제안 유효기간 종료",null));
+            for(var o:openOffers)if(!offers.get(o.offerId()).open())event(date,"OFFER_PLAN_CHANGED",o.playerId(),o.team(),o.offerId(),"FA 협상 종료 · 다음 날짜의 필수 충원 재검토");
             planner.repair(date);if(lifecycle!=null)lifecycle.observe(this,date);processed=date;
         }
         validateIntegrity();

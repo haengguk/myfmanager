@@ -72,6 +72,16 @@ final class DraftComputationContext {
         if(!cacheEnabled)return evaluator.evaluate(role,team,plan);
         return forecasts.computeIfAbsent(new AbilityKey(evaluator,team,role,plan),key->evaluator.evaluate(role,team,plan));
     }
+    private record PlanValueKey(PreDraftPlanner planner,DraftTeamContext team,ChampionId champion,
+            DraftPlanArchetype plan,int roles,boolean threat) {}
+    private final Map<PlanValueKey,Double> planValues=new HashMap<>();
+    double planValue(PreDraftPlanner planner,DraftTeamContext team,ChampionId champion,
+            DraftPlanArchetype plan,Set<com.lolfm.domain.Position> positions,boolean threat,DoubleSupplier calculation) {
+        if(!cacheEnabled)return calculation.getAsDouble();
+        int roles=0;for(var position:positions)roles|=1<<position.ordinal();
+        var key=new PlanValueKey(planner,team,champion,plan,roles,threat);
+        return planValues.computeIfAbsent(key,ignored->calculation.getAsDouble());
+    }
     private long roleAssignmentRequests;
     private long roleAssignmentHits;
     private long roleAssignmentMisses;
@@ -223,6 +233,7 @@ final class DraftComputationContext {
         unavailable.clear();
         shapes.clear();
         forecasts.clear();
+        planValues.clear();
         roleAssignments.clear();
         candidatePositions.clear();
         pickedPositions.clear();

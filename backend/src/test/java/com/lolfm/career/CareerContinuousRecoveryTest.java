@@ -124,12 +124,53 @@ class CareerContinuousRecoveryTest {
             String raw=store.jdbc.queryForObject("SELECT state_json FROM career_continuous_run WHERE career_id=?",String.class,career);
             store.jdbc.update("UPDATE career_continuous_run SET state_hash=? WHERE career_id=?","0".repeat(64),career);
             var worker=new CareerContinuousWorker(store,service,false);
-            try {worker.tick();worker.tick();} finally {worker.close();}
+            try {
+                // One corrupt row and the healthy refresh/completion each may exhaust the 250 ms batch.
+                for(int tick=0;tick<3&&store.load(other.careerId()).status!=Status.COMPLETED;tick++)worker.tick();
+            } finally {worker.close();}
             assertThat(store.load(other.careerId()).status).isEqualTo(Status.COMPLETED);
             assertThat(store.jdbc.queryForObject("SELECT state_json FROM career_continuous_run WHERE career_id=?",String.class,career)).isEqualTo(raw);
             assertThat(store.jdbc.queryForObject("SELECT state_hash FROM career_continuous_run WHERE career_id=?",String.class,career)).isEqualTo("0".repeat(64));
             assertThat(store.due()).doesNotContain(career);
 
+        }
+    }
+
+    @Test void commandReadsReuseOnlyExactImmutableStateAndRespectRollbackAndIntegrity() {
+        try(var context=open()) {
+            var careers=context.getBean(CareerApplicationService.class);
+            var c=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"정산 조회 수명","감독","GEN",UUID.randomUUID().toString())).career().career();
+            var db=context.getBean(JdbcTemplate.class);String id=c.careerId();
+            var transaction=new org.springframework.transaction.support.TransactionTemplate(context.getBean(PlatformTransactionManager.class));
+            String original=db.queryForObject("SELECT state_json FROM career_development_state WHERE career_id=?",String.class,id);
+            CareerRosterStore.Directory first;
+            try(var scope=CareerReadScope.open(id)) {
+                first=CareerRosterStore.directory(db,id);
+                assertThat(CareerRosterStore.directory(db,id)).isSameAs(first);
+                var changed=CareerRosterStore.read(original,com.fasterxml.jackson.databind.node.ObjectNode.class);
+                var player=changed.path("players").properties().iterator().next();
+                var ratings=(com.fasterxml.jackson.databind.node.ObjectNode)player.getValue().path("internalRatings");
+                var skill=ratings.properties().iterator().next();ratings.put(skill.getKey(),skill.getValue().asInt()+1000);
+                String json=changed.toString();
+                transaction.executeWithoutResult(tx->{
+                    db.update("UPDATE career_development_state SET state_json=?,state_hash=? WHERE career_id=?",json,CareerRosterStore.hash(json),id);
+                    assertThat(CareerRosterStore.directory(db,id).players().get(player.getKey()).gameplay().ratings()).isNotEqualTo(first.players().get(player.getKey()).gameplay().ratings());
+                    tx.setRollbackOnly();
+                });
+                assertThat(CareerRosterStore.directory(db,id)).isSameAs(first);
+                transaction.executeWithoutResult(tx->{
+                    db.update("UPDATE career_development_state SET state_hash=? WHERE career_id=?","0".repeat(64),id);
+                    assertThatThrownBy(()->CareerRosterStore.directory(db,id)).isInstanceOf(IllegalStateException.class);
+                    tx.setRollbackOnly();
+                });
+                assertThat(CareerRosterStore.directory(db,id)).isSameAs(first);
+                var one=CareerRosterStore.read(original,com.fasterxml.jackson.databind.node.ObjectNode.class);
+                var two=CareerRosterStore.read(original,com.fasterxml.jackson.databind.node.ObjectNode.class);
+                assertThat(two).isNotSameAs(one);one.remove("players");assertThat(two.has("players")).isTrue();
+                try(var other=CareerReadScope.open("another-career")){assertThat(CareerRosterStore.directory(db,id)).isNotSameAs(first).isEqualTo(first);}
+                assertThat(CareerRosterStore.directory(db,id)).isSameAs(first);
+            }
+            assertThat(CareerRosterStore.directory(db,id)).isNotSameAs(first).isEqualTo(first);
         }
     }
 }

@@ -61,15 +61,18 @@ public final class CareerLifecycleStore {
     }
     public static Directory compose(JdbcTemplate jdbc,String career,Directory source) {
         var people=load(jdbc,career);var definitions=new TreeMap<>(source.players());
-        for(var d:jdbc.query("SELECT definition_json,definition_hash FROM career_generated_player WHERE career_id=? ORDER BY player_id",(r,n)->{
+        var generated=jdbc.query("SELECT definition_json,definition_hash FROM career_generated_player WHERE career_id=? ORDER BY player_id",(r,n)->{
             if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("GENERATED_PLAYER_INTEGRITY");return read(r.getString(1),Definition.class);
-        },career))if(definitions.putIfAbsent(d.playerId(),d)!=null)throw new IllegalStateException("GENERATED_PLAYER_ID_CONFLICT");
+        },career);
+        for(var d:generated)if(definitions.putIfAbsent(d.playerId(),d)!=null)throw new IllegalStateException("GENERATED_PLAYER_ID_CONFLICT");
         if(people==null){if(definitions.size()!=source.players().size())throw new IllegalStateException("GENERATED_LIFECYCLE_MISSING");return source;}
         if(!definitions.keySet().equals(people.players().keySet()))throw new IllegalStateException("LIFECYCLE_POPULATION_REFERENCE");
+        return CareerReadScope.projection(source,people,List.copyOf(generated),()->{
         definitions.replaceAll((id,d)->{
             var p=people.players().get(id);var node=read(d.detailsJson(),ObjectNode.class);node.set("careerAge",read(write(p.age()),com.fasterxml.jackson.databind.JsonNode.class));node.put("careerLifecycleStatus",p.status().name());
             return new Definition(id,d.nickname(),d.position(),d.gameplay(),d.provisional(),d.initialOrganizationId(),d.initialOwnerTeam(),d.initialSquad(),d.eligibilityReason(),node.toString());
         });return new Directory(definitions,source.organizations());
+        });
     }
     static void saveReview(JdbcTemplate jdbc,String career,Review review){String json=write(review);jdbc.update("INSERT INTO career_lifecycle_review VALUES (?,?,?,?)",career,review.seasonYear(),json,hash(json));}
     static List<Review> reviews(JdbcTemplate jdbc,String career,int year){return jdbc.query("SELECT review_json,review_hash FROM career_lifecycle_review WHERE career_id=? AND season_year=?",(r,n)->{if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("LIFECYCLE_REVIEW_INTEGRITY");return read(r.getString(1),Review.class);},career,year);}

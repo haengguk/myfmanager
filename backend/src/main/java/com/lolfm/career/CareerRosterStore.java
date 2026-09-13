@@ -385,6 +385,6 @@ public final class CareerRosterStore {
     }
 
     public static String write(Object value) { try{return JSON.writeValueAsString(value);}catch(java.io.IOException e){throw new IllegalStateException(e);} }
-    public static <T>T read(String value,Class<T> type) { try{return JSON.readValue(value,type);}catch(java.io.IOException e){throw new IllegalStateException(e);} }
-    public static String hash(String value) { return CareerInternationalRules.hash(value); }
+    public static <T>T read(String value,Class<T> type) { return CareerReadScope.immutable(value,type,()->{try{return JSON.readValue(value,type);}catch(java.io.IOException e){throw new IllegalStateException(e);}}); }
+    public static String hash(String value) { return CareerReadScope.digest(value,()->CareerInternationalRules.hash(value)); }
 }

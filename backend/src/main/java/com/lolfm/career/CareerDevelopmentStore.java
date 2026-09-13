@@ -56,7 +56,7 @@ public final class CareerDevelopmentStore {
         if(jdbc.update("UPDATE career_development_state SET revision=revision+1,state_json=?,state_hash=? WHERE career_id=? AND revision=?",json,hash(json),career,old.revision())!=1)throw CareerException.calendarStaleRevision();
         var life=CareerLifecycleStore.load(jdbc,career);if(life!=null){var lifecycle=new CareerLifecycleEngine(life);engine.players.forEach((id,p)->{var person=lifecycle.people.get(id);if(person==null)throw new IllegalStateException("LIFECYCLE_PLAYER_REFERENCE");lifecycle.people.put(id,person.peak(CareerLifecyclePolicy.ca(p)));});CareerLifecycleStore.persist(jdbc,career,lifecycle);}
     }
-    public static Directory current(JdbcTemplate jdbc,String career,Directory base){var s=load(jdbc,career);return s==null?base:new CareerDevelopmentEngine(base,s.state()).directory();}
+    public static Directory current(JdbcTemplate jdbc,String career,Directory base){var s=load(jdbc,career);return s==null?base:CareerReadScope.projection(base,s.state(),null,()->new CareerDevelopmentEngine(base,s.state()).directory());}
     public static Directory historicalDirectory(JdbcTemplate jdbc,String career,int year) {
         var base=baseDirectory(jdbc,career);var rows=closed(jdbc,career,year);
         return rows.isEmpty()?sourceDirectory(jdbc,career):new CareerDevelopmentEngine(historicalBase(jdbc,career,year,base,rows.getFirst()),rows.getFirst()).directory();

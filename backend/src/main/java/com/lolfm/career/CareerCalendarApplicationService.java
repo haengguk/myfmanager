@@ -44,6 +44,9 @@ public final class CareerCalendarApplicationService {
     }
 
     public CalendarView view(CareerRelationalStore.CareerRow career) {
+        try(var scope=CareerReadScope.open(career.careerId())){return viewScoped(career);}
+    }
+    private CalendarView viewScoped(CareerRelationalStore.CareerRow career) {
         try {
             return buildView(career, ready(career));
         } catch (CareerCalendarRelationalStore.CommandReceiptIntegrityFailure corrupt) {
@@ -54,7 +57,10 @@ public final class CareerCalendarApplicationService {
         }
     }
 
-    public AdvanceResult advance(
+    public AdvanceResult advance(CareerRelationalStore.CareerRow career,String schemaVersion,long expectedCalendarRevision,String mode,String clientCommandId) {
+        try(var scope=CareerReadScope.open(career.careerId())){return advanceScoped(career,schemaVersion,expectedCalendarRevision,mode,clientCommandId);}
+    }
+    private AdvanceResult advanceScoped(
             CareerRelationalStore.CareerRow career,
             String schemaVersion,
             long expectedCalendarRevision,

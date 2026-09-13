@@ -147,7 +147,8 @@ final class CareerSquadPlanner {
         return m.squadRestrictions.stream().noneMatch(r->r.playerId().equals(id)&&!r.squad().equals(squad)&&(r.pending()||r.date().equals(required)));
     }
     private boolean safe(String team,String id,String squad,LocalDate date){return registrationAllows(team,id,squad,horizon(team,squad,date))&&availableOn(team,id,horizon(team,squad,date),squad)&&availableOn(team,id,date.plusDays(EXPIRY_DAYS),squad);}
-    boolean committedCover(String team,Position role,String squad,LocalDate date){
+    boolean committedCover(String team,Position role,String squad,LocalDate date){return committedCover(team,role,squad,date,null);}
+    private boolean committedCover(String team,Position role,String squad,LocalDate date,String excludedTrade){
         LocalDate required=horizon(team,squad,date),through=date.plusDays(EXPIRY_DAYS);
         boolean scheduled=m.contracts.values().stream().anyMatch(c->team.equals(c.team())&&c.status()==ContractStatus.SCHEDULED
                 &&m.player(c.playerId()).position()==role&&squad.equals(c.terms().role()==Role.DEVELOPMENT?"DEVELOPMENT":"FIRST_TEAM")
@@ -155,7 +156,7 @@ final class CareerSquadPlanner {
         boolean returning=m.tradeEngine.loans.values().stream().anyMatch(l->team.equals(l.parentTeam())&&"ACTIVE".equals(l.status())
                 &&m.player(l.playerId()).position()==role&&squad.equals(l.returnSquad())&&!l.endDate().plusDays(1).isAfter(required)
                 &&registrationAllows(team,l.playerId(),squad,required)&&availableOn(team,l.playerId(),through,squad));
-        boolean incoming=m.tradeEngine.trades.values().stream().anyMatch(t->t.status()==TradeStatus.AGREED&&team.equals(t.terms().buyer())
+        boolean incoming=m.tradeEngine.trades.values().stream().anyMatch(t->!t.tradeId().equals(excludedTrade)&&t.status()==TradeStatus.AGREED&&team.equals(t.terms().buyer())
                 &&m.player(t.terms().playerId()).position()==role&&registrationAllows(team,t.terms().playerId(),squad,required)
                 &&availableOn(team,t.terms().playerId(),required,squad)&&availableOn(team,t.terms().playerId(),through,squad));
         return scheduled||returning||incoming;
@@ -294,10 +295,12 @@ final class CareerSquadPlanner {
         try{m.requireBudget(team,date);return false;}catch(CareerException insufficient){return true;}
     }
     boolean disposal(String reference){var t=m.tradeEngine.trades.get(reference);return t!=null&&t.proposer().equals(t.terms().seller())&&!t.proposer().equals(m.managed);}
-    boolean wantsIncoming(String team,String player,Role role,LocalDate date){
+    boolean wantsIncoming(String team,String player,Role role,LocalDate date){return wantsIncoming(team,player,role,date,null);}
+    boolean wantsIncoming(String team,String player,Role role,LocalDate date,String excludedTrade){
         String squad=role==Role.DEVELOPMENT?"DEVELOPMENT":"FIRST_TEAM";Position position=m.player(player).position();
         if(!registrationAllows(team,player,squad,horizon(team,squad,date)))return false;
-        return held(team,position,squad,date).stream().filter(id->!id.equals(player)).noneMatch(id->safe(team,id,squad,date));
+        return !committedCover(team,position,squad,date,excludedTrade)
+                &&held(team,position,squad,date).stream().filter(id->!id.equals(player)).noneMatch(id->safe(team,id,squad,date));
     }
     private void tidy(String team,LocalDate date){
         var seen=new HashSet<String>();boolean pressured=pressure(team,date);
@@ -310,7 +313,7 @@ final class CareerSquadPlanner {
         }
         for(var t:new ArrayList<>(m.tradeEngine.trades.values()))if(t.terms().buyer().equals(team)&&t.buyerAgreed()&&t.open()&&t.status()!=TradeStatus.AGREED){
             String squad=t.terms().playerTerms().role()==Role.DEVELOPMENT?"DEVELOPMENT":"FIRST_TEAM";String slot=m.player(t.terms().playerId()).position()+"|"+squad;
-            if(!seen.add(slot)||pressured&&!wantsIncoming(team,t.terms().playerId(),t.terms().playerTerms().role(),date))m.tradeEngine.respond(team,t.tradeId(),"WITHDRAW",null,date);
+            if(!seen.add(slot)||pressured&&!wantsIncoming(team,t.terms().playerId(),t.terms().playerTerms().role(),date,t.tradeId()))m.tradeEngine.respond(team,t.tradeId(),"WITHDRAW",null,date);
         }
     }
     private void relieve(String team,LocalDate date,Set<String> fundedContracts,List<Proposal> purchases){

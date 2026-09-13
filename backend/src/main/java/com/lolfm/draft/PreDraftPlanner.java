@@ -163,17 +163,18 @@ public final class PreDraftPlanner {
 
     private double opponentThreatValue(ChampionId id, DraftPlanArchetype archetype,
                                        DraftTeamContext opponent, Set<Position> feasiblePositions, DraftComputationContext context) {
-        return feasiblePositions.stream().map(position -> new ChampionRoleKey(id, position))
+        return context.planValue(this,opponent,id,archetype,feasiblePositions,true,()->feasiblePositions.stream().map(position -> new ChampionRoleKey(id, position))
                 .mapToDouble(key -> {
                     ChampionCompositionProfile profile = composition.profiles().get(key);
                     double threat = archetype.vulnerabilities().stream().mapToInt(profile::capability).average().orElse(0.0);
                     return ability==null ? threat * 0.55 + meta.priority(key) * 0.25 + opponent.proficiency(key) * 0.20
                             : threat*0.55+context.forecast(ability,opponent,key,archetype).value()*0.25;
-                }).max().orElse(0.0);
+                }).max().orElse(0.0));
     }
 
     private double candidatePlanValue(ChampionId id, DraftPlanArchetype archetype,
                                       DraftTeamContext team, Set<Position> feasiblePositions, DraftComputationContext context) {
+        return context.planValue(this,team,id,archetype,feasiblePositions,false,()->{
         context.recordPlannerCandidatePhysicalComputation();
         double best = 0.0;
         for (Position position : feasiblePositions) {
@@ -184,6 +185,7 @@ public final class PreDraftPlanner {
                     : capability*0.35+context.forecast(ability,team,key,archetype).value()*0.65+metaScale*meta.priority(key)/20.0);
         }
         return best;
+        });
     }
 
     private double candidatePlanValue(ChampionId id, DraftPlanArchetype archetype,

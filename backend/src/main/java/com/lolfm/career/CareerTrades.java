@@ -109,7 +109,7 @@ final class CareerTrades {
         if(terms.replacementPlayerId()!=null&&!m.planner.movable(terms.replacementPlayerId(),"FIRST_TEAM",date))throw invalid("진행 경기의 대체 선수는 이동할 수 없습니다.");
     }
     private void requireBuyer(Trade t,LocalDate date) {
-        if(!t.terms().buyer().equals(m.managed)&&m.planner.disposal(t.tradeId())&&!m.planner.wantsIncoming(t.terms().buyer(),t.terms().playerId(),t.terms().playerTerms().role(),date))throw invalid("구매 구단의 해당 선수단 필요가 다른 확정 자원으로 충족되었습니다.");
+        if(!t.terms().buyer().equals(m.managed)&&m.planner.disposal(t.tradeId())&&!m.planner.wantsIncoming(t.terms().buyer(),t.terms().playerId(),t.terms().playerTerms().role(),date,t.tradeId()))throw invalid("구매 구단의 해당 선수단 필요가 다른 확정 자원으로 충족되었습니다.");
         m.requireBudget(t.terms().buyer(),date);
         m.requireRosterCapacity(t.terms().buyer(),t.terms().playerId(),t.terms().playerTerms());
     }
@@ -139,7 +139,7 @@ final class CareerTrades {
                     else respond(t.terms().seller(),t.tradeId(),"ACCEPT",m.lineups.get(t.terms().seller()).contains(t.terms().playerId())?replacement(t.terms().seller(),t.terms().playerId(),date):null,date);
                 }
                 t=trades.get(t.tradeId());
-                if(t.open()&&!t.buyerAgreed()&&!t.terms().buyer().equals(m.managed))respond(t.terms().buyer(),t.tradeId(),t.terms().fee()<=t.buyerLimit()&&(!m.planner.disposal(t.tradeId())||m.planner.wantsIncoming(t.terms().buyer(),t.terms().playerId(),t.terms().playerTerms().role(),date))?"ACCEPT":"REJECT",null,date);
+                if(t.open()&&!t.buyerAgreed()&&!t.terms().buyer().equals(m.managed))respond(t.terms().buyer(),t.tradeId(),t.terms().fee()<=t.buyerLimit()&&(!m.planner.disposal(t.tradeId())||m.planner.wantsIncoming(t.terms().buyer(),t.terms().playerId(),t.terms().playerTerms().role(),date,t.tradeId()))?"ACCEPT":"REJECT",null,date);
             }catch(CareerException rejected){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,rejected.clientMessage(),null));}
         }
         var players=new TreeSet<String>();trades.values().stream().filter(t->t.open()&&t.status()!=TradeStatus.AGREED&&t.decisionDate().equals(date)).forEach(t->players.add(t.terms().playerId()));

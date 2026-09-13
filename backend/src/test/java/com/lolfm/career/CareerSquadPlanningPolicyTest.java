@@ -381,4 +381,60 @@ class CareerSquadPlanningPolicyTest {
         assertThat(m.offers.values()).noneMatch(o->o.team().equals(team)&&o.playerId().equals(player)&&o.open());
         var once=m.state();m.planner.review(MONDAY);assertThat(m.state()).isEqualTo(once);
     }
+
+    private static void reviewFree(CareerMarketEngine m,String id){
+        m.contracts.values().removeIf(c->c.playerId().equals(id));
+        m.members.put(id,new CareerRosterStore.Membership(id,null,"FREE_AGENT","FREE_AGENT",null));
+        m.freeAgents.add(id);m.lineups.values().forEach(ids->ids.remove(id));m.clLineups.values().forEach(ids->ids.remove(id));
+    }
+    private static void reviewWages(CareerMarketEngine m,long wage){
+        for(var c:new ArrayList<>(m.contracts.values()))m.contracts.put(c.contractId(),new Contract(c.contractId(),c.careerId(),c.playerId(),c.team(),c.organizationId(),c.signedDate(),new Terms(c.terms().startDate(),LocalDate.of(2029,12,31),wage,0,c.terms().role()),c.status(),c.revision(),c.policyVersion(),c.origin(),c.terminationPolicy(),c.endedDate(),c.paidThrough()));
+    }
+    @Test void losingFaCompetitionReplansByTheNextDayAndSurvivesReload(){
+        var m=CareerMarketEngineTest.engine("LCK:T1");reviewWages(m,1);m.freeAgents.clear();String team="LCK:BRO";
+        for(var a:new ArrayList<>(m.accounts.values()))m.accounts.put(a.team(),new Account(a.team(),100,2000000,30));
+        m.accounts.put(team,new Account(team,1000000,2000000,30));m.accounts.put(m.managed,new Account(m.managed,1000000,5000000,30));
+        for(String id:new ArrayList<>(m.members.keySet()))if((team.equals(m.members.get(id).ownerTeam())||m.managed.equals(m.members.get(id).ownerTeam()))&&m.player(id).position()==Position.TOP){reviewFree(m,id);m.freeAgents.remove(id);}
+        for(String id:m.directory.players().keySet())if(m.player(id).position()==Position.TOP)m.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,true));
+        for(String id:List.of("player-369","player-zeus")){reviewFree(m,id);rating(m,id,5,200);m.squadRestrictions.removeIf(r->r.playerId().equals(id));}
+        m.developmentFixtures=Map.of(team,List.of(LocalDate.of(2027,1,22)));m.advance(MONDAY);
+        var original=m.offers.values().stream().filter(o->team.equals(o.team())&&o.open()).findFirst().orElseThrow();
+        assertThat(original.playerId()).isEqualTo("player-zeus");
+        var rival=m.submit(m.managed,original.playerId(),new Terms(original.terms().startDate(),original.terms().endDate(),300000,10000,Role.STARTER),null,MONDAY);
+        m.advance(original.decisionDate());assertThat(m.offers.get(original.offerId()).status()).isEqualTo(OfferStatus.REJECTED);assertThat(m.offers.get(rival.offerId()).status()).isEqualTo(OfferStatus.ACCEPTED);
+        var restored=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),CareerRosterStore.read(CareerRosterStore.write(m.state()),CareerMarketState.class));
+        restored.developmentFixtures=m.developmentFixtures;restored.squadRestrictions.addAll(m.squadRestrictions);
+        LocalDate next=original.decisionDate().plusDays(1);m.advance(next);restored.advance(next);
+        assertThat(restored.state()).isEqualTo(m.state());assertThat(restored.roster()).isEqualTo(m.roster());
+        var offers=m.offers.values().stream().filter(o->team.equals(o.team())).toList();assertThat(offers).hasSize(2);
+        var replacement=offers.stream().filter(Offer::open).findFirst().orElseThrow();
+        assertThat(replacement.playerId()).isEqualTo("player-369");assertThat(replacement.submittedDate()).isEqualTo(next);assertThat(replacement.terms().startDate()).isEqualTo(LocalDate.of(2027,1,22));
+        assertThat(m.planner.inspections).allMatch(i->i.commonChecks()<=CareerSquadPlanningPolicy.COMMON_CHECKS);
+        var once=m.state();m.advance(next);m.planner.review(next,Set.of(team));assertThat(m.state()).isEqualTo(once);
+    }
+    @ParameterizedTest @ValueSource(strings={"SCHEDULED","LATE","OTHER_SQUAD","OTHER_POSITION","FUTURE_BOUND","SELF_ONLY","AFTER_AGREEMENT"})
+    void sellerInitiatedTradeChecksIndependentFutureCover(String scenario){
+        var m=CareerMarketEngineTest.engine("LCK:T1");reviewWages(m,1000);LocalDate d=CareerMarketEngineTest.DATE;
+        String seller="LCK:KT",buyer="LCK:HLE",id="player-jiwoo",future=scenario.equals("OTHER_POSITION")?"player-369":"player-gumayusi";
+        for(String p:new ArrayList<>(m.members.keySet()))if(buyer.equals(m.members.get(p).ownerTeam())&&m.player(p).position()==Position.ADC)reviewFree(m,p);
+        for(var a:new ArrayList<>(m.accounts.values()))m.accounts.put(a.team(),new Account(a.team(),10000000,10000000,30));
+        m.developmentFixtures=Map.of(buyer,List.of(d.plusDays(25)));
+        LocalDate start=d.plusDays(8),end=start.plusYears(2).minusDays(1);
+        var terms=new CareerManagementState.TradeTerms(CareerManagementState.Kind.TRANSFER,id,seller,buyer,start,end,220000,0,new Terms(start,end,m.demand(id,d)*150/100,0,Role.STARTER),m.tradeEngine.replacement(seller,id,d));
+        var trade=m.tradeEngine.submit(seller,terms,null,d);
+        m.advance(scenario.equals("AFTER_AGREEMENT")?trade.decisionDate():d.plusDays(1));
+        if(scenario.equals("AFTER_AGREEMENT"))assertThat(m.tradeEngine.trades.get(trade.tradeId()).status()).isEqualTo(CareerManagementState.TradeStatus.AGREED);
+        if(!scenario.equals("SELF_ONLY")){
+            reviewFree(m,future);LocalDate arrival=d.plusDays(scenario.equals("LATE")?26:14);
+            var contract=new Contract("independent-future-cover",m.career,future,buyer,buyer,m.processedThrough(),new Terms(arrival,LocalDate.of(2029,12,31),100000,0,scenario.equals("OTHER_SQUAD")?Role.DEVELOPMENT:Role.STARTER),ContractStatus.SCHEDULED,0,CareerMarketPolicy.VERSION,"NEGOTIATED_FREE_AGENT","REMAINING_SALARY_25_PERCENT_V1",null,arrival.minusDays(1));
+            m.contracts.put(contract.contractId(),contract);m.freeAgents.remove(future);
+            if(scenario.equals("FUTURE_BOUND"))m.squadRestrictions.add(new CareerSquadPlanner.Restriction(future,"DEVELOPMENT",d,true));
+        }
+        m.advance(start);var result=m.tradeEngine.trades.get(trade.tradeId());
+        boolean redundant=Set.of("SCHEDULED","AFTER_AGREEMENT").contains(scenario);
+        assertThat(result.status()).as(scenario+": "+result.reason()).isEqualTo(redundant?CareerManagementState.TradeStatus.REJECTED:CareerManagementState.TradeStatus.COMPLETED);
+        assertThat(m.members.get(id).ownerTeam()).isEqualTo(redundant?seller:buyer);
+        assertThat(m.ledger.stream().filter(l->trade.tradeId().equals(l.contractId())&&l.kind().equals("TRANSFER_FEE_PAID")).mapToLong(Ledger::amount).sum()).isEqualTo(redundant?0:-220000);
+        var once=m.state();m.advance(start);assertThat(m.state()).isEqualTo(once);
+    }
 }

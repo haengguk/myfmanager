@@ -81,6 +81,9 @@ public final class CareerContinuousApplicationService {
     record Child(boolean pending,String jobId) {}
     /** One bounded scheduling step. No match is simulated in this transaction or request. */
     public void step(String career,String owner) {
+        try(var scope=CareerReadScope.open(career)){stepScoped(career,owner);}
+    }
+    private void stepScoped(String career,String owner) {
         Claimed claim=store.tx.execute(t->{
             store.lock(career);long fence=store.claim(career,owner);if(fence<0)return null;
             Run run=store.load(career);
