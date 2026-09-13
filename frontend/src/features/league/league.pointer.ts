@@ -33,3 +33,16 @@ export function leaguePointerRecoveryAction(failure: LeagueApiFailure): 'CLEAR_N
   if (failure.kind === 'CONTRACT' || failure.kind === 'INVALID_JSON') return 'KEEP_VERSION';
   return 'KEEP_OTHER';
 }
+
+// Career league recovery stays separate from the existing standalone league pointer.
+export function careerLeagueStorage(storage: PointerStorage, careerId: string): PointerStorage {
+  const scoped = (key: string) => `${key}.career.${careerId}`;
+  return { getItem: key => storage.getItem(scoped(key)), setItem: (key, value) => storage.setItem(scoped(key), value), removeItem: key => storage.removeItem(scoped(key)) };
+}
+export function connectCareerLeague(storage: PointerStorage, careerId: string, leagueId: string, seasonId: string): void {
+  const target = careerLeagueStorage(storage, careerId);
+  const saved = readLeaguePointer(target), legacy = readLeaguePointer(storage);
+  const matches = (value: LeaguePointer | null) => value?.leagueId === leagueId && value.seasonId === seasonId;
+  writeLeaguePointer(target, matches(saved) ? saved! : matches(legacy) ? legacy! : { schemaVersion: 'AI_LEAGUE_POINTER_V1', leagueId, seasonId, command: null });
+  if (matches(legacy)) clearLeaguePointer(storage);
+}

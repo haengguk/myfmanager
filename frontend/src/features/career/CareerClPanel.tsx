@@ -5,9 +5,9 @@ import type { CareerCl, ClCommand, ClResult } from './api/careerCl.contract';
 import { ROSTER_ROLES } from './api/careerRoster.contract';
 import type { CareerRoster } from './api/careerRoster.contract';
 
-export function CareerClPanel({ careerId, year, revision, historical, busy, nextMatch, onBegin, onChanged, onExecute, onReplay }: {
+export function CareerClPanel({ careerId, year, revision, historical, busy, nextMatch, onBegin, onChanged, onExecute, onReplay, onRoster, onMarket }: {
   careerId: string; year: number; revision: number; historical: boolean; busy: boolean; nextMatch: string | null;
-  onBegin: () => (() => void) | null; onChanged: () => void; onExecute: () => void; onReplay?: (id: string, matchup: string) => void;
+  onRoster: () => void; onMarket: () => void; onBegin: () => (() => void) | null; onChanged: () => void; onExecute: () => void; onReplay?: (id: string, matchup: string) => void;
 }) {
   const [resultMatch, setResultMatch] = useState<string | null>(null), [result, setResult] = useState<ClResult | null>(null);
   useEffect(() => { setResult(null); if (!resultMatch) return; const controller = new AbortController(); void getCareerClResult(careerId, year, resultMatch, controller.signal).then(v => { if (!controller.signal.aborted && v.careerId === careerId && v.seasonYear === year && v.matchId === resultMatch) setResult(v); }).catch(() => { if (!controller.signal.aborted) setError('CL 경기 결과를 불러오지 못했습니다.'); }); return () => controller.abort(); }, [careerId, year, resultMatch]);
@@ -47,7 +47,7 @@ export function CareerClPanel({ careerId, year, revision, historical, busy, next
     {error ? <p role="alert">{error}</p> : null}{notice ? <p role="status">{notice}</p> : null}
     {!view || !roster ? <p>CL 확인 중…</p> : !view.active ? <p>{view.activationYear ? `${view.activationYear} 시즌부터 CL을 진행합니다. 현재 시즌 기록은 유지됩니다.` : 'CL 도입 전 저장입니다. 다음 서버 시작 시 활성화 시즌을 확인합니다.'}</p> : <>
       <p>현재 단계: {view.fixtures.some(f => f.stageId === 'CL_PLAYOFFS') ? view.fixtures.some(f => f.matchId === 'CL_FINAL' && f.lifecycleStatus === 'COMPLETED') ? '시즌 종료' : '플레이오프' : view.fixtures.some(f => f.stageId === 'CL_TIEBREAKER') ? '순위 결정전' : '정규시즌·등록 준비'}</p><p>정규시즌 90 BO3 · 상위 6팀 단일 탈락 BO5. 공식 규정 전체 재현이 아닌 이 게임의 대회 형식입니다.</p>
-      <p>1군과 별도의 CL 선발입니다. <a href="#career-roster">선수 명부에서 육성팀 배치</a> 또는 <a href="#career-contract-market">계약 시장에서 영입</a> 후 각 포지션을 선택하세요. 1군 주전은 자동으로 이동하지 않습니다.</p>
+      <p>1군과 별도의 CL 선발입니다. <button type="button" disabled={busy || pending} onClick={onRoster}>선수 명부에서 육성팀 배치</button> 또는 <button type="button" disabled={busy || pending} onClick={onMarket}>계약 시장에서 영입</button> 후 각 포지션을 선택하세요. 1군 주전은 자동으로 이동하지 않습니다.</p>
       {operation ? <button disabled={busy || pending || historical} onClick={() => void save()}>원본 CL 요청 다시 확인</button> : null}
       {club?.blockers.length ? <div role="status"><strong>CL 명단 보완 필요</strong><ul>{club.blockers.map(reason => <li key={reason}>{reason}</li>)}</ul></div> : <p>현재 관리 구단 CL 명단 준비 완료</p>}
       <fieldset disabled={disabled}><legend>{view.managedTeam} CL 선발</legend>{ROSTER_ROLES.map(role => <label key={role}>{role} <select aria-label={`CL ${role} 선발`} value={selection[role] ?? ''} onChange={e => { dirty.current = true; setSelection(old => ({ ...old, [role]: e.target.value })); }}><option value="">선수 선택</option>{(club?.candidates ?? []).filter(id => players[id]?.position === role).map(id => <option key={id} value={id}>{players[id].nickname}</option>)}</select></label>)}<button disabled={ROSTER_ROLES.some(role => !selection[role])} onClick={() => void save('CONFIRM_LINEUP')}>CL 등록·선발 확정</button></fieldset>

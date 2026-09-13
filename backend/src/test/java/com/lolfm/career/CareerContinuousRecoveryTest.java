@@ -109,7 +109,11 @@ class CareerContinuousRecoveryTest {
             assertThat(service.view(career).run().status).isEqualTo(Status.PAUSED);assertThat(service.view(career).run().intent).isNull();assertThat(service.view(career).currentDate()).isEqualTo(date.plusDays(1));pausedHash=db.queryForObject("SELECT state_hash FROM career_continuous_run WHERE career_id=?",String.class,career);
         }
         try(var context=open()) {
-            var service=context.getBean(CareerContinuousApplicationService.class);var store=context.getBean(CareerContinuousStore.class);
+            // H2 rounds wake timestamps to microseconds. A fixed millisecond clock avoids a rounded
+            // future wake being skipped by several ticks within one Windows clock update.
+            var schedulerClock=new MutableClock();schedulerClock.now=schedulerClock.now.truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
+            var store=new CareerContinuousStore(context.getBean(JdbcTemplate.class),context.getBean(PlatformTransactionManager.class),schedulerClock);
+            var service=service(context,store);
             assertThat(service.view(career).run().status).isEqualTo(Status.PAUSED);assertThat(store.due()).doesNotContain(career);service.step(career,"third-worker");
             assertThat(store.jdbc.queryForObject("SELECT state_hash FROM career_continuous_run WHERE career_id=?",String.class,career)).isEqualTo(pausedHash);
             var c=context.getBean(CareerApplicationService.class).get(career).career();var calendar=context.getBean(CareerCalendarApplicationService.class);
@@ -126,7 +130,7 @@ class CareerContinuousRecoveryTest {
             var worker=new CareerContinuousWorker(store,service,false);
             try {
                 // One corrupt row and the healthy refresh/completion each may exhaust the 250 ms batch.
-                for(int tick=0;tick<3&&store.load(other.careerId()).status!=Status.COMPLETED;tick++)worker.tick();
+                for(int tick=0;tick<3&&store.load(other.careerId()).status!=Status.COMPLETED;tick++) { schedulerClock.now=schedulerClock.now.plusMillis(1);worker.tick(); }
             } finally {worker.close();}
             assertThat(store.load(other.careerId()).status).isEqualTo(Status.COMPLETED);
             assertThat(store.jdbc.queryForObject("SELECT state_json FROM career_continuous_run WHERE career_id=?",String.class,career)).isEqualTo(raw);

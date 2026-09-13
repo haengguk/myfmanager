@@ -15,10 +15,11 @@ export function SeriesGameRail({ series, onOpenGame }: { series: SeriesViewDto; 
       {Array.from({ length: maximumGames(series.format) }, (_, index) => {
         const number = index + 1; const game = byNumber.get(number); const current = number === series.currentGameNumber;
         const winner = game?.result?.winnerTeamCode ?? null;
+        const unplayed = !game && series.status === 'COMPLETED';
         const content = <>
           <span>GAME {number}</span>
-          <strong>{game ? STATUS_LABELS[game.status] : '예정'}</strong>
-          <small>{winner ? `${winner} 승` : game ? `${game.blueTeamCode} BLUE · ${game.redTeamCode} RED` : '서버 확정 전'}</small>
+          <strong>{game ? STATUS_LABELS[game.status] : unplayed ? '미진행' : '예정'}</strong>
+          <small>{winner ? `${winner} 승` : game ? `${game.blueTeamCode} BLUE · ${game.redTeamCode} RED` : unplayed ? '시리즈 종료' : '서버 확정 전'}</small>
         </>;
         return game?.status === 'COMMITTED' && onOpenGame
           ? <button key={number} type="button" className={`${current ? 'is-current ' : ''}is-complete`} onClick={() => onOpenGame(number)}>{content}</button>

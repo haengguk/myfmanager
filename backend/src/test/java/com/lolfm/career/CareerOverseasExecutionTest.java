@@ -22,6 +22,42 @@ class CareerOverseasExecutionTest {
     @Autowired CareerCalendarApplicationService calendar;
     private org.springframework.transaction.support.TransactionTemplate transaction(){return new org.springframework.transaction.support.TransactionTemplate(new org.springframework.jdbc.datasource.DataSourceTransactionManager(jdbc.getDataSource()));}
     @Autowired CareerPersistenceStartupRecovery startup;
+    @Test void appearanceCaptureIsCanonicalWhileLegacyEvidenceAndDuplicateCompletionRemainUnchanged() {
+        var c=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"출전 순서","감독","GEN",UUID.randomUUID().toString())).career().career();
+        String id=c.careerId(), fixture="appearance-order", series="appearance-series";
+        transaction().executeWithoutResult(t->{
+            var frozen=CareerRosterStore.eligiblePair(jdbc,id,2027,"LCK:KT","LPL:JDG");
+            CareerAppearanceStore.capture(jdbc,id,2027,fixture,series,"LPL_SPLIT_1",frozen);
+            String original=jdbc.queryForObject("SELECT snapshot_json FROM career_appearance_binding WHERE career_id=? AND fixture_identity=?",String.class,id,fixture);
+            var captured=CareerRosterStore.read(original,CareerManagementState.Appearance.class);
+            assertThat(captured.opportunities()).hasSizeGreaterThan(10);
+            assertThat(captured.opportunities().stream().filter(CareerManagementState.Opportunity::selected)).hasSize(10);
+            assertThat(captured.opportunities()).isSortedAccordingTo(Comparator.comparing(CareerManagementState.Opportunity::team)
+                    .thenComparing(CareerManagementState.Opportunity::position).thenComparing(CareerManagementState.Opportunity::playerId));
+            var reverse=new LinkedHashMap<String,CompetitionRosterSnapshot.Roster>();
+            frozen.teams().entrySet().stream().sorted(Map.Entry.<String,CompetitionRosterSnapshot.Roster>comparingByKey().reversed()).forEach(e->reverse.put(e.getKey(),e.getValue()));
+            jdbc.update("DELETE FROM career_appearance_binding WHERE career_id=? AND fixture_identity=?",id,fixture);
+            jdbc.update("DELETE FROM career_development_binding WHERE career_id=? AND fixture_identity=?",id,fixture);
+            CareerAppearanceStore.capture(jdbc,id,2027,fixture,series,"LPL_SPLIT_1",new CompetitionRosterSnapshot(reverse));
+            assertThat(jdbc.queryForObject("SELECT snapshot_json FROM career_appearance_binding WHERE career_id=? AND fixture_identity=?",String.class,id,fixture)).isEqualTo(original);
+            var legacyFacts=new ArrayList<>(captured.opportunities());Collections.reverse(legacyFacts);
+            String legacy=CareerRosterStore.write(new CareerManagementState.Appearance(captured.completionId(),fixture,series,2027,captured.date(),0,legacyFacts,captured.squad(),captured.competitionId()));
+            String legacyHash=CareerRosterStore.hash(legacy);
+            jdbc.update("UPDATE career_appearance_binding SET snapshot_json=?,snapshot_hash=? WHERE career_id=? AND fixture_identity=?",legacy,legacyHash,id,fixture);
+            var atStart=CareerMarketStore.load(jdbc,id);var changed=CareerMarketStore.engine(jdbc,id,2027,atStart);
+            var bench=legacyFacts.stream().filter(o->!o.selected()).findFirst().orElseThrow();
+            changed.release(bench.team(),bench.playerId(),null,captured.date());CareerMarketStore.persist(jdbc,id,2027,atStart,changed);
+            CareerAppearanceStore.complete(jdbc,id,fixture,"appearance-receipt",3);
+            var after=CareerMarketStore.load(jdbc,id);
+            assertThat(after.state().management().appearances().get("appearance-receipt").opportunities()).containsExactlyElementsOf(legacyFacts);
+            CareerAppearanceStore.capture(jdbc,id,2027,fixture,series,"LPL_SPLIT_1",frozen);
+            CareerAppearanceStore.complete(jdbc,id,fixture,"appearance-receipt",3);
+            assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(after);
+            assertThat(jdbc.queryForObject("SELECT snapshot_json FROM career_appearance_binding WHERE career_id=? AND fixture_identity=?",String.class,id,fixture)).isEqualTo(legacy);
+            assertThat(jdbc.queryForObject("SELECT snapshot_hash FROM career_appearance_binding WHERE career_id=? AND fixture_identity=?",String.class,id,fixture)).isEqualTo(legacyHash);
+            t.setRollbackOnly();
+        });
+    }
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
     void startupRecoveryIsolatesMissingOperatingRosterAndStillRecoversHealthySave(boolean frozenMissing) {

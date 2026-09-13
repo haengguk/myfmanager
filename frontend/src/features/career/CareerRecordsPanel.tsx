@@ -6,13 +6,14 @@ import { acceptRecordView, recordRequest, recordsSelectionKey, restoreRecordSele
 import type { Award, RecordDirectory, RecordSelection, RecordSeries, RecordsView } from './api/careerRecords';
 const number = (v: unknown, digits = 1) => typeof v === 'number' ? v.toLocaleString('ko-KR', { maximumFractionDigits: digits }) : '미수집';
 const coverage: Record<string, string> = { COMPLETE: '수집 완료', IN_PROGRESS: '시즌 진행 중 · 현재까지 수집', OBSERVED: '관측된 성적', PARTIAL: '일부 수집', NO_RELATED_RECORDS: '수집 범위 내 관련 이력 없음', NOT_COLLECTED: '미수집', INPUT_INCOMPLETE: '심사 자료 부족', FINALIZED: '수상 확정', ACTIVE_GAME_POLICY: '게임 정책 채택', SOURCE_REVIEW: '출처 추가 확인 필요', MODEL_UNSUPPORTED: '이번 버전 미지원', NOT_ACTIVE: '현재 운영하지 않음', DO_NOT_CREATE: '미시상' };
-export function CareerRecordsPanel({ careerId, year, revision, busy, focus, managedTeam, recordAsOf }: { careerId: string; year: number; revision: number; busy: boolean; focus?: InboxLink | null; managedTeam?: string; recordAsOf?: number }) {
-  const [open, setOpen] = useState(false), [directory, setDirectory] = useState<RecordDirectory | null>(null), [view, setView] = useState<RecordsView | null>(null);
+export function CareerRecordsPanel({ careerId, year, revision, busy, focus, managedTeam, recordAsOf, initiallyOpen = false, onScope }: { onScope?: (careerId: string, year: number | null) => void; initiallyOpen?: boolean; careerId: string; year: number; revision: number; busy: boolean; focus?: InboxLink | null; managedTeam?: string; recordAsOf?: number }) {
+  const [open, setOpen] = useState(initiallyOpen), [directory, setDirectory] = useState<RecordDirectory | null>(null), [view, setView] = useState<RecordsView | null>(null);
   const [selection, setSelection] = useState<RecordSelection>(() => restoreRecordSelection(sessionStorage.getItem(recordsSelectionKey(careerId)), year));
   const [search, setSearch] = useState(''), [error, setError] = useState(''), [loading, setLoading] = useState(false), [refresh, setRefresh] = useState(0), [page, setPage] = useState({ cursor: 0, asOf: null as number | null });
   const [award, setAward] = useState<Award | null>(null), [match, setMatch] = useState<RecordSeries | null>(null), [matchAwards, setMatchAwards] = useState<Award[]>([]), [awardCursor, setAwardCursor] = useState(0), [tab, setTab] = useState('성적'), [back, setBack] = useState<RecordSelection[]>([]);
   const [observationPage, setObservationPage] = useState({ cursor: 0, asOf: null as number | null });
   const generation = useRef(0), restoring = useRef(false);
+  useEffect(() => { onScope?.(careerId, selection.year); }, [careerId, selection.year, onScope]);
   useEffect(() => {
     if (!focus) return; setOpen(true); setSelection({ kind: focus.playerId ? 'PLAYER' : (managedTeam || focus.teamId) ? 'TEAM' : 'ALL', entity: focus.playerId ?? managedTeam ?? focus.teamId ?? '', organization: !!managedTeam, year: focus.seasonYear, competition: focus.competition ?? '' }); setPage({ cursor: 0, asOf: recordAsOf ?? null }); setObservationPage({ cursor: 0, asOf: null }); setAwardCursor(0); setTab(focus.panel === 'AWARDS' ? '수상' : '성적');
   }, [focus]);

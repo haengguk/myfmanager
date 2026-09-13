@@ -44,6 +44,7 @@ export function CareerSeasonsPanel({ careerId, revision, busy, onBegin, onChange
       if (!controller.signal.aborted && generation.current === token) setDetail(value);
     } catch (cause) { if (!controller.signal.aborted && generation.current === token) setError(failure(cause)); }
   };
+  useEffect(() => { if (seasons && selectedYear != null && selectedYear !== seasons.activeYear && historyYear !== selectedYear) void history(selectedYear); }, [seasons?.activeYear, selectedYear]);
   const transition = async () => {
     if (!seasons || transitionRequest.current || pending || busy || corruptOperation || historyYear !== null && historyYear !== seasons.activeYear) return;
     if (!operation && !seasons.allowedCommands.includes('START_NEXT_SEASON')) return;

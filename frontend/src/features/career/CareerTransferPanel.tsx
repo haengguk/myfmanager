@@ -31,13 +31,19 @@ export function CareerTransferPanel({ view, roster, selected, disabled, focus, o
     setStart(quote?.earliestStart ?? ''); setEnd(quote ? addDays(quote.earliestStart, 729) : '');
     setFee(quote?.suggestedTransferFee ?? 0); setSalary(Math.floor((quote?.referenceSalary ?? 0) * 1.25)); setBonus(0); setRole('RESERVE');
   }, [selected, view.careerId, view.seasonYear, view.currentDate, contract?.contractId]);
-  const fill = (t: Negotiation) => { setEditing(t); setKind(t.terms.kind); setBuyer(t.terms.buyer); setStart(t.terms.startDate); setEnd(t.terms.endDate); setFee(t.terms.fee); setSalary(t.terms.playerTerms.annualSalary); setBonus(t.terms.playerTerms.signingBonus); setRole(t.terms.playerTerms.role); setShare(t.terms.borrowerSalaryPercent); setReplacement(t.terms.replacementPlayerId ?? ''); };
+  const fill = (t: Negotiation) => { window.sessionStorage.setItem(`career-trade-focus:${view.careerId}:${view.seasonYear}`, t.tradeId); setEditing(t); setKind(t.terms.kind); setBuyer(t.terms.buyer); setStart(t.terms.startDate); setEnd(t.terms.endDate); setFee(t.terms.fee); setSalary(t.terms.playerTerms.annualSalary); setBonus(t.terms.playerTerms.signingBonus); setRole(t.terms.playerTerms.role); setShare(t.terms.borrowerSalaryPercent); setReplacement(t.terms.replacementPlayerId ?? ''); };
   useEffect(() => {
     if (!focus || focus.panel !== 'TRADE' || !focus.sourceId || focus.seasonYear !== view.seasonYear) return;
     const trade = view.management?.trades.find(t => t.tradeId === focus.sourceId);
     if (trade && ['CLUB_PENDING', 'CLUB_COUNTER', 'PLAYER_PENDING'].includes(trade.status)) fill(trade);
     else { setEditing(null); setError('이 거래는 이미 종료되었거나 합의되어 새 응답이 필요하지 않습니다.'); }
   }, [focus, view.revision]);
+  useEffect(() => {
+    if (focus?.panel === 'TRADE' || editing || !selected) return;
+    const id = window.sessionStorage.getItem(`career-trade-focus:${view.careerId}:${view.seasonYear}`);
+    const trade = view.management?.trades.find(t => t.tradeId === id && t.terms.playerId === selected);
+    if (trade && ['CLUB_PENDING', 'CLUB_COUNTER', 'PLAYER_PENDING'].includes(trade.status)) fill(trade);
+  }, [selected, view.careerId, view.seasonYear, view.revision]);
   const execute = async (action?: TradeCommand['action'], trade?: Negotiation) => {
     if (disabled || pending || corrupt || view.readOnly || mutation.current) return;
     const release = onBegin(); if (!release) return;

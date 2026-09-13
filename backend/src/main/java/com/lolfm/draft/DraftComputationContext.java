@@ -82,6 +82,27 @@ final class DraftComputationContext {
         var key=new PlanValueKey(planner,team,champion,plan,roles,threat);
         return planValues.computeIfAbsent(key,ignored->calculation.getAsDouble());
     }
+    // Immutable pools are owned by this execution, including the catalog owner and exact state identity.
+    private final Map<DraftAvailability, Map<DraftState, Map<ChampionId, List<ChampionId>>>> availablePools = new java.util.IdentityHashMap<>();
+    List<ChampionId> availablePool(DraftAvailability owner, DraftState state, ChampionId excluded,
+            Supplier<List<ChampionId>> calculation) {
+        if (!cacheEnabled) return calculation.get();
+        return availablePools.computeIfAbsent(owner, ignored -> new java.util.IdentityHashMap<>())
+                .computeIfAbsent(state, ignored -> new HashMap<>())
+                .computeIfAbsent(excluded, ignored -> calculation.get());
+    }
+    private record PortfolioKey(PreDraftPlanner planner, DraftTeamContext team, DraftTeamContext opponent,
+            TeamSide side, Set<ChampionId> unavailable, List<ChampionId> own, List<ChampionId> enemy,
+            DraftSelectionContext strategy, TeamSide observer) { }
+    private final Map<PortfolioKey, DraftPlanPortfolio> portfolios = new HashMap<>();
+    DraftPlanPortfolio portfolio(PreDraftPlanner planner, DraftTeamContext team, DraftTeamContext opponent,
+            TeamSide side, Set<ChampionId> unavailable, List<ChampionId> own, List<ChampionId> enemy,
+            Supplier<DraftPlanPortfolio> calculation) {
+        if (!cacheEnabled) return calculation.get();
+        var key = new PortfolioKey(planner, team, opponent, side, Set.copyOf(unavailable),
+                List.copyOf(own), List.copyOf(enemy), strategyContext, strategyObserver);
+        return portfolios.computeIfAbsent(key, ignored -> calculation.get());
+    }
     private long roleAssignmentRequests;
     private long roleAssignmentHits;
     private long roleAssignmentMisses;
@@ -229,6 +250,8 @@ final class DraftComputationContext {
     }
 
     void clear() {
+        availablePools.clear();
+        portfolios.clear();
         stateKeys.clear();
         unavailable.clear();
         shapes.clear();

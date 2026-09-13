@@ -476,28 +476,30 @@ console.log('Career continuous: compact status, malformed boundary and original 
   const { default: ts } = await import('typescript');
   const { readFileSync } = await import('node:fs');
   const { runInNewContext } = await import('node:vm');
-  const code = ts.transpileModule(readFileSync(new URL('../src/features/career/CareerContinuousPanel.tsx', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
-  async function probe(status, stamp = null) {
+  const code = ts.transpileModule(readFileSync(new URL('../src/features/career/CareerContinuousPanel.tsx', import.meta.url), 'utf8').replace(/\r\n/g, '\n'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  async function probe(status, stamp = null, visible = true, failSync = false) {
     const effects = [], busy = []; let timer, calls = 0, finish;
     let next = { careerId: 'probe', currentDate: '2027-03-25', run: { runId: 'run', revision: 2, status }, allowedCommands: [] };
     const context = { exports: {}, AbortController, window: { sessionStorage: { getItem: () => null }, setTimeout: f => { timer = f; return 1; }, clearTimeout() {} }, require: name => name === 'react' ? { useState: v => [v, () => {}], useRef: v => ({ current: v }), useEffect: f => effects.push(f) } : name === 'react/jsx-runtime' ? { jsx() {}, jsxs() {} } : { getCareerContinuous: async () => next, CareerApiFailure: class extends Error {} } };
     runInNewContext(code, context);
-    context.exports.CareerContinuousPanel({ careerId: 'probe', currentDate: '2027-03-25', seasonYear: 2027, busy: false, appliedRun: stamp, onBusy: (_, v) => busy.push(v), onStopped: () => { calls++; return new Promise(resolve => { finish = resolve; }); }, onBegin: () => () => {}, onAction() {} });
+    context.exports.CareerContinuousPanel({ visible, careerId: 'probe', currentDate: '2027-03-25', seasonYear: 2027, busy: false, appliedRun: stamp, onBusy: (_, v) => busy.push(v), onStopped: () => { calls++; return new Promise(resolve => { finish = resolve; }); }, onBegin: () => () => {}, onAction() {} });
     effects.forEach(f => f()); assert.equal(busy.at(-1), true); await new Promise(setImmediate);
-    if (status === 'RUNNING') { assert.equal(calls, 0); next = { ...next, run: { ...next.run, revision: 3, status: 'STOPPED' } }; timer(); await new Promise(setImmediate); }
-    if (!stamp) { assert.equal(calls, 1); assert.equal(busy.at(-1), true); finish(true); await new Promise(setImmediate); assert.equal(busy.at(-1), false); }
+    if (status === 'RUNNING') { assert.equal(calls, 0); next = { ...next, run: { ...next.run, revision: 3, status: 'STOPPED' } }; const tick = timer; timer = undefined; tick(); await new Promise(setImmediate); }
+    if (!stamp) { assert.equal(calls, 1); assert.equal(busy.at(-1), true); if (failSync) { finish(false); await new Promise(setImmediate); assert.equal(busy.at(-1), true); const tick = timer; timer = undefined; assert.equal(typeof tick, 'function'); tick(); await new Promise(setImmediate); assert.equal(calls, 2); } finish(true); await new Promise(setImmediate); assert.equal(busy.at(-1), false); }
     else { assert.equal(calls, 0); assert.equal(busy.at(-1), false); }
-    timer(); await new Promise(setImmediate); assert.equal(calls, stamp ? 0 : 1);
+    assert.equal(timer, undefined, 'terminal synchronization stops periodic reads'); assert.equal(calls, stamp ? 0 : failSync ? 2 : 1);
   }
   await probe('STOPPED'); await probe('COMPLETED'); await probe('RUNNING'); await probe('STOPPED', 'run:2');
   console.log('PASS actual continuous component initial terminal, same-date, synchronization barrier, repeated response and remount');
+  await probe('STOPPED', null, true, true); console.log('PASS terminal synchronization failure retains one retry then stops after successful refresh');
+  await probe('RUNNING', null, false); console.log('PASS hidden Continuous controls retain the same running observer and terminal synchronization');
 }
 
 {
   const { default: ts } = await import('typescript');
   const { readFileSync } = await import('node:fs');
   const { runInNewContext } = await import('node:vm');
-  const code = ts.transpileModule(readFileSync(new URL('../src/features/career/api/careerRecords.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+  const code = ts.transpileModule(readFileSync(new URL('../src/features/career/api/careerRecords.ts', import.meta.url), 'utf8').replace(/\r\n/g, '\n'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
   const context = { exports: {}, require: () => ({ realMatchConfig: { apiBaseUrl: '' } }) };
   runInNewContext(code, context);
   const { restoreRecordSelection, acceptRecordView, recordsSelectionKey } = context.exports;
@@ -516,7 +518,7 @@ console.log('Career continuous: compact status, malformed boundary and original 
   const { default: ts } = await import('typescript');
   const { readFileSync } = await import('node:fs');
   const { runInNewContext } = await import('node:vm');
-  const compile = path => ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const compile = path => ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\r\n/g, '\n'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const api = { exports: {}, require: () => ({ realMatchConfig: { apiBaseUrl: '' } }), fetch: async (...args) => { api.calls.push(args); return { ok: true, json: async () => ({}) }; }, calls: [] };
   runInNewContext(compile('../src/features/career/api/careerInbox.ts'), api);
   const link = { panel: 'MARKET', playerId: 'player', sourceId: 'offer', seasonYear: 2027, competition: null, positions: [] };
@@ -569,10 +571,10 @@ console.log('Career continuous: compact status, malformed boundary and original 
  assert.equal(matchDestination(match),'COMPETITION_PREPARATION');assert.equal(matchDestination({...match,matchState:'IN_PROGRESS'}),'SERIES');assert.equal(matchDestination({...match,competition:'LCK_REGULAR_R1_R2'}),'LEAGUE_PREPARATION');
  console.log('PASS reserved Series needs explicit started state; League retains preparation route');
  const callback=source('CareerDashboardPage.tsx').split('  const navigateCareer =')[1].split('\n  useEffect(')[0];
- async function probe(current=true,late=false,started=false){const events=[];let finish;const ctx={exports:{},detail:{careerId},mutationGate:{current:{busy:false}},navigationGeneration:{current:0},selectedIdRef:{current:careerId},currentNavigation,matchDestination,loadDetail:()=>{events.push('load');return new Promise(r=>{finish=r;});},setHistorical:v=>events.push(['historical',v]),setHistoryYear:v=>events.push(['year',v]),setInboxFocus:v=>events.push(['focus',v.sourceId]),setMarketPlayer:v=>events.push(['player',v]),onOpenCompetitionSeries:id=>events.push(['series',id]),onResume:()=>events.push('league')};runInNewContext(compile(`export const navigateCareer =${callback}`),ctx);ctx.exports.navigateCareer({...match,current,matchState:started?'IN_PROGRESS':'UNSTARTED',playerId:'candidate'});if(current){assert.deepEqual(events,['load']);if(late)++ctx.navigationGeneration.current;finish(true);await new Promise(setImmediate);}return events;}
+ async function probe(current=true,late=false,started=false){const events=[];let finish;const ctx={exports:{},detail:{careerId},mutationGate:{current:{busy:false}},navigationGeneration:{current:0},selectedIdRef:{current:careerId},calendar:{activeCalendarSeasonYear:2028},latestCareer:{current:{careerId}},setManaging(){},setPage(){},setScheduleTab(){},setTrainingTab(){},pageForLink:()=> 'schedule',currentNavigation,matchDestination,loadDetail:()=>{events.push('load');return new Promise(r=>{finish=r;});},setHistorical:v=>events.push(['historical',v]),setHistoryYear:v=>events.push(['year',v]),setInboxFocus:v=>events.push(['focus',v.sourceId]),setMarketPlayer:v=>events.push(['player',v]),onOpenCompetitionSeries:id=>events.push(['series',id]),onResume:()=>events.push('league')};runInNewContext(compile(`export const navigateCareer =${callback}`),ctx);ctx.exports.navigateCareer({...match,current,matchState:started?'IN_PROGRESS':'UNSTARTED',playerId:'candidate'});if(current){assert.deepEqual(events,['load']);if(late)++ctx.navigationGeneration.current;finish(true);await new Promise(setImmediate);}return events;}
  const opened=await probe();assert.deepEqual(opened.slice(1,4),[['historical',false],['year',null],['focus','fixture']]);assert.equal(opened.some(e=>e[0]==='series'),false);assert.deepEqual(await probe(true,true),['load']);assert.ok((await probe(true,false,true)).some(e=>e[0]==='series'));
  console.log('PASS actual Dashboard awaits active source then resets parent/focus; superseded target cannot apply');
- assert.equal((await probe(false)).some(e=>e[0]==='historical'||e==='load'),false);
+ assert.equal((await probe(false)).some(e=>e==='load'),false); assert.ok((await probe(false)).some(e=>e[0]==='year'&&e[1]===2028));
  console.log('PASS historical news retains its scope without a season-transition command');
  const effect=source('CareerSeasonsPanel.tsx').split('\n').find(s=>s.includes('if (selectedYear == null'));
  const actions=[];runInNewContext(compile(effect),{selectedYear:null,historyYear:2027,request:{current:{abort:()=>actions.push('abort')}},generation:{current:0},useEffect:f=>f(),setHistoryYear:v=>actions.push(['year',v]),setDetail:v=>actions.push(['detail',v])});assert.deepEqual(actions,['abort',['year',null],['detail',null]]);
@@ -617,7 +619,7 @@ console.log('Career continuous: compact status, malformed boundary and original 
 // Play-flow boundaries: reuse server actions and approved records, never infer commands from navigation.
 {
  const { default: ts } = await import('typescript'), { readFileSync } = await import('node:fs'), { runInNewContext } = await import('node:vm');
- const read = n => readFileSync(new URL(`../src/features/career/${n}`, import.meta.url), 'utf8');
+ const read = n => readFileSync(new URL(`../src/features/career/${n}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
  const compile = s => ts.transpileModule(s, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
  const context = { exports: {} }; runInNewContext(compile(read('careerPlayFlow.ts')), context);
  const flow = context.exports, cal = hardenedCalendarView();
@@ -634,20 +636,20 @@ console.log('Career continuous: compact status, malformed boundary and original 
  const result = { careerId, seriesId: 'approved', seasonYear: 2027, firstTeam: 'LCK:T1', secondTeam: 'LCK:GEN', games: [{ winner: 'LCK:T1' }, { winner: 'LCK:GEN' }, { winner: 'LCK:T1' }] };
  assert.equal(flow.approvedSeriesScore(result, careerId, 'approved'), '2–1'); assert.throws(() => flow.approvedSeriesScore(result, secondCareerId, 'approved')); assert.throws(() => flow.approvedSeriesScore(result, careerId, 'other')); assert.equal(flow.approvedSeriesScore({ ...result, games: [] }, careerId, 'approved'), '세트 스코어 미수집');
  console.log('PASS approved result score binds Career and exact Series and does not fill missing sets with zero');
- const stop = read('CareerDashboardPage.tsx').split('onAction={')[1].split(' appliedRun=')[0].slice(0, -1);
- const calls = [], cb = { exports: {}, calendar: cal, ...flow, navigateCareer: l => calls.push(['navigate', l.sourceId]), focusPlayTarget: s => calls.push(['focus', s]), executeCompetition: () => { throw Error('navigation must not execute'); }, onResume: () => { throw Error('stale League resume'); } };
- runInNewContext(compile(`exports.stop = ${stop};`), cb); cb.exports.stop('MATCH'); cb.exports.stop('MARKET'); assert.deepEqual(calls.map(c => c[0]), ['focus', 'focus']);
+ const stop = read('CareerDashboardPage.tsx').split(' onAction={')[1].split(' appliedRun=')[0].slice(0, -1);
+ const calls = [], cb = { exports: {}, openPage: p => calls.push(['page',p]), goProgress: () => calls.push(['page','schedule']), setScheduleTab() {}, calendar: cal, ...flow, navigateCareer: l => calls.push(['navigate', l.sourceId]), focusPlayTarget: s => calls.push(['focus', s]), executeCompetition: () => { throw Error('navigation must not execute'); }, onResume: () => { throw Error('stale League resume'); } };
+ runInNewContext(compile(`exports.stop = ${stop};`), cb); cb.exports.stop('MATCH'); cb.exports.stop('MARKET'); assert.deepEqual(calls.map(c => c[0]), ['page', 'page']);
  cal.competition.nextFixture.executionMode = 'PLAYER_CONTROLLED'; cb.exports.stop('MATCH'); assert.deepEqual(calls.at(-1), ['navigate', 'managed']);
  console.log('PASS actual stop-link callback only navigates current targets and does not start a Series');
  const effects = [], updates = []; let finish;
  const ui = { exports: {}, AbortController, require: name => name === 'react' ? { useState: v => [v, n => updates.push(n)], useEffect: f => effects.push(f) } : name === 'react/jsx-runtime' ? { jsx() {}, jsxs() {} } : { ...flow, recordRequest: () => new Promise(r => { finish = r; }) } };
  runInNewContext(compile(read('CareerReturnResult.tsx')), ui); ui.exports.CareerReturnResult({ careerId, seriesId: 'approved', onNavigate() {} }); const cleanup = effects[0](); cleanup(); const prior = updates.length; finish({ result }); await new Promise(setImmediate); assert.equal(updates.length, prior);
  console.log('PASS actual return-result effect ignores responses after Career or Series cleanup');
- const updates2 = [], detail = { careerId }, c2 = { onCareerSelectionChange: undefined, exports: {}, AbortController, window: { sessionStorage: {} }, useCallback: f => f, selectedIdRef: { current: careerId }, generationRef: { current: 0 }, requestRef: { current: null }, restoredAdvanceRef: { current: null }, teamsRef: { current: [] }, catalogRef: { current: null }, appliedContinuous: { current: new Map() }, getCareer: async () => detail, getCareerCalendar: async () => cal, requireCareerReference() {}, reconcileCareerAdvanceOperation() {}, reconcileCareerCompetitionOperation() {}, invalidateScreenRequests() {}, applyDetail() {}, setHistorical() {}, setSelectedId() {}, setDetail: v => updates2.push(['detail', v]), setCalendar: v => updates2.push(['calendar', v]), setDetailLoading: v => updates2.push(['loading', v]), setCalendarLoading() {}, setCalendarError() {}, setError() {}, setIntegrityError() {} };
+ const updates2 = [], detail = { careerId }, c2 = { commitEntry() {}, fetchLckTeams: async () => ({ teams: [], catalog: {} }), setManaging(){}, navigationGeneration:{current:0}, queuedPage:{current:null}, readCareerLocation:()=>({page:'home',year:null,focus:null}),setScheduleTab(){},setTrainingTab(){},setPage(){},setHistoryYear(){},setInboxFocus(){},setMarketPlayer(){},setContinuousStatus(){}, onCareerSelectionChange: undefined, exports: {}, AbortController, window: { sessionStorage: {} }, useCallback: f => f, selectedIdRef: { current: careerId }, generationRef: { current: 0 }, requestRef: { current: null }, restoredAdvanceRef: { current: null }, teamsRef: { current: [] }, catalogRef: { current: null }, appliedContinuous: { current: new Map() }, getCareer: async () => detail, getCareerCalendar: async () => cal, requireCareerReference() {}, reconcileCareerAdvanceOperation() {}, reconcileCareerCompetitionOperation() {}, invalidateScreenRequests() {}, applyDetail() {}, setHistorical() {}, setSelectedId() {}, setDetail: v => updates2.push(['detail', v]), setCalendar: v => updates2.push(['calendar', v]), setDetailLoading: v => updates2.push(['loading', v]), setCalendarLoading() {}, setCalendarError() {}, setError() {}, setIntegrityError() {} };
  const load = read('CareerDashboardPage.tsx').split('  const loadDetail =')[1].split('\n\n  const loadWorkspace')[0];runInNewContext(compile(`exports.load = ${load}`), c2); assert.equal(await c2.exports.load(careerId), true); assert.ok(!updates2.some(([key, value]) => ['detail', 'calendar'].includes(key) && value === null)); assert.ok(updates2.some(([key, value]) => key === 'loading' && value === false));
  console.log('PASS actual same-Career refresh preserves mounted panels and their original request recovery');
- const root = readFileSync(new URL('../src/RootApp.tsx', import.meta.url), 'utf8');
- const select = read('CareerDashboardPage.tsx').match(/onClick=\{(\(\) => \{ void loadDetail\(career\.careerId\); \})\}/)[1];
+ const root = readFileSync(new URL('../src/RootApp.tsx', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+ const select = read('CareerDashboardPage.tsx').match(/onLoad=\{(id => \{ commitEntry\('club'\); void loadDetail\(id, true\); \})\}/)[1];
  assert.equal((root.match(/onCareerSelectionChange=\{invalidateCareerSeriesRequest\}/g) ?? []).length, 2);
  for (const name of ['openLeagueSeries', 'openCareerCompetitionSeries']) {
   for (const failure of [false, true]) {
@@ -658,7 +660,7 @@ console.log('Career continuous: compact status, malformed boundary and original 
    for (const fn of ['clearCareerCompetitionSeriesContext','setCareerCompetitionSeriesContext','setLeagueSeriesContext','writeSeriesPointer','setSeriesState','setLeagueSeriesReturn','clearLeagueSeriesContext','writeCareerReturnContext','setCareerReturnContext','setActiveScreen']) rc[fn]=(...v)=>applied.push([fn,...v]);
    for (const [exported,fn] of [['open',name],['invalidate','invalidateCareerSeriesRequest']]) runInNewContext(compile('exports.'+exported+' ='+root.split('  const '+fn+' =')[1].split('\n\n  const ')[0]),rc);
    const pc={...c2,exports:{},selectedIdRef:{current:careerId},requestRef:{current:null},onCareerSelectionChange:rc.exports.invalidate,career:{careerId:secondCareerId},getCareer:async id=>({careerId:id})};
-   runInNewContext(compile('const loadDetail ='+load+'; exports.select ='+select),pc);
+   runInNewContext(compile('const loadDetail ='+load+'; exports.select = () => ('+select+')(career.careerId)'),pc);
    const open=()=>name==='openLeagueSeries'?rc.exports.open({boundSeriesId:'old'},{}):rc.exports.open('old',{careerId},'old match');
    const pending=open();pc.exports.select();await new Promise(setImmediate);assert.equal(pc.selectedIdRef.current,secondCareerId);
    pc.career={careerId};pc.exports.select();await new Promise(setImmediate);assert.equal(pc.selectedIdRef.current,careerId);
@@ -671,10 +673,10 @@ console.log('Career continuous: compact status, malformed boundary and original 
 
  for(const failure of [false,true]) {
   let finish,fail;const applied=[];
-  const rc={exports:{},AbortController,useCallback:f=>f,window:{sessionStorage:{}},seriesRequestRef:{current:null},careerResumeRoute:()=>({kind:'PLAYER_SERIES',leagueId:'l',seasonId:'s',fixtureId:'f',seriesId:'old'}),writeCareerReturnContext(){},setCareerReturnContext(){},writeLeaguePointer(){},setActiveScreen:v=>applied.push(v),showToast:()=>applied.push('toast'),openLeagueSeries:()=>{throw Error('stale resume reached child');},getLeagueFixtures:()=>new Promise((r,j)=>{finish=r;fail=j;}),getLeaguePlayerSeries:async()=>({})};
+  const rc={exports:{},AbortController,useCallback:f=>f,window:{sessionStorage:{}},seriesRequestRef:{current:null},careerResumeRoute:()=>({kind:'PLAYER_SERIES',leagueId:'l',seasonId:'s',fixtureId:'f',seriesId:'old'}),writeCareerReturnContext(){},setCareerReturnContext(){},connectCareerLeague(){},setActiveScreen:v=>applied.push(v),showToast:()=>applied.push('toast'),openLeagueSeries:()=>{throw Error('stale resume reached child');},getLeagueFixtures:()=>new Promise((r,j)=>{finish=r;fail=j;}),getLeaguePlayerSeries:async()=>({})};
   for(const [exported,fn] of [['resume','resumeCareer'],['invalidate','invalidateCareerSeriesRequest']])runInNewContext(compile('exports.'+exported+' ='+root.split('  const '+fn+' =')[1].split('\n\n  const ')[0]),rc);
   const pc={...c2,exports:{},selectedIdRef:{current:careerId},onCareerSelectionChange:rc.exports.invalidate,career:{careerId:secondCareerId}};
-  runInNewContext(compile('const loadDetail ='+load+'; exports.select ='+select),pc);
+  runInNewContext(compile('const loadDetail ='+load+'; exports.select = () => ('+select+')(career.careerId)'),pc);
   const pending=rc.exports.resume({careerId});pc.exports.select();await new Promise(setImmediate);
   if(failure)fail(new Error('delayed lookup failure'));else finish({fixtures:[]});await pending;assert.deepEqual(applied,[]);
  }
@@ -682,4 +684,237 @@ console.log('Career continuous: compact status, malformed boundary and original 
  const returning = { exports: {}, useCallback: f => f, window: { sessionStorage: {} }, careerReturnContext: null, leagueSeriesContext: null, seriesState: null, clearSeriesPointer: () => calls.push(['clear-auto-open']), clearCareerReturnContext() {}, setCareerReturnContext() {}, setActiveScreen: v => calls.push(['screen', v]) };
  runInNewContext(compile(`exports.back = ${root.split('  const returnToCareer =')[1].split('\n\n  const ')[0]}`), returning);returning.exports.back();assert.deepEqual(calls.slice(-2), [['clear-auto-open'], ['screen', 'career']]);
  console.log('PASS actual return-to-Career clears automatic Series reopening and restores the Career screen');
+}
+
+// Workspace navigation: prove the new page boundary without repeating API contracts.
+{
+  const { default: ts } = await import('typescript'), { readFileSync } = await import('node:fs'), { runInNewContext } = await import('node:vm');
+  const read = name => readFileSync(new URL(`../src/features/career/${name}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const compile = source => ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const workspace = { exports: {} }; runInNewContext(compile(read('careerWorkspace.ts')), workspace);
+  const { readCareerLocation, writeCareerLocation, pageForLink } = workspace.exports;
+  const values = new Map(), storage = { getItem: k => values.get(k) ?? null, setItem: (k,v) => values.set(k,v) };
+  const focus = { panel: 'TRADE', playerId: 'original-player', sourceId: 'original-negotiation', competition: null, seasonYear: 2027, seriesId: null, positions: [], current: true };
+  writeCareerLocation(storage, 'A', { page: 'market', year: null, focus, scheduleTab: 'cl' });
+  writeCareerLocation(storage, 'B', { page: 'records', year: 2026, focus: null });
+  assert.equal(readCareerLocation(storage, 'A').focus.sourceId, 'original-negotiation');
+  assert.equal(readCareerLocation(storage, 'A').scheduleTab, 'cl'); assert.equal(readCareerLocation(storage, 'B').year, 2026);
+  assert.equal(readCareerLocation(storage, 'missing').page, 'home'); assert.equal(pageForLink(focus), 'market');
+  assert.equal(pageForLink({ ...focus, panel: 'FINANCE' }), 'finance');
+  console.log('PASS per-Career menu restoration preserves historical year and original player/negotiation IDs');
+  for (const raw of ['{bad', JSON.stringify({ page: 'unknown' }), JSON.stringify({ page: 'roster', year: '2027', focus: { panel: 'ROSTER' } })]) {
+    const v = readCareerLocation({ getItem: () => raw }, 'A'); assert.equal(v.focus, null); assert.equal(v.year, null);
+  }
+  console.log('PASS invalid optional navigation state falls back without discarding command recovery');
+  const dashboard = read('CareerDashboardPage.tsx');
+  const source = dashboard.slice(dashboard.indexOf('  function openPage('), dashboard.indexOf('  useEffect(() => { if (!mutationPending'));
+  const events = [], context = { exports: {}, navigationGeneration: { current: 0 }, mutationGate: { current: { busy: false } }, queuedPage: { current: null }, historical: false,
+    setMarketPlayer() {}, setManaging: v => events.push(['managing',v]), setPage: v => events.push(['page',v]), setInboxFocus: v => events.push(['focus',v]), onNotify: () => events.push(['notice']),
+    loadDetail: () => { throw Error('ordinary navigation must not load or mutate'); } };
+  runInNewContext(compile(source + '; exports.open = openPage;'), context); context.exports.open('roster');
+  assert.deepEqual(events, [['managing',true],['page','roster'],['focus',null]]);
+  events.length = 0; context.mutationGate.current.busy = true; context.exports.open('market');
+  assert.equal(context.queuedPage.current, 'market'); assert.deepEqual(events, [['notice']]);
+  console.log('PASS actual menu navigation issues no command and queues navigation while the mutation owner is active');
+  for (const stale of [false,true]) {
+    let finish; const changed = []; const c = { ...context, exports: {}, navigationGeneration: { current: 0 }, mutationGate: { current: { busy: false } }, historical: true,
+      detail: { careerId: 'A' }, selectedIdRef: { current: 'A' }, loadDetail: () => new Promise(r => { finish = r; }), setHistorical: v => changed.push(['historical',v]),
+      setHistoryYear: v => changed.push(['year',v]), setManaging() {}, setPage: v => changed.push(['page',v]), setInboxFocus() {} };
+    runInNewContext(compile(source + '; exports.open = openPage;'), c); c.exports.open('inbox'); assert.equal(changed.length,0);
+    if (stale) ++c.navigationGeneration.current; finish(true); await new Promise(setImmediate);
+    assert.equal(changed.length, stale ? 0 : 3);
+    if (!stale) assert.deepEqual(changed, [['historical',false],['year',null],['page','inbox']]);
+  }
+  console.log('PASS current-work menu waits for active season and rejects a superseded navigation response');
+  const advance = dashboard.split('  const advance =')[1].split('\n\n  const autoScope')[0];
+  const execute = dashboard.split('  const executeCompetition =')[1].split('\n\n  useEffect(')[0];
+  const c = { exports: {}, useCallback: f => f, detail: {}, calendar: {}, continuousBusy: true, advancePending: false, competitionPending: false, historical: false,
+    mutationGate: { current: { acquire() { throw Error('running Continuous must block mutation'); } } }, applyDetail() {}, onNotify() {}, onOpenCompetitionSeries() {}, observeAcceptedAuto() {} };
+  runInNewContext(compile(`exports.advance = ${advance}; exports.execute = ${execute};`), c);
+  await c.exports.advance('ADVANCE_ONE_DAY'); await c.exports.execute();
+  console.log('PASS actual Calendar handlers reject conflicting commands while shared Continuous state is busy');
+}
+
+{
+  const { careerLeagueStorage, connectCareerLeague, readLeaguePointer, writeLeaguePointer, updateLeagueCommand } = await import('../src/features/league/league.pointer.ts');
+  const local = storage(), original = { schemaVersion: 'AI_LEAGUE_POINTER_V1', leagueId, seasonId, command: { kind: 'START_PLAYER_SERIES', scopeKey: fixtureId, clientCommandId: 'original-command', expectedRevision: 7, bindingHash: null } };
+  writeLeaguePointer(local, original);
+  connectCareerLeague(local, careerId, leagueId, seasonId);
+  assert.equal(readLeaguePointer(local), null);
+  const careerStorage = careerLeagueStorage(local, careerId);
+  assert.deepEqual(readLeaguePointer(careerStorage), original);
+  const standalone = { ...original, leagueId: `league_${'9'.repeat(64)}`, command: { ...original.command, clientCommandId: 'standalone-command' } };
+  writeLeaguePointer(local, standalone);
+  connectCareerLeague(local, secondCareerId, `league_${'8'.repeat(64)}`, seasonId);
+  connectCareerLeague(local, careerId, leagueId, seasonId);
+  assert.deepEqual(readLeaguePointer(careerStorage), original);
+  assert.deepEqual(readLeaguePointer(local), standalone);
+  updateLeagueCommand(careerStorage, original, null);
+  assert.deepEqual(readLeaguePointer(local), standalone);
+  assert.equal(readLeaguePointer(careerLeagueStorage(local, secondCareerId)).leagueId, `league_${'8'.repeat(64)}`);
+  console.log('PASS Career league re-entry preserves original recovery UUID and isolates standalone and other Career pointers');
+}
+
+{
+  const { default: ts } = await import('typescript'), { readFileSync } = await import('node:fs'), { runInNewContext } = await import('node:vm');
+  const text = readFileSync(new URL('../src/features/career/CareerTransferPanel.tsx', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
+  const callback = text.slice(text.indexOf('  useEffect(() => {\n    if (focus?.panel'), text.indexOf('  const execute ='));
+  const pending = { tradeId: 'original-trade', status: 'CLUB_COUNTER', terms: { playerId: 'original-player' } };
+  const recovered = [], local = storage();
+  local.setItem(`career-trade-focus:${careerId}:2027`, pending.tradeId);
+  const context = { useEffect: f => f(), window: { sessionStorage: local }, focus: null, editing: null, selected: 'original-player', view: { careerId, seasonYear: 2027, revision: 1, management: { trades: [pending] } }, fill: value => recovered.push(value.tradeId) };
+  const compiled = ts.transpileModule(callback, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  runInNewContext(compiled, context); assert.deepEqual(recovered, ['original-trade']);
+  recovered.length = 0; context.view.careerId = secondCareerId; runInNewContext(compiled, context); assert.deepEqual(recovered, []);
+  context.view.careerId = careerId; pending.status = 'COMPLETED'; runInNewContext(compiled, context); assert.deepEqual(recovered, []);
+  pending.status = 'CLUB_COUNTER'; context.selected = 'other-player'; runInNewContext(compiled, context); assert.deepEqual(recovered, []);
+  console.log('PASS remounted trade detail restores only the original live negotiation for the same Career season and player');
+}
+
+// Controlled time establishes long-running and reconnect behavior without slowing production or executing a game.
+{
+  const { observeCareerAuto } = await import('../src/features/career/careerAutoObservation.ts');
+  const target = { careerId, sourceYear: 2027, fixtureId: `competition_fixture_${'7'.repeat(64)}`, clientCommandId: '10000000-0000-4000-8000-000000000001', jobId: 'original-job' };
+  const running = hardenedCalendarView(); Object.assign(running.competition.nextFixture, { executionMode: 'FULL_AUTO', jobId: target.jobId, jobStatus: 'RUNNING' });
+  running.competition.activePendingCommand = { clientCommandId: target.clientCommandId, competitionId: 'LCK_CUP', matchId: 'GROUP_B01_E01', commandStatus: 'RUNNING' };
+  const completed = clone(running); completed.competition.nextFixture = null; completed.competition.activePendingCommand = null;
+  let reads = 0, elapsed = 0, applied = 0, inFlight = 0, maximum = 0, refreshes = 0;
+  const controller = new AbortController();
+  const result = await observeCareerAuto(target, { signal: controller.signal, current: () => true,
+    wait: async ms => { elapsed += ms; },
+    read: async () => { maximum = Math.max(maximum, ++inFlight); try { reads++; if (reads === 3) throw new Error('lost poll'); return reads < 9 ? running : completed; } finally { inFlight--; } },
+    calendar: () => { applied++; }, message: () => {}, complete: async () => { if (++refreshes === 1) throw new Error('lost terminal refresh'); },
+  });
+  assert.equal(result, 'COMPLETED'); assert.ok(elapsed > 10000); assert.equal(maximum, 1); assert.equal(reads, 10); assert.equal(refreshes, 2); assert.equal(applied, 9);
+  console.log('PASS single Auto beyond ten seconds, transient read loss, terminal synchronization retry, bounded single observer');
+  for (const changed of ['career', 'year', 'abort']) {
+    let committed = 0; const scope = new AbortController(); const stale = clone(running);
+    const stopped = await observeCareerAuto(target, { signal: scope.signal, current: () => true, wait: async () => {},
+      read: async () => { if (changed === 'career') stale.careerId = secondCareerId; else if (changed === 'year') stale.activeCalendarSeasonYear = 2028; else scope.abort(); return stale; },
+      calendar: () => { committed++; }, message: () => {}, complete: async () => { committed++; },
+    });
+    assert.equal(stopped, 'STALE'); assert.equal(committed, 0);
+  }
+  console.log('PASS single Auto late Career/year response and unmount abort never apply to the next screen');
+}
+
+// Real dashboard recovery callbacks: a lost POST must retain identity even when the first GET is already terminal.
+{
+ const { default: ts } = await import('typescript');
+ const { readFileSync } = await import('node:fs'); const { runInNewContext } = await import('node:vm');
+ const source = readFileSync(new URL('../src/features/career/CareerDashboardPage.tsx', import.meta.url),'utf8').replace(/\r\n/g,'\n');
+ const compile = source => ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const callback = source.split('  const executeCompetition =')[1].split('\n  useEffect(() => {')[0];
+ for (const completed of [false,true]) {
+  const original = {clientCommandId:'original-auto',sourceYear:2027,expectedCompetitionRevision:3}; let stored=original, posts=0, releases=0; const observed=[];
+  const fixture = {fixtureId:'original-fixture',competitionId:'LPL_SPLIT_1',matchId:'original-match',executionMode:'FULL_AUTO',jobId:'original-job'};
+  const calendar = {careerId:'A',activeCalendarSeasonYear:2027,competition:{revision:3,nextFixture:fixture,allowedCommands:['DISPATCH_AUTO_COMPETITION_FIXTURE']}};
+  class Failure extends Error { constructor(kind,message) {super(message);this.kind=kind;this.userMessage=message;} }
+  const c={exports:{},useCallback:f=>f,AbortController,detail:{careerId:'A'},calendar,competitionPending:false,historical:false,continuousBusy:false,mutationGate:{current:{busy:false,acquire:()=>()=>{releases++;}}},competitionRequestRef:{current:null},generationRef:{current:1},selectedIdRef:{current:'A'},window:{sessionStorage:{}},setCompetitionPending(){},setCalendarError(){},logicalCareerCompetition:()=>original,CAREER_SCHEMAS:{competitionCommandRequest:'V1'},startOrResumeCareerCompetition:async()=>{posts++;throw new Failure('NETWORK','lost');},CareerApiFailure:Failure,isAmbiguousCareerCreateFailure:()=>true,loadFailure:String,readCareerCompetitionOperation:()=>stored,getCareerCalendar:async()=>({...calendar,competition:{...calendar.competition,nextFixture:completed?{fixtureId:'next'}:fixture,activePendingCommand:completed?null:{clientCommandId:'original-auto'}}}),reconcileCareerCompetitionOperation:()=>{if(completed)stored=null;},setCalendar(){},observeAcceptedAuto:async target=>{observed.push(target);},applyDetail(){},onNotify(){},onOpenCompetitionSeries(){},clearCareerCompetitionOperation(){throw Error('original must remain through ambiguous response');}};
+  runInNewContext(compile('exports.execute = '+callback),c);await c.exports.execute();
+  assert.equal(posts,1);assert.equal(releases,1);assert.equal(observed.length,1);assert.equal(observed[0].clientCommandId,original.clientCommandId);assert.equal(observed[0].fixtureId,fixture.fixtureId);
+ }
+ console.log('PASS lost Auto POST restores original fixture and UUID even when Calendar already advanced; no second dispatch');
+ const recovery=source.split('  useEffect(() => {\n    if (!calendar || historical || competitionPending')[1].split('\n\n')[0];
+ let finish,owned=false,observers=0;const effects=[];const c={managing:false,exports:{},useEffect:f=>effects.push(f),AbortController,calendar:{careerId:'A',activeCalendarSeasonYear:2027,competition:{nextFixture:{fixtureId:'same',competitionId:'LPL',matchId:'m',executionMode:'FULL_AUTO',jobStatus:'RUNNING',jobId:'same-job'},activePendingCommand:{competitionId:'LPL',matchId:'m',clientCommandId:'same-command'}}},historical:false,competitionPending:false,continuousBusy:false,selectedId:'A',mutationGate:{current:{acquire:()=>{if(owned)return null;owned=true;return()=>{owned=false;};}}},competitionRequestRef:{current:null},generationRef:{current:1},setCompetitionPending(){},observeAcceptedAuto:target=>{observers++;assert.equal(target.clientCommandId,'same-command');return new Promise(r=>finish=r);}};
+ runInNewContext(compile('useEffect(() => {\n    if (!calendar || historical || competitionPending'+recovery),c);effects[0]();assert.equal(observers,0,'entry screen must not resume a hidden Auto observer');c.managing=true;effects[0]();effects[0]();assert.equal(observers,1);finish();await new Promise(setImmediate);assert.equal(owned,false);
+ console.log('PASS remounted dashboard resumes the accepted job without POST and acquires only one observer');
+ const resultSource=readFileSync(new URL('../src/features/career/CareerReturnResult.tsx',import.meta.url),'utf8');const recorded=[];const requests=[];const updates=[];
+ const ui={exports:{},AbortController,encodeURIComponent,require:name=>name==='react'?{useState:v=>[v,n=>updates.push(n)],useEffect:(f,deps)=>recorded.push({f,deps})}:name==='react/jsx-runtime'?{jsx(){},jsxs(){}}:{recordRequest:()=>{let resolve;const promise=new Promise(r=>resolve=r);requests.push(resolve);return promise;},approvedSeriesScore:()=> '0–2'}};
+ runInNewContext(compile(resultSource),ui);for(const revision of [0,1])ui.exports.CareerReturnResult({careerId:'A',seriesId:'s',revision,onNavigate(){}});
+ assert.notDeepEqual(recorded[0].deps,recorded[1].deps);const cleanup=recorded[0].f();cleanup();recorded[1].f();requests[0]({result:null});requests[1]({result:{careerId:'A',seriesId:'s'}});await new Promise(setImmediate);assert.ok(updates.some(v=>v?.seriesId==='s'));
+ console.log('PASS completion revision automatically reloads the same returned Series and rejects its older pending response');
+}
+
+{
+ const {default:ts}=await import('typescript');const {readFileSync}=await import('node:fs');const {runInNewContext}=await import('node:vm');
+ const code=ts.transpileModule(readFileSync(new URL('../src/features/career/CareerContinuousPanel.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ for(const status of ['COMPLETED','RUNNING']) {
+  const nodes=[];let state=0;const view={careerId:'A',currentDate:'2028-01-01',run:{runId:'r',revision:1,status,targetDate:'2026-12-29',stop:null},allowedCommands:[]};const jsx=(type,props)=>{const node={type,props};nodes.push(node);return node;};
+  const c={exports:{},require:name=>name==='react'?{useState:v=>[state++===0?view:state===2?'TARGET_DATE':v,()=>{}],useRef:v=>({current:v}),useEffect(){}}:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:{}};runInNewContext(code,c);
+  c.exports.CareerContinuousPanel({careerId:'A',currentDate:'2028-01-02',seasonYear:2028,busy:false,appliedRun:'r:1',onBusy(){},onStopped(){},onBegin(){},onAction(){}});
+  const date=status==='RUNNING'?'2028-01-01':'2028-01-02';assert.equal(nodes.find(n=>n.type==='strong').props.children,date);assert.equal(nodes.find(n=>n.type==='input'&&n.props.type==='date').props.min,date);
+ }
+ console.log('PASS stopped Continuous uses the current Calendar date and target limit while running observation keeps its live date');
+}
+
+{
+ const {default:ts}=await import('typescript');const {readFileSync}=await import('node:fs');const {runInNewContext}=await import('node:vm');
+ const code=ts.transpileModule(readFileSync(new URL('../src/features/career/CareerContinuousPanel.tsx',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const refs=[],timers=new Map(),reads=[],busy=[];let cursor=0,effects=[],timerId=0,syncs=0;
+ const c={exports:{},AbortController,window:{sessionStorage:{getItem:()=>null},setTimeout:(f,ms)=>{timers.set(++timerId,{f,ms});return timerId;},clearTimeout:id=>timers.delete(id)},require:name=>name==='react'?{useState:v=>[v,()=>{}],useRef:v=>{const i=cursor++;return refs[i]??(refs[i]={current:v});},useEffect:f=>effects.push(f)}:name==='react/jsx-runtime'?{jsx(){},jsxs(){}}:{getCareerContinuous:()=>new Promise(resolve=>reads.push(resolve)),CareerApiFailure:class extends Error{}}};runInNewContext(code,c);
+ const render=visible=>{cursor=0;effects=[];c.exports.CareerContinuousPanel({visible,careerId:'A',currentDate:'2028-01-02',seasonYear:2028,busy:false,appliedRun:null,onBusy:(_,v)=>busy.push(v),onStopped:async()=>{syncs++;return true;},onBegin(){},onAction(){}});};
+ render(false);const cleanup=effects[0]();effects[1]();assert.equal(reads.length,1);render(true);effects[1]();assert.equal(reads.length,1);assert.equal(timers.size,0,'visibility during a GET must not create another timer');
+ const view={careerId:'A',currentDate:'2028-01-02',run:{runId:'r',revision:1,status:'RUNNING'},allowedCommands:[]};reads[0](view);await new Promise(setImmediate);assert.equal(timers.size,1);const [id,tick]=[...timers][0];assert.equal(tick.ms,0);timers.delete(id);tick.f();assert.equal(reads.length,2);assert.equal(timers.size,0);
+ reads[1]({...view,run:{...view.run,revision:2,status:'COMPLETED'}});await new Promise(setImmediate);assert.equal(syncs,1);assert.equal(busy.at(-1),false);assert.equal(timers.size,0);cleanup();
+ console.log('PASS visibility wake during an in-flight Continuous GET schedules one follow-up and leaves no terminal timer');
+}
+
+// Entry flow: keep rendering/preview separate from authoritative selection and creation.
+{
+ const {default:ts}=await import('typescript'),{readFileSync}=await import('node:fs'),{runInNewContext}=await import('node:vm');
+ const read=n=>readFileSync(new URL(`../src/features/career/${n}`,import.meta.url),'utf8').replace(/\r\n/g,'\n');
+ const compile=s=>ts.transpileModule(s,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ const helpers={exports:{}};runInNewContext(compile(read('careerEntry.ts')),helpers);
+ const {readEntryView,entryKey,recentCareer,displayNameError}=helpers.exports;
+ const local=storage(); assert.equal(readEntryView(local,'api-A',null),'main');
+ assert.equal(readEntryView(local,'api-A',careerId),'club');local.setItem(entryKey('api-A'),'main');
+ assert.equal(readEntryView(local,'api-A',careerId),'main');assert.equal(readEntryView(local,'api-B',careerId),'club');
+ const rows=[{careerId:secondCareerId,compatibility:{status:'UNSUPPORTED'}},{careerId,compatibility:{status:'SUPPORTED'}}];
+ assert.equal(recentCareer(rows,secondCareerId).career.careerId,secondCareerId);
+ assert.equal(recentCareer(rows,null).career.careerId,careerId);assert.equal(recentCareer([],null).career,null);
+ console.log('PASS entry starts at main without a pointer, preserves club refresh, scopes hints and retains unsupported recent-save explanations');
+ const source=read('CareerEntryScreen.tsx'), effects=[], cells=[], refCells=[];let index=0,refIndex=0;
+ const react={useState:initial=>{const i=index++;if(!(i in cells))cells[i]=typeof initial==='function'?initial():initial;return[cells[i],next=>{cells[i]=typeof next==='function'?next(cells[i]):next;}];},useRef:value=>refCells[refIndex++]??(refCells[refIndex-1]={current:value}),useEffect:f=>effects.push(f)};
+ let writes=0;
+ const ui={exports:{},sessionStorage:storage(),require:name=>name==='react'?react:name==='react/jsx-runtime'?{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})}:name==='./careerEntry'?helpers.exports:name==='./career.pointer'?{normalizeCareerSelection:value=>value}:name==='./api/careerApi.client'?{getCareer(){throw Error('render must not query');}}:{},Intl};
+ runInNewContext(compile(source),ui);
+ const props={view:'main',api:'api-A',list:{careers:[],currentCount:0,maximumCount:100,remainingCount:100},loading:false,error:null,preferred:null,teams:[],teamsLoading:false,teamsError:null,pending:false,operation:null,createError:null,onNavigate(){},onLoad(){writes++;},onCreate(){writes++;},onRefresh(){},onRetryTeams(){}};
+ const render=()=>{index=0;refIndex=0;effects.length=0;return ui.exports.CareerEntryScreen(props);};
+ const nodes=tree=>!tree||typeof tree!=='object'?[]:Array.isArray(tree)?tree.flatMap(nodes):[tree,...nodes(tree.props?.children)];
+ let tree=render();assert.ok(nodes(tree).some(n=>n.type==='h1'));assert.equal(nodes(tree).filter(n=>n.type==='aside').length,0);assert.equal(writes,0);
+ props.view='new';props.teams=[{teamCode:'A',starterCount:1,lineup:[{playerId:'a',nickname:'Alpha',position:'TOP'}]},{teamCode:'B',starterCount:1,lineup:[{playerId:'b',nickname:'Beta',position:'TOP'}]}];tree=render();
+ const inputNode=id=>nodes(tree).find(n=>n.props?.id===id&&n.type==='input');
+ inputNode('ce-save').props.onChange({target:{value:'내 저장 이름'}});inputNode('ce-manager').props.onChange({target:{value:'감독'}});
+ for(const code of ['A','B','A']){tree=render();nodes(tree).find(n=>n.type==='button'&&n.props.children?.[0]?.props?.children===code).props.onClick();}
+ tree=render();assert.equal(inputNode('ce-save').props.value,'내 저장 이름');assert.equal(cells[5].managedTeamCode,'A');assert.equal(writes,0);
+ assert.equal(displayNameError('  감독  '),null);assert.ok(displayNameError(' '));assert.ok(displayNameError('a'.repeat(81)));assert.ok(displayNameError('a\u0001'));
+ console.log('PASS actual main/new-game rendering and A-B-A team selection issue no writes and preserve typed names and server lineup identity');
+ // Execute the actual preview effect; cleanup invalidates A before B is selected.
+ const previewCode=source.slice(source.indexOf('  useEffect(() => {\n    const controller'),source.indexOf('  useEffect(() => { sessionStorage'));
+ const responses=[],shown=[];let cleanup;
+ const preview={AbortController,previewGeneration:{current:0},loading:false,target:{careerId},view:'load',list:{},useEffect:f=>{cleanup=f();},getCareer:(id,signal)=>new Promise(resolve=>responses.push({id,signal,resolve})),setPreview:v=>{if(v)shown.push(v.careerId);},setPreviewError(){},setPreviewLoading(){}};
+ runInNewContext(compile(previewCode),preview);cleanup();preview.target={careerId:secondCareerId};runInNewContext(compile(previewCode),preview);
+ responses[0].resolve({careerId});responses[1].resolve({careerId:secondCareerId});await new Promise(setImmediate);assert.deepEqual(shown,[secondCareerId]);cleanup();
+ preview.target={careerId,compatibility:{status:'UNSUPPORTED'}};runInNewContext(compile(previewCode),preview);assert.equal(responses.length,2);
+ console.log('PASS actual save preview rejects late A after B or cleanup and does not query unsupported entries or mutate pointers');
+ const dashboard=read('CareerDashboardPage.tsx');
+ const loadWorkspace=dashboard.split('  const loadWorkspace =')[1].split('\n  useEffect(() => { void loadWorkspace();')[0];
+ const listSeen=[];const workspace={exports:{},useCallback:f=>f,AbortController,generationRef:{current:0},requestRef:{current:null},entryViewRef:{current:'main'},window:{sessionStorage:storage()},readCareerPointer:()=>null,invalidateScreenRequests(){},getCareers:async()=>({careers:rows}),setList:v=>listSeen.push(v),setInitialLoading(){},setError(){},setIntegrityError(){},loadDetail(){throw Error('main must not enter a save');},commitEntry(){},fetchLckTeams(){throw Error('save list cannot depend on new-game reference');},loadFailure:e=>e.message};
+ runInNewContext(compile('exports.load ='+loadWorkspace),workspace);await workspace.exports.load();assert.equal(listSeen[0].careers.length,2);
+ console.log('PASS actual main list load accepts mixed compatibility without fetching reference teams or entering a Career');
+ const pointer=await import('../src/features/career/career.pointer.ts');
+ function creation(){
+  const disk=storage(),requests=[],applied=[],errors=[],gate=new CareerMutationGate(()=>{});let resolve,reject;
+  const c={exports:{},useCallback:f=>f,AbortController,window:{sessionStorage:disk},createPending:false,createLock:{current:false},mutationGate:{current:gate},createRequestRef:{current:null},generationRef:{current:0},teamsRef:{current:[]},catalogRef:{current:null},apiScope:'api-A',draftKey:helpers.exports.draftKey,...pointer,CAREER_SCHEMAS:{createRequest:'CAREER_CREATE_REQUEST_V1'},CareerApiFailure,
+   createCareer:body=>{requests.push(body);return new Promise((r,j)=>{resolve=r;reject=j;});},getCareerCalendar:async()=>{throw Error('calendar unavailable');},getCareers:async()=>{throw Error('list unavailable');},requireCareerReference(){},applyDetail:v=>applied.push(v.careerId),commitEntry:v=>applied.push(v),onNotify(){},loadFailure:e=>e.message,withCreatedCareer:(old,v)=>({careers:[v]})};
+  for(const key of ['setCreatePending','setError','setIntegrityError','setPage','setHistorical','setHistoryYear','setInboxFocus','setMarketPlayer','setScheduleTab','setTrainingTab','setCalendarLoading','setCalendarError','setList'])c[key]=()=>{};
+  c.setCreateError=e=>errors.push(e);
+  runInNewContext(compile('exports.create ='+dashboard.split('  const create =')[1].split('\n\n  const advance =')[0]),c);
+  return {c,disk,requests,applied,errors,resolve:v=>resolve(v),reject:e=>reject(e)};
+ }
+ const selection={managedTeamCode:'T1',saveName:'  새 저장  ',managerName:'감독'};
+ const a=creation();let first=a.c.exports.create(selection);await a.c.exports.create(selection);assert.equal(a.requests.length,1);
+ a.reject(new CareerApiFailure('NETWORK','response lost'));await first;const original=readCareerCreateOperation(a.disk);assert.ok(original);
+ await a.c.exports.create({...selection,managedTeamCode:'GEN'});assert.equal(a.requests.length,1);assert.equal(readCareerCreateOperation(a.disk).clientCommandId,original.clientCommandId);
+ first=a.c.exports.create(original.selection);assert.equal(a.requests[1].clientCommandId,a.requests[0].clientCommandId);assert.deepEqual(a.requests[1],a.requests[0]);
+ a.resolve({career:{careerId},replayed:true});await first;assert.deepEqual(a.applied,[careerId,'club']);assert.equal(readCareerCreateOperation(a.disk),null);
+ console.log('PASS actual create handler blocks double submission and changed payload, then recovers the original UUID after response loss');
+ assert.equal(a.c.createLock.current,false);assert.equal(a.c.mutationGate.current.busy,false);
+ first=a.c.exports.create(selection);assert.notEqual(a.requests[2].clientCommandId,a.requests[0].clientCommandId);a.resolve({career:{careerId:secondCareerId},replayed:false});await first;
+ assert.deepEqual(a.applied,[careerId,'club',secondCareerId,'club']);assert.equal(readCareerCreateOperation(a.disk),null);
+ console.log('PASS successful creation survives Calendar/list failure and a later identical new game gets a fresh logical UUID');
+ const b=creation();first=b.c.exports.create(selection);++b.c.generationRef.current;b.c.createRequestRef.current.abort();b.resolve({career:{careerId},replayed:false});await first;
+ assert.deepEqual(b.applied,[]);assert.ok(readCareerCreateOperation(b.disk));assert.equal(b.c.mutationGate.current.busy,false);
+ console.log('PASS leaving an in-flight create suppresses late navigation while retaining the unresolved original operation');
 }

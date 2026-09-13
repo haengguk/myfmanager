@@ -83,6 +83,13 @@ public final class PreDraftPlanner {
                                      Set<ChampionId> unavailable, List<ChampionId> ownPicks,
                                      List<ChampionId> enemyPicks,
                                      DraftComputationContext context) {
+        return context.portfolio(this, team, opponent, side, unavailable, ownPicks, enemyPicks,
+                () -> computePortfolio(team, opponent, side, unavailable, ownPicks, enemyPicks, context));
+    }
+
+    private DraftPlanPortfolio computePortfolio(DraftTeamContext team, DraftTeamContext opponent, TeamSide side,
+            Set<ChampionId> unavailable, List<ChampionId> ownPicks, List<ChampionId> enemyPicks,
+            DraftComputationContext context) {
         List<ChampionId> available = champions.all().stream().map(value -> value.id())
                 .filter(id -> !unavailable.contains(id)).toList();
         Map<ChampionId, Set<Position>> ownCandidateRoles = available.stream().collect(

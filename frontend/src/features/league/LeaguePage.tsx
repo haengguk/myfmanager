@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useMemo, useEffect, useRef, useState } from 'react';
 import { LeagueApiFailure, cancelLeague, completeLeaguePlayerSeries, createLeague, getLeagueCompletion, getLeagueFixtures, getLeagueJob, getLeaguePlayerSeries, getLeagueSeason, pauseLeague, resumeLeague, runLeagueRound, startLeaguePlayerSeries } from './api/leagueApi.client';
 import type { LeagueFixtureViewDto, LeagueJobViewDto, LeaguePlayerSeriesViewDto, LeagueSeasonViewDto } from './api/leagueApi.types';
 import { LeagueCancelDialog } from './LeagueCancelDialog';
@@ -6,7 +6,7 @@ import { createLeagueRequest, LeagueCreation, type LeagueCreateSelection } from 
 import { LeagueDashboard } from './LeagueDashboard';
 import { LeagueCompletionReconciler, selectLeagueCompletionCandidate, type LeagueCompletionTarget, type LeagueCompletionTrigger } from './leagueCompletionReconciliation';
 import { isAmbiguousLeagueFailure, logicalLeagueCommand, seasonCommandApplied, shouldApplyLeagueSeason } from './leagueCommandReconciliation';
-import { clearLeaguePointer, leaguePointerRecoveryAction, readLeaguePointer, updateLeagueCommand, writeLeaguePointer, type LeagueCommandRef, type LeaguePointer } from './league.pointer';
+import { careerLeagueStorage, clearLeaguePointer, leaguePointerRecoveryAction, readLeaguePointer, updateLeagueCommand, writeLeaguePointer, type LeagueCommandRef, type LeaguePointer } from './league.pointer';
 
 const CREATE_DRAFT_KEY = 'lolmanager.league.create-command.v1';
 const POLL_DELAYS = [500, 800, 1200, ...Array.from({ length: 177 }, () => 2000)] as const;
@@ -16,17 +16,18 @@ function readCreateDraft(): CreateDraft | null { try { const value = JSON.parse(
 function wait(milliseconds: number, signal: AbortSignal): Promise<void> { return new Promise((resolve, reject) => { const timer = window.setTimeout(resolve, milliseconds); signal.addEventListener('abort', () => { window.clearTimeout(timer); reject(new DOMException('League polling aborted', 'AbortError')); }, { once: true }); }); }
 function failureCopy(error: unknown): string { return error instanceof LeagueApiFailure ? error.userMessage : 'League 요청을 완료하지 못했습니다.'; }
 
-export function LeaguePage({ onOpenSeries, onNotify, onBackToCareer }: { onOpenSeries: (playerSeries: LeaguePlayerSeriesViewDto, fixture: LeagueFixtureViewDto) => void; onNotify: (title: string, message: string) => void; onBackToCareer?: () => void }) {
-  const [pointer, setPointerState] = useState<LeaguePointer | null>(() => readLeaguePointer(window.sessionStorage));
+export function LeaguePage({ onOpenSeries, onNotify, onBackToCareer, careerId }: { careerId?: string; onOpenSeries: (playerSeries: LeaguePlayerSeriesViewDto, fixture: LeagueFixtureViewDto) => void; onNotify: (title: string, message: string) => void; onBackToCareer?: () => void }) {
+  const storage = useMemo(() => careerId ? careerLeagueStorage(window.sessionStorage, careerId) : window.sessionStorage, [careerId]);
+  const [pointer, setPointerState] = useState<LeaguePointer | null>(() => readLeaguePointer(storage));
   const [season, setSeason] = useState<LeagueSeasonViewDto | null>(null); const [fixtures, setFixtures] = useState<readonly LeagueFixtureViewDto[]>([]); const [jobs, setJobs] = useState<ReadonlyMap<string, LeagueJobViewDto>>(() => new Map());
   const [loading, setLoading] = useState(Boolean(pointer)); const [pending, setPending] = useState<string | null>(null); const [error, setError] = useState<string | null>(null); const [completionWake, setCompletionWake] = useState(0);
   const [cancelOpen, setCancelOpen] = useState(false); const [cancelReturnFocus, setCancelReturnFocus] = useState<HTMLElement | null>(null);
   const requestRef = useRef<AbortController | null>(null); const pollRef = useRef<AbortController | null>(null); const restoreRunRef = useRef(false); const completionRef = useRef(new LeagueCompletionReconciler()); const completionUnmountTimerRef = useRef<number | null>(null);
   const pointerRef = useRef(pointer); const seasonRef = useRef(season); pointerRef.current = pointer; seasonRef.current = season;
   const createDraftRef = useRef<CreateDraft | null>(readCreateDraft());
-  const setPointer = useCallback((next: LeaguePointer | null) => { setPointerState(next); if (next) writeLeaguePointer(window.sessionStorage, next); else clearLeaguePointer(window.sessionStorage); }, []);
-  const setCommand = useCallback((command: LeagueCommandRef | null) => { setPointerState((current) => current ? updateLeagueCommand(window.sessionStorage, current, command) : current); }, []);
-  const clearCompletionCommand = useCallback((command: LeagueCommandRef) => { setPointerState((current) => current?.command?.clientCommandId === command.clientCommandId ? updateLeagueCommand(window.sessionStorage, current, null) : current); }, []);
+  const setPointer = useCallback((next: LeaguePointer | null) => { setPointerState(next); if (next) writeLeaguePointer(storage, next); else clearLeaguePointer(storage); }, [storage]);
+  const setCommand = useCallback((command: LeagueCommandRef | null) => { setPointerState((current) => current ? updateLeagueCommand(storage, current, command) : current); }, [storage]);
+  const clearCompletionCommand = useCallback((command: LeagueCommandRef) => { setPointerState((current) => current?.command?.clientCommandId === command.clientCommandId ? updateLeagueCommand(storage, current, null) : current); }, [storage]);
   const applySeason = useCallback((next: LeagueSeasonViewDto) => setSeason((current) => shouldApplyLeagueSeason(current, next) ? next : current), []);
 
   const loadJobs = useCallback(async (scope: LeaguePointer, values: readonly LeagueFixtureViewDto[], currentRound: number, signal: AbortSignal) => {

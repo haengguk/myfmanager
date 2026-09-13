@@ -5,12 +5,13 @@ interface ToastProps {
 }
 
 export function Toast({ toast }: ToastProps) {
+  if (!toast) return null;
   return (
     <div className={`lm-toast${toast ? ' is-visible' : ''}`} role="status" aria-live="polite" aria-atomic="true">
       <span className="lm-toast__mark" aria-hidden="true" />
       <div>
-        <strong>{toast?.title ?? '처리 완료'}</strong>
-        <span>{toast?.message ?? '변경 사항이 반영되었습니다.'}</span>
+        <strong>{toast.title}</strong>
+        <span>{toast.message}</span>
       </div>
     </div>
   );

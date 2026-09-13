@@ -15,29 +15,8 @@ type NavigationItem = {
 };
 
 const navigationGroups: readonly (readonly NavigationItem[])[] = [
-  [
-    { label: '홈', icon: 'home' },
-    { label: '수신함', icon: 'inbox', section: 'inbox' },
-  ],
-  [
-    { label: '커리어', icon: 'club', section: 'career' },
-    { label: '선수단', icon: 'users', section: 'squad' },
-    { label: '전술 및 라인업', icon: 'tactics' },
-    { label: '훈련', icon: 'training' },
-    { label: '일정', icon: 'calendar' },
-    { label: '대회', icon: 'league', section: 'league' },
-    { label: '경기 센터', icon: 'match', section: 'match' },
-  ],
-  [
-    { label: '스카우팅', icon: 'scout' },
-    { label: '이적 시장', icon: 'transfer' },
-    { label: '코칭스태프', icon: 'staff' },
-  ],
-  [
-    { label: '구단 정보', icon: 'club' },
-    { label: '재정', icon: 'finance' },
-    { label: '육성 센터', icon: 'academy' },
-  ],
+  [{ label: 'Career 구단 운영', icon: 'club', section: 'career' }],
+  [{ label: '전역 선수 데이터', icon: 'users', section: 'squad' }, { label: '독립 AI 리그', icon: 'league', section: 'league' }, { label: '단독 경기', icon: 'match', section: 'match' }],
 ];
 
 export function Sidebar({ activeSection, onNavigate, onUnavailable }: SidebarProps) {
@@ -71,7 +50,7 @@ export function Sidebar({ activeSection, onNavigate, onUnavailable }: SidebarPro
           </div>
         ))}
       </nav>
-      <div className="lm-rail__status">24일 차</div>
+      <div className="lm-rail__status">추가 모드 · 데이터</div>
     </aside>
   );
 }

@@ -5,12 +5,13 @@ export function SeriesHardFearless({ series, catalog }: {
   series: SeriesViewDto;
   catalog: Readonly<Record<string, PlayerDraftChampionCatalogEntry>>;
 }) {
+  const completedGame = Math.max(0, ...series.games.filter(game => game.status === 'COMMITTED').map(game => game.gameNumber));
   return (
     <details className="sr-fearless">
       <summary>
         <span>HARD FEARLESS</span>
         <strong>{series.excludedChampionIds.length}</strong>
-        <small>{series.currentGameNumber > 1 ? `Game ${series.currentGameNumber - 1}까지 누적된 양 팀 픽` : '이전 게임 제외 없음'}</small>
+        <small>{completedGame > 0 ? `Game ${completedGame}까지 누적된 양 팀 픽` : '이전 게임 제외 없음'}</small>
       </summary>
       <div>
         {series.excludedChampionIds.length ? series.excludedChampionIds.map((championId) => {

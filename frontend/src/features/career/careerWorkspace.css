@@ -1,0 +1,69 @@
+.lm-app-shell.ca-club-shell { grid-template: 78px minmax(0,1fr) / 192px minmax(0,1fr); --lm-accent: #a99aef; --lm-accent-hover: #c5b8ff; --lm-accent-soft: rgb(169 154 239 / .12); }
+.lm-app-shell.ca-club-shell, .ca-club-shell .ca-operation-workspace { background: var(--lm-bg); }
+.ca-club-shell .lm-rail, .ca-club-shell .lm-global-header { background: var(--lm-surface); box-shadow: none; }
+.ca-club-shell .lm-global-header::after { display: none; }
+.ca-club-shell .ca-operation-workspace { font-size: 14px; }
+.ca-club-shell .ca-operation-workspace :where(small, code, time, dt) { font-size: 12px !important; }
+.ca-club-shell .ca-operation-workspace .ca-calendar > header strong { font-family: var(--lm-font-body); font-size: 20px; }
+.ca-club-shell .ca-operation-workspace .ca-calendar :where(p, label, td, button) { font-size: 14px; }
+.ca-club-shell .ca-operation-workspace .ca-calendar p { margin-block: 9px; line-height: 1.7; }
+.ca-club-shell .ca-operation-workspace fieldset { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 14px; padding: 16px; margin-block: 16px; border: 1px solid var(--lm-border-strong); }
+.ca-club-shell .ca-operation-workspace fieldset label { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.ca-club-shell .ca-operation-workspace fieldset :where(p,legend) { grid-column: 1 / -1; }
+.ca-club-shell .ca-operation-workspace fieldset :where(input,select) { width: 100%; min-width: 0; box-sizing: border-box; }
+.ca-club-shell .lm-rail { grid-row: 1 / -1; }
+.ca-club-shell .lm-brand { padding-inline: 16px; }
+.ca-club-shell .lm-nav-item { min-height: 39px; font-size: 14px; }
+.ca-club-shell .lm-global-header { grid-row: 1; grid-column: 2; gap: 18px; padding-inline: 24px; }
+.ca-club-shell .lm-screen-name { min-width: 150px; margin-right: auto; }
+.ca-club-header .lm-screen-name strong { font-size: 21px; }
+.ca-header-context { display: grid; gap: 4px; font-variant-numeric: tabular-nums; }
+.ca-header-context span, .ca-progress-status, .ca-muted { color: var(--lm-muted); font-size: 13px; }
+.ca-progress-status { max-width: 190px; }
+.ca-operation-workspace.ca-workspace { grid-area: 2 / 2; display: block; overflow: auto; min-width: 0; padding: 24px 28px 40px; }
+.ca-operation-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.ca-operation-head p { margin: 0 0 5px; color: var(--lm-muted); font-size: 13px; }
+.ca-operation-head h1 { margin: 0; font-size: 27px; letter-spacing: -.04em; }
+.ca-operation-detail.ca-detail { padding: 0; overflow: visible; }
+.ca-operation-workspace :where(button,input,select) { font: inherit; }
+.ca-operation-workspace :where(button:not([class]), input, select), .ca-tools button { color: var(--lm-text); background: var(--lm-surface-2, #172235); border: 1px solid var(--lm-border-strong); border-radius: 5px; padding: 8px 12px; }
+.ca-operation-workspace button { cursor: pointer; }
+.ca-club-shell :where(button,input,select,summary):focus-visible { outline: 2px solid var(--lm-accent); outline-offset: 3px; }
+.ca-club-shell button:disabled { cursor: default; opacity: .5; }
+.ca-operation-workspace .ca-calendar { margin-top: 18px; max-width: 100%; }
+.ca-operation-workspace .ca-calendar > header { flex-wrap: wrap; }
+.ca-subnav { display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--lm-border); padding-bottom: 12px; margin-bottom: 18px; }
+.ca-subnav [aria-current="page"] { border-color: var(--lm-accent); color: var(--lm-accent); }
+.ca-history-notice { padding: 12px; background: var(--lm-accent-soft); border-left: 3px solid var(--lm-accent); margin-bottom: 20px; }
+.ca-home { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(300px,1fr); column-gap: 32px; row-gap: 22px; }
+.ca-home > section { min-width: 0; border-top: 1px solid var(--lm-border); padding-top: 16px; }
+.ca-home > [role="alert"] { grid-column: 1 / -1; }
+.ca-home header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.ca-home h2 { font-size: 18px; margin: 0; }
+.ca-home p { line-height: 1.7; margin: 8px 0; }
+.ca-home article { border-bottom: 1px solid var(--lm-border); padding: 12px 0; }
+.ca-home-work article { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.ca-home-work article button { flex-shrink: 0; }
+.ca-home-match h3 { font-size: 30px; margin: 16px 0; }
+.ca-home-match h3 span { color: var(--lm-muted); font-size: 16px; margin-inline: 12px; }
+.ca-home time { display: block; font-size: 12px; color: var(--lm-muted); margin-bottom: 5px; }
+.ca-home-facts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin: 18px 0; }
+.ca-home-facts dt { color: var(--lm-muted); font-size: 13px; margin-bottom: 6px; }
+.ca-home-facts dd { margin: 0; font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ca-home-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.ca-start { max-width: 1060px; }
+.ca-start > p { color: var(--lm-muted); line-height: 1.7; }
+.ca-start > label { display: flex; gap: 12px; align-items: center; margin-block: 18px; }
+.ca-start .ca-saves { border: 0; overflow: visible; }
+.ca-start .ca-saves ol { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 14px; margin-block: 16px; }
+.ca-start .ca-saves li { border: 1px solid var(--lm-border); border-radius: 6px; }
+.ca-diagnostics { margin-top: 28px; color: var(--lm-muted); font-size: 12px; overflow-wrap: anywhere; }
+.ca-tools { margin: 16px 12px; font-size: 12px; color: var(--lm-muted); }
+.ca-tools summary { cursor: pointer; padding-block: 8px; }
+.ca-tools button { display: block; width: 100%; margin-block: 6px; text-align: left; }
+.ca-operation-workspace .ca-continuous { margin-top: 26px; }
+.ca-skip { position: fixed; top: -80px; left: 200px; z-index: 100; background: var(--lm-surface); padding: 14px; }
+.ca-skip:focus { top: 0; }
+@media (max-width: 1100px) { .lm-app-shell.ca-club-shell { grid-template-columns: 158px minmax(0,1fr); } .ca-club-header .ca-progress-status { display: none; } .ca-operation-workspace.ca-workspace { padding: 20px; } .ca-home { gap: 22px; } }
+@media (max-width: 850px) { .lm-app-shell.ca-club-shell { grid-template-columns: 60px minmax(0,1fr); } .ca-club-shell .lm-nav-item span,.ca-club-shell .lm-brand__copy { display: none; } .ca-tools { margin: 8px 2px; font-size: 10px; } .ca-tools button { padding: 7px 3px; font-size: 11px; overflow-wrap: anywhere; } .ca-club-shell .lm-nav-item { justify-content: center; } .ca-club-shell .lm-global-header { gap: 10px; padding: 10px; } .ca-club-header .lm-secondary-button { display: none; } .ca-header-context { font-size: 12px; } .ca-home { grid-template-columns: minmax(0,1fr); } }
+@media (prefers-reduced-motion: no-preference) { .ca-club-shell .lm-nav-item { transition: background-color 120ms, color 120ms; } .ca-operation-detail { animation: ca-workspace-in 130ms ease-out; } @keyframes ca-workspace-in { from { opacity: .6; } to { opacity: 1; } } }

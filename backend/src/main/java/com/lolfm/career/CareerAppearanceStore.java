@@ -37,6 +37,11 @@ public final class CareerAppearanceStore {
                 facts.add(new Opportunity(member.playerId(),team,engine.player(member.playerId()).position(),promise==null?null:promise.promiseId(),eligible,selected.contains(member.playerId()),reason));
             }
         }
+        // Only newly captured evidence is canonicalized; persisted bindings retain their original bytes.
+        facts.sort(Comparator.comparing(Opportunity::team)
+                .thenComparingInt(o -> switch (o.position()) {
+                    case TOP -> 0; case JUNGLE -> 1; case MID -> 2; case ADC -> 3; case SUPPORT -> 4;
+                }).thenComparing(Opportunity::playerId));
         var snapshot=new Appearance("PENDING",identity,series,year,date,0,facts,squad,competition);String json=write(snapshot);
         jdbc.update("INSERT INTO career_appearance_binding VALUES (?,?,?,?,NULL)",career,identity,json,hash(json));
         CareerDevelopmentStore.capture(jdbc,career,identity);

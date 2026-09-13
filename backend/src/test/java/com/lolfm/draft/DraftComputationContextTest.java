@@ -16,6 +16,29 @@ import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 
 class DraftComputationContextTest {
+    @Test void portfolioReuseIncludesOpponentVisibilityAndDefensivelyCopiesMutableInputs() {
+        var planner = new PreDraftPlanner(resources.champions().catalog(), resources.meta(),
+                resources.champions().composition(), assignments);
+        var context = DraftComputationContext.cached();
+        var selection = new DraftSelectionContext(17,"blue","red","a".repeat(64),1,"b".repeat(64));
+        context.bindStrategy(selection);
+        var unavailable = new java.util.HashSet<ChampionId>();
+        var picks = new ArrayList<ChampionId>();
+        var first = planner.replan(DraftTestSupport.NEUTRAL,DraftTestSupport.NEUTRAL,TeamSide.BLUE,unavailable,picks,List.of(),context);
+        assertThat(planner.replan(DraftTestSupport.NEUTRAL,DraftTestSupport.NEUTRAL,TeamSide.BLUE,unavailable,picks,List.of(),context)).isSameAs(first);
+        unavailable.add(id("poppy"));
+        var banned = planner.replan(DraftTestSupport.NEUTRAL,DraftTestSupport.NEUTRAL,TeamSide.BLUE,unavailable,picks,List.of(),context);
+        assertThat(banned).isEqualTo(planner.replan(DraftTestSupport.NEUTRAL,DraftTestSupport.NEUTRAL,TeamSide.BLUE,unavailable,picks,List.of()));
+        unavailable.clear(); picks.add(id("yasuo"));
+        assertThat(planner.replan(DraftTestSupport.NEUTRAL,DraftTestSupport.NEUTRAL,TeamSide.BLUE,unavailable,picks,List.of(),context))
+                .isEqualTo(planner.replan(DraftTestSupport.NEUTRAL,DraftTestSupport.NEUTRAL,TeamSide.BLUE,unavailable,picks,List.of()));
+        picks.clear();context.observeStrategyAs(TeamSide.RED);
+        assertThat(planner.replan(DraftTestSupport.NEUTRAL,DraftTestSupport.NEUTRAL,TeamSide.BLUE,unavailable,picks,List.of(),context)).isNotSameAs(first);
+        context.observeStrategyAs(null);
+        assertThat(planner.replan(DraftTestSupport.NEUTRAL,DraftTestSupport.NEUTRAL,TeamSide.BLUE,unavailable,picks,List.of(),context)).isSameAs(first);
+        context.clear();
+        assertThat(planner.replan(DraftTestSupport.NEUTRAL,DraftTestSupport.NEUTRAL,TeamSide.BLUE,unavailable,picks,List.of(),context)).isNotSameAs(first).isEqualTo(first);
+    }
     @Test void immutableStateReadsAreReusedOnlyWithinTheirDraftLifetime() {
         var context=DraftComputationContext.cached();
         var state=DraftState.fresh(DraftRuleSet.professional(),new SeriesDraftHistory());

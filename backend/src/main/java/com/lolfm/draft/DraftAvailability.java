@@ -78,9 +78,7 @@ public final class DraftAvailability {
                                        ChampionId candidate, Position targetPosition,
                                        DraftComputationContext context) {
         List<ChampionId> picks = append(state.picks(side), candidate);
-        Set<ChampionId> unavailable = new HashSet<>(context == null ? state.unavailableChampions() : context.unavailable(state));
-        unavailable.add(candidate);
-        List<ChampionId> pool = available(unavailable);
+        List<ChampionId> pool = availablePool(state, candidate, context);
         return feasibleAssignments(picks, context).stream()
                 .filter(assignment -> targetPosition == null
                         || targetPosition == assignment.positionOf(candidate))
@@ -191,6 +189,20 @@ public final class DraftAvailability {
         exclusions.add(champion);
         return new DraftState(state.ruleSet(), state.nextTurnIndex(), state.bluePicks(), state.redPicks(),
                 state.blueBans(), state.redBans(), exclusions);
+    }
+
+    private List<ChampionId> availablePool(DraftState state, ChampionId excluded, DraftComputationContext context) {
+        if (context == null || !context.reuseEnabled()) {
+            Set<ChampionId> unavailable = new HashSet<>(state.unavailableChampions());
+            unavailable.add(excluded);
+            return available(unavailable);
+        }
+        // Build the ordered catalog pool once per state, then reuse each candidate exclusion across roles/sides.
+        List<ChampionId> base = context.availablePool(this, state, null,
+                () -> available(context.unavailable(state)));
+        if (excluded == null) return base;
+        return context.availablePool(this, state, excluded,
+                () -> base.stream().filter(id -> !id.equals(excluded)).toList());
     }
 
     private List<ChampionId> available(Set<ChampionId> unavailable) {
