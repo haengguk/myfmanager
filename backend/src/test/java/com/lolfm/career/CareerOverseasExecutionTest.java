@@ -228,7 +228,7 @@ class CareerOverseasExecutionTest {
         recruitment.advance(CareerMarketStore.date(jdbc,id).plusDays(42));
         for(String team:List.of("LPL:OMG","LPL:UP","LEC:LR")){
             if(recruitment.lineups.get(team).size()!=5||CareerOverseasRoster.candidates(recruitment,team).stream().map(pid->recruitment.player(pid).position()).distinct().count()<5)
-                System.out.println("OVERSEAS_COVERAGE_FAILURE "+team+" lineup="+CareerRosterStore.write(recruitment.lineups.get(team))+" candidates="+CareerRosterStore.write(CareerOverseasRoster.candidates(recruitment,team))+" account="+CareerRosterStore.write(recruitment.accounts.get(team))+" salary="+recruitment.salaryAt(team,recruitment.processedThrough(),true)+" decisions="+CareerRosterStore.write(recruitment.state().squadPlanning().decisions().stream().filter(d->d.team().equals(team)).toList()));
+                System.out.println("OVERSEAS_COVERAGE_FAILURE "+team+" lineup="+CareerRosterStore.write(recruitment.lineups.get(team))+" candidates="+CareerRosterStore.write(CareerOverseasRoster.candidates(recruitment,team))+" account="+CareerRosterStore.write(recruitment.accounts.get(team))+" salary="+recruitment.salaryAt(team,recruitment.processedThrough(),true)+" trades="+CareerRosterStore.write(recruitment.tradeEngine.trades.values().stream().filter(t->t.terms().buyer().equals(team)||t.terms().seller().equals(team)).toList())+" decisions="+CareerRosterStore.write(recruitment.state().squadPlanning().decisions().stream().filter(d->d.team().equals(team)).toList()));
             assertThat(CareerOverseasRoster.roster(recruitment,team).players()).hasSize(5);
             int initialRoles=(int)CareerOverseasRoster.candidates(engine,team).stream().map(pid->engine.player(pid).position()).distinct().count();
             long negotiated=recruitment.contracts.values().stream().filter(cn->team.equals(cn.team())&&Set.of("NEGOTIATED_FREE_AGENT","PAID_TRANSFER_AGREEMENT").contains(cn.origin())).count()
@@ -237,26 +237,33 @@ class CareerOverseasExecutionTest {
             System.out.println("OVERSEAS_RECRUITMENT "+team+" initialRoles="+initialRoles+" negotiated="+negotiated+" roster="+CareerRosterStore.write(CareerOverseasRoster.roster(recruitment,team).players().stream().map(CompetitionRosterSnapshot.Starter::nickname).toList()));
         }
     }
-    @Test void scheduledAiRecoveryFeedsTheActualFirstAutoAndPreservesAnInsolventClub() throws Exception {
+    @Test void financialPressureRecoveryFeedsTheActualFirstAutoAndPreservesAnInsolventClub() throws Exception {
         long begun=System.nanoTime();var report=new TreeMap<String,Object>();
         var c=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"필수 명부 일정 진단","관측 감독","GEN","5c9d7f21-69be-4459-8fe4-2671ca81e421")).career().career();
         String id=c.careerId();int year=2027;var start=java.time.LocalDate.of(2026,12,17);var end=start.plusDays(28);
         var schedule=competitions.load(id,year).fixtures();var target=schedule.getFirst();
         assertThat(target.date()).isEqualTo(end);assertThat(target.firstTeamCode()).isEqualTo("LPL:OMG");assertThat(target.executionMode()).isEqualTo("FULL_AUTO");
         // Initial synthetic preparation only. No omitted months are claimed as simulated.
-        // All original fixture dates, resource definitions, money and contract durations are preserved.
+        // Fixture dates and source ratings stay intact; controlled releases/placement/approval are initial preparation only.
         CareerOperatingDateFixture.fresh(jdbc,id,start);
         transaction().executeWithoutResult(tx->{
             var old=CareerMarketStore.load(jdbc,id);var m=CareerMarketStore.engine(jdbc,id,year,old);
-            // The failure boundary starts with a normal release and a future approval below carried wages.
+            // The pressure boundary starts with normal releases and a future approval below carried wages.
             // Neither is changed during the measured 28 daily commands.
             for(String pid:new ArrayList<>(m.members.keySet()))if("LCK:BRO".equals(m.members.get(pid).ownerTeam())&&m.player(pid).position()==com.lolfm.domain.Position.TOP)m.release("LCK:BRO",pid,null,start);
             var effective=start.plusDays(10);var a=m.finance.approval("LCK:BRO",effective);long held=m.salaryAt("LCK:BRO",effective,true);long cap=held-1_000_000;
             m.finance.approvals.put("LCK:BRO|2028",new CareerFinanceState.Approval("LCK:BRO",2028,effective,a.annualIncome(),a.annualSupport(),a.annualSponsor(),a.annualNonWage(),cap,held,held-cap,"CONTROLLED_EXISTING_COMMITMENT_BOUNDARY",a.policy()));
+            // BRO already has a reserve FIRST_TEAM MID and an independent CL MID.
+            // Initial synthetic announcement only. Retirement, pay and the MID vacancy apply on the first Monday
+            // through the real Calendar lifecycle; the source age, ratings and retirement coefficients stay intact.
+            var person=m.lifecycle.people.get("player-haichao");
+            m.lifecycle.people.put("player-haichao",new CareerLifecycleState.Person(person.age(),person.source(),person.intakeYear(),person.introducedOn(),person.peakCA(),person.peakObservedSince(),CareerLifecycleState.Status.RETIREMENT_ANNOUNCED,start,start.plusDays(4),"CONTROLLED_MID_RETIREMENT_BOUNDARY",person.declineRemainder(),person.declineCursor(),person.noAppearanceSeasons(),person.lastReviewYear(),person.lastCoverage(),person.freeAgentSince(),person.domesticObservedSince(),person.observedSquad()));
+            var lev=m.finance.approval("CBLOL:LEV",effective);long levSalary=m.salaryAt("CBLOL:LEV",effective,true);
+            m.finance.approvals.put("CBLOL:LEV|2028",new CareerFinanceState.Approval("CBLOL:LEV",2028,effective,lev.annualIncome(),lev.annualSupport(),lev.annualSponsor(),lev.annualNonWage(),levSalary-1_000_000,levSalary,1_000_000,"CONTROLLED_NO_SURPLUS_BOUNDARY",lev.policy()));
             CareerMarketStore.persist(jdbc,id,year,old,m);
         });
         var initial=CareerMarketStore.engine(jdbc,id,year,CareerMarketStore.load(jdbc,id));var user=List.copyOf(initial.lineups.get(initial.managed));
-        var originalBro=initial.contracts.values().stream().filter(v->v.team().equals("LCK:BRO")&&v.status()==CareerMarketState.ContractStatus.ACTIVE).toList();
+        var originalLev=initial.contracts.values().stream().filter(v->v.team().equals("CBLOL:LEV")&&v.status()==CareerMarketState.ContractStatus.ACTIVE).toList();
         report.put("seed",c.rootSeed());report.put("career",id);report.put("policy",initial.planner.state().policyVersion());report.put("start",start);report.put("end",end);report.put("fixture",target);report.put("initial",coverageSnapshot(initial,start));
         var daily=new ArrayList<Map<String,Object>>();
         try {
@@ -269,17 +276,27 @@ class CareerOverseasExecutionTest {
                 assertThat(CareerDevelopmentStore.load(jdbc,id).state().nextSettlement()).isEqualTo(m.processedThrough());
                 assertThat(m.lineups.get(m.managed)).isEqualTo(user);
                 if(day==7){assertThat(calendar.advance(c,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,before.state().calendarRevision(),"ADVANCE_ONE_DAY",command).replayed()).isTrue();assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(after);}
+                if(day==4){assertThat(m.lifecycle.retired("player-haichao")).isTrue();assertThat(m.freeAgents).doesNotContain("player-haichao");}
                 if(day==4){
-                    var recovery=m.tradeEngine.trades.values().stream().filter(t->t.terms().buyer().equals("LPL:OMG")&&t.terms().playerId().equals("player-effort")).findFirst().orElseThrow();
-                    assertThat(recovery.terms().kind()).as("same player, same required game coverage: propose the lower-cost lawful form").isEqualTo(CareerManagementState.Kind.LOAN);
-                    assertThat(recovery.terms().playerTerms().annualSalary()).isEqualTo(initial.active("player-effort",start).terms().annualSalary());
+                    report.put("firstReview",coverageSnapshot(m,m.processedThrough()));
+                    var disposal=m.tradeEngine.trades.values().stream().filter(t->t.proposer().equals("LCK:BRO")&&t.terms().seller().equals("LCK:BRO")).findFirst().orElseThrow();
+                    assertThat(disposal.sellerAgreed()).isTrue();assertThat(disposal.buyerAgreed()).isFalse();
+                    assertThat(m.finance.wageLimitBreached("LCK:BRO",start.plusDays(day))).isTrue();
+                    assertThat(m.offers.values().stream().filter(o->o.team().equals("LCK:BRO"))).isEmpty();
                 }
                 daily.add(coverageSnapshot(m,m.processedThrough()));
             }
             var m=CareerMarketStore.engine(jdbc,id,year,CareerMarketStore.load(jdbc,id));
-            for(var contract:originalBro){var paid=m.contracts.get(contract.contractId());assertThat(paid).usingRecursiveComparison().ignoringFields("revision","paidThrough").isEqualTo(contract);assertThat(paid.paidThrough()).isEqualTo(java.time.LocalDate.of(2026,12,31));}
-            assertThat(m.finance.wageLimitBreached("LCK:BRO",end)).isTrue();assertThat(m.offers.values().stream().filter(o->o.team().equals("LCK:BRO"))).isEmpty();
-            assertThatThrownBy(()->CareerRosterStore.eligiblePair(jdbc,id,year,"LCK:BRO","LCK:HLE")).isInstanceOf(CareerException.class);
+            for(var contract:originalLev){var paid=m.contracts.get(contract.contractId());assertThat(paid).usingRecursiveComparison().ignoringFields("revision","paidThrough").isEqualTo(contract);assertThat(paid.paidThrough()).isEqualTo(java.time.LocalDate.of(2026,12,31));}
+            assertThat(m.finance.wageLimitBreached("CBLOL:LEV",end)).isTrue();assertThat(m.offers.values().stream().filter(o->o.team().equals("CBLOL:LEV"))).isEmpty();
+            var disposal=m.tradeEngine.trades.values().stream().filter(t->t.proposer().equals("LCK:BRO")&&t.terms().seller().equals("LCK:BRO")&&t.status()==CareerManagementState.TradeStatus.COMPLETED).findFirst().orElseThrow();
+            assertThat(m.finance.wageLimitBreached("LCK:BRO",end)).isFalse();
+            assertThat(CareerRosterStore.eligiblePair(jdbc,id,year,"LCK:BRO","LCK:HLE")).isNotNull();
+            assertThat(m.lineups.get(disposal.terms().buyer())).contains(disposal.terms().playerId());
+            assertThat(m.offers.values().stream().anyMatch(o->o.team().equals("LCK:BRO")&&o.status()==CareerMarketState.OfferStatus.ACCEPTED&&!o.submittedDate().isBefore(disposal.terms().startDate()))||m.tradeEngine.trades.values().stream().anyMatch(t->t.terms().buyer().equals("LCK:BRO")&&t.status()==CareerManagementState.TradeStatus.COMPLETED&&!t.submittedDate().isBefore(disposal.terms().startDate()))).isTrue();
+            report.put("disposal",disposal);report.put("disposedOriginalContract",initial.active(disposal.terms().playerId(),start));
+            String clMid=initial.clLineups.get("LCK:BRO").stream().filter(pid->initial.player(pid).position()==com.lolfm.domain.Position.MID).findFirst().orElseThrow();
+            assertThat(m.clLineups.get("LCK:BRO")).contains(clMid);
             assertThat(competitions.load(id,year).fixtures().stream().map(f->List.of(f.fixtureId(),f.date())).toList()).isEqualTo(schedule.stream().map(f->List.of(f.fixtureId(),f.date())).toList());
             var roster=CareerOverseasRoster.roster(m,"LPL:OMG");assertThat(roster.players()).hasSize(5);
             var recruited=roster.players().stream().map(CompetitionRosterSnapshot.Starter::playerId).filter(pid->!initial.eligible(pid,"LPL:OMG",start)).toList();assertThat(recruited).isNotEmpty();
@@ -303,8 +320,8 @@ class CareerOverseasExecutionTest {
     }
     private static Map<String,Object> coverageSnapshot(CareerMarketEngine m,java.time.LocalDate date){
         var teams=new TreeMap<String,Object>();for(String team:List.of("LCK:BRO","LPL:OMG","CBLOL:LEV")){
-            var row=new TreeMap<String,Object>();row.put("date",date);row.put("account",m.accounts.get(team));row.put("wageLimit",m.finance.approval(team,date).wageLimit());row.put("salary",m.salaryAt(team,date,true));row.put("paymentHeadroom",m.paymentHeadroom(team,date));row.put("lineup",m.lineups.get(team));
-            row.put("offers",m.offers.values().stream().filter(o->o.team().equals(team)).toList());row.put("trades",m.tradeEngine.trades.values().stream().filter(t->t.terms().buyer().equals(team)).toList());row.put("ledger",m.ledger.stream().filter(l->l.team().equals(team)).toList());row.put("decisions",m.planner.state().decisions().stream().filter(d->d.team().equals(team)).toList());teams.put(team,row);
+            var row=new TreeMap<String,Object>();row.put("date",date);row.put("account",m.accounts.get(team));row.put("wageLimit",m.finance.approval(team,date).wageLimit());row.put("salary",m.salaryAt(team,date,true));row.put("paymentHeadroom",m.paymentHeadroom(team,date));row.put("lineup",m.lineups.get(team));row.put("developmentLineup",m.clLineups.getOrDefault(team,List.of()));
+            row.put("offers",m.offers.values().stream().filter(o->o.team().equals(team)).toList());row.put("trades",m.tradeEngine.trades.values().stream().filter(t->t.terms().buyer().equals(team)||t.terms().seller().equals(team)).toList());row.put("ledger",m.ledger.stream().filter(l->l.team().equals(team)).toList());row.put("decisions",m.planner.state().decisions().stream().filter(d->d.team().equals(team)).toList());teams.put(team,row);
         }return teams;
     }
     @org.junit.jupiter.params.ParameterizedTest

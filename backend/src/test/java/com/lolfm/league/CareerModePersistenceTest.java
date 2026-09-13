@@ -502,7 +502,18 @@ class CareerModePersistenceTest {
             var current=view.contracts().stream().filter(c->c.playerId().equals("player-jiwoo")&&c.status()==com.lolfm.career.CareerMarketState.ContractStatus.ACTIVE).findFirst().orElseThrow();
             var loan=new com.lolfm.career.CareerManagementState.TradeTerms(com.lolfm.career.CareerManagementState.Kind.LOAN,"player-jiwoo","LCK:T1","LCK:HLE",loanStart,loanStart.plusDays(27),0,50,new com.lolfm.career.CareerMarketState.Terms(loanStart,loanStart.plusDays(27),current.terms().annualSalary(),0,com.lolfm.career.CareerMarketState.Role.RESERVE),"player-peyz");
             var send=new com.lolfm.career.CareerMarketStore.TradeRequest("CAREER_TRADE_COMMAND_KRW_V1",2027,view.revision(),"SUBMIT",null,loan,null,UUID.randomUUID().toString());
-            market.tradeCommand(id,send);
+            // These snapshots deliberately exercise file recovery without running the match kernel.
+            // An unfinished frozen Series must reject the loan; then apply its completion boundary.
+            String boundMarket=com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerMarketStore.load(h.jdbc(),id));
+            assertThatThrownBy(()->market.tradeCommand(career.careerId(),send)).isInstanceOf(CareerException.class);
+            assertThat(com.lolfm.career.CareerRosterStore.write(com.lolfm.career.CareerMarketStore.load(h.jdbc(),id))).isEqualTo(boundMarket);
+            tx.executeWithoutResult(ignored->{
+                for(String fixture:fixtures.subList(0,2))com.lolfm.career.CareerAppearanceStore.leagueCompleted(h.jdbc(),career.seasonId(),fixture,
+                        com.lolfm.career.CareerRosterStore.hash("FILE_RECOVERY_COMPLETION|"+fixture),2);
+            });
+            assertThat(h.jdbc().queryForObject("SELECT COUNT(*) FROM career_appearance_binding WHERE career_id=? AND applied_receipt IS NOT NULL",Integer.class,id)).isEqualTo(2);
+            view=market.view(id,2027);
+            market.tradeCommand(id,new com.lolfm.career.CareerMarketStore.TradeRequest(send.schemaVersion(),2027,view.revision(),"SUBMIT",null,loan,null,send.clientCommandId()));
             while(h.calendar().view(career).state().currentDate().isBefore(loanStart)) {var c=h.calendar().view(career);h.calendar().advance(career,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,c.state().calendarRevision(),"ADVANCE_ONE_DAY",UUID.randomUUID().toString());}
             assertThat(market.view(id,2027).management().loans()).as("loan consent: %s",market.view(id,2027).management().trades()).anyMatch(l->l.playerId().equals("player-jiwoo")&&l.status().equals("ACTIVE"));
             assertThat(com.lolfm.career.CareerMarketStore.load(h.jdbc(),id).state().management().trades().values().stream().filter(t->t.terms().kind()==com.lolfm.career.CareerManagementState.Kind.LOAN&&t.terms().playerId().equals("player-jiwoo")).findFirst().orElseThrow().playerEvaluation().loanCompensation().policyVersion()).isEqualTo("CAREER_LOAN_RETAINED_PAY_CONSENT_V2");

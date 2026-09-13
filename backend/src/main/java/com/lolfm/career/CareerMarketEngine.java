@@ -368,6 +368,7 @@ public final class CareerMarketEngine {
                 directory=development.directory();
             }
             LocalDate date=processed.plusDays(1);
+            int eventStart=events.size();
             // Same-date order: allocation/debt, loan return, expiry/settlement, activation, trade application, salary, promise evaluation, FA responses/proposals/decisions, AI lineup.
             if(finance!=null)finance.date(date);
             if(date.getDayOfYear()==1)for(var a:new ArrayList<>(accounts.values()))if(finance==null||!finance.recurring(a.team(),date))credit(a.team(),date);
@@ -382,12 +383,23 @@ public final class CareerMarketEngine {
             if(lifecycle!=null)lifecycle.effective(this,date);
             for(var c:new ArrayList<>(contracts.values()))if(c.status()==ContractStatus.SCHEDULED&&!date.isBefore(c.terms().startDate()))activate(c,date);
             renewedSelections.forEach((player,team)->{if(lifecycle==null||!lifecycle.retired(player))select(team,player,date);});
+            var pendingTrades=tradeEngine.trades.values().stream().filter(t->t.open()).toList();
             tradeEngine.process(date);
             if(date.getDayOfMonth()==date.lengthOfMonth())for(var c:new ArrayList<>(contracts.values()))if(c.status()==ContractStatus.ACTIVE)pay(c,date);
             for(var c:contracts.values())if(c.status()==ContractStatus.ACTIVE&&date.equals(c.terms().endDate().minusDays(NEGOTIATION_DAYS)))event(date,"EXPIRY_WARNING",c.playerId(),c.team(),c.contractId(),"계약 만료 60일 전 · 재계약 및 미래 FA 협상 가능");
             promiseEngine.evaluate(date);
             responses(date);
-            planner.review(date);
+            var changed=new TreeSet<String>();
+            for(var prior:pendingTrades)if(!tradeEngine.trades.get(prior.tradeId()).open()){changed.add(prior.terms().buyer());changed.add(prior.terms().seller());}
+            if(date.getDayOfMonth()==date.lengthOfMonth())changed.addAll(accounts.keySet());
+            if(finance!=null)finance.approvals.values().stream().filter(a->a.effectiveOn().equals(date)).forEach(a->changed.add(a.team()));
+            for(var e:events.subList(eventStart,events.size()))if(Set.of("TRADE_COMPLETED","LOAN_RETURNED","CONTRACT_EXPIRED","CONTRACT_ACTIVATED","RETIREMENT_EFFECTIVE").contains(e.kind())){
+                if(e.team()!=null)changed.add(e.team());
+                if(e.kind().equals("RETIREMENT_EFFECTIVE"))contracts.values().stream().filter(c->c.playerId().equals(e.playerId())&&c.team()!=null).forEach(c->changed.add(c.team()));
+                var trade=tradeEngine.trades.get(e.referenceId());if(trade!=null){changed.add(trade.terms().seller());changed.add(trade.terms().buyer());}
+                var loan=tradeEngine.loans.get(e.referenceId());if(loan!=null){changed.add(loan.parentTeam());changed.add(loan.borrowingTeam());}
+            }
+            planner.review(date,changed);
             decide(date);
             for(var o:new ArrayList<>(offers.values()))if(o.open()&&!date.isBefore(o.expiresDate()))offers.put(o.offerId(),offerStatus(o,OfferStatus.EXPIRED,"제안 유효기간 종료",null));
             planner.repair(date);if(lifecycle!=null)lifecycle.observe(this,date);processed=date;

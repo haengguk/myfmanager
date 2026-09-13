@@ -163,24 +163,34 @@ final class CareerSquadPlanner {
     /** Ephemeral diagnostics: never serialized or exposed as an opponent's private budget. */
     record Inspection(String team,Position position,String squad,int commonChecks,List<String> rejections,String chosen) {}
     final List<Inspection> inspections=new ArrayList<>();
+    private final Map<String,int[]> plannedUse=new HashMap<>();
     private static long upfront(Proposal p){var t=p.trade();return t==null?p.terms().signingBonus():t.fee()+(t.kind()==Kind.TRANSFER?p.terms().signingBonus():0);}
     private static long salary(Proposal p){var t=p.trade();return t!=null&&t.kind()==Kind.LOAN?(Math.multiplyExact(p.terms().annualSalary(),t.borrowerSalaryPercent())+99)/100:p.terms().annualSalary();}
     private String approvalFailure(Proposal p,LocalDate date,List<Proposal> earlier){
         // All provisional obligations exist only in this isolated workspace. The real submit below
         // reserves them once; actual payment dates and future approvals stay in the common validator.
-        var trial=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),m.state());
-        trial.clEnabled=m.clEnabled;trial.overseasEnabled=m.overseasEnabled;trial.developmentYear=m.developmentYear;
-        trial.developmentFixtures=m.developmentFixtures;trial.squadRestrictions.addAll(m.squadRestrictions);trial.internationalPools.putAll(m.internationalPools);
-        m.clLineups.forEach((team,ids)->trial.clLineups.put(team,new ArrayList<>(ids)));
-        if(m.lifecycle!=null)trial.lifecycle=new CareerLifecycleEngine(m.lifecycle.state());
+        var trial=trial();
         try {
             for(var chosen:earlier)if(chosen.team().equals(p.team()))submit(trial,chosen,date);
             submit(trial,p,date);return null;
         }catch(CareerException rejected){return rejected.clientMessage();}
     }
+    private CareerMarketEngine trial(){
+        var trial=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),m.state());
+        trial.clEnabled=m.clEnabled;trial.overseasEnabled=m.overseasEnabled;trial.developmentYear=m.developmentYear;
+        trial.developmentFixtures=m.developmentFixtures;trial.squadRestrictions.addAll(m.squadRestrictions);trial.internationalPools.putAll(m.internationalPools);
+        m.clLineups.forEach((team,ids)->trial.clLineups.put(team,new ArrayList<>(ids)));
+        if(m.lifecycle!=null)trial.lifecycle=new CareerLifecycleEngine(m.lifecycle.state());
+        return trial;
+    }
     private static void submit(CareerMarketEngine market,Proposal p,LocalDate date){
         if(p.trade()==null)market.submit(p.team(),p.player(),p.terms(),null,date);
-        else market.tradeEngine.submit(p.team(),p.trade(),null,date);
+        else {
+            var t=market.tradeEngine.submit(p.team(),p.trade(),null,date);
+            market.tradeEngine.respond(p.trade().seller(),t.tradeId(),"ACCEPT",p.trade().replacementPlayerId(),date);
+            // A forecast in the isolated package; actual consent still runs independently on its due date.
+            if(!market.tradeEngine.likelyConsent(t,date))throw CareerMarketEngine.invalid("현재 보수·역할·이동 조건에서 선수 동의 전망 부족");
+        }
     }
     /** Eight common approvals total per team/position/squad review, shared by floor and upgrade. */
     private final class Search {
@@ -188,6 +198,8 @@ final class CareerSquadPlanner {
         final List<String> rejections=new ArrayList<>();
         final Map<LocalDate,Long> existingSalary=new HashMap<>();
         boolean accepts(Proposal p,LocalDate date,List<Proposal> earlier){
+            if(!room(p.team(),date,p.trade()!=null)||p.trade()!=null&&!room(p.trade().seller(),date,true))return false;
+            if(p.trade()!=null&&earlier.stream().filter(q->q.trade()!=null&&q.trade().seller().equals(p.trade().seller())).count()+plannedUse.getOrDefault(p.trade().seller(),new int[2])[1]>=TRADES_PER_CLUB)return false;
             if(p.trade()!=null&&earlier.stream().filter(q->q.team().equals(p.team())&&q.trade()!=null).count()>=TRADES_PER_CLUB)return false;
             var account=m.accounts.get(p.team());long plannedCash=0,plannedSalary=0;
             for(var chosen:earlier)if(chosen.team().equals(p.team())){
@@ -262,7 +274,7 @@ final class CareerSquadPlanner {
             boolean scheduledDevelopment=cl(team)&&m.developmentFixtures.getOrDefault(team+"|DEVELOPMENT",List.of()).stream().anyMatch(d->!d.isBefore(date)&&!d.isAfter(date.plusDays(EXPIRY_DAYS)));
             for(String squad:cl(team)&&(firstSafe&&!renewal||scheduledDevelopment)?List.of("FIRST_TEAM","DEVELOPMENT"):List.of("FIRST_TEAM")){
                 if(committedCover(team,role,squad,date)){record(team,role,squad,"FUTURE_COVER","PLANNED",null,null,date,null,null,"확정된 계약 또는 임대 반환이 다음 필요 시점을 충족 · 중복 영입 보류");continue;}
-                if(waiting(team,role,date)&&!held(team,role,squad,date).isEmpty())continue;
+                if(waiting(team,role,date)&&held(team,role,squad,date).stream().anyMatch(id->safe(team,id,squad,date)))continue;
                 result.add(new Need(team,role,squad,date));
             }
         }
@@ -270,13 +282,88 @@ final class CareerSquadPlanner {
         return result;
     }
     private static List<Proposal> without(List<Proposal> plan,Proposal own){var rest=new ArrayList<>(plan);rest.remove(own);return rest;}
-    void review(LocalDate date){
-        if(date.getDayOfWeek()!=DayOfWeek.MONDAY||date.equals(lastReview))return;
-        inspections.clear();
-        repair(date);for(String team:m.accounts.keySet())if(!team.equals(m.managed))for(Position role:Position.values()){choose(team,role,date,false);if(cl(team))chooseCl(team,role,date);}
-        repair(date);var proposed=new ArrayList<Proposal>();
-        for(String team:m.accounts.keySet())if(!team.equals(m.managed)){
-            var needs=needs(team,date);var plan=new ArrayList<Proposal>();var floors=new LinkedHashMap<Need,Proposal>();
+    /** Count durable submissions, including withdrawn/rejected proposals and both trade parties. */
+    private boolean room(String team,LocalDate date,boolean trade){
+        LocalDate monday=date.minusDays(date.getDayOfWeek().getValue()-1);
+        long offers=m.offers.values().stream().filter(o->o.team().equals(team)&&!o.submittedDate().isBefore(monday)&&!o.submittedDate().isAfter(date)&&o.previousOfferId()==null).count();
+        long trades=m.tradeEngine.trades.values().stream().filter(t->(t.terms().buyer().equals(team)||t.terms().seller().equals(team))&&!t.submittedDate().isBefore(monday)&&!t.submittedDate().isAfter(date)&&t.previousTradeId()==null).count();
+        var planned=plannedUse.getOrDefault(team,new int[2]);
+        return offers+trades+planned[0]<NEW_PROPOSALS_PER_CLUB&&(!trade||trades+planned[1]<TRADES_PER_CLUB);
+    }
+    private boolean pressure(String team,LocalDate date){
+        try{m.requireBudget(team,date);return false;}catch(CareerException insufficient){return true;}
+    }
+    boolean disposal(String reference){var t=m.tradeEngine.trades.get(reference);return t!=null&&t.proposer().equals(t.terms().seller())&&!t.proposer().equals(m.managed);}
+    boolean wantsIncoming(String team,String player,Role role,LocalDate date){
+        String squad=role==Role.DEVELOPMENT?"DEVELOPMENT":"FIRST_TEAM";Position position=m.player(player).position();
+        if(!registrationAllows(team,player,squad,horizon(team,squad,date)))return false;
+        return held(team,position,squad,date).stream().filter(id->!id.equals(player)).noneMatch(id->safe(team,id,squad,date));
+    }
+    private void tidy(String team,LocalDate date){
+        var seen=new HashSet<String>();boolean pressured=pressure(team,date);
+        // Confirmed contracts/agreements never enter this withdrawal branch.
+        for(var o:new ArrayList<>(m.offers.values()))if(o.team().equals(team)&&o.open()){
+            String squad=o.terms().role()==Role.DEVELOPMENT?"DEVELOPMENT":"FIRST_TEAM";String slot=m.player(o.playerId()).position()+"|"+squad;
+            if(!seen.add(slot)||pressured&&!wantsIncoming(team,o.playerId(),o.terms().role(),date)){
+                m.withdraw(team,o.offerId(),date);record(team,m.player(o.playerId()).position(),squad,"WITHDRAW","APPLIED",o.playerId(),null,date,date,o.offerId(),"재정 압박 또는 중복 보강 예약 정리 · 확정 계약 유지");
+            }
+        }
+        for(var t:new ArrayList<>(m.tradeEngine.trades.values()))if(t.terms().buyer().equals(team)&&t.buyerAgreed()&&t.open()&&t.status()!=TradeStatus.AGREED){
+            String squad=t.terms().playerTerms().role()==Role.DEVELOPMENT?"DEVELOPMENT":"FIRST_TEAM";String slot=m.player(t.terms().playerId()).position()+"|"+squad;
+            if(!seen.add(slot)||pressured&&!wantsIncoming(team,t.terms().playerId(),t.terms().playerTerms().role(),date))m.tradeEngine.respond(team,t.tradeId(),"WITHDRAW",null,date);
+        }
+    }
+    private void relieve(String team,LocalDate date,Set<String> fundedContracts,List<Proposal> purchases){
+        if(!room(team,date,true))return;
+        // Wait for the existing sale's real effect. Unconfirmed proceeds are never purchase money.
+        if(m.tradeEngine.trades.values().stream().anyMatch(t->t.open()&&t.proposer().equals(team)&&t.terms().seller().equals(team)))return;
+        var surplus=m.contracts.values().stream().filter(c->c.status()==ContractStatus.ACTIVE&&team.equals(c.team())&&canDepart(team,c.playerId(),date)&&m.tradeEngine.unavailable(c.playerId(),date)==null)
+                .sorted(Comparator.comparingLong((Contract c)->c.terms().annualSalary()).reversed().thenComparing(Contract::playerId)).limit(CANDIDATES).toList();
+        for(var c:surplus){
+            String id=c.playerId();Position position=m.player(id).position();var options=new ArrayList<TradeTerms>();
+            for(String buyer:m.accounts.keySet())if(!buyer.equals(team)&&room(buyer,date,true)&&!pending(buyer,position)){
+                for(Role role:cl(buyer)?List.of(Role.STARTER,Role.DEVELOPMENT):List.of(Role.STARTER)){
+                    if(fundedContracts.contains(key(buyer,position))||!wantsIncoming(buyer,id,role,date)||committedCover(buyer,position,role==Role.DEVELOPMENT?"DEVELOPMENT":"FIRST_TEAM",date))continue;
+                    var transfer=m.tradeEngine.plannedTerms(buyer,id,role,date);if(transfer!=null)options.add(transfer);
+                    var loan=m.tradeEngine.plannedLoanTerms(buyer,id,role,date);if(loan!=null&&!options.contains(loan))options.add(loan);
+                }
+            }
+            // A permanent transfer removes the returning salary risk; loans preserve their original pay.
+            options.sort(Comparator.comparingInt((TradeTerms t)->t.kind()==Kind.TRANSFER?0:1).thenComparing(Comparator.comparingLong(TradeTerms::fee).reversed()).thenComparing(TradeTerms::buyer));
+            int checked=0;
+            for(var terms:options){
+                if(checked++>=COMMON_CHECKS)break;
+                if(terms.kind()==Kind.LOAN){
+                    LocalDate returned=terms.endDate().plusDays(1);
+                    long cap=m.finance==null?m.accounts.get(team).annualBudget():m.finance.approval(team,returned).wageLimit();
+                    if(terms.endDate().isBefore(date.plusDays(EXPIRY_DAYS))||m.salaryAt(team,returned,true)>cap)continue;
+                }
+                try{
+                    var trial=trial();
+                    // A seller's offer competes for the buyer's complete funded package, not its empty budget.
+                    for(var purchase:purchases)if(purchase.team().equals(terms.buyer())&&purchase.position()!=position)submit(trial,purchase,date);
+                    var proposed=trial.tradeEngine.submit(team,terms,null,date);
+                    trial.tradeEngine.respond(terms.buyer(),proposed.tradeId(),"ACCEPT",null,date);
+                    if(!trial.tradeEngine.likelyConsent(proposed,date))continue;
+                    var actual=m.tradeEngine.submit(team,terms,null,date);
+                    record(team,position,m.members.get(id).squad(),"DISPOSE_"+terms.kind(),"PROPOSED",id,null,date,terms.startDate(),actual.tradeId(),"재정 압박 대응 · 같은 포지션 대체자 유지 · 실제 구단/선수 동의 및 적용 후 재검토");
+                    return;
+                }catch(CareerException rejected){/* Another affordable counterparty may remain. */}
+            }
+        }
+        record(team,Position.TOP,"FIRST_TEAM","FINANCE","DEFERRED",null,null,date,null,null,"FINANCE_BLOCKED · 현금/예정 급여/승인 압박 · 현재 대체자와 합법적 거래 상대 없음");
+    }
+    void review(LocalDate date){review(date,Set.of());}
+    void review(LocalDate date,Set<String> changed){
+        boolean weekly=date.getDayOfWeek()==DayOfWeek.MONDAY;
+        if(date.equals(lastReview)||!weekly&&changed.isEmpty())return;
+        inspections.clear();plannedUse.clear();
+        repair(date);for(String team:m.accounts.keySet())if(weekly&&!team.equals(m.managed))for(Position role:Position.values()){choose(team,role,date,false);if(cl(team))chooseCl(team,role,date);}
+        repair(date);var proposed=new ArrayList<Proposal>();var pressureTeams=new LinkedHashSet<String>();
+        for(String team:m.accounts.keySet())if(!team.equals(m.managed)&&(weekly||changed.contains(team))){
+            tidy(team,date);boolean pressured=pressure(team,date);
+            if(pressured)pressureTeams.add(team);
+            var needs=needs(team,date).stream().filter(n->n.essential||weekly&&!pressured).toList();var plan=new ArrayList<Proposal>();var floors=new LinkedHashMap<Need,Proposal>();
             // First fund a common-approved low-cost package. No real offers or cash are reserved here.
             // More than four needs may be forecast; only this week's allowed subset is submitted.
             for(var need:needs)if(need.essential){
@@ -291,6 +378,31 @@ final class CareerSquadPlanner {
                 }
                 if(floor!=null){plan.add(floor);floors.put(need,floor);}
             }
+            // A failed essential slot may exchange one earlier floor for a different cost structure.
+            // Both needs retain their original approval counters; no provisional reservation escapes.
+            for(var missing:needs)if(missing.essential&&!floors.containsKey(missing)){
+                boolean repaired=false;
+                for(var prior:new ArrayList<>(floors.keySet())){
+                    if(prior.position==missing.position)continue;
+                    var old=floors.get(prior);var rest=without(plan,old);
+                    var alternatives=new ArrayList<>(prior.candidates);
+                    alternatives.sort(Comparator.comparingInt((Proposal p)->prior.onTime(p)?0:1).thenComparingLong(CareerSquadPlanner::upfront).thenComparingLong(CareerSquadPlanner::salary).thenComparing(Proposal::player));
+                    for(var alternative:alternatives){
+                        if(alternative.equals(old)||prior.onTime(old)&&!prior.onTime(alternative))continue;
+                        if(!prior.search.accepts(alternative,date,rest))continue;
+                        var packagePlan=new ArrayList<>(rest);packagePlan.add(alternative);
+                        for(var candidate:missing.candidates.stream().sorted(missing.costOrder()).toList()){
+                            if(missing.search.accepts(candidate,date,packagePlan)){
+                                plan.remove(old);plan.add(alternative);plan.add(candidate);floors.put(prior,alternative);floors.put(missing,candidate);repaired=true;break;
+                            }
+                            if(missing.search.checks>=COMMON_CHECKS)break;
+                        }
+                        if(repaired||missing.search.checks>=COMMON_CHECKS)break;
+                    }
+                    if(repaired||missing.search.checks>=COMMON_CHECKS)break;
+                }
+            }
+            if(needs.stream().anyMatch(n->n.essential&&!floors.containsKey(n)&& (n.search.financeRejected>0||n.search.approvalRejected>0)))pressureTeams.add(team);
             // Improve one position only if every other funded essential position still fits.
             // Incumbent renewal is first in this order and shares, rather than resets, the eight checks.
             for(var need:needs){
@@ -316,10 +428,17 @@ final class CareerSquadPlanner {
                 for(String id:need.own)if(need.own.size()>1&&!id.equals(need.own.getFirst())&&m.availableStart(id,date)!=null)
                     record(team,need.position,need.squad,"EXPIRY_REVIEW","PLANNED",id,null,date,m.active(id,date).terms().endDate().plusDays(1),null,"현재 대체 자원 보유 · 거래는 별도 합의, 미갱신 시 자연 만료");
             }
+            for(var p:proposed)if(p.team().equals(team)){
+                var buyerUse=plannedUse.computeIfAbsent(team,k->new int[2]);buyerUse[0]++;if(p.trade()!=null){buyerUse[1]++;var sellerUse=plannedUse.computeIfAbsent(p.trade().seller(),k->new int[2]);sellerUse[0]++;sellerUse[1]++;}
+            }
         }
+        plannedUse.clear();
+        // A seller must not displace an already funded essential FA package with an unsolicited loan.
+        var fundedContracts=new HashSet<String>();for(var p:proposed)if(p.trade()==null)fundedContracts.add(key(p.team(),p.position()));
+        for(String team:pressureTeams)relieve(team,date,fundedContracts,proposed);
         // Proposals only reserve obligations. Existing common player decisions still choose the winner.
         for(var p:proposed){
-            if(pending(p.team(),p.position()))continue;
+            if(pending(p.team(),p.position())||!room(p.team(),date,p.trade()!=null)||p.trade()!=null&&!room(p.trade().seller(),date,true))continue;
             try {
                 String ref=p.trade()==null?m.submit(p.team(),p.player(),p.terms(),null,date).offerId():m.tradeEngine.submit(p.team(),p.trade(),null,date).tradeId();
                 cooldowns.put(key(p.team(),p.position()),date.plusDays(REVIEW_WAIT_DAYS));
