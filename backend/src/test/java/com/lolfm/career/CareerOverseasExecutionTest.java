@@ -182,7 +182,8 @@ class CareerOverseasExecutionTest {
         assertThat(CareerMarketStore.load(jdbc,id)).isEqualTo(marketBefore);
     }
     @Test void newCareerActivatesSeventeenEventsAndKeepsReadOnlyViews() {
-        var c=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"해외 리그 저장 연결","감독","T1",UUID.randomUUID().toString())).career().career();
+        // The 42-day recruitment assertion needs a stable market identity, not a new UUID per run.
+        var c=careers.create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"해외 리그 저장 연결","감독","T1","bc4f92e5-fea7-5038-8815-58cc3826b8bd")).career().career();
         String id=c.careerId();int year=2027;
         var saved=CareerMarketStore.load(jdbc,id);var cycle=competitions.load(id,year);
         assertThat(saved.state().accounts()).hasSize(59).containsKeys("LPL:OMG","LPL:UP","LEC:LR").doesNotContainKey("LEC:KCB");
@@ -192,6 +193,10 @@ class CareerOverseasExecutionTest {
         assertThat(v.events()).hasSize(1);assertThat(v.events().getFirst().result().regularRanking()).isEmpty();
         assertThat(v.events().getFirst().fixtures()).hasSize(66);
         var engine=CareerMarketStore.engine(jdbc,id,year,saved);
+        var initialTargets=Map.copyOf(engine.finance.targets);assertThat(initialTargets).hasSize(59);
+        assertThat(initialTargets.get("LEC:LR|"+year).maximumDomesticRank()).isZero();
+        engine.finance.targets.clear();engine.finance.initializeTargets(year,engine.processedThrough(),false);
+        assertThat(engine.finance.targets).as("new targets are fixed after complete overseas activation and legal lineup selection").isEqualTo(initialTargets);
         var adopted=engine.contracts.values().stream().filter(contract->contract.origin().equals(CareerOverseasRoster.EXTENSION)).toList();
         assertThat(adopted).isNotEmpty().allSatisfy(contract->assertThat(contract.terms().annualSalary()).isEqualTo(engine.finance.legacyDemand(contract.playerId())));
         var guest=CareerOverseasRoster.roster(engine,"LEC:KCB");
@@ -222,8 +227,8 @@ class CareerOverseasExecutionTest {
         var recruitment=CareerMarketStore.engine(jdbc,id,year,CareerMarketStore.load(jdbc,id));
         recruitment.advance(CareerMarketStore.date(jdbc,id).plusDays(42));
         for(String team:List.of("LPL:OMG","LPL:UP","LEC:LR")){
-            if(CareerOverseasRoster.candidates(recruitment,team).stream().map(pid->recruitment.player(pid).position()).distinct().count()<5)
-                System.out.println("OVERSEAS_COVERAGE_FAILURE "+team+" account="+CareerRosterStore.write(recruitment.accounts.get(team))+" salary="+recruitment.salaryAt(team,recruitment.processedThrough(),true)+" decisions="+CareerRosterStore.write(recruitment.state().squadPlanning().decisions().stream().filter(d->d.team().equals(team)).toList()));
+            if(recruitment.lineups.get(team).size()!=5||CareerOverseasRoster.candidates(recruitment,team).stream().map(pid->recruitment.player(pid).position()).distinct().count()<5)
+                System.out.println("OVERSEAS_COVERAGE_FAILURE "+team+" lineup="+CareerRosterStore.write(recruitment.lineups.get(team))+" candidates="+CareerRosterStore.write(CareerOverseasRoster.candidates(recruitment,team))+" account="+CareerRosterStore.write(recruitment.accounts.get(team))+" salary="+recruitment.salaryAt(team,recruitment.processedThrough(),true)+" decisions="+CareerRosterStore.write(recruitment.state().squadPlanning().decisions().stream().filter(d->d.team().equals(team)).toList()));
             assertThat(CareerOverseasRoster.roster(recruitment,team).players()).hasSize(5);
             int initialRoles=(int)CareerOverseasRoster.candidates(engine,team).stream().map(pid->engine.player(pid).position()).distinct().count();
             long negotiated=recruitment.contracts.values().stream().filter(cn->team.equals(cn.team())&&Set.of("NEGOTIATED_FREE_AGENT","PAID_TRANSFER_AGREEMENT").contains(cn.origin())).count()

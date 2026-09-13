@@ -66,6 +66,8 @@ public final class CareerRecordsQuery {
         return observed==0?"NOT_COLLECTED":"PARTIAL";
     }
     public com.fasterxml.jackson.databind.JsonNode reference(String career,String player) {return read.execute(t->{require(career);var definition=baseDirectory(db,career).players().get(player);if(definition==null)throw CareerException.notFound();return read(definition.detailsJson(),com.fasterxml.jackson.databind.JsonNode.class);});}
+    /** Optional approved result for the exact Series being left; never imports or applies a completion. */
+    public CareerRecordsStore.Series series(String career,String series){return read.execute(t->{require(career);var rows=db.query("SELECT record_json,record_hash FROM career_record_series WHERE career_id=? AND series_id=?",(r,n)->CareerRecordsStore.readSeries(r.getString(1),r.getString(2)),career,series);if(rows.size()>1)throw new IllegalStateException("CAREER_SERIES_RECORD_SCOPE");return rows.isEmpty()?null:rows.getFirst();});}
     public CareerRecordsStore.Series match(String career,String record){return read.execute(t->{require(career);var rows=db.query("SELECT record_json,record_hash FROM career_record_series WHERE career_id=? AND record_id=?",(r,n)->CareerRecordsStore.readSeries(r.getString(1),r.getString(2)),career,record);if(rows.isEmpty())throw CareerException.notFound();return rows.getFirst();});}
     static List<String> teams(String team,boolean organization) {
         if(!organization)return List.of(team);

@@ -120,8 +120,9 @@ final class CareerTrades {
     }
     private Trade status(Trade t,TradeStatus status,String reason,Long score) {return new Trade(t.tradeId(),t.contractId(),t.proposer(),t.terms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),t.round(),t.previousTradeId(),status,t.sellerAgreed(),t.buyerAgreed(),t.referenceValue(),t.sellerDemand(),t.buyerLimit(),score,reason,t.policyVersion(),t.playerEvaluation()!=null?t.playerEvaluation():score==null?null:evaluation(t,t.decisionDate()),t.pricing());}
     private Evaluation evaluation(Trade t,LocalDate date) {
+        if(t.playerEvaluation()!=null)return t.playerEvaluation();
         var terms=t.terms();var offer=new Offer(t.tradeId(),terms.playerId(),terms.buyer(),terms.playerTerms(),t.submittedDate(),t.responseDate(),t.decisionDate(),t.expiresDate(),0,OfferStatus.SUBMITTED,null,1,null,"",t.pricing());
-        return m.evaluate(offer,date);
+        return terms.kind()==Kind.LOAN?m.evaluateRetainedPayLoan(offer,date,m.contracts.get(t.contractId())):m.evaluate(offer,date);
     }
     void process(LocalDate date) {
         // Due club responses run before the same day's common player decision.
@@ -142,7 +143,7 @@ final class CareerTrades {
                     .thenComparing(t->t.terms().buyer())).toList();String winner=null;
             for(var t:ranked) {
                 var e=evaluation(t,date);long threshold=t.terms().kind()==Kind.LOAN?LOAN_ACCEPT_SCORE:MIN_ACCEPT_SCORE;
-                if(e.score()<threshold||t.terms().playerTerms().annualSalary()*100<m.negotiationDemand(player,t.pricing())*MIN_SALARY_PERCENT){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,"선수가 보수·역할·기회·약속 신뢰·이동 부담을 비교해 거절: "+e.reason(),e.score()));continue;}
+                if(e.score()<threshold||t.terms().kind()==Kind.TRANSFER&&t.terms().playerTerms().annualSalary()*100<m.negotiationDemand(player,t.pricing())*MIN_SALARY_PERCENT){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,"선수가 보수·역할·기회·약속 신뢰·이동 부담을 비교해 거절: "+e.reason(),e.score()));continue;}
                 try{requireSeller(t,date);requireBuyer(t,date);winner=t.tradeId();trades.put(winner,status(t,TradeStatus.AGREED,"구단과 선수 동의 완료 · 적용일 최종 검사 대기: "+e.reason(),e.score()));break;}
                 catch(CareerException rejected){trades.put(t.tradeId(),status(t,TradeStatus.REJECTED,rejected.clientMessage(),e.score()));}
             }

@@ -220,3 +220,9 @@
 .ca-continuous .ca-calendar__controls { flex-wrap: wrap; align-items: center; }
 .ca-continuous label { display: flex; align-items: center; gap: 8px; font-size: 11px; }
 .ca-continuous select, .ca-continuous input { color-scheme: dark; min-height: 34px; max-width: 180px; padding: 5px 8px; border: 1px solid var(--lm-border); border-radius: 4px; background: var(--lm-bg, #101b28); color: var(--lm-text); font: inherit; }
+
+.ca-return-result { display: grid; gap: 10px; padding: 15px; }
+.ca-return-result > h3, .ca-return-result > p { margin: 0; }
+.ca-return-result > p { color: var(--lm-muted); font-size: 12px; line-height: 1.5; }
+.ca-return-result > strong { color: var(--lm-text); font-size: 20px; }
+.ca-return-result > button { justify-self: start; }

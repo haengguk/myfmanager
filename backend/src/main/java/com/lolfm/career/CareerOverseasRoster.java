@@ -43,11 +43,11 @@ final class CareerOverseasRoster {
         String json=write(new Directory(definitions,organizations));db.update("UPDATE career_player_directory SET directory_json=?,directory_hash=? WHERE career_id=?",json,hash(json),career);
         m.directory=directory(db,career);m.promiseEngine.initialize(date);if(m.lifecycle!=null){m.lifecycle.overseasEnabled=true;m.members.forEach((id,member)->m.lifecycle.observePlacement(id,member,date));}
         // Select legal held players through the ordinary planner. Vacancies remain ordinary recruitment needs.
-        m.planner.repair(date);CareerMarketStore.persist(db,career,year,old,m);
+        m.planner.repair(date);m.finance.initializeTargets(year,date,!fresh);CareerMarketStore.persist(db,career,year,old,m);
         supply(db,career,year,champions);
         db.update("UPDATE career_overseas_activation SET extension_applied=TRUE WHERE career_id=?",career);
     }
-    private static void addFinance(CareerMarketEngine m,int year,LocalDate date){
+    static void addFinance(CareerMarketEngine m,int year,LocalDate date){
         var f=m.finance.state();var teams=new TreeMap<>(f.teams());var approvals=new TreeMap<>(f.approvals());var prizes=new TreeMap<>(f.prizeRules());CareerFinanceReference.rules(CareerFinanceReference.json()).forEach(prizes::putIfAbsent);
         for(String team:List.of("LPL:OMG","LPL:UP","LEC:LR"))if(!m.accounts.containsKey(team)){
             String region=team.substring(0,3);var candidates=f.teams().values().stream().filter(t->t.team().startsWith(region+":")).sorted(Comparator.comparingLong(Team::operatingBudget).thenComparing(Team::team)).toList();var ref=candidates.get(candidates.size()/2);
@@ -57,7 +57,7 @@ final class CareerOverseasRoster {
             approvals.put(team+"|"+year,new Approval(team,year,date,income,support,income-support,t.nonWage(),t.wageLimit(),0,0,"NOT_EVALUATED",CareerFinancePolicy.FUNDING));
             m.ledger.add(new Ledger(CareerMarketEngine.id(m.career,EXTENSION+"|"+team),date,team,null,"OVERSEAS_EXTENSION_INITIAL_ALLOCATION",t.openingCash()));
         }
-        m.finance=new CareerFinanceEngine(m,new CareerFinanceState(f.policyVersion(),f.currency(),f.referenceSeason(),f.scenario(),f.sourceHash(),f.sourceHashes(),f.fxPolicyVersion(),f.fx(),f.introducedOn(),f.operatingThrough(),f.legacyTransition(),f.recurringEffectiveOn(),teams,f.prices(),prizes,approvals,f.targets(),f.awards(),f.excludedInstances(),f.operatingArrears(),f.heldPrizes()));m.finance.initializeTargets(year,date,false);
+        m.finance=new CareerFinanceEngine(m,new CareerFinanceState(f.policyVersion(),f.currency(),f.referenceSeason(),f.scenario(),f.sourceHash(),f.sourceHashes(),f.fxPolicyVersion(),f.fx(),f.introducedOn(),f.operatingThrough(),f.legacyTransition(),f.recurringEffectiveOn(),teams,f.prices(),prizes,approvals,f.targets(),f.awards(),f.excludedInstances(),f.operatingArrears(),f.heldPrizes()));
     }
     private static void supply(JdbcTemplate db,String career,int year,ChampionCatalog champions){
         var old=CareerMarketStore.load(db,career);var m=CareerMarketStore.engine(db,career,year,old);if(m.lifecycle==null)throw new IllegalStateException("OVERSEAS_LIFECYCLE_REQUIRED");var growthSaved=CareerDevelopmentStore.load(db,career);var growth=new CareerDevelopmentEngine(baseDirectory(db,career),growthSaved.state());LocalDate date=m.state().processedThrough();var names=new HashSet<String>();m.directory.players().values().forEach(p->names.add(p.nickname().toLowerCase(Locale.ROOT)));

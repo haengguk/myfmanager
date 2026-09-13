@@ -122,7 +122,7 @@ final class CareerFinanceStore {
                 // Split-2 exits did not play Split 3; retain a shared season-ending 13–14 band.
                 for(String team:split2.plan().seasonEliminated())result.put(team,new CareerFinanceEngine.Rank(13,14));
             }
-            if(result.keySet().equals(new HashSet<>(CareerOverseasRules.partners(region))))domestic.putAll(result);
+            if(result.keySet().equals(CareerSportingFinancePolicy.participants(region)))domestic.putAll(result);
         }
         var states=store.jdbc.query("SELECT state_json,state_hash FROM career_international_state WHERE career_id=? AND calendar_season_year=? AND competition_id='WORLDS'",(r,n)->{
             if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("INTERNATIONAL_FINANCE_INTEGRITY");

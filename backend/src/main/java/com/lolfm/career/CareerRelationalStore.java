@@ -167,6 +167,7 @@ public final class CareerRelationalStore {
                 CareerLifecycleStore.initialize(jdbc,requested.careerId());
                 if(cl!=null)cl.initializeNew(requested.careerId(),year);
                 if(overseas!=null)overseas.initializeNew(requested.careerId(),year);
+                else CareerFinanceStore.startSeason(jdbc,requested.careerId(),year);
             }
             jdbc.update("""
                     INSERT INTO career_create_command(

@@ -52,7 +52,13 @@ public record CareerMarketState(String policyVersion, long seed, LocalDate proce
             int relocationPenalty, String inclination, String homeRegion) {}
     public record Evaluation(String offerId, String team, int compensation, int opportunity, int strength,
             int stability, int familiarity, int relocation, long score, int tieBreak, String reason,
-            int promiseTrust,int satisfaction,long relationshipAdjustment) {}
+            int promiseTrust,int satisfaction,long relationshipAdjustment,
+            @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) LoanCompensation loanCompensation) {
+        public Evaluation(String offerId,String team,int compensation,int opportunity,int strength,int stability,int familiarity,int relocation,long score,int tieBreak,String reason,int promiseTrust,int satisfaction,long relationshipAdjustment){
+            this(offerId,team,compensation,opportunity,strength,stability,familiarity,relocation,score,tieBreak,reason,promiseTrust,satisfaction,relationshipAdjustment,null);
+        }
+    }
+    public record LoanCompensation(String policyVersion,LocalDate evaluatedOn,long guaranteedAnnualSalary) {}
     public record Decision(String eventId, String playerId, LocalDate date, String winningOfferId,
             List<Evaluation> evaluations, String reason, String policyVersion) {
         public Decision { evaluations=List.copyOf(evaluations); }

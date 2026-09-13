@@ -1,3 +1,4 @@
+import { focusPlayTarget } from './careerPlayFlow';
 import { pricingLabel } from './api/careerPricing';
 import type { InboxLink } from './api/careerInbox';
 import { careerMoney } from './careerMoney';
@@ -18,6 +19,7 @@ function contractEnd(start: string, years: number) { const d = new Date(`${start
 export function CareerMarketPanel({ careerId, year, revision, historical, busy, focusPlayer, focus, onBegin, onChanged }: {
   careerId: string; year: number; revision: number; historical: boolean; busy: boolean; focusPlayer: string | null; focus?: InboxLink | null; onBegin: () => (() => void) | null; onChanged: () => void | Promise<unknown>;
 }) {
+  const [notice, setNotice] = useState('');
   const loadedFocus = useRef<InboxLink | null | undefined>(undefined);
   const [legacyRefresh, setLegacyRefresh] = useState(false);
   const [operationTeam, setOperationTeam] = useState('LCK:BRO');
@@ -34,7 +36,7 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
     void Promise.all([getCareerMarket(careerId, year, controller.signal), getCareerRoster(careerId, year, controller.signal)]).then(([m, r]) => { if (!controller.signal.aborted && token === generation.current) { loadedFocus.current = focus; setView(old => newerMarket(old, m)); setRoster(r); setError(null); } }).catch(e => { if (!controller.signal.aborted && token === generation.current) setError(failure(e)); });
     return () => { ++generation.current; controller.abort(); };
   }, [careerId, year, revision, focus]);
-  useEffect(() => { setLegacyRefresh(false); setPending(false); setSelected(null); setEditing(null); setReleaseReview(false); setView(null); setRoster(null); return () => { mutation.current?.controller.abort(); mutation.current?.release(); mutation.current = null; }; }, [careerId, year]);
+  useEffect(() => { setNotice(''); setLegacyRefresh(false); setPending(false); setSelected(null); setEditing(null); setReleaseReview(false); setView(null); setRoster(null); return () => { mutation.current?.controller.abort(); mutation.current?.release(); mutation.current = null; }; }, [careerId, year]);
   const money = (n: number) => careerMoney(n, view?.currency ?? 'GAME_CREDITS');
   const pick = (id: string, offer?: MarketOffer) => {
     const p = view?.players.find(p => p.playerId === id); setSelected(id); setEditing(offer?.offerId ?? null); setReleaseReview(false); setReplacement('');
@@ -44,7 +46,7 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
   useEffect(() => {
     if (loadedFocus.current !== focus || !focus?.playerId || !view || focus.seasonYear !== view.seasonYear) return;
     const offer = view.offers.find(o => o.offerId === focus.sourceId && o.playerId === focus.playerId);
-    pick(focus.playerId, offer?.status === 'COUNTER' ? offer : undefined); setFilter('all'); document.getElementById('career-contract-market')?.scrollIntoView({ behavior: 'smooth' });
+    pick(focus.playerId, offer?.status === 'COUNTER' ? offer : undefined); setFilter('all'); focusPlayTarget('#career-contract-market');
     if (focus.panel === 'MARKET' && focus.sourceId && !offer) setError('원래 협상은 현재 계약 제안에서 찾을 수 없습니다. 보존 소식과 현재 선수 상태를 확인하세요.');
   }, [focus, view?.careerId, view?.revision]);
   const execute = async (action?: MarketCommand['action'], offerId?: string) => {
@@ -64,7 +66,7 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
       const result = await changeCareerMarket(careerId, body, owned.controller.signal);
       if (owned.controller.signal.aborted || mutation.current !== owned) return;
       if (result.receipt.clientCommandId !== body.clientCommandId || result.receipt.sourceYear !== body.sourceYear || result.receipt.action !== body.action) throw new Error('market receipt scope');
-      window.sessionStorage.removeItem(marketOperationKey(careerId)); setOperation(null); setView(old => newerMarket(old, result.market)); setEditing(null); setReleaseReview(false);
+      window.sessionStorage.removeItem(marketOperationKey(careerId)); setOperation(null); setView(old => newerMarket(old, result.market)); setEditing(null); setReleaseReview(false); setNotice(['SUBMIT', 'REVISE'].includes(body.action) ? '계약 조건을 접수했습니다. 선수 판단과 효력일 적용은 아래 원본 제안에서 확인하세요.' : '요청의 저장 결과를 확인했습니다. 최신 현재 업무에서 다음 행동을 선택하세요.');
       const currentRoster = await getCareerRoster(careerId, result.market.seasonYear, owned.controller.signal);
       if (!owned.controller.signal.aborted && mutation.current === owned) { setRoster(currentRoster); await onChanged(); }
     } catch (cause) {
@@ -93,7 +95,7 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
     <header><strong>{view.offseason ? '스토브 운영' : '계약과 FA 시장'} · {view.currentDate}</strong><span>{historical || view.readOnly ? '과거 기록 · 읽기 전용' : `다음 시장 사건 ${view.nextMarketEvent ?? '없음'}`}</span></header>
     <p>공개 조사 계약과 별도로 저장되는 게임 계약입니다. 게임 금액·구단 예산·선수 선호는 실제 연봉이나 성격을 뜻하지 않는 게임 정책입니다. 날짜 진행으로 협상 응답·선수 결정·만료·급여를 처리합니다.</p>
     {budget ? <dl><dt>연봉 예산 / 기간별 최대 약정·제안</dt><dd>{money(budget.annualBudget)} / {money(budget.committedPeakSalary)}</dd><dt>잔액 / 제안 계약금 예약</dt><dd>{money(budget.cash)} / {money(budget.reservedCash)}</dd><dt>현재 연봉 부담</dt><dd>{money(budget.currentAnnualSalary)}</dd><dt>현재 약정의 급여 확보 후 추가 지급 여유</dt><dd>{money(budget.paymentHeadroom ?? 0)}</dd><dt>미지급 급여</dt><dd>{money(budget.salaryArrears ?? 0)}</dd></dl> : null}
-    <CareerFinancePanel market={view} />
+    {notice ? <p role="status">{notice}</p> : null}{focus && ['MARKET', 'TRADE', 'FINANCE'].includes(focus.panel) ? <button type="button" disabled={pending} onClick={() => focusPlayTarget('[aria-label="Career 소식함"]')}>현재 업무로 돌아가기</button> : null}<CareerFinancePanel market={view} />
     {!view.offseason && !historical ? <button className="lm-secondary-button" disabled={disabled} onClick={() => { void execute('OPEN_STOVE'); }}>대회 마감 · 스토브 진입</button> : null}
     {view.offseason ? <p>대회 마감 당시 명단과 결과는 보존됩니다. 현재 선수단을 운영하며 Calendar로 계약 사건을 진행하세요. 12월 31일부터 다음 시즌에 진입할 수 있습니다.</p> : null}
     {view.missingPositions[view.managedTeam]?.length ? <p role="status">선발 공백: {view.missingPositions[view.managedTeam].join(' · ')}. FA 계약·육성팀 승격 후 선수 명부에서 선발을 설정하세요.</p> : null}
@@ -122,6 +124,6 @@ export function CareerMarketPanel({ careerId, year, revision, historical, busy, 
     </details>
     <details><summary>시장 결과 · AI 구단 이동과 선택 이유</summary>{view.events.slice(0, 60).map(e => <p key={e.eventId}>{e.date} · {eventName(e.kind)} · {name(e.playerId)} · {e.team ?? ''} · {e.reason}</p>)}{view.decisions.slice(0, 15).map(d => <p key={d.eventId}>{d.date} {name(d.playerId)}: {d.reason}</p>)}</details>
     <details><summary>구단 지급·미지급 내역</summary><p>미지급 급여 발생액은 현금 수입이 아닌 지급 의무입니다. 실제 정산 지출과 구분합니다.</p>{view.ledger.slice(0, 30).map(l => <p key={l.entryId}>{l.date} · {({ SALARY: '급여', SALARY_ACCRUED: '미지급 급여 발생 (현금 수입 아님)', SALARY_ARREARS_PAYMENT: '미지급 급여 정산', SIGNING_BONUS: '계약금', RELEASE_COST: '해지 비용', TRANSFER_FEE_PAID: '이적료 지급', TRANSFER_FEE_RECEIVED: '이적료 수입', LOAN_FEE_PAID: '임대료 지급', LOAN_FEE_RECEIVED: '임대료 수입', LOAN_SALARY_PARENT: '임대 원소속 급여 분담', LOAN_SALARY_BORROWER: '임대 구단 급여 분담', INITIAL_ALLOCATION: '초기 현금', ANNUAL_ALLOCATION: '종전 연간 지급', GAME_CLUB_SUPPORT: '게임 구단 지원', GAME_BASE_SPONSOR: '가상 기본 후원', NON_WAGE_OPERATING: '비급여 운영비', TOURNAMENT_PLACEMENT_PRIZE: '대회 순위 상금 입금', GAME_SPONSOR_PERFORMANCE_BONUS: '가상 후원 성과 보너스' }[l.kind] ?? '계약 지급')} · {money(l.amount)}</p>)}</details>
-    <CareerTransferPanel focus={focus} view={view} roster={roster} selected={selected} disabled={disabled} onBegin={onBegin} onResult={async next => { setView(old => newerMarket(old, next)); await onChanged(); }} />
+    <CareerTransferPanel focus={focus} view={view} roster={roster} selected={selected} disabled={disabled} onBegin={onBegin} onResult={async (next, message) => { if (message) setNotice(message); setView(old => newerMarket(old, next)); await onChanged(); }} />
   </section>;
 }

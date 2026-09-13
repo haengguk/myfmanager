@@ -3,7 +3,7 @@ import { CareerApiFailure, commandCareerContinuous, getCareerContinuous } from '
 import type { CareerContinuousCommand, CareerContinuousView } from './api/careerApi.types';
 const ACTIVE = ['RUNNING', 'WAITING', 'PAUSE_REQUESTED'];
 const STATUS: Record<string, string> = { RUNNING: '진행 중', WAITING: 'AI 경기 처리 중', PAUSE_REQUESTED: '정지 요청 중 · 현재 작업 완료 대기', PAUSED: '일시정지 완료', STOPPED: '확인이 필요해 멈췄습니다', COMPLETED: '목표 날짜 처리 완료', FAILED: '진행 중 오류 발생' };
-const NEXT_ACTION: Record<string, string> = { MATCH: '관리 경기로 이동', MARKET: '계약 시장에서 응답', ROSTER: '선수 명부 확인', SEASONS: '시즌 전환 확인' };
+const NEXT_ACTION: Record<string, string> = { MATCH: '관리 경기로 이동', MARKET: '최신 계약 업무 확인', ROSTER: '최신 선수단 업무 확인', SEASONS: '시즌 전환 확인' };
 const REASON: Record<string, string> = {
   PLAYER_MATCH: '다음 관리 경기를 직접 시작하세요.', PLAYER_SERIES: '진행 중인 관리 경기를 계속하세요.', PLAYER_CHOICE: '경기 화면에서 상대 또는 진영을 선택하세요.',
   CONTRACT_RESPONSE: '계약 시장에서 선수의 역제안에 응답하세요.', TRADE_RESPONSE: '계약 시장에서 이적·임대 조건에 응답하세요.', ROSTER_DECISION: '선수단의 선발·등록을 확인하세요.', FINANCE_DECISION: '계약 시장에서 구단 재정을 확인하세요.',
@@ -73,7 +73,7 @@ export function CareerContinuousPanel({ careerId, currentDate, seasonYear, busy,
       setError(e instanceof CareerApiFailure ? e.userMessage : e instanceof Error ? e.message : '요청 결과를 확인하지 못했습니다.');
       if (e instanceof CareerApiFailure && e.kind === 'BACKEND' && e.httpStatus !== 503) { operation.current = null; window.sessionStorage.removeItem(storageKey); setRetry(false); }
       else setRetry(true);
-    } finally { commandLock.current = false; release(); if (token === generation.current) setPending(false); }
+    } finally { release(); if (request.current === controller) { request.current = null; commandLock.current = false; if (token === generation.current) setPending(false); } }
   }
   const run = view?.run;
   return <section className="ca-calendar ca-continuous" aria-label="Career 연속 진행">

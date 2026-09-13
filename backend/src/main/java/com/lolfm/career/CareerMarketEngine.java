@@ -288,8 +288,13 @@ public final class CareerMarketEngine {
     Offer offerStatus(Offer o,OfferStatus s,String reason,Long request) {
         return new Offer(o.offerId(),o.playerId(),o.team(),o.terms(),o.submittedDate(),o.responseDate(),o.decisionDate(),o.expiresDate(),o.revision()+1,s,o.previousOfferId(),o.round(),request,reason,o.pricing());
     }
-    public Evaluation evaluate(Offer o,LocalDate date) {
-        var p=player(o.playerId());var pref=preferences.get(p.playerId());long wanted=demand(o);
+    public Evaluation evaluate(Offer o,LocalDate date) {return evaluate(o,date,demand(o),null);}
+    Evaluation evaluateRetainedPayLoan(Offer o,LocalDate date,Contract original) {
+        if(original==null||o.terms().annualSalary()!=original.terms().annualSalary()||o.terms().signingBonus()!=0)throw invalid("임대는 원계약의 총급여를 유지해야 합니다.");
+        return evaluate(o,date,original.terms().annualSalary(),new LoanCompensation(CareerManagementPolicy.LOAN_CONSENT,date,original.terms().annualSalary()));
+    }
+    private Evaluation evaluate(Offer o,LocalDate date,long wanted,LoanCompensation loanCompensation) {
+        var p=player(o.playerId());var pref=preferences.get(p.playerId());
         long compensation=o.terms().annualSalary()+o.terms().signingBonus()*365/Math.max(1,java.time.temporal.ChronoUnit.DAYS.between(o.terms().startDate(),o.terms().endDate())+1);
         int money=(int)Math.min(SCORE_MAX,compensation*COMPENSATION_AT_DEMAND/wanted); // Saturates at 125% of demand.
         List<String> competitors=members.values().stream().filter(m->o.team().equals(m.ownerTeam())&&!m.playerId().equals(p.playerId())
@@ -306,7 +311,7 @@ public final class CareerMarketEngine {
         score+=promiseEngine.adjustment(p.playerId(),o.team(),date);
         int tie=variation(seed,"DECISION|"+p.playerId()+'|'+o.decisionDate()+'|'+o.team(),TIE_VARIANTS);
         return new Evaluation(o.offerId(),o.team(),money,opportunity,teamStrength,stability,familiarity,relocation,score,tie,
-                "약속 신뢰 "+promiseEngine.trust(p.playerId(),o.team())+" · 현재 만족도 "+promiseEngine.mood(p.playerId(),date)+" · 요구 보수 대비 "+money+" · 출전 기회 "+opportunity+" · 선발 전력 대체 지표 "+teamStrength+" · 안정성 "+stability+" · 익숙함 "+familiarity+" · 지역 이동 부담 "+relocation,promiseEngine.trust(p.playerId(),o.team()),promiseEngine.mood(p.playerId(),date),promiseEngine.adjustment(p.playerId(),o.team(),date));
+                "약속 신뢰 "+promiseEngine.trust(p.playerId(),o.team())+" · 현재 만족도 "+promiseEngine.mood(p.playerId(),date)+" · "+(loanCompensation==null?"요구 보수 대비 ":"원계약 총급여 유지 기준 ")+money+" · 출전 기회 "+opportunity+" · 선발 전력 대체 지표 "+teamStrength+" · 안정성 "+stability+" · 익숙함 "+familiarity+" · 지역 이동 부담 "+relocation,promiseEngine.trust(p.playerId(),o.team()),promiseEngine.mood(p.playerId(),date),promiseEngine.adjustment(p.playerId(),o.team(),date),loanCompensation);
     }
     public void release(String team,String playerId,String replacement,LocalDate date) {
         var c=active(playerId,date);if(c==null||!team.equals(c.team()))throw invalid("현재 구단의 유효 계약만 방출할 수 있습니다.");

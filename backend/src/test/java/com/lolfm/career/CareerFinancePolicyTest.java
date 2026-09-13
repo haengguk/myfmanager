@@ -96,7 +96,8 @@ class CareerFinancePolicyTest {
     }
     @Test void fixedPerformanceBonusAndNextApprovalDoNotCancelInheritedContracts(){
         var m=fresh();var date=CareerMarketEngineTest.DATE;var f=m.finance;var target=f.targets.get(m.managed+"|2027");long cash=m.accounts.get(m.managed).cash();var contracts=Map.copyOf(m.contracts);
-        f.close(2027,date,Map.of(m.managed,1),Map.of(m.managed,1));var closed=f.targets.get(m.managed+"|2027");assertThat(closed.sportingStatus()).isEqualTo("EXCEEDED");assertThat(closed.bonus()).isEqualTo(pct(target.fixedSponsor(),10));
+        assertThat(f.targets).doesNotContainKey("LPL:AL|2027");
+        f.close(2027,date,Map.of(m.managed,1),Map.of(m.managed,1));assertThat(f.targets.get("LPL:AL|2027").partial()).isTrue();assertThat(f.targets.get("LPL:AL|2027").maximumDomesticRank()).isZero();assertThat(f.approvals).containsKey("LPL:AL|2028");var closed=f.targets.get(m.managed+"|2027");assertThat(closed.sportingStatus()).isEqualTo("EXCEEDED");assertThat(closed.bonus()).isEqualTo(pct(target.fixedSponsor(),10));
         assertThat(m.accounts.get(m.managed).cash()).isEqualTo(cash+closed.bonus());assertThat(m.contracts).isEqualTo(contracts);
         var approved=f.approvals.get(m.managed+"|2028");assertThat(approved.annualIncome()).isEqualTo(pct(f.approval(m.managed,date).annualIncome(),105));assertThat(approved.effectiveOn()).isEqualTo(LocalDate.of(2028,1,1));
         var saved=m.state();f.close(2027,date,Map.of(m.managed,1),Map.of(m.managed,1));assertThat(m.state()).isEqualTo(saved);
@@ -112,7 +113,7 @@ class CareerFinancePolicyTest {
         assertThat(CareerSportingFinancePolicy.evaluate(top,new CareerFinanceEngine.Rank(top,top+1),null,null,"NOT_QUALIFIED")).isEqualTo("MET");
         assertThat(CareerSportingFinancePolicy.evaluate(top,new CareerFinanceEngine.Rank(top+1,top+1),null,null,"NOT_QUALIFIED")).isEqualTo("MISSED");
         assertThat(CareerSportingFinancePolicy.evaluate(top,new CareerFinanceEngine.Rank(1,1),null,null,"NOT_COLLECTED")).isEqualTo("EXCEEDED");
-        var m=fresh();var f=m.finance;String team=f.targets.values().stream().filter(t->t.team().startsWith(region+":")).sorted(Comparator.comparingInt(CareerFinanceState.Target::maximumDomesticRank).thenComparing(CareerFinanceState.Target::team)).map(CareerFinanceState.Target::team).findFirst().orElseThrow();
+        var m=fresh();CareerOverseasRoster.addFinance(m,2027,CareerMarketEngineTest.DATE);m.finance.initializeTargets(2027,CareerMarketEngineTest.DATE,false);var f=m.finance;String team=f.targets.values().stream().filter(t->t.team().startsWith(region+":")&&t.maximumDomesticRank()>0).sorted(Comparator.comparingInt(CareerFinanceState.Target::maximumDomesticRank).thenComparing(CareerFinanceState.Target::team)).map(CareerFinanceState.Target::team).findFirst().orElseThrow();
         var target=f.targets.get(team+"|2027");long before=f.approval(team,CareerMarketEngineTest.DATE).annualIncome();
         f.closeRanks(2027,CareerMarketEngineTest.DATE,Map.of(team,new CareerFinanceEngine.Rank(1,1)),Map.of(),Set.of(),false);
         var closed=f.targets.get(team+"|2027");assertThat(closed.sportingStatus()).isEqualTo("EXCEEDED");assertThat(closed.bonus()).isEqualTo(pct(target.fixedSponsor(),10));assertThat(f.approvals.get(team+"|2028").annualIncome()).isEqualTo(pct(before,105));
@@ -129,6 +130,22 @@ class CareerFinancePolicyTest {
         f.initializeTargets(2028,LocalDate.of(2028,1,1),false);assertThat(f.targets.get(team+"|2028").maximumDomesticRank()).isPositive();assertThat(f.targets.get(team+"|2028").sportingScope().policyVersion()).isEqualTo(CareerSportingFinancePolicy.VERSION);
         assertThat(CareerSportingFinancePolicy.evaluate(3,new CareerFinanceEngine.Rank(1,1),8,null,"NOT_COLLECTED")).isEqualTo("NOT_EVALUABLE");
         assertThat(CareerSportingFinancePolicy.evaluate(3,new CareerFinanceEngine.Rank(1,1),8,null,"NOT_QUALIFIED")).isEqualTo("MISSED");
+    }
+
+    @Test void nonParticipantCannotChangeSummerTargetsAndKeepsFinancialEvaluation(){
+        var m=fresh();var date=CareerMarketEngineTest.DATE;
+        var before=new TreeMap<String,Integer>();m.finance.targets.values().stream().filter(t->t.team().startsWith("LEC:")).forEach(t->before.put(t.team(),t.maximumDomesticRank()));
+        CareerOverseasRoster.addFinance(m,2027,date);var a=m.accounts.get("LEC:LR");var g=m.finance.approval("LEC:G2",date);
+        m.accounts.put("LEC:LR",new Account("LEC:LR",a.annualBudget()*2,a.cash(),a.rosterLimit()));m.lineups.put("LEC:LR",new ArrayList<>(m.lineups.get("LCK:T1")));
+        m.finance.approvals.put("LEC:LR|2027",new CareerFinanceState.Approval("LEC:LR",2027,date,g.annualIncome()*2,g.annualSupport()*2,g.annualSponsor()*2,g.annualNonWage(),g.wageLimit()*2,0,0,"NOT_EVALUATED",g.policy()));
+        m.finance.targets.clear();m.finance.initializeTargets(2027,date,false);
+        var after=new TreeMap<String,Integer>();m.finance.targets.values().stream().filter(t->before.containsKey(t.team())).forEach(t->after.put(t.team(),t.maximumDomesticRank()));
+        assertThat(after).isEqualTo(before);assertThat(m.finance.targets.get("LEC:LR|2027").maximumDomesticRank()).isZero();
+        assertThat(m.finance.targets.values().stream().filter(t->t.team().startsWith("LPL:"))).hasSize(14);
+        var sealed=CareerRosterStore.write(m.finance.targets);m.lineups.put("LEC:LR",List.of());m.finance.initializeTargets(2027,date,false);assertThat(CareerRosterStore.write(m.finance.targets)).isEqualTo(sealed);
+        m.finance.closeRanks(2027,date,Map.of("LEC:LR",new CareerFinanceEngine.Rank(1,1),"LEC:FNC",new CareerFinanceEngine.Rank(4,4)),Map.of(),Set.of(),false);
+        assertThat(m.finance.targets.get("LEC:LR|2027").sportingStatus()).isEqualTo("NOT_EVALUABLE");assertThat(m.finance.targets.get("LEC:LR|2027").bonus()).isZero();assertThat(m.finance.approvals).containsKey("LEC:LR|2028");assertThat(m.accounts).doesNotContainKey("LEC:KCB");
+        System.out.println("SUMMER_TARGETS before="+before+" after="+after+" LR="+CareerRosterStore.write(m.finance.targets.get("LEC:LR|2027")));
     }
 
 }

@@ -7,6 +7,7 @@ import com.lolfm.player.ExpandedPlayerCatalog.Definition;
 /** Initial game design values; no potential, growth, real transfer prices or match Random. */
 public final class CareerManagementPolicy {
     public static final String VERSION="CAREER_PROMISE_TRANSFER_LOAN_V1";
+    public static final String LOAN_CONSENT="CAREER_LOAN_RETAINED_PAY_CONSENT_V2";
     public static final int OBSERVATION_DAYS=28, MIN_SERIES=6, EVALUATION_DAYS=14;
     public static final int INITIAL_SATISFACTION=60, INITIAL_TRUST=50, STARTER_PERCENT=70;
     public static final int BREACH_LOSS=4, TRUST_LOSS=3, ARREARS_LOSS=6, RECOVERY=2, TRUST_RECOVERY=1;

@@ -1,5 +1,7 @@
 # Career 원화·구단 재정·시즌 목표 V1 구현 기록
 
+> 대상 집합 교정(2026-09-09): `CAREER_SPORTING_FINANCE_V3`부터 전력·예산 비교와 최종 결과에 같은 참가 집합을 사용한다. LEC Summer10팀에 LR/KCB를 넣지 않으며 LR의 일반 재정 평가는 유지한다. 신규 목표는 해외 운영 조직 준비 뒤 생성하고 기존 봉인 목표/결산/승인은 유지한다. [정책 적용 경계·검증 보고서](career-play-flow-and-loan-target-fixes-v1.md)를 참고한다.
+
 > 후속 정책(2026-09-09): 아래 내용은 V1 도입 당시의 결과다. 새 협상/견적의 가격과 해외
 > 성적 평가 범위는 [Career 통합 V2](career-auto-speed-market-economy-and-balance-v2.md)를 따른다.
 > 초기 참고 배분·현재 계약·기존 접수 제안·확정 평가/승인·상금 원장은 소급 변경하지 않는다.

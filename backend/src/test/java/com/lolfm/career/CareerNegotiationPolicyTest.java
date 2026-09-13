@@ -60,4 +60,31 @@ class CareerNegotiationPolicyTest {
         var copy=m.tradeEngine.respond(c.team(),trade.tradeId(),"ACCEPT",null,date);assertThat(copy.pricing()).isEqualTo(quote);assertThat(copy.terms().fee()).isEqualTo(fee);assertThat(m.contracts.get(c.contractId()).terms().annualSalary()).isEqualTo(originalSalary);
         var roundtrip=CareerRosterStore.read(CareerRosterStore.write(copy),CareerManagementState.Trade.class);assertThat(roundtrip).isEqualTo(copy);
     }
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void retainedPayLoanUsesGuaranteedSalaryAndStillRequiresNonFinancialConsent(boolean rejectOpportunity){
+        var m=CareerFinancePolicyTest.fresh();var date=CareerMarketEngineTest.DATE;String id="player-jiwoo";
+        for(var member:new ArrayList<>(m.members.values()))if(m.managed.equals(member.ownerTeam())&&m.player(member.playerId()).position()==Position.ADC&&m.eligible(member.playerId(),m.managed,date))m.release(m.managed,member.playerId(),null,date);
+        var c=m.active(id,date);var terms=m.tradeEngine.plannedLoanTerms(m.managed,id,rejectOpportunity?Role.RESERVE:Role.STARTER,date);assertThat(terms).isNotNull();
+        if(rejectOpportunity)m.preferences.put(id,new Preference(0,100,0,0,0,0,"OPPORTUNITY","LCK"));
+        var trade=m.tradeEngine.submit(m.managed,terms,null,date);trade=m.tradeEngine.respond(c.team(),trade.tradeId(),"ACCEPT",null,date);
+        var pending=CareerRosterStore.read(CareerRosterStore.write(m.state()),CareerMarketState.class);m=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),pending);
+        m.tradeEngine.process(trade.decisionDate());var result=m.tradeEngine.trades.get(trade.tradeId());
+        assertThat(result.status()).isEqualTo(rejectOpportunity?CareerManagementState.TradeStatus.REJECTED:CareerManagementState.TradeStatus.AGREED);
+        assertThat(result.playerEvaluation().compensation()).isEqualTo(CareerMarketPolicy.COMPENSATION_AT_DEMAND);
+        assertThat(result.playerEvaluation().loanCompensation().guaranteedAnnualSalary()).isEqualTo(c.terms().annualSalary());assertThat(result.playerEvaluation().loanCompensation().policyVersion()).isEqualTo(CareerManagementPolicy.LOAN_CONSENT);
+        assertThat(result.terms()).isEqualTo(trade.terms());assertThat(result.pricing()).isEqualTo(trade.pricing());assertThat(m.contracts.get(c.contractId())).isEqualTo(c);
+        String frozen=CareerRosterStore.write(result);m.tradeEngine.process(trade.decisionDate());assertThat(CareerRosterStore.write(m.tradeEngine.trades.get(trade.tradeId()))).isEqualTo(frozen);
+        // An already settled legacy result has no new evaluation metadata and remains closed on reload.
+        var node=CareerRosterStore.read(frozen,com.fasterxml.jackson.databind.node.ObjectNode.class);node.withObject("/playerEvaluation").remove("loanCompensation");node.put("status","REJECTED");
+        var legacy=CareerRosterStore.read(node.toString(),CareerManagementState.Trade.class);m.tradeEngine.trades.put(legacy.tradeId(),legacy);String old=CareerRosterStore.write(legacy);m.tradeEngine.process(trade.decisionDate());assertThat(CareerRosterStore.write(m.tradeEngine.trades.get(legacy.tradeId()))).isEqualTo(old);
+        System.out.println("LOAN_CONSENT rejectOpportunity="+rejectOpportunity+" salary="+c.terms().annualSalary()+" newDemand="+trade.pricing().annualDemand()+" score="+result.playerScore()+" result="+result.status());
+    }
+    @Test void newTransferStillRejectsSalaryBelowNewEmploymentDemand(){
+        var m=CareerFinancePolicyTest.fresh();var date=CareerMarketEngineTest.DATE;String id="player-jiwoo";var c=m.active(id,date);
+        var planned=m.tradeEngine.plannedTerms(m.managed,id,Role.RESERVE,date);assertThat(planned.kind()).isEqualTo(CareerManagementState.Kind.TRANSFER);
+        var terms=new CareerManagementState.TradeTerms(planned.kind(),id,planned.seller(),planned.buyer(),planned.startDate(),planned.endDate(),planned.fee(),0,new Terms(planned.startDate(),planned.endDate(),c.terms().annualSalary(),0,Role.RESERVE),planned.replacementPlayerId());
+        var trade=m.tradeEngine.submit(m.managed,terms,null,date);m.tradeEngine.respond(c.team(),trade.tradeId(),"ACCEPT",null,date);m.tradeEngine.process(trade.decisionDate());
+        var result=m.tradeEngine.trades.get(trade.tradeId());assertThat(result.status()).isEqualTo(CareerManagementState.TradeStatus.REJECTED);assertThat(result.playerEvaluation().loanCompensation()).isNull();assertThat(m.contracts.get(c.contractId())).isEqualTo(c);
+    }
+
 }

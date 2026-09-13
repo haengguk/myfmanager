@@ -4,12 +4,14 @@ import java.util.*;
 
 /** Fixed before results. Regional season representation is separate from prize entitlements and CP qualification. */
 public final class CareerSportingFinancePolicy {
-    public static final String VERSION="CAREER_SPORTING_FINANCE_V2";
+    public static final String VERSION="CAREER_SPORTING_FINANCE_V3", LEGACY="CAREER_SPORTING_FINANCE_V2";
     public static final int TOP_PERCENT=25,MIDDLE_PERCENT=60;
     public record Scope(String policyVersion,String region,String competition,int participants) {}
     public record Result(Integer domesticRankThrough,Integer worldsRankThrough,String worldsStatus) {}
     static final Map<String,String> COMPETITIONS=Map.of("LCK","LCK_PLAYOFFS","LPL","LPL_SPLIT_3","LEC","LEC_SUMMER","LCS","LCS_SUMMER","LCP","LCP_SPLIT_3","CBLOL","CBLOL_ETAPA_2");
-    static Scope scope(String region){return new Scope(VERSION,region,COMPETITIONS.get(region),region.equals("LCK")?10:CareerOverseasRules.partners(region).size());}
+    static Set<String> participants(String region){return Set.copyOf(region.equals("LCK")?CareerClPolicy.TEAMS.stream().map(t->"LCK:"+t).toList():CareerOverseasRules.partners(region));}
+    static boolean participates(String team){return participants(CareerMarketPolicy.region(team)).contains(team);}
+    static Scope scope(String region){return new Scope(VERSION,region,COMPETITIONS.get(region),participants(region).size());}
     static int required(Scope scope,int rank){
         if(scope.region().equals("LCK"))return rank<=3?3:rank<=6?6:10;
         int top=(scope.participants()*TOP_PERCENT+99)/100,mid=(scope.participants()*MIDDLE_PERCENT+99)/100;

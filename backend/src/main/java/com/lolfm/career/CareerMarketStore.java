@@ -87,7 +87,8 @@ public final class CareerMarketStore {
             CareerFinanceStore.migrate(jdbc,career,load(jdbc,career));return;
         }
         workspace.finance=new CareerFinanceEngine(workspace,CareerFinanceReference.initialize(workspace,year,false,Set.of()));
-        workspace.finance.initializeTargets(year,state.processedThrough(),false);state=workspace.state();
+        // New-career targets are sealed after overseas accounts, adopted contracts and lineups exist.
+        state=workspace.state();
         String json=write(state);jdbc.update("INSERT INTO career_market_state VALUES (?,0,?,?)",career,json,hash(json));
         var operating=new CareerRosterStore.State(OPERATING_POLICY,roster.state().members(),roster.state().lineups());
         String r=write(operating);jdbc.update("UPDATE career_roster_state SET state_json=?,state_hash=? WHERE career_id=? AND season_year=?",r,hash(r),career,year);

@@ -82,25 +82,31 @@ final class CareerFinanceEngine {
     void initializeTargets(int year,LocalDate date,boolean partial){
         var strengthOrders=new HashMap<String,List<String>>();var budgetOrders=new HashMap<String,List<String>>();
         for(String region:CareerSportingFinancePolicy.COMPETITIONS.keySet()){
-            var teams=m.accounts.keySet().stream().filter(t->t.startsWith(region+":"))
+            var participants=CareerSportingFinancePolicy.participants(region);
+            if(!m.accounts.keySet().containsAll(participants))continue; // Never seal a partial comparison population.
+            var teams=participants.stream()
                 .sorted(Comparator.comparingInt((String t)->m.lineups.getOrDefault(t,List.of()).stream().mapToInt(id->CareerMarketPolicy.strength(m.player(id))).sum()).reversed().thenComparing(t->t)).toList();
             strengthOrders.put(region,teams);budgetOrders.put(region,teams.stream().sorted(Comparator.comparingLong((String t)->approval(t,date).wageLimit()).reversed().thenComparing(t->t)).toList());
         }
         for(String team:m.accounts.keySet()){
             String key=team+"|"+year;if(targets.containsKey(key))continue;var a=approval(team,date);String region=CareerMarketPolicy.region(team);var scope=CareerSportingFinancePolicy.scope(region);
-            int rank=(strengthOrders.get(region).indexOf(team)+budgetOrders.get(region).indexOf(team))/2+1;
-            int required=partial?0:CareerSportingFinancePolicy.required(scope,rank);
-            targets.put(key,new Target(team,year,date,partial,required,region.equals("LCK")&&required==TOP_TARGET?WORLDS_TARGET:null,wages(a.annualSponsor(),date,LocalDate.of(year,12,31)),a.wageLimit(),"PENDING","PENDING",null,null,0,0,0,0,null,partial?"도입 이후 재정만 평가 · 경기/완전 시즌 보너스 중립":"현재 전력과 승인 예산의 지역 내 순위 구간으로 고정",scope,null));
+            if(!partial&&!strengthOrders.containsKey(region))continue;
+            boolean participant=CareerSportingFinancePolicy.participates(team);
+            int rank=participant&&!partial?(strengthOrders.get(region).indexOf(team)+budgetOrders.get(region).indexOf(team))/2+1:0;
+            int required=partial||!participant?0:CareerSportingFinancePolicy.required(scope,rank);
+            targets.put(key,new Target(team,year,date,partial,required,region.equals("LCK")&&required==TOP_TARGET?WORLDS_TARGET:null,wages(a.annualSponsor(),date,LocalDate.of(year,12,31)),a.wageLimit(),"PENDING","PENDING",null,null,0,0,0,0,null,!participant?"시즌 대표 대회 비참가 · 경기 목표 중립, 일반 재정 평가 유지":partial?"도입 이후 재정만 평가 · 경기/완전 시즌 보너스 중립":"현재 전력과 승인 예산의 대회 참가 집합 내 순위 구간으로 고정",scope,null));
         }
     }
     void close(int year,LocalDate date,Map<String,Integer> domestic,Map<String,Integer> worlds){
         closeRanks(year,date,CareerFinanceStore.ranks(domestic),CareerFinanceStore.ranks(worlds),worlds.keySet(),!worlds.isEmpty());
     }
     void closeRanks(int year,LocalDate date,Map<String,Rank> domestic,Map<String,Rank> worlds,Set<String> worldsEntrants,boolean worldsBound){
+        // Inactive legacy regions have no complete sporting population; still settle ordinary finances.
+        if(m.accounts.keySet().stream().anyMatch(team->!targets.containsKey(team+"|"+year)))initializeTargets(year,date,true);
         for(String team:m.accounts.keySet()){
             var t=targets.get(team+"|"+year);if(t==null)continue;
             if(t.evaluatedOn()!=null){approveNext(team,year,date,t.financeStatus(),t.sportingStatus());continue;}
-            var placement=domestic.get(team);var worldPlacement=worlds.get(team);
+            var placement=t.sportingScope()!=null&&CareerSportingFinancePolicy.VERSION.equals(t.sportingScope().policyVersion())&&!CareerSportingFinancePolicy.participates(team)?null:domestic.get(team);var worldPlacement=worlds.get(team);
             Integer rank=placement==null?null:placement.from(),world=worldPlacement==null?null:worldPlacement.from();
             String worldStatus=world!=null?"COLLECTED":worldsBound&&!worldsEntrants.contains(team)?"NOT_QUALIFIED":"NOT_COLLECTED";String sport="NOT_EVALUABLE";
             if(!t.partial()&&t.maximumDomesticRank()>0&&rank!=null){boolean met=rank<=t.maximumDomesticRank()&&(t.worldsMaximumRank()==null||world!=null&&world<=t.worldsMaximumRank());sport=met?(rank==1||rank<t.maximumDomesticRank()&&(t.worldsMaximumRank()==null||world<=WORLDS_EXCEEDED)?"EXCEEDED":"MET"):"MISSED";}

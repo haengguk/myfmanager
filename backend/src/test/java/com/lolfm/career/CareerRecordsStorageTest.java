@@ -75,6 +75,10 @@ class CareerRecordsStorageTest {
         tx.executeWithoutResult(t->CareerAwardsStore.save(db,"career",2027,regular.id(),regular.name(),"LCK_REGULAR","scope-check",2,record.date(),List.of(record),List.of("SEASON"),false,List.of(eligible),true,regular));
         var awardQueries=new CareerScoutingService(db,new DataSourceTransactionManager(ds),null,null);
         var recordsQuery=new CareerRecordsQuery(db,new DataSourceTransactionManager(ds));
+        assertThat(recordsQuery.series("career",record.seriesId())).isEqualTo(record);
+        assertThat(recordsQuery.series("other",record.seriesId())).isNull();
+        assertThat(recordsQuery.series("career","not-started")).isNull();
+        assertThat(recordsQuery.series("career",record.seriesId())).isEqualTo(record);
         var winners=db.queryForList("SELECT DISTINCT player_id FROM career_record_award_candidate WHERE winner=TRUE",String.class);
         for(String scope:List.of("LCK_REGULAR_R1_R2","LCK_REGULAR_R3_R4","")) {
             var compared=awardQueries.awards("career",winners,2027,scope);

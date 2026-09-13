@@ -287,6 +287,7 @@ function RootApp() {
         loadMatchSetupOptions('LIVE', controller.signal),
         fetchPlayerDraftChampionCatalog(controller.signal),
       ]);
+      if (controller.signal.aborted || seriesRequestRef.current !== controller) return null;
       let catalog = createPlayerDraftChampionCatalog(resource);
       if (series.activeDraftSession) catalog = mergePlayerDraftChampionCatalog(series.activeDraftSession.session, catalog, resource.rolesByChampionId);
       clearCareerCompetitionSeriesContext(); setCareerCompetitionSeriesContext(null);
@@ -294,7 +295,7 @@ function RootApp() {
       window.sessionStorage.setItem(LEAGUE_SERIES_CONTEXT_KEY, JSON.stringify(context)); setLeagueSeriesContext(context); writeSeriesPointer(window.sessionStorage, series.seriesId); setSeriesState(createSeriesScreenState(series, options, catalog)); setLeagueSeriesReturn(true); setActiveScreen('series-hub');
       showToast('League Player Series 연결', `${playerSeries.fixtureId.slice(0, 18)}… 경기를 기존 BO3 Series 화면에서 계속합니다.`);
       return true;
-    } catch (cause) { showToast('Player Series를 열지 못했습니다', cause instanceof SeriesApiFailure ? cause.userMessage : 'Series와 LIVE 리소스를 불러오지 못했습니다.'); return false; }
+    } catch (cause) { if (controller.signal.aborted || seriesRequestRef.current !== controller) return null; showToast('Player Series를 열지 못했습니다', cause instanceof SeriesApiFailure ? cause.userMessage : 'Series와 LIVE 리소스를 불러오지 못했습니다.'); return false; }
     finally { if (seriesRequestRef.current === controller) seriesRequestRef.current = null; }
   }, [showToast]);
 
@@ -306,6 +307,7 @@ function RootApp() {
         loadMatchSetupOptions('LIVE', controller.signal),
         fetchPlayerDraftChampionCatalog(controller.signal),
       ]);
+      if (controller.signal.aborted || seriesRequestRef.current !== controller) return;
       if (series.seriesId !== seriesId) throw new Error('대회와 Series identity가 일치하지 않습니다.');
       let catalog = createPlayerDraftChampionCatalog(resource);
       if (series.activeDraftSession) catalog = mergePlayerDraftChampionCatalog(series.activeDraftSession.session, catalog, resource.rolesByChampionId);
@@ -320,15 +322,20 @@ function RootApp() {
       setActiveScreen('series-hub');
       showToast('Career 대회 Series 연결', `${matchup} 경기를 기존 ${series.format} Series 화면에서 계속합니다.`);
     } catch (cause) {
+      if (controller.signal.aborted || seriesRequestRef.current !== controller) return;
       showToast('대회 Series를 열지 못했습니다', cause instanceof SeriesApiFailure ? cause.userMessage : cause instanceof Error ? cause.message : 'Series와 LIVE 리소스를 불러오지 못했습니다.');
     } finally { if (seriesRequestRef.current === controller) seriesRequestRef.current = null; }
   }, [showToast]);
 
   const returnToCareer = useCallback(() => {
+    clearSeriesPointer(window.sessionStorage);
     clearCareerReturnContext(window.sessionStorage); setCareerReturnContext(null);
-    clearCareerCompetitionSeriesContext(); setCareerCompetitionSeriesContext(null);
+    if (careerReturnContext && leagueSeriesContext && seriesState?.series.seriesId === leagueSeriesContext.seriesId) {
+      const context: CareerCompetitionSeriesContext = { schemaVersion: 'CAREER_COMPETITION_SERIES_CONTEXT_V1', careerId: careerReturnContext.careerId, seriesId: leagueSeriesContext.seriesId, matchup: leagueSeriesContext.matchup };
+      window.sessionStorage.setItem(CAREER_COMPETITION_SERIES_CONTEXT_KEY, JSON.stringify(context)); setCareerCompetitionSeriesContext(context);
+    }
     setActiveScreen('career');
-  }, []);
+  }, [careerReturnContext, leagueSeriesContext, seriesState]);
 
   const resumeCareer = useCallback(async (career: CareerViewDto) => {
     const route = careerResumeRoute(career);
@@ -342,10 +349,11 @@ function RootApp() {
       const [fixtureResponse, playerResponse] = await Promise.all([
         getLeagueFixtures(scope, controller.signal), getLeaguePlayerSeries(scope, controller.signal),
       ]);
+      if (controller.signal.aborted || seriesRequestRef.current !== controller) return;
       const fixture = fixtureResponse.fixtures.find((candidate) => candidate.fixtureId === route.fixtureId);
       if (!fixture || fixture.boundSeriesId !== route.seriesId || playerResponse.playerSeries.boundSeriesId !== route.seriesId) throw new Error('Career와 League Player Series identity가 일치하지 않습니다.');
       const opened = await openLeagueSeries(playerResponse.playerSeries, fixture);
-      if (!opened) setActiveScreen('league');
+      if (opened === false) setActiveScreen('league');
     } catch (cause) {
       if (controller.signal.aborted) return;
       setActiveScreen('league');
@@ -448,7 +456,7 @@ function RootApp() {
   }
 
   if (activeScreen === 'series-hub' && seriesState) {
-    return <><SeriesHubPage state={seriesState} onBack={() => setActiveScreen(seriesReturnScreen)} backLabel={seriesBackLabel} contextLabel={seriesContextLabel}
+    return <><SeriesHubPage state={seriesState} onBack={() => seriesReturnScreen === 'career' ? returnToCareer() : setActiveScreen(seriesReturnScreen)} backLabel={seriesBackLabel} contextLabel={seriesContextLabel}
       onStateChange={updateSeriesState} onStartDraft={() => setActiveScreen('series-draft')}
       onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }}
       onNewSeries={leaveSeries} />{seriesToast}</>;
@@ -485,8 +493,8 @@ function RootApp() {
   }
 
   if (activeScreen.startsWith('series-')) {
-    if (!seriesState) return leagueSeriesReturn ? <LeaguePage onOpenSeries={(value, fixture) => { void openLeagueSeries(value, fixture); }} onNotify={showToast} onBackToCareer={careerReturnContext ? returnToCareer : undefined} /> : careerCompetitionSeriesReturn ? <Suspense fallback={<main className="ca-workspace"><section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 화면 준비 중</strong></section></main>}><CareerDashboardPage searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} /></Suspense> : <><SeriesSetupPage onBack={() => setActiveScreen('setup')} onCreated={(series, options) => { setLeagueSeriesReturn(false); void initializeSeries(series, options); }} />{seriesToast}</>;
-    return <><SeriesHubPage state={seriesState} onBack={() => setActiveScreen(seriesReturnScreen)} backLabel={seriesBackLabel} contextLabel={seriesContextLabel}
+    if (!seriesState) return leagueSeriesReturn ? <LeaguePage onOpenSeries={(value, fixture) => { void openLeagueSeries(value, fixture); }} onNotify={showToast} onBackToCareer={careerReturnContext ? returnToCareer : undefined} /> : careerCompetitionSeriesReturn ? <Suspense fallback={<main className="ca-workspace"><section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 화면 준비 중</strong></section></main>}><CareerDashboardPage returnedSeries={careerCompetitionSeriesContext} searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} /></Suspense> : <><SeriesSetupPage onBack={() => setActiveScreen('setup')} onCreated={(series, options) => { setLeagueSeriesReturn(false); void initializeSeries(series, options); }} />{seriesToast}</>;
+    return <><SeriesHubPage state={seriesState} onBack={() => seriesReturnScreen === 'career' ? returnToCareer() : setActiveScreen(seriesReturnScreen)} backLabel={seriesBackLabel} contextLabel={seriesContextLabel}
       onStateChange={updateSeriesState} onStartDraft={() => setActiveScreen('series-draft')}
       onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }}
       onNewSeries={leaveSeries} />{seriesToast}</>;
@@ -564,7 +572,7 @@ function RootApp() {
         gameTime={gameTime}
         contextMode={activeSection === 'career' ? 'CAREER' : 'DEFAULT'}
         primaryActionLabel={activeSection === 'match' ? '경기 준비' : activeSection === 'career' ? '저장 관리' : activeSection === 'squad' ? '선수 데이터' : activeSection === 'league' ? '시즌 운영' : '다음 진행'}
-        onNavigate={(section) => { clearCareerReturnContext(window.sessionStorage); setCareerReturnContext(null); setSearchValue(''); setActiveScreen(section === 'match' ? 'setup' : section); }}
+        onNavigate={(section) => { seriesRequestRef.current?.abort(); clearCareerReturnContext(window.sessionStorage); setCareerReturnContext(null); setSearchValue(''); setActiveScreen(section === 'match' ? 'setup' : section); }}
         onSearchChange={setSearchValue}
         onContinue={() => activeSection === 'match' ? setActiveScreen('setup') : activeSection === 'career' ? showToast('Career 저장 관리', '저장 선택과 이어하기는 본문에서 서버 상태에 따라 실행할 수 있습니다.') : activeSection === 'squad' ? showToast('선수 데이터', '현재 화면은 2026-08-24 LCK reference snapshot을 표시합니다.') : activeSection === 'league' ? showToast('AI 리그', '현재 시즌의 허용된 작업은 본문 상단에서 실행할 수 있습니다.') : setProgressModalOpen(true)}
         onNotify={showToast}
@@ -580,7 +588,7 @@ function RootApp() {
           />
         ) : activeSection === 'career' ? (
           <Suspense fallback={<main className="ca-workspace"><section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 화면 준비 중</strong></section></main>}>
-            <CareerDashboardPage searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} />
+            <CareerDashboardPage returnedSeries={careerCompetitionSeriesContext} searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} />
           </Suspense>
         ) : activeSection === 'squad' ? (
           <Suspense fallback={<main className="tp-workspace tp-workspace--center" aria-busy="true"><div className="tp-loading" role="status" aria-live="polite"><span aria-hidden="true" /><p>선수단 화면을 준비하고 있습니다.</p></div></main>}>
