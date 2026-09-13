@@ -29,7 +29,7 @@ class CareerSquadPlanningPolicyTest {
         assertThat(m.lineups.get("LCK:BRO")).contains(cl).doesNotContain(first);assertThat(m.clLineups.get("LCK:BRO")).contains(first).doesNotContain(cl);
         assertThat(m.management().promises()).isEqualTo(promises);assertThat(m.lineups.get(m.managed)).isEqualTo(user);
         var once=m.state();m.planner.review(MONDAY);assertThat(m.state()).isEqualTo(once);
-        var restored=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),CareerRosterStore.read(CareerRosterStore.write(once),CareerMarketState.class));
+        var restored=new CareerMarketEngine(m.career,m.managed,m.directory,m.roster(),CareerRosterStore.read(CareerRosterStore.write(once).replace(CareerSquadPlanningPolicy.VERSION,CareerSquadPlanningPolicy.BOUNDED_COVERAGE),CareerMarketState.class));
         restored.clEnabled=true;restored.clLineups.putAll(m.clLineups);rating(restored,first,20,200);restored.planner.review(MONDAY.plusWeeks(1));
         assertThat(restored.lineups.get("LCK:BRO")).contains(cl);assertThat(restored.state().squadPlanning().cooldowns()).containsEntry("LCK:BRO|TOP|FIRST_TEAM",MONDAY.plusDays(28));
     }
@@ -126,10 +126,10 @@ class CareerSquadPlanningPolicyTest {
         a.squadRestrictions.add(new CareerSquadPlanner.Restriction(id,"FIRST_TEAM",MONDAY,false));assertThat(a.planner.movable(id,"DEVELOPMENT",MONDAY)).isFalse();assertThat(a.planner.movable(id,"DEVELOPMENT",MONDAY.plusDays(1))).isTrue();
         a.internationalPools.put("LCK:BRO|MSI",Set.of(id));assertThat(a.planner.canDepart("LCK:BRO",id,MONDAY.plusDays(1))).isFalse();
     }
-    @ParameterizedTest @ValueSource(booleans={true,false})
-    void coverageSearchReachesFourthAffordableCandidateThroughCommonApproval(boolean affordable) {
+    @ParameterizedTest @org.junit.jupiter.params.provider.CsvSource({"4,true","4,false","25,true","25,false"})
+    void coverageSearchReachesAffordableCandidateThroughCommonApproval(int candidateCount,boolean affordable) {
         var m=setup();String team="LCK:BRO";m.clEnabled=false;
-        var candidates=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.TOP&&!team.equals(m.members.get(id).ownerTeam())).sorted().limit(4).toList();
+        var candidates=m.directory.players().keySet().stream().filter(id->m.player(id).position()==Position.TOP&&!team.equals(m.members.get(id).ownerTeam())).sorted().limit(candidateCount).toList();
         for(String id:m.directory.players().keySet())if(m.player(id).position()==Position.TOP){
             if(team.equals(m.members.get(id).ownerTeam())){m.contracts.values().removeIf(c->c.playerId().equals(id));m.freeAgents.remove(id);}
             else if(candidates.contains(id)){m.contracts.values().removeIf(c->c.playerId().equals(id));m.freeAgents.add(id);m.members.put(id,new CareerRosterStore.Membership(id,null,"FREE_AGENT","FREE_AGENT",null));rating(m,id,id.equals(candidates.getLast())?10:20,200);}
@@ -141,12 +141,12 @@ class CareerSquadPlanningPolicyTest {
         m.planner.review(MONDAY);
         var offers=m.offers.values().stream().filter(o->o.team().equals(team)&&m.player(o.playerId()).position()==Position.TOP).toList();
         if(!affordable){assertThat(offers).isEmpty();assertThat(m.state().squadPlanning().decisions()).anyMatch(d->d.team().equals(team)&&d.position()==Position.TOP&&d.reason().startsWith("FINANCE_BLOCKED"));return;}
-        assertThat(offers).singleElement().satisfies(o->assertThat(o.playerId()).isEqualTo(candidates.getLast()));
+        assertThat(offers).as("coverage search over %s candidates: %s",candidateCount,m.state().squadPlanning().decisions().stream().filter(d->d.team().equals(team)&&d.position()==Position.TOP).toList()).singleElement().satisfies(o->assertThat(o.playerId()).isEqualTo(candidates.getLast()));
         var offer=offers.getFirst();assertThat(offer.terms().role()).isEqualTo(Role.STARTER);
         m.advance(offer.decisionDate());
         assertThat(m.offers.get(offer.offerId()).status()).isEqualTo(OfferStatus.ACCEPTED);
         assertThat(m.active(offer.playerId(),offer.terms().startDate())).isNotNull();
-        System.out.println("FOURTH_CANDIDATE team="+team+" candidates="+candidates+" budget="+budget+" offer="+CareerRosterStore.write(offer));
+        System.out.println("COVERAGE_CANDIDATE team="+team+" candidates="+candidates+" budget="+budget+" offer="+CareerRosterStore.write(offer));
     }
 
     @Test void laterCoverageCandidateAccountsForEarlierProposalsInTheSameReview(){

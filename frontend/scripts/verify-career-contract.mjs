@@ -643,17 +643,43 @@ console.log('Career continuous: compact status, malformed boundary and original 
  const ui = { exports: {}, AbortController, require: name => name === 'react' ? { useState: v => [v, n => updates.push(n)], useEffect: f => effects.push(f) } : name === 'react/jsx-runtime' ? { jsx() {}, jsxs() {} } : { ...flow, recordRequest: () => new Promise(r => { finish = r; }) } };
  runInNewContext(compile(read('CareerReturnResult.tsx')), ui); ui.exports.CareerReturnResult({ careerId, seriesId: 'approved', onNavigate() {} }); const cleanup = effects[0](); cleanup(); const prior = updates.length; finish({ result }); await new Promise(setImmediate); assert.equal(updates.length, prior);
  console.log('PASS actual return-result effect ignores responses after Career or Series cleanup');
- const updates2 = [], detail = { careerId }, c2 = { exports: {}, AbortController, window: { sessionStorage: {} }, useCallback: f => f, selectedIdRef: { current: careerId }, generationRef: { current: 0 }, requestRef: { current: null }, restoredAdvanceRef: { current: null }, teamsRef: { current: [] }, catalogRef: { current: null }, appliedContinuous: { current: new Map() }, getCareer: async () => detail, getCareerCalendar: async () => cal, requireCareerReference() {}, reconcileCareerAdvanceOperation() {}, reconcileCareerCompetitionOperation() {}, invalidateScreenRequests() {}, applyDetail() {}, setHistorical() {}, setSelectedId() {}, setDetail: v => updates2.push(['detail', v]), setCalendar: v => updates2.push(['calendar', v]), setDetailLoading: v => updates2.push(['loading', v]), setCalendarLoading() {}, setCalendarError() {}, setError() {}, setIntegrityError() {} };
+ const updates2 = [], detail = { careerId }, c2 = { onCareerSelectionChange: undefined, exports: {}, AbortController, window: { sessionStorage: {} }, useCallback: f => f, selectedIdRef: { current: careerId }, generationRef: { current: 0 }, requestRef: { current: null }, restoredAdvanceRef: { current: null }, teamsRef: { current: [] }, catalogRef: { current: null }, appliedContinuous: { current: new Map() }, getCareer: async () => detail, getCareerCalendar: async () => cal, requireCareerReference() {}, reconcileCareerAdvanceOperation() {}, reconcileCareerCompetitionOperation() {}, invalidateScreenRequests() {}, applyDetail() {}, setHistorical() {}, setSelectedId() {}, setDetail: v => updates2.push(['detail', v]), setCalendar: v => updates2.push(['calendar', v]), setDetailLoading: v => updates2.push(['loading', v]), setCalendarLoading() {}, setCalendarError() {}, setError() {}, setIntegrityError() {} };
  const load = read('CareerDashboardPage.tsx').split('  const loadDetail =')[1].split('\n\n  const loadWorkspace')[0];runInNewContext(compile(`exports.load = ${load}`), c2); assert.equal(await c2.exports.load(careerId), true); assert.ok(!updates2.some(([key, value]) => ['detail', 'calendar'].includes(key) && value === null)); assert.ok(updates2.some(([key, value]) => key === 'loading' && value === false));
  console.log('PASS actual same-Career refresh preserves mounted panels and their original request recovery');
  const root = readFileSync(new URL('../src/RootApp.tsx', import.meta.url), 'utf8');
+ const select = read('CareerDashboardPage.tsx').match(/onClick=\{(\(\) => \{ void loadDetail\(career\.careerId\); \})\}/)[1];
+ assert.equal((root.match(/onCareerSelectionChange=\{invalidateCareerSeriesRequest\}/g) ?? []).length, 2);
  for (const name of ['openLeagueSeries', 'openCareerCompetitionSeries']) {
-   let resolveSeries; const applied = [], rc = { exports: {}, AbortController, useCallback: f => f, seriesRequestRef: { current: null }, getSeries: () => new Promise(r => { resolveSeries = r; }), loadMatchSetupOptions: async () => ({}), fetchPlayerDraftChampionCatalog: async () => ({}), showToast: () => applied.push('toast'), createPlayerDraftChampionCatalog: () => { applied.push('catalog'); return {}; } };
-   const body = root.split(`  const ${name} =`)[1].split('\n\n  const ')[0];runInNewContext(compile(`exports.open = ${body}`), rc);
-   const pending = name === 'openLeagueSeries' ? rc.exports.open({ boundSeriesId: 'old' }, {}) : rc.exports.open('old', { careerId }, 'old match');
-   rc.seriesRequestRef.current.abort(); resolveSeries({ seriesId: 'old' }); await pending; assert.deepEqual(applied, []);
+  for (const failure of [false, true]) {
+   let resolveSeries, rejectSeries; const applied = [];
+   const rc = { exports: {}, AbortController, useCallback: f => f, seriesRequestRef: { current: null }, window: { sessionStorage: { setItem: (...v) => applied.push(['storage',...v]) } },
+    getSeries: () => new Promise((r,j) => {resolveSeries=r;rejectSeries=j;}), loadMatchSetupOptions: async()=>({}), fetchPlayerDraftChampionCatalog:async()=>({}), SeriesApiFailure:class extends Error {},
+    showToast:(...v)=>applied.push(['toast',...v]), createPlayerDraftChampionCatalog:()=>({}), createSeriesScreenState:()=>({}), LEAGUE_SERIES_CONTEXT_KEY:'league', CAREER_COMPETITION_SERIES_CONTEXT_KEY:'competition' };
+   for (const fn of ['clearCareerCompetitionSeriesContext','setCareerCompetitionSeriesContext','setLeagueSeriesContext','writeSeriesPointer','setSeriesState','setLeagueSeriesReturn','clearLeagueSeriesContext','writeCareerReturnContext','setCareerReturnContext','setActiveScreen']) rc[fn]=(...v)=>applied.push([fn,...v]);
+   for (const [exported,fn] of [['open',name],['invalidate','invalidateCareerSeriesRequest']]) runInNewContext(compile('exports.'+exported+' ='+root.split('  const '+fn+' =')[1].split('\n\n  const ')[0]),rc);
+   const pc={...c2,exports:{},selectedIdRef:{current:careerId},requestRef:{current:null},onCareerSelectionChange:rc.exports.invalidate,career:{careerId:secondCareerId},getCareer:async id=>({careerId:id})};
+   runInNewContext(compile('const loadDetail ='+load+'; exports.select ='+select),pc);
+   const open=()=>name==='openLeagueSeries'?rc.exports.open({boundSeriesId:'old'},{}):rc.exports.open('old',{careerId},'old match');
+   const pending=open();pc.exports.select();await new Promise(setImmediate);assert.equal(pc.selectedIdRef.current,secondCareerId);
+   pc.career={careerId};pc.exports.select();await new Promise(setImmediate);assert.equal(pc.selectedIdRef.current,careerId);
+   if(failure)rejectSeries(new Error('late failure'));else resolveSeries({seriesId:'old'});await pending;assert.deepEqual(applied,[]);
+   const normal=open();pc.exports.select();await new Promise(setImmediate);resolveSeries({seriesId:'old'});await normal;
+   assert.ok(applied.some(v=>v[0]==='setActiveScreen'&&v[1]==='series-hub'));assert.ok(applied.some(v=>v[0]==='writeSeriesPointer'));
+  }
+  console.log('PASS actual saved-Career click A-B-A rejects delayed success/failure and permits normal '+name);
  }
+
+ for(const failure of [false,true]) {
+  let finish,fail;const applied=[];
+  const rc={exports:{},AbortController,useCallback:f=>f,window:{sessionStorage:{}},seriesRequestRef:{current:null},careerResumeRoute:()=>({kind:'PLAYER_SERIES',leagueId:'l',seasonId:'s',fixtureId:'f',seriesId:'old'}),writeCareerReturnContext(){},setCareerReturnContext(){},writeLeaguePointer(){},setActiveScreen:v=>applied.push(v),showToast:()=>applied.push('toast'),openLeagueSeries:()=>{throw Error('stale resume reached child');},getLeagueFixtures:()=>new Promise((r,j)=>{finish=r;fail=j;}),getLeaguePlayerSeries:async()=>({})};
+  for(const [exported,fn] of [['resume','resumeCareer'],['invalidate','invalidateCareerSeriesRequest']])runInNewContext(compile('exports.'+exported+' ='+root.split('  const '+fn+' =')[1].split('\n\n  const ')[0]),rc);
+  const pc={...c2,exports:{},selectedIdRef:{current:careerId},onCareerSelectionChange:rc.exports.invalidate,career:{careerId:secondCareerId}};
+  runInNewContext(compile('const loadDetail ='+load+'; exports.select ='+select),pc);
+  const pending=rc.exports.resume({careerId});pc.exports.select();await new Promise(setImmediate);
+  if(failure)fail(new Error('delayed lookup failure'));else finish({fixtures:[]});await pending;assert.deepEqual(applied,[]);
+ }
+ console.log('PASS actual save selection suppresses delayed resume prefetch errors and fallback navigation');
  const returning = { exports: {}, useCallback: f => f, window: { sessionStorage: {} }, careerReturnContext: null, leagueSeriesContext: null, seriesState: null, clearSeriesPointer: () => calls.push(['clear-auto-open']), clearCareerReturnContext() {}, setCareerReturnContext() {}, setActiveScreen: v => calls.push(['screen', v]) };
  runInNewContext(compile(`exports.back = ${root.split('  const returnToCareer =')[1].split('\n\n  const ')[0]}`), returning);returning.exports.back();assert.deepEqual(calls.slice(-2), [['clear-auto-open'], ['screen', 'career']]);
- console.log('PASS actual League and competition Series open callbacks discard late results before applying screen state');
+ console.log('PASS actual return-to-Career clears automatic Series reopening and restores the Career screen');
 }

@@ -279,6 +279,11 @@ function RootApp() {
     } finally { if (seriesRequestRef.current === controller) seriesRequestRef.current = null; }
   }, [showToast]);
 
+  const invalidateCareerSeriesRequest = useCallback(() => {
+    seriesRequestRef.current?.abort();
+    seriesRequestRef.current = null;
+  }, []);
+
   const openLeagueSeries = useCallback(async (playerSeries: LeaguePlayerSeriesViewDto, fixture: LeagueFixtureViewDto) => {
     const controller = new AbortController(); seriesRequestRef.current?.abort(); seriesRequestRef.current = controller;
     try {
@@ -493,7 +498,7 @@ function RootApp() {
   }
 
   if (activeScreen.startsWith('series-')) {
-    if (!seriesState) return leagueSeriesReturn ? <LeaguePage onOpenSeries={(value, fixture) => { void openLeagueSeries(value, fixture); }} onNotify={showToast} onBackToCareer={careerReturnContext ? returnToCareer : undefined} /> : careerCompetitionSeriesReturn ? <Suspense fallback={<main className="ca-workspace"><section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 화면 준비 중</strong></section></main>}><CareerDashboardPage returnedSeries={careerCompetitionSeriesContext} searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} /></Suspense> : <><SeriesSetupPage onBack={() => setActiveScreen('setup')} onCreated={(series, options) => { setLeagueSeriesReturn(false); void initializeSeries(series, options); }} />{seriesToast}</>;
+    if (!seriesState) return leagueSeriesReturn ? <LeaguePage onOpenSeries={(value, fixture) => { void openLeagueSeries(value, fixture); }} onNotify={showToast} onBackToCareer={careerReturnContext ? returnToCareer : undefined} /> : careerCompetitionSeriesReturn ? <Suspense fallback={<main className="ca-workspace"><section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 화면 준비 중</strong></section></main>}><CareerDashboardPage onCareerSelectionChange={invalidateCareerSeriesRequest} returnedSeries={careerCompetitionSeriesContext} searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} /></Suspense> : <><SeriesSetupPage onBack={() => setActiveScreen('setup')} onCreated={(series, options) => { setLeagueSeriesReturn(false); void initializeSeries(series, options); }} />{seriesToast}</>;
     return <><SeriesHubPage state={seriesState} onBack={() => seriesReturnScreen === 'career' ? returnToCareer() : setActiveScreen(seriesReturnScreen)} backLabel={seriesBackLabel} contextLabel={seriesContextLabel}
       onStateChange={updateSeriesState} onStartDraft={() => setActiveScreen('series-draft')}
       onOpenGame={(gameNumber) => { void openSeriesGame(gameNumber); }}
@@ -588,7 +593,7 @@ function RootApp() {
           />
         ) : activeSection === 'career' ? (
           <Suspense fallback={<main className="ca-workspace"><section className="ca-loading" role="status" aria-live="polite"><span aria-hidden="true" /><strong>Career 화면 준비 중</strong></section></main>}>
-            <CareerDashboardPage returnedSeries={careerCompetitionSeriesContext} searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} />
+            <CareerDashboardPage onCareerSelectionChange={invalidateCareerSeriesRequest} returnedSeries={careerCompetitionSeriesContext} searchValue={searchValue} onResume={(career) => { void resumeCareer(career); }} onOpenCompetitionSeries={(seriesId, career, matchup) => { void openCareerCompetitionSeries(seriesId, career, matchup); }} onNotify={showToast} />
           </Suspense>
         ) : activeSection === 'squad' ? (
           <Suspense fallback={<main className="tp-workspace tp-workspace--center" aria-busy="true"><div className="tp-loading" role="status" aria-live="polite"><span aria-hidden="true" /><p>선수단 화면을 준비하고 있습니다.</p></div></main>}>

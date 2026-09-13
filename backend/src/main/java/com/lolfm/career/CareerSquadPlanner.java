@@ -217,10 +217,11 @@ final class CareerSquadPlanner {
                 }
                 pool.sort(Comparator.comparingInt((String id)->strength(m.player(id))+(own.contains(id)?AI_RENEWAL_ADVANTAGE:0)).reversed().thenComparing(order(m)));
                 Proposal chosen=null;
-                var bounded=new ArrayList<>(pool.stream().limit(CANDIDATES).toList());
-                if(renewalDue&&!bounded.contains(incumbent)){if(bounded.size()==CANDIDATES)bounded.removeLast();bounded.add(incumbent);}
-                if(!safe)for(String id:pool){if(bounded.size()>=COVERAGE_CANDIDATES)break;if(!bounded.contains(id))bounded.add(id);}
-                var search=new Search(proposed);search.limited=!safe&&pool.size()>bounded.size();
+                // Coverage must reach affordable players below the strongest candidates. Truncating
+                // before the cheap finance filters retries the same unaffordable prefix every week.
+                // The finite position pool stays ability-ordered; deep common approval remains capped.
+                var bounded=new ArrayList<>(safe?pool.stream().limit(CANDIDATES).toList():pool);
+                var search=new Search(proposed);
                 for(String id:bounded){
                     if(search.checks>=COMMON_CHECKS){search.limited=true;break;}
                     if(m.offers.values().stream().anyMatch(o->o.team().equals(team)&&o.playerId().equals(id)&&date.isBefore(o.decisionDate().plusDays(REVIEW_WAIT_DAYS))))continue;

@@ -66,7 +66,8 @@ function requireCareerReference(career: CareerViewDto, teams: readonly TeamSumma
   if (!catalog || career.referenceCatalogVersion !== catalog.catalogVersion || career.referenceCatalogHash !== catalog.catalogHash) throw new CareerApiFailure('CONTRACT', 'Career와 LCK reference generation이 일치하지 않습니다.');
 }
 
-export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSeries, onNotify, returnedSeries }: {
+export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSeries, onNotify, returnedSeries, onCareerSelectionChange }: {
+  onCareerSelectionChange?: () => void;
   returnedSeries?: { careerId: string; seriesId: string } | null;
   searchValue: string;
   onResume: (career: CareerViewDto) => void;
@@ -118,10 +119,11 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
   const catalogRef = useRef<CatalogIdentity | null>(null);
 
   const applyDetail = useCallback((career: CareerViewDto, focus = false) => {
+    if (selectedIdRef.current !== career.careerId) onCareerSelectionChange?.();
     selectedIdRef.current = career.careerId;
     writeCareerPointer(window.sessionStorage, career.careerId); setSelectedId(career.careerId); setDetail(career); setIntegrityError(false);
     if (focus) window.requestAnimationFrame(() => detailTitleRef.current?.focus());
-  }, []);
+  }, [onCareerSelectionChange]);
 
   const invalidateScreenRequests = useCallback(() => {
     ++generationRef.current;
@@ -132,7 +134,7 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
   }, []);
 
   const loadDetail = useCallback(async (careerId: string, focus = false, continuousStamp?: string) => {
-    setHistorical(false); const switching = selectedIdRef.current !== careerId; invalidateScreenRequests(); const generation = generationRef.current; const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller;
+    setHistorical(false); const switching = selectedIdRef.current !== careerId; if (switching) onCareerSelectionChange?.(); invalidateScreenRequests(); const generation = generationRef.current; const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller;
     selectedIdRef.current = careerId;
     setSelectedId(careerId); if (switching) { setDetail(null); setCalendar(null); } setDetailLoading(switching); setCalendarLoading(true); setCalendarError(null); setError(null); setIntegrityError(false);
     try {
@@ -152,7 +154,7 @@ export function CareerDashboardPage({ searchValue, onResume, onOpenCompetitionSe
       if (action === 'CLEAR_NOT_FOUND') { clearCareerPointer(window.sessionStorage); setSelectedId(null); setDetail(null); setError('선택한 저장을 서버에서 찾을 수 없어 브라우저의 Career ID를 정리했습니다.'); }
       else { setError(failure.userMessage); setIntegrityError(action === 'KEEP_INTEGRITY' || action === 'KEEP_CONTRACT'); }
     } finally { if (!controller.signal.aborted && generation === generationRef.current) { setDetailLoading(false); setCalendarLoading(false); } if (requestRef.current === controller) requestRef.current = null; }
-  }, [applyDetail, invalidateScreenRequests]);
+  }, [applyDetail, invalidateScreenRequests, onCareerSelectionChange]);
 
   const loadWorkspace = useCallback(async () => {
     setHistorical(false); invalidateScreenRequests(); const generation = generationRef.current; const controller = new AbortController(); requestRef.current?.abort(); requestRef.current = controller;

@@ -1,0 +1,21 @@
+// Opt-in only: no changes to the normal test task or production source sets.
+allprojects {
+    afterEvaluate {
+        tasks.register('compileCareerLongTermProbe', JavaCompile) {
+            source = files('scripts/CareerPlaySpeedProbe.java')
+            classpath = sourceSets.main.runtimeClasspath
+            destinationDirectory = layout.buildDirectory.dir('career-long-term-classes')
+            javaCompiler = javaToolchains.compilerFor { languageVersion = JavaLanguageVersion.of(21) }
+            options.encoding = 'UTF-8'
+            dependsOn tasks.named('classes')
+        }
+        tasks.register('runCareerLongTermProbe', JavaExec) {
+            dependsOn tasks.named('compileCareerLongTermProbe')
+            classpath = files(layout.buildDirectory.dir('career-long-term-classes')) + sourceSets.main.runtimeClasspath
+            mainClass = 'com.lolfm.career.CareerPlaySpeedProbe'
+            javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+            maxHeapSize = '2g'
+            args providers.gradleProperty('probeMode').orElse('long-term-smoke').get(), providers.gradleProperty('probeOutput').orElse('build/reports/career-long-term').get()
+        }
+    }
+}

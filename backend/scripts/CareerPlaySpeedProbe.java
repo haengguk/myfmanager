@@ -16,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 /** Opt-in local measurement helper. Compile outside production/test output; use only a disposable DB. */
 public class CareerPlaySpeedProbe {
     public static void main(String[] args) throws Exception {
+        if(args[0].startsWith("long-term")){longTerm(Path.of(args[1]),args[0].equals("long-term-smoke"),args[0].equals("long-term-first")?1:2);return;}
         if(args[0].equals("policies")){policies(Path.of(args[1]));return;}
         if(args[0].equals("evidence")) {
             var db=new JdbcTemplate(new org.springframework.jdbc.datasource.DriverManagerDataSource(args[2],"sa",""));
@@ -157,4 +158,125 @@ public class CareerPlaySpeedProbe {
         Files.writeString(out.resolve("observation-time.txt"),Double.toString((System.nanoTime()-begin)/1e9));
     }
 
+
+    /** Explicit no-match projection: daily runtime settlement, actual lifecycle review, modeled season scopes.
+     * No fixture results, appearances, user acceptance, or production rollover receipts are manufactured.
+     * The separate existing rollover integration test establishes the real command boundary.
+     */
+    static void longTerm(Path out,boolean smoke,int samples) throws Exception {
+        Files.createDirectories(out); long begun=System.nanoTime();
+        var app=new SpringApplication(LolfmApplication.class);
+        try(var ctx=app.run("--spring.main.web-application-type=none","--spring.datasource.url=jdbc:h2:mem:career-long-term;DB_CLOSE_DELAY=-1",
+                "--lolfm.career.continuous.background.enabled=false","--lolfm.career.competition.background.enabled=false")) {
+            var db=ctx.getBean(JdbcTemplate.class);var tx=new org.springframework.transaction.support.TransactionTemplate(ctx.getBean(org.springframework.transaction.PlatformTransactionManager.class));
+            var rows=new ArrayList<Map<String,Object>>();
+            for(int sample=1;sample<=(smoke?1:samples);sample++) {
+                String command=UUID.nameUUIDFromBytes(("career-long-term-v1-"+sample).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+                var c=ctx.getBean(CareerApplicationService.class).create(new CareerApiV1Dtos.CreateRequest(CareerApiV1Dtos.CREATE_REQUEST_SCHEMA,"장기 진단 "+sample,"관측 감독","GEN",command)).career().career();
+                String id=c.careerId();int first=CareerRosterStore.activeYear(db,id);var gapDays=new TreeMap<String,Integer>();
+                rows.add(longSnapshot(db,id,first,"START",gapDays,null));
+                for(int year=first;year<first+(smoke?1:3);year++) {
+                    final int y=year;LocalDate target=smoke?CareerMarketStore.load(db,id).state().processedThrough().plusDays(7):LocalDate.of(year,12,1);
+                    longAdvance(db,tx,id,year,target,gapDays,smoke,sample);
+                    CareerLifecycleState.Review review=smoke?null:tx.execute(t->ctx.getBean(CareerLifecycleStore.class).review(id,y,target));
+                    if(!smoke)tx.executeWithoutResult(t->{
+                        var old=CareerMarketStore.load(db,id);var m=CareerMarketStore.engine(db,id,y,old);
+                        m.finance.close(y,target,Map.of(),Map.of()); // No invented standings or prize results.
+                        CareerMarketStore.persist(db,id,y,old,m);
+                        if(!review.equals(ctx.getBean(CareerLifecycleStore.class).review(id,y,target)))throw new IllegalStateException("DUPLICATE_LIFECYCLE_REVIEW");
+                    });
+                    var reviewData=longSnapshot(db,id,year,smoke?"SMOKE":"SEASON_REVIEW",gapDays,review);
+                    if(!smoke)longAdvance(db,tx,id,year,LocalDate.of(year+1,1,1),gapDays,false,sample);
+                    var endData=longSnapshot(db,id,year,smoke?"SMOKE":"SEASON_END",gapDays,null);
+                    for(String key:List.of("rookies","supply","announced","declineInternal"))if(reviewData.containsKey(key))endData.put(key,reviewData.get(key));
+                    endData.put("reviewDate",target.toString());rows.add(endData);
+                    Files.writeString(out.resolve("summary.json"),CareerRosterStore.write(Map.of("mode","NO_MATCH_RUNTIME_PROJECTION","wallSeconds",(System.nanoTime()-begun)/1e9,"rows",rows)));
+                    if(smoke||year<first+2)tx.executeWithoutResult(t->{
+                        // Model-only scope carry, deliberately not a Career season-transition command.
+                        String identity=CareerRosterStore.hash(id+"|DIAGNOSTIC_SCOPE|"+(y+1));
+                        String prior=db.queryForObject("SELECT season_id FROM career_season WHERE career_id=? AND season_year=?",String.class,id,y);
+                        long nextSeed=CareerCompetitionAggregate.deriveSeed(c.rootSeed(),y+1,"CAREER_SEASON","ORDINAL:"+(y-first+2));
+                        var created=ctx.getBean(CareerApplicationService.SeasonProvisioningPort.class).provisionNext(prior,"league_"+identity,"season_"+identity,c.managedTeamCode(),nextSeed);
+                        db.update("INSERT INTO career_season(career_id,season_year,season_ordinal,league_id,season_id,season_root_seed,frozen_snapshot_hash,product_decision_hash,lifecycle_status) VALUES (?,?,?,?,?,?,?,?,'ACTIVE')",id,y+1,y-first+2,created.leagueId(),created.seasonId(),created.rootSeed(),created.frozenSnapshotIdentity(),created.productDecisionIdentity());
+                        CareerRosterStore.carry(db,id,y,y+1);CareerClStore.initializeState(db,id,y+1);
+                        db.update("UPDATE career_calendar_state SET active_calendar_season_year=? WHERE career_id=?",y+1,id);
+                        var old=CareerMarketStore.load(db,id);var m=CareerMarketStore.engine(db,id,y+1,old);m.finance.initializeTargets(y+1,m.processedThrough(),false);CareerMarketStore.persist(db,id,y+1,old,m);
+                    });
+                }
+            }
+        }
+        System.out.println("LONG_DONE wallSeconds="+(System.nanoTime()-begun)/1e9);
+    }
+    static Map<String,Object> longSnapshot(JdbcTemplate db,String id,int year,String stage,Map<String,Integer> gaps,CareerLifecycleState.Review review) {
+        var old=CareerMarketStore.load(db,id);var m=CareerMarketStore.engine(db,id,year,old);var growth=CareerDevelopmentStore.load(db,id).state();var row=new TreeMap<String,Object>();
+        row.put("career",id);row.put("seed",Long.toString(m.seed));row.put("year",year);row.put("stage",stage);row.put("date",m.processedThrough().toString());
+        row.put("policies",List.of(CareerDevelopmentPolicy.VERSION,CareerLifecyclePolicy.VERSION,CareerMarketPolicy.VERSION,CareerSportingFinancePolicy.VERSION,CareerSquadPlanningPolicy.VERSION));
+        row.put("players",m.directory.players().size());row.put("accounts",m.accounts.size());row.put("participants",CareerSportingFinancePolicy.COMPETITIONS.keySet().stream().flatMap(r->CareerSportingFinancePolicy.participants(r).stream()).distinct().count());
+        var groups=new TreeMap<String,List<Integer>>();var cases=new ArrayList<Map<String,Object>>();
+        for(var e:growth.players().entrySet()) {
+            String p=e.getKey();var d=m.player(p);var life=m.lifecycle.people.get(p);int ca=CareerLifecyclePolicy.ca(e.getValue());int age=CareerLifecyclePolicy.age(life.age(),m.processedThrough());var member=m.members.get(p);
+            if(life.status()!=CareerLifecycleState.Status.RETIRED)for(String group:List.of("ALL_ACTIVE","AGE:"+(age<=20?"<=20":age<=24?"21-24":age<=29?"25-29":"30+"),"SOURCE:"+life.source(),"SQUAD:"+member.squad(),"REGION:"+(member.ownerTeam()==null?"UNAFFILIATED":CareerMarketPolicy.region(member.ownerTeam()))))groups.computeIfAbsent(group,k->new ArrayList<>()).add(ca);
+            if(List.of("player-faker","player-chovy","player-jiwoo","player-doran","player-lumos","player-beryl").contains(p)) {
+                var example=new TreeMap<String,Object>();example.put("id",p);example.put("name",d.nickname());example.put("age",age);example.put("CA",ca);example.put("internalSum",CareerDevelopmentPolicy.sum(e.getValue()));example.put("PA",CareerDevelopmentPolicy.metadata(d).potential());example.put("status",life.status());example.put("squad",member.squad());example.put("team",member.ownerTeam());example.put("fatigue",e.getValue().fatigue());cases.add(example);
+            }
+        }
+        var distributions=new TreeMap<String,Object>();groups.forEach((k,v)->{Collections.sort(v);distributions.put(k,Map.of("n",v.size(),"p10",v.get((v.size()-1)/10),"p50",v.get((v.size()-1)/2),"p90",v.get((v.size()-1)*9/10),"ca160",v.stream().filter(n->n>=160).count(),"ca180",v.stream().filter(n->n>=180).count()));});row.put("CA",distributions);row.put("cases",cases);
+        row.put("internalSum",growth.players().values().stream().mapToLong(CareerDevelopmentPolicy::sum).sum());row.put("retirement",m.lifecycle.people.values().stream().collect(java.util.stream.Collectors.groupingBy(p->p.status().name(),TreeMap::new,java.util.stream.Collectors.counting())));
+        if(review!=null){row.put("supply",review.supply());row.put("announced",review.changes().stream().filter(c->c.outcome().equals("RETIREMENT_ANNOUNCED")).map(c->Map.of("id",c.playerId(),"age",c.age(),"effective",c.effectiveDate())).toList());row.put("declineInternal",review.changes().stream().mapToLong(CareerLifecycleState.Change::appliedDecline).sum());}
+        row.put("trainingInternal",growth.monthly().values().stream().filter(g->g.seasonYear()==year).mapToLong(CareerDevelopmentState.Gain::internalGain).sum());
+        row.put("paMissing",m.directory.players().values().stream().filter(d->CareerDevelopmentPolicy.metadata(d).potential()==null).count());
+        if(review!=null) {
+            var rookies=new ArrayList<Map<String,Object>>();for(String id2:review.rookieIds()){var d=m.player(id2);var life=m.lifecycle.people.get(id2);rookies.add(Map.of("id",id2,"name",d.nickname(),"role",d.position(),"age",CareerLifecyclePolicy.age(life.age(),m.processedThrough()),"CA",CareerLifecyclePolicy.ca(growth.players().get(id2)),"PA",CareerDevelopmentPolicy.metadata(d).potential()));}
+            row.put("rookies",rookies);
+            if(rookies.stream().map(r->r.get("id")).distinct().count()!=rookies.size())throw new IllegalStateException("DUPLICATE_ROOKIE_ID");
+            for(String id2:review.rookieIds())if(m.directory.players().values().stream().filter(d->d.nickname().equalsIgnoreCase(m.player(id2).nickname())).count()!=1)throw new IllegalStateException("DUPLICATE_ROOKIE_NAME");
+        }
+        row.put("gapDays",new TreeMap<>(gaps));var teams=new TreeMap<String,Object>();
+        for(String team:m.accounts.keySet()) {
+            var a=m.accounts.get(team);long posted=m.ledger.stream().filter(l->l.team().equals(team)&&!l.kind().equals("SALARY_ACCRUED")).mapToLong(CareerMarketState.Ledger::amount).sum();
+            if(posted!=a.cash())throw new IllegalStateException("CASH_LEDGER_MISMATCH:"+team+":"+posted+":"+a.cash());
+            var flow=new TreeMap<String,Long>();m.ledger.stream().filter(l->l.team().equals(team)).forEach(l->flow.merge(l.kind(),l.amount(),Long::sum));
+            teams.put(team,Map.of("cash",a.cash(),"flow",flow,"salaryArrears",m.salaryArrears(team),"operatingArrears",m.finance.debt.getOrDefault(team,0L),"reserved",m.reservedCash(team),"wageLimit",m.finance.approval(team,m.processedThrough()).wageLimit(),"members",m.members.values().stream().filter(v->team.equals(v.ownerTeam())).count(),"starters",m.lineups.getOrDefault(team,List.of()).size()));
+        }
+        if(m.ledger.stream().map(CareerMarketState.Ledger::entryId).distinct().count()!=m.ledger.size())throw new IllegalStateException("DUPLICATE_LEDGER");
+        row.put("teams",teams);row.put("offers",m.offers.values().stream().collect(java.util.stream.Collectors.groupingBy(o->o.status().name(),TreeMap::new,java.util.stream.Collectors.counting())));
+        row.put("trades",m.tradeEngine.trades.values().stream().collect(java.util.stream.Collectors.groupingBy(t->t.terms().kind()+":"+t.status().name(),TreeMap::new,java.util.stream.Collectors.counting())));
+        row.put("coverageDecisions",m.planner.state().decisions().stream().filter(d->d.action().equals("COVERAGE")||d.status().equals("PROPOSED")).filter(d->Set.of("LCK:BRO","CBLOL:LEV","LEC:LR").contains(d.team())).toList());
+        var rosterCases=new TreeMap<String,Object>();
+        for(String team:List.of("LCK:BRO","CBLOL:LEV","LEC:LR","LCK:T1")) {
+            var people=new ArrayList<Map<String,Object>>();
+            for(var member:m.members.values())if(team.equals(member.ownerTeam())) {
+                String p=member.playerId();var d=m.player(p);var c=m.active(p,m.processedThrough());
+                people.add(Map.of("id",p,"name",d.nickname(),"position",d.position(),"squad",member.squad(),"selected",m.lineups.getOrDefault(team,List.of()).contains(p),"CA",CareerLifecyclePolicy.ca(growth.players().get(p)),"annualSalary",c==null?0:c.terms().annualSalary()));
+            }
+            rosterCases.put(team,people);
+        }
+        row.put("rosterCases",rosterCases);
+        row.put("events",m.events.stream().collect(java.util.stream.Collectors.groupingBy(CareerMarketState.Event::kind,TreeMap::new,java.util.stream.Collectors.counting())));
+        row.put("evaluations",m.decisions.values().stream().flatMap(d->d.evaluations().stream()).collect(java.util.stream.Collectors.groupingBy(CareerMarketState.Evaluation::reason,TreeMap::new,java.util.stream.Collectors.counting())));
+        row.put("repeatContracts",m.contracts.values().stream().filter(c->c.origin().startsWith("NEGOTIATED")||c.origin().equals("PAID_TRANSFER_AGREEMENT")).collect(java.util.stream.Collectors.groupingBy(CareerMarketState.Contract::playerId,TreeMap::new,java.util.stream.Collectors.counting())).entrySet().stream().filter(e->e.getValue()>2).sorted(Map.Entry.<String,Long>comparingByValue().reversed()).limit(10).toList());
+        row.put("financeTargets",m.finance.targets.values().stream().filter(t->t.seasonYear()==year).collect(java.util.stream.Collectors.groupingBy(t->t.sportingStatus()+":"+t.financeStatus(),TreeMap::new,java.util.stream.Collectors.counting())));
+        row.put("contractOrigins",m.contracts.values().stream().collect(java.util.stream.Collectors.groupingBy(CareerMarketState.Contract::origin,TreeMap::new,java.util.stream.Collectors.counting())));
+        if(m.directory.players().values().stream().map(p->p.nickname().toLowerCase(Locale.ROOT)).distinct().count()!=m.directory.players().size())row.put("duplicateNames",true);
+        return row;
+    }
+
+
+    static void longAdvance(JdbcTemplate db,org.springframework.transaction.support.TransactionTemplate tx,String id,int year,LocalDate target,Map<String,Integer> gapDays,boolean smoke,int sample) {
+                    while(CareerMarketStore.load(db,id).state().processedThrough().isBefore(target)) {
+                        tx.executeWithoutResult(t->{
+                            CareerRosterStore.lockCareer(db,id);var old=CareerMarketStore.load(db,id);var m=CareerMarketStore.engine(db,id,year,old);
+                            var growth=CareerDevelopmentStore.load(db,id);m.development=new CareerDevelopmentEngine(CareerRosterStore.baseDirectory(db,id),growth.state());
+                            // No match schedule/appearance assumptions: training only, including overseas and CL.
+                            m.developmentFixtures=Map.of();m.developmentYear=year;
+                            LocalDate end=old.state().processedThrough().plusDays(smoke?7:28);if(end.isAfter(target))end=target;
+                            for(LocalDate d=old.state().processedThrough().plusDays(1);!d.isAfter(end);d=d.plusDays(1)) {
+                                m.advance(d);
+                                for(String team:m.accounts.keySet())if(m.lineups.getOrDefault(team,List.of()).stream().filter(p->m.eligible(p,team,m.processedThrough())).map(p->m.player(p).position()).distinct().count()!=5)gapDays.merge(team,1,Integer::sum);
+                            }
+                            CareerDevelopmentStore.persist(db,id,growth,m.development);CareerMarketStore.persist(db,id,year,old,m);
+                        });
+                        System.out.println("LONG_PROGRESS "+sample+" "+year+" "+CareerMarketStore.load(db,id).state().processedThrough());
+                    }
+    }
 }

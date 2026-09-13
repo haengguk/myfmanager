@@ -657,7 +657,7 @@ class CareerModePersistenceTest {
         }
     }
     private static void advanceMarketToYearEnd(Harness h,com.lolfm.career.CareerMarketStore market,com.lolfm.career.CareerRosterStore rosters,CareerRelationalStore.CareerRow career,int year) {
-        String id=career.careerId();int guard=0;var calendar=h.calendar().view(career);
+        String id=career.careerId();int guard=0,renewals=0;var calendar=h.calendar().view(career);
         while(calendar.state().currentDate().isBefore(LocalDate.of(year,12,31))) {
             var view=market.view(id,year);var selected=com.lolfm.career.CareerRosterStore.saved(h.jdbc(),id,year).state().lineups().get("LCK:KT");
             // Explicit affordable user renewals: the new source wage cap has 10% headroom, not the legacy 60%.
@@ -665,7 +665,7 @@ class CareerModePersistenceTest {
                 var p=view.players().stream().filter(x->x.playerId().equals(player)).findFirst().orElseThrow();
                 if(p.availableStart()!=null&&p.currentContractId()!=null&&p.scheduledContractId()==null&&view.offers().stream().noneMatch(o->o.team().equals("LCK:KT")&&o.playerId().equals(player)&&(o.status()==com.lolfm.career.CareerMarketState.OfferStatus.SUBMITTED||o.status()==com.lolfm.career.CareerMarketState.OfferStatus.COUNTER))) {
                     var request=marketCommand(view,"SUBMIT",player,new com.lolfm.career.CareerMarketState.Terms(p.availableStart(),p.availableStart().plusYears(2).minusDays(1),p.askingSalary(),0,com.lolfm.career.CareerMarketState.Role.STARTER));
-                    market.command(id,request);view=market.view(id,year);
+                    market.command(id,request);renewals++;view=market.view(id,year);
                 }
             }
             var advanced=h.calendar().advance(career,CareerApiV1Dtos.ADVANCE_REQUEST_SCHEMA,calendar.state().calendarRevision(),"ADVANCE_TO_NEXT_EVENT",UUID.randomUUID().toString());
@@ -673,6 +673,7 @@ class CareerModePersistenceTest {
             calendar=advanced.calendar();
             assertThat(++guard).isLessThanOrEqualTo(LocalDate.of(year,1,1).lengthOfYear());
         }
+        System.out.println("LONG_TERM_TEST_MANAGER year="+year+" renewals="+renewals+" calendarAdvances="+guard);
     }
 
     @Test
