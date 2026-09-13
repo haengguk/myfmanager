@@ -788,7 +788,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(28);
+                    .migrationsExecuted).isEqualTo(29);
             Harness harness = harness(dataSource);
 
             String rolledBackCommand = UUID.randomUUID().toString();
@@ -1242,7 +1242,7 @@ class CareerModePersistenceTest {
 
         try (HikariDataSource dataSource = dataSource(url)) {
             assertThat(Flyway.configure().dataSource(dataSource).load().migrate()
-                    .migrationsExecuted).isEqualTo(24);
+                    .migrationsExecuted).isEqualTo(25);
             Harness harness = harness(dataSource);
             CareerApplicationService.CareerViewState loaded =
                     harness.careers().get(careerId);

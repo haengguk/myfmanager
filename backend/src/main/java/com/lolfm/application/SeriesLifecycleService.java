@@ -870,6 +870,7 @@ public final class SeriesLifecycleService {
         SeriesAggregate updated = aggregate.copy(aggregate.revision(), status, reason,
                 score, games, consumed, historyHash, seriesWinner,
                 aggregate.lastActivityAt(), aggregate.expiresAt(), receipts);
+        repository.stageStatistics(updated,game.gameNumber(),execution.output());
         return new SeriesRepository.Mutation<>(updated,
                 new CommitResult(updated, committedGame, null));
     }

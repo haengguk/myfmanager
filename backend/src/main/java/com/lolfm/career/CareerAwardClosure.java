@@ -49,7 +49,11 @@ final class CareerAwardClosure {
     }
     static boolean exists(JdbcTemplate db,String career,int year,CareerAwardPolicy.Definition d,String occurrence){return db.queryForObject("SELECT COUNT(*) FROM career_record_award WHERE instance_id=?",Integer.class,CareerAwardPolicy.instance(career,year,d.id(),d.scope(),occurrence))>0;}
     static List<CareerAwardsStore.Candidate> periodCandidates(JdbcTemplate db,String career,int year,CareerAwardPolicy.Definition d,List<CareerRecordsStore.Series> series,List<Fixture> fixtures,String occurrence) {
+        var unique=new TreeMap<String,CareerRecordsStore.Series>();
+        for(var record:series){var old=unique.putIfAbsent(record.recordId(),record);if(old!=null&&!old.equals(record))throw new IllegalStateException("AWARD_INPUT_IDENTITY_CONFLICT");}
+        series=unique.values().stream().sorted(Comparator.comparing(CareerRecordsStore.Series::date).thenComparing(CareerRecordsStore.Series::recordId)).toList();
         if(!CareerAwardsStore.complete(series))return List.of();
+        boolean v2=CareerPerformanceV2.VERSION.equals(CareerEvaluationVersion.get(db,career,year));
         var rows=new TreeMap<String,List<CareerRecordsStore.PlayerGame>>();for(var s:series)for(var g:s.games())for(var p:g.players())rows.computeIfAbsent(p.playerId(),k->new ArrayList<>()).add(p);
         var candidates=new ArrayList<CareerAwardsStore.Candidate>();long seed=CareerAwardsStore.seed(db,career);String instance=CareerAwardPolicy.instance(career,year,d.id(),d.scope(),occurrence);
         var market=CareerMarketStore.load(db,career);
@@ -62,20 +66,41 @@ final class CareerAwardClosure {
                 sets+=actual.size();if(actual.stream().anyMatch(p->p.evaluation().rating()==null)){missing=true;continue;}
                 samples.add(new Sample(div(actual.stream().map(p->p.evaluation().rating()).reduce(BigDecimal.ZERO,BigDecimal::add),decimal(actual.size())),div(decimal(actual.size()),decimal(s.games().size())),s.winner().equals(actual.getFirst().team()),actual.size()));
             }
-            if(samples.isEmpty())continue;var summary=period(samples);String eligibility="TRUE",reason="평가 범위 실제 출전자";
+            if(samples.isEmpty())continue;var summary=v2?CareerPerformanceV2.period(samples):period(samples);
+            BigDecimal observedOpportunities=v2?actualOpportunities(db,career,year,player,fixtures,series):null;
+            String eligibility="TRUE",reason="평가 범위 실제 출전자";
             if(missing){eligibility="UNKNOWN";reason="필수 경기 성적 누락";}
             else if(Set.of("REGULAR_MVP","ALL_PRO").contains(d.category())) {
-                BigDecimal denominator=opportunities(db,career,year,d.scope(),player,fixtures,market);
-                if(denominator==null){eligibility="UNKNOWN";reason="당시 재직·출전 기회를 확인할 자료가 부족합니다.";}
+                BigDecimal denominator=v2?observedOpportunities:opportunities(db,career,year,d.scope(),player,fixtures,market);
+                boolean fixedMinimum=d.scope().equals("LCK_REGULAR")||d.scope().startsWith("LEC_");
+                if(denominator==null&&!fixedMinimum){eligibility="UNKNOWN";reason="당시 재직·출전 기회를 확인할 자료가 부족합니다.";}
                 else if(!eligible(d.scope(),played.size(),summary.effectiveSeries(),denominator)){eligibility="FALSE";reason="최소 출전 조건 미충족 · "+d.eligibility();}
-                else reason=d.eligibility()+" · 예정 기회 "+denominator+" / 유효 출전 "+summary.effectiveSeries();
+                else reason=d.eligibility()+" · 개인 적격 기회 "+(denominator==null?"미확인":denominator)+" / 유효 출전 "+summary.effectiveSeries();
+            }else if(v2&&d.category().equals("EVENT_MVP")) {
+                var denominator=observedOpportunities;
+                eligibility=denominator==null?"UNKNOWN":CareerPerformanceV2.eventEligible(samples.size(),summary.effectiveSeries(),denominator)?"TRUE":"FALSE";
+                reason="게임 기준: 실제 2 Series 이상 · 당시 적격 기회의 50% 이상 / 실제 Series "+samples.size()+" · 유효 출전 "+summary.effectiveSeries()+" · 적격 기회 "+(denominator==null?"미확인":denominator);
             }else if(d.category().equals("ROOKIE")) {
                 eligibility=rookie(db,career,year,player,played.size());reason="LCK 최초 등록 후 두 시즌 이내·26세트·이전 후보/해외 등록 이력 · "+eligibility;
             }
             BigDecimal score=switch(d.category()){case "ALL_PRO"->summary.allPro();case "REGULAR_MVP","ROOKIE"->summary.regularMvp();case "EVENT_MVP"->summary.tournamentMvp();case "MOST_FEARLESS"->decimal(played.stream().map(p->p.statistics().championId()).distinct().count());case "MOST_MATCH_MVP"->decimal(pomCount(db,career,year,player));default->throw new IllegalStateException("AWARD_CATEGORY_UNSUPPORTED");};
             if(d.category().equals("MOST_MATCH_MVP")&&score.signum()==0){eligibility="FALSE";reason="확정된 POM 수상 없음";}
-            candidates.add(new CareerAwardsStore.Candidate(player,last.name(),last.team(),role,sets,summary.effectiveSeries(),eligibility,reason,score,summary.adjustedMean(),summary,CareerAwardPolicy.tie(seed,instance,player)));
+            candidates.add(new CareerAwardsStore.Candidate(player,last.name(),last.team(),role,sets,summary.effectiveSeries(),eligibility,reason,score,v2?summary.observedMean():summary.adjustedMean(),summary,CareerAwardPolicy.tie(seed,instance,player),v2?new CareerAwardsStore.SampleEvidence(samples.size(),observedOpportunities,observedOpportunities==null||observedOpportunities.signum()==0?null:fixed(div(summary.effectiveSeries(),observedOpportunities))):null));
         }return candidates;
+    }
+    static BigDecimal actualOpportunities(JdbcTemplate db,String career,int year,String player,List<Fixture> fixtures,List<CareerRecordsStore.Series> records) {
+        var teams=new HashSet<String>();for(var s:records)for(var g:s.games())for(var p:g.players())if(p.playerId().equals(player))teams.add(p.team());
+        int count=0;var seen=new HashSet<String>();
+        for(var f:fixtures) {
+            if(!f.completed()||f.series()==null||f.first()==null||f.second()==null||!seen.add(f.event()+"|"+f.match()))continue;
+            String identity=records.stream().filter(r->r.seriesId().equals(f.series())).map(CareerRecordsStore.Series::origin).findFirst().orElse("COMP|"+year+'|'+f.event()+'|'+f.match());
+            var captured=db.query("SELECT snapshot_json,snapshot_hash FROM career_appearance_binding WHERE career_id=? AND fixture_identity=?",(r,n)->{if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("APPEARANCE_SNAPSHOT_INTEGRITY");return read(r.getString(1),CareerManagementState.Appearance.class);},career,identity);
+            if(!captured.isEmpty()) {if(captured.getFirst().opportunities().stream().anyMatch(p->p.playerId().equals(player)&&p.eligible()))count++;continue;}
+            // A verified actual appearance proves eligibility for that fixture, including a historical loan.
+            if(records.stream().filter(s->s.seriesId().equals(f.series())).flatMap(s->s.games().stream()).flatMap(g->g.players().stream()).anyMatch(p->p.playerId().equals(player)))count++;
+            else if(teams.contains(f.first())||teams.contains(f.second()))return null;
+        }
+        return decimal(count);
     }
     static BigDecimal opportunities(JdbcTemplate db,String career,int year,String scope,String player,List<Fixture> fixtures,CareerMarketStore.Saved market) {
         if(scope.equals("LCK_REGULAR")||scope.startsWith("LEC_"))return BigDecimal.ZERO;

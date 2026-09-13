@@ -102,7 +102,7 @@ final class ProductionLeagueAutomatedSeriesGameExecutor
         List<ChampionId> orderedAfter = historyAfter.stream()
                 .sorted(java.util.Comparator.comparing(ChampionId::value)).toList();
         return new Execution(draft, LeagueFixtureGameReceiptV1.from(
-                prepared.input(), prepared.output(), orderedAfter), com.lolfm.career.CareerGameStatistics.from(request.gameNumber(),prepared.output().outputHash(),prepared.output().resultSummary()));
+                prepared.input(), prepared.output(), orderedAfter), com.lolfm.career.CareerGameStatistics.from(request.gameNumber(),prepared.output()));
     }
 
     private void validate(

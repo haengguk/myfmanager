@@ -20,13 +20,13 @@ public final class CareerInboxStore {
     static JsonNode facts(Object value){return read(write(value),JsonNode.class);}
     static void series(JdbcTemplate db,CareerRecordsStore.Series s) {
         String team=managed(db,s.careerId());if(!CareerRecordsQuery.teams(team,true).contains(s.firstTeam())&&!CareerRecordsQuery.teams(team,true).contains(s.secondTeam()))return;
-        add(db,s.careerId(),s.seasonYear(),new Item("SERIES:"+s.recordId(),"SERIES_RESULT",s.date(),s.firstTeam()+" · "+s.secondTeam()+" 경기 결과","승리 "+s.winner()+" · "+s.games().size()+"세트 · 경기상은 결과 상세에서 확인",team,null,s.competition(),s.competition().equals("LCK_CL"),Link.of("RECORDS",null,s.recordId(),s.competition(),s.seasonYear()),facts(Map.of("recordId",s.recordId(),"winner",s.winner(),"games",s.games().size()))));
+        add(db,s.careerId(),s.seasonYear(),new Item("SERIES:"+s.recordId(),"SERIES_RESULT",s.date(),s.firstTeam()+" · "+s.secondTeam()+" 경기 결과","승리 "+s.winner()+" · "+s.games().size()+"세트 · 경기상은 결과 상세에서 확인"+(s.games().stream().flatMap(g->g.players().stream()).anyMatch(p->CareerPerformanceV2.VERSION.equals(p.evaluation().version()))?" · 평점 V2":" · 평점 V1"),team,null,s.competition(),s.competition().equals("LCK_CL"),Link.of("RECORDS",null,s.recordId(),s.competition(),s.seasonYear()),facts(Map.of("recordId",s.recordId(),"winner",s.winner(),"games",s.games().size()))));
     }
     static void award(JdbcTemplate db,String career,int year,CareerAwardsStore.Award a) {
         if(!a.status().equals("FINALIZED")||a.analysisBadge()||a.aliases().stream().anyMatch(v->Set.of("GAME","SERIES").contains(v)))return;
         String team=managed(db,career);var winners=a.slots().stream().map(CareerAwardsStore.Slot::playerId).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
         var own=a.candidates().stream().filter(c->winners.contains(c.playerId())&&CareerRecordsQuery.teams(team,true).contains(c.team())).toList();if(own.isEmpty())return;
-        add(db,career,year,new Item("AWARD:"+a.instanceId(),"AWARD",a.publishedOn()==null?a.cutoffDate():a.publishedOn(),a.name(),String.join(", ",own.stream().map(CareerAwardsStore.Candidate::name).toList()),team,null,a.scope(),a.scope().equals("LCK_CL"),Link.of("AWARDS",null,a.instanceId(),a.scope(),year),facts(Map.of("instanceId",a.instanceId(),"name",a.name(),"status",a.status()))));
+        add(db,career,year,new Item("AWARD:"+a.instanceId(),"AWARD",a.publishedOn()==null?a.cutoffDate():a.publishedOn(),a.name(),String.join(", ",own.stream().map(CareerAwardsStore.Candidate::name).toList())+(CareerPerformanceV2.VERSION.equals(a.evaluationVersion())?" · 평가 V2":" · 평가 V1"),team,null,a.scope(),a.scope().equals("LCK_CL"),Link.of("AWARDS",null,a.instanceId(),a.scope(),year),facts(Map.of("instanceId",a.instanceId(),"name",a.name(),"status",a.status()))));
     }
     static void observation(JdbcTemplate db,String career,int year,String key,LocalDate date,JsonNode v) {
         if(!(key.startsWith("EVENT:")||key.startsWith("PLACEMENT:")||key.startsWith("TITLE:")))return;

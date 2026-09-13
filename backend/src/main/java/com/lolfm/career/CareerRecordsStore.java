@@ -16,6 +16,7 @@ public final class CareerRecordsStore {
     public record Series(String recordId,String careerId,int seasonYear,String origin,String competition,String stage,String fixtureId,String seriesId,
                          LocalDate date,String receiptHash,String winner,String firstTeam,String secondTeam,String coverage,List<Game> games) {}
     public static void beginSeason(JdbcTemplate db,String career,int year,LocalDate date,boolean completeFromStart) {
+        CareerEvaluationVersion.begin(db,career,year,completeFromStart);
         CareerHistoryStore.observe(db,career,year,"COLLECTION",date,Map.of("introducedOn",date,"completeFromStart",completeFromStart,"recordsVersion",VERSION,"awardVersion",CareerAwardPolicy.VERSION),false);
     }
     public static void capture(JdbcTemplate db,String career,int year,String identity,String series,String competition,CompetitionRosterSnapshot frozen) {
@@ -34,7 +35,13 @@ public final class CareerRecordsStore {
     }
     public static void stage(JdbcTemplate db,String series,List<CareerGameStatistics> games) {
         for(var g:games) {
-            String json=write(g),h=hash(json);
+            String json=write(g.base()),h=hash(json);
+            if(g.teamPlay()!=null){
+                g.teamPlay().validate(g);String evidence=write(g.teamPlay()),digest=hash(evidence);
+                var old=db.query("SELECT evidence_hash,output_hash FROM career_game_team_play WHERE series_id=? AND game_number=?",(r,n)->List.of(r.getString(1),r.getString(2)),series,g.gameNumber());
+                if(old.isEmpty())db.update("INSERT INTO career_game_team_play VALUES (?,?,?,?,?)",series,g.gameNumber(),g.outputHash(),evidence,digest);
+                else if(!old.getFirst().equals(List.of(digest,g.outputHash())))throw new IllegalStateException("TEAM_PLAY_STATISTICS_CONFLICT");
+            }
             var prior=db.query("SELECT statistics_hash FROM career_game_statistics WHERE series_id=? AND game_number=?",(r,n)->r.getString(1),series,g.gameNumber());
             if(!prior.isEmpty()){if(!prior.getFirst().equals(h))throw new IllegalStateException("CAREER_STATISTICS_CONFLICT");continue;}
             db.update("INSERT INTO career_game_statistics VALUES (?,?,?,?,?)",series,g.gameNumber(),g.outputHash(),json,h);
@@ -47,12 +54,29 @@ public final class CareerRecordsStore {
     static void complete(JdbcTemplate db,String career,int year,String origin,String competition,String stage,String fixture,String series,
                                 LocalDate date,String receipt,String winner,String first,String second,List<com.lolfm.league.LeagueFixtureGameReceiptV1> receipts,boolean award) {
         String id=hash(write(List.of(VERSION,career,year,origin)));
+        var existing=db.query("SELECT record_json,record_hash FROM career_record_series WHERE record_id=?",(r,n)->readSeries(r.getString(1),r.getString(2)),id);
+        if(!existing.isEmpty()) {
+            var old=existing.getFirst();
+            if(!Objects.equals(old.receiptHash(),receipt)||!Objects.equals(old.seriesId(),series)||!Objects.equals(old.competition(),competition)||!Objects.equals(old.fixtureId(),fixture)||!Objects.equals(old.winner(),team(winner,competition))||old.games().size()!=receipts.size())throw new IllegalStateException("CAREER_RECORD_CONFLICT");
+            for(var r:receipts){var g=old.games().stream().filter(v->v.gameNumber()==r.gameNumber()).findFirst().orElseThrow();
+                if(!g.outputHash().equals(r.outputHash())||g.seconds()!=r.durationSeconds()||!g.endReason().equals(r.endReason().name())||!Objects.equals(g.winner(),team(r.winnerTeamCode(),competition)))throw new IllegalStateException("CAREER_RECORD_CONFLICT");
+                for(var p:g.players())if(r.orderedFinalAssignments().stream().noneMatch(a->a.playerId().value().equals(p.playerId())&&(p.statistics()==null||a.position()==p.statistics().position()&&a.teamSide()==p.statistics().side()&&a.championId().value().equals(p.statistics().championId()))))throw new IllegalStateException("STATISTICS_ASSIGNMENT_MISMATCH");
+            }
+            CareerDraftEvidence.save(db,id,competition,receipts);return;
+        }
+        String evaluationVersion=CareerEvaluationVersion.get(db,career,year);
         var captured=db.query("SELECT observation_json,observation_hash FROM career_record_observation WHERE career_id=? AND season_year=? AND observation_key=?",(r,n)->{
             if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("RECORD_BINDING_INTEGRITY");return read(r.getString(1),Binding.class);
         },career,year,"BIND:"+hash(origin));
         Binding binding=captured.isEmpty()?null:captured.getFirst();
         var stats=new TreeMap<Integer,CareerGameStatistics>();db.query("SELECT statistics_json,statistics_hash FROM career_game_statistics WHERE series_id=?",(org.springframework.jdbc.core.RowCallbackHandler)r->{
             if(!hash(r.getString(1)).equals(r.getString(2)))throw new IllegalStateException("STATISTICS_INTEGRITY");var g=read(r.getString(1),CareerGameStatistics.class);stats.put(g.gameNumber(),g);
+        },series);
+        db.query("SELECT game_number,output_hash,evidence_json,evidence_hash FROM career_game_team_play WHERE series_id=?",(org.springframework.jdbc.core.RowCallbackHandler)r->{
+            if(!hash(r.getString(3)).equals(r.getString(4)))throw new IllegalStateException("TEAM_PLAY_INTEGRITY");
+            var g=stats.get(r.getInt(1));var evidence=read(r.getString(3),CareerTeamPlayStatistics.class);
+            if(g==null||!g.outputHash().equals(r.getString(2)))throw new IllegalStateException("TEAM_PLAY_OUTPUT_MISMATCH");
+            evidence.validate(g);stats.put(g.gameNumber(),g.withTeamPlay(evidence));
         },series);
         var games=new ArrayList<Game>();
         for(var r:receipts) {
@@ -63,12 +87,12 @@ public final class CareerRecordsStore {
                     if(r.orderedFinalAssignments().stream().noneMatch(a->a.playerId().value().equals(p.playerId())&&a.position()==p.position()&&a.teamSide()==p.side()&&a.championId().value().equals(p.championId())))throw new IllegalStateException("STATISTICS_ASSIGNMENT_MISMATCH");
                     var person=binding==null?null:binding.people().get(p.playerId());
                     String team=team(p.team(),competition);
-                    players.add(new PlayerGame(g.gameNumber(),p.playerId(),person==null?p.playerId():person.name(),team,person==null?null:person.registeredTeam(),person==null?null:person.employer(),p,CareerPerformancePolicy.rate(g,p),p.team().equals(g.winner())));
+                    players.add(new PlayerGame(g.gameNumber(),p.playerId(),person==null?p.playerId():person.name(),team,person==null?null:person.registeredTeam(),person==null?null:person.employer(),p,CareerPerformanceV2.VERSION.equals(evaluationVersion)?CareerPerformanceV2.rate(g,p):CareerPerformancePolicy.rate(g,p),p.team().equals(g.winner())));
                 }
             }
             if(g==null)for(var a:r.orderedFinalAssignments()) {
                 var person=binding==null?null:binding.people().get(a.playerId().value());String token=a.teamSide()==com.lolfm.simulator.TeamSide.BLUE?r.blueTeamCode():r.redTeamCode();
-                players.add(new PlayerGame(r.gameNumber(),a.playerId().value(),person==null?a.playerId().value():person.name(),team(token,competition),person==null?null:person.registeredTeam(),person==null?null:person.employer(),null,CareerPerformancePolicy.Rating.missing(),token.equals(r.winnerTeamCode())));
+                players.add(new PlayerGame(r.gameNumber(),a.playerId().value(),person==null?a.playerId().value():person.name(),team(token,competition),person==null?null:person.registeredTeam(),person==null?null:person.employer(),null,new CareerPerformancePolicy.Rating("INPUT_INCOMPLETE",null,null,null,null,null,evaluationVersion),token.equals(r.winnerTeamCode())));
             }
             games.add(new Game(r.gameNumber(),r.outputHash(),r.durationSeconds(),team(r.winnerTeamCode(),competition),r.endReason().name(),g==null?"NOT_COLLECTED":"COMPLETE",players));
         }
@@ -80,7 +104,7 @@ public final class CareerRecordsStore {
         db.update("INSERT INTO career_record_series(record_id,career_id,season_year,origin_identity,competition_id,stage_id,fixture_id,series_id,played_date,receipt_hash,winner_team,first_team,second_team,game_count,coverage,record_json,record_hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",id,career,year,origin,competition,stage,fixture,series,record.date(),receipt,record.winner(),record.firstTeam(),record.secondTeam(),games.size(),coverage,json,digest);
         for(var g:games)for(var p:g.players()) {
             var stat=p.statistics();var assignment=receipts.get(g.gameNumber()-1).orderedFinalAssignments().stream().filter(v->v.playerId().value().equals(p.playerId())).findFirst().orElseThrow();
-            db.update("INSERT INTO career_record_player VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",id,g.gameNumber(),p.playerId(),career,year,p.team(),p.name(),write(p),assignment.championId().value(),assignment.position().name(),stat==null?null:stat.kills(),stat==null?null:stat.deaths(),stat==null?null:stat.assists(),stat==null?null:stat.cs(),stat==null?null:stat.gold(),stat==null?null:stat.experience(),g.seconds(),p.won(),p.evaluation().rating());
+            db.update("INSERT INTO career_record_player VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",id,g.gameNumber(),p.playerId(),career,year,p.team(),p.name(),write(p),assignment.championId().value(),assignment.position().name(),stat==null?null:stat.kills(),stat==null?null:stat.deaths(),stat==null?null:stat.assists(),stat==null?null:stat.cs(),stat==null?null:stat.gold(),stat==null?null:stat.experience(),g.seconds(),p.won(),p.evaluation().rating(),p.evaluation().version());
         }
         CareerDraftEvidence.save(db,id,competition,receipts);
         if(award)CareerAwardsStore.match(db,record);

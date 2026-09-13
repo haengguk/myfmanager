@@ -92,15 +92,18 @@ class CareerDomesticExecutionTest {
         assertThat(result.response().series().status()).isEqualTo(SeriesStatus.COMPLETED);
         assertThat(result.response().series().games()).hasSize(1);
         assertThat(result.response().series().excludedChampionIds()).hasSize(inherited.size() + 10);
+        var supportBefore=jdbc.queryForList("SELECT evidence_json,evidence_hash,output_hash FROM career_game_team_play WHERE series_id=?",player.boundSeriesId());
+        assertThat(supportBefore).hasSize(1);
         var completed = lifecycle.completedCompetitionEvidence(player, com.lolfm.simulator.SimulationInstrumentation.enabled());
         assertThat(CareerCompetitionTestSupport.verifyPlayer(player, completed).orderedGames()).hasSize(1);
+        assertThat(jdbc.queryForList("SELECT evidence_json,evidence_hash,output_hash FROM career_game_team_play WHERE series_id=?",player.boundSeriesId())).isEqualTo(supportBefore);
         assertThat(checkpoints.load(player.boundSeriesId()).orElseThrow().competitionSidePolicy()).isEqualTo(player.sideSelectionPolicy());
         assertThat(lifecycle.resumeCompetitionBound(player).status()).isEqualTo(SeriesStatus.COMPLETED);
         CareerCompetitionTestSupport.applyRealPlayerCompletion(store,player,completed);
         String id=career.careerId();var report=records.view(id,"ALL","",2027,null,0,null);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_record_draft d JOIN career_record_series s ON s.record_id=d.record_id WHERE s.career_id=?",Integer.class,id)).isEqualTo(report.matches().stream().mapToInt(m->m.games().size()).sum());
         assertThat(report.matches()).hasSize(2).allMatch(m->m.coverage().equals("COMPLETE"));
-        assertThat(report.matches().stream().flatMap(m->m.games().stream()).flatMap(g->g.players().stream())).allMatch(p->p.evaluation().rating()!=null);
+        assertThat(report.matches().stream().flatMap(m->m.games().stream()).flatMap(g->g.players().stream())).allMatch(p->p.evaluation().rating()!=null&&p.evaluation().version().equals(com.lolfm.career.CareerPerformanceV2.VERSION)&&p.evaluation().support()!=null);
         var bo1=report.matches().stream().filter(m->m.seriesId().equals(player.boundSeriesId())).findFirst().orElseThrow();
         var bo1Awards=report.awards().stream().filter(a->a.inputRecords().stream().anyMatch(v->v.startsWith(bo1.recordId()))).toList();
         assertThat(bo1Awards).hasSize(3);assertThat(bo1Awards.stream().filter(a->!a.analysisBadge())).singleElement().satisfies(a->assertThat(a.aliases()).contains("GAME","SERIES"));
@@ -175,10 +178,19 @@ class CareerDomesticExecutionTest {
         var result = series.simulate(view.seriesId(), 1, new SeriesApiV1Dtos.SimulateRequest(
                 SeriesApiV1Dtos.SIMULATE_REQUEST_SCHEMA, view.revision(), child.revision(), "international-simulate"));
         assertThat(result.response().series().status()).isEqualTo(SeriesStatus.COMPLETED);
+        var supportBefore=jdbc.queryForList("SELECT evidence_json,evidence_hash,output_hash FROM career_game_team_play WHERE series_id=?",player.boundSeriesId());
+        assertThat(supportBefore).hasSize(1);
         var completed = lifecycle.completedCompetitionEvidence(player, com.lolfm.simulator.SimulationInstrumentation.enabled());
         assertThat(CareerCompetitionTestSupport.verifyPlayer(player, completed).orderedGames()).hasSize(1);
         assertThat(checkpoints.load(player.boundSeriesId()).orElseThrow().frozenCompetitionRosters()).isEqualTo(player.frozenRosters());
         assertThat(lifecycle.resumeCompetitionBound(player).status()).isEqualTo(SeriesStatus.COMPLETED);
+        // Emulate a pre-collector committed checkpoint: completion verification may replay its
+        // original engine contract, but must not turn that replay into newly collected support.
+        jdbc.update("DELETE FROM career_game_team_play WHERE series_id=?",player.boundSeriesId());
+        CareerCompetitionTestSupport.applyRealPlayerCompletion(store,player,completed);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM career_game_team_play WHERE series_id=?",Integer.class,player.boundSeriesId())).isZero();
+        var savedRecord=records.series(career.careerId(),player.boundSeriesId());
+        assertThat(savedRecord.games().getFirst().players()).allSatisfy(p->assertThat(p.evaluation().support().status()).isEqualTo("NOT_COLLECTED"));
     }
 
 }

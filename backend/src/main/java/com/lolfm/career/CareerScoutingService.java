@@ -82,7 +82,7 @@ public final class CareerScoutingService {
     List<Map<String,Object>> awards(String career,List<String> ids,int year,String competition) {
         String marks=String.join(",",Collections.nCopies(ids.size(),"?"));
         var awardArgs=new ArrayList<Object>(List.of(career,year));awardArgs.addAll(ids);String af="a.career_id=? AND a.season_year=? AND c.player_id IN ("+marks+") AND c.winner=TRUE AND a.status='FINALIZED'";af+=CareerRecordsQuery.awardScopeFilter(competition,awardArgs);
-        return db.query("SELECT c.player_id,a.award_json,a.award_hash FROM career_record_award a JOIN career_record_award_candidate c ON c.instance_id=a.instance_id WHERE "+af+" ORDER BY a.instance_id",(r,n)->{if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("AWARD_INTEGRITY");var a=read(r.getString(2),CareerAwardsStore.Award.class);return a.analysisBadge()?null:Map.<String,Object>of("playerId",r.getString(1),"instanceId",a.instanceId(),"name",a.name(),"scope",a.scope());},awardArgs.toArray()).stream().filter(Objects::nonNull).toList();
+        return db.query("SELECT c.player_id,a.award_json,a.award_hash FROM career_record_award a JOIN career_record_award_candidate c ON c.instance_id=a.instance_id WHERE "+af+" ORDER BY a.instance_id",(r,n)->{if(!hash(r.getString(2)).equals(r.getString(3)))throw new IllegalStateException("AWARD_INTEGRITY");var a=read(r.getString(2),CareerAwardsStore.Award.class);return a.analysisBadge()?null:Map.<String,Object>of("playerId",r.getString(1),"instanceId",a.instanceId(),"name",a.name(),"scope",a.scope(),"evaluationVersion",a.evaluationVersion()==null?CareerPerformancePolicy.VERSION:a.evaluationVersion());},awardArgs.toArray()).stream().filter(Objects::nonNull).toList();
     }
 
 }

@@ -19,7 +19,9 @@ class CareerRecordsStorageTest {
         var ds=new DriverManagerDataSource(url,"sa","");var db=new JdbcTemplate(ds);var tx=new TransactionTemplate(new DataSourceTransactionManager(ds));
         db.execute("CREATE TABLE career_save(career_id VARCHAR(80) PRIMARY KEY,career_root_seed BIGINT,managed_team_code VARCHAR(16))");db.update("INSERT INTO career_save VALUES ('career',17,'T1'),('other',17,'GEN')");
         db.execute("CREATE TABLE career_calendar_state(career_id VARCHAR(80),current_game_date DATE)");db.update("INSERT INTO career_calendar_state VALUES ('career',DATE '2027-10-01')");
+        db.execute("CREATE TABLE career_season(career_id VARCHAR(80),season_year INTEGER,season_id VARCHAR(80),lifecycle_status VARCHAR(32))");
         new ResourceDatabasePopulator(new ClassPathResource("db/migration/V25__career_records_and_awards.sql"),new ClassPathResource("db/migration/V26__career_inbox_and_observation_index.sql"),new ClassPathResource("db/migration/V28__career_scouting_and_draft_evidence.sql")).execute(ds);
+        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V29__career_evaluation_v2.sql")).execute(ds);
         var games=new ArrayList<com.lolfm.league.LeagueFixtureGameReceiptV1>();var stats=new ArrayList<CareerGameStatistics>();var history=new com.lolfm.draft.SeriesDraftHistory();
         for(int number=1;number<=5;number++) {
             var game=com.lolfm.league.LeagueAutomatedSeriesRunnerTest.syntheticGame("SYNTHETIC_RECORDS_"+number,number,"GEN","T1",100+number,history,number<=3?"GEN":"T1",null);games.add(game);
@@ -59,7 +61,6 @@ class CareerRecordsStorageTest {
         assertThat(CareerRecordsQuery.teams("LCK:GEN:CL",true)).containsExactly("LCK:GEN","LCK:GEN:CL");
         assertThat(CareerRecordsQuery.teams("LEC:KCB",false)).containsExactly("LEC:KCB");
         assertThat(CareerRecordsQuery.teams("LEC:KCB",true)).containsExactly("LEC:KC","LEC:KCB");
-        db.execute("CREATE TABLE career_season(career_id VARCHAR(80),season_year INTEGER,season_id VARCHAR(80),lifecycle_status VARCHAR(32))");
         db.update("INSERT INTO career_season VALUES ('career',2027,'season','ACTIVE')");
         db.execute("CREATE TABLE league_fixture(season_id VARCHAR(80),fixture_id VARCHAR(80),bound_series_id VARCHAR(80),round_number INTEGER,first_team_code VARCHAR(32),second_team_code VARCHAR(32),lifecycle_status VARCHAR(32))");
         db.update("INSERT INTO league_fixture VALUES ('season','fixture','series',1,'GEN','T1','COMPLETED')");
@@ -108,15 +109,54 @@ class CareerRecordsStorageTest {
         String bo1=db.queryForObject("SELECT record_id FROM career_record_series WHERE series_id='bo1'",String.class);
         assertThat(db.queryForObject("SELECT COUNT(*) FROM career_inbox_item WHERE source_key=?",Integer.class,"SERIES:"+bo1)).isOne();
         assertThat(queries.matchAwards("career",bo1)).filteredOn(a->!a.analysisBadge()).singleElement().satisfies(a->assertThat(a.aliases()).contains("GAME","SERIES"));
+        // New season adoption does not reinterpret the legacy season or its already sealed raw JSON.
+        var legacyRecords=db.queryForList("SELECT record_json,record_hash FROM career_record_series WHERE season_year=2027 ORDER BY record_id");
+        var legacyAwards=db.queryForList("SELECT award_json,award_hash FROM career_record_award WHERE season_year=2027 ORDER BY instance_id");
+        CareerEvaluationVersion.begin(db,"career",2027,false);CareerEvaluationVersion.begin(db,"career",2027,true);
+        assertThat(CareerEvaluationVersion.get(db,"career",2027)).isEqualTo(CareerPerformancePolicy.VERSION);
+        CareerEvaluationVersion.begin(db,"career",2028,true);CareerEvaluationVersion.begin(db,"career",2028,false);
+        assertThat(CareerEvaluationVersion.get(db,"career",2028)).isEqualTo(CareerPerformanceV2.VERSION);
+        db.execute("CREATE TABLE career_appearance_binding(career_id VARCHAR(80),fixture_identity VARCHAR(200),snapshot_json CLOB,snapshot_hash CHAR(64))");
+        var v2Stats=stats.subList(0,2).stream().map(g->g.withTeamPlay(new CareerTeamPlayStatistics(g.outputHash(),List.of(new CareerTeamPlayStatistics.Action("verified-action","OBJECTIVE_FIGHT",null,com.lolfm.simulator.TeamSide.BLUE,g.players().stream().map(CareerGameStatistics.Player::playerId).toList()))))).toList();
+        for(String match:List.of("SF","F"))tx.executeWithoutResult(t->{
+            CareerRecordsStore.stage(db,"v2-"+match,v2Stats);
+            CareerRecordsStore.complete(db,"career",2028,"COMP|2028|FIRST_STAND|"+match,"FIRST_STAND",match,match,"v2-"+match,LocalDate.of(2028,3,1),CareerRosterStore.hash(match),"GEN","GEN","T1",games.subList(0,2));
+            db.update("INSERT INTO career_competition_fixture VALUES (?,?,?,?,?,?,?,?,?,?,?)","career",2028,"FIRST_STAND",match,match,"v2-"+match,LocalDate.of(2028,3,1),"GEN","T1","COMPLETED",match);
+        });
+        db.execute("CREATE TABLE career_roster_state(career_id VARCHAR(80),season_year INTEGER,revision BIGINT,state_json CLOB,state_hash CHAR(64))");
+        db.execute("CREATE TABLE career_registered_player_pool(career_id VARCHAR(80),season_year INTEGER,competition_id VARCHAR(80),pool_json CLOB,pool_hash CHAR(64))");
+        CareerAwardClosure.close(db,"career",2028,"FIRST_STAND","F");CareerAwardClosure.close(db,"career",2028,"FIRST_STAND","F");
+        var eventAward=CareerRosterStore.read(db.queryForObject("SELECT award_json FROM career_record_award WHERE season_year=2028 AND definition_id='FIRST_STAND_MVP'",String.class),CareerAwardsStore.Award.class);
+        assertThat(eventAward.evaluationVersion()).isEqualTo(CareerPerformanceV2.VERSION);assertThat(eventAward.status()).isEqualTo("FINALIZED");assertThat(eventAward.slots()).hasSize(1);assertThat(eventAward.inputRecords()).hasSize(2);
+        assertThat(eventAward.candidates()).allSatisfy(c->{assertThat(c.eligibility()).isEqualTo("TRUE");assertThat(c.period().version()).isEqualTo(CareerPerformanceV2.VERSION);assertThat(c.combat()).isEqualTo(c.period().observedMean());assertThat(c.sampleEvidence().observedSeries()).isEqualTo(2);assertThat(c.sampleEvidence().eligibleOpportunities()).isEqualByComparingTo("2");assertThat(c.sampleEvidence().participationRate()).isEqualByComparingTo("1");});
+        var v2Records=db.query("SELECT record_json,record_hash FROM career_record_series WHERE season_year=2028 ORDER BY record_id",(r,n)->CareerRecordsStore.readSeries(r.getString(1),r.getString(2)));
+        assertThat(v2Records).allSatisfy(r->assertThat(r.games()).allSatisfy(g->assertThat(g.players()).allSatisfy(p->{assertThat(p.evaluation().version()).isEqualTo(CareerPerformanceV2.VERSION);assertThat(p.evaluation().support().observation().objectiveParticipations()).isOne();})));
+        var definition=CareerAwardPolicy.DEFINITIONS.stream().filter(d->d.id().equals("FIRST_STAND_MVP")).findFirst().orElseThrow();
+        var fixtures=CareerAwardClosure.fixtures(db,"career",2028,"FIRST_STAND");var duplicated=new ArrayList<>(v2Records);duplicated.addAll(v2Records);
+        assertThat(CareerAwardClosure.periodCandidates(db,"career",2028,definition,duplicated,fixtures,"CHAMPIONSHIP")).isEqualTo(CareerAwardClosure.periodCandidates(db,"career",2028,definition,v2Records,fixtures,"CHAMPIONSHIP"));
+        // Frozen eligibility follows personal registration at each actual start, including bench/loan periods.
+        for(var f:fixtures){var appearance=new CareerManagementState.Appearance("pending", "COMP|2028|FIRST_STAND|"+f.match(),f.series(),2028,f.date(),0,List.of(new CareerManagementState.Opportunity("bench-loan",f.first(),com.lolfm.domain.Position.TOP,null,f.match().equals("SF"),false,f.match().equals("SF")?"REGISTERED_LOAN":"JOINED_AFTER_REGISTRATION")));
+            String evidence=CareerRosterStore.write(appearance);db.update("INSERT INTO career_appearance_binding VALUES (?,?,?,?)","career",appearance.fixtureId(),evidence,CareerRosterStore.hash(evidence));}
+        var actualAndFuture=new ArrayList<>(fixtures);actualAndFuture.addAll(fixtures);actualAndFuture.add(new CareerAwardClosure.Fixture("FIRST_STAND","FUTURE","later","future",LocalDate.of(2028,3,2),"LCK:GEN","LCK:T1",false));actualAndFuture.add(new CareerAwardClosure.Fixture("FIRST_STAND","BYE","bye",null,LocalDate.of(2028,3,1),"LCK:GEN",null,true));
+        assertThat(CareerAwardClosure.actualOpportunities(db,"career",2028,"bench-loan",actualAndFuture,v2Records)).isEqualByComparingTo("1");
+        db.update("UPDATE career_appearance_binding SET snapshot_hash=? WHERE fixture_identity='COMP|2028|FIRST_STAND|SF'","0".repeat(64));
+        assertThatThrownBy(()->CareerAwardClosure.actualOpportunities(db,"career",2028,"bench-loan",fixtures,v2Records)).hasMessage("APPEARANCE_SNAPSHOT_INTEGRITY");
+        db.update("DELETE FROM career_appearance_binding WHERE career_id='career'");
+        complete.run(); // legacy receipt replay after V2 adoption must return old bytes, never recompute.
+        assertThat(db.queryForList("SELECT record_json,record_hash FROM career_record_series WHERE season_year=2027 ORDER BY record_id")).isEqualTo(legacyRecords);
+        assertThat(db.queryForList("SELECT award_json,award_hash FROM career_record_award WHERE season_year=2027 ORDER BY instance_id")).isEqualTo(legacyAwards);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM career_game_team_play",Integer.class)).isEqualTo(4);
+        for(var replay:v2Records)CareerRecordsStore.complete(db,"career",2028,replay.origin(),replay.competition(),replay.stage(),replay.fixtureId(),replay.seriesId(),replay.date(),replay.receiptHash(),"GEN","GEN","T1",games.subList(0,2));
         original=db.queryForList("SELECT record_id,record_hash FROM career_record_series");
         awards=db.queryForList("SELECT instance_id,award_hash FROM career_record_award ORDER BY instance_id");
-        db.execute("SHUTDOWN");var reopened=new JdbcTemplate(new DriverManagerDataSource(url,"sa",""));assertThat(reopened.queryForList("SELECT record_id,record_hash FROM career_record_series")).isEqualTo(original);assertThat(reopened.queryForList("SELECT instance_id,award_hash FROM career_record_award ORDER BY instance_id")).isEqualTo(awards);reopened.execute("SHUTDOWN");
+        db.execute("SHUTDOWN");var reopened=new JdbcTemplate(new DriverManagerDataSource(url,"sa",""));assertThat(reopened.queryForList("SELECT record_id,record_hash FROM career_record_series")).isEqualTo(original);assertThat(reopened.queryForList("SELECT instance_id,award_hash FROM career_record_award ORDER BY instance_id")).isEqualTo(awards);assertThat(CareerEvaluationVersion.get(reopened,"career",2027)).isEqualTo(CareerPerformancePolicy.VERSION);assertThat(CareerEvaluationVersion.get(reopened,"career",2028)).isEqualTo(CareerPerformanceV2.VERSION);reopened.execute("SHUTDOWN");
     }
     @Test void subjectsAreFilteredBeforePagingAndGrowthBoundariesAreIndependent() {
         var ds=new DriverManagerDataSource("jdbc:h2:mem:subjects;DB_CLOSE_DELAY=-1","sa","");var db=new JdbcTemplate(ds);
         new ResourceDatabasePopulator(new ClassPathResource("db/migration/V25__career_records_and_awards.sql"),new ClassPathResource("db/migration/V26__career_inbox_and_observation_index.sql"),new ClassPathResource("db/migration/V28__career_scouting_and_draft_evidence.sql")).execute(ds);
         db.execute("CREATE TABLE career_save(career_id VARCHAR(80),managed_team_code VARCHAR(16))");db.update("INSERT INTO career_save VALUES ('career','T1')");
         db.execute("CREATE TABLE career_season(career_id VARCHAR(80),season_year INTEGER,lifecycle_status VARCHAR(32))");db.update("INSERT INTO career_season VALUES ('career',2027,'ACTIVE')");
+        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V29__career_evaluation_v2.sql")).execute(ds);
         var query=new CareerRecordsQuery(db,new DataSourceTransactionManager(ds));var date=LocalDate.of(2027,1,1);
         // Legacy rows have no search subjects yet. Migration indexes them without changing evidence.
         String opening=CareerRosterStore.write(Map.of("players",Map.of("target",Map.of("internalRatings",Map.of("LANING",1000)))));
@@ -157,9 +197,10 @@ class CareerRecordsStorageTest {
         new ResourceDatabasePopulator(new ClassPathResource("db/migration/V25__career_records_and_awards.sql"),new ClassPathResource("db/migration/V26__career_inbox_and_observation_index.sql"),new ClassPathResource("db/migration/V28__career_scouting_and_draft_evidence.sql")).execute(ds);
         db.execute("CREATE TABLE career_save(career_id VARCHAR(80),managed_team_code VARCHAR(16))");db.update("INSERT INTO career_save VALUES ('career','T1')");
         db.execute("CREATE TABLE career_season(career_id VARCHAR(80),season_year INTEGER,lifecycle_status VARCHAR(32))");db.update("INSERT INTO career_season VALUES ('career',2027,'ACTIVE')");
+        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V29__career_evaluation_v2.sql")).execute(ds);
         String json=CareerRosterStore.write(new CareerRecordsStore.Series("record","career",2027,"origin","LCK_CUP","GROUP","fixture","series",LocalDate.of(2027,1,1),"h","LCK:T1","LCK:T1","LCK:GEN","PARTIAL",List.of()));
         db.update("INSERT INTO career_record_series(record_id,career_id,season_year,origin_identity,competition_id,stage_id,fixture_id,series_id,played_date,receipt_hash,winner_team,first_team,second_team,game_count,coverage,record_json,record_hash) VALUES ('record','career',2027,'origin','LCK_CUP','GROUP','fixture','series',DATE '2027-01-01','h','LCK:T1','LCK:T1','LCK:GEN',2,'PARTIAL',?,?)",json,CareerRosterStore.hash(json));
-        for(int game=1;game<=2;game++)for(var position:com.lolfm.domain.Position.values())db.update("INSERT INTO career_record_player VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)","record",game,position.name(),"career",2027,"LCK:T1",position.name(),"{}","champion",position.name(),game==1?2:null,game==1?1:null,game==1?3:null,game==1?300:null,null,null,1800,true,null);
+        for(int game=1;game<=2;game++)for(var position:com.lolfm.domain.Position.values())db.update("INSERT INTO career_record_player VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)","record",game,position.name(),"career",2027,"LCK:T1",position.name(),"{}","champion",position.name(),game==1?2:null,game==1?1:null,game==1?3:null,game==1?300:null,null,null,1800,true,null,CareerPerformancePolicy.VERSION);
         var query=new CareerRecordsQuery(db,new DataSourceTransactionManager(ds));
         var mixed=query.view("career","PLAYER","TOP",2027,null,0,null).totals().getFirst();
         assertThat(((Number)mixed.get("seconds")).longValue()).isEqualTo(3600);assertThat(((Number)mixed.get("csobservedseconds")).longValue()).isEqualTo(1800);assertThat(mixed.get("observedcspm")).isEqualTo(10.0);

@@ -15,11 +15,14 @@ public final class CareerPerformancePolicy {
             Position.TOP,new Role(.50,.30,.12,55,30,15),Position.JUNGLE,new Role(.65,.40,.15,65,15,20),
             Position.MID,new Role(.60,.42,.10,60,25,15),Position.ADC,new Role(.60,.42,.10,60,25,15),
             Position.SUPPORT,new Role(.70,.48,.16,70,10,20));
-    public record Rating(String status,String kpStatus,BigDecimal combat,BigDecimal economy,BigDecimal survival,BigDecimal rating,String version) {
+    public record Rating(String status,String kpStatus,BigDecimal combat,BigDecimal economy,BigDecimal survival,BigDecimal rating,String version, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) CareerPerformanceV2.Support support) {
+        public Rating(String status,String kpStatus,BigDecimal combat,BigDecimal economy,BigDecimal survival,BigDecimal rating,String version){this(status,kpStatus,combat,economy,survival,rating,version,null);}
         static Rating missing(){return new Rating("INPUT_INCOMPLETE",null,null,null,null,null,VERSION);}
     }
     public record Sample(BigDecimal mean,BigDecimal participation,boolean won,int sets) {}
-    public record Period(BigDecimal effectiveSeries,BigDecimal observedMean,BigDecimal adjustedMean,BigDecimal consistency,BigDecimal teamPerformance,BigDecimal allPro,BigDecimal regularMvp,BigDecimal tournamentMvp) {}
+    public record Period(BigDecimal effectiveSeries,BigDecimal observedMean,BigDecimal adjustedMean,BigDecimal consistency,BigDecimal teamPerformance,BigDecimal allPro,BigDecimal regularMvp,BigDecimal tournamentMvp, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) String version) {
+        public Period(BigDecimal n,BigDecimal m,BigDecimal a,BigDecimal c,BigDecimal t,BigDecimal all,BigDecimal reg,BigDecimal event){this(n,m,a,c,t,all,reg,event,null);}
+    }
     public static BigDecimal decimal(double value){return BigDecimal.valueOf(value);}
     static BigDecimal fixed(BigDecimal n){return n.setScale(SCALE,RoundingMode.HALF_UP);}
     static BigDecimal div(BigDecimal a,BigDecimal b){return a.divide(b,MC);}

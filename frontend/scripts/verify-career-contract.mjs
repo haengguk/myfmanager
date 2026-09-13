@@ -504,13 +504,18 @@ console.log('Career continuous: compact status, malformed boundary and original 
   runInNewContext(code, context);
   const { restoreRecordSelection, acceptRecordView, recordsSelectionKey } = context.exports;
   const selection = { kind: 'PLAYER', entity: 'retired-player', year: 2027, competition: '', organization: false };
-  const view = { careerId, kind: 'PLAYER', entity: 'retired-player', seasonYear: 2027, organization: false, competition: '', asOf: 4, matches: [{ careerId }], awards: [] };
+  const view = { careerId, kind: 'PLAYER', entity: 'retired-player', seasonYear: 2027, organization: false, competition: '', asOf: 4, matches: [{ careerId, games: [] }], awards: [] };
   assert.equal(acceptRecordView(view, careerId, selection), view);
   for (const patch of [{ careerId: secondCareerId }, { entity: 'another-player' }, { seasonYear: 2028 }, { organization: true }, { matches: [{ careerId: secondCareerId }] }]) assert.throws(() => acceptRecordView({ ...view, ...patch }, careerId, selection));
   assert.equal(restoreRecordSelection(JSON.stringify(selection), 2029).year, 2027);
   assert.equal(restoreRecordSelection('{broken', 2029).year, 2029);
   assert.notEqual(recordsSelectionKey(careerId), recordsSelectionKey(secondCareerId));
   console.log('PASS records Career/entity/season/organization boundary, historical filter reload and malformed optional storage');
+  const valid={status:'COMPLETE',combat:50,economy:50,survival:50,rating:50,kpStatus:'OBSERVED',version:'CAREER_PERFORMANCE_V2',support:{status:'OBSERVED',score:50,observation:{objectiveOpportunities:2,objectiveParticipations:1,objectiveWins:0,roamAttempts:0,roamWins:0}}};
+  context.exports.validateRating(valid);context.exports.validateRating({...valid,version:'CAREER_PERFORMANCE_V1',support:undefined});
+  for(const support of [{...valid.support,score:101},{...valid.support,status:'NOT_COLLECTED'},{...valid.support,observation:{...valid.support.observation,objectiveParticipations:3}}])assert.throws(()=>context.exports.validateRating({...valid,support}));
+  console.log('PASS optional legacy ratings remain readable while invalid V2 support ranges and observation counts are rejected');
+
 }
 
 // Inbox: six groups, including the actual component's asynchronous boundaries.
@@ -890,13 +895,13 @@ console.log('Career continuous: compact status, malformed boundary and original 
  console.log('PASS actual save preview rejects late A after B or cleanup and does not query unsupported entries or mutate pointers');
  const dashboard=read('CareerDashboardPage.tsx');
  const loadWorkspace=dashboard.split('  const loadWorkspace =')[1].split('\n  useEffect(() => { void loadWorkspace();')[0];
- const listSeen=[];const workspace={exports:{},useCallback:f=>f,AbortController,generationRef:{current:0},requestRef:{current:null},entryViewRef:{current:'main'},window:{sessionStorage:storage()},readCareerPointer:()=>null,invalidateScreenRequests(){},getCareers:async()=>({careers:rows}),setList:v=>listSeen.push(v),setInitialLoading(){},setError(){},setIntegrityError(){},loadDetail(){throw Error('main must not enter a save');},commitEntry(){},fetchLckTeams(){throw Error('save list cannot depend on new-game reference');},loadFailure:e=>e.message};
+ const listSeen=[];const workspace={listRequestRef:{current:null},exports:{},useCallback:f=>f,AbortController,generationRef:{current:0},requestRef:{current:null},entryViewRef:{current:'main'},window:{sessionStorage:storage()},readCareerPointer:()=>null,invalidateScreenRequests(){},getCareers:async()=>({careers:rows}),setList:v=>listSeen.push(v),setInitialLoading(){},setError(){},setIntegrityError(){},loadDetail(){throw Error('main must not enter a save');},commitEntry(){},fetchLckTeams(){throw Error('save list cannot depend on new-game reference');},loadFailure:e=>e.message};
  runInNewContext(compile('exports.load ='+loadWorkspace),workspace);await workspace.exports.load();assert.equal(listSeen[0].careers.length,2);
  console.log('PASS actual main list load accepts mixed compatibility without fetching reference teams or entering a Career');
  const pointer=await import('../src/features/career/career.pointer.ts');
  function creation(){
   const disk=storage(),requests=[],applied=[],errors=[],gate=new CareerMutationGate(()=>{});let resolve,reject;
-  const c={exports:{},useCallback:f=>f,AbortController,window:{sessionStorage:disk},createPending:false,createLock:{current:false},mutationGate:{current:gate},createRequestRef:{current:null},generationRef:{current:0},teamsRef:{current:[]},catalogRef:{current:null},apiScope:'api-A',draftKey:helpers.exports.draftKey,...pointer,CAREER_SCHEMAS:{createRequest:'CAREER_CREATE_REQUEST_V1'},CareerApiFailure,
+  const c={listRequestRef:{current:null},setInitialLoading(){},exports:{},useCallback:f=>f,AbortController,window:{sessionStorage:disk},createPending:false,createLock:{current:false},mutationGate:{current:gate},createRequestRef:{current:null},generationRef:{current:0},teamsRef:{current:[]},catalogRef:{current:null},apiScope:'api-A',draftKey:helpers.exports.draftKey,...pointer,CAREER_SCHEMAS:{createRequest:'CAREER_CREATE_REQUEST_V1'},CareerApiFailure,
    createCareer:body=>{requests.push(body);return new Promise((r,j)=>{resolve=r;reject=j;});},getCareerCalendar:async()=>{throw Error('calendar unavailable');},getCareers:async()=>{throw Error('list unavailable');},requireCareerReference(){},applyDetail:v=>applied.push(v.careerId),commitEntry:v=>applied.push(v),onNotify(){},loadFailure:e=>e.message,withCreatedCareer:(old,v)=>({careers:[v]})};
   for(const key of ['setCreatePending','setError','setIntegrityError','setPage','setHistorical','setHistoryYear','setInboxFocus','setMarketPlayer','setScheduleTab','setTrainingTab','setCalendarLoading','setCalendarError','setList'])c[key]=()=>{};
   c.setCreateError=e=>errors.push(e);
@@ -917,4 +922,53 @@ console.log('Career continuous: compact status, malformed boundary and original 
  const b=creation();first=b.c.exports.create(selection);++b.c.generationRef.current;b.c.createRequestRef.current.abort();b.resolve({career:{careerId},replayed:false});await first;
  assert.deepEqual(b.applied,[]);assert.ok(readCareerCreateOperation(b.disk));assert.equal(b.c.mutationGate.current.busy,false);
  console.log('PASS leaving an in-flight create suppresses late navigation while retaining the unresolved original operation');
+}
+
+// Exercise the production callbacks with controllable transport, including ownership across entry navigation.
+{
+ const {default:ts}=await import('typescript'),{readFileSync}=await import('node:fs'),{runInNewContext}=await import('node:vm');
+ const source=readFileSync(new URL('../src/features/career/CareerDashboardPage.tsx',import.meta.url),'utf8').replace(/\r\n/g,'\n');
+ const body=source.split('  const loadWorkspace =')[1].split('\n  useEffect(() => { void loadWorkspace();')[0];
+ const requests=[],lists=[],loading=[];const c={exports:{},useCallback:f=>f,AbortController,generationRef:{current:0},listRequestRef:{current:null},entryViewRef:{current:'main'},window:{sessionStorage:{}},readCareerPointer:()=>null,getCareers:signal=>new Promise((resolve,reject)=>requests.push({signal,resolve,reject})),setInitialLoading:v=>loading.push(v),setList:v=>lists.push(v),setError(){},setIntegrityError(){},loadFailure:String,loadDetail(){throw Error('entry navigation cannot open a Career');},commitEntry(){}};
+ runInNewContext(ts.transpileModule('exports.load ='+body,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,c);
+ const first=c.exports.load();for(const view of ['new','load','main','new']){c.entryViewRef.current=view;c.generationRef.current++;}
+ requests[0].resolve({careers:['latest'],remainingCount:99});await first;assert.equal(loading.at(-1),false);assert.equal(lists.length,1);assert.equal(requests[0].signal.aborted,false);
+ const old=c.exports.load(),fresh=c.exports.load();requests[1].resolve({careers:['stale']});await old;assert.equal(loading.at(-1),true);assert.equal(lists.length,1);requests[2].reject(Error('list failed'));await fresh;assert.equal(loading.at(-1),false);assert.equal(c.listRequestRef.current,null);
+ const retry=c.exports.load();requests[3].resolve({careers:['recovered'],remainingCount:98});await retry;assert.equal(lists.at(-1).remainingCount,98);assert.equal(loading.at(-1),false);
+ console.log('PASS entry list survives navigation, superseded finally cannot unlock its successor, and failed GET can recover');
+}
+{
+ const {observeCareerAuto}=await import('../src/features/career/careerAutoObservation.ts');
+ const target={careerId,sourceYear:2027,fixtureId:`competition_fixture_${'7'.repeat(64)}`,clientCommandId:'10000000-0000-4000-8000-000000000001',jobId:null};
+ const ready=hardenedCalendarView();Object.assign(ready.competition.nextFixture,{fixtureId:target.fixtureId,executionMode:'FULL_AUTO',jobId:null,jobStatus:null,failureCode:null,blockingReason:null,resultApplicationStatus:null});ready.competition.activePendingCommand=null;
+ let reads=0,complete=0;const options={signal:new AbortController().signal,current:()=>true,wait:async()=>{},read:async()=>{reads++;return ready;},calendar(){},message(){},complete:async()=>{complete++;}};
+ assert.equal(await observeCareerAuto(target,options),'UNCONFIRMED');assert.equal(reads,3);assert.equal(complete,0);
+ reads=0;const running=clone(ready);Object.assign(running.competition.nextFixture,{jobId:'accepted',jobStatus:'RUNNING'});running.competition.activePendingCommand={clientCommandId:target.clientCommandId};const done=clone(ready);done.competition.nextFixture=null;
+ assert.equal(await observeCareerAuto(target,{...options,read:async()=>++reads<3?ready:reads<12?running:done}),'COMPLETED');assert.equal(reads,12);assert.equal(complete,1);
+ const disk=storage();const original=logicalCareerCompetition(disk,careerId,7,()=>target.clientCommandId,2027,target.fixtureId);reconcileCareerCompetitionOperation(disk,careerId,8,null,2027,target.fixtureId);assert.deepEqual(logicalCareerCompetition(disk,careerId,8,()=>{throw Error('new UUID');},2027,target.fixtureId),original);
+ reconcileCareerCompetitionOperation(disk,careerId,8,{clientCommandId:target.clientCommandId},2027,target.fixtureId);assert.deepEqual(readCareerCompetitionOperation(disk,careerId),original);
+ console.log('PASS unaccepted Auto releases observation after bounded uncertainty; delayed acceptance keeps original observation and retry payload');
+}
+
+// Real execute + real observer: a POST that never reached the server releases its gate and retries the identical body.
+{
+ const { default:ts }=await import('typescript'),{readFileSync}=await import('node:fs'),{runInNewContext}=await import('node:vm');
+ const pointer=await import('../src/features/career/career.pointer.ts'),{observeCareerAuto}=await import('../src/features/career/careerAutoObservation.ts');
+ const source=readFileSync(new URL('../src/features/career/CareerDashboardPage.tsx',import.meta.url),'utf8').replace(/\r\n/g,'\n');
+ const compile=s=>ts.transpileModule(s,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
+ const disk=storage(),posts=[],messages=[],gate=new CareerMutationGate(()=>{});let terminal=0,acceptedReads=0;
+ const calendar=hardenedCalendarView();calendar.careerId=careerId;calendar.activeCalendarSeasonYear=2027;calendar.competition.allowedCommands=['START_AUTO_COMPETITION_FIXTURE'];calendar.competition.activePendingCommand=null;
+ Object.assign(calendar.competition.nextFixture,{executionMode:'FULL_AUTO',jobId:null,jobStatus:null,blockingReason:null,failureCode:null,resultApplicationStatus:null});
+ const c={exports:{},useCallback:f=>f,AbortController,window:{sessionStorage:disk},...pointer,detail:{careerId},calendar,competitionPending:false,historical:false,continuousBusy:false,mutationGate:{current:gate},competitionRequestRef:{current:null},generationRef:{current:1},selectedIdRef:{current:careerId},autoScope:{current:{managing:true,historical:false,year:2027}},teamsRef:{current:[]},catalogRef:{current:null},CAREER_SCHEMAS:{competitionCommandRequest:'CAREER_COMPETITION_COMMAND_REQUEST_V1'},CareerApiFailure,
+  startOrResumeCareerCompetition:async(id,body)=>{posts.push(body);if(posts.length===1)throw new CareerApiFailure('NETWORK','미접수 모형');return {executionMode:'FULL_AUTO',status:'RUNNING',jobId:'original-accepted'};},
+  getCareerCalendar:async()=>{const next=clone(calendar);if(posts.length>1){if(++acceptedReads<8){Object.assign(next.competition.nextFixture,{jobId:'original-accepted',jobStatus:'RUNNING'});next.competition.activePendingCommand={clientCommandId:posts[0].clientCommandId};}else next.competition.nextFixture=null;}return next;},
+  observeCareerAuto:(target,options)=>observeCareerAuto(target,{...options,wait:async()=>{}}),getCareer:async()=>({careerId}),requireCareerReference(){},applyDetail(){terminal++;},onNotify(){},onOpenCompetitionSeries(){},setOperatingRevision(){},setCompetitionPending:v=>{c.competitionPending=v;},setCalendar:v=>{c.calendar=v;},setCalendarError:v=>messages.push(v),loadFailure:e=>e.message};
+ runInNewContext(compile('exports.observe ='+source.split('  const observeAcceptedAuto =')[1].split('\n\n  const executeCompetition =')[0]),c);c.observeAcceptedAuto=c.exports.observe;
+ runInNewContext(compile('exports.execute ='+source.split('  const executeCompetition =')[1].split('\n  useEffect(() => {')[0]),c);
+ await c.exports.execute();assert.equal(gate.busy,false);assert.equal(c.competitionPending,false);assert.equal(terminal,0);assert.ok(messages.at(-1).includes('접수 여부'));assert.ok(pointer.readCareerCompetitionOperation(disk,careerId));
+ await c.exports.execute();assert.equal(posts.length,2);assert.deepEqual(posts[1],posts[0]);assert.equal(terminal,1);assert.equal(acceptedReads,8);assert.equal(gate.busy,false);assert.equal(pointer.readCareerCompetitionOperation(disk,careerId),null);
+ console.log('PASS actual execute and observer release unaccepted mutation gate, retry identical UUID/payload, and apply accepted result once');
+ const target={careerId,sourceYear:2027,fixtureId:calendar.competition.nextFixture.fixtureId,clientCommandId:posts[0].clientCommandId,jobId:'accepted'};
+ assert.equal(await observeCareerAuto(target,{signal:new AbortController().signal,current:()=>true,wait:async()=>{},read:async()=>{throw new CareerApiFailure('BACKEND','무결성 오류',409,'INTEGRITY');},calendar(){},complete:async()=>{throw Error('cannot complete rejected read');},message:m=>messages.push(m)}),'BLOCKED');assert.equal(messages.at(-1),'무결성 오류');
+ console.log('PASS ordinary integrity rejection remains visible and never becomes successful Auto completion');
 }

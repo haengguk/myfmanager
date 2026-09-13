@@ -87,6 +87,10 @@ public final class JdbcLeagueBoundSeriesCheckpointAdapter
                 .map(g->com.lolfm.career.CareerGameStatistics.from(g.gameNumber(),g.receipt().outputHash(),g.resultSummary())).toList();
     }
     @Override
+    public void stageStatistics(SeriesAggregate aggregate,int game,MatchEngineV1Output output){
+        if(aggregate.origin().durableBound())com.lolfm.career.CareerRecordsStore.stage(jdbc,aggregate.seriesId(),List.of(com.lolfm.career.CareerGameStatistics.from(game,output)));
+    }
+    @Override
     public void save(SeriesAggregate aggregate) {
         var manager=transactions!=null?transactions:new org.springframework.jdbc.datasource.DataSourceTransactionManager(java.util.Objects.requireNonNull(jdbc.getDataSource()));
         new org.springframework.transaction.support.TransactionTemplate(manager).executeWithoutResult(t->saveInTransaction(aggregate));

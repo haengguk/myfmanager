@@ -21,6 +21,7 @@ final class SeriesRepository {
     private final SeriesLifecycleConfiguration configuration;
     private final CleanupObserver cleanupObserver;
     private final LeagueBoundSeriesPersistencePort durableLeagueSeries;
+    void stageStatistics(SeriesAggregate aggregate,int game,MatchEngineV1Output output){if(durableLeagueSeries!=null&&aggregate.origin().durableBound())durableLeagueSeries.stageStatistics(aggregate,game,output);}
     private final Object capacityBoundary = new Object();
 
     @org.springframework.beans.factory.annotation.Autowired
